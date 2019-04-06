@@ -9,7 +9,7 @@ info:
   license:
     name: "Apache 2.0"
     url: "http://www.apache.org/licenses/LICENSE-2.0.html"
-host: "10.5.10.60"
+host: "10.5.10.60:8080"
 basePath: "/v1"
 tags:
 - name: "management"

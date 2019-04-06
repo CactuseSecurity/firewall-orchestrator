@@ -71,7 +71,7 @@ paths:
         400:
           description: "Invalid ID supplied"
         404:
-          description: "Pet not found"
+          description: "Management not found"
         405:
           description: "Validation exception"
       security:

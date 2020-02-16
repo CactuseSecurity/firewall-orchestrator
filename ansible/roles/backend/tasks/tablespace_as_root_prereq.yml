@@ -1,0 +1,14 @@
+     - name: create tablespace directory 
+       file:
+        path:  "{{ table_space }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: 0755
+       
+     - name: change db create command if using a specific tablespace location
+       lineinfile: 
+        path: "{{ iso_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
+        backrefs: yes
+        regexp: '^(\$DBCREATE_CMD -c \"CREATE DATABASE \$ISODB)(\" \| \$OUT)$'
+        line: '\1 TABLESPACE={{ table_space_name }} \2'

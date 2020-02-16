@@ -1,0 +1,1 @@
+Replace check point parser /usr/local/itsecorg/importer/CACTUS/ISO/import/checkpoint.pm

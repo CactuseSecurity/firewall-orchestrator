@@ -1,0 +1,14 @@
+# $Id: 20070801-gui.conf-new-settings.txt,v 1.1.2.2 2007-12-13 10:47:31 tim Exp $
+# $Source: /home/cvs/iso/package/install/migration/Attic/20070801-gui.conf-new-settings.txt,v $
+
+########### documentation change options ###############################
+docu-changes number-of-requests 1
+docu-changes display-approver 0
+docu-changes display-request-type 1
+docu-changes comment-is-mandatory 0
+
+########### new user specific settings #################################
+# please replace usergroup names in the following lines where necessary
+docu-changes default-request-type isoadmins: ARS
+docu-changes default-request-type reporters: ARS
+docu-changes default-request-type secuadmins: ARS

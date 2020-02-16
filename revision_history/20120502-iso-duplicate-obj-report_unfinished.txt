@@ -1,0 +1,40 @@
+todo:
+
+-- Problem: es werden auch Ranges angezeigt, die nur einmal vorkommen, wenn  es gleichzeitig doppelte single-ip-Objekte mit der selben Start-IP gibt	
+database changes:	none
+			
+Changes in web/
+
+
+select obj_name,obj_id,obj_ip,obj_ip_end from object 
+where (obj_ip,obj_ip_end) in 
+(select obj_ip,obj_ip_end from object where active and mgm_id=1 and obj_ip<>'0.0.0.0/0' and obj_ip<>'::/0'
+group by obj_ip,obj_ip_end
+having count(*)>1) 
+and active and mgm_id=1 
+
+UNION 
+
+select obj_name,obj_id,obj_ip,obj_ip_end from object 
+where (obj_ip) in 
+(select obj_ip from object where active and mgm_id=1 and obj_ip<>'0.0.0.0/0' and obj_ip<>'::/0' and obj_ip_end is null
+group by obj_ip
+having count(*)>1) 
+and active and mgm_id=1 
+
+order by obj_ip
+
+------
+
+drop view duplicate_network_objects;
+
+CREATE OR REPLACE VIEW duplicate_network_objects AS
+SELECT object.* FROM object LEFT JOIN object AS obj2 USING (obj_ip)
+WHERE object.active AND obj2.active AND 
+object.mgm_id=obj2.mgm_id AND 
+((object.obj_ip_end IS NULL AND obj2.obj_ip_end IS NULL) OR object.obj_ip_end=obj2.obj_ip_end) AND
+((object.zone_id IS NULL AND obj2.zone_id IS NULL) OR object.zone_id=obj2.zone_id) AND
+object.obj_id<>obj2.obj_id;
+
+SELECT obj_name,obj_id,obj_ip,obj_ip_end,mgm_id,zone_id FROM duplicate_network_objects WHERE mgm_id=7 ORDER BY obj_ip,obj_name;
+

@@ -1,0 +1,27 @@
+Aenderungen: nur in netscreen.pm
+
+Voraussetzungen:
+- fuer jede vsys muss ein eigenes Management angelegt werden,
+  da fuer jede vsys alle Objekte lokal definiert werden
+- vsys config: (falls eine vsys mit Namen=dev_name gefunden wird, wird diese Config geparst)
+	- mgm_name = egal, empfohlen: hostname_vsys_name
+	- dev_name = vsys name (zwingend)
+	- rulebase_name = vsys name (zwingend)
+- nicht vsys config:
+	- mgm_name = hostname (zwingend)
+	- dev_name = egal, aber empfohlen: hostname
+	- rulebase_name = hostname (zwingend)
+
+Beispiel:
+
+mgm_name: fwns1_inet
+dev_name: inet
+rulebase_name: inet
+
+mgm_name: fwns1_kunde1
+dev_name: kunde1
+rulebase_name: kunde1
+
+mgm_name: fwns2
+dev_name: fwns2
+rulebase_name: fwns2

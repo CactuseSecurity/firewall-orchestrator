@@ -1,0 +1,4 @@
+Added the following line to importer/CACTUS/ISO/import/netscreen.pm in sub ns_rules_initial: 
+		if (!$found_nat && $line_after_nat =~ /^dst ip [\d\.]+ [\d\.]+ .*/) { # nat dst ip 2.52.20.0 2.52.21.255 permit log
+			$action_idx += 5; $found_nat = 1; $nat_type = '8 dst nat with ip range'; 
+		}

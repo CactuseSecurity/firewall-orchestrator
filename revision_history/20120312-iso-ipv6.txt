@@ -1,0 +1,19 @@
+todo:
+  format ipv6 adresse
+	- netzmaske?
+	- import: /32 nicht anh�ngen, wenn ipv6?
+	- produktspezifisch:
+		* darstellung ipv6-adresse?
+
+database changes:	none
+			
+Changes in importer/
+	CACTUS/ISO/import/checkpoint.pm
+	CACTUS/ISO/import/juniper.pm
+	CACTUS/ISO/import/netscreen.pm
+ 	CACTUS/ISO/import/phion.pm
+	
+
+Changes in web/
+	htdocs/config/config_client.php
+	

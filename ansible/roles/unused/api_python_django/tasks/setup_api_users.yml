@@ -1,0 +1,8 @@
+
+- name: install django createsuperuserwithpassword
+  shell: pip3 install django-createsuperuserwithpassword
+  become: yes
+
+- name: add django admin user
+  shell: "cd {{ iso_home }}/{{ api_project_name }}; {{ python_binary }} manage.py createsuperuserwithpassword --username {{ api_user }} --password {{ api_user_password }} --email {{ api_user_email }} --preserve"
+  become: yes

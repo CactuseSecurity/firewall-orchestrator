@@ -1,0 +1,3054 @@
+allowlist: []
+functions: []
+query_collections: []
+remote_schemas: []
+tables:
+- array_relationships:
+  - comment: null
+    name: request_object_changes
+    using:
+      foreign_key_constraint_on:
+        column: log_obj_id
+        table: request_object_change
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  - comment: null
+    name: isoadmin
+    using:
+      foreign_key_constraint_on: import_admin
+  - comment: null
+    name: isoadminByDokuAdmin
+    using:
+      foreign_key_constraint_on: doku_admin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: object
+    using:
+      foreign_key_constraint_on: old_obj_id
+  - comment: null
+    name: objectByNewObjId
+    using:
+      foreign_key_constraint_on: new_obj_id
+  - comment: null
+    name: stm_change_type
+    using:
+      foreign_key_constraint_on: change_type_id
+  select_permissions: []
+  table: changelog_object
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: request_rule_changes
+    using:
+      foreign_key_constraint_on:
+        column: log_rule_id
+        table: request_rule_change
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: device
+    using:
+      foreign_key_constraint_on: dev_id
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  - comment: null
+    name: isoadmin
+    using:
+      foreign_key_constraint_on: import_admin
+  - comment: null
+    name: isoadminByDokuAdmin
+    using:
+      foreign_key_constraint_on: doku_admin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: rule
+    using:
+      foreign_key_constraint_on: old_rule_id
+  - comment: null
+    name: ruleByNewRuleId
+    using:
+      foreign_key_constraint_on: new_rule_id
+  - comment: null
+    name: stm_change_type
+    using:
+      foreign_key_constraint_on: change_type_id
+  select_permissions: []
+  table: changelog_rule
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: request_service_changes
+    using:
+      foreign_key_constraint_on:
+        column: log_svc_id
+        table: request_service_change
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  - comment: null
+    name: isoadmin
+    using:
+      foreign_key_constraint_on: import_admin
+  - comment: null
+    name: isoadminByDokuAdmin
+    using:
+      foreign_key_constraint_on: doku_admin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: service
+    using:
+      foreign_key_constraint_on: old_svc_id
+  - comment: null
+    name: serviceByNewSvcId
+    using:
+      foreign_key_constraint_on: new_svc_id
+  - comment: null
+    name: stm_change_type
+    using:
+      foreign_key_constraint_on: change_type_id
+  select_permissions: []
+  table: changelog_service
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: request_user_changes
+    using:
+      foreign_key_constraint_on:
+        column: log_usr_id
+        table: request_user_change
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  - comment: null
+    name: isoadmin
+    using:
+      foreign_key_constraint_on: import_admin
+  - comment: null
+    name: isoadminByDokuAdmin
+    using:
+      foreign_key_constraint_on: doku_admin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: stm_change_type
+    using:
+      foreign_key_constraint_on: change_type_id
+  - comment: null
+    name: usr
+    using:
+      foreign_key_constraint_on: old_user_id
+  - comment: null
+    name: usrByNewUserId
+    using:
+      foreign_key_constraint_on: new_user_id
+  select_permissions: []
+  table: changelog_user
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: client_networks
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: client_network
+  - comment: null
+    name: client_objects
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: client_object
+  - comment: null
+    name: client_projects
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: client_project
+  - comment: null
+    name: clientProjectsByPrjId
+    using:
+      foreign_key_constraint_on:
+        column: prj_id
+        table: client_project
+  - comment: null
+    name: client_usernames
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: client_username
+  - comment: null
+    name: client_users
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: client_user
+  - comment: null
+    name: device_client_maps
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: device_client_map
+  - comment: null
+    name: devices
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: device
+  - comment: null
+    name: isoadmins
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: isoadmin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: management
+  - comment: null
+    name: management_client_maps
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: management_client_map
+  - comment: null
+    name: reports
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: report
+  - comment: null
+    name: reporttyp_client_maps
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: reporttyp_client_map
+  - comment: null
+    name: requests
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: request
+  - comment: null
+    name: rule_reviews
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: rule_review
+  - comment: null
+    name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: client_id
+        table: usr
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: client
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  select_permissions: []
+  table: client_network
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: object
+    using:
+      foreign_key_constraint_on: obj_id
+  select_permissions: []
+  table: client_object
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: prj_id
+  - comment: null
+    name: clientByClientId
+    using:
+      foreign_key_constraint_on: client_id
+  select_permissions: []
+  table: client_project
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: usr
+    using:
+      foreign_key_constraint_on: user_id
+  select_permissions: []
+  table: client_user
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  select_permissions: []
+  table: client_username
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: config
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_rules
+    using:
+      foreign_key_constraint_on:
+        column: dev_id
+        table: changelog_rule
+  - comment: null
+    name: device_client_maps
+    using:
+      foreign_key_constraint_on:
+        column: dev_id
+        table: device_client_map
+  - comment: null
+    name: objects
+    using:
+      foreign_key_constraint_on:
+        column: obj_nat_install
+        table: object
+  - comment: null
+    name: reports
+    using:
+      foreign_key_constraint_on:
+        column: dev_id
+        table: report
+  - comment: null
+    name: rule_orders
+    using:
+      foreign_key_constraint_on:
+        column: dev_id
+        table: rule_order
+  - comment: null
+    name: rules
+    using:
+      foreign_key_constraint_on:
+        column: dev_id
+        table: rule
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: stm_dev_typ
+    using:
+      foreign_key_constraint_on: dev_typ_id
+  select_permissions: []
+  table: device
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: device
+    using:
+      foreign_key_constraint_on: dev_id
+  select_permissions: []
+  table: device_client_map
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: error_logs
+    using:
+      foreign_key_constraint_on:
+        column: error_id
+        table: error_log
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: error
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: error
+    using:
+      foreign_key_constraint_on: error_id
+  select_permissions: []
+  table: error_log
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  select_permissions: []
+  table: import_changelog
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_objects
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: changelog_object
+  - comment: null
+    name: changelog_rules
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: changelog_rule
+  - comment: null
+    name: changelog_services
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: changelog_service
+  - comment: null
+    name: changelog_users
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: changelog_user
+  - comment: null
+    name: import_changelogs
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: import_changelog
+  - comment: null
+    name: import_objects
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: import_object
+  - comment: null
+    name: import_rules
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: import_rule
+  - comment: null
+    name: import_services
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: import_service
+  - comment: null
+    name: import_users
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: import_user
+  - comment: null
+    name: import_zones
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: import_zone
+  - comment: null
+    name: objects
+    using:
+      foreign_key_constraint_on:
+        column: obj_create
+        table: object
+  - comment: null
+    name: objectsByObjLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: obj_last_seen
+        table: object
+  - comment: null
+    name: objgrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: import_created
+        table: objgrp_flat
+  - comment: null
+    name: objgrpFlatsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
+        table: objgrp_flat
+  - comment: null
+    name: objgrps
+    using:
+      foreign_key_constraint_on:
+        column: import_created
+        table: objgrp
+  - comment: null
+    name: objgrpsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
+        table: objgrp
+  - comment: null
+    name: reports
+    using:
+      foreign_key_constraint_on:
+        column: start_import_id
+        table: report
+  - comment: null
+    name: reportsByStopImportId
+    using:
+      foreign_key_constraint_on:
+        column: stop_import_id
+        table: report
+  - comment: null
+    name: rule_froms
+    using:
+      foreign_key_constraint_on:
+        column: rf_create
+        table: rule_from
+  - comment: null
+    name: ruleFromsByRfLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rf_last_seen
+        table: rule_from
+  - comment: null
+    name: rule_orders
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: rule_order
+  - comment: null
+    name: rules
+    using:
+      foreign_key_constraint_on:
+        column: rule_create
+        table: rule
+  - comment: null
+    name: rulesByRuleLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rule_last_seen
+        table: rule
+  - comment: null
+    name: rule_services
+    using:
+      foreign_key_constraint_on:
+        column: rs_create
+        table: rule_service
+  - comment: null
+    name: ruleServicesByRsLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rs_last_seen
+        table: rule_service
+  - comment: null
+    name: rule_tos
+    using:
+      foreign_key_constraint_on:
+        column: rt_create
+        table: rule_to
+  - comment: null
+    name: ruleTosByRtLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rt_last_seen
+        table: rule_to
+  - comment: null
+    name: services
+    using:
+      foreign_key_constraint_on:
+        column: svc_create
+        table: service
+  - comment: null
+    name: servicesBySvcLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: svc_last_seen
+        table: service
+  - comment: null
+    name: svcgrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: import_created
+        table: svcgrp_flat
+  - comment: null
+    name: svcgrpFlatsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
+        table: svcgrp_flat
+  - comment: null
+    name: svcgrps
+    using:
+      foreign_key_constraint_on:
+        column: import_created
+        table: svcgrp
+  - comment: null
+    name: svcgrpsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
+        table: svcgrp
+  - comment: null
+    name: temp_mgmid_importid_at_report_times
+    using:
+      foreign_key_constraint_on:
+        column: control_id
+        table: temp_mgmid_importid_at_report_time
+  - comment: null
+    name: usergrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: import_created
+        table: usergrp_flat
+  - comment: null
+    name: usergrpFlatsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
+        table: usergrp_flat
+  - comment: null
+    name: usergrps
+    using:
+      foreign_key_constraint_on:
+        column: import_created
+        table: usergrp
+  - comment: null
+    name: usergrpsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
+        table: usergrp
+  - comment: null
+    name: zones
+    using:
+      foreign_key_constraint_on:
+        column: zone_create
+        table: zone
+  - comment: null
+    name: zonesByZoneLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: zone_last_seen
+        table: zone
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: import_control
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  select_permissions: []
+  table: import_object
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  select_permissions: []
+  table: import_rule
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  select_permissions: []
+  table: import_service
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  select_permissions: []
+  table: import_user
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  select_permissions: []
+  table: import_zone
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_objects
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
+        table: changelog_object
+  - comment: null
+    name: changelogObjectsByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table: changelog_object
+  - comment: null
+    name: changelog_rules
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
+        table: changelog_rule
+  - comment: null
+    name: changelogRulesByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table: changelog_rule
+  - comment: null
+    name: changelog_services
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
+        table: changelog_service
+  - comment: null
+    name: changelogServicesByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table: changelog_service
+  - comment: null
+    name: changelog_users
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
+        table: changelog_user
+  - comment: null
+    name: changelogUsersByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table: changelog_user
+  - comment: null
+    name: objects
+    using:
+      foreign_key_constraint_on:
+        column: last_change_admin
+        table: object
+  - comment: null
+    name: rules
+    using:
+      foreign_key_constraint_on:
+        column: last_change_admin
+        table: rule
+  - comment: null
+    name: services
+    using:
+      foreign_key_constraint_on:
+        column: last_change_admin
+        table: service
+  - comment: null
+    name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: last_change_admin
+        table: usr
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  select_permissions: []
+  table: isoadmin
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_objects
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: changelog_object
+  - comment: null
+    name: changelog_rules
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: changelog_rule
+  - comment: null
+    name: changelog_services
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: changelog_service
+  - comment: null
+    name: changelog_users
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: changelog_user
+  - comment: null
+    name: devices
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: device
+  - comment: null
+    name: management_client_maps
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: management_client_map
+  - comment: null
+    name: objects
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: object
+  - comment: null
+    name: rules
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: rule
+  - comment: null
+    name: services
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: service
+  - comment: null
+    name: temp_mgmid_importid_at_report_times
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: temp_mgmid_importid_at_report_time
+  - comment: null
+    name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: usr
+  - comment: null
+    name: zones
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table: zone
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: stm_dev_typ
+    using:
+      foreign_key_constraint_on: dev_typ_id
+  select_permissions: []
+  table: management
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  select_permissions: []
+  table: management_client_map
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: manual
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_objects
+    using:
+      foreign_key_constraint_on:
+        column: new_obj_id
+        table: changelog_object
+  - comment: null
+    name: changelogObjectsByOldObjId
+    using:
+      foreign_key_constraint_on:
+        column: old_obj_id
+        table: changelog_object
+  - comment: null
+    name: client_objects
+    using:
+      foreign_key_constraint_on:
+        column: obj_id
+        table: client_object
+  - comment: null
+    name: objgrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: objgrp_flat_id
+        table: objgrp_flat
+  - comment: null
+    name: objgrpFlatsByObjgrpFlatMemberId
+    using:
+      foreign_key_constraint_on:
+        column: objgrp_flat_member_id
+        table: objgrp_flat
+  - comment: null
+    name: objgrps
+    using:
+      foreign_key_constraint_on:
+        column: objgrp_id
+        table: objgrp
+  - comment: null
+    name: objgrpsByObjgrpMemberId
+    using:
+      foreign_key_constraint_on:
+        column: objgrp_member_id
+        table: objgrp
+  - comment: null
+    name: rule_froms
+    using:
+      foreign_key_constraint_on:
+        column: obj_id
+        table: rule_from
+  - comment: null
+    name: rule_tos
+    using:
+      foreign_key_constraint_on:
+        column: obj_id
+        table: rule_to
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: device
+    using:
+      foreign_key_constraint_on: obj_nat_install
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: obj_last_seen
+  - comment: null
+    name: importControlByObjCreate
+    using:
+      foreign_key_constraint_on: obj_create
+  - comment: null
+    name: isoadmin
+    using:
+      foreign_key_constraint_on: last_change_admin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: stm_color
+    using:
+      foreign_key_constraint_on: obj_color_id
+  - comment: null
+    name: stm_nattyp
+    using:
+      foreign_key_constraint_on: nattyp_id
+  - comment: null
+    name: stm_obj_typ
+    using:
+      foreign_key_constraint_on: obj_typ_id
+  - comment: null
+    name: zone
+    using:
+      foreign_key_constraint_on: zone_id
+  select_permissions: []
+  table: object
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: import_last_seen
+  - comment: null
+    name: importControlByImportCreated
+    using:
+      foreign_key_constraint_on: import_created
+  - comment: null
+    name: object
+    using:
+      foreign_key_constraint_on: objgrp_member_id
+  - comment: null
+    name: objectByObjgrpId
+    using:
+      foreign_key_constraint_on: objgrp_id
+  select_permissions: []
+  table: objgrp
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: import_last_seen
+  - comment: null
+    name: importControlByImportCreated
+    using:
+      foreign_key_constraint_on: import_created
+  - comment: null
+    name: object
+    using:
+      foreign_key_constraint_on: objgrp_flat_member_id
+  - comment: null
+    name: objectByObjgrpFlatId
+    using:
+      foreign_key_constraint_on: objgrp_flat_id
+  select_permissions: []
+  table: objgrp_flat
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: device
+    using:
+      foreign_key_constraint_on: dev_id
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: stop_import_id
+  - comment: null
+    name: importControlByStartImportId
+    using:
+      foreign_key_constraint_on: start_import_id
+  - comment: null
+    name: stm_report_typ
+    using:
+      foreign_key_constraint_on: report_typ_id
+  select_permissions: []
+  table: report
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: stm_report_typ
+    using:
+      foreign_key_constraint_on: report_typ_id
+  select_permissions: []
+  table: reporttyp_client_map
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: request_object_changes
+    using:
+      foreign_key_constraint_on:
+        column: request_id
+        table: request_object_change
+  - comment: null
+    name: request_rule_changes
+    using:
+      foreign_key_constraint_on:
+        column: request_id
+        table: request_rule_change
+  - comment: null
+    name: request_service_changes
+    using:
+      foreign_key_constraint_on:
+        column: request_id
+        table: request_service_change
+  - comment: null
+    name: request_user_changes
+    using:
+      foreign_key_constraint_on:
+        column: request_id
+        table: request_user_change
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: request_type
+    using:
+      foreign_key_constraint_on: request_type_id
+  select_permissions: []
+  table: request
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: changelog_object
+    using:
+      foreign_key_constraint_on: log_obj_id
+  - comment: null
+    name: request
+    using:
+      foreign_key_constraint_on: request_id
+  select_permissions: []
+  table: request_object_change
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: changelog_rule
+    using:
+      foreign_key_constraint_on: log_rule_id
+  - comment: null
+    name: request
+    using:
+      foreign_key_constraint_on: request_id
+  select_permissions: []
+  table: request_rule_change
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: changelog_service
+    using:
+      foreign_key_constraint_on: log_svc_id
+  - comment: null
+    name: request
+    using:
+      foreign_key_constraint_on: request_id
+  select_permissions: []
+  table: request_service_change
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: requests
+    using:
+      foreign_key_constraint_on:
+        column: request_type_id
+        table: request
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: request_type
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: changelog_user
+    using:
+      foreign_key_constraint_on: log_usr_id
+  - comment: null
+    name: request
+    using:
+      foreign_key_constraint_on: request_id
+  select_permissions: []
+  table: request_user_change
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_rules
+    using:
+      foreign_key_constraint_on:
+        column: new_rule_id
+        table: changelog_rule
+  - comment: null
+    name: changelogRulesByOldRuleId
+    using:
+      foreign_key_constraint_on:
+        column: old_rule_id
+        table: changelog_rule
+  - comment: null
+    name: rule_froms
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table: rule_from
+  - comment: null
+    name: rule_orders
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table: rule_order
+  - comment: null
+    name: rule_reviews
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table: rule_review
+  - comment: null
+    name: rule_services
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table: rule_service
+  - comment: null
+    name: rule_tos
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table: rule_to
+  - comment: null
+    name: temp_filtered_rule_ids
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table: temp_filtered_rule_ids
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: device
+    using:
+      foreign_key_constraint_on: dev_id
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: rule_last_seen
+  - comment: null
+    name: importControlByRuleCreate
+    using:
+      foreign_key_constraint_on: rule_create
+  - comment: null
+    name: isoadmin
+    using:
+      foreign_key_constraint_on: last_change_admin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: stm_action
+    using:
+      foreign_key_constraint_on: action_id
+  - comment: null
+    name: stm_track
+    using:
+      foreign_key_constraint_on: track_id
+  - comment: null
+    name: zone
+    using:
+      foreign_key_constraint_on: rule_to_zone
+  - comment: null
+    name: zoneByRuleFromZone
+    using:
+      foreign_key_constraint_on: rule_from_zone
+  select_permissions: []
+  table: rule
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: rf_last_seen
+  - comment: null
+    name: importControlByRfCreate
+    using:
+      foreign_key_constraint_on: rf_create
+  - comment: null
+    name: object
+    using:
+      foreign_key_constraint_on: obj_id
+  - comment: null
+    name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  - comment: null
+    name: usr
+    using:
+      foreign_key_constraint_on: user_id
+  select_permissions: []
+  table: rule_from
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: device
+    using:
+      foreign_key_constraint_on: dev_id
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  - comment: null
+    name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  select_permissions: []
+  table: rule_order
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  select_permissions: []
+  table: rule_review
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: rs_last_seen
+  - comment: null
+    name: importControlByRsCreate
+    using:
+      foreign_key_constraint_on: rs_create
+  - comment: null
+    name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  - comment: null
+    name: service
+    using:
+      foreign_key_constraint_on: svc_id
+  select_permissions: []
+  table: rule_service
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: rt_last_seen
+  - comment: null
+    name: importControlByRtCreate
+    using:
+      foreign_key_constraint_on: rt_create
+  - comment: null
+    name: object
+    using:
+      foreign_key_constraint_on: obj_id
+  - comment: null
+    name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  select_permissions: []
+  table: rule_to
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_services
+    using:
+      foreign_key_constraint_on:
+        column: new_svc_id
+        table: changelog_service
+  - comment: null
+    name: changelogServicesByOldSvcId
+    using:
+      foreign_key_constraint_on:
+        column: old_svc_id
+        table: changelog_service
+  - comment: null
+    name: rule_services
+    using:
+      foreign_key_constraint_on:
+        column: svc_id
+        table: rule_service
+  - comment: null
+    name: svcgrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: svcgrp_flat_id
+        table: svcgrp_flat
+  - comment: null
+    name: svcgrpFlatsBySvcgrpFlatMemberId
+    using:
+      foreign_key_constraint_on:
+        column: svcgrp_flat_member_id
+        table: svcgrp_flat
+  - comment: null
+    name: svcgrps
+    using:
+      foreign_key_constraint_on:
+        column: svcgrp_id
+        table: svcgrp
+  - comment: null
+    name: svcgrpsBySvcgrpMemberId
+    using:
+      foreign_key_constraint_on:
+        column: svcgrp_member_id
+        table: svcgrp
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: svc_last_seen
+  - comment: null
+    name: importControlBySvcCreate
+    using:
+      foreign_key_constraint_on: svc_create
+  - comment: null
+    name: isoadmin
+    using:
+      foreign_key_constraint_on: last_change_admin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: stm_color
+    using:
+      foreign_key_constraint_on: svc_color_id
+  - comment: null
+    name: stm_ip_proto
+    using:
+      foreign_key_constraint_on: ip_proto_id
+  - comment: null
+    name: stm_svc_typ
+    using:
+      foreign_key_constraint_on: svc_typ_id
+  select_permissions: []
+  table: service
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: rules
+    using:
+      foreign_key_constraint_on:
+        column: action_id
+        table: rule
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_action
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_objects
+    using:
+      foreign_key_constraint_on:
+        column: change_type_id
+        table: changelog_object
+  - comment: null
+    name: changelog_rules
+    using:
+      foreign_key_constraint_on:
+        column: change_type_id
+        table: changelog_rule
+  - comment: null
+    name: changelog_services
+    using:
+      foreign_key_constraint_on:
+        column: change_type_id
+        table: changelog_service
+  - comment: null
+    name: changelog_users
+    using:
+      foreign_key_constraint_on:
+        column: change_type_id
+        table: changelog_user
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_change_type
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: objects
+    using:
+      foreign_key_constraint_on:
+        column: obj_color_id
+        table: object
+  - comment: null
+    name: services
+    using:
+      foreign_key_constraint_on:
+        column: svc_color_id
+        table: service
+  - comment: null
+    name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: user_color_id
+        table: usr
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_color
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: devices
+    using:
+      foreign_key_constraint_on:
+        column: dev_typ_id
+        table: device
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on:
+        column: dev_typ_id
+        table: management
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_dev_typ
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: services
+    using:
+      foreign_key_constraint_on:
+        column: ip_proto_id
+        table: service
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_ip_proto
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: objects
+    using:
+      foreign_key_constraint_on:
+        column: nattyp_id
+        table: object
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_nattyp
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: objects
+    using:
+      foreign_key_constraint_on:
+        column: obj_typ_id
+        table: object
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_obj_typ
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: reports
+    using:
+      foreign_key_constraint_on:
+        column: report_typ_id
+        table: report
+  - comment: null
+    name: reporttyp_client_maps
+    using:
+      foreign_key_constraint_on:
+        column: report_typ_id
+        table: reporttyp_client_map
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_report_typ
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: services
+    using:
+      foreign_key_constraint_on:
+        column: svc_typ_id
+        table: service
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_svc_typ
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: rules
+    using:
+      foreign_key_constraint_on:
+        column: track_id
+        table: rule
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_track
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: usr_typ_id
+        table: usr
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: stm_usr_typ
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: import_last_seen
+  - comment: null
+    name: importControlByImportCreated
+    using:
+      foreign_key_constraint_on: import_created
+  - comment: null
+    name: service
+    using:
+      foreign_key_constraint_on: svcgrp_member_id
+  - comment: null
+    name: serviceBySvcgrpId
+    using:
+      foreign_key_constraint_on: svcgrp_id
+  select_permissions: []
+  table: svcgrp
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: import_last_seen
+  - comment: null
+    name: importControlByImportCreated
+    using:
+      foreign_key_constraint_on: import_created
+  - comment: null
+    name: service
+    using:
+      foreign_key_constraint_on: svcgrp_flat_member_id
+  - comment: null
+    name: serviceBySvcgrpFlatId
+    using:
+      foreign_key_constraint_on: svcgrp_flat_id
+  select_permissions: []
+  table: svcgrp_flat
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  select_permissions: []
+  table: temp_filtered_rule_ids
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: control_id
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  select_permissions: []
+  table: temp_mgmid_importid_at_report_time
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: temp_table_for_client_filtered_rule_ids
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: text_msg
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: import_last_seen
+  - comment: null
+    name: importControlByImportCreated
+    using:
+      foreign_key_constraint_on: import_created
+  - comment: null
+    name: usr
+    using:
+      foreign_key_constraint_on: usergrp_member_id
+  - comment: null
+    name: usrByUsergrpId
+    using:
+      foreign_key_constraint_on: usergrp_id
+  select_permissions: []
+  table: usergrp
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: import_last_seen
+  - comment: null
+    name: importControlByImportCreated
+    using:
+      foreign_key_constraint_on: import_created
+  - comment: null
+    name: usr
+    using:
+      foreign_key_constraint_on: usergrp_flat_member_id
+  - comment: null
+    name: usrByUsergrpFlatId
+    using:
+      foreign_key_constraint_on: usergrp_flat_id
+  select_permissions: []
+  table: usergrp_flat
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: changelog_users
+    using:
+      foreign_key_constraint_on:
+        column: new_user_id
+        table: changelog_user
+  - comment: null
+    name: changelogUsersByOldUserId
+    using:
+      foreign_key_constraint_on:
+        column: old_user_id
+        table: changelog_user
+  - comment: null
+    name: client_users
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table: client_user
+  - comment: null
+    name: rule_froms
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table: rule_from
+  - comment: null
+    name: usergrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: usergrp_flat_id
+        table: usergrp_flat
+  - comment: null
+    name: usergrpFlatsByUsergrpFlatMemberId
+    using:
+      foreign_key_constraint_on:
+        column: usergrp_flat_member_id
+        table: usergrp_flat
+  - comment: null
+    name: usergrps
+    using:
+      foreign_key_constraint_on:
+        column: usergrp_id
+        table: usergrp
+  - comment: null
+    name: usergrpsByUsergrpMemberId
+    using:
+      foreign_key_constraint_on:
+        column: usergrp_member_id
+        table: usergrp
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - comment: null
+    name: isoadmin
+    using:
+      foreign_key_constraint_on: last_change_admin
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - comment: null
+    name: stm_color
+    using:
+      foreign_key_constraint_on: user_color_id
+  - comment: null
+    name: stm_usr_typ
+    using:
+      foreign_key_constraint_on: usr_typ_id
+  select_permissions: []
+  table: usr
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_change_counter
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_changes
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_changes_by_changed_element_id
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_device_names
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_documented_change_counter
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_import_status_errors
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_import_status_successful
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_import_status_table
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_import_status_table_unsorted
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_obj_changes
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_reportable_changes
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_rule_changes
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_rule_source_or_destination
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_svc_changes
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_undocumented_change_counter
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_undocumented_changes
+  update_permissions: []
+- array_relationships: []
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships: []
+  select_permissions: []
+  table: view_user_changes
+  update_permissions: []
+- array_relationships:
+  - comment: null
+    name: objects
+    using:
+      foreign_key_constraint_on:
+        column: zone_id
+        table: object
+  - comment: null
+    name: rules
+    using:
+      foreign_key_constraint_on:
+        column: rule_from_zone
+        table: rule
+  - comment: null
+    name: rulesByRuleToZone
+    using:
+      foreign_key_constraint_on:
+        column: rule_to_zone
+        table: rule
+  computed_fields: []
+  configuration:
+    custom_column_names: {}
+    custom_root_fields:
+      delete: null
+      insert: null
+      select: null
+      select_aggregate: null
+      select_by_pk: null
+      update: null
+  delete_permissions: []
+  event_triggers: []
+  insert_permissions: []
+  is_enum: false
+  object_relationships:
+  - comment: null
+    name: import_control
+    using:
+      foreign_key_constraint_on: zone_last_seen
+  - comment: null
+    name: importControlByZoneCreate
+    using:
+      foreign_key_constraint_on: zone_create
+  - comment: null
+    name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  select_permissions: []
+  table: zone
+  update_permissions: []
+version: 2

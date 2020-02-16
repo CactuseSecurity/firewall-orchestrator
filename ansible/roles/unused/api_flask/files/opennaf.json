@@ -9,7 +9,7 @@ info:
   license:
     name: "Apache 2.0"
     url: "http://www.apache.org/licenses/LICENSE-2.0.html"
-host: "10.5.10.60:8080"
+host: "10.5.10.20"
 basePath: "/v1"
 tags:
 - name: "management"
@@ -71,7 +71,7 @@ paths:
         400:
           description: "Invalid ID supplied"
         404:
-          description: "Management not found"
+          description: "Pet not found"
         405:
           description: "Validation exception"
       security:
@@ -429,7 +429,7 @@ paths:
 securityDefinitions:
   onaf_auth:
     type: "oauth2"
-    authorizationUrl: "http://10.5.10.60/oauth/dialog"
+    authorizationUrl: "http://10.5.10.20/oauth/dialog"
     flow: "implicit"
     scopes:
       write:management: "modify managements"

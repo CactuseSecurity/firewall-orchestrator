@@ -1,0 +1,10 @@
+# this playbook sets up some sample devices with configs to play around with
+
+- block:
+    - import_tasks: iso-setup-import-samples-prepare.yml
+  become: yes
+
+- block:
+    - import_tasks: iso-setup-import-samples.yml
+  become: no
+    

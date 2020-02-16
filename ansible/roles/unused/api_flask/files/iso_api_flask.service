@@ -1,0 +1,14 @@
+[Unit]
+Description=ITSecOrg API service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=itsecorg
+ExecStart=/usr/bin/env python3 /usr/share/itsecorg/sbin/iso_api_flask_server.py
+
+[Install]
+WantedBy=multi-user.target

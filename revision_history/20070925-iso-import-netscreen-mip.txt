@@ -1,0 +1,4 @@
+# $Id: 20070925-iso-import-netscreen-mip.txt,v 1.1.2.2 2007-12-13 10:47:31 tim Exp $
+# $Source: /home/cvs/iso/package/install/migration/Attic/20070925-iso-import-netscreen-mip.txt,v $
+# die folgenden Dateien müssen aktualisiert werden:
+# - importer/CACTUS/ISO/import/netscreen.pm

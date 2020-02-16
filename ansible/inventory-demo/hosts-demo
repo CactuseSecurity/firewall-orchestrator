@@ -1,0 +1,58 @@
+isofront ansible_host=10.5.5.5
+#isoback ansible_host=10.5.10.10
+isoback2 ansible_host=10.5.10.30
+
+# global variables
+[all:vars]
+iso_home=/usr/share/itsecorg
+sample_config_user=isosample
+sample_config_user_home="/home/{{ sample_config_user }}"
+import_sample_server=127.0.0.1
+sample_config_hostname=isoback2
+importer_hostname=isoback2
+
+# table_space variable can be used to create database in another place where there is enough space
+# table_space=/var/db/iso_tablespace
+# table_space_name=itsecorg
+cliphpini=/etc/php/7.0/cli/php.ini
+dbadmin_pwd_hash=md515af62ba7fb33b13304643cc176ca8d3 
+dbadmin_pwd="st8chel"
+itsecorg_pwd="st8chel"
+admin_pwd="fworch.1"
+test_pwd="drive2"
+iso_db_port=5432
+isodb_host=10.5.10.30
+iso_db_name=isodb
+iso_dbadmin_name=dbadmin
+
+[debians]
+isofront
+isoback2
+
+[debians:vars]
+apache_package=apache2
+postgresql_package=postgresql
+pgconfdir=/etc/postgresql/9.6/main
+phpini=/etc/php/7.0/apache2/php.ini 
+http_conf_dir=/etc/apache2/sites-available/
+
+[frontends]
+isofront
+
+[backends]
+isoback2
+
+[backends:vars]
+database_dir=/var/lib/pgsql/data
+
+[importers]
+isoback2
+
+#[fedoras]
+#
+#[fedoras:vars]
+#apache_package=httpd
+#postgresql_package=postgresql-server
+#pgconfdir=/etc/postgresql/9.6/main
+#phpini=/etc/php/7.0/apache2/php.ini 
+#http_conf_dir=/etc/apache2/sites-available/ ## das stimmt noch nicht

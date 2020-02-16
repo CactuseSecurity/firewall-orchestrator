@@ -1,0 +1,70 @@
+
+Howto:
+
+# 0) $ISOHOME/web-Zweig wegsichern und neue Version entpacken
+write_config_report.sh am besten unter /usr/local/itsecorg/bin ablegen und das Verzeichnis in den Pfad aufnehmen.
+
+# 1) Lokalen Zugriff durch db-user confexporter ohne Authentisierung erlauben:  
+
+psql -U dbadmin -d isov1 -h localhost -p 5432 -c "CREATE ROLE confexporter LOGIN NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE; GRANT reporters TO confexporter;"
+
+tim@acantha:~$ sudo grep itsecorg /etc/postgresql/8.4/main/pg_hba.conf 
+host    all         confexporter            127.0.0.1/32          trust
+
+tim@acantha:~$ sudo /etc/init.d/postgresql-8.4 restart
+ * Restarting PostgreSQL 8.4 database server                             [ OK ] 
+
+# 2) Include-Pfade für php-cli-Aufrufe setzen (identisch mit apache):
+tim@acantha:~$ sudo grep itsecorg /etc/php5/cli/php.ini 
+include_path = "/usr/share/php:/usr/local/lib/php:/usr/local/itsecorg/web/include:/usr/local/itsecorg/etc:/usr/local/itsecorg/web/htdocs/inctxt:/usr/local/itsecorg/web/htdocs/hilfe"
+
+# 3) Neues Ausgabe-Verzeichnis anlegen (owner itsecorg):
+itsecorg@acantha:~$ ls -la /var/itsecorg/
+insgesamt 20
+drwxr-xr-x  3 itsecorg root  4096 2011-03-09 13:29 .
+drwxr-xr-x 19 root     root  4096 2011-03-09 13:29 ..
+drwxr-xr-x  2 itsecorg root 12288 2011-04-14 12:56 reports
+itsecorg@acantha:~$ 
+
+
+# 4) Skript als itsecorg aufrufen:
+
+Ausgabe der Syntax bei Aufruf ohne Parameter:
+itsecorg@acantha:~$ install/bin/write_config_report.sh 
+ERROR: no device id specified
+usage: install/bin/write_config_report.sh [-v] -d <device-id> [-f <format of report>] [-c <client-id>] [-t <time of report>] [-o <output dir of report>]
+-v verbose output
+-f format of report defaults to html
+		possible values are: html, simple.html, junos
+-t time of report defaults to now() = 2011-04-14-130108
+-c client-id defaults to none = no filtering
+-o output dir defaults to /var/itsecorg/reports
+itsecorg@acantha:~$ 
+
+itsecorg@acantha:~$ install/bin/write_config_report.sh -d 1051 -f simple.html -v
+generating report for device id 1051, report date = 2011-04-14-125153, outfile = /var/itsecorg/reports/2011-04-14-125153-itsecorg-configreport-dev-1051.simple.html
+itsecorg@acantha:~$ 
+
+Änderungen
+==========
+
+a) angepasste Dateien (alle unterhalb von $ISOHOME/web):
+$ISODIR/web/htdocs/inctxt/reporting_tables_druck.inc.php (Variable abgefragt)
+	hier wurde jeweils das $report_format eingebaut:
+$ISODIR/web/include/display_nw_object_config.php
+$ISODIR/web/include/display_service_config.php
+$ISODIR/web/include/display_user_config.php
+$ISODIR/web/include/display_nw_object_config.php
+$ISODIR/web/include/display-table.php
+
+
+b) neu angelegte Dateien:
+$ISODIR/install/bin/write_config_report.sh
+$ISODIR/web/htdocs/reporting_tables_config_csv.php
+$ISODIR/web/include/cli_functions.php
+
+c) angepasste Dateien (aber nicht in unmittelbarem Zusammenhang mit html-Config-Report:
+$ISODIR/web/include/db-base.php: DB-Konstanten in Hochkommata gesetzt
+$ISODIR/web/include/operating-system.php: syslog-Werte Abfrage auf isset eingefügt
+$ISODIR/web/include/db-gui-config.php: php-fehler (session already exists) eliminiert
+$ISODIR/web/include/check_privs.php: php-fehler (session already exists) eliminiert

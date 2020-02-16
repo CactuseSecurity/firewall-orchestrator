@@ -1,0 +1,34 @@
+- block:
+     - name: copy django urls
+       template:
+         src: urls.py
+         dest:  "{{ project_dir }}/urls.py"
+         mode: 0644
+         owner: "{{ iso_user }}"
+         backup: yes
+
+     - name: copy django serializers
+       copy:
+         src: serializers.py
+         dest: "{{ app_dir }}/serializers.py"
+         mode: 0644
+         owner: "{{ iso_user }}"
+         backup: yes
+
+     - name: copy django views
+       copy:
+         src: views.py
+         dest: "{{ app_dir }}/views.py"
+         mode: 0644
+         owner: "{{ iso_user }}"
+         backup: yes
+
+     - name: change api dir owner
+       file:
+         path: "{{ api_home }}"
+         state: directory
+         mode: 0755
+         owner: "{{ iso_user }}"
+         group: "{{ iso_user }}"
+         recurse: yes
+  become: yes

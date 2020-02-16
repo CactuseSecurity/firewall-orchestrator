@@ -1,0 +1,54 @@
+- set_fact: api_home="{{ iso_home }}/{{ api_project_name }}"
+- set_fact: app_dir="{{ iso_home }}/{{ api_project_name }}/{{ api_app_name }}"
+- set_fact: project_dir="{{ iso_home }}/{{ api_project_name }}/{{ api_project_name }}"
+
+- name: Install packages for api
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - python3 
+    - python3-pip
+    - python3-django
+    - python3-djangorestframework
+  become: yes
+
+#- name: upgrade django from v2 to v3 - this breaks restframework
+#  shell: pip3 install --upgrade django
+#  become: yes
+
+#- name: install django 2.2.7
+#  shell: pip3 install django==2.2.7
+#  become: yes
+
+- name: install django 2.2.7 and stuff  
+  shell: pip3 install django==2.2.7 django-restframework django-createsuperuserwithpassword graphene-django django-graphiql
+  become: yes
+
+- name: create django project
+  shell: "cd {{ iso_home }}; django-admin startproject {{ api_project_name }}; cd {{ api_project_name }}; {{ python_binary }} manage.py startapp {{ api_app_name }}"
+  become: yes
+  become_user: "{{ iso_user }}"
+
+- name: copy django settings via template 
+  template:
+    src: settings.py
+    dest: "{{ project_dir }}/settings.py"
+    backup: yes
+    mode: 0644
+    owner: "{{ iso_user }}"
+  become: yes
+
+- import_tasks: modify_models.yml
+- import_tasks: setup_urls.yml
+- import_tasks: setup_graphql.yml
+
+#     - name: initialize migration of django api
+#       shell: "cd {{ iso_home }}/api; {{ python_binary }} manage.py makemigrations"
+
+- name: Install the core Django tables by migrate
+  shell: "cd {{ api_home }}; {{ python_binary }} manage.py migrate"
+  become: yes
+  become_user: "{{ iso_user }}"
+  
+- import_tasks: setup_api_users.yml

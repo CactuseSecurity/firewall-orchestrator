@@ -1,0 +1,5 @@
+-- avoid concurrent imports:
+-- psql -U itsecorg -h localhost -d isov1 -c "\i /usr/local/itsecorg/install/database/iso-import.sql"
+-- Datei /usr/local/itsecorg/importer/iso-importer-single.pl austauschen
+-- please note that old "hanging" imports might have to be acknowledged with
+-- isov1=# update import_control set stop_time=now() where stop_time is null;

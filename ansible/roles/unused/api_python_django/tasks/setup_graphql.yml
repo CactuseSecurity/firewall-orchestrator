@@ -1,0 +1,18 @@
+- block:
+     - name: copy graphql project schema file
+       template:
+         src: project_schema.py
+         dest:  "{{ project_dir }}/schema.py"
+         mode: 0644
+         owner: "{{ iso_user }}"
+         backup: yes
+
+     - name: copy graphql app level schema file
+       template:
+         src: app_schema.py
+         dest:  "{{ app_dir }}/schema.py"
+         mode: 0644
+         owner: "{{ iso_user }}"
+         backup: yes
+
+  become: yes

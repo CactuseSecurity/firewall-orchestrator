@@ -1,0 +1,22 @@
+replace files:
+	$ISODIR/importer/CACTUS/ISO/import/phion.pm
+
+change in import.pm:
+	sub print_debug {
+	my $txt = shift;
+	my $debug_level = shift;
+	my $print_level = shift;
+	
+	if (!defined ($debug_level)) { $debug_level = 0; }
+	if (!defined ($print_level)) { $print_level = 0; }
+	if (&is_numeric($print_level) && &is_numeric($debug_level)) {
+		if ($print_level < $debug_level) {	print "Debug ($debug_level/$print_level): $txt.\n"; }	
+	} else {
+		print "Debug ($debug_level/$print_level): $txt.\n";
+	}
+}
+Changes in iso-importer-single.pl:
+	a) added debug flag:
+		my $debug_level=0;
+		if (defined(param("-debug"))) { $debug_level = param("-debug"); }
+		$error_count_local = &CACTUS::ISO::import::parser::parse_config ($obj_file, $rule_file, $user_file, $rulebases, $iso_workdir, $debug_level, $mgm_name, $cfg_dir,

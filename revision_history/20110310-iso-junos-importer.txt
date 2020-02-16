@@ -1,0 +1,288 @@
+new files:
+	$ISODIR/importer/CACTUS/ISO/import/juniper.pm
+
+
+Changes in iso-importer-single.pl:
+	a) after:
+			elsif	($hersteller eq 'phion')		{ require CACTUS::ISO::import::phion; }
+		add:
+			elsif	($hersteller eq 'juniper')		{ require CACTUS::ISO::import::juniper; }
+	b) added debug flag:
+		my $debug_level=0;
+		if (defined(param("-debug"))) { $debug_level = param("-debug"); }
+		$error_count_local = &CACTUS::ISO::import::parser::parse_config ($obj_file, $rule_file, $user_file, $rulebases, $iso_workdir, $debug_level, $mgm_name, $cfg_dir,
+
+changes in import.pm:
+	a) juniper format vorsehen
+		elsif ($hersteller eq 'juniper') { # JUNUS
+			$obj_file_base = $mgm_name . ".cfg";
+			$obj_file      = $cfg_dir . "/" . $obj_file_base;
+			$rule_file_base = $obj_file_base;
+			$rule_file = $obj_file;
+			$user_file_base = $obj_file_base;
+			$user_file = $obj_file;
+			$str_of_config_files = $obj_file;
+		}
+	b) auch netzmasken in bit-Notation erlauben
+			my $ip2 = CACTUS::ISO::remove_space_at_end(remove_quotes($network_objects{"$schluessel.$local_schluessel"}));
+			$maske = $network_objects{"$schluessel.netmask"};
+			if ($maske =~ /^\d+\.\d+\.\d+\.\d+$/) {
+				$maske = calc_subnetmask($maske); # in bit-Notation umwandeln
+			} # else: Maske enthaelt keine Punkte --> direkt als Integer uebernehmen
+
+######################################################################
+
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (8,'JUNOS','10.x','Juniper','');
+
+/* offene Punkte:
+junos-h323 = group (1720/tcp + 1503/tcp + 389/tcp + 522/tcp + 1731/tcp + 1719/udp)
+junos-ntalk = group (518/tcp + 518/udp)
+junos-sip = group (5060/tcp + 5060/udp)
+junos-smb = group (139/tcp + 445/tcp)
+junos-stun = group (3478-3479/tcp+udp)
+junos-talk = group (517/tcp+udp)
+*/
+
+update stm_dev_typ set dev_typ_predef_svc='any;0;0;65535;;junos-predefined-service;simple;
+junos-aol;6;5190;5193;;junos-predefined-service;simple;
+junos-bgp;6;179;;;junos-predefined-service;simple;
+junos-biff;17;512;;;junos-predefined-service;simple;
+junos-bootpc;17;68;;;junos-predefined-service;simple;
+junos-bootps;17;67;;;junos-predefined-service;simple;
+junos-chargen;17;19;;;junos-predefined-service;simple;
+junos-cvspserver;6;2401;;;junos-predefined-service;simple;
+junos-dhcp-client;17;68;;;junos-predefined-service;simple;
+junos-dhcp-relay;17;67;;;junos-predefined-service;simple;
+junos-dhcp-server;17;67;;;junos-predefined-service;simple;
+junos-discard;17;9;;;junos-predefined-service;simple;
+junos-dns-tcp;6;53;;;junos-predefined-service;simple;
+junos-dns-udp;17;53;;;junos-predefined-service;simple;
+junos-echo;17;7;;;junos-predefined-service;simple;
+junos-finger;6;79;;;junos-predefined-service;simple;
+junos-ftp;6;21;;;junos-predefined-service;simple;
+junos-gnutella;17;6346;6347;;junos-predefined-service;simple;
+junos-gopher;6;70;;;junos-predefined-service;simple;
+junos-gre;47;;;;junos-predefined-service;simple;
+junos-gtp;17;2123;;;junos-predefined-service;simple;
+junos-h323;;;;;junos-predefined-service;simple;
+junos-http;6;80;;;junos-predefined-service;simple;
+junos-http-ext;6;7001;;;junos-predefined-service;simple;
+junos-https;6;443;;;junos-predefined-service;simple;
+junos-icmp-all;1;;;;junos-predefined-service;simple;
+junos-icmp-ping;1;;;;junos-predefined-service;simple;
+junos-icmp6-all;58;;;;junos-predefined-service;simple;
+junos-icmp6-dst-unreach-addr;58;;;;junos-predefined-service;simple;
+junos-icmp6-dst-unreach-admin;58;;;;junos-predefined-service;simple;
+junos-icmp6-dst-unreach-beyond;58;;;;junos-predefined-service;simple;
+junos-icmp6-dst-unreach-port;58;;;;junos-predefined-service;simple;
+junos-icmp6-dst-unreach-route;58;;;;junos-predefined-service;simple;
+junos-icmp6-echo-reply;58;;;;junos-predefined-service;simple;
+junos-icmp6-echo-request;58;;;;junos-predefined-service;simple;
+junos-icmp6-packet-to-big;58;;;;junos-predefined-service;simple;
+junos-icmp6-param-prob-header;58;;;;junos-predefined-service;simple;
+junos-icmp6-param-prob-nexthdr;58;;;;junos-predefined-service;simple;
+junos-icmp6-param-prob-option;58;;;;junos-predefined-service;simple;
+junos-icmp6-time-exceed-reassembly;58;;;;junos-predefined-service;simple;
+junos-icmp6-time-exceed-transit;58;;;;junos-predefined-service;simple;
+junos-ident;6;113;;;junos-predefined-service;simple;
+junos-ike;17;500;;;junos-predefined-service;simple;
+junos-ike-nat;17;4500;;;junos-predefined-service;simple;
+junos-imap;6;143;;;junos-predefined-service;simple;
+junos-imaps;6;993;;;junos-predefined-service;simple;
+junos-internet-locator-service;6;389;;;junos-predefined-service;simple;
+junos-irc;6;6660;6669;;junos-predefined-service;simple;
+junos-l2tp;17;1701;;;junos-predefined-service;simple;
+junos-ldap;6;389;;;junos-predefined-service;simple;
+junos-ldp-tcp;6;646;;;junos-predefined-service;simple;
+junos-ldp-udp;17;646;;;junos-predefined-service;simple;
+junos-lpr;6;515;;;junos-predefined-service;simple;
+junos-mail;6;25;;;junos-predefined-service;simple;
+junos-mgcp;;;;;junos-predefined-service;group;junos-mgcp-ua|junos-mgcp-ca
+junos-mgcp-ca;17;2427;;;junos-predefined-service;simple;
+junos-mgcp-ua;17;2727;;;junos-predefined-service;simple;
+junos-ms-rpc;;;;;junos-predefined-service;group;junos-ms-rpc-tcp|junos-ms-rpc-udp
+junos-ms-rpc-epm;6;;;;junos-predefined-service;simple;
+junos-ms-rpc-msexchange;;;;;junos-predefined-service;group;junos-ms-rpc-tcp|junos-ms-rpc-udp|junos-ms-rpc-epm|junos-ms-rpc-msexchange-directory-rfr|junos-ms-rpc-msexchange-info-store|junos-ms-rpc-msexchange-directory-nsp
+junos-ms-rpc-msexchange-directory-nsp;6;;;;junos-predefined-service;simple;
+junos-ms-rpc-msexchange-directory-rfr;6;;;;junos-predefined-service;simple;
+junos-ms-rpc-msexchange-info-store;6;;;;junos-predefined-service;simple;
+junos-ms-rpc-tcp;6;135;;;junos-predefined-service;simple;
+junos-ms-rpc-udp;17;135;;;junos-predefined-service;simple;
+junos-ms-sql;6;1433;;;junos-predefined-service;simple;
+junos-msn;6;1863;;;junos-predefined-service;simple;
+junos-nbds;17;138;;;junos-predefined-service;simple;
+junos-nbname;17;137;;;junos-predefined-service;simple;
+junos-netbios-session;6;139;;;junos-predefined-service;simple;
+junos-nfs;17;111;;;junos-predefined-service;simple;
+junos-nfsd-tcp;6;2049;;;junos-predefined-service;simple;
+junos-nfsd-udp;17;2049;;;junos-predefined-service;simple;
+junos-nntp;6;119;;;junos-predefined-service;simple;
+junos-ns-global;6;15397;;;junos-predefined-service;simple;
+junos-ns-global-pro;6;15397;;;junos-predefined-service;simple;
+junos-nsm;17;69;;;junos-predefined-service;simple;
+junos-ntalk;;;;;junos-predefined-service;simple;
+junos-ntp;17;123;;;junos-predefined-service;simple;
+junos-ospf;89;;;;junos-predefined-service;simple;
+junos-pc-anywhere;17;5632;;;junos-predefined-service;simple;
+junos-persistent-nat;255;65535;;;junos-predefined-service;simple;
+junos-ping;1;;;;junos-predefined-service;simple;
+junos-pingv6;58;;;;junos-predefined-service;simple;
+junos-pop3;6;110;;;junos-predefined-service;simple;
+junos-pptp;6;1723;;;junos-predefined-service;simple;
+junos-printer;6;515;;;junos-predefined-service;simple;
+junos-radacct;17;1813;;;junos-predefined-service;simple;
+junos-radius;17;1812;;;junos-predefined-service;simple;
+junos-realaudio;6;554;;;junos-predefined-service;simple;
+junos-rip;17;520;;;junos-predefined-service;simple;
+junos-routing-inbound;;;;;junos-predefined-service;group;junos-bgp|junos-rip|junos-ldp-tcp|junos-ldp-udp
+junos-rsh;6;514;;;junos-predefined-service;simple;
+junos-rtsp;6;554;;;junos-predefined-service;simple;
+junos-sccp;6;2000;;;junos-predefined-service;simple;
+junos-sctp-any;132;;;;junos-predefined-service;simple;
+junos-sip;;;;;junos-predefined-service;simple;
+junos-smb;;;;;junos-predefined-service;simple;
+junos-smtp;6;25;;;junos-predefined-service;simple;
+junos-snmp-agentx;6;705;;;junos-predefined-service;simple;
+junos-snpp;6;444;;;junos-predefined-service;simple;
+junos-sql-monitor;17;1434;;;junos-predefined-service;simple;
+junos-sqlnet-v1;6;1525;;;junos-predefined-service;simple;
+junos-sqlnet-v2;6;1521;;;junos-predefined-service;simple;
+junos-ssh;6;22;;;junos-predefined-service;simple;
+junos-stun;;;;;junos-predefined-service;simple;
+junos-sun-rpc;;;;;junos-predefined-service;group;junos-sun-rpc-tcp|junos-sun-rpc-udp
+junos-sun-rpc-mountd;;;;;junos-predefined-service;group;junos-sun-rpc-tcp|junos-sun-rpc-udp|junos-sun-rpc-portmap-tcp|junos-sun-rpc-portmap-udp|junos-sun-rpc-mountd-tcp|junos-sun-rpc-mountd-udp
+junos-sun-rpc-mountd-tcp;6;;;;junos-predefined-service;simple;
+junos-sun-rpc-mountd-udp;17;;;;junos-predefined-service;simple;
+junos-sun-rpc-nfs;;;;;junos-predefined-service;group;junos-sun-rpc-tcp|junos-sun-rpc-udp|junos-sun-rpc-portmap-tcp|junos-sun-rpc-portmap-udp|junos-sun-rpc-nfs-tcp|junos-sun-rpc-nfs-udp
+junos-sun-rpc-nfs-access;;;;;junos-predefined-service;group;junos-sun-rpc-tcp|junos-sun-rpc-udp|junos-sun-rpc-portmap-tcp|junos-sun-rpc-portmap-udp|junos-sun-rpc-nfs-tcp|junos-sun-rpc-nfs-udp|junos-sun-rpc-mountd-tcp|junos-sun-rpc-mountd-udp
+junos-sun-rpc-nfs-tcp;6;;;;junos-predefined-service;simple;
+junos-sun-rpc-nfs-udp;17;;;;junos-predefined-service;simple;
+junos-sun-rpc-portmap;;;;;junos-predefined-service;group;junos-sun-rpc-tcp|junos-sun-rpc-udp|junos-sun-rpc-portmap-tcp|junos-sun-rpc-portmap-udp
+junos-sun-rpc-portmap-tcp;6;;;;junos-predefined-service;simple;
+junos-sun-rpc-portmap-udp;17;;;;junos-predefined-service;simple;
+junos-sun-rpc-status;;;;;junos-predefined-service;group;junos-sun-rpc-tcp|junos-sun-rpc-udp|junos-sun-rpc-portmap-tcp|junos-sun-rpc-portmap-udp|junos-sun-rpc-status-tcp|junos-sun-rpc-status-udp
+junos-sun-rpc-status-tcp;6;;;;junos-predefined-service;simple;
+junos-sun-rpc-status-udp;17;;;;junos-predefined-service;simple;
+junos-sun-rpc-tcp;6;111;;;junos-predefined-service;simple;
+junos-sun-rpc-udp;17;111;;;junos-predefined-service;simple;
+junos-sun-rpc-ypbind;;;;;junos-predefined-service;group;junos-sun-rpc-tcp|junos-sun-rpc-udp|junos-sun-rpc-portmap-tcp|junos-sun-rpc-portmap-udp|junos-sun-rpc-ypbind-tcp|junos-sun-rpc-ypbind-udp
+junos-sun-rpc-ypbind-tcp;6;;;;junos-predefined-service;simple;
+junos-sun-rpc-ypbind-udp;17;;;;junos-predefined-service;simple;
+junos-syslog;17;514;;;junos-predefined-service;simple;
+junos-tacacs;6;49;;;junos-predefined-service;simple;
+junos-tacacs-ds;6;65;;;junos-predefined-service;simple;
+junos-talk;;;;;junos-predefined-service;simple;
+junos-tcp-any;6;1;65535;;junos-predefined-service;simple;
+junos-telnet;6;23;;;junos-predefined-service;simple;
+junos-tftp;17;69;;;junos-predefined-service;simple;
+junos-udp-any;17;1;65535;;junos-predefined-service;simple;
+junos-uucp;17;540;;;junos-predefined-service;simple;
+junos-vdo-live;17;7000;7010;;junos-predefined-service;simple;
+junos-vnc;6;5800;;;junos-predefined-service;simple;
+junos-wais;6;210;;;junos-predefined-service;simple;
+junos-who;17;513;;;junos-predefined-service;simple;
+junos-whois;6;43;;;junos-predefined-service;simple;
+junos-winframe;6;1494;;;junos-predefined-service;simple;
+junos-wxcontrol;6;3578;;7560;junos-predefined-service;simple;
+junos-x-windows;6;6000;6063;;junos-predefined-service;simple;
+junos-xnm-clear-text;6;3221;;;junos-predefined-service;simple;
+junos-xnm-ssl;6;3220;;;junos-predefined-service;simple;
+junos-ymsg;6;5050;;;junos-predefined-service;simple;'
+where dev_typ_id=8;
+
+
+######################################################################
+
+Syntax junos:
+
+policy:
+
+security {
+	policies {
+		from-zone dcf-app-tier to-zone dcf-app-tier {
+			inactive: policy 112 {
+				match {
+					source-address ADZ_2.51.42.0-24_Netz;
+					destination-address [ FITS_2.51.41.50_SV FITS_2.51.41.51_SV FITS_2.51.41.52_SV FITS_2.51.41.58_SV FITS_2.51.41.59_SV FITS_2.51.41.60_SV ];
+					application [ Kerberos_v5_TCP Kerberos_v5_UDP junos-ldap ldap-ssl junos-ping TCP_00139_nbsession TCP_01026 TCP_03268 TCP_1025 TCP_3269 TCP_445 TCP_5352 TCP_5362 TCP_5372 TCP_5382 UDP_00137_nbname UDP_00138_nbdatagram UDP_135 UDP_389 UDP_53 UDP_636 UDP_67 ADZ_UUID_FTASADC Http_Https RPC_135 ];
+				}
+				then {
+					permit;
+					log {
+						session-init;
+					}
+				}
+			}
+		}
+	}
+}
+
+Network objects (auch unterhalb von security):
+
+security {
+	zones {
+        security-zone fwbb {
+            address-book {
+                address FITS_172.20.170.234_SV 172.20.170.234/32;
+                address BLB_1.0.0.0-8_Net 1.0.0.0/8;                
+                address-set FITS-Office-Netze {
+                    address ADZ_2.172.160.0-24_Netz;
+                    address FITS_2.172.161.0-24;
+                    address IZO_2.248.251.0-24;
+                }
+            interfaces { --> kann ignoriert werden
+                reth2.0;            	
+			}
+		}			
+        security-zone global;  --> Zonen ohne Adressobjekte: ebenfalls ignorieren (höchstens zur Zonendefinition)		
+	}
+}
+
+
+Services:
+
+applications {
+	application TCP_137 {
+		protocol tcp;
+		source-port 1024-65535;
+		destination-port 137-137;
+	}
+    application SUN-RPC-WALLD {
+        protocol tcp;
+        rpc-program-number 100008-100008;
+    }
+    application echo-request_1 {
+        protocol icmp;
+        icmp-type 8;
+        icmp-code 0;
+    }
+    application MS-AD-DRSUAPI {
+        protocol tcp;
+        uuid e3514235-4b06-11d1-ab04-00c04fc2dcd2;
+    }
+    application FTASIADC001_02 {
+        term term0 protocol tcp uuid f6beaff7-1e19-4fbb-9f8f-b89e2018337c;
+        term term1 protocol tcp uuid 30b044a5-a225-43f0-b3a4-e060df91f9c1;
+        term term2 protocol tcp uuid 3c4728c5-f0ab-448b-bda1-6ce01eb0a6d6;
+        term term3 protocol tcp uuid c9ac6db5-82b7-4e55-ae8a-e464ed7b4277;
+        term term4 protocol tcp uuid 12345678-1234-abcd-ef00-0123456789ab;
+        term term5 protocol tcp uuid 86d35949-83c9-4044-b424-db363231fd0c;
+        term term6 protocol tcp uuid a398e520-d59a-4bdd-aa7a-3c1e0303a511;
+        term term7 protocol tcp uuid 3473dd4d-2e88-4006-9cba-22570909dd10;
+    }
+    application icmp-proto {
+        protocol 99;
+        source-port 0-65535;
+        destination-port 0-0;
+    }
+    application-set Http_Https {
+        application junos-http;
+        application junos-https;
+    }            
+}
+
+--> es gibt vordefinierte Dienste? e.g. junos-http, junos-ldap wie kommen wir an die ran?
+
+	show groups junos-defaults applications
+	show groups junos-defaults 
+

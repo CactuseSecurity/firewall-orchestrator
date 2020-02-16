@@ -1,0 +1,91 @@
+- block: 
+     - name: remove complete iso_home dir 
+       file:
+          state: absent
+          path: "{{ iso_home }}"
+
+     - name: install package rsyslog
+       package:
+        name: "rsyslog"
+        state: present
+
+     - name: create log dir for itsecorg
+       file:
+         path: "/var/log/itsecorg/"
+         state: directory
+         owner: root
+         group: root
+         mode: 0775
+
+     - name: edit rsyslog
+       blockinfile:
+         path: "/etc/rsyslog.d/30-itsecorg.conf"
+         create: yes
+         block: |
+             # syslog for ITSecOrg
+             # Log ITSecOrg log messages to file
+             :msg,contains,"ITSecOrg" /var/log/itsecorg.log
+             local6.warning                 /var/log/itsecorg/itsecorg.error
+             local6.notice                  /var/log/itsecorg/itsecorg.log
+             local6.=info                   /var/log/itsecorg/itsecorg.login
+             local6.debug                   /var/log/itsecorg/itsecorg.debug
+
+     - name: edit logrotate
+       blockinfile:
+         path: "/etc/logrotate.d/itsecorg.conf"
+         create: yes
+         block: |
+            /var/log/itsecorg/itsecorg.log /var/log/itsecorg/itsecorg.debug /var/log/itsecorg/itsecorg.error /var/log/itsecorg/itsecorg.login {
+               compress
+               maxage 7
+               rotate 99
+               size=+4096k
+               missingok
+               copytruncate
+               sharedscripts
+                   prerotate
+                           /etc/init.d/itsecorg-import stop >/dev/null
+                   endscript
+                   postrotate
+                           /etc/init.d/itsecorg-import start >/dev/null
+                   endscript
+            }
+     - name: reload rsyslog service
+       service:
+        name: "rsyslog"
+        state: restarted
+
+     - name: create group itsecorg
+       group:
+        name: itsecorg
+        gid: 60320
+        state: present
+       
+     - name: add user itsecorg
+       user:
+        name: itsecorg
+        comment: ITSecurity Organizer User
+        uid: 60320
+        home: "{{ iso_home }}"
+        shell: /bin/bash
+        group: itsecorg
+        generate_ssh_key: yes
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id_rsa
+
+     - name: create iso home etc dir
+       file:
+         path: "{{ iso_home }}/etc"
+         state: directory
+         owner: itsecorg
+         group: itsecorg
+
+     - name: copy iso.conf to target
+       copy:
+        src: iso.conf
+        dest: "{{ iso_home }}/etc/iso.conf"
+        owner: itsecorg
+        group: itsecorg
+        
+  become: yes
+  

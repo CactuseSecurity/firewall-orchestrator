@@ -1,0 +1,6 @@
+# $Id: 20070927-iso-import-cp-users.txt,v 1.1.2.2 2007-12-13 10:47:31 tim Exp $
+# $Source: /home/cvs/iso/package/install/migration/Attic/20070927-iso-import-cp-users.txt,v $
+# die folgenden Dateien müssen aktualisiert werden:
+# - web/include/db-user.php
+# - web/include/display_user_config.php
+# - importer/CACTUS/ISO/import/checkpoint.pm

@@ -1,0 +1,32 @@
+from flask import Flask, request
+from flask_restful import Resource, Api
+from sqlalchemy import create_engine
+from json import dumps
+
+db_connect = create_engine('postgresql://{{ api_user }}:{{ api_user_password }}@{{ isodb_host }}:{{ iso_db_port }}/{{ iso_db_name }}')
+app = Flask(__name__)
+api = Api(app)
+
+class Managements(Resource):
+    def get(self):
+        conn = db_connect.connect() # connect to database
+        query = conn.execute("select * from management") # This line performs query and returns json result
+        result = {'managements': [dict(zip(tuple (query.keys()) ,i)) for i in query.cursor]}
+        return dumps(result)
+
+class Devices(Resource):
+    def get(self):
+        conn = db_connect.connect() # connect to database
+        query = conn.execute("select * from device") # This line performs query and returns json result
+        return {'devices': [i[0] for i in query.cursor.fetchall()]}        
+#    def put(self):
+#        conn = db_connect.connect() # connect to database
+#        query = conn.execute("update * from device") # This line performs query and returns json result
+#        return {'devices': [i[0] for i in query.cursor.fetchall()]}        
+
+api.add_resource(Managements, '/managements') # Route_1
+api.add_resource(Devices, '/devices') # Route_2
+#api.add_resource(Managment_Name, '/managements/<mgm_id>') # Route_3
+
+if __name__ == '__main__':
+     app.run(port='5002')

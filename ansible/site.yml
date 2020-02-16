@@ -1,0 +1,6 @@
+---
+- import_playbook: common-all.yml
+- import_playbook: backend.yml
+- import_playbook: importer.yml
+- import_playbook: frontend.yml
+- import_playbook: iso-samples.yml

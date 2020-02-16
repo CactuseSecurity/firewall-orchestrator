@@ -1,0 +1,23 @@
+version: '2'
+services:
+  iso-web:
+    build: web
+    depends_on:
+      - iso-db
+    ports:
+      - "443:443"
+  iso-importer:
+    build: importer
+    depends_on:
+      - iso-db
+    dns:
+      - 10.5.5.1
+      - 10.9.8.1
+  iso-db:
+    build: install/database
+    environment:
+      - POSTGRES_USER=dbadmin
+      - POSTGRES_PASSWORD=st8chel
+      - POSTGRES_DB=itsecorg
+    ports:
+      - "5432:5432"

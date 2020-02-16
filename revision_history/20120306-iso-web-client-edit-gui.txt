@@ -1,0 +1,13 @@
+
+database changes:	GRANT DELETE ON TABLE client_network TO isoadmins;
+new files:	web/config/
+				config_client.php
+				config_single_client.php
+				config_single_client_net.php
+				no_client.php
+			web/include/db-client.php
+			
+Changes in web/include
+			db-div.php
+			display_menues.php
+	

@@ -1,0 +1,6 @@
+---
+- hosts: isosrv
+  roles:
+    - backend
+    - docker
+    - api

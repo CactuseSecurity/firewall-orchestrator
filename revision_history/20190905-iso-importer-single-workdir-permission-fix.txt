@@ -1,0 +1,7 @@
+# fixing permissin bug in importer/iso-importer-single.pl
+# by replacing deprecated mkpath with make_path:
+
+	if (!$do_not_copy) {
+		rmtree($iso_workdir); make_path($iso_workdir,{mode => 0700}); make_path($cfg_dir,{mode => 0700});
+
+# replace whole file

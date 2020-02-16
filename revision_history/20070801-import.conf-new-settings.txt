@@ -1,0 +1,5 @@
+# $Id: 20070801-import.conf-new-settings.txt,v 1.1.2.2 2007-12-13 10:47:31 tim Exp $
+# $Source: /home/cvs/iso/package/install/migration/Attic/20070801-import.conf-new-settings.txt,v $
+
+save_import_results_to_file	0
+group_delimiter      	|

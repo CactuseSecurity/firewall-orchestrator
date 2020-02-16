@@ -1,0 +1,58 @@
+- block:
+    - name: Install importer perl modules 
+      package: name={{ item }} state=present
+      with_items:
+        - libdbi-perl 
+        - libdbd-pg-perl 
+        - libdate-calc-perl 
+        - psmisc 
+        - libnet-cidr-perl 
+        - libsys-syslog-perl 
+        - libexpect-perl
+        - libcgi-pm-perl
+
+    - name: copy importer files
+      copy:
+        src: "importer"
+        dest: "{{ iso_home }}"
+        owner: itsecorg
+        group: itsecorg
+        mode: 0755
+
+#    - name: set x-flag for importer executables
+#      file:
+#        path: "{{ iso_home }}/importer/*"
+#        state: file
+#        mode: 0755
+
+    - name: copy importer bin
+      copy:
+        src: "bin/"
+        dest: "{{ iso_home }}/bin/"
+        mode: 0755
+        owner: itsecorg
+        group: itsecorg
+
+    - name: copy import.conf
+      copy:
+        src: "import.conf"
+        dest: "{{ iso_home }}/etc/import.conf"
+        mode: 0755
+        owner: itsecorg
+        group: itsecorg
+
+    - name: copy importer rc script
+      copy:
+        src: "import_itsecorg-main-rc"
+        dest: /etc/init.d/itsecorg-importer
+        mode: 0755
+        owner: root
+        group: root
+
+    - name: create links in rcx.d dirs
+      command: "/usr/sbin/update-rc.d itsecorg-importer defaults"
+
+    - name: start itsecorg importer 
+      shell: "/etc/init.d/itsecorg-importer start"
+  become: yes
+      

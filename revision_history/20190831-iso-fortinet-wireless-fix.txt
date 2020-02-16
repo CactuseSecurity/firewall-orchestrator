@@ -1,0 +1,40 @@
+# fixing import for vdom-devices whose config does not start with "config system" but "config wireless-controller" etc.  
+# in importer/CACTUS/ISO/impot/fortinet.pm
+
+sub purge_non_vdom_config_lines { # ($vdom_name)
+	my $vdom_name = shift;
+	my $debug = shift;
+ 	my $ln_cnt = 0;
+	my $found_correct_vdom = 0;
+	my @vdom_config_lines;
+	my ($start_of_vdom, $end_of_vdom);
+
+	$end_of_vdom = $#config_lines;	# if vdom is the last vdom in file
+	LINE: while (!$found_correct_vdom && $ln_cnt<$#config_lines) {
+		if (!defined($start_of_vdom) &&
+			$config_lines[$ln_cnt] =~ /^config vdom$/ && 
+			$config_lines[$ln_cnt+1] =~ /^edit ${vdom_name}$/ 
+			# && $config_lines[$ln_cnt+2] =~ /^config system settings$/
+			#&& $config_lines[$ln_cnt+2] =~ /^config system /
+			&& $config_lines[$ln_cnt+2] !~ /^next$/
+			)
+		{
+			$start_of_vdom = $ln_cnt+2;
+			$ln_cnt++ ; 
+		}
+		if (defined($start_of_vdom) &&
+			$config_lines[$ln_cnt] =~ /^config vdom$/ && 
+			$config_lines[$ln_cnt+1] =~ /^edit .+?$/ 
+			#&& $config_lines[$ln_cnt+2] =~ /^config system /
+			&& $config_lines[$ln_cnt+2] !~ /^next$/
+			)
+		{
+			$end_of_vdom = $ln_cnt;
+			$ln_cnt = $#config_lines;
+		}
+		$ln_cnt++ ; 
+	}
+	@vdom_config_lines = splice(@config_lines, $start_of_vdom, $end_of_vdom-$start_of_vdom+1);
+	&print_debug("found vdom $vdom_name from line $start_of_vdom to line $end_of_vdom",$debug,1); 
+	@config_lines = @vdom_config_lines;
+}

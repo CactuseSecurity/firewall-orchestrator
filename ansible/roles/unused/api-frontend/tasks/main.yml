@@ -1,0 +1,30 @@
+- block:
+     - name: Install packages for api frontend
+       apt:
+         name: "{{ packages }}"
+       vars:
+           packages:
+           - libapache2-mod-wsgi-py3      
+
+     - name: create api dir and change owner
+       file:
+         path: "{{ iso_home }}/api"
+         state: directory
+         mode: 0755
+         owner: itsecorg
+         group: itsecorg
+         recurse: yes
+
+     - name: copy iso httpd config file template to apache target
+       template:
+          src: apache_iso_api.conf
+          dest: "{{ http_conf_dir }}/iso_api.conf"
+          backup: yes
+          mode: 0644
+          owner: root
+          group: root
+        
+     - name: enable apache mod_wsgi
+       shell: "a2enmod wsgi"
+        
+  become: yes

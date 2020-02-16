@@ -32,7 +32,7 @@ Open Network Automation Framework
        cd firewall-orchestrator/ansible; ansible-playbook -i inventory site.yml -K
   
 
-## Advanced Installation 1: if your system lives behind proxy 1.2.3.4 on port 3128
+## Advanced Installation 1: if your system lives behind a proxy
 
        cd firewall-orchestrator/ansible; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128" site.yml -K
        

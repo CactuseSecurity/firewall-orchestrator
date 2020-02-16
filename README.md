@@ -1,4 +1,4 @@
-# opennaf
+# Firewall Orchestrator
 
 Open Network Automation Framework 
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
@@ -23,24 +23,24 @@ Open Network Automation Framework
    
        ansible -m ping 127.0.0.1
 
-2) get OpenNAF with the following command
+2) get Firewall Orchestrator with the following command
 
-       git clone ssh://git@github.com/tpurschke/opennaf.git
+       git clone ssh://git@github.com/tpurschke/firewall-orchestrator.git
 
 3) setup (install everything on localhost)
 
-       cd opennaf/ansible; ansible-playbook -i inventory site.yml -K
+       cd firewall-orchestrator/ansible; ansible-playbook -i inventory site.yml -K
   
 
 ## Advanced Installation 1: if your system lives behind proxy 1.2.3.4 on port 3128
 
-       cd opennaf/ansible; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128" site.yml -K
+       cd firewall-orchestrator/ansible; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128" site.yml -K
        
 ## Advanced Installation 2: distributed setup
 
 if you want to distribute functionality to different hosts:
 
-   modify opennaf/inventory/hosts to your needs 
+   modify firewall-orchestrator/inventory/hosts to your needs 
 
    change ip addresses) of hosts to install to, e.g. 
 

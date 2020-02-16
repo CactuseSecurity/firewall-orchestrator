@@ -1,6 +1,5 @@
 # Firewall Orchestrator
 
-Open Network Automation Framework 
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
 - Display reports on firewall configuration and changes
 - Document changes and integrate with ticketing systems

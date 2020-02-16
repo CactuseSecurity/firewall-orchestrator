@@ -13,7 +13,7 @@ this will install various software components to your system. It is recommended 
 
 1) prepare your test system
 
-       apt install git ansible sudo
+       apt-get install git ansible sudo
        ssh-keygen -b 4096
 
 2) test system connectiviy necessary for installation

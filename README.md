@@ -9,9 +9,7 @@ Open Network Automation Framework
 ## Installation instructions
 use latest debian or ubuntu server with ssh service running
 
-this will install various software components to your system.
-
-It is stronly recommended to do so on a dedicated (test) system.
+this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
 1) prepare your test system
 

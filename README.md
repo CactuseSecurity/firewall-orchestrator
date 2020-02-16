@@ -36,11 +36,11 @@ this will install various software components to your system. It is recommended 
        cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
   
 
-## Advanced Installation 1: if your system lives behind a proxy
+## Advanced installation 1: if your system lives behind a proxy
 
        cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128" site.yml -K
        
-## Advanced Installation 2: distributed setup
+## Advanced installation 2: distributed setup
 
 if you want to distribute functionality to different hosts:
 

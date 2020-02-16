@@ -7,9 +7,13 @@ Open Network Automation Framework
 - Demo: https://demo.itsecorg.de (user: admin, password: fworch.1)
 
 ## Installation instructions
-(use latest debian or ubuntu server with ssh service running)
+use latest debian or ubuntu server with ssh service running
 
-1) prepare system
+this will install various software components to your system.
+
+It is stronly recommended to do so on a dedicated (test) system.
+
+1) prepare your test system
 
        apt install git ansible sudo
        ssh-keygen -b 4096
@@ -29,12 +33,12 @@ Open Network Automation Framework
 
 3) setup (install everything on localhost)
 
-       cd firewall-orchestrator/ansible; ansible-playbook -i inventory site.yml -K
+       cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
   
 
 ## Advanced Installation 1: if your system lives behind a proxy
 
-       cd firewall-orchestrator/ansible; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128" site.yml -K
+       cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128" site.yml -K
        
 ## Advanced Installation 2: distributed setup
 

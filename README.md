@@ -17,10 +17,12 @@ this will install various software components to your system. It is recommended 
        apt-get install git ansible sudo
        exit
        ssh-keygen -b 4096
+       cat .ssh/id_rsa.pub >>.ssh/authorized_keys
+       chmod 600 .ssh/authorized_keys
 
 2) test system connectiviy necessary for installation
 
-   test ssh connectivity to localhost (127.0.0.1)
+   test ssh connectivity to localhost (127.0.0.1) using public key auth (add .ssh/authorized_keys
    
        ssh 127.0.0.1
    make sure you can use ansible locally

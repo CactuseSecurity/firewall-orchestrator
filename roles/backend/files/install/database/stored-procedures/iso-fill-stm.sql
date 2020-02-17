@@ -50,7 +50,8 @@ insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmi
 	VALUES (3,'Default','Admin Account','admin');
 #insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
 #	VALUES (4,'demo','test user','demo');
-	
+
+
 insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (3,'in operation');

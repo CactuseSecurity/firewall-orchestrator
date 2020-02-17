@@ -45,7 +45,12 @@ insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmi
 insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
 	VALUES (1,'Check Point Security Management Server Update Process','Check Point','auto');
 insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
-	VALUES (999,'Check Point R8x','System','System');
+	VALUES (2,'Check Point R8x','System','System');
+insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
+	VALUES (3,'Default','Admin Account','admin');
+#insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
+#	VALUES (4,'demo','test user','demo');
+
 
 insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');

@@ -1,12 +1,9 @@
 /*
 Created		29.04.2005
-Modified		16.12.2018
+Modified		17.02.2020
 Project		IT Security Organizer
-Model			$Source$
 Company		Cactus eSecurity GmbH
-Author		Tim Purschke
-Version		$Id$
-Database		PostgreSQL 8 
+Database		PostgreSQL 8-10 
 */
 
 
@@ -38,6 +35,7 @@ Drop sequence "public"."abs_change_id_seq" Cascade;
 Drop sequence "public"."request_request_id_seq" Cascade;
 Drop sequence "public"."change_type_change_type_id_seq" Cascade;
 Drop sequence "public"."import_changelog_seq" Cascade;
+Drop sequence "public"."role_role_id_seq" Cascade;
 
 
 
@@ -255,6 +253,11 @@ Minvalue 1
 Maxvalue 9223372036854775807
 Cache 1;
 
+Create sequence "public"."role_role_id_seq"
+Increment 1
+Minvalue 1
+Maxvalue 9223372036854775807
+Cache 1;
 
 
 
@@ -1132,6 +1135,28 @@ Create table "report"
  primary key ("report_id")
 ) With Oids;
 
+Create table "role"
+(
+	"role_id" Integer NOT NULL Default nextval('public.role_role_id_seq'::text),
+	"role_name" Varchar NOT NULL,
+	"role_can_view_all_devices" Boolean NOT NULL Default false,
+	"role_is_superadmin" Boolean NOT NULL default false,	
+ primary key ("role_id")
+) With Oids;
+
+Create table "role_to_user"
+(
+	"role_id" Integer NOT NULL,
+	"user_id" Integer NOT NULL,
+ primary key ("role_id", "user_id")
+) With Oids;
+
+Create table "role_to_device"
+(
+	"role_id" Integer NOT NULL,
+	"device_id" Integer NOT NULL,
+ primary key ("role_id", "device_id")
+) With Oids;
 
 /* Create Tab 'Others' for Selected Tables */
 
@@ -1469,8 +1494,10 @@ Create index "IX_Relationship158" on "changelog_rule" ("change_type_id");
 Alter table "changelog_rule" add  foreign key ("change_type_id") references "stm_change_type" ("change_type_id") on update restrict on delete restrict;
 Create index "IX_Relationship181" on "request" ("request_type_id");
 Alter table "request" add  foreign key ("request_type_id") references "request_type" ("request_type_id") on update restrict on delete restrict;
-
-
+Alter table "role_to_user" add  foreign key ("role_id") references "role" ("role_id") on update restrict on delete cascade;
+Alter table "role_to_user" add  foreign key ("user_id") references "isoadmin" ("isoadmin_id") on update restrict on delete cascade;
+Alter table "role_to_device" add  foreign key ("role_id") references "role" ("role_id") on update restrict on delete cascade;
+Alter table "role_to_device" add  foreign key ("device_id") references "device" ("dev_id") on update restrict on delete cascade;
 
 /* Create Procedures */
 
@@ -2089,6 +2116,21 @@ Grant select on "report" to group "isoadmins";
 Grant update on "report" to group "isoadmins";
 Grant delete on "report" to group "isoadmins";
 Grant insert on "report" to group "isoadmins";
+Grant select on "role" to group "secuadmins";
+Grant select on "role" to group "isoadmins";
+Grant select on "role" to group "reporters";
+Grant update on "role" to group "isoadmins";
+Grant insert on "role" to group "isoadmins";
+Grant select on "role_to_user" to group "secuadmins";
+Grant select on "role_to_user" to group "isoadmins";
+Grant select on "role_to_user" to group "reporters";
+Grant update on "role_to_user" to group "isoadmins";
+Grant insert on "role_to_user" to group "isoadmins";
+Grant select on "role_to_device" to group "secuadmins";
+Grant select on "role_to_device" to group "isoadmins";
+Grant select on "role_to_device" to group "reporters";
+Grant update on "role_to_device" to group "isoadmins";
+Grant insert on "role_to_device" to group "isoadmins";
 
 /* Group permissions on views */
 

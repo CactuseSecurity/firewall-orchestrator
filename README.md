@@ -3,7 +3,8 @@
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
 - Display reports on firewall configuration and changes
 - Document changes and integrate with ticketing systems
-- Demo: https://demo.itsecorg.de (user: admin, password: fworch.1)
+- Demo: if you want to see what it looks like in advance, visit https://demo.itsecorg.de (user: admin, password: fworch.1)
+- if your system lives behind a proxy, see https://github.com/tpurschke/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
 
 ## Installation instructions
 use latest debian or ubuntu server with ssh service running

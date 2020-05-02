@@ -1,0 +1,10 @@
+isosrv ansible_connection=local ansible_host=localhost ansible_port=2222    # can be used for local full install of all components
+
+[frontends]
+isosrv
+
+[backends]
+isosrv
+
+[importers]
+isosrv

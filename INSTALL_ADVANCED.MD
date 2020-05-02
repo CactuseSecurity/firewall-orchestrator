@@ -1,8 +1,9 @@
 
 
-## Advanced installation 1: if your system lives behind a proxy
+## Advanced installation 1: if your system lives behind a proxy 
+ e.g. with IP 1.2.3.4, listening on port 3128
 
-       cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128" site.yml -K
+       cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
        
 ## Advanced installation 2: distributed setup
 

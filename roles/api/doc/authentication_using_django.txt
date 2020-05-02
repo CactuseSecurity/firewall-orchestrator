@@ -1,0 +1,3 @@
+source: https://www.howtographql.com/graphql-python/4-authentication/
+
+https://blog.apollographql.com/authorization-in-graphql-452b1c402a9

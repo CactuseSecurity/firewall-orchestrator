@@ -18,5 +18,5 @@ commonName=$CommonName
 organizationalUnitName=$organizationalUnitName
 emailAddress=$EMAIL
 "
-		openssl req -nodes -newkey rsa:4096 -x509 -keyout $KEY -out $CERT -batch -subj "$(echo -n "$SUBJ" | tr "\n" "/")"
+		openssl req -nodes -newkey rsa:4096 -x509 -keyout $KEY -out $CERT -days 3650 -batch -subj "$(echo -n "$SUBJ" | tr "\n" "/")"
 fi

@@ -19,6 +19,9 @@
      - name: initialize iso database and delete all existing data - press CTRL-C to abort within 5 seconds)
        shell:  "{{ iso_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
 
+     - name: create admin user (default admin for web login)
+       shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
+
      - name: (re)defines functions and views (idempotent)
        shell:  "{{ iso_home }}/install/database/db-install-scripts/db-init2-functions.sh"
 

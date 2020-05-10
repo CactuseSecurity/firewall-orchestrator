@@ -24,4 +24,3 @@
 - "CMDB Netzwerk"
 - kritische Funktionen nicht im Kernprodukt (Config-Änderungen)
 - Bereitstellung offener Schnittstellen zur Automatisierung
-- ...

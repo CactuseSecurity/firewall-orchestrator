@@ -11,11 +11,11 @@
 
 # Design-, Methoden- und Toolentscheidungen
 
-- GitHub.com 
+- GitHub.com
+- Rapid Prototyping (Trial & Error, MuP)
 - PostgreSQL
 - GraphQL statt REST API
 - Verwendung von hasura
-- Rapid Prototyping (Trial & Error, MuP)
 
 # Funktionale Anforderungen (High-Level)
 

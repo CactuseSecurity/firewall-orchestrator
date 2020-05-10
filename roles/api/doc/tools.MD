@@ -1,0 +1,3 @@
+- graphql query tool insomnia
+  - ubuntu: sudo snap install insomnia oder:
+  - https://insomnia.rest/download/core/?&ref=

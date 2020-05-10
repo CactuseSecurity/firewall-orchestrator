@@ -1,7 +1,7 @@
 
 # Designziele
 
-- Einfache Entwicklung im (erweiterbaren) Team
+- Einfache & angenehme Entwicklung im (erweiterbaren) Team
 - Open Source
 - Clean Code (Doku, Tests, coding best practices ...)
 - Klare Modularisierung (mittels API), keine Logik im Client
@@ -29,3 +29,5 @@
 - "CMDB Netzwerk"
 - kritische Funktionen nicht im Kernprodukt (Config-Änderungen)
 - Bereitstellung offener Schnittstellen zur Automatisierung
+
+# Architektur-Dokumentation: https://demo.itsecorg.de

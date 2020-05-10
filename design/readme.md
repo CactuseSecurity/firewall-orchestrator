@@ -1,5 +1,5 @@
 
-# Desginziele
+# Designziele
 
 - Einfache Entwicklung im (erweiterbaren) Team
 - Open Source

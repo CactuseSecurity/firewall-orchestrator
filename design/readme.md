@@ -3,7 +3,7 @@
 
 - Einfache & angenehme Entwicklung im (erweiterbaren) Team
 - Open Source
-- Clean Code (Doku, Tests, coding best practices ...)
+- Hohe Code Qualtität (Doku, Tests, Lesbarkeit, coding best practices ...)
 - Klare Modularisierung (mittels API), keine Logik im Client
 - Sicherer Code, mandantenfähige Nutzung, RBAC
 - Moderne & "zeitlose" GUI
@@ -30,4 +30,6 @@
 - kritische Funktionen nicht im Kernprodukt (Config-Änderungen)
 - Bereitstellung offener Schnittstellen zur Automatisierung
 
-# Architektur-Dokumentation: https://demo.itsecorg.de
+# Architektur-Dokumentation
+
+- https://demo.itsecorg.de

@@ -15,6 +15,7 @@
 - Rapid Prototyping (Trial & Error, MuP)
 - PostgreSQL
 - GraphQL statt REST API
+- Client: Apollo (https://www.apollographql.com/)
 - Verwendung von hasura
 
 # Funktionale Anforderungen (High-Level)

@@ -20,7 +20,7 @@
 # Funktionale Anforderungen (High-Level)
 
 - Kostengünstige Alternative zu den Kernfunktionalitäten der Konkurrenz (Tufin, Algosec, Skybox)
-- Abdecken der regulatorischen Richtlinien (Dokumentation, Rezertifizierung)
+- Abdecken der regulatorischen Richtlinien (Dokumentation Config-Änderungen, Rezertifizierung Config)
 - "CMDB Netzwerk"
 - kritische Funktionen nicht im Kernprodukt (Config-Änderungen)
 - Bereitstellung offener Schnittstellen zur Automatisierung

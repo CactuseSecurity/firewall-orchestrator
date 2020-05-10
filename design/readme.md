@@ -11,13 +11,17 @@
 
 # Design-, Methoden- und Toolentscheidungen
 
+- Sprache:
+  - Entwicklersprache Deutsch/Englisch
+  - GUI Sprache parallel Englisch & Deutsch
 - GitHub.com
 - Rapid Prototyping (Trial & Error, MuP)
-- PostgreSQL
-- GraphQL statt REST API
-- Client: Apollo (https://www.apollographql.com/)
-- Verwendung von hasura
-
+- Tools
+  - PostgreSQL
+  - API GraphQL statt REST API
+  - Verwendung von hasura
+  - Client: Apollo (https://www.apollographql.com/)
+  
 # Funktionale Anforderungen (High-Level)
 
 - Kostengünstige Alternative zu den Kernfunktionalitäten der Konkurrenz (Tufin, Algosec, Skybox)

@@ -37,5 +37,5 @@ this will install various software components to your system. It is recommended 
 3) setup (install everything on localhost)
 
        cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
-  
+       enter sudo password when prompted "BECOME password:"
 

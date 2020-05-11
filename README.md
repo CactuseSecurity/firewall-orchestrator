@@ -13,8 +13,8 @@ this will install various software components to your system. It is recommended 
 
 1) prepare your test system
 
-       su -
-       apt-get install git ansible sudo
+       su -       
+       apt-get install git ansible ssh sudo
        exit
        ssh-keygen -b 4096
        cat .ssh/id_rsa.pub >>.ssh/authorized_keys

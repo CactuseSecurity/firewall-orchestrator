@@ -32,7 +32,7 @@ this will install various software components to your system. It is recommended 
 2) get Firewall Orchestrator with the following command
       
        git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
-       (or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git)
+       (or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git, needs ssh key to be uploaded)
 
 
 3) setup (install everything on localhost)

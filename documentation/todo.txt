@@ -1,1 +1,2 @@
-- done: initialen ssh connect zu den sample-importer-daten reparieren
+- all developers: setup github account and send name to tim for granting access
+- all developers: create ssh key and send public key to tim for granting access

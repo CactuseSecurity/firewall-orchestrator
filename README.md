@@ -4,17 +4,17 @@
 - Display reports on firewall configuration and changes
 - Document changes and integrate with ticketing systems
 - Demo: if you want to see what it looks like in advance, visit https://demo.itsecorg.de (user: admin, password: fworch.1)
-- if your system lives behind a proxy, see https://github.com/tpurschke/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
+- if your system lives behind a proxy, see https://github.com/CactuseSecurity/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
 
 ## Installation instructions
-use latest debian or ubuntu server with ssh service running
+use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
 
 this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
 1) prepare your test system
 
        su -
-       apt-get install git ansible sudo
+       apt-get install git ansible ssh sudo
        exit
        ssh-keygen -b 4096
        cat .ssh/id_rsa.pub >>.ssh/authorized_keys
@@ -30,11 +30,13 @@ this will install various software components to your system. It is recommended 
        ansible -m ping 127.0.0.1
 
 2) get Firewall Orchestrator with the following command
+      
+       git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
+       (or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git)
 
-       git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git
 
 3) setup (install everything on localhost)
 
        cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
-  
+       enter sudo password when prompted "BECOME password:"
 

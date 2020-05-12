@@ -281,14 +281,14 @@ Create table "device"
 	"force_initial_import" Boolean NOT NULL Default FALSE,
 	"hide_in_gui" Boolean NOT NULL Default false,
  primary key ("dev_id")
-) With Oids;
+);
 
 Create table "client_project"
 (
 	"client_id" Integer NOT NULL,
 	"prj_id" Integer NOT NULL,
  primary key ("client_id","prj_id")
-) With Oids;
+);
 
 Create table "client"
 (
@@ -299,14 +299,14 @@ Create table "client"
 	"client_report" Boolean Default true,
 	"client_create" Timestamp NOT NULL Default now(),
  primary key ("client_id")
-) With Oids;
+);
 
 Create table "client_object"
 (
 	"client_id" Integer NOT NULL,
 	"obj_id" Integer NOT NULL,
  primary key ("client_id","obj_id")
-) With Oids;
+);
 
 Create table "client_network"
 (
@@ -318,7 +318,7 @@ Create table "client_network"
 	"client_net_ip_end" Cidr,
 	"client_net_create" Timestamp NOT NULL Default now(),
  primary key ("client_net_id")
-) With Oids;
+);
 
 Create table "management"
 (
@@ -345,7 +345,7 @@ Create table "management"
 	"hide_in_gui" Boolean NOT NULL Default false,
 	"importer_hostname" Varchar,
  primary key ("mgm_id")
-) With Oids;
+);
 
 Create table "object"
 (
@@ -380,7 +380,7 @@ Create table "object"
 	"obj_create" Integer NOT NULL,
 	"obj_last_seen" Integer NOT NULL,
  primary key ("obj_id")
-) With Oids;
+);
 
 Create table "objgrp"
 (
@@ -391,7 +391,7 @@ Create table "objgrp"
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("objgrp_id","objgrp_member_id")
-) With Oids;
+);
 
 Create table "rule"
 (
@@ -428,7 +428,7 @@ Create table "rule"
 	"rule_last_seen" Integer NOT NULL,
 	"dev_id" Integer,
  primary key ("rule_id")
-) With Oids;
+);
 
 Create table "rule_from"
 (
@@ -441,7 +441,7 @@ Create table "rule_from"
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("rule_from_id")
-) With Oids;
+);
 
 Create table "rule_review"
 (
@@ -452,7 +452,7 @@ Create table "rule_review"
 	"rr_create" Timestamp NOT NULL Default now(),
 	"rr_update" Timestamp NOT NULL Default now(),
  primary key ("rule_id","client_id")
-) With Oids;
+);
 
 Create table "rule_service"
 (
@@ -463,7 +463,7 @@ Create table "rule_service"
 	"rs_last_seen" Integer NOT NULL,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("rule_id","svc_id")
-) With Oids;
+);
 
 Create table "rule_to"
 (
@@ -474,7 +474,7 @@ Create table "rule_to"
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("rule_id","obj_id")
-) With Oids;
+);
 
 Create table "service"
 (
@@ -512,7 +512,7 @@ Create table "service"
 	"svc_create" Integer NOT NULL,
 	"svc_last_seen" Integer NOT NULL,
  primary key ("svc_id")
-) With Oids;
+);
 
 Create table "svcgrp"
 (
@@ -523,14 +523,14 @@ Create table "svcgrp"
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("svcgrp_id","svcgrp_member_id")
-) With Oids;
+);
 
 Create table "stm_action"
 (
 	"action_id" Integer NOT NULL Default nextval('public.stm_action_action_id_seq'::text),
 	"action_name" Varchar NOT NULL,
  primary key ("action_id")
-) With Oids;
+);
 
 Create table "stm_color"
 (
@@ -539,7 +539,7 @@ Create table "stm_color"
 	"color_rgb" Char(7) NOT NULL,
 	"color_comment" Text,
  primary key ("color_id")
-) With Oids;
+);
 
 Create table "stm_dev_typ"
 (
@@ -555,7 +555,7 @@ Create table "stm_dev_typ"
 	"dev_typ_config_file_basic_objects" Varchar,
 	"dev_typ_config_file_users" Varchar,
  primary key ("dev_typ_id")
-) With Oids;
+);
 
 Create table "stm_nattyp"
 (
@@ -563,7 +563,7 @@ Create table "stm_nattyp"
 	"nattyp_name" Varchar NOT NULL,
 	"nattyp_comment" Text,
  primary key ("nattyp_id")
-) With Oids;
+);
 
 Create table "stm_obj_typ"
 (
@@ -571,14 +571,14 @@ Create table "stm_obj_typ"
 	"obj_typ_name" Varchar NOT NULL,
 	"obj_typ_comment" Text,
  primary key ("obj_typ_id")
-) With Oids;
+);
 
 Create table "stm_track"
 (
 	"track_id" Integer NOT NULL Default nextval('public.stm_track_track_id_seq'::text),
 	"track_name" Varchar NOT NULL,
  primary key ("track_id")
-) With Oids;
+);
 
 Create table "stm_ip_proto"
 (
@@ -586,7 +586,7 @@ Create table "stm_ip_proto"
 	"ip_proto_name" Varchar,
 	"ip_proto_comment" Text,
  primary key ("ip_proto_id")
-) With Oids;
+);
 
 Create table "stm_svc_typ"
 (
@@ -594,7 +594,7 @@ Create table "stm_svc_typ"
 	"svc_typ_name" Varchar,
 	"svc_typ_comment" Text,
  primary key ("svc_typ_id")
-) With Oids;
+);
 
 Create table "zone"
 (
@@ -605,7 +605,7 @@ Create table "zone"
 	"zone_name" Varchar NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
  primary key ("zone_id")
-) With Oids;
+);
 
 Create table "usr"
 (
@@ -632,7 +632,7 @@ Create table "usr"
 	"last_change_admin" Integer,
 	"client_id" Integer,
  primary key ("user_id")
-) With Oids;
+);
 
 Create table "usergrp"
 (
@@ -642,7 +642,7 @@ Create table "usergrp"
 	"import_last_seen" Integer NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
  primary key ("usergrp_id","usergrp_member_id")
-) With Oids;
+);
 
 Create table "import_service"
 (
@@ -668,7 +668,7 @@ Create table "import_service"
 	"last_change_time" Timestamp,
 	"svc_scope" Varchar,
  primary key ("svc_id","control_id")
-) With Oids;
+);
 
 Create table "import_object"
 (
@@ -691,7 +691,7 @@ Create table "import_object"
 	"last_change_time" Timestamp,
 	"obj_scope" Varchar,
  primary key ("obj_id","control_id")
-) With Oids;
+);
 
 Create table "import_user"
 (
@@ -716,7 +716,7 @@ Create table "import_user"
 	"last_change_time" Timestamp,
 	"user_scope" Varchar,
  primary key ("user_id","control_id")
-) With Oids;
+);
 
 Create table "import_rule"
 (
@@ -751,7 +751,7 @@ Create table "import_rule"
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
  primary key ("control_id","rule_id")
-) With Oids;
+);
 
 Create table "import_control"
 (
@@ -771,14 +771,14 @@ Create table "import_control"
 	"successful_import" Boolean NOT NULL Default FALSE,
 	"import_errors" Varchar,
  primary key ("control_id")
-) With Oids;
+);
 
 Create table "import_zone"
 (
 	"control_id" Integer NOT NULL,
 	"zone_name" Text NOT NULL,
 	"last_change_time" Timestamp
-) With Oids;
+);
 
 Create table "changelog_object"
 (
@@ -800,7 +800,7 @@ Create table "changelog_object"
 	"change_time" Timestamp,
 	"unique_name" Varchar,
  primary key ("log_obj_id")
-) With Oids;
+);
 
 Create table "isoadmin"
 (
@@ -818,7 +818,7 @@ Create table "isoadmin"
 	"isoadmin_last_password_change" Timestamp with time zone,
 	"isoadmin_pwd_history" Text,
  primary key ("isoadmin_id")
-) With Oids;
+);
 
 Create table "error"
 (
@@ -827,7 +827,7 @@ Create table "error"
 	"error_txt_ger" Text NOT NULL,
 	"error_txt_eng" Text NOT NULL,
  primary key ("error_id")
-) With Oids;
+);
 
 Create table "changelog_service"
 (
@@ -849,7 +849,7 @@ Create table "changelog_service"
 	"change_time" Timestamp,
 	"unique_name" Varchar,
  primary key ("log_svc_id")
-) With Oids;
+);
 
 Create table "changelog_user"
 (
@@ -871,7 +871,7 @@ Create table "changelog_user"
 	"change_time" Timestamp,
 	"unique_name" Varchar,
  primary key ("log_usr_id")
-) With Oids;
+);
 
 Create table "changelog_rule"
 (
@@ -895,7 +895,7 @@ Create table "changelog_rule"
 	"change_time" Timestamp,
 	"unique_name" Varchar,
  primary key ("log_rule_id")
-) With Oids;
+);
 
 Create table "error_log"
 (
@@ -904,21 +904,21 @@ Create table "error_log"
 	"error_txt" Text,
 	"error_time" Timestamp NOT NULL Default now(),
  primary key ("error_log_id")
-) With Oids;
+);
 
 Create table "config"
 (
 	"config_id" Integer NOT NULL Default 1 UNIQUE Constraint "config_single_config_check" Check (config_id=1),
 	"language" Char(20) Default 'english',
  primary key ("config_id")
-) With Oids;
+);
 
 Create table "stm_usr_typ"
 (
 	"usr_typ_id" Integer NOT NULL UNIQUE,
 	"usr_typ_name" Varchar,
  primary key ("usr_typ_id")
-) With Oids;
+);
 
 Create table "text_msg"
 (
@@ -926,7 +926,7 @@ Create table "text_msg"
 	"text_msg_ger" Text NOT NULL,
 	"text_msg_eng" Text NOT NULL,
  primary key ("text_msg_id")
-) With Oids;
+);
 
 Create table "rule_order"
 (
@@ -935,7 +935,7 @@ Create table "rule_order"
 	"rule_id" Integer NOT NULL,
 	"rule_number" Integer NOT NULL,
  primary key ("control_id","dev_id","rule_id")
-) With Oids;
+);
 
 Create table "objgrp_flat"
 (
@@ -945,7 +945,7 @@ Create table "objgrp_flat"
 	"import_created" Integer NOT NULL,
 	"import_last_seen" Integer NOT NULL,
 	"negated" Boolean NOT NULL Default FALSE
-) With Oids;
+);
 
 Create table "svcgrp_flat"
 (
@@ -955,7 +955,7 @@ Create table "svcgrp_flat"
 	"import_last_seen" Integer NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE
-) With Oids;
+);
 
 Create table "stm_report_typ"
 (
@@ -965,14 +965,14 @@ Create table "stm_report_typ"
 	"report_typ_comment_german" Text,
 	"report_typ_comment_english" Text,
  primary key ("report_typ_id")
-) With Oids;
+);
 
 Create table "client_user"
 (
 	"user_id" Integer NOT NULL Default nextval('public.usr_user_id_seq'::text),
 	"client_id" Integer NOT NULL Default nextval('public.client_client_id_seq'::text),
  primary key ("user_id","client_id")
-) With Oids;
+);
 
 Create table "request"
 (
@@ -985,35 +985,35 @@ Create table "request"
 	"client_id" Integer Default nextval('public.client_client_id_seq'::text),
 	"request_type_id" Integer,
  primary key ("request_id")
-) With Oids;
+);
 
 Create table "request_object_change"
 (
 	"log_obj_id" Integer NOT NULL,
 	"request_id" Integer NOT NULL,
  primary key ("log_obj_id","request_id")
-) With Oids;
+);
 
 Create table "request_service_change"
 (
 	"log_svc_id" Integer NOT NULL,
 	"request_id" Integer NOT NULL,
  primary key ("log_svc_id","request_id")
-) With Oids;
+);
 
 Create table "request_rule_change"
 (
 	"log_rule_id" Integer NOT NULL,
 	"request_id" Integer NOT NULL,
  primary key ("log_rule_id","request_id")
-) With Oids;
+);
 
 Create table "request_user_change"
 (
 	"log_usr_id" Integer NOT NULL,
 	"request_id" Integer NOT NULL,
  primary key ("log_usr_id","request_id")
-) With Oids;
+);
 
 Create table "usergrp_flat"
 (
@@ -1023,14 +1023,14 @@ Create table "usergrp_flat"
 	"import_created" Integer NOT NULL,
 	"import_last_seen" Integer NOT NULL,
  primary key ("usergrp_flat_id","usergrp_flat_member_id")
-) With Oids;
+);
 
 Create table "stm_change_type"
 (
 	"change_type_id" Integer NOT NULL Default nextval('public.change_type_change_type_id_seq'::text) UNIQUE,
 	"change_type_name" Varchar,
  primary key ("change_type_id")
-) With Oids;
+);
 
 Create table "manual"
 (
@@ -1044,14 +1044,14 @@ Create table "manual"
 	"body_txt_eng" Text,
 	"body_txt_ger" Text,
  primary key ("id")
-) With Oids;
+);
 
 Create table "temp_table_for_client_filtered_rule_ids"
 (
 	"rule_id" Integer NOT NULL,
 	"report_id" Integer NOT NULL,
  primary key ("rule_id","report_id")
-) With Oids;
+);
 
 Create table "client_username"
 (
@@ -1061,7 +1061,7 @@ Create table "client_username"
 	"client_username_comment" Text,
 	"client_username_create" Timestamp NOT NULL Default now(),
  primary key ("client_username_id")
-) With Oids;
+);
 
 Create table "request_type"
 (
@@ -1069,20 +1069,20 @@ Create table "request_type"
 	"request_type_name" Varchar NOT NULL UNIQUE,
 	"request_type_comment" Varchar,
  primary key ("request_type_id")
-) With Oids;
+);
 
 Create table "temp_filtered_rule_ids"
 (
 	"report_id" Integer NOT NULL,
 	"rule_id" Integer NOT NULL Default nextval('public.rule_rule_id_seq'::text)
-) With Oids;
+);
 
 Create table "temp_mgmid_importid_at_report_time"
 (
 	"control_id" Integer NOT NULL Default nextval('public.import_control_id_seq'::text),
 	"mgm_id" Integer NOT NULL Default nextval('public.management_mgm_id_seq'::text),
 	"report_id" Integer NOT NULL
-) With Oids;
+);
 
 Create table "import_changelog"
 (
@@ -1097,28 +1097,28 @@ Create table "import_changelog"
 	"import_changelog_nr" Integer,
 	"import_changelog_id" Integer NOT NULL Default nextval('public.import_changelog_seq'::text) UNIQUE,
  primary key ("import_changelog_id")
-) With Oids;
+);
 
 Create table "device_client_map"
 (
 	"client_id" Integer NOT NULL,
 	"dev_id" Integer NOT NULL,
  primary key ("client_id","dev_id")
-) With Oids;
+);
 
 Create table "management_client_map"
 (
 	"client_id" Integer NOT NULL,
 	"mgm_id" Integer NOT NULL,
  primary key ("client_id","mgm_id")
-) With Oids;
+);
 
 Create table "reporttyp_client_map"
 (
 	"client_id" Integer NOT NULL,
 	"report_typ_id" Integer NOT NULL,
  primary key ("client_id","report_typ_id")
-) With Oids;
+);
 
 Create table "report"
 (
@@ -1133,7 +1133,7 @@ Create table "report"
 	"report_document" Text NOT NULL,
 	"client_id" Integer,
  primary key ("report_id")
-) With Oids;
+);
 
 Create table "role"
 (
@@ -1142,21 +1142,21 @@ Create table "role"
 	"role_can_view_all_devices" Boolean NOT NULL Default false,
 	"role_is_superadmin" Boolean NOT NULL default false,	
  primary key ("role_id")
-) With Oids;
+);
 
 Create table "role_to_user"
 (
 	"role_id" Integer NOT NULL,
 	"user_id" Integer NOT NULL,
  primary key ("role_id", "user_id")
-) With Oids;
+);
 
 Create table "role_to_device"
 (
 	"role_id" Integer NOT NULL,
 	"device_id" Integer NOT NULL,
  primary key ("role_id", "device_id")
-) With Oids;
+);
 
 /* Create Tab 'Others' for Selected Tables */
 
@@ -2135,9 +2135,4 @@ Grant insert on "role_to_device" to group "isoadmins";
 /* Group permissions on views */
 
 /* Group permissions on procedures */
-
-
-
-
-
 

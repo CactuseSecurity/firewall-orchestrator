@@ -7,13 +7,13 @@
 - if your system lives behind a proxy, see https://github.com/CactuseSecurity/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
 
 ## Installation instructions
-use latest debian or ubuntu server with ssh service running
+use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
 
 this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
 1) prepare your test system
 
-       su -       
+       su -
        apt-get install git ansible ssh sudo
        exit
        ssh-keygen -b 4096

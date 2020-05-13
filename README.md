@@ -40,3 +40,5 @@ this will install various software components to your system. It is recommended 
        cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
        enter sudo password when prompted "BECOME password:"
 
+4) futher documentation
+- see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/get-started.MD

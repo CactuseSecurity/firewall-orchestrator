@@ -11,7 +11,7 @@ use latest debian or ubuntu minimal server with ssh service running (need to ins
 
 this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
-1) prepare your test system
+1) prepare your test system (install packages needed for install script and create and autorize ssh key pair to allow ssh login to localhost for ansible connect) 
 
        su -
        apt-get install git ansible ssh sudo

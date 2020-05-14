@@ -38,7 +38,8 @@ this will install various software components to your system. It is recommended 
 3) setup (install everything on localhost)
 
        cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
-       enter sudo password when prompted "BECOME password:"
+       enter sudo password when prompted "BECOME or SUDO password:"
+   that's it firewall-orchestrator is ready for usage
 
-4) futher documentation
+4) further documentation - how to use the program
 - see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/get-started.MD

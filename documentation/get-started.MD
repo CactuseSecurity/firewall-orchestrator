@@ -6,17 +6,17 @@
 
 # login api admin
 - use your local browser to connect to https://localhost/api/
-- login with password st8cheltier
+- login with admin password st8cheltier
 
 # non local login
 - to enable login from another system: ....
-- 
+
 
 # view reports
 - click reporting
 - 
 
 # your systems comes with test data pre-installed
-
+- this data needs to be removed for production systems (delete cascade from management where mgm_id=1 or mgm_id=2) --> integrate in GUI 
 
 # how to integrate your own firewall 

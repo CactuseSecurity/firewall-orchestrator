@@ -34,7 +34,7 @@ SELECT @extschema@.url_encode(@extschema@.hmac(signables, secret, alg.id)) FROM 
 $$;
 
 
-CREATE OR REPLACE FUNCTION sign(payload json, secret text, algorithm text DEFAULT 'HS384')
+CREATE OR REPLACE FUNCTION sign(payload json, secret text, algorithm text DEFAULT 'HS256')
 RETURNS text LANGUAGE sql AS $$
 WITH
   header AS (

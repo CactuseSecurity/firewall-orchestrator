@@ -11,7 +11,7 @@ use latest debian or ubuntu minimal server with ssh service running (need to ins
 
 this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
-1) prepare your test system
+1) prepare your test system (install packages needed for install script and create and autorize ssh key pair to allow ssh login to localhost for ansible connect) 
 
        su -
        apt-get install git ansible ssh sudo
@@ -29,14 +29,17 @@ this will install various software components to your system. It is recommended 
    
        ansible -m ping 127.0.0.1
 
-2) get Firewall Orchestrator with the following command
+3) get Firewall Orchestrator with the following command
       
        git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
-       (or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git)
+       (or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git, needs ssh key to be uploaded)
 
 
-3) setup (install everything on localhost)
+4) setup (install everything on localhost)
 
        cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
-       enter sudo password when prompted "BECOME password:"
+       enter sudo password when prompted "BECOME or SUDO password:"
+   that's it firewall-orchestrator is ready for usage
 
+5) further documentation - how to use the program
+- see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/get-started.MD

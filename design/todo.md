@@ -1,8 +1,11 @@
+# team work
+- all developers: setup github account and send name to tim for granting access
+- all developers: create ssh key and send public key to tim for granting access
+
 # security
 - secure passwords in inventory and in set_vars.sh script
 
 # api
-- add tables for role management
 - add authentication
 - test role based access
 

@@ -1,9 +1,9 @@
 /*
 Created		29.04.2005
-Modified		17.02.2020
+Modified		12.05.2020
 Project		IT Security Organizer
 Company		Cactus eSecurity GmbH
-Database		PostgreSQL 8-10 
+Database		PostgreSQL 8-12
 */
 
 

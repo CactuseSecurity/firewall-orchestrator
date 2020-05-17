@@ -54,7 +54,7 @@
     - name: copy iso htdocs auth files to frontend target
       copy:
         src: "web/htdocs/auth"
-        dest: "{{ iso_home }}/web/htdocs/auth"
+        dest: "{{ iso_home }}/web/htdocs"
         owner: itsecorg
         group: itsecorg
 

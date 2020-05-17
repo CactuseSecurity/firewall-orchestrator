@@ -1,12 +1,59 @@
----
-- block:  
-   - set_fact: api_home="{{ iso_home }}/api"
+# source: https://github.com/michelp/pgjwt
 
-   - name: create extension pgcrypto for jwt auth
-     shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgcrypto'') THEN CREATE EXTENSION pgcrypto; END IF; END \$do\$"'
+- set_fact: api_home="{{ iso_home }}/api"
 
-   - name: create pgtap for running unit tests on database 
-     shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgtap'') THEN CREATE EXTENSION pgtap; END IF; END \$do\$"'
+- name: find out installed postgres version
+  script: "get_pg_version.sh"
+  register: pg_version_result
+  changed_when: false
 
+- name: set fact pg_version
+  set_fact:
+     pg_version: "{{ pg_version_result.stdout }}"
+
+- name: set fact postgresql_dev_package
+  set_fact:
+     postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+
+- name: install test package for postgresql
+  package:
+    name: "{{ postgresql_test_package }}"
+    state: present
+  become: yes
+  environment: "{{proxy_env}}"
+
+- name: install development package for postgresql (needed for pgcrypto jwt auth)
+  package:
+    name: "{{ postgresql_dev_package }}"
+    state: present
+  become: yes
+  environment: "{{proxy_env}}"
+
+- name: create extension pgcrypto for jwt auth
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgcrypto'') THEN CREATE EXTENSION pgcrypto; END IF; END \$do\$"'
   become: yes
   become_user: postgres
+
+- name: create pgtap extension for running unit tests on database 
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgtap'') THEN CREATE EXTENSION pgtap; END IF; END \$do\$"'
+  become: yes
+  become_user: postgres
+
+- name: get pgjwt repo from github
+  git:
+    repo: https://github.com/michelp/pgjwt.git
+    dest: "{{ iso_home }}/install/database"
+  environment: "{{proxy_env}}"
+  become: yes
+       
+- name: install pgjwt extension
+  shell: "cd {{ iso_home }}/install/database && make install"
+  become: yes
+  become_user: postgres
+
+# todo: decide if we also need updates for extensions (or simply drop and re-create?)
+- name: create pgjwt extension 
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgjwt'') THEN CREATE EXTENSION pgjwt; END IF; END \$do\$"'
+  become: yes
+  become_user: postgres
+  

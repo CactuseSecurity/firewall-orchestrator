@@ -60,10 +60,12 @@
 
     - name: copy iso include auth files to frontend target
       copy:
-        src: "include/auth/*"
+        src: "{{ item }}"
         dest: "{{ iso_home }}/web/include"
         owner: itsecorg
         group: itsecorg
+      with_fileglob:
+        - "web/include/auth_*.php"
 
     - name: copy iso httpd config file to apache target
       template:

@@ -42,12 +42,12 @@
 - name: get pgjwt repo from github
   git:
     repo: https://github.com/michelp/pgjwt.git
-    dest: "{{ iso_home }}/install/database"
+    dest: "{{ iso_home }}/install/database/pgjwt"
   environment: "{{proxy_env}}"
   become: yes
        
 - name: install pgjwt extension
-  shell: "cd {{ iso_home }}/install/database && make install"
+  shell: "cd {{ iso_home }}/install/database/pgjwt && make install"
   become: yes
   become_user: postgres
 

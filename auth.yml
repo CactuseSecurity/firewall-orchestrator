@@ -1,0 +1,5 @@
+---
+- hosts: isosrv
+  roles:
+    - auth_backend
+    - auth_frontend

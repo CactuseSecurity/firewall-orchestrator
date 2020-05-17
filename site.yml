@@ -3,5 +3,5 @@
 - import_playbook: backend.yml
 - import_playbook: importer.yml
 - import_playbook: frontend.yml
-- import_playbook: frontend_auth.yml
+- import_playbook: auth.yml
 - import_playbook: iso-samples.yml

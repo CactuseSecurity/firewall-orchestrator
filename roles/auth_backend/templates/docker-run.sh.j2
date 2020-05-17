@@ -1,0 +1,7 @@
+#! /bin/bash
+#docker run -d -p {{ api_listener_ip }}:8080:8080 \
+docker run -d --net=host -p {{ api_listener_ip }}:8080:8080 \
+       -e HASURA_GRAPHQL_DATABASE_URL=postgres://{{ api_user }}:{{ api_user_password }}@{{ isodb_host }}:{{ iso_db_port }}/{{ iso_db_name }} \
+       -e HASURA_GRAPHQL_ENABLE_CONSOLE=true \
+       -e HASURA_GRAPHQL_ADMIN_SECRET={{ api_hasura_admin_secret }} \
+       hasura/graphql-engine:v1.2.1

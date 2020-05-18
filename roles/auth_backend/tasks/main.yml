@@ -55,7 +55,7 @@
 
 - name: copy pgjwt extension files
   copy:
-     source: pgjwt
+     src: pgjwt
      dest: "{{ iso_home }}/install/database"
   become: yes
        

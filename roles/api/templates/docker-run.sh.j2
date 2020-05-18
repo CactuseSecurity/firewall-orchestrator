@@ -3,8 +3,5 @@ docker run -d --net=host -p {{ api_listener_ip }}:{{ api_listener_port }}:{{ api
        -e HASURA_GRAPHQL_DATABASE_URL=postgres://{{ api_user }}:{{ api_user_password }}@{{ isodb_host }}:{{ iso_db_port }}/{{ iso_db_name }} \
        -e HASURA_GRAPHQL_ENABLE_CONSOLE=true \
        -e HASURA_GRAPHQL_ADMIN_SECRET={{ api_hasura_admin_secret }} \
-       -e HASURA_GRAPHQL_JWT_SECRET='{
-  "type": "{{ api_hasura_jwt_alg }}",
-  "key": "{{ api_hasura_jwt_secret }}"
-}' \
+       -e HASURA_GRAPHQL_JWT_SECRET='{"type": "{{ api_hasura_jwt_alg }}", "key": "{{ api_hasura_jwt_secret }}", "claims_namespace_path": "$.hasura.claims"}' \
        hasura/graphql-engine:{{ api_hasura_version }}

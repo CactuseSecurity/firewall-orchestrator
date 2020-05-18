@@ -49,7 +49,7 @@
 		if (isset($user)) { // only in index2, login just took place, otherwise valid session is signalled by $_SESSION["auth"] set
 			$log->log_login("ITSecOrg User $user successfully logged in.");
 			// create Json Web Token
-			$sql_code = "select sign('{\"sub\":\"$user_id\",\"name\":\"$user_id\",\"admin\":false}', 'ab957df1a33ea38a821278fb04d92abce830175ce9bcdef0e597622434480ccd');";
+			$sql_code = "select sign('{\"sub\":\"$user_id\",\"name\":\"$user_id\",\"admin\":false, \"hasura\": {\"claims\": {\"x-hasura-default-role\": \"user\", \"x-hasura-user-id\": \"$user_id\"}}}', 'ab957df1a33ea38a821278fb04d92abce830175ce9bcdef0e597622434480ccd');";
 			$JWT = $conn->iso_db_query($sql_code);
 			$log->log("create JWT $JWT");
 			// write last login date to isoadmin

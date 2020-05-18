@@ -1,5 +1,5 @@
 <?php
-	require_once("check_privs.php");
+	require_once("auth_check_privs.php");
 	if (isset($_SESSION['auth'])) {
 		require_once ('multi-language.php');
 		$language = new Multilanguage($_SESSION["dbuser"]);
@@ -14,6 +14,10 @@
 		echo '</head>';
 		echo '<body>';
 		echo ' <div id="inhalt">';
+		
+		echo 'User successfully logged in';
+		$JWT = '';
+		
 		// display JWT header
 		// display logon status
 		// - roles

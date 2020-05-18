@@ -1,9 +1,9 @@
 <?php
 	if (!isset($_SESSION)) session_start();
-	require_once ("db-input.php");
-	require_once ("db-base.php");
-	require_once ("db-gui-config.php");
-	require_once ("operating-system.php");  // for syslogging
+	require_once ("auth_db-input.php");
+	require_once ("auth_db-base.php");
+	require_once ("auth_db-gui-config.php");
+	require_once ("auth_operating-system.php");  // for syslogging
 	$config = new Config();
 	$_SESSION["loglevel"] = $config->getLogLevel();
 	$_SESSION["logtarget"] = $config->getLogTarget();
@@ -28,22 +28,6 @@
 			$_SESSION["dbpw"] = $pass;
 			$_SESSION["auth"] = "true";
 			$_SESSION["dbuserid"] = $userconfig->getUserId($user,$pass);
-			$_SESSION["allowedToDocumentChanges"] = $userconfig->allowedToDocumentChanges();
-			$_SESSION["allowedToChangeDocumentation"] = $userconfig->allowedToChangeDocumentation();
-			$_SESSION["allowedToConfigureClients"] = $userconfig->allowedToConfigureClients();
-			$_SESSION["allowedToConfigureDevices"] = $userconfig->allowedToConfigureDevices();
-			$_SESSION["allowedToConfigureUsers"] = $userconfig->allowedToConfigureUsers();
-			$_SESSION["allowedToViewReports"] = $userconfig->allowedToViewReports();
-			$_SESSION["allowedToViewAdminNames"] = $userconfig->allowedToViewAdminNames();
-			$_SESSION["allowedToViewAllObjectsOfMgm"] = $userconfig->allowedToViewAllObjectsOfMgm();
-			$_SESSION["allowedToViewImportStatus"] = $userconfig->allowedToViewImportStatus();
-			$_SESSION["defaultClient"] = $userconfig->getDefaultClient();
-			$_SESSION["defaultRequestType"] = $userconfig->getDefaultRequestType();
-			$_SESSION["ClientFilter"] = $userconfig->getVisibleClientFilter();
-			$_SESSION["VisibleManagements"] = $userconfig->getVisibleManagements();
-			$_SESSION["ManagementFilter"] = $userconfig->getManagementFilter();
-			$_SESSION["ReportFilter"] = $userconfig->getReportFilter();
-			$_SESSION["RuleHeaderOffset"] = $userconfig->getRuleHeaderOffset();
 	/*
 			// debugging only:
 			$felder = $_SESSION;  ksort($felder);  reset($felder);
@@ -54,39 +38,20 @@
 			}
 			// debugging end 
 	*/
-		} elseif ($fehler == "password_must_be_changed") {
-			$userconfig = new UserConfig($user);			
-			$_SESSION["dbuser"] = $user;
-			$_SESSION["dbpw"] = $pass;
-			$_SESSION["auth"] = "true";
-			$log->log_debug("Redirecting to change pwd site ...");
-			session_write_close();
-			header("Location: ".$stamm."config/change_pw.php");
 		}
 	}
 	if (isset($_SESSION["auth"])) {  // successful login took place
 		if (isset($request['oldpassword'])) $oldpass  = $cleaner->clean($request['oldpassword'],255);
 		else $oldpass  = '';
-		$allowedToDocumentChanges = $cleaner->clean($_SESSION["allowedToDocumentChanges"],100);
-		$allowedToChangeDocumentation = $cleaner->clean($_SESSION["allowedToChangeDocumentation"],100);
-		$allowedToConfigureClients = $cleaner->clean($_SESSION["allowedToConfigureClients"],100);
-		$allowedToConfigureUsers = $cleaner->clean($_SESSION["allowedToConfigureUsers"],100);
-		$allowedToConfigureDevices = $cleaner->clean($_SESSION["allowedToConfigureDevices"],100);
-		$allowedToViewReports = $cleaner->clean($_SESSION["allowedToViewReports"],100);
-		$allowedToViewAdminNames = $cleaner->clean($_SESSION["allowedToViewAdminNames"],100);
-		$allowedToViewImportStatus = $cleaner->clean($_SESSION["allowedToViewImportStatus"],100);
-		$allowedToViewAllObjectsOfMgm =	$cleaner->clean($_SESSION["allowedToViewAllObjectsOfMgm"],100);
-		$default_client = $cleaner->clean($_SESSION["defaultClient"],200);
-		$default_request_type = $cleaner->clean($_SESSION["defaultRequestType"],100);
 		$user_id = $cleaner->clean($_SESSION["dbuserid"],100);
-		$client_filter = $cleaner->clean($_SESSION["ClientFilter"],1000);
-		$management_filter = $cleaner->clean($_SESSION["ManagementFilter"],1000);
-		$report_filter = $cleaner->clean($_SESSION["ReportFilter"],1000);
-		$ruleheaderoffset = $cleaner->clean($_SESSION["RuleHeaderOffset"],100);
 		$loglevel = $cleaner->clean($_SESSION["loglevel"],100);
 		$logtarget = $cleaner->clean($_SESSION["logtarget"],200);
 		if (isset($user)) { // only in index2, login just took place, otherwise valid session is signalled by $_SESSION["auth"] set
 			$log->log_login("ITSecOrg User $user successfully logged in.");
+			// create Json Web Token
+			$sql_code = "select sign('{\"sub\":\"$user_id\",\"name\":\"$user_id\",\"admin\":false}', 'ab957df1a33ea38a821278fb04d92abce830175ce9bcdef0e597622434480ccd');";
+			$JWT = $conn->iso_db_query($sql_code);
+			$log->log("create JWT $JWT");
 			// write last login date to isoadmin
 			$sql_code = "UPDATE isoadmin SET isoadmin_last_login = now() WHERE isoadmin_username='$user'";
 			$conn->iso_db_query($sql_code);

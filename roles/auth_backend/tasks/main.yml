@@ -71,7 +71,7 @@
   become_user: postgres
  
 - name: test pgjwt extension
-  shell: 'psql -d {{ iso_db_name }} -c "\i test_pgjwt.sql"'
+  shell: 'cd {{ iso_home }}/install/database/pgjwt && psql -d {{ iso_db_name }} -c "\i test_pgjwt.sql"'
   become: yes
   become_user: postgres
-# todo: check result of tests
+# todo: display result of tests and exit on errors

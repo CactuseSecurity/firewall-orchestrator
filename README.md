@@ -19,7 +19,6 @@ this will install various software components to your system. It is recommended 
        ssh-keygen -b 4096
        cat .ssh/id_rsa.pub >>.ssh/authorized_keys
        chmod 600 .ssh/authorized_keys
-       exit
 
 2) test system connectiviy necessary for installation
 

@@ -79,7 +79,8 @@
         mode: "u+x,g+x,o+x"
         recurse: yes
   
-     - include_tasks: tablespace_as_root_prereq.yml
+     - name: include task install db to extra tablespace if defined
+       include_tasks: tablespace_as_root_prereq.yml      
        when: table_space is defined
 
      - name: setting itscorg db password

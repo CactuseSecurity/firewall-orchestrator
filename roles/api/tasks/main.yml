@@ -60,7 +60,7 @@
        owner: "{{ iso_user }}"
    
    - name: import hasura metadata
-     shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata apply --from-file"
+     shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata clear && {{ hasura_bin }} metadata apply --from-file"
      
    - name: copy hasura docker systemd service script
      template:

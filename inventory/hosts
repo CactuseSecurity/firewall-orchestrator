@@ -1,16 +1,23 @@
 isosrv ansible_connection=local ansible_host=localhost    # can be used for local full install of all components
+#isofront ansible_host=1.2.3.4
+#isoback ansible_host=1.2.3.5
 
 [frontends]
 isosrv
+#isofront
 
 [backends]
 isosrv
+#isoback
 
 [importers]
 isosrv
+#isoback
 
 [authservers]
 isosrv
+#isoback
 
 [sampleservers]
 isosrv
+#isoback

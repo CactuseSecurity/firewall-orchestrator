@@ -1,33 +1,33 @@
 ---
 # common
-- hosts: isosrv
+- hosts: all
   roles:
     - iso-common
 
 # backend
-- hosts: isosrv
+- hosts: backends
   roles:
     - backend
     - docker
     - api
 
 # frontend
-- hosts: isosrv
+- hosts: frontends
   roles:
     - frontend
 
 # importer
-- hosts: isosrv
+- hosts: importers
   roles:
     - importer
 
 # auth
-- hosts: isosrv
+- hosts: authservers
   roles:
     - auth_backend
     - auth_frontend
 
 # iso-samples
-- hosts: isosrv
+- hosts: sampleservers
   roles:
     - import-samples

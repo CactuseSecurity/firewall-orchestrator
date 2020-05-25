@@ -20,7 +20,11 @@ this will install various software components to your system. It is recommended 
        cat .ssh/id_rsa.pub >>.ssh/authorized_keys
        chmod 600 .ssh/authorized_keys
 
-2) test system connectiviy necessary for installation
+2) if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
+
+       usermod -a -G sudo `whoami`
+
+3) test system connectiviy necessary for installation
 
    test ssh connectivity to localhost (127.0.0.1) using public key auth (add .ssh/authorized_keys
    
@@ -29,17 +33,18 @@ this will install various software components to your system. It is recommended 
    
        ansible -m ping 127.0.0.1
 
-3) get Firewall Orchestrator with the following command
+4) get Firewall Orchestrator with the following command
       
        git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
        (or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git, needs ssh key to be uploaded)
 
 
-4) setup (install everything on localhost)
+5) setup (install everything on localhost)
 
        cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
        enter sudo password when prompted "BECOME or SUDO password:"
    that's it firewall-orchestrator is ready for usage
 
-5) further documentation - how to use the program
+6) further documentation - how to use the program
 - see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/get-started.MD
+

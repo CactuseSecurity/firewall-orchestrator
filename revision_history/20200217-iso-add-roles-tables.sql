@@ -1,4 +1,5 @@
-
+-- also dropping all "with OIDs" statements !!!
+-- Alter table %all% delete "with oids";
 
 Drop sequence "public"."role_role_id_seq" Cascade;
 
@@ -15,21 +16,23 @@ Create table "role"
 	"role_can_view_all_devices" Boolean NOT NULL Default false,
 	"role_is_superadmin" Boolean NOT NULL default false,
  primary key ("role_id")
-) With Oids;
+);
 
 Create table "role_to_user"
 (
 	"role_id" Integer NOT NULL,
 	"user_id" Integer NOT NULL,
  primary key ("role_id", "user_id")
-) With Oids;
+);
 
 Create table "role_to_device"
 (
 	"role_id" Integer NOT NULL,
 	"device_id" Integer NOT NULL,
  primary key ("role_id", "device_id")
-) With Oids;
+);
+
+
 
 Alter table "role_to_user" add  foreign key ("role_id") references "role" ("role_id") on update restrict on delete cascade;
 Alter table "role_to_user" add  foreign key ("user_id") references "isoadmin" ("isoadmin_id") on update restrict on delete cascade;

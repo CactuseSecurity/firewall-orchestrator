@@ -21,6 +21,7 @@ this will install various software components to your system. It is recommended 
        chmod 600 .ssh/authorized_keys
 
 2) if not already configured, add your current user to sudo group:
+
        usermod -a -G sudo <your username>
 
 3) test system connectiviy necessary for installation

@@ -8,3 +8,9 @@ isosrv
 
 [importers]
 isosrv
+
+[authservers]
+isosrv
+
+[sampleservers]
+isosrv

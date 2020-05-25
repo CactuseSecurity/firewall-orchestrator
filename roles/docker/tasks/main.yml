@@ -17,11 +17,11 @@
        shell: "wget -qO - -e use_proxy=yes -e https_proxy={{ https_proxy }} https://download.docker.com/linux/ubuntu/gpg | apt-key add -"
        when: https_proxy is defined
 
-     - name: add apt signing key for docker
-       environment: "{{ proxy_env }}"
-       apt_key:
-         url: https://download.docker.com/linux/ubuntu/gpg
-         state: present
+#     - name: add apt signing key for docker
+#       environment: "{{ proxy_env }}"
+#       apt_key:
+#         url: https://download.docker.com/linux/ubuntu/gpg
+#         state: present
 
      - name: add docker repo
        lineinfile:

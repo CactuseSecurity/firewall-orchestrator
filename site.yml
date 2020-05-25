@@ -1,7 +1,33 @@
 ---
-- import_playbook: common-all.yml
-- import_playbook: backend.yml
-- import_playbook: importer.yml
-- import_playbook: frontend.yml
-- import_playbook: auth.yml
-- import_playbook: iso-samples.yml
+# common
+- hosts: isosrv
+  roles:
+    - iso-common
+
+# backend
+- hosts: isosrv
+  roles:
+    - backend
+    - docker
+    - api
+
+# frontend
+- hosts: isosrv
+  roles:
+    - frontend
+
+# importer
+- hosts: isosrv
+  roles:
+    - importer
+
+# auth
+- hosts: isosrv
+  roles:
+    - auth_backend
+    - auth_frontend
+
+# iso-samples
+- hosts: isosrv
+  roles:
+    - import-samples

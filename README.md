@@ -22,7 +22,7 @@ this will install various software components to your system. It is recommended 
 
 2) if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
 
-       usermod -a -G sudo <your username>
+       usermod -a -G sudo `whoami`
 
 3) test system connectiviy necessary for installation
 

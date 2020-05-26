@@ -1,1 +1,6 @@
 .project
+/.idea/.gitignore
+/firewall-orchestrator.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml

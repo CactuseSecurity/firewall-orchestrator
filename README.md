@@ -7,6 +7,8 @@
 - if your system lives behind a proxy, see https://github.com/CactuseSecurity/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
 
 ## Installation instructions
+
+### Server
 use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
 
 this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
@@ -26,13 +28,14 @@ this will install various software components to your system. It is recommended 
 
 3) test system connectiviy necessary for installation
 
-   test ssh connectivity to localhost (127.0.0.1) using public key auth (add .ssh/authorized_keys
-   
+   test ssh connectivity to localhost (127.0.0.1) using public key auth (add .ssh/authorized_keys) 
+              
        ssh 127.0.0.1
-   make sure you can use ansible locally
-   
+       
+   make sure you can use ansible locally   
+       
        ansible -m ping 127.0.0.1
-
+ 
 4) get Firewall Orchestrator with the following command
       
        git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
@@ -43,8 +46,13 @@ this will install various software components to your system. It is recommended 
 
        cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
        enter sudo password when prompted "BECOME or SUDO password:"
+
    that's it firewall-orchestrator is ready for usage
 
 6) further documentation - how to use the program
 - see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/get-started.MD
 
+### Client - Eto.Forms
+The client runs on Linux / Windows / MacOS
+
+// TODO: FINISH INSTRUCTIONS  

@@ -1,0 +1,9 @@
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\bin\Debug\netstandard2.0\Firewall-Orchestrator.deps.json
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\bin\Debug\netstandard2.0\Firewall-Orchestrator.dll
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\bin\Debug\netstandard2.0\Firewall-Orchestrator.pdb
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\obj\Debug\netstandard2.0\Firewall-Orchestrator.csprojAssemblyReference.cache
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\obj\Debug\netstandard2.0\Firewall-Orchestrator.AssemblyInfoInputs.cache
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\obj\Debug\netstandard2.0\Firewall-Orchestrator.AssemblyInfo.cs
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\obj\Debug\netstandard2.0\Firewall-Orchestrator.dll
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\obj\Debug\netstandard2.0\Firewall-Orchestrator.pdb
+C:\Users\Nils\Documents\Visual Studio 2019\Projects\Firewall-Orchestrator\Firewall-Orchestrator\obj\Debug\netstandard2.0\Firewall-Orchestrator.csproj.CoreCompileInputs.cache

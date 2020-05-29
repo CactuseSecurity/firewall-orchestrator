@@ -13,8 +13,8 @@
        file:
          path: "/var/log/itsecorg/"
          state: directory
-         owner: root
-         group: root
+         owner: syslog
+         group: syslog
          mode: 0775
 
      - name: edit rsyslog

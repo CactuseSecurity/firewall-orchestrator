@@ -48,5 +48,5 @@
 
 6) further documentation - how to use the program
 - see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/get-started.MD
-
+- client installation: https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/client-eto-install.md
 

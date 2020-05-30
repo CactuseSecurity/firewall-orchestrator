@@ -6,12 +6,10 @@
 - Demo: if you want to see what it looks like in advance, visit https://demo.itsecorg.de (user: admin, password: fworch.1)
 - if your system lives behind a proxy, see https://github.com/CactuseSecurity/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
 
-## Installation instructions
-
-### Server
-use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
-
-this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
+## Installation instructions server
+- for client installation see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/client-eto-install.md
+- use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
+- this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
 1) prepare your test system (install packages needed for install script and create and autorize ssh key pair to allow ssh login to localhost for ansible connect) 
 

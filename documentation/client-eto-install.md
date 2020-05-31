@@ -1,7 +1,7 @@
 # Client - Eto.Forms
 The client runs on Windows / Linux / MacOS
 
-## Compile on development machine of the target platform
+## Compile on development machine (same OS as target platform)
 1) Clone the repository from GitHub https://github.com/CactuseSecurity/firewall-orchestrator.git (Windows: unzip)
 
 2) Download and Install .Net Core SDK (https://dotnet.microsoft.com/download)

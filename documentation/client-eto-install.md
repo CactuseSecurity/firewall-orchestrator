@@ -24,6 +24,7 @@ Tested with
          firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Mac
    - Linux:
    
+   
          firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk
            
 5) and start compilation 
@@ -46,7 +47,10 @@ Tested with
          firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.???/bin/Release/netcoreapp3.1/win-x64
    - Linux:
    
-         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk/bin/Release/netcoreapp3.1/linux-x64  
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk/bin/Release/netcoreapp3.1/linux-x64
+         
+7) Client is located in dir: ???
+   You may delete the following files: ???
 
 ## Copy to and run on target client
 

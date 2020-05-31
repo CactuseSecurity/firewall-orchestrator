@@ -44,7 +44,7 @@ Tested with
          firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Ftk/bin/Release/netcoreapp3.1/win-x64
    - MacOs:
    
-         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.???/bin/Release/netcoreapp3.1/win-x64
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.???/bin/Release/netcoreapp3.1/???
    - Linux:
    
          firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk/bin/Release/netcoreapp3.1/linux-x64

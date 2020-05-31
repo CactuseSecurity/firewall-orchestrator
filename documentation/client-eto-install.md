@@ -61,5 +61,5 @@ Tested with
 
 3) Execute client
 
-       cd firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.[Wpf|Mac|Gtk]/bin/Release/netcoreapp3.1/[win-x64|Mac|linux-x64]
+       cd firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.[Wpf|Mac|Gtk]/bin/Release/netcoreapp3.1/[win-x64|Mac|linux-x64]
        dotnet Firewall-Orchestrator.[Gtk].dll

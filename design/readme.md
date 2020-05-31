@@ -27,7 +27,7 @@
   - Apollo (https://www.apollographql.com/)
   - fat client: .NET core/5 with eto forms
 
-# funktional requirements (high-Level)
+# Functional requirements (high-Level)
 
 - low-cost alternative to core functionality of competition (Tufin, Algosec, Skybox, Firemon)
 - fullfil regulatory requirements (documentation of config changes, recertification of config)
@@ -35,10 +35,12 @@
 - do not include high risk functionality (e.g. write config changes to firewalls) in core product
 - Bereitstellung offener Schnittstellen zur Automatisierung
 
-# Architecture documentation
-- encapsulate everything
-  - API and API modules (https://medium.com/the-guild/why-is-true-modular-encapsulation-so-important-in-large-scale-graphql-projects-ed1778b03600)
-  - UI display and data methods
+# Architecture: "encapsulate everything"
+- API
+  - API modules (https://medium.com/the-guild/why-is-true-modular-encapsulation-so-important-in-large-scale-graphql-projects-ed1778b03600)
   - no direct DB access without API
     exception: login/auth module 
+  - API calls with resolvers: https://medium.com/paypal-engineering/graphql-resolvers-best-practices-cd36fdbcef55
+- UI
+  - UI display and data methods
 - first impression, see https://demo.itsecorg.de manual

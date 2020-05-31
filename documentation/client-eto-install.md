@@ -2,12 +2,11 @@
 The client runs on Windows / Linux / MacOS
 
 #### Compile
-1) Clone the repository from GitHub
-2) Unzip it
+1) Clone the repository from GitHub (unzip if needed)
 
 ##### Windows
 
-3) Download and Install .Net Core SDK (https://dotnet.microsoft.com/download)
+2) Download and Install .Net Core SDK (https://dotnet.microsoft.com/download)
 
 4) Open Windows Command Line 
 

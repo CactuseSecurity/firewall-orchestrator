@@ -49,8 +49,7 @@ Tested with
    
          firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk/bin/Release/netcoreapp3.1/linux-x64
          
-7) Client is located in dir: ???
-   You may delete the following files: ???
+7) You may delete the following files: ???, only the following directories need to be copied to a client: ???
 
 ## Copy to and run on target client
 

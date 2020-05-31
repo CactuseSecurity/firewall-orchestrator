@@ -1,73 +1,65 @@
-### Client - Eto.Forms
+# Client - Eto.Forms
 The client runs on Windows / Linux / MacOS
 
-#### Compile
-1) Clone the repository from GitHub (unzip if needed)
+Tested with 
+  - Windows 10
+  - MacOs 10.15
+  - Ubuntu 20.04 (Tim, 2020-05-31)
 
-##### Windows
+## Compile on development machine (same OS as target platform)
+1) Clone the repository from GitHub https://github.com/CactuseSecurity/firewall-orchestrator.git (Windows: unzip)
 
 2) Download and Install .Net Core SDK (https://dotnet.microsoft.com/download)
+   - just click download, selection for your platform should be automatic???
+   - start installer
 
-4) Open Windows Command Line 
+3) Open Command Line / terminal 
 
-5) Navigate to .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Wpf/ via
+4) Navigate/cd to 
+   - Windows: 
+   
+         firewall-orchestrator\client\eto.forms\Firewall-Orchestrator.Wpf
+   - MacOs:
+   
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Mac
+   - Linux:
+   
+   
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk
+           
+5) and start compilation 
+   - Windows: 
+   
+         dotnet publish --configuration Release --output publish --self-contained false --runtime win-x64 --framework netcoreapp3.1
+   - MacOs: 
+   
+         dotnet publish --configuration Release --output publish --self-contained false --runtime MacOs --framework netcoreapp3.1
+   - Linux: 
+   
+         dotnet publish --configuration Release --output publish --self-contained false --runtime linux-x64 --framework netcoreapp3.1
        
-       cd .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Wpf/
-       
-6) Run
-       
-       dotnet publish --configuration Release --output publish --self-contained false --runtime win-x64 --framework netcoreapp3.1
-       
-7) Your executable can now be found in .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Ftk/bin/Release/netcoreapp3.1/win-x64       
-       
-##### Linux
+6) Your executable can now be found in
+   - Windows:
+   
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Ftk/bin/Release/netcoreapp3.1/win-x64
+   - MacOs:
+   
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.???/bin/Release/netcoreapp3.1/???
+   - Linux:
+   
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk/bin/Release/netcoreapp3.1/linux-x64
+         
+7) You may delete the following files: ???, only the following directories need to be copied to a client: ???
 
-3) Download and Install .Net Core SDK following the installation instructions for your Linux system (https://dotnet.microsoft.com/download)
+## Copy to and run on target client
 
-3.1) On some few Linux based operating systems you might need to install GTK
+1) On the target client: Download and Install .Net Core Runtime (https://dotnet.microsoft.com/download)
 
-4) Open your Terminal
+   (not necessary if you already installed .Net Core SDK)
 
-5) Navigate to .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Gtk/ via
+2) Copy client from development system to target client
 
-       cd .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Gtk/       
+3) Execute client
 
-6) Run 
-
-       dotnet publish --configuration Release --output publish --self-contained false --runtime linux-x64 --framework netcoreapp3.1
-       
-7) Your executable can now be found in .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Gtk/bin/Release/netcoreapp3.1/linux-x64  
-
-##### MacOS
-
-TO BE FILLED
-
-#### Run
-
-##### Windows
-
-1) Download and Install .Net Core Runtime (https://dotnet.microsoft.com/download)
-Not needed if you already installed .Net Core SDK
-
-2) Execute the executable found in .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Wpf/bin/Release/netcoreapp3.1/win-x64   
-
-##### Linux
-
-1) Download and Install .Net Core Runtime following the installation instructions for your Linux system (https://dotnet.microsoft.com/download)
-Not needed if you already installed .Net Core SDK
-
-1.1) On some few Linux based operating systems you might need to install GTK
-
-2) Open your Terminal
-
-3) Navigate to .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Gtk/Release/netcoreapp3.1/linux-x64 via
-
-       cd .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Gtk/Release/netcoreapp3.1/linux-x64    
-
-4) Execute the executable found in .../firewall-orchestrator-master/client/eto.forms/Firewall-Orchestrator.Gtk/bin/Release/netcoreapp3.1/linux-x64 via
-       
-       dotnet Firewall-Orchestrator.Gtk.dll
-              
-##### MacOS
-
-TO BE FILLED
+       cd firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.[Wpf|Mac|Gtk]/bin/Release/netcoreapp3.1/[win-x64|Mac|linux-x64]
+       dotnet Firewall-Orchestrator.[Gtk].dll

@@ -1,5 +1,9 @@
 # Client - Eto.Forms
 The client runs on Windows / Linux / MacOS
+Tested with 
+  - Windows 10
+  - MacOs 10.15
+  - Ubuntu 20.04
 
 ## Compile on development machine (same OS as target platform)
 1) Clone the repository from GitHub https://github.com/CactuseSecurity/firewall-orchestrator.git (Windows: unzip)

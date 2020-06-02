@@ -9,7 +9,7 @@
 
 see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/server-install.md
 
-If your system lives behind a proxy, see https://github.com/CactuseSecurity/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
+If your system lives behind a proxy, see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/install-advanced.md
 
 ##  Client installation 
 see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/client-eto-install.md

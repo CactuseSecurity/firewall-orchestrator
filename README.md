@@ -15,14 +15,19 @@
 
        su -
        apt-get install git ansible ssh sudo
+       
+   if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
+
+       usermod -a -G sudo `whoami`
+       
        exit
+       # from here in standard user context
+       
        ssh-keygen -b 4096
        cat .ssh/id_rsa.pub >>.ssh/authorized_keys
        chmod 600 .ssh/authorized_keys
 
-2) if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
-
-       usermod -a -G sudo `whoami`
+2) 
 
 3) test system connectiviy necessary for installation
 

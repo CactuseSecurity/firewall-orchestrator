@@ -4,11 +4,12 @@
 - Display reports on firewall configuration and changes
 - Document changes and integrate with ticketing systems
 - Demo: if you want to see what it looks like in advance, visit https://demo.itsecorg.de (user: admin, password: fworch.1)
-- if your system lives behind a proxy, see https://github.com/CactuseSecurity/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
 
 ## Installation instructions server
 
 see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/server-install.md
+
+If your system lives behind a proxy, see https://github.com/CactuseSecurity/firewall-orchestrator/edit/master/INSTALL_ADVANCED.MD
 
 ##  Client installation 
 see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/client-eto-install.md

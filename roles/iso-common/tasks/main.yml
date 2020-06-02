@@ -9,14 +9,24 @@
         name: "rsyslog"
         state: present
 
-     - name: create log dir for itsecorg
+     - name: create log dir for itsecorg on ubuntu - owner syslog
        file:
          path: "/var/log/itsecorg/"
          state: directory
          owner: syslog
          group: syslog
          mode: 0775
-
+       when: ansible_facts['distribution'] == "Ubuntu"
+         
+     - name: create log dir for itsecorg on ubuntu - owner root
+       file:
+         path: "/var/log/itsecorg/"
+         state: directory
+         owner: root
+         group: root
+         mode: 0775
+       when: ansible_facts['distribution'] == "Debian"
+         
      - name: edit rsyslog
        blockinfile:
          path: "/etc/rsyslog.d/30-itsecorg.conf"

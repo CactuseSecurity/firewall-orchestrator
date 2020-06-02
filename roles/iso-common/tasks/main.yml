@@ -18,7 +18,7 @@
          mode: 0775
        when: ansible_facts['distribution'] == "Ubuntu"
          
-     - name: create log dir for itsecorg on ubuntu - owner root
+     - name: create log dir for itsecorg on debian - owner root
        file:
          path: "/var/log/itsecorg/"
          state: directory

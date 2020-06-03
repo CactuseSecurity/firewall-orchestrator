@@ -17,10 +17,6 @@
 # mgmt_cli -r true --domain MDS set api-settings accepted-api-calls-from "All IP addresses"
 # api restart
 
-# next error:
-#     current=rulebase['to']
-#   KeyError: 'to'
-
 import requests, json, argparse
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')

@@ -1,5 +1,10 @@
 import requests, json, argparse
 
+# make sure the api server is up and running and accepting connections from your ip address:
+# (taken from https://community.checkpoint.com/t5/API-CLI-Discussion-and-Samples/Enabling-web-api/td-p/32641)
+# mgmt_cli -r true --domain MDS set api-settings accepted-api-calls-from "All IP addresses"
+# api restart
+
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('hostname', metavar='api_host', help='Check Point R8x management server')
 parser.add_argument('password', metavar='api_password', help='password for management server')

@@ -43,7 +43,7 @@ Tested with
          dotnet publish --configuration Release --output publish --self-contained false --runtime win-x64 --framework netcoreapp3.1
    - MacOs: 
    
-         dotnet publish --configuration Release --output publish --self-contained false --runtime MacOs --framework netcoreapp3.1
+         dotnet publish --configuration Release --output publish --self-contained false --runtime osx-x64 --framework netcoreapp3.1
    - Linux: 
    
          dotnet publish --configuration Release --output publish --self-contained false --runtime linux-x64 --framework netcoreapp3.1

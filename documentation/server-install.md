@@ -19,7 +19,7 @@
        cat .ssh/id_rsa.pub >>.ssh/authorized_keys
        chmod 600 .ssh/authorized_keys
 
-2) test system connectiviy necessary for installation
+2) test system connectivity necessary for installation
 
    test ssh connectivity to localhost (127.0.0.1) using public key auth (add .ssh/authorized_keys) 
               

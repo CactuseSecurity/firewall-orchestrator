@@ -1,3 +1,22 @@
+# first connect to api should result in the following:
+# tim@acantha:~$ wget --no-check-certificate https://192.168.100.110/web_api/ 
+# --2020-06-03 13:22:19--  https://192.168.100.110/web_api/
+# Connecting to 192.168.100.110:443... connected.
+# WARNING: cannot verify 192.168.100.110's certificate, issued by ‘unstructuredName=An optional company name,emailAddress=Email Address,CN=192.168.100.110,L=Locality Name (eg\\, city)’:
+#   Self-signed certificate encountered.
+# HTTP request sent, awaiting response... 401 Unauthorized
+# Username/Password Authentication Failed.
+#
+# if you get the following:
+#    tim@acantha:~$ wget --no-check-certificate https://192.168.100.110/web_api/ 
+#    HTTP request sent, awaiting response... 403 Forbidden
+#    2020-06-03 12:56:12 ERROR 403: Forbidden.
+# 
+# make sure the api server is up and running and accepting connections from your ip address:
+# (taken from https://community.checkpoint.com/t5/API-CLI-Discussion-and-Samples/Enabling-web-api/td-p/32641)
+# mgmt_cli -r true --domain MDS set api-settings accepted-api-calls-from "All IP addresses"
+# api restart
+
 import requests, json, argparse
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')

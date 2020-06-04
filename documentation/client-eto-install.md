@@ -9,21 +9,31 @@ Tested with
 ## Compile on development machine (same OS as target platform)
 1) Clone the repository from GitHub https://github.com/CactuseSecurity/firewall-orchestrator.git (Windows: unzip)
 
-2) Download and Install .Net Core SDK (https://dotnet.microsoft.com/download)
-   - just click download, selection for your platform should be automatic???
-   - start installer
+2) Download and Install **.NET Core SDK** (https://dotnet.microsoft.com/download)
+   - Windows:
+          
+          Click "Download .NET Core SDK"
+   
+   - MacOS:
+          
+          Click "Download .NET Core SDK"
+          
+   - Linux:
+          
+          1. Click "Install .NET Core"  
+          2. Select your Linux packet manager
+          3. Follow instructions for paragraph "Install .NET Core SDK"
 
-3) Open Command Line / terminal 
+3) Open Command Line / Terminal 
 
-4) Navigate/cd to 
+4) Navigate to 
    - Windows: 
    
          firewall-orchestrator\client\eto.forms\Firewall-Orchestrator.Wpf
-   - MacOs:
+   - MacOS:
    
          firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Mac
-   - Linux:
-   
+   - Linux: 
    
          firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk
            
@@ -33,7 +43,7 @@ Tested with
          dotnet publish --configuration Release --output publish --self-contained false --runtime win-x64 --framework netcoreapp3.1
    - MacOs: 
    
-         dotnet publish --configuration Release --output publish --self-contained false --runtime MacOs --framework netcoreapp3.1
+         dotnet publish --configuration Release --output publish --self-contained false --runtime osx-x64 --framework netcoreapp3.1
    - Linux: 
    
          dotnet publish --configuration Release --output publish --self-contained false --runtime linux-x64 --framework netcoreapp3.1
@@ -41,15 +51,15 @@ Tested with
 6) Your executable can now be found in
    - Windows:
    
-         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Ftk/bin/Release/netcoreapp3.1/win-x64
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Wpf/publish
    - MacOs:
    
-         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.???/bin/Release/netcoreapp3.1/???
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Mac/publish
    - Linux:
    
-         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk/bin/Release/netcoreapp3.1/linux-x64
+         firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk/publish
          
-7) You may delete the following files: ???, only the following directories need to be copied to a client: ???
+7) You may delete everything but the publish folder now
 
 ## Copy to and run on target client
 
@@ -59,7 +69,14 @@ Tested with
 
 2) Copy client from development system to target client
 
-3) Execute client
+3) Do the following while in client folder to start client:
 
-       cd firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.[Wpf|Mac|Gtk]/bin/Release/netcoreapp3.1/[win-x64|Mac|linux-x64]
-       dotnet Firewall-Orchestrator.[Gtk].dll
+   - Windows:
+   
+       Execute execetuable
+   - MacOs:
+   
+       Execute execetuable  
+   - Linux:
+   
+       dotnet Firewall-Orchestrator.Gtk.dll

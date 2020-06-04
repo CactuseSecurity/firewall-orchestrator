@@ -7,8 +7,10 @@ class DbInput {
         }
         function clean ($input, $maxlength) {
            if (is_array($input)) 
-        		for ($i = 0;  $i<count($input); $i++)
-        			$input[$i] = $this->clean($input[$i], $maxlength);
+        		for ($i = 0;  $i<count($input); $i++) {
+        		    if (isset($input[$i])
+            			$input[$i] = $this->clean($input[$i], $maxlength);
+        		}
            else {
 	           if (!is_numeric($input)) {
 	                if (is_null($maxlength)) $maxlength=255;

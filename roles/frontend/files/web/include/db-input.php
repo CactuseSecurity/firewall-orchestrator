@@ -8,7 +8,7 @@ class DbInput {
         function clean ($input, $maxlength) {
            if (is_array($input)) 
         		for ($i = 0;  $i<count($input); $i++) {
-        		    if (isset($input[$i])
+        		    if (isset($input[$i]))
             			$input[$i] = $this->clean($input[$i], $maxlength);
         		}
            else {

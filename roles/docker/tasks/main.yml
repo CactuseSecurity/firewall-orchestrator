@@ -32,6 +32,7 @@
      - name: apt update
        apt: update_cache=true
        environment: "{{ proxy_env }}"
+       when: run_on_github is not defined
 
      - name: Install all packages for docker
        apt:

@@ -6,9 +6,9 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: [ tim/test-install-in-github ]
   pull_request:
-    branches: [ master ]
+    branches: [ tim/test-install-in-github ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -24,5 +24,5 @@ jobs:
 
     # Runs a single command using the runners shell
     - name: Run a one-line script
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -e 'run_on_github=yes' -i inventory site.yml -K
       

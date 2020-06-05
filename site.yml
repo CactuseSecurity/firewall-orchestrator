@@ -6,13 +6,8 @@
 - hosts: backends
   roles:
     - backend
-
-- hosts: backends
-  roles:
-    - docker
-    - api
-  when: run_on_github is not defined
-  # docker does not work on github out of the box
+    - { role: docker, when: "run_on_github is not defined" }
+    - { role: api, when: "run_on_github is not defined" }
 
 - hosts: frontends
   roles:

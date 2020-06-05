@@ -32,7 +32,6 @@
      - name: apt update
        apt: update_cache=true
        environment: "{{ proxy_env }}"
-       when: run_on_github is not defined
 
      - name: Install all packages for docker
        apt:
@@ -47,7 +46,7 @@
          - ca-certificates 
          - curl 
          - software-properties-common
-       
+
      - name: Append the group 'docker' for ansible_user to enable him/her to run docker
        user:
            name: "{{ ansible_user }}"

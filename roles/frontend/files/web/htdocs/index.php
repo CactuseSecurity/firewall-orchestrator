@@ -13,7 +13,7 @@
 	
 //	require_once ('multi-language.php');
 	$page="ind";
-	$abmelden = $request['abmelden'];
+	if (isset($request['abmelden'])) $abmelden = $request['abmelden'];
 	if (isset($abmelden)  && $abmelden == "true") {
 //		if (!isset($_SESSION)) session_start();
 		require_once ("db-base.php");

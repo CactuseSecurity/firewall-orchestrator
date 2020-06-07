@@ -64,8 +64,8 @@
   become_user: "{{ iso_user }}"
 
 - name: execute hasura cli installer
-    shell: "{{ api_home }}/get.sh"
-    environment: "{{ proxy_env }}"
+  shell: "{{ api_home }}/get.sh"
+  environment: "{{ proxy_env }}"
   become: yes
 
 - block:

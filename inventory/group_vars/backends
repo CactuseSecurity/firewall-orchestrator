@@ -9,7 +9,8 @@ api_user_email: "{{ api_user }}@localhost"
 api_hasura_admin_secret: "st8chelt1er"
 api_hasura_jwt_secret: "ab957df1a33ea38a821278fb04d92abce830175ce9bcdef0e597622434480ccd"
 api_hasura_jwt_alg: "HS384"
-api_hasura_version: "v1.2.1"
+#api_hasura_version: "v1.2.1"
+api_hasura_version: "v1.2.2"
 api_hostname: "127.0.0.1"
 api_port: 8080
 API_SECRET_KEY: '3s)3o5_@2d!t21nammq38hnux9cfz5#9o0&nb4y8yn5xvqdhh^'

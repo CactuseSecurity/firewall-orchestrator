@@ -34,6 +34,8 @@
     name: hasura_fw_orch
     state: absent
   when: clean_install is defined
+  become: yes
+  become_user: "{{ iso_user }}"
 
 - name: start hasura container
   docker_container:

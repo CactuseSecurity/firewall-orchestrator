@@ -23,10 +23,10 @@
   become: yes
   become_user: "{{ iso_user }}"
 
-- name: create local user docker config file .docker/config.json
-  template:
-    src: docker_config.j2
-    dest: "{{ iso_home }}/.docker/config.json"
-    mode: 0644
-  become: yes
-  become_user: "{{ iso_user }}"
+#- name: create local user docker config file .docker/config.json
+#  template:
+#    src: docker_config.j2
+#    dest: "{{ iso_home }}/.docker/config.json"
+#    mode: 0644
+#  become: yes
+#  become_user: "{{ iso_user }}"

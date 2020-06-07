@@ -75,8 +75,7 @@
    
    - name: initialize hasura cli directory
      shell: "cd {{ api_home }} && {{ hasura_bin }} init --directory itsecorg --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
-     become: yes
-   
+
    - name: copy hasura metadata to cli directory
      copy:
        src: hasura_metadata.yaml
@@ -87,7 +86,8 @@
    
    - name: import hasura metadata
      shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata clear && {{ hasura_bin }} metadata apply --from-file"
-     
+  become: yes
+
    - name: copy hasura docker systemd service script
      template:
        src: hasura-docker-api.service.j2
@@ -95,8 +95,8 @@
        backup: yes
        mode: 0644
        owner: "root"
+     become: yes
 
    - name: make hasura docker container run at host startup
      command: "systemctl enable hasura-docker-api"
-     
-  become: yes
+     become: yes

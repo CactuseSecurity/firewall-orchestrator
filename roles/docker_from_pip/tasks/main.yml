@@ -19,8 +19,6 @@
   file:
     dest: "{{ iso_home }}/.docker"
     state: directory
-    owner: "{{ iso_user }}"
-    group: "{{ iso_user }}"
     mode: 0775
   become: yes
   become_user: "{{ iso_user }}"
@@ -29,8 +27,6 @@
   template:
     src: docker_config.j2
     dest: "{{ iso_home }}/.docker/config.json"
-    owner: "{{ iso_user }}"
-    group: "{{ iso_user }}"
     mode: 0644
   become: yes
   become_user: "{{ iso_user }}"

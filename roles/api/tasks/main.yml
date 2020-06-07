@@ -68,19 +68,22 @@
   environment: "{{ proxy_env }}"
   become: yes
 
-- block:
-   - name: initialize hasura cli directory
-     shell: "cd {{ api_home }} && {{ hasura_bin }} init --directory itsecorg --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+- name: initialize hasura cli directory
+  shell: "cd {{ api_home }} && {{ hasura_bin }} init --directory itsecorg --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  become: yes
+  become_user: "{{ iso_user }}"
 
-   - name: copy hasura metadata to cli directory
-     copy:
-       src: hasura_metadata.yaml
-       dest: "{{ api_home }}/itsecorg/migrations/metadata.yaml"
-       backup: yes
-       mode: 0644
+- name: copy hasura metadata to cli directory
+  copy:
+     src: hasura_metadata.yaml
+     dest: "{{ api_home }}/itsecorg/migrations/metadata.yaml"
+     backup: yes
+     mode: 0644
+     owner: "{{ iso_user }}"
+  become: yes
 
-   - name: import hasura metadata
-     shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata apply --from-file"
+- name: import hasura metadata
+  shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata apply --from-file"
   become: yes
   become_user: "{{ iso_user }}"
 

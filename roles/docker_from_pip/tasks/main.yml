@@ -1,0 +1,33 @@
+---
+- name: pip install all packages for docker in user context
+  pip:
+     install docker
+  become: yes
+  become_user: "{{ iso_user }}"
+
+- name: Append the group 'docker' for ansible_user to enable him/her to run docker
+  user:
+     name: "{{ iso_user }}"
+     groups: docker
+     append: yes
+  become: yes
+
+- name: create local user docker config dir .docker
+  file:
+    dest: "{{ iso_home }}/.docker"
+    state: directory
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+    mode: 0775
+  become: yes
+  become_user: "{{ iso_user }}"
+
+- name: create local user docker config file .docker/config.json
+  template:
+    src: docker_config.j2
+    dest: "{{ iso_home }}/.docker/config.json"
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+    mode: 0644
+  become: yes
+  become_user: "{{ iso_user }}"

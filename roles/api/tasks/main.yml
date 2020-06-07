@@ -15,15 +15,7 @@
         mode: 0755
         owner: "{{ iso_user }}"
    
-   - name: copy hasura docker-run script
-     template:
-       src: docker-run.sh.j2
-       dest: "{{ api_home }}/docker-run.sh"
-       backup: yes
-       mode: 0755
-       owner: "{{ iso_user }}"
-       
-   - name: add user {{ iso_user }} to group docker  
+   - name: add user {{ iso_user }} to group docker
      user: name={{ iso_user }}
            groups=docker
            append=yes
@@ -62,12 +54,7 @@
   become: yes
   become_user: "{{ iso_user }}"
 
-#- name: execute hasura docker-run
-#  shell: "cd {{ api_home }}; {{ api_home }}/docker-run.sh"
-#  become: yes
-#  become_user: "{{ iso_user }}"
-   
-- block:  
+- block:
    - name: download hasura cli installer
      get_url:
         url: https://github.com/hasura/graphql-engine/raw/master/cli/get.sh
@@ -77,7 +64,6 @@
    
    - name: execute hasura cli installer
      shell: "{{ api_home }}/get.sh"
-     become: yes
      environment: "{{ proxy_env }}"
    
    - name: initialize hasura cli directory
@@ -89,11 +75,11 @@
        dest: "{{ api_home }}/itsecorg/migrations/metadata.yaml"
        backup: yes
        mode: 0644
-       owner: "{{ iso_user }}"
-   
+
    - name: import hasura metadata
-     shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata clear && {{ hasura_bin }} metadata apply --from-file"
+     shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata apply --from-file"
   become: yes
+  become_user: "{{ iso_user }}"
 
 - name: copy hasura docker systemd service script
   template:

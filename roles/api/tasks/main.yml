@@ -29,10 +29,35 @@
            append=yes
   become: yes
 
-- name: execute hasura docker-run
-  shell: "cd {{ api_home }}; {{ api_home }}/docker-run.sh"
+#- name: drop hasura docker containers
+#  docker_container:
+#    name: hasura_fw_orch
+#    state: absent
+#  when: clean_install is defined
+
+- name: start hasura container
+  docker_container:
+    name: hasura_fw_orch
+    image: hasura/graphql-engine:{{ api_hasura_version }}
+    state: started
+    network_mode: host
+    recreate: yes
+    ports:
+      - {{ api_listener_ip }}:{{ api_listener_ip }}:{{ api_listener_port }}"
+    env:
+      HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ isodb_host }}:{{ iso_db_port }}/{{ iso_db_name }}"
+      HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
+      HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
+      HASURA_GRAPHQL_JWT_SECRET:       '{"type": "{{ api_hasura_jwt_alg }}", "key": "{{ api_hasura_jwt_secret }}", "claims_namespace_path": "$.hasura.claims"}'
+      HTTP_PROXY:                      "{{ http_proxy }}"
+      HTTPS_PROXY:                     "{{ https_proxy }}"
   become: yes
   become_user: "{{ iso_user }}"
+
+#- name: execute hasura docker-run
+#  shell: "cd {{ api_home }}; {{ api_home }}/docker-run.sh"
+#  become: yes
+#  become_user: "{{ iso_user }}"
    
 - block:  
    - name: download hasura cli installer

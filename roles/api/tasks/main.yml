@@ -54,18 +54,21 @@
   become: yes
   become_user: "{{ iso_user }}"
 
+- name: download hasura cli installer
+  get_url:
+      url: https://github.com/hasura/graphql-engine/raw/master/cli/get.sh
+      dest: "{{ api_home }}"
+      mode: 0755
+  environment: "{{ proxy_env }}"
+  become: yes
+  become_user: "{{ iso_user }}"
+
+- name: execute hasura cli installer
+    shell: "{{ api_home }}/get.sh"
+    environment: "{{ proxy_env }}"
+  become: yes
+
 - block:
-   - name: download hasura cli installer
-     get_url:
-        url: https://github.com/hasura/graphql-engine/raw/master/cli/get.sh
-        dest: "{{ api_home }}"
-        mode: 0755
-     environment: "{{ proxy_env }}"
-   
-   - name: execute hasura cli installer
-     shell: "{{ api_home }}/get.sh"
-     environment: "{{ proxy_env }}"
-   
    - name: initialize hasura cli directory
      shell: "cd {{ api_home }} && {{ hasura_bin }} init --directory itsecorg --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
 

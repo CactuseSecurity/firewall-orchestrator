@@ -1,7 +1,10 @@
 ---
 - name: pip install all packages for docker in user context
   pip:
-     install docker
+     name: docker
+  environment:
+    HTTP_PROXY: "http_proxy"
+    HTTPS_PROXY: "https_proxy"
   become: yes
   become_user: "{{ iso_user }}"
 

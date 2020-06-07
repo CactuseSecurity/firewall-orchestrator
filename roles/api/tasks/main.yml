@@ -35,6 +35,7 @@
 #    state: absent
 #  when: clean_install is defined
 
+
 - name: start hasura container
   docker_container:
     name: hasura_fw_orch
@@ -48,7 +49,7 @@
       HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ isodb_host }}:{{ iso_db_port }}/{{ iso_db_name }}"
       HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
       HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
-      HASURA_GRAPHQL_JWT_SECRET:       "{'type': '{{ api_hasura_jwt_alg }}', 'key': '{{ api_hasura_jwt_secret }}', 'claims_namespace_path': '$.hasura.claims'}"
+      HASURA_GRAPHQL_JWT_SECRET:       "\"{'type': '{{ api_hasura_jwt_alg }}', 'key': '{{ api_hasura_jwt_secret }}', 'claims_namespace_path': '$.hasura.claims'}\""
       HTTP_PROXY:                      "{{ http_proxy }}"
       HTTPS_PROXY:                     "{{ https_proxy }}"
   become: yes

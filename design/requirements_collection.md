@@ -1,5 +1,8 @@
 # functional requirements
 ## UI
+### reporting
+- create templates that define report
+- provide filter line with simple language containing logical operators
 - easy to adapt (eg. add new reports)
 - resizing of areas (e.g. navigation menue)
 - nfr (non-functional): modern look

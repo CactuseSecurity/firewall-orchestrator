@@ -46,7 +46,7 @@
          - ca-certificates 
          - curl 
          - software-properties-common
-
+       
      - name: Append the group 'docker' for ansible_user to enable him/her to run docker
        user:
            name: "{{ ansible_user }}"

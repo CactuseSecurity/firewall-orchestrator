@@ -1,21 +1,22 @@
 # functional requirements
 ## UI
+### UI general
+- resizing of areas (e.g. navigation menue)
+- multi-language support (start with German + English)
+- cross-plattform support runs on windows, macos, linux (or browser when moving logic into webserver)
+- authentication, rbac, ...
+- allow for tenants (rbac per firewall device or management plus IP-ranges - at least that is the status quo)
 ### reporting
 - create templates that define report
 - provide filter line with simple language containing logical operators
 - easy to adapt (eg. add new reports)
-- resizing of areas (e.g. navigation menue)
 - nfr (non-functional): modern look
-- cross-plattform support runs on windows, macos, linux (or browser when moving logic into webserver)
-- authentication, rbac, ...
-- allow for tenants (rbac per firewall device or management plus IP-ranges - at least that is the status quo)
-- admin gui parts
+### admin gui parts
   - add/edit/delete management
   - add/edit/delete device
   - add/edit/delete client/tenant
   - add/edit/delete user
   - add/edit/delete external LDAP
-- multi-language support (start with German + English)
 ## rest
 - fulfill regulatory requirements of financial institutions
   - change reports

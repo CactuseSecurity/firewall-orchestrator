@@ -11,6 +11,7 @@
 - provide filter line with simple language containing logical operators
 - easy to adapt (eg. add new reports)
 - nfr (non-functional): modern look
+- report visibility should be definable (group, users)
 ### admin gui parts
   - add/edit/delete management
   - add/edit/delete device

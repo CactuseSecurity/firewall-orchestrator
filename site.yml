@@ -6,8 +6,9 @@
 - hosts: backends
   roles:
     - backend
-    - docker
-    - api
+    - { role: docker, when: "run_on_github is not defined" }
+    - { role: api, when: "run_on_github is not defined" }
+   # todo: make api (and docker) work with github actions
 
 - hosts: frontends
   roles:

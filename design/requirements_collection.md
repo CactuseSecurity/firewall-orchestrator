@@ -1,6 +1,7 @@
 # functional requirements
 ## UI
 - easy to adapt (eg. add new reports)
+- resizing of areas (e.g. navigation menue)
 - nfr (non-functional): modern look
 - cross-plattform support runs on windows, macos, linux (or browser when moving logic into webserver)
 - authentication, rbac, ...

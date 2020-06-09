@@ -11,6 +11,7 @@
 - text filter is derived and automatically displayed when clicking filters
 - user is able to choose filter modules
 - UI must prevent filters from being displayed that do not belong to the current data (dependencies)
+- low prio: display further info per element (ip, client, manufacturer)
 ### reporting
 - create templates that define report
 - provide filter line with simple language containing logical operators

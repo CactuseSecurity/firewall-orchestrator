@@ -6,6 +6,7 @@
 - cross-plattform support runs on windows, macos, linux (or browser when moving logic into webserver)
 - authentication, rbac, ...
 - allow for tenants (rbac per firewall device or management plus IP-ranges - at least that is the status quo)
+- use symbols in menus in addition to text
 #### multi-purpose filter
 - implement as text box and graphical element in parallel
 - text filter is derived and automatically displayed when clicking filters

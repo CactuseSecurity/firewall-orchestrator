@@ -34,6 +34,14 @@
   become: yes
   become_user: "{{ iso_user }}"
 
+- name: Install packages for python pip3 n virtualenv
+  package:
+    name: "{{ packages }}"
+  vars:
+    packages:
+      - python3-pip
+      - python3-virtualenv
+
 - name: install docker sdk for python via pip3
   pip:
     name: docker

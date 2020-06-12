@@ -8,6 +8,7 @@
 - name: pip install all packages for docker in user context
   pip:
      name: docker
+     virtualenv: "{{ api_venv_dir }}"
   environment:
     HTTP_PROXY: "http_proxy"
     HTTPS_PROXY: "https_proxy"

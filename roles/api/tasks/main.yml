@@ -1,4 +1,11 @@
 ---
+'''
+working under ubuntu 20.4 with
+tim@ubu204test:~$ ansible --version
+ansible 2.9.6
+python version = 3.8.2 (default, Apr 27 2020, 15:53:34) [GCC 9.3.0]
+'''
+
 - block:  
    - set_fact: api_home="{{ iso_home }}/api"
    - set_fact: hasura_bin="/usr/local/bin/hasura"

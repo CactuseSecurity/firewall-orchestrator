@@ -34,6 +34,12 @@
   become: yes
   become_user: "{{ iso_user }}"
 
+- name: install docker sdk for python via pip3
+  pip:
+    name: docker
+  become: yes
+  become_user: "{{ iso_user }}"
+
 - name: start hasura container
   docker_container:
     name: hasura_fw_orch
@@ -48,11 +54,11 @@
       HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
       HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
       HASURA_GRAPHQL_JWT_SECRET:       '
-        {
-          "type": "{{ api_hasura_jwt_alg|quote }}",
-          "key": "{{ api_hasura_jwt_secret|quote }}",
-          "claims_namespace_path": "$.hasura.claims"
-        }
+                                        {
+                                          "type": "{{ api_hasura_jwt_alg|quote }}",
+                                          "key": "{{ api_hasura_jwt_secret|quote }}",
+                                          "claims_namespace_path": "$.hasura.claims"
+                                        }
       '
       HTTP_PROXY:                      "{{ http_proxy }}"
       HTTPS_PROXY:                     "{{ https_proxy }}"

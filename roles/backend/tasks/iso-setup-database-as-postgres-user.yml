@@ -23,6 +23,10 @@
      - debug:
          var: db_exists.stdout
 
+     - name: stop import process to allow database drop when database exists
+       shell:  "/etc/init.d/itsecorg-importer stop"
+       when: db_exists.stdout=="1"
+
      - name: initialize iso database and delete all existing data)
        shell:  "{{ iso_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
        when: clean_install is defined or db_exists.stdout=="0"

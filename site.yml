@@ -6,7 +6,7 @@
 - hosts: backends
   roles:
     - backend
-    - docker_from_pip
+    - docker
     - api
 
 - hosts: frontends

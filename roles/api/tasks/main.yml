@@ -59,11 +59,11 @@
 #  become: yes
 #  become_user: "{{ iso_user }}"
 
-- name: drop hasura docker containers and images
-  command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
-  #when: clean_install is defined
-  become: yes
-  become_user: "{{ iso_user }}"
+#- name: drop hasura docker containers and images
+#  command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
+#  #when: clean_install is defined
+#  become: yes
+#  become_user: "{{ iso_user }}"
 
 - name: start hasura container
   docker_container:

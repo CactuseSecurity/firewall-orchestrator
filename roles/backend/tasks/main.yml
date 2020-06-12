@@ -122,9 +122,9 @@
         backup: yes
 
      - name: stop all docker containers if api was running before to make sure the database can be dropped
-       script: "stop_docker_containers.sh"
+       command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
+       # script: "stop_docker_containers.sh"
   become: yes
 
 # now in non-root context:            
-- import_tasks: drop-api-container.yml
 - import_tasks: iso-setup-database-as-postgres-user.yml

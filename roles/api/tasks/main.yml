@@ -31,6 +31,8 @@
     name: hasura_fw_orch
     state: absent
   when: clean_install is defined
+  environment:
+    ansible_python_interpreter: /usr/bin/python3
   become: yes
   become_user: "{{ iso_user }}"
 
@@ -41,6 +43,7 @@
     packages:
       - python3-pip
       - python3-virtualenv
+  become: yes
 
 - name: install docker sdk for python via pip3
   pip:

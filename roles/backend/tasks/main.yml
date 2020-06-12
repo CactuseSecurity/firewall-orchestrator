@@ -121,9 +121,9 @@
         line: '\1"{{ admin_pwd }}"'
         backup: yes
 
-     - name: stop all docker containers if api was running before to make sure the database can be dropped
-       command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
-       # script: "stop_docker_containers.sh"
+     - name: remove all containers including api to make sure the database can be dropped
+       script: "remove_all_containers.sh"
+       #command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
   become: yes
 
 # now in non-root context:            

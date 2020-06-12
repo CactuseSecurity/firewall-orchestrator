@@ -126,4 +126,5 @@
   become: yes
 
 # now in non-root context:            
+- import_tasks: drop-api-container.yml
 - import_tasks: iso-setup-database-as-postgres-user.yml

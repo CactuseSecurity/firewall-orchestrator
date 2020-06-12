@@ -5,8 +5,8 @@
 
 - hosts: backends
   roles:
-    - backend
     - docker
+    - backend
     - api
 
 - hosts: frontends

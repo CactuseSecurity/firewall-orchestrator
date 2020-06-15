@@ -1,25 +1,26 @@
 Quelle: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork
 
+Add ssh key to profile (Profile - Settings - ssh keys)
+
+# First time add upstream URL (only has to be done once): 
+
     git remote -v
     git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
     git remote -v
-    git fetch upstream
-    git checkout master
-    git merge upstream/master
-    git push
-
-Und beim nächsten Mal nur noch:
+    
+# Sync with upstream 
 
     git fetch upstream
     git checkout master
     git merge upstream/master
     git push
 
-besser wäre natürlich
+
+Worting with ssh:
 
     git remote add upstream ssh://github.com/CactuseSecurity/firewall-orchestrator.git
     
-umbenennen mit 
+Change upstream name:
 
     git remote set-url upstream ssh://github.com/CactuseSecurity/firewall-orchestrator.git
 

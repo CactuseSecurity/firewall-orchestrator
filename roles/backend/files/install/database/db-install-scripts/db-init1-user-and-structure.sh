@@ -19,7 +19,7 @@ PATH=$PATH:$ISOBINDIR:$ISOBASE/importer
 . $ISOBINDIR/iso-pgpass-create.sh $ISOBASE
 
 #echo "dropping db $ISODB, may fail but fallback (drop tables) in place" | $OUT
-#$PSQLCMD_INIT -c "DROP DATABASE $ISODB" 2>&1 | tee | $OUT
+$PSQLCMD_INIT -c "DROP DATABASE $ISODB" 2>&1 | tee | $OUT
 #/bin/sleep 3			# waiting for connection to template to finish
 echo "creating dbusers"  2>&1 | tee | $OUT	# creating basic groups and users
 $PSQLCMD_INIT -c "create user \"$ISODBUSER\" with password '$ISODBPW'" #   2>&1 | $OUT

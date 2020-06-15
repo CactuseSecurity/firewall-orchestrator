@@ -8,7 +8,7 @@ ExecStart={{ api_home }}/docker-run.sh
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=itsecorg-api
-User=root
+User={{ iso_user }}
 Environment=
 [Install]
 WantedBy=multi-user.target

@@ -1,4 +1,6 @@
 #!/bin/bash
+
+
 if [ -e /usr/bin/docker ]
 then
 	if [ "`docker ps -a -q`" != "" ]

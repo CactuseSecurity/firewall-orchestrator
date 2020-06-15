@@ -38,4 +38,21 @@
         dest: "{{ sample_config_user_home }}"
         owner: "{{ sample_config_user }}"
         group: itsecorg
+
+    - name: copy config changes scripts
+      copy:
+        src: "config_changes"
+        dest: "{{ sample_config_user_home }}"
+        owner: "{{ sample_config_user }}"
+        group: itsecorg
+
+    - name: Creates a cron file under /etc/cron.d
+      cron:
+        name: change fw config
+        weekday: "*"
+        minute: "*"
+        hour: "*"
+        user: "{{ sample_config_user }}"
+        job: "{{ sample_config_user_home }}/write_date_to_comment.py"
+        cron_file: ansible_FWOrch_change_config_comment
   become: yes

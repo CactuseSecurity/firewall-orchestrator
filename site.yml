@@ -18,10 +18,10 @@
   roles:
     - importer
 
-- hosts: authservers
-  roles:
-    - auth_backend
-    - auth_frontend
+#- hosts: authservers
+#  roles:
+#    - auth_backend
+#    - auth_frontend
 
 - hosts: sampleservers
   roles:

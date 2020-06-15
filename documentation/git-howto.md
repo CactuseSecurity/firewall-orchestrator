@@ -1,3 +1,6 @@
+
+<pre>
+
 hod@fworch-dev:~/firewall-orchestrator$ git pull
 Already up to date.
 12:36
@@ -24,3 +27,4 @@ besser wäre natürlich
 git remote add upstream ssh://github.com/CactuseSecurity/firewall-orchestrator.git
 13:12
 umbenennen mit git remote set-url upstream ssh://github.com/CactuseSecurity/firewall-orchestrator.git
+</pre>

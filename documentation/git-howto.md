@@ -1,4 +1,13 @@
-Quelle: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork
+It is recommended to create a personal fork and work on that, except you only make changes on documentation (but no code change). Just use the Fork button on the GitHub UI.
+
+From that fork you can create local clones.
+
+It is possible to sync your fork via the GitHub UI, but it leads at least to an ugly additional commit in your fork history:
+(https://rick.cogley.info/post/update-your-forked-repository-directly-on-github/)
+
+So better use the command line:
+
+Source: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork
 
 Add ssh key to profile (Profile - Settings - ssh keys)
 

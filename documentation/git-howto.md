@@ -33,3 +33,12 @@ Add ssh key to profile (Profile - Settings - ssh keys)
 
     git remote set-url upstream ssh://github.com/CactuseSecurity/firewall-orchestrator.git
 
+# Example with non-master branch
+
+    git clone git@github.com:tpurschke/firewall-orchestrator.git -b tim/make-api-reinstallable
+    cd firewall-orchestrator/
+    git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
+    git fetch upstream
+    git checkout tim/make-api-reinstallable
+    git merge upstream/tim/make-api-reinstallable
+    git push

@@ -52,7 +52,6 @@
   become_user: postgres
   when: pgtap_control.stat.exists == True
 
-
 #- name: get pgjwt repo from github
 #  git:
 #    repo: https://github.com/michelp/pgjwt.git

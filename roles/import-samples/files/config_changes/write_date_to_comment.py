@@ -1,9 +1,9 @@
-# Changes the word 'wizard' to 'lizard' in fortigate.cfg
+# Changes the comment in rule 52 to the current date in fortigate.cfg
 # Created by alf
 
 import fnmatch
 import datetime
-from shutil import copyfile, rmtree
+from shutil import copyfile
 
 fin = open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "rt")
 fout = open("/tmp/FWOrch_deleteme.txt", "wt")
@@ -24,4 +24,4 @@ fin.close()
 fout.close()
 
 copyfile("/tmp/FWOrch_deleteme.txt", "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg")
-rmtree("/tmp/FWOrch_deleteme.txt")
+

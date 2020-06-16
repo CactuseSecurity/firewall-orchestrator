@@ -53,6 +53,6 @@
         minute: "*"
         hour: "*"
         user: "{{ sample_config_user }}"
-        job: "python3 {{ sample_config_user_home }}/write_date_to_comment.py"
+        job: "python3 {{ sample_config_user_home }}/write_date_to_comment.py {{ sample_config_user_home }}/enlarge_rule.py"
         cron_file: ansible_FWOrch_change_config_comment
   become: yes

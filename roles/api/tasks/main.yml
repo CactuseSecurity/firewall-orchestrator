@@ -1,4 +1,9 @@
 ---
+# working under ubuntu 20.4 with
+# tim@ubu204test:~$ ansible --version
+# ansible 2.9.6
+# python version = 3.8.2 (default, Apr 27 2020, 15:53:34) [GCC 9.3.0]
+
 - block:  
    - set_fact: api_home="{{ iso_home }}/api"
    - set_fact: hasura_bin="/usr/local/bin/hasura"
@@ -15,62 +20,118 @@
         mode: 0755
         owner: "{{ iso_user }}"
    
-   - name: copy hasura docker-run script
-     template:
-       src: docker-run.sh.j2
-       dest: "{{ api_home }}/docker-run.sh"
-       backup: yes
-       mode: 0755
-       owner: "{{ iso_user }}"
-       
-   - name: add user {{ iso_user }} to group docker  
+   - name: add user {{ iso_user }} to group docker
      user: name={{ iso_user }}
            groups=docker
            append=yes
+
+   - name: Install packages for python pip3 n virtualenv
+     package:
+        name: "{{ packages }}"
+     vars:
+        packages:
+          - python3-pip
+          - python3-virtualenv
+
+   # the docker-run script is still needed for systemd start file
+   - name: copy hasura docker-run script
+     template:
+        src: docker-run.sh.j2
+        dest: "{{ api_home }}/docker-run.sh"
+        backup: yes
+        mode: 0755
+        owner: "{{ iso_user }}"
   become: yes
 
-- name: execute hasura docker-run
-  shell: "cd {{ api_home }}; {{ api_home }}/docker-run.sh"
+- name: install docker sdk for python via pip3
+  pip:
+    name: docker
   become: yes
   become_user: "{{ iso_user }}"
-   
-- block:  
-   - name: download hasura cli installer
-     get_url:
-        url: https://github.com/hasura/graphql-engine/raw/master/cli/get.sh
-        dest: "{{ api_home }}"
-        mode: 0755
-     environment: "{{ proxy_env }}"
-   
-   - name: execute hasura cli installer
-     shell: "{{ api_home }}/get.sh"
-     become: yes
-     environment: "{{ proxy_env }}"
-   
-   - name: initialize hasura cli directory
-     shell: "cd {{ api_home }} && {{ hasura_bin }} init --directory itsecorg --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
-     become: yes
-   
-   - name: copy hasura metadata to cli directory
-     copy:
-       src: hasura_metadata.yaml
-       dest: "{{ api_home }}/itsecorg/migrations/metadata.yaml"
-       backup: yes
-       mode: 0644
-       owner: "{{ iso_user }}"
-   
-   - name: import hasura metadata
-     shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata clear && {{ hasura_bin }} metadata apply --from-file"
-     
-   - name: copy hasura docker systemd service script
-     template:
-       src: hasura-docker-api.service.j2
-       dest: "/lib/systemd/system/hasura-docker-api.service"
-       backup: yes
-       mode: 0644
-       owner: "root"
 
-   - name: make hasura docker container run at host startup
-     command: "systemctl enable hasura-docker-api"
-     
+#- name: drop hasura docker containers when clean_install is set
+#  docker_container:
+#    name: hasura_fw_orch
+#    state: absent
+#  when: clean_install is defined
+#  environment:
+#    ansible_python_interpreter: /usr/bin/python3
+#  become: yes
+#  become_user: "{{ iso_user }}"
+
+#- name: drop hasura docker containers and images
+#  command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
+#  #when: clean_install is defined
+#  become: yes
+#  become_user: "{{ iso_user }}"
+
+- name: start hasura container
+  docker_container:
+    name: "{{ api_container_name }}"
+    image: hasura/graphql-engine:{{ api_hasura_version }}
+    state: started
+    network_mode: host
+    recreate: yes
+    ports:
+      - "{{ api_listener_ip }}:{{ api_listener_port }}:{{ api_listener_port }}"
+    env:
+      HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ isodb_host }}:{{ iso_db_port }}/{{ iso_db_name }}"
+      HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
+      HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
+      HASURA_GRAPHQL_JWT_SECRET:       '
+                                        {
+                                          "type": "{{ api_hasura_jwt_alg|quote }}",
+                                          "key": "{{ api_hasura_jwt_secret|quote }}",
+                                          "claims_namespace_path": "$.hasura.claims"
+                                        }
+      '
+      HTTP_PROXY:                      "{{ http_proxy }}"
+      HTTPS_PROXY:                     "{{ https_proxy }}"
+  become: yes
+  become_user: "{{ iso_user }}"
+
+- name: download hasura cli installer
+  get_url:
+      url: https://github.com/hasura/graphql-engine/raw/master/cli/get.sh
+      dest: "{{ api_home }}"
+      mode: 0755
+  environment: "{{ proxy_env }}"
+  become: yes
+  become_user: "{{ iso_user }}"
+
+- name: execute hasura cli installer
+  shell: "{{ api_home }}/get.sh"
+  environment: "{{ proxy_env }}"
+  become: yes
+
+- name: initialize hasura cli directory
+  shell: "cd {{ api_home }} && {{ hasura_bin }} init --directory itsecorg --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  become: yes
+  become_user: "{{ iso_user }}"
+
+- name: copy hasura metadata to cli directory
+  copy:
+     src: hasura_metadata.yaml
+     dest: "{{ api_home }}/itsecorg/migrations/metadata.yaml"
+     backup: yes
+     mode: 0644
+     owner: "{{ iso_user }}"
+  become: yes
+
+- name: import hasura metadata
+  shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata apply --from-file"
+  become: yes
+  become_user: "{{ iso_user }}"
+
+- name: copy hasura docker systemd service script
+  template:
+     src: hasura-docker-api.service.j2
+     dest: "/lib/systemd/system/hasura-docker-api.service"
+     backup: yes
+     mode: 0644
+     owner: "root"
+  become: yes
+
+- name: make hasura docker container run at host startup
+  command: "systemctl enable hasura-docker-api"
   become: yes

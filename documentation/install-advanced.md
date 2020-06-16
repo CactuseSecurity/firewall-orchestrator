@@ -5,7 +5,12 @@
 
        cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
        
-## Advanced installation 2: distributed setup
+## Advanced installation 2: clean install
+   if you want to drop the database and re-install from scratch, simply add the variable clean_install as follows:
+    
+       cd firewall-orchestrator; ansible-playbook -i inventory -e "clean_install=1" site.yml -K
+
+## Advanced installation 3: distributed setup
 
 if you want to distribute functionality to different hosts:
 

@@ -18,10 +18,10 @@ namespace TestKonsole
         private static async Task Main()
         {
             // Server URL
-            const string ServerURI = "https://10.5.5.110/api/v1/graphql";
+            const string ServerURI = "https://demo.itsecorg.de/api/v1/graphql";
 
             // Erlaube alle Zertifikate // ENTFERNEN SOBALD SERVER GÜLTIGES ZERTIFIKAT HAT
-            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+            // ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
 
             // Neuer Http Client
             HttpClient client = new HttpClient();

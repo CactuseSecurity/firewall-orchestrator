@@ -46,13 +46,23 @@
         owner: "{{ sample_config_user }}"
         group: itsecorg
 
-    - name: Creates a cron file under /etc/cron.d
+    - name: Executes write_date_to_comment.py as cronjob in /etc/cron.d
       cron:
-        name: change fw config
+        name: change fw config with write_date_to_comment.py
         weekday: "*"
-        minute: "*"
+        minute: "0-58/2"
         hour: "*"
         user: "{{ sample_config_user }}"
-        job: "python3 {{ sample_config_user_home }}/write_date_to_comment.py {{ sample_config_user_home }}/enlarge_rule.py"
-        cron_file: ansible_FWOrch_change_config_comment
+        job: "python3 {{ sample_config_user_home }}/config_changes/write_date_to_comment.py"
+        cron_file: ansible_FWOrch_write_date_to_comment
+
+    - name: Executes enlarge_rule.py as cronjob in /etc/cron.d
+      cron:
+        name: change fw config with enlarge_rule.py
+        weekday: "*"
+        minute: "1-59/2"
+        hour: "*"
+        user: "{{ sample_config_user }}"
+        job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py"
+        cron_file: ansible_FWOrch_enlarge_rule
   become: yes

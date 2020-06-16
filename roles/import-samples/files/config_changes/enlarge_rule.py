@@ -1,4 +1,5 @@
 # Created by alf
+# Enlarges rule 60 by a random srcadress in fortigate.cfg
 # First step: create functions that build a random ip address and uuid
 
 import random
@@ -50,7 +51,7 @@ fout.close()
 # Third step: add new objects to rule 60
 
 fin = open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "rt")
-fout = open("/home/isosample/sample-configs/fortinet_demo/deleteme.cfg", "wt")
+fout = open("/tmp/FWOrch_deleteme2.txt", "wt")
 uid_flag = False
 for line in fin:
     if fnmatch.filter([line], '*edit 60*'):
@@ -65,4 +66,4 @@ for line in fin:
     fout.write(line)
 fin.close()
 fout.close()
-copyfile("/home/isosample/sample-configs/fortinet_demo/deleteme.cfg", "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg")
+copyfile("/tmp/FWOrch_deleteme2.txt", "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg")

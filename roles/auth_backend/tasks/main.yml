@@ -75,7 +75,8 @@
   shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgjwt'') THEN CREATE EXTENSION pgjwt; END IF; END \$do\$"'
   become: yes
   become_user: postgres
- 
+  when: pgtap_control.stat.exists == True
+
 - name: test pgjwt extension
   shell: 'cd {{ iso_home }}/install/database/pgjwt && psql -d {{ iso_db_name }} -c "\i test_pgjwt.sql"'
   become: yes

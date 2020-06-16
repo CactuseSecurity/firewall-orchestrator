@@ -3,10 +3,10 @@
 
 import fnmatch
 import datetime
-#import re
+from shutil import copyfile, rmtree
 
 fin = open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "rt")
-fout = open("/home/isosample/sample-configs/fortinet_demo/deleteme.txt", "wt")
+fout = open("/tmp/FWOrch_deleteme.txt", "wt")
 uid = 52
 uid_flag = False
 for line in fin:
@@ -23,5 +23,5 @@ for line in fin:
 fin.close()
 fout.close()
 
-from shutil import copyfile
-copyfile("/home/isosample/sample-configs/fortinet_demo/deleteme.txt", "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg")
+copyfile("/tmp/FWOrch_deleteme.txt", "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg")
+rmtree("/tmp/FWOrch_deleteme.txt")

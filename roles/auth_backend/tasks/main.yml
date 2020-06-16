@@ -22,16 +22,16 @@
   become: yes
   environment: "{{proxy_env}}"
 
-- name: install test package for postgresql
+- name: install development package for postgresql (needed for pgcrypto jwt auth)
   package:
-    name: "{{ postgresql_test_package }}"
+    name: "{{ postgresql_dev_package }}"
     state: present
   become: yes
   environment: "{{proxy_env}}"
 
-- name: install development package for postgresql (needed for pgcrypto jwt auth)
+- name: install test package for postgresql
   package:
-    name: "{{ postgresql_dev_package }}"
+    name: "{{ postgresql_test_package }}"
     state: present
   become: yes
   environment: "{{proxy_env}}"
@@ -41,10 +41,16 @@
   become: yes
   become_user: postgres
 
-- name: create pgtap extension for running unit tests on database 
+- name: check if /usr/share/postgresql/{{pg_version}}/extension/pgtap.control exists
+  stat:
+    path: "/usr/share/postgresql/{{pg_version}}/extension/pgtap.control"
+  register: pgtap_control
+
+- name: create pgtap extension for running unit tests on database
   shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgtap'') THEN CREATE EXTENSION pgtap; END IF; END \$do\$"'
   become: yes
   become_user: postgres
+  when: pgtap_control.stat.exists == True
 
 #- name: get pgjwt repo from github
 #  git:

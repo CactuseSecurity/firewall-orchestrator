@@ -6,11 +6,7 @@ name: CI
 # events but only for the master branch
 # test change
 
-on:
-  push:
-    branches: [ master, tim/test-install-github ]
-  pull_request:
-    branches: [ tim/test-install-in-github ]
+on: [push, pull_request]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:

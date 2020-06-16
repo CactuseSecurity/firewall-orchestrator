@@ -22,5 +22,5 @@ jobs:
 
     # Runs a single command using the runners shell
     - name: Run a one-line script
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory -e 'run_on_github=yes' site.yml -K
       

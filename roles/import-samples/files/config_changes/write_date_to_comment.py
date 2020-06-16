@@ -7,7 +7,6 @@ import datetime
 
 fin = open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "rt")
 fout = open("/home/isosample/sample-configs/fortinet_demo/deleteme.txt", "wt")
-data = fin
 uid = 52
 uid_flag = False
 for line in fin:
@@ -20,8 +19,7 @@ for line in fin:
         #line = re.sub('"*"', '"{}"'.format(datetime.datetime.now()), line)
         #fout.write(line.re.sub('set comments "VPN: Cactus-DA (Created by VPN wizard)"', 'test'))
         line = '        set comments "{}"\n'.format(datetime.datetime.now())
-    #fout.write(line)
-    data.write(line)
+    fout.write(line)
 fin.close()
 fout.close()
 

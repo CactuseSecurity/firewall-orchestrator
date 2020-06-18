@@ -40,7 +40,7 @@ todo:
 
 ------
 
-- define functions based on role tables:
+- define permission functions based on role tables:
    user_visible_managements(user_id)
    user_visible_devices(user_id)
 

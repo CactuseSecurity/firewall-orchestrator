@@ -23,10 +23,6 @@
 - restore db backup:
     psql -c "create database isodb"
     psql -d isodb -f "<database-dump>"
-- if you need a gui user:
-   psql -d isodb -c "create user "admin" WITH PASSWORD 'fworch.1' IN GROUP isoadmins"
-   or: psql -d isodb -c "alter user "admin" WITH PASSWORD 'fworch.1'"
-   psql -d isodb -c "insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username,isoadmin_password_must_be_changed) VALUES (4242,'Hans','Wurst','admin',FALSE)"
 
 #### Optimization starts here ####
 - allow for disk space triple the size of the DB (e.g. 500 GB for a 140 GB DB) - especially needed for the vacuum step at the end

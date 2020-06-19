@@ -25,4 +25,4 @@
 
 - hosts: sampleservers
   roles:
-    - import-samples
+    - sample-data

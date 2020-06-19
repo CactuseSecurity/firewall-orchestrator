@@ -54,6 +54,7 @@ but verify looks good:
 
 docker logs c37388157052
 
+see https://hasura.io/docs/1.0/graphql/manual/auth/authorization/roles-variables.html
 TODO: add get_user_visible_devices in auth function to create JWT containing dev_ids 
 then use this dev_id list in sign command
 

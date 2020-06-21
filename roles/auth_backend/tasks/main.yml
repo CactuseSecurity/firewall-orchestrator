@@ -95,3 +95,17 @@
 - name: make admin user a superuser
   shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM role WHERE role_id=2) THEN insert into role_to_user (role_id, user_id) values (1, 3); END IF; END \$do\$"'
   become_user: postgres
+
+- name: create auth directory
+  file:
+    path: "{{ iso_home }}/auth"
+    state: directory
+
+- name: copy authentication sql file
+  copy:
+    src: pre_auth_functions.sql
+    dest: "{{ iso_home }}/auth/"
+
+- name: create funtions needed during authentication
+  shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "{{ iso_home }}/auth/pre_auth_functions.sql"'
+  become_user: postgres

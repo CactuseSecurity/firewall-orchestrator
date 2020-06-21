@@ -6,12 +6,13 @@
 
 ## Installation instructions server
 
-see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/server-install.md
+see [Install server](https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/server-install.md)
 
-If your system lives behind a proxy or you have other specific installation needs like in a distributed installion, see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
+If your system lives behind a proxy or you have other specific installation needs like in a distributed installion,
+see [Advanced installation instructions](https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md)
 
 ##  Client installation 
-see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/client-eto-install.md
+see [Client installation instructions](https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/client-eto-install.md)
 
 ## Further documentation
-- see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/get-started.MD
+- see [Getting started with Firewall Orchestrator](https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/get-started.MD)

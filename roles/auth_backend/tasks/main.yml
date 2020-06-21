@@ -115,6 +115,6 @@
   become: yes
 
 - name: create funtions needed during authentication
-  shell: 'psql -d {{ iso_db_name }} -c \"{{ iso_home }}/auth/pre_auth_functions.sql\"'
+  shell: 'psql -d {{ iso_db_name }} -c "\i {{ iso_home }}/auth/pre_auth_functions.sql"'
   become: yes
   become_user: postgres

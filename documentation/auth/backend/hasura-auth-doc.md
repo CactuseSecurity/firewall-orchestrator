@@ -70,4 +70,5 @@ TODO: currently cpreport is entered as fixed role name in hasura - this has to b
 - Documenter
 - Admin
 
+
 # Second Layer of roles then allows granular access based on device permissions

@@ -84,12 +84,12 @@
 # todo: display result of tests and exit on errors
 
 - name: insert role superuser
-  shell: "psql -d {{ iso_db_name }} -c 'DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_id=1) THEN insert into role (role_name, role_id, role_can_view_all_devices, role_is_superadmin) values (''superuser'', 1, true, true);  END IF; END $do$'"
+  shell: "psql -d {{ iso_db_name }} -c 'DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_id=1) THEN insert into role (role_name, role_id, role_can_view_all_devices, role_is_superadmin) values (\'superuser\', 1, true, true);  END IF; END $do$'"
   become: yes
   become_user: postgres
 
 - name: insert role reporter
-  shell: "psql -d {{ iso_db_name }} -c 'DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_id=2) THEN insert into role (role_name, role_id, role_can_view_all_devices, role_is_superadmin) values (''reporter'', 2, false, false);  END IF; END $do$'"
+  shell: "psql -d {{ iso_db_name }} -c 'DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_id=2) THEN insert into role (role_name, role_id, role_can_view_all_devices, role_is_superadmin) values (\'reporter\', 2, false, false);  END IF; END $do$'"
   become: yes
   become_user: postgres
 

@@ -11,10 +11,8 @@
 # non local login
 - to enable login from another system: ....
 
-
 # view reports
 - click reporting
-- 
 
 # your systems comes with test data pre-installed
 - this data needs to be removed for production systems (delete cascade from management where mgm_id=1 or mgm_id=2) --> integrate in GUI 

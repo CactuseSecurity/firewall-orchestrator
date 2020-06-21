@@ -63,3 +63,11 @@ isodb=# select sign('{ "sub": "1234567890", "name": "Tim Purschke", "checkpointr
 custom check: {"dev_id":{"_in":"X-Hasura-Visible-Devices"}}
 
 TODO: currently cpreport is entered as fixed role name in hasura - this has to be variably defined in roles table
+
+Add Basic roles and permissions in hasura respectively postgresql permissions (grants):
+- Anonymous
+- Authenticated User
+- Documenter
+- Admin
+
+Second Layer of roles then allows granular access based on device permissions

@@ -19,6 +19,8 @@
 - easy to adapt (eg. add new reports)
 - nfr (non-functional): modern look
 - report visibility should be definable (group, users)
+- nice to have: positional bar at upper edge (see nzz.ch)
+
 ### admin gui parts
   - add/edit/delete management
   - add/edit/delete device

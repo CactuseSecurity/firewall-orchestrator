@@ -100,13 +100,19 @@
 
 - name: create auth directory
   file:
-    path: "{{ iso_home }}/auth"
+    dest: "{{ iso_home }}/auth"
     state: directory
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
 
 - name: copy authentication sql file
   copy:
     src: pre_auth_functions.sql
     dest: "{{ iso_home }}/auth/"
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
 
 - name: create funtions needed during authentication
   shell: 'psql -d {{ iso_db_name }} -c "{{ iso_home }}/auth/pre_auth_functions.sql"'

@@ -5,7 +5,7 @@ CREATE ROLE fgreporter WITH
   NOCREATEDB
   NOCREATEROLE
   NOREPLICATION
-  ENCRYPTED PASSWORD 'md52dd181e8bab17b9cfac36805211a4ff2';
+  ENCRYPTED PASSWORD '{{ api_sample_user_pwd_hash }}';
 
 GRANT reporters TO fgreporter;
 

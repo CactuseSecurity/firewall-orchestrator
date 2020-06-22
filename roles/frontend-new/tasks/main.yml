@@ -1,0 +1,99 @@
+- set_fact: wsgi_dir="{{ iso_home }}/{{ api_project_name }}/{{ api_project_name }}"
+- set_fact: api_dir="{{ iso_home }}/{{ api_project_name }}"
+
+- block:
+    - name: get user name
+      set_fact: ansible_user="{{ lookup('env','USERNAME') }}"
+
+    - name: Install webserver packages
+      package: name={{ item }} state=present
+      with_items:
+        - apache2
+
+#    - name: copy iso files to frontend target
+#      copy:
+#        src: "web"
+#        dest: "{{ iso_home }}"
+#        owner: itsecorg
+#        group: itsecorg
+
+    - name: copy iso httpd config file to apache target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/itsecorg.conf"
+        owner: root
+        group: root
+        
+    - name: enable apache modules proxy proxy_http ssl
+      command: "a2enmod proxy proxy_http ssl"
+
+#    - name: create dummy .rnd file in users home dir to avoid error when creating certificate - workaround for ubuntu 18.04 openssl bug
+#      file:
+#        path: ~/.rnd
+#        state: touch
+
+    - name: copy cert creation script to apache target
+      script: "apache_create_server_cert.sh" 
+
+    - name: enable itsecorg web site
+      shell: "a2ensite itsecorg"
+
+#    - name: add session directory - /var/itsecorg/session
+#      file:
+#        dest: /var/itsecorg/session
+#        state: directory
+#        owner: www-data
+#        group: root
+
+    - name: increase apache timeout to 900 seconds
+      lineinfile:
+        path: /etc/apache2/apache2.conf
+        line: "Timeout 900"
+
+    - name: restart apache
+      service:
+       name: "apache2"
+       state: restarted     
+
+    # install blazor part:
+    #  wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+    #  sudo dpkg -i packages-microsoft-prod.deb
+    #  sudo apt-get update;   sudo apt-get install -y apt-transport-https &&   sudo apt-get update &&   sudo apt-get install -y dotnet-sdk-3.1
+    #  sudo apt-get install -y dotnet-runtime-3.1
+    #  sudo apt autoremove
+    #  dotnet new blazorwasm -o BlazorApp1
+    #  cd BlazorApp1/
+    #  dotnet run
+
+    - name: get packages-microsoft-prod
+      get_url:
+        url: "https://packages.microsoft.com/config/{{ ansible_facts['ansible_distribution'] }}/{{ ansible_facts['ansible_distribution_version'] }}/packages-microsoft-prod.deb
+        dest: "{{ iso_home }}/web/packages-microsoft-prod.deb"
+        mode: 0644
+
+    - name: install packages-microsoft-prod
+      command: "dpkg -i {{ iso_home }}/web/packages-microsoft-prod.deb"
+
+    - name: apt update
+      apt: update_cache=true
+
+    - name: Install apt-transport-https
+      package: name=apt-transport-https state=present
+
+    - name: apt update
+      apt: update_cache=true
+
+    - name: Install dotnet-sdk-3.1
+      package: name=dotnet-sdk-3.1 state=present
+
+    - name: Install dotnet runtime
+      package: name=dotnet-runtime-3.1 state=present
+
+    - name: create new blazor ui app
+      command: "cd {{ iso_home }}/web; dotnet new blazorwasm -o {{ ui_app_name }}"
+
+    - name: start ui app
+      shell: "screen -d -m -S SERVER bash -c 'cd {{ iso_home }}/web/{{ ui_app_name }} && dotnet start'"
+
+  become: yes
+  environment: "{{ proxy_env }}"

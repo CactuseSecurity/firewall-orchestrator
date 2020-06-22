@@ -1,7 +1,6 @@
+# Database instructions
 
-# Instructions:
-
-#### preparations ####
+## preparations
 - install new machine running latest ubuntu or debian
 - allow for disk space triple the size of the DB (e.g. 500 GB for a 140 GB DB) - especially needed for the vacuum step at the end
 - allow for 16 GB of RAM and 4 CPUs
@@ -24,7 +23,7 @@
     psql -c "create database isodb"
     psql -d isodb -f "<database-dump>"
 
-#### Optimization starts here ####
+### Optimization 
 - allow for disk space triple the size of the DB (e.g. 500 GB for a 140 GB DB) - especially needed for the vacuum step at the end
 - transform database tables to auto cascade thru all tables when deleting unwanted managements:
    psql -d isodb -f /usr/share/itsecorg/install/database/stored-procedures/iso-change-to-delete-cascade.sql

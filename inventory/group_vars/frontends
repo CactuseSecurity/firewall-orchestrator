@@ -4,3 +4,5 @@ http_conf_dir: /etc/apache2/sites-available/
 api_project_name: api
 api_listener_ip: 127.0.0.1
 api_listener_port: 8080
+ui_port: 5000
+ui_app_name: fworch

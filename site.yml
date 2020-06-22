@@ -14,6 +14,7 @@
 - hosts: frontends
   roles:
     - frontend
+    - frontend-new
     - auth_frontend
 
 - hosts: importers

@@ -1,3 +1,4 @@
+ansible_python_interpreter: /usr/bin/python3
 
 http_proxy: ""
 #http_proxy: http://admsrv.int.cactus:3128

@@ -1,0 +1,217 @@
+schema {
+
+# === enums ===================================
+enum SecGatewayType {
+  FIREWALL
+  PROXY
+  IPS
+  LOADBALANCER
+  WAF
+}
+
+# === interfaces and types ===================================
+# --- device types  ---------------------------
+type SecGateway {
+  name: String!
+  id: ID!
+  secGatewayType: SecGatewayType!
+  product: Product!
+  productVersion: ProductVersion!
+  managedBy: SecManager
+}
+
+type Product {
+  vendor: String
+  os: String
+}
+
+type ProductVersion {
+  version: String
+}
+
+type SecManager {
+  id: ID
+  name: String!
+  ipAddress: IpAddress!
+  sshPrivateKey: String!
+  importerHostname: String!
+  importerSShUser: String!
+  created: Time
+  activeImport: Boolean
+  secGateway: [SecGateway]
+}
+
+type SecManagers {
+  list: [SecManager]
+}
+# --- basic types for rules -------------------------
+type Revision {
+    importTime: Time
+}
+
+type Time {
+    time: Int   # Unix seconds since 1970
+}
+
+type ipAddress {
+    # can be either v4 or v6, represented as string
+    ip: String!
+}
+
+type RuleLayer {
+    name: String!
+}
+
+type RuleSection {
+    name: String!
+}
+
+# --- types for rules -------------------------
+interface RuleElement {
+  id: ID!
+  name: String!
+  uid: String!
+  secManager: SecManager!
+  secGateway: SecGateway
+  comment: String
+}
+
+type NetworkObject implements RuleElement {
+  id: ID!
+  name: String!
+  uid: String!
+  secManager: SecManager!
+  secGateway: SecGateway
+  ipAddress: IpAddress
+  groupMembers: [NetworkObject]
+}
+
+type ServiceObject implements RuleElement {
+  id: ID!
+  name: String!
+  uid: String!
+  secManager: SecManager!
+  secGateway: SecGateway
+  protocol: Protocol!
+  port: Int
+  rpcNumber: Int
+  icmpCode: Int
+  icmpType: Int
+  groupMembers: [ServiceObject]
+}
+
+enum Action {
+   ACCEPT
+   DROP
+   REJECT
+}
+
+enum Track {
+   LOG
+   NOLOG
+   LOG_START
+   LOG_STOP
+   ACCOUNTING
+   PACKET_CAPTURE
+}
+
+enum Protocol {
+   TCP
+   UDP
+   ESP
+   AH
+   ICMP
+   ICMPv6
+   RPC
+}
+
+type Rule {
+  id: ID
+  uid: String
+  source: [NetworkObject]
+  destination: [NetworkObject]
+  service: [ServiceObject]
+  action: [Action]
+  track: [Track]
+  comment: String
+  name: String
+  section: Section
+  layer: Layer
+  ruleNumber: Int!
+  revision: Revision
+  rulebase: Rulebase
+}
+
+type RuleBase {
+  id: ID
+  # todo: how to define rule order?
+  rules: [Rule]
+  revision: Revision
+  secGateway: SecGateway
+}
+
+type Query  {
+    secManagers: [SecManager!]
+    secManager(id: Int!): SecManager
+
+    secGateways: [SecGateway!]
+    secGateway(id: Int!): SecGateway
+    secGateways(SecManager!): [SecGateway!]
+
+    ruleBases(secGateway:SecGateway): Rulebase!
+    ruleBases(time: Time!, secGateway:SecGateway): Rulebase!
+
+    rules(revision: Revision!): [Rule!]
+    rules(time = now(): Time!): [Rule!]
+    rules(time: Time!, secGateway:SecGateway!): Rulebase!
+    rules_current: [Rule!]
+    rules_current(secGateway:SecGateway): Rulebase!
+    rules_current(secManager:SecManager): [Rulebase!]!
+
+    networkObjects(time: Time = now() , revision: Revision, secManager: SecManager): [NetworkObjects]
+    serviceObjects(time: Time = now(), revision: Revision, secManager: SecManager): [ServiceObjects]
+}
+
+type Mutation  {
+    addSecManager(  name: String!
+                    ipAddress: IpAddress!
+                    sshPrivateKey: String!
+                    importerHostname: String!
+                    importerSShUser: String!
+                    created: Time
+                    activeImport: Boolean
+                    secGateway: [SecGateway]
+                 ): SecManager
+    deleteSecManager(id!: Int
+                 ): Int!
+    disableImportSecManager(id!: Int
+                 ): Int!
+    enableImportSecManager(id!: Int
+                 ): Int!
+    addSecGateway(name: String!
+                  secGatewayType: SecGatewayType!
+                  productVersion: ProductVersion!
+                  managedBy: SecManager
+                 ): SecGateway
+    deleteSecGateway(id!: Int
+                 ): Int!
+    disableImportSecGateway(id!: Int
+                 ): Int!
+    enableImportSecGateway(id!: Int
+                 ): Int!
+    addRulebase(rulebase:Rulebase!
+                time: Time!
+                secGateway: SecGateway!
+               ): Int!
+    addNetworkObjects(networkObjects:[NetworkObjects]!
+                time: Time!
+                secManager: SecManager!
+               ): Int!
+    addServiceObjects(serviceObjects:[serviceObjects]!
+                time: Time!
+                secManager: SecManager!
+               ): Int!
+}
+
+}
+

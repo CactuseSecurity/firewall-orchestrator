@@ -10,9 +10,9 @@
       with_items:
         - apache2
 
-    - name: create web dir
+    - name: create ui dir
       file:
-        dest: "{{ iso_home }}/web"
+        dest: "{{ ui_dir }}"
         state: directory
         owner: itsecorg
         group: itsecorg
@@ -74,12 +74,12 @@
 
     - name: get packages-microsoft-prod
       get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution'] }}/{{ ansible_facts['distribution_version'] }}/packages-microsoft-prod.deb"
-        dest: "{{ iso_home }}/web/packages-microsoft-prod.deb"
+        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ ansible_facts['distribution_version'] }}/packages-microsoft-prod.deb"
+        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
         mode: 0644
 
     - name: install packages-microsoft-prod
-      command: "dpkg -i {{ iso_home }}/web/packages-microsoft-prod.deb"
+      command: "dpkg -i {{ ui_dir }}/packages-microsoft-prod.deb"
 
     - name: apt update
       apt: update_cache=true
@@ -97,10 +97,11 @@
       package: name=dotnet-runtime-3.1 state=present
 
     - name: create new blazor ui app
-      command: "cd {{ iso_home }}/web; dotnet new blazorwasm -o {{ ui_app_name }}"
+      shell: "cd {{ ui_dir }} && dotnet new blazorwasm -o {{ ui_app_name }}"
 
     - name: start ui app
-      shell: "screen -d -m -S SERVER bash -c 'cd {{ iso_home }}/web/{{ ui_app_name }} && dotnet start'"
+      shell: "/usr/bin/screen -d -m -S SERVER bash -c 'cd {{ ui_dir }}/{{ ui_app_name }} && dotnet start'"
+# todo: muss noch bootfest gemacht werden
 
   become: yes
   environment: "{{ proxy_env }}"

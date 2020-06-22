@@ -2,9 +2,6 @@
 - set_fact: api_dir="{{ iso_home }}/{{ api_project_name }}"
 
 - block:
-    - name: get user name
-      set_fact: ansible_user="{{ lookup('env','USERNAME') }}"
-
     - name: Install webserver packages
       package: name={{ item }} state=present
       with_items:
@@ -14,8 +11,8 @@
       file:
         dest: "{{ ui_dir }}"
         state: directory
-        owner: itsecorg
-        group: itsecorg
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
 
 #    - name: copy iso files to frontend target
 #      copy:
@@ -81,6 +78,11 @@
     - name: install packages-microsoft-prod
       command: "dpkg -i {{ ui_dir }}/packages-microsoft-prod.deb"
 
+    - name: remove package file
+      file:
+        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
+        state: absent
+
     - name: apt update
       apt: update_cache=true
 
@@ -96,6 +98,10 @@
     - name: Install dotnet runtime
       package: name=dotnet-runtime-3.1 state=present
 
+  become: yes
+  environment: "{{ proxy_env }}"
+
+- block:
     - name: create new blazor ui app
       shell: "cd {{ ui_dir }} && dotnet new blazorwasm -o {{ ui_app_name }}"
 
@@ -104,4 +110,5 @@
 # todo: muss noch bootfest gemacht werden
 
   become: yes
+  becomre_user: "{{ iso_user }}"
   environment: "{{ proxy_env }}"

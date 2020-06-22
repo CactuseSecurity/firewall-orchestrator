@@ -26,11 +26,11 @@
     - name: insert test fortinet device for import
       shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=2) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (2,2,''checkpoint-demo'',''IsoAAAA'',7); END IF; END \$do\$"'
 
-    - name: delete .pgpass file
-      file:
-        path: ".pgpass"
-        state: absent
-      
+#    - name: delete .pgpass file
+#      file:
+#        path: ".pgpass"
+#        state: absent
+#
     - name: scan localhost ssh keys
       shell: "ssh-keyscan -H 127.0.0.1 >> ~/.ssh/known_hosts"
 

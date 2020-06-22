@@ -24,3 +24,4 @@
 - hosts: sampleservers
   roles:
     - sample-data
+    - { role: sample-data-connect-sting, when: "connect_sting is defined" }

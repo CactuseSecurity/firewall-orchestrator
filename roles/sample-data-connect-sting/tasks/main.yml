@@ -1,10 +1,8 @@
 # this playbook sets up a connection to cactus test firewall sting
-
 - block:
     - set_fact: ansible_user_home="{{ lookup('env','HOME') }}"
     - set_fact: importer_hostname="{{ ansible_hostname }}"          #  this only works for importer = backend
 
-    # create sample devices and managements in isodb:
     - name: create .pgpass file
       lineinfile:
         path: "{{ iso_home }}/.pgpass"

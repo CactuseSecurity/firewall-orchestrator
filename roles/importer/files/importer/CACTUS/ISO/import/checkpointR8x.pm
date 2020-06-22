@@ -97,7 +97,7 @@ sub parse_config {
 	my $result;
 	my $cmd;
 	my $return_code = 0;
-	my $parser_py = "/usr/bin/python ./iso_parse_config_cp_r8x_api.py";
+	my $parser_py = "/usr/bin/python3 ./iso_parse_config_cp_r8x_api.py";
 
 # parsing rulebases
 	my $rulebase_names = get_ruleset_name_list($rulebase_name);
@@ -182,7 +182,7 @@ sub copy_config_from_mgm_to_iso {
 	chomp($pwd);
 	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
 	if (!defined($api_port) || $api_port eq '') { $api_port = "443"; }
-	my $api_bin = "/usr/bin/python ./iso_get_config_cp_r8x_api.py";
+	my $api_bin = "/usr/bin/python3 ./iso_get_config_cp_r8x_api.py";
 	$cmd = "$api_bin $api_hostname '$pwd' -l '$rulebase_names' -p $api_port > \"$cfg_dir/$obj_file_base\"";
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }

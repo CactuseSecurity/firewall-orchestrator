@@ -394,7 +394,7 @@ sub error_handler_update {
         my $existing_error_str = &error_handler_get($current_import_id);
         if (!defined($existing_error_str) || $existing_error_str eq '') {$existing_error_str = '';}
         else {$existing_error_str .= "; ";}
-        &exec_pgsql_cmd_no_result("UPDATE import_control SET import_errors='$existing_error_str$new_error_str', successful_import=FALSE  WHERE control_id=$current_import_id");
+        &exec_pgsql_cmd_no_result("UPDATE import_control SET import_errors='$existing_error_str$new_error_str', successful_import=FALSE WHERE control_id=$current_import_id");
     }
 }
 

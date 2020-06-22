@@ -14,8 +14,8 @@
 - hosts: frontends
   roles:
     - { role: frontend, when: "include_php_ui is defined" }
-    - frontend-new
     - auth_frontend
+    - frontend-new
 
 - hosts: importers
   roles:

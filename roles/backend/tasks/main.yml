@@ -124,7 +124,18 @@
      - name: remove all containers including api to make sure the database can be dropped
        script: "remove_all_containers.sh"
        #command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
+
+#     - name: clean up .pgpass file
+#       file:
+#         path: "{{ iso_home }}/.pgpass"
+#         state: absent
   become: yes
 
 # now in non-root context:            
 - import_tasks: iso-setup-database-as-postgres-user.yml
+
+#- name: clean up .pgpass file
+#  file:
+#    path: "{{ iso_home }}/.pgpass"
+#    state: absent
+#  become: yes

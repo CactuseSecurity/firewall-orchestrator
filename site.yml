@@ -9,19 +9,16 @@
     - backend
     - { role: api, when: "run_on_github is not defined" }
    # todo: make api (and docker) work with github actions
+    - auth_backend
 
 - hosts: frontends
   roles:
     - frontend
+    - auth_frontend
 
 - hosts: importers
   roles:
     - importer
-
-- hosts: authservers
-  roles:
-    - auth_backend
-    - auth_frontend
 
 - hosts: sampleservers
   roles:

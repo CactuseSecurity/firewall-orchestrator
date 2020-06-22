@@ -36,6 +36,11 @@
 
     - name: start initial imports 
       shell: "/etc/init.d/itsecorg-importer start"
-      
+
+    - name: clean up .pgpass file
+      file:
+        path: "{{ iso_home }}/.pgpass"
+        state: absent
+
   become: yes
   become_user: itsecorg

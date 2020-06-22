@@ -7,9 +7,9 @@ Tested with
   - Ubuntu 20.04 (Tim, 2020-05-31)
 
 ## Compile on development machine (same OS as target platform)
-1) Clone the repository from GitHub https://github.com/CactuseSecurity/firewall-orchestrator.git (Windows: unzip)
+1) Clone the [repository from GitHub}(https://github.com/CactuseSecurity/firewall-orchestrator.git) (Windows: unzip)
 
-2) Download and Install **.NET Core SDK** (https://dotnet.microsoft.com/download)
+2) [Download and Install **.NET Core SDK**](https://dotnet.microsoft.com/download)
    - Windows:
           
           Click "Download .NET Core SDK"
@@ -63,7 +63,7 @@ Tested with
 
 ## Copy to and run on target client
 
-1) On the target client: Download and Install .Net Core Runtime (https://dotnet.microsoft.com/download)
+1) On the target client: [Download and Install .Net Core Runtime](https://dotnet.microsoft.com/download)
 
    (not necessary if you already installed .Net Core SDK)
 

@@ -3,11 +3,11 @@ It is recommended to create a personal fork and work on that, except you only ma
 From that fork you can create local clones.
 
 It is possible to sync your fork via the GitHub UI, but it leads at least to an ugly additional commit in your fork history:
-(https://rick.cogley.info/post/update-your-forked-repository-directly-on-github/)
+[https://rick.cogley.info/post/update-your-forked-repository-directly-on-github/](https://rick.cogley.info/post/update-your-forked-repository-directly-on-github/)
 
 So better use the command line:
 
-Source: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork
+Source: [https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork)
 
 Add ssh key to profile (Profile - Settings - ssh keys)
 

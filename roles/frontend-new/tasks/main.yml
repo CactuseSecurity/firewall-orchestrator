@@ -67,7 +67,7 @@
 
     - name: get packages-microsoft-prod
       get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['ansible_distribution'] }}/{{ ansible_facts['ansible_distribution_version'] }}/packages-microsoft-prod.deb
+        url: "https://packages.microsoft.com/config/{{ ansible_facts['ansible_distribution'] }}/{{ ansible_facts['ansible_distribution_version'] }}/packages-microsoft-prod.deb"
         dest: "{{ iso_home }}/web/packages-microsoft-prod.deb"
         mode: 0644
 

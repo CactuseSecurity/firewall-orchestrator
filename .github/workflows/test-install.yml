@@ -6,7 +6,17 @@ name: CI
 # events but only for the master branch
 # test change
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+    - 'doccumentation/**'
+    - 'design/**'
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+    - 'doccumentation/**'
+    - 'design/**'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:

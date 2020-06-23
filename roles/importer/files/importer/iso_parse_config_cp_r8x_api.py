@@ -1,4 +1,4 @@
-import requests, json, argparse, re, pprint
+import requests, json, argparse, re, pprint, io
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
 parser.add_argument('-f', '--config_file', required=True, help='name of config file to parse (json format)')

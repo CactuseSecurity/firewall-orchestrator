@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import requests, json, argparse
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')

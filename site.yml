@@ -13,8 +13,9 @@
 
 - hosts: frontends
   roles:
-    - frontend
+    - { role: frontend, when: "include_php_ui is defined" }
     - auth_frontend
+    - frontend-new
 
 - hosts: importers
   roles:
@@ -23,3 +24,4 @@
 - hosts: sampleservers
   roles:
     - sample-data
+    - { role: sample-data-connect-sting, when: "connect_sting is defined" }

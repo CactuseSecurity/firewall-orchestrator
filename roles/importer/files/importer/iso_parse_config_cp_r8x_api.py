@@ -463,7 +463,8 @@ def get_any_obj_uid(rulebase):
 
 ####################### main program ###############################################
 
-with io.open(args.config_file, "r", encoding="utf-8") as json_data:
+# with io.open(args.config_file, "r", encoding="utf-8") as json_data:
+with io.open(args.config_file, "r", encoding="utf8") as json_data:
     config = json.load(json_data)
 
 # any_obj_uid = get_any_obj_uid()

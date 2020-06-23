@@ -103,6 +103,7 @@ def csv_dump_rule(rule, layer_name):
         rule_action = rule['action']
         rule_csv += '"' + rule_action['name'] + '"'  + csv_delimiter
         rule_track = rule['track']
+        rule_track = rule_track['type']
         rule_csv += '"' + rule_track['name'] + '"' + csv_delimiter
         rule_install_on = rule['install-on']
         first_rule_install_target = rule_install_on[0]
@@ -248,8 +249,11 @@ def collect_nw_objects(object_table):
                 member_names = ''
                 if 'members' in obj:
                     for member in obj['members']:
-                        member_names += member['name'] + list_delimiter
-                        member_refs += member['uid'] + list_delimiter
+                        if 'name' in member:
+                            member_names += member['name'] + list_delimiter
+                            member_refs += member['uid'] + list_delimiter
+                        #else:
+                        #    print('warning: no name found for network object group ' + obj['name'])
                     member_names = member_names[:-1]
                     member_refs = member_refs[:-1]
                 ip_addr = get_ip_of_obj(obj)
@@ -366,8 +370,11 @@ def collect_svc_objects(object_table):
                     member_refs = ''
                     member_names = ''
                     for member in obj['members']:
-                        member_names += member['name'] + list_delimiter
-                        member_refs += member['uid'] + list_delimiter
+                        if 'name' in member:
+                            member_names += member['name'] + list_delimiter
+                            member_refs += member['uid'] + list_delimiter
+                        #else:
+                        #    print('warning: no name found for service group ' + obj['name'])
                     member_names = member_names[:-1]
                     member_refs = member_refs[:-1]
                 if 'session-timeout' in obj:
@@ -397,6 +404,9 @@ def collect_svc_objects(object_table):
                     # rpc, group - setting ports to 0
                     port = '0'
                     port_end = '0'
+                if not 'color' in obj:
+                    #print('warning: no color found for service ' + obj['name'])
+                    obj['color'] = 'black'
                 svc_objects.extend([{ 'svc_uid': obj['uid'], 'svc_name': obj['name'], 'svc_color': obj['color'], 'svc_comment': obj['comments'],
                                           'svc_typ': typ, 'svc_port': port, 'svc_port_end': port_end, 'svc_member_refs': member_refs, 
                                           'svc_member_names': member_names, 'ip_proto': proto, 'svc_timeout': session_timeout,
@@ -463,8 +473,9 @@ def get_any_obj_uid(rulebase):
 
 ####################### main program ###############################################
 
-# with io.open(args.config_file, "r", encoding="utf-8") as json_data:
-with io.open(args.config_file, "r", encoding="utf8") as json_data:
+#with io.open(args.config_file, "r", encoding="utf8") as json_data:
+#with open(args.config_file, "r", encoding="utf8") as json_data:
+with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
 # any_obj_uid = get_any_obj_uid()
@@ -523,4 +534,5 @@ if  args.rulebase != '' and not found_rulebase:
     print ("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")    
 else:
     result = result[:-1]    # strip off final line break to avoid empty last line
-    print(result.encode('utf-8'))
+    #print(result.encode('utf-8'))
+    print(result)

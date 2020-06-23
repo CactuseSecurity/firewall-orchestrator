@@ -21,7 +21,16 @@ Add ssh key to profile (Profile - Settings - ssh keys)
 
     git fetch upstream
     git checkout master
+    
+    (if there are already commits on local:)
     git merge upstream/master
+    git push
+    
+    or shorter instead of fetch+checkout+merge:
+    
+    git pull upstream master
+    
+    (if there is a new commit because merge was necessary:)
     git push
 
 

@@ -62,26 +62,37 @@ def csv_dump_rule(rule, layer_name):
         rule_csv +=  csv_delimiter                                      # rule_ruleid
         rule_csv += '"' + rule_disabled + '"' + csv_delimiter           # rule_disabled
         rule_csv += '"'+str(rule['source-negate'])+'"'+csv_delimiter+'"'# src_neg
+
+        # adding src nw obj names:
         for src in rule["source"]:
-            if 'userGroup' in src:
-                rule_csv += src["userGroup"] + '@' + src["name"] + list_delimiter
+            if src['type'] == 'LegacyUserAtLocation':
+                rule_csv += src['name'] + list_delimiter
             elif (src['type']=='access-role'):
-                for nw in src['networks']:
-                    rule_csv += src["name"] + '@' + nw + list_delimiter    # TODO: this is not correct --> should be name instead of uid 
-            else:
+                if isinstance(src['networks'], str):                    # just a single source
+                    rule_csv += src["name"] + '@' + src['networks'] + list_delimiter
+                else:       # more than one source
+                    for nw in src['networks']:
+                        rule_csv += src["name"] + '@' + nw + list_delimiter    # TODO: this is not correct --> should be name instead of uid
+            else:  # standard network objects as source
                 rule_csv += src["name"] + list_delimiter
         rule_csv = rule_csv[:-1]
-        rule_csv += '"' + csv_delimiter + '"' 
+        rule_csv += '"' + csv_delimiter + '"'
+
+        # adding src nw obj references:
         for src in rule["source"]:
-            if 'userGroup' in src:
+            if src['type'] == 'LegacyUserAtLocation':
                 rule_csv += src["userGroup"] + '@' + src["location"] + list_delimiter
             elif (src['type']=='access-role'):
-                for nw in src['networks']:
-                    rule_csv += src["uid"] + '@' + nw + list_delimiter
-            else:
+                if isinstance(src['networks'], str):                    # just a single source
+                    rule_csv += src["name"] + '@' + src['networks'] + list_delimiter
+                else:       # more than one source
+                    for nw in src['networks']:
+                        rule_csv += src["name"] + '@' + nw + list_delimiter    # TODO: this is not correct --> should be name instead of uid
+            else:  # standard network objects as source
                 rule_csv += src["uid"] + list_delimiter
         rule_csv = rule_csv[:-1]
         rule_csv += '"' + csv_delimiter
+
         rule_csv += '"'+str(rule['destination-negate'])+'"'+csv_delimiter+'"'
         for dst in rule["destination"]:
             rule_csv += dst["name"] + list_delimiter

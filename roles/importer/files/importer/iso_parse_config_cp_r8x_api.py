@@ -69,7 +69,10 @@ def csv_dump_rule(rule, layer_name):
                 rule_csv += src['name'] + list_delimiter
             elif (src['type']=='access-role'):
                 if isinstance(src['networks'], str):                    # just a single source
-                    rule_csv += src["name"] + '@' + src['networks'] + list_delimiter
+                    if src['networks']=='any':
+                        rule_csv += 'Any' + '@' + src['networks'] + list_delimiter
+                    else:
+                        rule_csv += src["name"] + '@' + src['networks'] + list_delimiter
                 else:       # more than one source
                     for nw in src['networks']:
                         rule_csv += src["name"] + '@' + nw + list_delimiter    # TODO: this is not correct --> should be name instead of uid
@@ -84,7 +87,11 @@ def csv_dump_rule(rule, layer_name):
                 rule_csv += src["userGroup"] + '@' + src["location"] + list_delimiter
             elif (src['type']=='access-role'):
                 if isinstance(src['networks'], str):                    # just a single source
-                    rule_csv += src["name"] + '@' + src['networks'] + list_delimiter
+                    if src['networks']=='any':
+                        any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
+                        rule_csv += any_obj_uid + '@' + src['networks'] + list_delimiter
+                    else:
+                        rule_csv += src['uid'] + '@' + src['networks'] + list_delimiter
                 else:       # more than one source
                     for nw in src['networks']:
                         rule_csv += src["name"] + '@' + nw + list_delimiter    # TODO: this is not correct --> should be name instead of uid
@@ -180,18 +187,17 @@ def csv_dump_user(user_name):
 def collect_users_from_rule(rule):
     if 'rule-number' in rule:   # standard rule
         for src in rule["source"]:
-            if 'userGroup' in src:
+            if src['type'] == 'access-role':
+                users[src['name']] = { 'uid': src['uid'] , 'user_type': 'group', 'comment': src['comments'], 'color': src['color'] }
+                if 'users' in src:
+                    users[src["name"]] = { 'uid': src["uid"], 'user_type': 'simple' }
+            elif src['type'] == 'LegacyUserAtLocation':
                 user_str = src["name"]
                 user_ar = user_str.split('@')
                 user_name = user_ar[0]
                 user_uid = src["userGroup"] 
 #                users[user_name] = user_uid 
                 users[user_name] = { 'uid': user_uid , 'user_type': 'group' } 
-            if 'users' in src:
-                users[src["name"]] = { 'uid': src["uid"], 'user_type': 'simple' }
-            if 'access-role' in src:
-                users[src["name"]] = { 'uid': src['uid'] , 'user_type': 'group', 'comment': src['comments'], 
-                                    'color': src['color'] } 
     else:       # section
         collect_users_from_rulebase(rule["rulebase"])
 
@@ -490,6 +496,9 @@ with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
 # any_obj_uid = get_any_obj_uid()
+# any_obj_uid = 'dummy any obj uid (not found in rulebase)'
+any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
+
 number_of_section_headers_so_far = 0
 rule_num = 0
 nw_objects = []         # only used for storing any obj
@@ -500,7 +509,6 @@ for rulebase in config['rulebases']:
     collect_svcs_from_rulebase(rulebase)
     collect_nw_objs_from_rulebase(rulebase)
 
-any_obj_uid = 'dummy any obj uid (not found in rulebase)'
 for obj in nw_objects:
     if obj['obj_name']=='Any':
         any_obj_uid = obj['obj_uid']

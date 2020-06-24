@@ -69,7 +69,7 @@ def csv_dump_rule(rule, layer_name):
         rule_csv += csv_add_field(str(rule_num), csv_delimiter, apostrophe)     # rule_num
         rule_csv += csv_add_field(layer_name, csv_delimiter, apostrophe)        # rulebase_name
         rule_csv += csv_add_field('', csv_delimiter, apostrophe)                # rule_ruleid is empty
-        if (rule['enabled'] == True):
+        if rule['enabled'] == 'True':
             rule_disabled = 'False'
         else:
             rule_disabled = 'True'
@@ -110,24 +110,25 @@ def csv_dump_rule(rule, layer_name):
                         rule_src_ref += src['uid'] + '@' + src['networks'] + list_delimiter
                 else:       # more than one source
                     for nw in src['networks']:
-                        rule_src_ref += src["name"] + '@' + nw + list_delimiter    # TODO: this is not correct --> should be name instead of uid
+                        rule_src_ref += src['uid']  + '@' + nw + list_delimiter
             else:  # standard network objects as source
                 rule_src_ref += src["uid"] + list_delimiter
-        rule_src_ref = rule_csv[:-1]               # removing last list_delimiter
+        rule_src_ref = rule_src_ref[:-1]               # removing last list_delimiter
         rule_csv += csv_add_field(rule_src_ref, csv_delimiter, apostrophe)     # src_refs
 
         rule_csv += csv_add_field(str(rule['destination-negate']), csv_delimiter, apostrophe)     # destination negation
 
-# DESTINATION
-        rule_dst = ''
+        rule_dst_name = ''
         for dst in rule["destination"]:
-            rule_dst += dst["name"] + list_delimiter
-        rule_dst = rule_csv[:-1]
-        rule_dst += '"' + csv_delimiter + '"'
+            rule_dst_name += dst["name"] + list_delimiter
+        rule_dst_name = rule_dst_name[:-1]
+        rule_csv += csv_add_field(rule_dst_name, csv_delimiter, apostrophe)     # rule dest_name
+
+        rule_dst_ref = ''
         for dst in rule["destination"]:
-            rule_dst += dst["uid"] + list_delimiter
-        rule_dst = rule_csv[:-1]
-        rule_csv += csv_add_field(rule_dst, csv_delimiter, apostrophe)     # rule_dst
+            rule_dst_ref += dst["uid"] + list_delimiter
+        rule_dst_ref = rule_dst_ref[:-1]
+        rule_csv += csv_add_field(rule_dst_ref, csv_delimiter, apostrophe)     # rule_dest_refs
 
         # SERVICE names
         rule_svc_name = ''
@@ -159,15 +160,15 @@ def csv_dump_rule(rule, layer_name):
         first_rule_time = rule_time[0]
         rule_csv += csv_add_field(first_rule_time['name'], csv_delimiter, apostrophe)     # time
 
-        rule_csv += rule['comments']
-        rule_csv += '"' + csv_delimiter + '"'                           # delimiters between fields
+        rule_csv += csv_add_field(rule['comments'], csv_delimiter, apostrophe)     # time
+
         if 'name' in rule:
-            rule_csv += rule['name'] + '"'
+            rule_name = rule['name']
         else:
-            rule_csv = rule_csv[:-1]               # removing last csv_delimiter
-        rule_csv += '"' + csv_delimiter + '"'                           # delimiters between fields
-        rule_csv += rule['uid']
-        rule_csv += '"' + csv_delimiter + '"'                           # delimiters between fields
+            rule_name = ''
+        rule_csv += csv_add_field(rule_name, csv_delimiter, apostrophe)  # rule_name
+
+        rule_csv += csv_add_field(rule['uid'], csv_delimiter, apostrophe)  # rule_head_text
         rule_head_text = ''
         rule_csv += csv_add_field(rule_head_text, csv_delimiter, apostrophe)  # rule_head_text
         rule_from_zone = ''
@@ -177,7 +178,7 @@ def csv_dump_rule(rule, layer_name):
         rule_meta_info = rule['meta-info']
         rule_csv += csv_add_field(rule_meta_info['last-modifier'], csv_delimiter, apostrophe)
 
-        rule_csv += line_delimiter
+        rule_csv = rule_csv[:-1] + line_delimiter # remove last csv delimiter and add line delimiter
     return rule_csv
 
 def csv_dump_rules(rulebase, layer_name, any_obj_uid):

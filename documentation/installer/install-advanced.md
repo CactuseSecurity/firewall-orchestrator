@@ -1,6 +1,6 @@
 # Advanced installation options
 
-## Installation behind a proxy systeme (no direct Internet connection)
+## Installation behind a proxy (no direct Internet connection)
 e.g. with IP 1.2.3.4, listening on port 3128  
 note: this does not yet work 100%
 

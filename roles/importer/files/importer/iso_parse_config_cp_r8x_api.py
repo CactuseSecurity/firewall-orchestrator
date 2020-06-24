@@ -69,7 +69,7 @@ def csv_dump_rule(rule, layer_name):
         rule_csv += csv_add_field(str(rule_num), csv_delimiter, apostrophe)     # rule_num
         rule_csv += csv_add_field(layer_name, csv_delimiter, apostrophe)        # rulebase_name
         rule_csv += csv_add_field('', csv_delimiter, apostrophe)                # rule_ruleid is empty
-        if rule['enabled'] == 'True':
+        if rule['enabled'] == True:
             rule_disabled = 'False'
         else:
             rule_disabled = 'True'

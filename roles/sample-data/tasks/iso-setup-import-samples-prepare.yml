@@ -50,8 +50,8 @@
       cron:
         name: change fw config with write_date_to_comment.py
         weekday: "*"
-        minute: "0-58/2"
-        hour: "*"
+        minute: "58"
+        hour: "2"
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/write_date_to_comment.py"
         cron_file: ansible_FWOrch_write_date_to_comment
@@ -60,8 +60,8 @@
       cron:
         name: change fw config with enlarge_rule.py
         weekday: "*"
-        minute: "1-59/2"
-        hour: "*"
+        minute: "15"
+        hour: "3"
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py"
         cron_file: ansible_FWOrch_enlarge_rule

@@ -164,7 +164,7 @@ query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [Str
     devices(where: {dev_id: {_in: $device_id}}) {
       dev_id
       dev_name
-      rules(where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}, rule_froms: {object: {obj_ip: {_in: $rule_src_ip}}}}, order_by: {rule_num: asc, rule_froms_aggregate: {}}) {
+      rules(where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}, rule_froms: {object: {obj_ip: {_in: $rule_src_ip}}}}, order_by: {rule_num: asc}) {
         rule_num
         rule_src
         rule_froms {

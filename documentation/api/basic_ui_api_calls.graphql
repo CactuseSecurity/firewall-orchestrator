@@ -1,0 +1,46 @@
+query show_manufacturers {
+  stm_dev_typ {
+    dev_typ_manufacturer
+    dev_typ_version
+  }
+}
+
+query show_managements {
+	management {
+    mgm_id
+    mgm_name
+  }
+}
+
+query show_devices {
+  device {
+    dev_id
+    dev_name
+    stm_dev_typ {
+      dev_typ_name
+      dev_typ_version
+    }
+  }
+}
+
+query show_devices_by_mgmt {
+  management {
+    mgm_name
+    devices {
+      dev_name
+    }
+  }
+}
+
+query show_devices_by_mgmt {
+  management {
+    mgm_name
+    devices {
+      dev_name
+      stm_dev_typ {
+        dev_typ_name
+        dev_typ_version
+      }
+    }
+  }
+}

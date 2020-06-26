@@ -44,3 +44,18 @@ query show_devices_by_mgmt {
     }
   }
 }
+
+query getSpecificRuleById($rule_id: Int!) {
+  __typename
+  rule(where: {rule_id: {_eq: $rule_id}}) {
+    rule_id
+    rule_src
+    rule_dst
+  }
+}
+
+Query variables:
+{
+  "rule_id":156
+}
+

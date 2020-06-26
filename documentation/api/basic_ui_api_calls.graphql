@@ -45,6 +45,10 @@ query show_devices_by_mgmt {
   }
 }
 
+#Query variables:
+#{
+#  "rule_id":156
+#}
 query getSpecificRuleById($rule_id: Int!) {
   __typename
   rule(where: {rule_id: {_eq: $rule_id}}) {
@@ -54,8 +58,4 @@ query getSpecificRuleById($rule_id: Int!) {
   }
 }
 
-Query variables:
-{
-  "rule_id":156
-}
 

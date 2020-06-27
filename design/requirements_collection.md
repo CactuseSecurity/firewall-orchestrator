@@ -20,6 +20,7 @@
 - nfr (non-functional): modern look
 - report visibility should be definable (group, users)
 - nice to have: positional bar at upper edge (see nzz.ch)
+- part of UI functionality must be "schedulable" (report generation)
 
 ### admin gui parts
   - add/edit/delete management

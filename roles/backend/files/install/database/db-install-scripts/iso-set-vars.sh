@@ -4,11 +4,11 @@
 
 PATH=$PATH:/bin:/usr/bin
 
-OUT='logger -t ITSecOrg:db-init.sh -p local6.notice'
-ERROR_OUT='logger -t ITSecOrg:db-init.sh -p local6.error'
+##!UNUSED! OUT='logger -t ITSecOrg:db-init.sh -p local6.notice'
+##!UNUSED! ERROR_OUT='logger -t ITSecOrg:db-init.sh -p local6.error'
 if [ -z "$1" ]
 then
-	if [ -z $ISOBASE ]
+	if [ -z "$ISOBASE" ]
 	then
 	        ISOBASE="/usr/share/itsecorg"
 			# echo "ISOBASE was not set. Using default directory $ISOBASE."

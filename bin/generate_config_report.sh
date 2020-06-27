@@ -1,4 +1,4 @@
-# !/bin/sh
+#!/bin/sh
 # $Id: write_config_report.sh,v 1.1.2.9 2012-03-24 13:57:21 tim Exp $
 # $Source: /home/cvs/iso/package/install/bin/Attic/write_config_report.sh,v $
 # itsecorg cli script to export a config to html files 
@@ -12,7 +12,7 @@ REPORT_SCRIPT=web/htdocs/reporting_tables_config_cli.php
 STAMM=$ISOHOME/web/htdocs/
 REPORT_OUT_DIR=/var/itsecorg/reports
 REPORT_FORMAT=html
-DATE=`/bin/date +%F-%H%M%S`
+DATE=$(/bin/date +%F-%H%M%S)
 
 show_syntax () {
 	echo "usage: $0 [-v] -d <device-id|device-name> [-f <format of report>] [-c <client-id>] [-t <time of report>] [-o <output dir of report>]" 
@@ -40,26 +40,26 @@ do
 		
     esac
 done
-shift `expr $OPTIND - 1`
+shift $(expr $OPTIND - 1)
 
 REPORT_NAME=$DATE-itsecorg-configreport-dev-$DEVICE_ID.$REPORT_FORMAT
 
-if [ "$DEVICE_ID" == "" ]; then
+if [ "$DEVICE_ID" = "" ]; then
 	echo "ERROR: no device id specified"
 	show_syntax
 	exit 1
 fi
 
-if [ "$vflag" == "on" ]; then
+if [ "$vflag" = "on" ]; then
 	echo "generating report for device $DEVICE_ID, report date = $DATE, outfile = $REPORT_OUT_DIR/$REPORT_NAME"
 fi
 
-$MKDIR -p $REPORT_OUT_DIR
+$MKDIR -p "$REPORT_OUT_DIR"
 $PHP $ISOHOME/$REPORT_SCRIPT \
-	--dev_id=$DEVICE_ID \
-	--reportdate=$DATE \
-	--client=$CLIENT_ID \
+	--dev_id="$DEVICE_ID" \
+	--reportdate="$DATE" \
+	--client="$CLIENT_ID" \
 	--stamm=$STAMM \
-	--reportformat=$REPORT_FORMAT \
+	--reportformat="$REPORT_FORMAT" \
 	--mgm_filter='TRUE' \
-	>$REPORT_OUT_DIR/$REPORT_NAME
+	>"$REPORT_OUT_DIR"/"$REPORT_NAME"

@@ -6,7 +6,7 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: [ master, nils/bash ]
     paths-ignore:
     - 'design/**'
     - 'documentation/old-itsecorg-docu/**'
@@ -14,7 +14,7 @@ on:
     - 'roles/unused/**'
     - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
   pull_request:
-    branches: [ master ]
+    branches: [ master, nils/bash ]
     paths-ignore:
     - 'design/**'
     - 'documentation/old-itsecorg-docu/**'

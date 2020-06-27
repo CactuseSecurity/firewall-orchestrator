@@ -1,8 +1,10 @@
+#!/bin/bash
+
 Targetdir=/tmp/isotmp/1111
 Sourcecfg=/home/tim/sting-manager.cfg
 Dstcfg=/tmp/isotmp/1111/cfg/sting-manager.cfg
 Bindir=/usr/share/itsecorg/importer
-cd $Bindir
+cd $Bindir || exit
 mkdir -p $Targetdir/cfg
 cp $Sourcecfg $Dstcfg
 #python iso_parse_config_cp_r8x_api.py -i 123 -f $Sourcecfg -u > $Targetdir/sting_users.csv

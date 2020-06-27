@@ -3,16 +3,25 @@
 name: super-linter
 
 # Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches:
+      - '**'
     paths-ignore:
-    - 'design/**'
+      - 'design/**'
+      - 'documentation/old-itsecorg-docu/**'
+      - 'roles/frontend/**'
+      - 'roles/unused/**'
+      - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
   pull_request:
-    branches: [ master ]
+    branches:
+      - '**'
     paths-ignore:
-    - 'design/**'
+      - 'design/**'
+      - 'documentation/old-itsecorg-docu/**'
+      - 'roles/frontend/**'
+      - 'roles/unused/**' 
+      - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:

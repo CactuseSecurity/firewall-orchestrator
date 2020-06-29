@@ -9,20 +9,19 @@
     - backend
     - { role: api, when: "run_on_github is not defined" }
    # todo: make api (and docker) work with github actions
+    - auth_backend
 
 - hosts: frontends
   roles:
-    - frontend
+    - { role: frontend, when: "include_php_ui is defined" }
+    - auth_frontend
+#    - frontend-new
 
 - hosts: importers
   roles:
     - importer
 
-- hosts: authservers
-  roles:
-    - auth_backend
-    - auth_frontend
-
 - hosts: sampleservers
   roles:
-    - import-samples
+    - sample-data
+    - { role: sample-data-connect-sting, when: "connect_sting is defined" }

@@ -184,7 +184,8 @@ if (!$error_count_global) {
 			else {
 				output_txt ("Import of management $mgm_name (mgm_id=$mgm_id, import_id=$current_import_id)" .
 						", total time: " . sprintf("%.2fs",(time() - $first_start_time)) . "): no errors found" . (($changes eq '')?", no changes found":"") . "\n");
-				&exec_pgsql_cmd_no_result("UPDATE import_control SET successful_import=TRUE WHERE control_id=$current_import_id"); # if no error occured - set import_control.successful_import to true
+				my $sql_cmd = 'UPDATE import_control SET successful_import=TRUE WHERE control_id=' . $current_import_id;
+				&exec_pgsql_cmd_no_result($sql_cmd); # if no error occured - set import_control.successful_import to true
 			}
 		} else {
 			output_txt("Management $mgm_name (mgm_id=$mgm_id), no changes in configuration files (MD5)\n");

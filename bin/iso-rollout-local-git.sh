@@ -11,4 +11,4 @@ sudo find $ISOHOME -type d -name .git -exec rm -rf '{}' \;  2>/dev/null
 sudo find $ISOHOME -type f -name .project -exec rm -rf '{}' \;  2>/dev/null
 sudo find $ISOHOME -type f -name .DS_Store -exec rm -rf '{}' \;  2>/dev/null
 sudo find $ISOHOME -type f -name .includepath -exec rm -rf '{}' \;  2>/dev/null
-cd $ISOHOME;  sudo tar cvfz iso.tgz itsecorg
+cd $ISOHOME || exit;  sudo tar cvfz iso.tgz itsecorg

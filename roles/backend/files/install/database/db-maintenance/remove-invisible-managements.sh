@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #select mgm_name,mgm_id, max(stop_time) as last_import,cast (now() as date) - cast(max(stop_time) as date) as days_ago from import_control left join management using (mgm_id) WHERE cast (now() as date) - cast((stop_time) as date)>$max_days_since_last_import group by mgm_id,mgm_name order by mgm_id,last_import
-max_days_since_last_import=730
+# UNUSED? max_days_since_last_import=730
 
-while [ true ]
+while true
 do
    no_of_mgmgs=$(psql -qtAX -d isodb -c "select count(*) from management ")
    no_of_mgmgs_unwanted=$(psql -qtAX -d isodb -c "select count(*) from management where do_not_import and hide_in_gui")

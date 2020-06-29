@@ -19,29 +19,29 @@ require Exporter;
 our @ISA = qw(Exporter);
 
 our %EXPORT_TAGS = (
-'basic' => [ qw(
-	&get_mgm_id_of_import &is_import_running &get_matching_import_id &remove_control_entry
-	&insert_control_entry &is_initial_import
-	&put_ssh_keys_in_place
-	&get_import_infos_for_device &get_import_infos_for_mgm
-	&import_cleanup_and_summary &ruleset_does_not_fit &clean_up_iso_db
-	&print_debug &print_verbose &d2u &calc_subnetmask &convert_mask_to_dot_notation
-	&print_results_monitor
-	&print_results_files_objects
-	&print_results_files_rules
-	&print_results_files_users
-	&print_results_files_zones
-	&print_results_files_audit_log	
-	&get_proto_number
-	&set_last_change_time
-	&fill_import_tables_from_csv_with_sql
-	&fill_import_tables_from_csv
-	%network_objects @network_objects %services @services %rulebases @ruleorder @rulebases @zones
-	%user %usergroup @user_ar $usergroupdelimiter
-	$audit_log_count %auditlog
-	$mode $last_change_time_of_config
-	$verbose $debug $mgm_name
-	@obj_outlist @srv_outlist @rule_outlist
+	'basic' => [ qw(
+		&get_mgm_id_of_import &is_import_running &get_matching_import_id &remove_control_entry
+		&insert_control_entry &is_initial_import
+		&put_ssh_keys_in_place
+		&get_import_infos_for_device &get_import_infos_for_mgm
+		&import_cleanup_and_summary &ruleset_does_not_fit &clean_up_iso_db
+		&print_debug &print_verbose &d2u &calc_subnetmask &convert_mask_to_dot_notation
+		&print_results_monitor
+		&print_results_files_objects
+		&print_results_files_rules
+		&print_results_files_users
+		&print_results_files_zones
+		&print_results_files_audit_log
+		&get_proto_number
+		&set_last_change_time
+		&fill_import_tables_from_csv_with_sql
+		&fill_import_tables_from_csv
+		%network_objects @network_objects %services @services %rulebases @ruleorder @rulebases @zones
+		%user %usergroup @user_ar $usergroupdelimiter
+		$audit_log_count %auditlog
+		$mode $last_change_time_of_config
+		$verbose $debug $mgm_name
+		@obj_outlist @srv_outlist @rule_outlist
 	) ] );
 
 our @EXPORT = ( @{ $EXPORT_TAGS{'basic'} } );
@@ -54,17 +54,17 @@ our $mode;
 
 # Laufvariablen Parser
 our $mgm_name    = '';			# globale Variable fuer den Namen des Managements
-						# nur innerhalb der objekte gueltig
+# nur innerhalb der objekte gueltig
 # hashes zur Speicherung der Parserergebnisse (Eigenschaften)
 our @zones;
 our %network_objects;
 our %services;
 our %rulebases;			# hash der rulebases
 our @ruleorder;			# Array mit Regel-IDs
-		#	wird derzeit eigentlich nur fuer netscreen benoetigt
-		#	CheckPoint:	1-n 
-		#	Netscreen:	policy id), Feld startet mit 1!
-		#	phion:		wie Check Point
+#	wird derzeit eigentlich nur fuer netscreen benoetigt
+#	CheckPoint:	1-n
+#	Netscreen:	policy id), Feld startet mit 1!
+#	phion:		wie Check Point
 
 our @network_objects = ();	# liste aller namen der netzobjekte
 our @services = ();			# liste aller namen der services
@@ -90,14 +90,14 @@ our $last_change_time_of_config;
 
 # Ausgabe der Objektparameter				
 our @obj_outlist		=(qw (	name type members member_refs cpver ipaddr ipaddr_last color comments location zone
-								UID last_change_admin last_change_time));
+	UID last_change_admin last_change_time));
 # Planung:
 # - member enthaelt nur noch eine Liste mit Referenzen und nicht mit Namen
 # - Separator: |
 # - Anzeige der Negation mit "$$__not__$$"
 # - Neues DB-Feld fuer Negation fuer alle Gruppen- und Regelanteilbeziehungen
 
-our @obj_import_fields = qw ( 
+our @obj_import_fields = qw (
 	control_id
 	obj_name
 	obj_typ
@@ -113,12 +113,12 @@ our @obj_import_fields = qw (
 	obj_uid
 	last_change_admin
 	last_change_time
-	);
+);
 
 # Ausgabe der Serviceparameter
 our @srv_outlist		=(qw (	name typ type members member_refs color ip_proto port port_last src_port src_port_last
-								comments rpc_port timeout_std timeout UID last_change_admin last_change_time));
-								
+	comments rpc_port timeout_std timeout UID last_change_admin last_change_time));
+
 our @svc_import_fields = qw (
 	control_id
 	svc_name
@@ -181,7 +181,7 @@ our @rule_import_fields = qw (
 	rule_dst_refs
 	rule_svc_neg
 	rule_svc
-	rule_svc_refs	
+	rule_svc_refs
 	rule_action
 	rule_track
 	rule_installon
@@ -208,7 +208,7 @@ sub put_ssh_keys_in_place {
 	my $ssh_public_key = shift;
 	my $ssh_private_key = shift;
 	my $fehler_count = 0;
-	
+
 	# debugging
 	# print ("put_ssh_keys_in_place::workdir=$workdir, ssh_public_key=$ssh_public_key, ssh_private_key=$ssh_private_key\n");
 	$fehler_count += (system("$echo_bin \"$ssh_private_key\" > $workdir/$CACTUS::ISO::ssh_id_basename") != 0);
@@ -217,7 +217,7 @@ sub put_ssh_keys_in_place {
 		$fehler_count += (system("$echo_bin \"$ssh_public_key\" > $workdir/$CACTUS::ISO::ssh_id_basename.pub") != 0); # only necessary for netscreen
 	}
 	$fehler_count += (system("$chmod_bin 400 $workdir/$CACTUS::ISO::ssh_id_basename") != 0);
-	return $fehler_count;	
+	return $fehler_count;
 }
 
 
@@ -225,12 +225,12 @@ sub ruleset_does_not_fit {
 	my $rulebasename_to_find = shift;
 	my $href_rulesetname = shift;
 	my $result = 1;
-	
+
 	while ( (my $key, my $value) = each %{$href_rulesetname}) {
 		if ($rulebasename_to_find eq $value->{'dev_rulebase'}) {
 			$result=0;
 		}
-    }
+	}
 	return $result;
 }
 
@@ -264,7 +264,7 @@ sub get_mgm_id_of_import {
 ############################################################
 sub is_import_running {
 	my $mgm_id = shift;
-  return eval_boolean_sql("SELECT is_import_running($mgm_id)");
+	return eval_boolean_sql("SELECT is_import_running($mgm_id)");
 }
 
 ##############################
@@ -288,35 +288,35 @@ sub get_matching_import_id {
 	my $time = $_[1];
 	my ($mgm_id, $dbh, $sth, $relevant_import_id, $err_str, $sqlcode);
 
-    $sqlcode = "SELECT mgm_id FROM device WHERE dev_id=$dev_id";
+	$sqlcode = "SELECT mgm_id FROM device WHERE dev_id=$dev_id";
 	$dbh = DBI->connect("dbi:Pg:dbname=$CACTUS::ISO::iso_database;host=$CACTUS::ISO::iso_srv_host;port=$CACTUS::ISO::iso_srv_port","$CACTUS::ISO::iso_srv_user","$CACTUS::ISO::iso_srv_pw");
 	if ( !defined $dbh ) { die "Cannot connect to database!\n"; }
-    $sth = $dbh->prepare( $sqlcode );
-    if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-    $sth->execute;
-    $err_str = $sth->errstr;
-    if (defined($err_str) && length($err_str)>0) { error_handler($err_str); }
-    ($mgm_id) = $sth->fetchrow();
+	$sth = $dbh->prepare( $sqlcode );
+	if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
+	$sth->execute;
+	$err_str = $sth->errstr;
+	if (defined($err_str) && length($err_str)>0) { error_handler($err_str); }
+	($mgm_id) = $sth->fetchrow();
 	$sth->finish;
-    if (!defined($mgm_id)) {
-        print("Management zum Device $dev_id nicht gefunden.");
-        return -1;
-    }
-#------
-    $sqlcode = "SELECT control_id FROM import_control WHERE mgm_id=$mgm_id AND start_time<='" .
-				 $time . "' AND successful_import ORDER BY control_id desc LIMIT 1";
-    $sth = $dbh->prepare( $sqlcode );
-    if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-    $sth->execute;
-    $err_str = $sth->errstr;
-    if (defined($err_str) && length($err_str)>0) { error_handler($err_str); }
-    ($relevant_import_id) = $sth->fetchrow();
+	if (!defined($mgm_id)) {
+		print("Management zum Device $dev_id nicht gefunden.");
+		return -1;
+	}
+	#------
+	$sqlcode = "SELECT control_id FROM import_control WHERE mgm_id=$mgm_id AND start_time<='" .
+		$time . "' AND successful_import ORDER BY control_id desc LIMIT 1";
+	$sth = $dbh->prepare( $sqlcode );
+	if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
+	$sth->execute;
+	$err_str = $sth->errstr;
+	if (defined($err_str) && length($err_str)>0) { error_handler($err_str); }
+	($relevant_import_id) = $sth->fetchrow();
 	$sth->finish;
 	$dbh->disconnect;
-    if (!defined($relevant_import_id)) {
-        print("kein Import gefunden.");
-        return -1;
-    }
+	if (!defined($relevant_import_id)) {
+		print("kein Import gefunden.");
+		return -1;
+	}
 	return $relevant_import_id;
 }
 
@@ -331,22 +331,22 @@ sub insert_control_entry {
 	my ($rc, $dbh, $sth);
 	my $current_control_id;
 	my $sql_str;
-	
+
 	$is_initial_import = (($is_initial_import)?'TRUE':'FALSE');
 	$dbh = DBI->connect("dbi:Pg:dbname=$CACTUS::ISO::iso_database;host=$CACTUS::ISO::iso_srv_host;port=$CACTUS::ISO::iso_srv_port",
 		"$CACTUS::ISO::iso_srv_user","$CACTUS::ISO::iso_srv_pw");
 	if ( !defined $dbh ) { die "Cannot connect to database!\n"; }
 	$rc  = $dbh->begin_work;
 	$sql_str = "INSERT INTO import_control (is_initial_import,mgm_id) VALUES ($is_initial_import,$mgm_id)";
-#        print ("\n\nSQL: $sql_str\n\n");
-        $sth = $dbh->prepare( $sql_str ); 
-        if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-        $sth->execute;
-        $sth = $dbh->prepare( "SELECT CURRVAL('import_control_id_seq');");
-        if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
-        $sth->execute;
-        ($current_control_id) = $sth->fetchrow();
-        $rc  = $dbh->commit;
+	#        print ("\n\nSQL: $sql_str\n\n");
+	$sth = $dbh->prepare( $sql_str );
+	if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
+	$sth->execute;
+	$sth = $dbh->prepare( "SELECT CURRVAL('import_control_id_seq');");
+	if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
+	$sth->execute;
+	($current_control_id) = $sth->fetchrow();
+	$rc  = $dbh->commit;
 	$sth->finish;
 	$dbh->disconnect;
 	return $current_control_id;
@@ -359,12 +359,12 @@ sub insert_control_entry {
 sub set_last_change_time {
 	my $last_change_time_of_config = shift;
 	my $current_import_id = shift;
-	
+
 	if (defined($last_change_time_of_config)) {
-#		print("\nlast change_time found: $last_change_time_of_config");
+		#		print("\nlast change_time found: $last_change_time_of_config");
 		my $sql_cmd1 =
 			"UPDATE import_control SET last_change_in_config='$last_change_time_of_config' " .
-			"WHERE control_id=$current_import_id";
+				"WHERE control_id=$current_import_id";
 		CACTUS::ISO::exec_pgsql_cmd_no_result($sql_cmd1);
 	}
 }
@@ -383,10 +383,10 @@ sub remove_control_entry {
 # liefert vielfaeltige Infos zu einem zu importierenden Management zurueck
 ############################################################
 sub get_import_infos_for_mgm {
-    my $mgm_id = shift;
-    my $iso_workdir = shift;
-    my $cfg_dir = shift;
-    my ($dbh, $sth, $rc, $sth2);
+	my $mgm_id = shift;
+	my $iso_workdir = shift;
+	my $cfg_dir = shift;
+	my ($dbh, $sth, $rc, $sth2);
 	my ($err_str, %devices_with_rulebases, $mgm_name, $fields, $tables, $filter, $order, $sqlcode,
 		$dev_typ_id,$ssh_hostname,$ssh_user,$ssh_private_key,$ssh_public_key,$hersteller);
 	my ($template, $obj_file, $obj_file_base, $user_file, $user_file_base, $rule_file, $rule_file_base,
@@ -397,8 +397,9 @@ sub get_import_infos_for_mgm {
 	my $fehler = 0;
 	my $res_array_ref;
 	my $str_of_config_files = '';
+	my $version;
 
-	$sqlcode = "SELECT mgm_name,management.dev_typ_id,dev_typ_manufacturer,ssh_hostname,ssh_user,ssh_private_key,ssh_public_key,ssh_port,config_path FROM management,stm_dev_typ WHERE stm_dev_typ.dev_typ_id=management.dev_typ_id AND mgm_id='$mgm_id'";
+	$sqlcode = "SELECT mgm_name,management.dev_typ_id,dev_typ_manufacturer,dev_typ_version,ssh_hostname,ssh_user,ssh_private_key,ssh_public_key,ssh_port,config_path FROM management,stm_dev_typ WHERE stm_dev_typ.dev_typ_id=management.dev_typ_id AND mgm_id='$mgm_id'";
 	$res_array_ref = exec_pgsql_cmd_return_array_ref($sqlcode, $fehler);
 	if (!defined($fehler) || $fehler || !defined($res_array_ref)) {
 		if (!defined($fehler)) {
@@ -408,13 +409,15 @@ sub get_import_infos_for_mgm {
 		@result = (1, $fehler);
 		return @result;
 	}
-	($mgm_name,$dev_typ_id,$hersteller,$ssh_hostname,$ssh_user,$ssh_private_key,$ssh_public_key,$ssh_port,$config_path_on_mgmt) = @$res_array_ref;
+	($mgm_name,$dev_typ_id,$hersteller,$version,$ssh_hostname,$ssh_user,$ssh_private_key,$ssh_public_key,$ssh_port,$config_path_on_mgmt) = @$res_array_ref;
 
 	$hersteller = lc(remove_space_at_end($hersteller));
 	if ($hersteller =~ /netscreen/) { $is_netscreen = 1; $hersteller = 'netscreen'; }
 	else { $is_netscreen = 0; }
-	
-	if ($hersteller =~ /check\spoint\sr8x/) { $hersteller = 'checkpointR8x'; }
+
+	#if ($hersteller =~ /check\spoint\sr8x/) { $hersteller = 'checkpointR8x'; }
+	print ("version: $version, hersteller: $hersteller\n");
+	if ($hersteller =~ /check\spoint/ && $version eq 'R8x') { $hersteller = 'checkpointR8x'; }
 	elsif ($hersteller =~ /check/) { $hersteller = 'checkpoint'; }
 	if ($hersteller =~ /phion/) { $hersteller = 'phion'; }
 
@@ -438,8 +441,8 @@ sub get_import_infos_for_mgm {
 		$obj_file       = $cfg_dir . '/' . $obj_file_base;
 		$rule_file_base = "rules.json";
 		$rule_file		= $cfg_dir . '/' . $rule_file_base;
-#		$user_file_base = "fwauth.NDB";
-#		$user_file = $cfg_dir . '/' . $user_file_base;
+		#		$user_file_base = "fwauth.NDB";
+		#		$user_file = $cfg_dir . '/' . $user_file_base;
 		$str_of_config_files = "${obj_file},${rule_file}";
 	} elsif ($hersteller eq 'phion')  {  # phion
 		$obj_file_base = '';
@@ -461,9 +464,9 @@ sub get_import_infos_for_mgm {
 	}
 	$rule_file = $cfg_dir . '/' . $rule_file_base;
 	@result = (0, "", $mgm_name, $dev_typ_id,
-     $obj_file_base,$obj_file,$user_file_base,$user_file,$rule_file_base,$rule_file,
-     $csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, $csv_auditlog_file,
-     $ssh_hostname,$ssh_user,$ssh_private_key,,$ssh_public_key,$hersteller,$is_netscreen,$str_of_config_files,$ssh_port,$config_path_on_mgmt);
+		$obj_file_base,$obj_file,$user_file_base,$user_file,$rule_file_base,$rule_file,
+		$csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, $csv_auditlog_file,
+		$ssh_hostname,$ssh_user,$ssh_private_key,,$ssh_public_key,$hersteller,$is_netscreen,$str_of_config_files,$ssh_port,$config_path_on_mgmt);
 	return @result;
 }
 
@@ -473,7 +476,7 @@ sub get_import_infos_for_mgm {
 # loescht die Eintraege des aktuellen Imports aus den import_*-Tabellen
 ############################################################
 sub clean_up_iso_db {
-  my $current_import_id = shift;
+	my $current_import_id = shift;
 
 	# loeschen der Import-Tabellen und neuordnen
 	exec_pgsql_cmd_no_result ("DELETE FROM import_object	WHERE control_id=$current_import_id");
@@ -485,7 +488,7 @@ sub clean_up_iso_db {
 
 # produktunabhaengige Parse Subroutinen
 #-------------------------------------------------------------------------------------------
-							
+
 #****************************
 # print_debug
 # param1	auszugebender String
@@ -497,11 +500,11 @@ sub print_debug {
 	my $txt = shift;
 	my $debug_level = shift;
 	my $print_level = shift;
-	
+
 	if (!defined ($debug_level)) { $debug_level = 0; }
 	if (!defined ($print_level)) { $print_level = 0; }
 	if (&is_numeric($print_level) && &is_numeric($debug_level)) {
-		if ($print_level < $debug_level) {	print "Debug ($debug_level/$print_level): $txt.\n"; }	
+		if ($print_level < $debug_level) {	print "Debug ($debug_level/$print_level): $txt.\n"; }
 	} else {
 		print "Debug ($debug_level/$print_level): $txt.\n";
 	}
@@ -538,7 +541,7 @@ sub calc_subnetmask_sub {
 	my $netmask_in = shift;
 	my $count = 0;
 	my $temp = 0;
-	
+
 	if (!defined($netmask_in)) {
 		return undef;
 	}
@@ -565,7 +568,7 @@ sub calc_subnetmask {
 	my $temp0= $temp1 +$temp2 + $temp3 + $temp4;
 	print_debug ("\t\t$temp0 = $1 - $temp1\t\t$2 - $temp2\t\t$3 - $temp3\t\t$4 - $temp4\n");
 	return $temp0;
-} 
+}
 
 #****************************
 # convert_mask_to_dot_notation
@@ -612,8 +615,8 @@ sub convert_mask_to_dot_notation {
 	$bits == 29 && do return "255.255.255.248";
 	$bits == 30 && do return "255.255.255.252";
 	$bits == 31 && do return "255.255.255.254";
-	$bits == 32 && do return "255.255.255.255";		
-} 
+	$bits == 32 && do return "255.255.255.255";
+}
 
 #****************************
 # get_protocol_number
@@ -624,7 +627,7 @@ sub convert_mask_to_dot_notation {
 sub get_proto_number {
 	my $proto_in = shift;
 	my $proto_out = 'Fehler: proto nicht gefunden';
-	
+
 	if (is_numeric($proto_in)) {
 		return $proto_in;
 	} elsif ($proto_in eq 'tcp') {
@@ -635,11 +638,11 @@ sub get_proto_number {
 		$proto_out = 1;
 	}
 	if ($proto_out eq 'Fehler: proto nicht gefunden') {
-#		print ("error: proto_in not found in import.pm::get_proto_number: $proto_in\n");
+		#		print ("error: proto_in not found in import.pm::get_proto_number: $proto_in\n");
 		undef ($proto_out);
 	}
 	return $proto_out;
-} 
+}
 
 #****************************
 # print_cell_no_delimiter Output in Dateien
@@ -652,9 +655,9 @@ sub print_cell_no_delimiter {
 	$cell =~ s/$CACTUS::ISO::csv_delimiter/\\$CACTUS::ISO::csv_delimiter/g;
 	if (defined($cell) && $cell ne '') {
 		if ($cell =~ /^\".*?\"$/) {  # Zelle schon von doppelten Anfuehrungszeichen eingerahmt
-			print $file "$cell";			
+			print $file "$cell";
 		} else {
-			print $file "\"$cell\"";			
+			print $file "\"$cell\"";
 		}
 	}
 	return;
@@ -669,13 +672,13 @@ sub print_cell {
 	my $file = shift;
 	my $cell = shift;
 	&print_cell_no_delimiter ($file, $cell);
-	print_cell_delimiter($file);	
+	print_cell_delimiter($file);
 	return;
 }
 
 sub print_cell_delimiter {
 	my $file = shift;
-	print $file $CACTUS::ISO::csv_delimiter;	
+	print $file $CACTUS::ISO::csv_delimiter;
 	return;
 }
 
@@ -693,8 +696,8 @@ sub print_results_files_objects {
 
 	# Oeffnen der Ausgabedatei fuer Objekte
 	#----------------------------------------
-#	print ("beginn csv schreiben\n");
-	$out_file = "$out_dir/${mgm_name}_netzobjekte.csv"; 
+	#	print ("beginn csv schreiben\n");
+	$out_file = "$out_dir/${mgm_name}_netzobjekte.csv";
 	my $fh = new FileHandle;
 	if ($fh->open("> $out_file")) {
 		foreach $schluessel (sort (@network_objects)) {
@@ -702,104 +705,104 @@ sub print_results_files_objects {
 			if (!defined($network_objects{"$schluessel.type"})) {
 				print ("\nerror key $schluessel, type not defined");
 			} else {
-			unless ($network_objects{"$schluessel.type"} eq 'sofaware_profiles_security_level'){
-			# sollten auch die dynamischen Netzobjekte ausgeblendet werden, ist die folgende Zeile statt der vorhergehenden zu zu aktivieren 
-			# unless (($network_objects{"$schluessel.type"} eq 'sofaware_profiles_security_level') || ($network_objects{"$schluessel.type"} eq 'dynamic_net_obj')) {
-				# Version fuer Nachbearbeitung im Import Modul
-				# foreach $local_schluessel (qw ( name type members cp_ver comments color ipaddr ipaddr_last netmask sys location )) {
-				#	if (defined ( $network_objects{"$schluessel.$local_schluessel"} )) {
-				#		print FILEOUT_NETOBJ $network_objects{"$schluessel.$local_schluessel"};
-				#	}
-				# Version mit integrierter Nachbearbeitung
-				print_cell_no_delimiter($fh, $import_id);
-				foreach (@obj_outlist)  {
-					$local_schluessel = $_;
-					print_cell_delimiter($fh);
-					# Ist der Wert definiert? > dann ausgeben
-					if (defined ( $network_objects{"$schluessel.$local_schluessel"} )) {
-						# Objekttypen fuer Ausgabe umsetzen ?
-						if (($local_schluessel eq 'type') && (($network_objects{"$schluessel.$local_schluessel"} eq 'gateway_cluster') || ($network_objects{"$schluessel.$local_schluessel"} eq 'cluster_member'))) {
-							print_cell_no_delimiter($fh, 'gateway');
-						}
-						elsif (($local_schluessel eq 'type') && (($network_objects{"$schluessel.$local_schluessel"} eq 'machines_range'
+				unless ($network_objects{"$schluessel.type"} eq 'sofaware_profiles_security_level'){
+					# sollten auch die dynamischen Netzobjekte ausgeblendet werden, ist die folgende Zeile statt der vorhergehenden zu zu aktivieren
+					# unless (($network_objects{"$schluessel.type"} eq 'sofaware_profiles_security_level') || ($network_objects{"$schluessel.type"} eq 'dynamic_net_obj')) {
+					# Version fuer Nachbearbeitung im Import Modul
+					# foreach $local_schluessel (qw ( name type members cp_ver comments color ipaddr ipaddr_last netmask sys location )) {
+					#	if (defined ( $network_objects{"$schluessel.$local_schluessel"} )) {
+					#		print FILEOUT_NETOBJ $network_objects{"$schluessel.$local_schluessel"};
+					#	}
+					# Version mit integrierter Nachbearbeitung
+					print_cell_no_delimiter($fh, $import_id);
+					foreach (@obj_outlist)  {
+						$local_schluessel = $_;
+						print_cell_delimiter($fh);
+						# Ist der Wert definiert? > dann ausgeben
+						if (defined ( $network_objects{"$schluessel.$local_schluessel"} )) {
+							# Objekttypen fuer Ausgabe umsetzen ?
+							if (($local_schluessel eq 'type') && (($network_objects{"$schluessel.$local_schluessel"} eq 'gateway_cluster') || ($network_objects{"$schluessel.$local_schluessel"} eq 'cluster_member'))) {
+								print_cell_no_delimiter($fh, 'gateway');
+							}
+							elsif (($local_schluessel eq 'type') && (($network_objects{"$schluessel.$local_schluessel"} eq 'machines_range'
 								|| $network_objects{"$schluessel.$local_schluessel"} eq 'multicast_address_range'))) {
-							print_cell_no_delimiter($fh, 'ip_range');
-						}
-						elsif (($local_schluessel eq 'type') && 
-							(($network_objects{"$schluessel.$local_schluessel"} eq 'dynamic_net_obj' ||
-							  $network_objects{"$schluessel.$local_schluessel"} eq 'security_zone_obj' ||
-							  $network_objects{"$schluessel.$local_schluessel"} eq 'ips_sensor' ||
-							  $network_objects{"$schluessel.$local_schluessel"} eq 'voip_gk' ||
-							  $network_objects{"$schluessel.$local_schluessel"} eq 'voip_gw' ||
-							  $network_objects{"$schluessel.$local_schluessel"} eq 'voip_sip' ||
-							  $network_objects{"$schluessel.$local_schluessel"} eq 'voip_mgcp' ||
-							  $network_objects{"$schluessel.$local_schluessel"} eq 'voip_skinny'))) {
-							print_cell_no_delimiter($fh, 'host');
-						}
-						elsif (($local_schluessel eq 'type') && 
-							(($network_objects{"$schluessel.$local_schluessel"} eq 'group_with_exclusion' ||
-							 $network_objects{"$schluessel.$local_schluessel"} eq 'gsn_handover_group' ||
-							 $network_objects{"$schluessel.$local_schluessel"} eq 'domain'))) {
-							print_cell_no_delimiter($fh, 'group');
+								print_cell_no_delimiter($fh, 'ip_range');
+							}
+							elsif (($local_schluessel eq 'type') &&
+								(($network_objects{"$schluessel.$local_schluessel"} eq 'dynamic_net_obj' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'security_zone_obj' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'ips_sensor' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'voip_gk' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'voip_gw' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'voip_sip' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'voip_mgcp' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'voip_skinny'))) {
+								print_cell_no_delimiter($fh, 'host');
+							}
+							elsif (($local_schluessel eq 'type') &&
+								(($network_objects{"$schluessel.$local_schluessel"} eq 'group_with_exclusion' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'gsn_handover_group' ||
+									$network_objects{"$schluessel.$local_schluessel"} eq 'domain'))) {
+								print_cell_no_delimiter($fh, 'group');
 								# da es jetzt eine Aufloesung der Ausnahme-Gruppen in normale Gruppen gibt, ist das jetzt OK
-						}
-						# IP-adresse?
-						elsif (($local_schluessel eq 'ipaddr')||($local_schluessel eq 'ipaddr_last')) {
-							# machine ranges immer mit 32 Bit Maske
-							if ($network_objects{"$schluessel.type"} eq 'machines_range'){
-								if ($network_objects{"$schluessel.$local_schluessel"} ne '') {
-#									print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"}."/32");
-									print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"});
-								}
-							} else { # sonst nur die IP-Adresse
-								my $maske;
-								if (defined($network_objects{"$schluessel.netmask"}) &&
-									length($network_objects{"$schluessel.netmask"})>0 &&
-									$local_schluessel eq 'ipaddr' &&
-									$network_objects{"$schluessel.ipaddr"} !~ /\//) {
-									# berechnen 
-									my $ip2 = CACTUS::ISO::remove_space_at_end(remove_quotes($network_objects{"$schluessel.$local_schluessel"}));
-									$maske = $network_objects{"$schluessel.netmask"};
-									if ($maske =~ /^\d+\.\d+\.\d+\.\d+$/) {
-										$maske = calc_subnetmask($maske); # in bit-Notation umwandeln
-									} # else: Maske enthaelt keine Punkte --> direkt als Integer uebernehmen
-									if (length($ip2)>0) { 
-										print_cell_no_delimiter($fh, "$ip2/$maske");
+							}
+							# IP-adresse?
+							elsif (($local_schluessel eq 'ipaddr')||($local_schluessel eq 'ipaddr_last')) {
+								# machine ranges immer mit 32 Bit Maske
+								if ($network_objects{"$schluessel.type"} eq 'machines_range'){
+									if ($network_objects{"$schluessel.$local_schluessel"} ne '') {
+										#									print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"}."/32");
+										print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"});
 									}
-								} elsif ($network_objects{"$schluessel.ipaddr"} !~ /\//) {
-									# oder fix auf 32 Bit stellen, wenn maske fehlt und Fehlerausgabe
-									if (length($network_objects{"$schluessel.$local_schluessel"})>0) { 
+								} else { # sonst nur die IP-Adresse
+									my $maske;
+									if (defined($network_objects{"$schluessel.netmask"}) &&
+										length($network_objects{"$schluessel.netmask"})>0 &&
+										$local_schluessel eq 'ipaddr' &&
+										$network_objects{"$schluessel.ipaddr"} !~ /\//) {
+										# berechnen
+										my $ip2 = CACTUS::ISO::remove_space_at_end(remove_quotes($network_objects{"$schluessel.$local_schluessel"}));
+										$maske = $network_objects{"$schluessel.netmask"};
+										if ($maske =~ /^\d+\.\d+\.\d+\.\d+$/) {
+											$maske = calc_subnetmask($maske); # in bit-Notation umwandeln
+										} # else: Maske enthaelt keine Punkte --> direkt als Integer uebernehmen
+										if (length($ip2)>0) {
+											print_cell_no_delimiter($fh, "$ip2/$maske");
+										}
+									} elsif ($network_objects{"$schluessel.ipaddr"} !~ /\//) {
+										# oder fix auf 32 Bit stellen, wenn maske fehlt und Fehlerausgabe
+										if (length($network_objects{"$schluessel.$local_schluessel"})>0) {
+											if ($network_objects{"$schluessel.$local_schluessel"} ne '') {
+												#											print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"}."/32");
+												print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"});
+											}
+										}
+									} else {
 										if ($network_objects{"$schluessel.$local_schluessel"} ne '') {
-#											print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"}."/32");
 											print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"});
 										}
 									}
-								} else {
-									if ($network_objects{"$schluessel.$local_schluessel"} ne '') {
-										print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"});
-									}
 								}
 							}
-						}
-						# default handling
-						else {
-							print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"});
+							# default handling
+							else {
+								print_cell_no_delimiter($fh, $network_objects{"$schluessel.$local_schluessel"});
+							}
 						}
 					}
+					# Datensatztrennzeichen ausgeben
+					print $fh "\n";
 				}
-				# Datensatztrennzeichen ausgeben
-				print $fh "\n";
-			}
 			}
 		}
-        $fh->close;	# Schliessen der Ausgabedatei fuer NW-Objekte
+		$fh->close;	# Schliessen der Ausgabedatei fuer NW-Objekte
 	} else {
 		die "NETOBJ: $out_file konnte nicht geoeffnet werden.\n";
 	}
-	
+
 	# Oeffnen der Ausgabedatei fuer Services
 	#----------------------------------------
-	$out_file = "$out_dir/${mgm_name}_services.csv"; 
+	$out_file = "$out_dir/${mgm_name}_services.csv";
 	$fh = new FileHandle;
 	if ($fh->open("> $out_file")) {
 		# Ausgabe der Datensaetze
@@ -810,28 +813,28 @@ sub print_results_files_objects {
 				print_cell_delimiter($fh);
 				$local_schluessel = $_;
 				# Ist der Wert definiert? > dann ausgeben
-	               if (defined ( $services{"$schluessel.$local_schluessel"} )) {
-	                   # Serviceport fuer rpc umsetzen ?
-	                   if (defined ($services{"$schluessel.typ"})) {
-	                       unless (($local_schluessel eq 'port') && ($services{"$schluessel.typ"} eq 'rpc')) {
-	                           print_cell_no_delimiter($fh, $services{"$schluessel.$local_schluessel"});
-	                       }
-	                   } else {
-	                       print_cell_no_delimiter($fh, $services{"$schluessel.$local_schluessel"});
-	                   }
-	               } elsif ($local_schluessel eq 'rpc_port') {
-	                   # Serviceport fuer rpc umsetzten ?
-	                   if (defined ($services{"$schluessel.typ"})) {
-	                       if ($services{"$schluessel.typ"} eq 'rpc') {
-	                           print_cell_no_delimiter($fh, $services{"$schluessel.port"});
-	                       }
-	                   }
-	               }
+				if (defined ( $services{"$schluessel.$local_schluessel"} )) {
+					# Serviceport fuer rpc umsetzen ?
+					if (defined ($services{"$schluessel.typ"})) {
+						unless (($local_schluessel eq 'port') && ($services{"$schluessel.typ"} eq 'rpc')) {
+							print_cell_no_delimiter($fh, $services{"$schluessel.$local_schluessel"});
+						}
+					} else {
+						print_cell_no_delimiter($fh, $services{"$schluessel.$local_schluessel"});
+					}
+				} elsif ($local_schluessel eq 'rpc_port') {
+					# Serviceport fuer rpc umsetzten ?
+					if (defined ($services{"$schluessel.typ"})) {
+						if ($services{"$schluessel.typ"} eq 'rpc') {
+							print_cell_no_delimiter($fh, $services{"$schluessel.port"});
+						}
+					}
+				}
 			}
 			# Datensatztrennzeichen ausgeben
 			print $fh "\n";
 		}
-        $fh->close;	# Schliessen der Ausgabedatei fuer Services
+		$fh->close;	# Schliessen der Ausgabedatei fuer Services
 	} else {
 		die "SVC_OUT: $out_file konnte nicht geoeffnet werden.\n";
 	}
@@ -851,7 +854,7 @@ sub print_results_files_rules {
 	my $header_text = "";
 	my ($count,$local_schluessel,$schluessel,$flat_file);
 
-	foreach $schluessel (sort (@rulebases)) {		
+	foreach $schluessel (sort (@rulebases)) {
 		# Oeffnen der Ausgabedatei fuer Rulebases
 		#----------------------------------------
 		# Regeln definiert? > Datei Oeffnen und schreiben
@@ -866,13 +869,13 @@ sub print_results_files_rules {
 					push @ruleorder, ($i);
 				}
 			}
-			
+
 			# Dateinamen festlegen
 			if (!defined($out_dir)) { $out_dir = "."; }
-			$flat_file = $schluessel; $flat_file =~ s/\//\_/g;			
-			$out_file = "$out_dir/${flat_file}_rulebase.csv"; 
+			$flat_file = $schluessel; $flat_file =~ s/\//\_/g;
+			$out_file = "$out_dir/${flat_file}_rulebase.csv";
 			my $fh = new FileHandle;
-    		if ($fh->open("> $out_file")) {
+			if ($fh->open("> $out_file")) {
 				# Ausgabe der Datensaetze
 				for ($count = 0; $count < $rulebases{"$schluessel.rulecount"}; $count++) {
 					# Regelnummer ausgeben
@@ -881,7 +884,7 @@ sub print_results_files_rules {
 					print_cell_no_delimiter ($fh, $schluessel);								# rulebase_name
 					foreach (@rule_outlist) {
 						$local_schluessel = $_;
-						print_cell_delimiter($fh);	
+						print_cell_delimiter($fh);
 						# Ist der Wert definiert? > dann ausgeben
 						if ( defined ($rulebases{"$schluessel.$ruleorder[$count].$local_schluessel"})) {
 							print_cell_no_delimiter($fh, $rulebases{"$schluessel.$ruleorder[$count].$local_schluessel"});
@@ -893,12 +896,12 @@ sub print_results_files_rules {
 					}
 					print $fh "\n";		# Datensatztrennzeichen ausgeben
 				}
-		        $fh->close;	# Schliessen der Ausgabedatei fuer Rules
-		    } else {
-		    	die "RULE_OUT: $out_file konnte nicht geoeffnet werden.\n";
-		    }
+				$fh->close;	# Schliessen der Ausgabedatei fuer Rules
+			} else {
+				die "RULE_OUT: $out_file konnte nicht geoeffnet werden.\n";
+			}
 			print_verbose ("Output Datei: $out_file wurde geschlossen.\n\n");
-		# keine Regeln, keine Regeldatei!
+			# keine Regeln, keine Regeldatei!
 		} else {
 			print_verbose ("$schluessel hat keine Regeln.\n");
 			print_verbose ("Datei $out_file wurde nicht ausgegeben.\n\n");
@@ -913,24 +916,24 @@ sub print_results_files_rules {
 #****************************
 sub print_results_files_zones {
 	my $out_dir = shift;
-	my $mgm_name = shift;	
+	my $mgm_name = shift;
 	my $import_id = shift;
 	my ($out_file,$schluessel);
 
 	if (!defined($out_dir)) { $out_dir = "."; }
-	$out_file = "$out_dir/${mgm_name}_zones.csv"; 
+	$out_file = "$out_dir/${mgm_name}_zones.csv";
 	my $fh = new FileHandle;
 	if ($fh->open("> $out_file")) {
 		print_verbose ("Output Datei: $out_file wurde geoeffnet.\n");
-		foreach $schluessel (sort (@zones)) {		
+		foreach $schluessel (sort (@zones)) {
 			print_cell_no_delimiter($fh, $import_id);	# import id
 			print_cell_delimiter($fh);
-			print_cell_no_delimiter($fh, $schluessel);	# zone name 
+			print_cell_no_delimiter($fh, $schluessel);	# zone name
 			print $fh "\n";
 		}
-        $fh->close;	# Schliessen der Ausgabedatei fuer Zonen
+		$fh->close;	# Schliessen der Ausgabedatei fuer Zonen
 	} else {
-		 die "ZONE-OUT: $out_file konnte nicht geoeffnet werden.\n";
+		die "ZONE-OUT: $out_file konnte nicht geoeffnet werden.\n";
 	}
 }
 
@@ -941,25 +944,25 @@ sub print_results_files_zones {
 #****************************
 sub print_results_files_audit_log {
 	my $out_dir = shift;
-	my $mgm_name = shift;	
+	my $mgm_name = shift;
 	my $import_id = shift;
 	my ($out_file,$schluessel);
 
 	if (!defined($out_dir)) { $out_dir = "."; }
-	$out_file = "$out_dir/${mgm_name}_auditlog.csv"; 
+	$out_file = "$out_dir/${mgm_name}_auditlog.csv";
 	my $fh = new FileHandle;
 	if ($fh->open("> $out_file")) {
 		for (my $idx = 0; $idx<$audit_log_count; $idx ++) {
 			print_cell ($fh, $import_id);
 			print_cell_no_delimiter ($fh, $idx);
-			foreach my $schluessel (@auditlog_outlist) {		
-				print_cell_delimiter($fh);	
+			foreach my $schluessel (@auditlog_outlist) {
+				print_cell_delimiter($fh);
 				if ( defined ($auditlog{"$idx.$schluessel"})) {			# Ist der Wert definiert? > dann ausgeben
 					print_cell_no_delimiter($fh, $auditlog{"$idx.$schluessel"});
 				}
 			}
 			print $fh "\n"; # EOL
-	        $fh->close;	# Schliessen der Ausgabedatei fuer Auditlog
+			$fh->close;	# Schliessen der Ausgabedatei fuer Auditlog
 		}
 	} else {
 		die "AUDITLOG-OUT: $out_file konnte nicht geoeffnet werden.\n";
@@ -980,14 +983,14 @@ sub print_results_files_users {
 	my $out_file;
 
 	if (!defined($out_dir)) { $out_dir = "."; }
-	$out_file = "$out_dir/${mgm_name}_users.csv"; 
+	$out_file = "$out_dir/${mgm_name}_users.csv";
 	my $fh = new FileHandle;
 	if ($fh->open("> $out_file")) {
 		foreach my $name (sort @user_ar) {
 			print_cell ($fh, $import_id);
 			print_cell_no_delimiter($fh, $name);	# user name
-			foreach my $schluessel (@user_outlist) {		
-				print_cell_delimiter($fh);	
+			foreach my $schluessel (@user_outlist) {
+				print_cell_delimiter($fh);
 				if ( defined ($user{"$name.$schluessel"})) {			# Ist der Wert definiert? > dann ausgeben
 					print_cell_no_delimiter($fh, $user{"$name.$schluessel"});
 				}
@@ -1010,7 +1013,7 @@ sub print_results_monitor {
 
 	# if steuert, ob jeweiliges printmodul aktiv 	=> 0 unterdruecken
 	#						=> 1 ausgeben
-	SWITCH_parsemode: {	
+	SWITCH_parsemode: {
 		# nur im Modus "Objekte"
 		if ($mode eq 'objects') {
 			if ( 1 ) {
@@ -1022,7 +1025,7 @@ sub print_results_monitor {
 						print "$schluessel\t\t\t $network_objects{$schluessel} \n";
 					}
 				}
-				
+
 			}
 			if ( 1 ) {
 				print "\n\nservices:\n";
@@ -1054,14 +1057,14 @@ sub print_results_monitor {
 							print $services{"$schluessel.$local_schluessel"}."\n";
 						} else {
 							print "\n";
-						}	
+						}
 					}
 				}
 			}
-		last SWITCH_parsemode;	
+			last SWITCH_parsemode;
 		}
 		#nur im Modus "Regeln"
-		
+
 		if ($mode eq 'rules') {
 			if ( 1 ) {
 				my $rule_no;
@@ -1106,7 +1109,7 @@ sub print_results_monitor {
 					print "\n";
 				}
 			}
-		last SWITCH_parsemode;	
+			last SWITCH_parsemode;
 		}
 	}
 }
@@ -1167,7 +1170,7 @@ sub fill_import_tables_from_csv {
 				print_error("dbimport: $fehler"); print_linebreak(); $fehler_count += 1;
 			}
 		} else {
-			print ("\nignoring another device ($d) with rulebase $rb");			
+			print ("\nignoring another device ($d) with rulebase $rb");
 		}
 	}	print_bold(" - Database Import ... done in " . sprintf("%.2f",(time() - $start_time)) . " seconds"); print_linebreak();
 	return $fehler_count;
@@ -1204,7 +1207,7 @@ sub fill_import_tables_from_csv_with_sql {
 
 		sub str_to_sql_value {
 			my $input_str = remove_quotes(shift);
-		
+
 			if ($input_str eq '') {
 				return 'NULL';
 			} else  {
@@ -1214,7 +1217,7 @@ sub fill_import_tables_from_csv_with_sql {
 				return "'$input_str'";
 			}
 		}
-	
+
 		my $CSVhdl = new IO::File ("< $csv_file") or $fehler = "Cannot open file $csv_file for reading: $!";
 		if ($fehler) {
 			print_error("FEHLER: $fehler");
@@ -1223,17 +1226,17 @@ sub fill_import_tables_from_csv_with_sql {
 			return $fehler_count;
 		}
 		$delimiter = qr/$CACTUS::ISO::csv_delimiter/;
-	
+
 		while ($input_line = <$CSVhdl>) {
 			$sqlcode = "INSERT INTO $target_table ($str_of_fields) VALUES (";
 			$input_line =~ s/\n$//;
-			
+
 			$input_line =~ s/\\$delimiter/AbDdia679roe4711/g;
 			@values = split (/$delimiter/, $input_line);
 			my @values2 = @values;
 			@values = ();
 			foreach my $val (@values2) {
-				$val =~ s/AbDdia679roe4711/$delimiter/g;	
+				$val =~ s/AbDdia679roe4711/$delimiter/g;
 				@values = (@values, $val);
 			}
 			while ($input_line =~ /$delimiter$/) {  # line ends with ; --> add NULL-value for last column
@@ -1246,7 +1249,7 @@ sub fill_import_tables_from_csv_with_sql {
 				$sqlcode .= "," . str_to_sql_value($values[$i++]);
 			}
 			$sqlcode .= ");";
-	#		print ("sql_code: $sqlcode\n");
+			#		print ("sql_code: $sqlcode\n");
 			if ($fehler = CACTUS::ISO::exec_pgsql_cmd_no_result($sqlcode)) {
 				output_txt($fehler . "; $csv_file",3);
 				$fehler_count += 1;
@@ -1326,6 +1329,6 @@ support for importing configs into ITSecOrg Database
 
 =head1 COPYRIGHT AND LICENSE
 
-  Copyright (C) 2005 by Cactus eSecurity GmbH, Frankfurt, Germany
+  Copyright (C) 2020 by Cactus eSecurity GmbH, Frankfurt, Germany
 
 =cut

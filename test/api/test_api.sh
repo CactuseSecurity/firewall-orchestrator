@@ -1,3 +1,5 @@
+#!/bin/bash
+
 curl -k -H 'Accept: application/json; indent=4' https://127.0.0.1:443/api/managements/
 curl -k -H 'Accept: application/json; indent=4' https://127.0.0.1:443/api/devices/
 

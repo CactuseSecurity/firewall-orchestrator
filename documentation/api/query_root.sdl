@@ -1,0 +1,93 @@
+changelog_object
+
+fetch data from the table: "changelog_object"
+[changelog_object!]!
+distinct_on: [changelog_object_select_column!]
+
+distinct select on columns
+limit: Int
+
+limit the number of rows returned
+offset: Int
+
+skip the first n rows. Use only with order_by
+order_by: [changelog_object_order_by!]
+
+sort the rows by one or more columns
+where: changelog_object_bool_exp
+
+filter the rows returned
+
+
+rules
+
+An array relationship
+[rule!]!
+distinct_on: [rule_select_column!]
+
+distinct select on columns
+limit: Int
+
+limit the number of rows returned
+offset: Int
+
+skip the first n rows. Use only with order_by
+order_by: [rule_order_by!]
+
+sort the rows by one or more columns
+where: rule_bool_exp
+
+filter the rows returned
+
+
+enum sec_gateway_type {
+  FIREWALL
+  PROXY
+  IPS
+  LOADBALANCER
+  WAF
+}
+
+interface rule_object {
+  id: ID
+  name: String
+  sec_manager: sec_manager
+  sec_gateway: sec_gateway
+  uid: String
+}
+
+type nw_object implements rule_object {
+  id: ID
+  name: String
+  sec_manager: sec_manager
+}
+
+type sec_gateway {
+  name: String
+  id: ID
+  sec_gateway_type: sec_gateway_type
+  product: product
+  product_version: product_version
+  sec_manager: sec_manager
+}
+
+type product {
+  vendor: String
+  os: String
+}
+
+type product_version {
+  version: String
+}
+
+type sec_manager {
+  name: String
+  id: ID
+  sec_gw: [sec_gateway]
+}
+
+type rule {
+  source: [nw_object]
+  destination: [nw_object]
+  service: [service]
+}

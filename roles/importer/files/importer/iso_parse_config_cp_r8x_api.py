@@ -1,4 +1,4 @@
-import requests, json, argparse, re, pprint
+import requests, json, argparse, re, pprint, io
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
 parser.add_argument('-f', '--config_file', required=True, help='name of config file to parse (json format)')
@@ -47,81 +47,138 @@ def create_section_header(section_name, layer_name, any_obj_uid, rule_uid):
                                                                     # last_change_admin
     return header_rule_csv + line_delimiter
 
+
+def csv_add_field(content, csv_delimiter, apostrophe):
+    field_result = ''
+    if content=='':     # do not add apostrophes for empty fields
+        field_result = csv_delimiter
+    else:
+        field_result = apostrophe + content + apostrophe + csv_delimiter
+    return field_result
+
+
 def csv_dump_rule(rule, layer_name):
     global rule_num
     global number_of_section_headers_so_far
+    apostrophe = '"'
+    rule_csv = ''
+
     if 'rule-number' in rule:   # standard rule, no section header
+        rule_csv += csv_add_field(args.import_id, csv_delimiter, apostrophe)    # control_id
         rule_num = rule['rule-number'] + number_of_section_headers_so_far
-        if (rule['enabled'] == True):
-            rule_disabled = 'false'
+        rule_csv += csv_add_field(str(rule_num), csv_delimiter, apostrophe)     # rule_num
+        rule_csv += csv_add_field(layer_name, csv_delimiter, apostrophe)        # rulebase_name
+        rule_csv += csv_add_field('', csv_delimiter, apostrophe)                # rule_ruleid is empty
+        if rule['enabled'] == True:
+            rule_disabled = 'False'
         else:
-            rule_disabled = 'true'
-        rule_csv = '"' + args.import_id + '"' + csv_delimiter           # control_id
-        rule_csv += '"'+str(rule_num)+'"'+csv_delimiter                 # rule_num
-        rule_csv += '"' + layer_name + '"' + csv_delimiter              # rulebase_name
-        rule_csv +=  csv_delimiter                                      # rule_ruleid
-        rule_csv += '"' + rule_disabled + '"' + csv_delimiter           # rule_disabled
-        rule_csv += '"'+str(rule['source-negate'])+'"'+csv_delimiter+'"'# src_neg
+            rule_disabled = 'True'
+        rule_csv += csv_add_field(rule_disabled, csv_delimiter, apostrophe)     # rule_disabled
+        rule_csv += csv_add_field(str(rule['source-negate']), csv_delimiter, apostrophe)     # src_neg
+
+        # SOURCE names
+        rule_src_name = ''
         for src in rule["source"]:
-            if 'userGroup' in src:
-                rule_csv += src["userGroup"] + '@' + src["name"] + list_delimiter
+            if src['type'] == 'LegacyUserAtLocation':
+                rule_src_name += src['name'] + list_delimiter
             elif (src['type']=='access-role'):
-                for nw in src['networks']:
-                    rule_csv += src["name"] + '@' + nw + list_delimiter    # TODO: this is not correct --> should be name instead of uid 
-            else:
-                rule_csv += src["name"] + list_delimiter
-        rule_csv = rule_csv[:-1]
-        rule_csv += '"' + csv_delimiter + '"' 
+                if isinstance(src['networks'], str):                    # just a single source
+                    if src['networks']=='any':
+                        rule_src_name += src["name"] + '@' + 'Any' + list_delimiter
+                    else:
+                        rule_src_name += src["name"] + '@' + src['networks'] + list_delimiter
+                else:       # more than one source
+                    for nw in src['networks']:
+                        rule_src_name += src["name"] + '@' + nw + list_delimiter    # TODO: this is not correct --> need to reverse resolve name from given UID
+            else:  # standard network objects as source
+                rule_src_name += src["name"] + list_delimiter
+        rule_src_name = rule_src_name[:-1]            # removing last list_delimiter
+        rule_csv += csv_add_field(rule_src_name, csv_delimiter, apostrophe)     # src_names
+
+        # SOURCE refs
+        rule_src_ref = ''
         for src in rule["source"]:
-            if 'userGroup' in src:
-                rule_csv += src["userGroup"] + '@' + src["location"] + list_delimiter
+            if src['type'] == 'LegacyUserAtLocation':
+                rule_src_ref += src["userGroup"] + '@' + src["location"] + list_delimiter
             elif (src['type']=='access-role'):
-                for nw in src['networks']:
-                    rule_csv += src["uid"] + '@' + nw + list_delimiter
-            else:
-                rule_csv += src["uid"] + list_delimiter
-        rule_csv = rule_csv[:-1]
-        rule_csv += '"' + csv_delimiter
-        rule_csv += '"'+str(rule['destination-negate'])+'"'+csv_delimiter+'"'
+                if isinstance(src['networks'], str):                    # just a single source
+                    if src['networks']=='any':
+                        any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"        # TODO: this is a hack with a hard-coded any obj uid -->
+                                                                                    # need to properly fix this as the Any obj uid is probylby differend on every mgmt
+                        rule_src_ref += src['uid'] + '@' + any_obj_uid + list_delimiter
+                    else:
+                        rule_src_ref += src['uid'] + '@' + src['networks'] + list_delimiter
+                else:       # more than one source
+                    for nw in src['networks']:
+                        rule_src_ref += src['uid']  + '@' + nw + list_delimiter
+            else:  # standard network objects as source
+                rule_src_ref += src["uid"] + list_delimiter
+        rule_src_ref = rule_src_ref[:-1]               # removing last list_delimiter
+        rule_csv += csv_add_field(rule_src_ref, csv_delimiter, apostrophe)     # src_refs
+
+        rule_csv += csv_add_field(str(rule['destination-negate']), csv_delimiter, apostrophe)     # destination negation
+
+        rule_dst_name = ''
         for dst in rule["destination"]:
-            rule_csv += dst["name"] + list_delimiter
-        rule_csv = rule_csv[:-1]
-        rule_csv += '"' + csv_delimiter + '"' 
+            rule_dst_name += dst["name"] + list_delimiter
+        rule_dst_name = rule_dst_name[:-1]
+        rule_csv += csv_add_field(rule_dst_name, csv_delimiter, apostrophe)     # rule dest_name
+
+        rule_dst_ref = ''
         for dst in rule["destination"]:
-            rule_csv += dst["uid"] + list_delimiter
-        rule_csv = rule_csv[:-1]
-        rule_csv += '"'+csv_delimiter
-        rule_csv += '"'+str(rule['service-negate'])+'"'+csv_delimiter+'"'
+            rule_dst_ref += dst["uid"] + list_delimiter
+        rule_dst_ref = rule_dst_ref[:-1]
+        rule_csv += csv_add_field(rule_dst_ref, csv_delimiter, apostrophe)     # rule_dest_refs
+
+        # SERVICE names
+        rule_svc_name = ''
+        rule_svc_name += str(rule['service-negate'])+'"'+csv_delimiter+'"'
         for svc in rule["service"]:
-            rule_csv += svc["name"] + list_delimiter
-        rule_csv = rule_csv[:-1]
-        rule_csv += '"' + csv_delimiter + '"' 
+            rule_svc_name += svc["name"] + list_delimiter
+        rule_svc_name = rule_svc_name[:-1]
+        rule_csv += csv_add_field(rule_svc_name, csv_delimiter, apostrophe)     # rule svc name
+
+        # SERVICE refs
+        rule_svc_ref = ''
         for svc in rule["service"]:
-            rule_csv += svc["uid"] + list_delimiter
-        rule_csv = rule_csv[:-1]
-        rule_csv += '"'+csv_delimiter
+            rule_svc_ref += svc["uid"] + list_delimiter
+        rule_svc_ref = rule_svc_ref[:-1]
+        rule_csv += csv_add_field(rule_svc_ref, csv_delimiter, apostrophe)     # rule svc ref
+
         rule_action = rule['action']
-        rule_csv += '"' + rule_action['name'] + '"'  + csv_delimiter
+        rule_action_name = rule_action['name']
+        rule_csv += csv_add_field(rule_action_name, csv_delimiter, apostrophe)     # rule action
         rule_track = rule['track']
-        rule_csv += '"' + rule_track['name'] + '"' + csv_delimiter
+        rule_track_type = rule_track['type']
+        rule_csv += csv_add_field(rule_track_type['name'], csv_delimiter, apostrophe)     # rule track
+
         rule_install_on = rule['install-on']
         first_rule_install_target = rule_install_on[0]
-        rule_csv += '"' + first_rule_install_target['name'] + '"' + csv_delimiter    # just looking at first install target
+        rule_csv += csv_add_field(first_rule_install_target['name'], csv_delimiter, apostrophe)     # install on
+
         rule_time = rule['time']
         first_rule_time = rule_time[0]
-        rule_csv += '"' + first_rule_time['name'] + '"' + csv_delimiter
-        rule_csv += '"' + rule['comments'] + '"' + csv_delimiter
+        rule_csv += csv_add_field(first_rule_time['name'], csv_delimiter, apostrophe)     # time
+
+        rule_csv += csv_add_field(rule['comments'], csv_delimiter, apostrophe)     # time
+
         if 'name' in rule:
-            rule_csv += '"' + rule['name'] + '"' + csv_delimiter
+            rule_name = rule['name']
         else:
-            rule_csv += csv_delimiter
-        rule_csv += '"' + rule['uid'] + '"' + csv_delimiter
-        rule_csv += csv_delimiter  # rule_head_text
-        rule_csv += csv_delimiter  # rule_from_zone
-        rule_csv += csv_delimiter  # rule_to_zone
+            rule_name = ''
+        rule_csv += csv_add_field(rule_name, csv_delimiter, apostrophe)  # rule_name
+
+        rule_csv += csv_add_field(rule['uid'], csv_delimiter, apostrophe)  # rule_head_text
+        rule_head_text = ''
+        rule_csv += csv_add_field(rule_head_text, csv_delimiter, apostrophe)  # rule_head_text
+        rule_from_zone = ''
+        rule_csv += csv_add_field(rule_from_zone, csv_delimiter, apostrophe)
+        rule_to_zone = ''
+        rule_csv += csv_add_field(rule_to_zone, csv_delimiter, apostrophe)
         rule_meta_info = rule['meta-info']
-        rule_csv += '"' + rule_meta_info['last-modifier'] + '"'
-        rule_csv += line_delimiter
+        rule_csv += csv_add_field(rule_meta_info['last-modifier'], csv_delimiter, apostrophe)
+
+        rule_csv = rule_csv[:-1] + line_delimiter # remove last csv delimiter and add line delimiter
     return rule_csv
 
 def csv_dump_rules(rulebase, layer_name, any_obj_uid):
@@ -168,18 +225,17 @@ def csv_dump_user(user_name):
 def collect_users_from_rule(rule):
     if 'rule-number' in rule:   # standard rule
         for src in rule["source"]:
-            if 'userGroup' in src:
+            if src['type'] == 'access-role':
+                users[src['name']] = { 'uid': src['uid'] , 'user_type': 'group', 'comment': src['comments'], 'color': src['color'] }
+                if 'users' in src:
+                    users[src["name"]] = { 'uid': src["uid"], 'user_type': 'simple' }
+            elif src['type'] == 'LegacyUserAtLocation':
                 user_str = src["name"]
                 user_ar = user_str.split('@')
                 user_name = user_ar[0]
                 user_uid = src["userGroup"] 
 #                users[user_name] = user_uid 
                 users[user_name] = { 'uid': user_uid , 'user_type': 'group' } 
-            if 'users' in src:
-                users[src["name"]] = { 'uid': src["uid"], 'user_type': 'simple' }
-            if 'access-role' in src:
-                users[src["name"]] = { 'uid': src['uid'] , 'user_type': 'group', 'comment': src['comments'], 
-                                    'color': src['color'] } 
     else:       # section
         collect_users_from_rulebase(rule["rulebase"])
 
@@ -248,8 +304,11 @@ def collect_nw_objects(object_table):
                 member_names = ''
                 if 'members' in obj:
                     for member in obj['members']:
-                        member_names += member['name'] + list_delimiter
-                        member_refs += member['uid'] + list_delimiter
+                        if 'name' in member:
+                            member_names += member['name'] + list_delimiter
+                            member_refs += member['uid'] + list_delimiter
+                        #else:
+                        #    print('warning: no name found for network object group ' + obj['name'])
                     member_names = member_names[:-1]
                     member_refs = member_refs[:-1]
                 ip_addr = get_ip_of_obj(obj)
@@ -366,8 +425,11 @@ def collect_svc_objects(object_table):
                     member_refs = ''
                     member_names = ''
                     for member in obj['members']:
-                        member_names += member['name'] + list_delimiter
-                        member_refs += member['uid'] + list_delimiter
+                        if 'name' in member:
+                            member_names += member['name'] + list_delimiter
+                            member_refs += member['uid'] + list_delimiter
+                        #else:
+                        #    print('warning: no name found for service group ' + obj['name'])
                     member_names = member_names[:-1]
                     member_refs = member_refs[:-1]
                 if 'session-timeout' in obj:
@@ -397,6 +459,9 @@ def collect_svc_objects(object_table):
                     # rpc, group - setting ports to 0
                     port = '0'
                     port_end = '0'
+                if not 'color' in obj:
+                    #print('warning: no color found for service ' + obj['name'])
+                    obj['color'] = 'black'
                 svc_objects.extend([{ 'svc_uid': obj['uid'], 'svc_name': obj['name'], 'svc_color': obj['color'], 'svc_comment': obj['comments'],
                                           'svc_typ': typ, 'svc_port': port, 'svc_port_end': port_end, 'svc_member_refs': member_refs, 
                                           'svc_member_names': member_names, 'ip_proto': proto, 'svc_timeout': session_timeout,
@@ -463,10 +528,15 @@ def get_any_obj_uid(rulebase):
 
 ####################### main program ###############################################
 
-with open(args.config_file) as json_data:
+#with io.open(args.config_file, "r", encoding="utf8") as json_data:
+#with open(args.config_file, "r", encoding="utf8") as json_data:
+with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
 # any_obj_uid = get_any_obj_uid()
+# any_obj_uid = 'dummy any obj uid (not found in rulebase)'
+any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
+
 number_of_section_headers_so_far = 0
 rule_num = 0
 nw_objects = []         # only used for storing any obj
@@ -477,7 +547,6 @@ for rulebase in config['rulebases']:
     collect_svcs_from_rulebase(rulebase)
     collect_nw_objs_from_rulebase(rulebase)
 
-any_obj_uid = 'dummy any obj uid (not found in rulebase)'
 for obj in nw_objects:
     if obj['obj_name']=='Any':
         any_obj_uid = obj['obj_uid']
@@ -522,4 +591,5 @@ if  args.rulebase != '' and not found_rulebase:
     print ("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")    
 else:
     result = result[:-1]    # strip off final line break to avoid empty last line
-    print(result.encode('utf-8'))
+    #print(result.encode('utf-8'))
+    print(result)

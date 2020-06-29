@@ -22,16 +22,16 @@
   become: yes
   environment: "{{proxy_env}}"
 
-- name: install test package for postgresql
+- name: install development package for postgresql (needed for pgcrypto jwt auth)
   package:
-    name: "{{ postgresql_test_package }}"
+    name: "{{ postgresql_dev_package }}"
     state: present
   become: yes
   environment: "{{proxy_env}}"
 
-- name: install development package for postgresql (needed for pgcrypto jwt auth)
+- name: install test package for postgresql
   package:
-    name: "{{ postgresql_dev_package }}"
+    name: "{{ postgresql_test_package }}"
     state: present
   become: yes
   environment: "{{proxy_env}}"
@@ -41,10 +41,16 @@
   become: yes
   become_user: postgres
 
-- name: create pgtap extension for running unit tests on database 
+- name: check if /usr/share/postgresql/{{pg_version}}/extension/pgtap.control exists
+  stat:
+    path: "/usr/share/postgresql/{{pg_version}}/extension/pgtap.control"
+  register: pgtap_control
+
+- name: create pgtap extension for running unit tests on database
   shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgtap'') THEN CREATE EXTENSION pgtap; END IF; END \$do\$"'
   become: yes
   become_user: postgres
+  when: pgtap_control.stat.exists == True
 
 #- name: get pgjwt repo from github
 #  git:
@@ -69,9 +75,46 @@
   shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgjwt'') THEN CREATE EXTENSION pgjwt; END IF; END \$do\$"'
   become: yes
   become_user: postgres
- 
+
 - name: test pgjwt extension
   shell: 'cd {{ iso_home }}/install/database/pgjwt && psql -d {{ iso_db_name }} -c "\i test_pgjwt.sql"'
   become: yes
   become_user: postgres
+  when: pgtap_control.stat.exists == True
 # todo: display result of tests and exit on errors
+
+- name: insert role superuser
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_id=1) THEN insert into role (role_name, role_id, role_can_view_all_devices, role_is_superadmin) values (''superuser'', 1, true, true);  END IF; END \$do\$"'
+  become: yes
+  become_user: postgres
+
+- name: insert role reporter
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_id=2) THEN insert into role (role_name, role_id, role_can_view_all_devices, role_is_superadmin) values (''reporter'', 2, false, false);  END IF; END \$do\$"'
+  become: yes
+  become_user: postgres
+
+- name: make admin user a superuser
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_id=2) THEN insert into role_to_user (role_id, user_id) values (1, 3); END IF; END \$do\$"'
+  become: yes
+  become_user: postgres
+
+- name: create auth directory
+  file:
+    dest: "{{ iso_home }}/auth"
+    state: directory
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
+
+- name: copy authentication sql file
+  copy:
+    src: pre_auth_functions.sql
+    dest: "{{ iso_home }}/auth/"
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
+
+- name: create funtions needed during authentication
+  shell: 'psql -d {{ iso_db_name }} -c "\i {{ iso_home }}/auth/pre_auth_functions.sql"'
+  become: yes
+  become_user: postgres

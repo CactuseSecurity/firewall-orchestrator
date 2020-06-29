@@ -2,9 +2,11 @@
 
 ## minimize client size
 
-    cd app-dir
-    rm -rf obj/Debug
-    rm -rf bin/Debug
+```
+cd app-dir
+rm -rf obj/Debug
+rm -rf bin/Debug
+```
 
 ## install visual studio code on ubuntu
 

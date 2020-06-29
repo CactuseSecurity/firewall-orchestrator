@@ -1,23 +1,29 @@
 # team work
-- all developers: setup github account and send name to tim for granting access
-- all developers: create ssh key and send public key to tim for granting access
+
+-   all developers: setup github account and send name to tim for granting access
+-   all developers: create ssh key and send public key to tim for granting access
 
 # security
-- secure passwords in inventory and in set_vars.sh script
+
+-   secure passwords in inventory and in set_vars.sh script
 
 # api
-- add authentication
-- test role based access
 
+-   add authentication
+-   test role based access
 
 # client
-- create first client prototype using api
+
+-   create first client prototype using api
 
 # testing
-- add tests
+
+-   add tests
 
 # div
-- prevent database from being deleted (add force_db_replace variable)
+
+-   prevent database from being deleted (add force_db_replace variable)
 
 # installation
-- add wrapper to simplify installation further
+
+-   add wrapper to simplify installation further

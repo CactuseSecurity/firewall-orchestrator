@@ -1,4 +1,5 @@
 # pgjwt
+
 PostgreSQL implementation of [JSON Web Tokens](https://jwt.io/)
 
 ## Dependencies
@@ -42,17 +43,15 @@ Verify a token:
     -----------------------------+-----------------------------------------------------+-------
      {"alg":"HS256","typ":"JWT"} | {"sub":"1234567890","name":"John Doe","admin":true} | t
 
-Algorithm
----------
+## Algorithm
 
 sign() and verify() take an optional algorithm argument that can be
 'HS256', 'HS384' or 'HS512'.  The default is 'HS256':
 
     => select sign('{"sub":"1234567890","name":"John Doe","admin":true}', 'secret', 'HS384'),
 
-
 ## TODO
 
-* public/private keys when pgcrypto gets *_verify() functions
+-   public/private keys when pgcrypto gets \*\_verify() functions
 
-* SET ROLE and key lookup helper functions
+-   SET ROLE and key lookup helper functions

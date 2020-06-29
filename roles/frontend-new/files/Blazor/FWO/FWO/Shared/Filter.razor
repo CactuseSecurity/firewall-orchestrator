@@ -1,0 +1,42 @@
+﻿@using BlazorTable
+
+<div class="card d-inline m-2 shadow">
+    <div class="card-body">
+        <Table TableItem="Manufactor" Items="manufactors" ShowSearchBar="true" RowClickAction="@(x => x.Selected = !x.Selected)" PageSize="3">
+            <Column TableItem="Manufactor" Title="Select" Field="@(x => x.Selected)" Sortable="true" Filterable="false" Width="15%">
+                <EditTemplate>
+                    <input type="checkbox" @bind-value="@context.Selected" class="form-control form-control-sm" />
+                </EditTemplate>
+            </Column>
+            <Column TableItem="Manufactor" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="false" Width="10%" />
+            <Pager ShowPageNumber="true"></Pager>
+        </Table>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public string Title { get; set; }
+
+    Manufactor[] manufactors = new Manufactor[4]
+    {
+        new Manufactor { Selected = true, Name = "Cisco" },
+        new Manufactor { Selected = true, Name = "Checkpoint" },
+        new Manufactor { Selected = true, Name = "Juniper" },
+        new Manufactor { Selected = true, Name = "Palo Alto" }
+        };
+
+    bool CheckpointChecked = true;
+
+    private void CheckpointCheck(EventArgs e)
+    {
+        CheckpointChecked = !CheckpointChecked;
+    }
+
+    class Manufactor
+    {
+        public bool Selected { get; set; }
+        public string Name { get; set; }
+    }
+}

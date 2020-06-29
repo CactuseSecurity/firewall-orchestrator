@@ -3,41 +3,40 @@ It is recommended to create a personal fork and work on that, except you only ma
 From that fork you can create local clones.
 
 It is possible to sync your fork via the GitHub UI, but it leads at least to an ugly additional commit in your fork history:
-[https://rick.cogley.info/post/update-your-forked-repository-directly-on-github/](https://rick.cogley.info/post/update-your-forked-repository-directly-on-github/)
+<https://rick.cogley.info/post/update-your-forked-repository-directly-on-github/>
 
 So better use the command line:
 
-Source: [https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork)
+Source: <https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork>
 
 Add ssh key to profile (Profile - Settings - ssh keys)
 
-# First time add upstream URL (only has to be done once): 
+# First time add upstream URL (only has to be done once):
 
     git remote -v
     git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
     git remote -v
-    
-# Sync with upstream 
+
+# Sync with upstream
 
     git fetch upstream
     git checkout master
-    
+
     (if there are already commits on local:)
     git merge upstream/master
     git push
-    
+
     or shorter instead of fetch+checkout+merge:
-    
+
     git pull upstream master
-    
+
     (if there is a new commit because merge was necessary:)
     git push
-
 
 # Working via ssh
 
     git remote add upstream ssh://github.com/CactuseSecurity/firewall-orchestrator.git
-    
+
 # Change upstream name
 
     git remote set-url upstream ssh://github.com/CactuseSecurity/firewall-orchestrator.git

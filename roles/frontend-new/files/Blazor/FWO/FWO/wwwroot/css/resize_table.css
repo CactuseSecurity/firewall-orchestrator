@@ -1,0 +1,40 @@
+﻿.vl
+{
+    border-left: 6px solid green;
+    height: inherit;
+}
+
+.hl 
+{
+    border-left: 6px solid green;
+    width: 500px;
+}
+
+/*table {
+    border-collapse: collapse;
+    border-spacing: 0px;
+}
+
+td {
+    border: 2px solid black;
+    padding: 0;
+    margin: 0px;
+    overflow: auto;
+}
+
+div {
+    resize: horizontal;
+    overflow: auto;
+    margin: 0px;
+    padding: 0px;
+    border: 1px solid black;
+    display: block;
+}
+
+td div {
+    border: 0;
+    width: auto;
+    height: auto;
+    min-height: 20px;
+    min-width: 20px;
+}*/

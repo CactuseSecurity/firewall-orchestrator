@@ -1,0 +1,28 @@
+﻿@using FWO.Auth 
+
+@inject AuthenticationStateProvider AuthService
+
+<div class="row m-4 justify-content-center">
+    <div>
+        <h2 class="text-center"> Login </h2>
+        <div class="shadow-sm card p-2">
+            <input type="text" style="width: 200px" class="m-2 form-control" id="UsernameInput" placeholder="Enter Username" @bind="Username">
+            <input type="password" style="width: 200px" class="m-2 form-control" id="PasswordInput" placeholder="Enter Password" @bind="Password">
+            <button class="btn btn-primary m-2" @onclick="LoginSubmit">Login</button>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    private string Username = "";
+    private string Password = "";
+
+    private void LoginSubmit()
+    {
+        ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password);
+        //Validate(Email, Password)
+
+        //GenerateJWT(Email, Password)
+    }
+}

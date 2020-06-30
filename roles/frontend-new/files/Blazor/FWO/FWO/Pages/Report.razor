@@ -23,7 +23,7 @@
     </div>
     <div class="collapse card-body @FilterCollapseCSS">
         <div class="m-2 d-flex flex-wrap">
-            @for (int i = 0; i < 100; i++)
+            @for (int i = 0; i < 10; i++)
             {
                 <Filter Title="@("title" + i)"></Filter>
             }
@@ -74,7 +74,7 @@
     private async void UpdateHeading(MouseEventArgs e)
     {
         APIConnection Test = new APIConnection();
-        string QueryResult = await Test.TestQuery();
+        string QueryResult = ""; // await Test.TestQuery();
         Table = JsonReader.ReadString(QueryResult).Tables[0];
     }
 

@@ -63,10 +63,10 @@
     #  dotnet run
 
     - set_fact: distibution_version="{{ ansible_facts['distribution_version'] }}"
-      when: ansible_facts['distribution']|lower }} == 'ubuntu'
+      when: ansible_facts['distribution']|lower == 'ubuntu'
 
     - set_fact: distibution_version="{{ ansible_facts['distribution_version'] }} | regex_replace('\.\d$','')"
-      when: ansible_facts['distribution']|lower }} == 'debian'
+      when: ansible_facts['distribution']|lower == 'debian'
 
     - name: get packages-microsoft-prod
       get_url:

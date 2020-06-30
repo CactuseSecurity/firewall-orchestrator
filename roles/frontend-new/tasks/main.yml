@@ -14,12 +14,12 @@
         owner: "{{ iso_user }}"
         group: "{{ iso_user }}"
 
-#    - name: copy iso files to frontend target
-#      copy:
-#        src: "web"
-#        dest: "{{ iso_home }}"
-#        owner: itsecorg
-#        group: itsecorg
+    - name: copy Blazor files to frontend target
+      copy:
+        src: "Blazor"
+        dest: "{{ ui_dir }}"
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
 
     - name: copy iso httpd config file to apache target
       template:
@@ -41,13 +41,6 @@
 
     - name: enable itsecorg web site
       shell: "a2ensite itsecorg"
-
-#    - name: add session directory - /var/itsecorg/session
-#      file:
-#        dest: /var/itsecorg/session
-#        state: directory
-#        owner: www-data
-#        group: root
 
     - name: increase apache timeout to 900 seconds
       lineinfile:

@@ -102,5 +102,8 @@
     - name: make blazor ui run at host startup
       command: "systemctl enable fworch-blazor-ui"
 
+    - name: start blazor ui
+      command: "systemctl start fworch-blazor-ui"
+
   become: yes
   environment: "{{ proxy_env }}"

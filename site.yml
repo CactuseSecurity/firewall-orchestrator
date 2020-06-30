@@ -13,9 +13,9 @@
 
 - hosts: frontends
   roles:
-    - { role: frontend, when: "ui == 'old' or ui == 'both'"}
+    - { role: frontend, when: "ui is not defined or (ui is defined and (ui == 'old' or ui == 'both'))"}
     - auth_frontend
-    - { role: frontend-new, when: "ui == 'new' or ui == 'both' or ui is not defined"}
+    - { role: frontend-new, when: "ui is not defined or (ui is defined and (ui == 'new' or ui == 'both'))"}
 
 - hosts: importers
   roles:

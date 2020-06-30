@@ -31,7 +31,7 @@
        shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
 
      - name: disable mandatory initial pwd change if demo option is set
-       shell: 'psql -c "DO \$do$ BEGIN IF EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN UPDATE isoadmin SET isoadmin_password_must_be_changed=false WHERE isoadmin_username=''admin''; END IF; END \$do\$"'
+       shell: 'psql -c "DO \$do\$ BEGIN IF EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN UPDATE isoadmin SET isoadmin_password_must_be_changed=false WHERE isoadmin_username=''admin''; END IF; END \$do\$"'
        when: demo_version is defined
 
      - name: (re)defines functions and views (idempotent)

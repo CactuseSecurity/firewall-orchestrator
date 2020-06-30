@@ -62,6 +62,12 @@
     #  cd BlazorApp1/
     #  dotnet run
 
+    - set_fact: distibution_version="{{ ansible_facts['distribution_version'] }}"
+      when: ansible_facts['distribution']|lower }} == 'ubuntu'
+
+    - set_fact: distibution_version="{{ ansible_facts['distribution_version'] }} | regex_replace('\.\d$','')"
+      when: ansible_facts['distribution']|lower }} == 'debian'
+
     - name: get packages-microsoft-prod
       get_url:
         url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ ansible_facts['distribution_version'] }}/packages-microsoft-prod.deb"

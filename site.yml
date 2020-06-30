@@ -13,9 +13,11 @@
 
 - hosts: frontends
   roles:
-    - { role: frontend, when: "ui is not defined or (ui is defined and (ui == 'old' or ui == 'both'))"}
+#    - { role: frontend, when: "ui is not defined or (ui is defined and (ui == 'old' or ui == 'both'))"}
+    - { role: frontend, when: "ui is defined and ui == 'old'"}
     - auth_frontend
-    - { role: frontend-new, when: "ui is not defined or (ui is defined and (ui == 'new' or ui == 'both'))"}
+#    - { role: frontend-new, when: "ui is not defined or (ui is defined and (ui == 'new' or ui == 'both'))"}
+    - { role: frontend-new, when: "ui is not defined or ui == 'new'"}
 
 - hosts: importers
   roles:

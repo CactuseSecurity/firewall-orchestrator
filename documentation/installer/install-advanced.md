@@ -11,19 +11,11 @@ cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.
 
 ## Option "ui" to choose which UI to install
 
-Use the following command to install the old php based user interface on your server
-- old (install only old php based UI)
-- new (default, install new Blazor UI)
-- both (install both UIs)
+Use the following command to install the old php based user interface on your server. 
+Currently it is not possible to install both UIs simultaneously.
 
-Old UI can be called with /web path, new UI ist available at / path.
-
-Examples:
 ```
 cd firewall-orchestrator; ansible-playbook -i inventory -e "ui=old" site.yml -K
-cd firewall-orchestrator; ansible-playbook -i inventory -e "ui=both" site.yml -K
-cd firewall-orchestrator; ansible-playbook -i inventory -e "ui=new" site.yml -K
-cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
 ```
 
 ## Option "clean_install" to start with fresh database

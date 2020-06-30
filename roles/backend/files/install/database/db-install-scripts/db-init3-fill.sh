@@ -1,7 +1,7 @@
 #!/bin/sh
 # $Id: db-init3-fill.sh,v 1.1.2.2 2007-12-13 10:47:31 tim Exp $
 # $Source: /home/cvs/iso/package/install/bin/Attic/db-init3-fill.sh,v $
-if [ ! $ISOBASE ]; then
+if [ ! "$ISOBASE" ]; then
         ISOBASE="/usr/share/itsecorg"
         echo "ISOBASE was not set, using default diretory $ISOBASE."
 fi

@@ -1,0 +1,158 @@
+#Method: POST
+#URL:    https://demo.itsecorg.de/api/v1/graphql
+#
+#Header:
+#	x-hasura-admin-secret --> st8chelt1er
+#	content-type --> application/json
+#	x-hasura-role-id --> ?
+	
+############################################################
+
+query listRulesOfAllDevicesResolved {
+  device {
+    dev_id
+    dev_name
+    stm_dev_typ {
+      dev_typ_name
+      dev_typ_version
+    }
+    management {
+      mgm_id
+      mgm_name
+    }
+    rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
+      rule_num
+      rule_id
+      rule_uid
+      rule_froms {
+        object {
+          obj_name
+        }
+      }
+      rule_tos {
+        object {
+          obj_name
+        }
+      }
+      rule_services {
+        service {
+          svc_name
+          svc_id
+        }
+      }
+      rule_action
+      rule_track
+    }
+  }
+}
+
+############################################################
+
+query showDevice {
+  device {
+    dev_id
+    dev_name
+    dev_rulebase
+    management {
+      mgm_id
+      mgm_name
+      clearing_import_ran
+      config_path
+      importer_hostname
+      ssh_hostname
+      ssh_port
+    }
+  }
+}
+
+############################################################
+
+query showManagements {
+  management {
+    dev_typ_id
+    hide_in_gui
+    do_not_import
+    force_initial_import
+    importer_hostname
+    last_import_md5_complete_config
+    last_import_md5_objects
+    last_import_md5_rules
+    last_import_md5_users
+    config_path
+    mgm_comment
+    mgm_create
+    mgm_id
+    mgm_name
+    mgm_update
+    ssh_hostname
+    ssh_port
+    ssh_private_key
+    ssh_public_key
+    ssh_user
+  }
+}
+
+############################################################
+
+query listRules {
+  rule(where: {active: {_eq: true}, dev_id: {_eq: 1}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
+    rule_num
+    rule_src
+    rule_dst
+    rule_svc
+    rule_action
+    rule_track
+  }
+}
+
+############################################################
+
+query listRulesAllDevices {
+  device {
+    dev_name
+    rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
+      rule_num
+      rule_id
+      rule_uid
+      rule_src
+      rule_dst
+      rule_svc
+      rule_action
+      rule_track
+    }
+  }
+}
+
+############################################################
+
+mutation newManagement($dev_typ_id: Int!, $mgm_name: String!, $ssh_private_key: String!) {
+  insert_management(objects: {config_path: "", dev_typ_id: 10, importer_hostname: "", mgm_name: "$mgm_name", ssh_hostname: "", ssh_private_key: "", ssh_user: ""}) {
+    affected_rows
+  }
+}
+
+# Query variables:
+{
+  "dev_typ_id": 4,
+  "mgm_name": "hugo",
+  "ssh_private_key": "xxx"
+}
+
+############################################################
+
+mutation updateRuleRuleComment($rule_id: Int!, $new_comment: String!) {
+  __typename
+  update_rule(where: {rule_id: {_eq: $rule_id}}, _set: {rule_comment: $new_comment}) {
+     affected_rows
+    returning {
+      rule_id
+      rule_comment_post: rule_comment
+    }
+  }
+}
+
+# Query variables:
+{
+  "rule_id":156,
+  "new_comment": "ganz neuer Kommentar"
+}

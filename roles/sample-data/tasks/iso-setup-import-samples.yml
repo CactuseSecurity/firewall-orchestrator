@@ -1,0 +1,46 @@
+# this playbook sets up some sample devices with configs to play around with
+# to be executed on the backend server (aka localhost) only which will work as demo data ssh server
+  
+- block:
+    - set_fact: ansible_user_home="{{ lookup('env','HOME') }}"
+    - set_fact: importer_hostname="{{ ansible_hostname }}"          #  this only works for importer = backend
+    - set_fact: ssh_private_key_sample_server="{{ lookup('file', '/tmp/{{ sample_config_hostname }}/{{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}') }}"
+ 
+     # create sample devices and managements in isodb: 
+    - name: create .pgpass file
+      lineinfile:
+        path: "{{ iso_home }}/.pgpass"
+        create: yes
+        mode: 0600
+        line: "{{ isodb_host }}:{{ iso_db_port }}:{{ iso_db_name }}:{{ iso_dbadmin_name }}:{{ dbadmin_pwd }}"
+      
+    - name: insert test fortinet management
+      shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM management WHERE mgm_id=1) THEN insert into management (mgm_id,dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname) VALUES (1,10,''fortigate-test'',''{{ ssh_private_key_sample_server }}'','''',''{{ import_sample_server }}'',''{{ sample_config_user }}'',false, ''sample-configs/fortinet_demo/'',''{{ importer_hostname }}'');  END IF; END \$do\$"'
+      
+    - name: insert test fortinet device
+      shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=1) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (1,1,''fortigate-test'',''fortigate-test'',10); END IF; END \$do\$"'
+
+    - name: insert test check point management
+      shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM management WHERE mgm_id=2) THEN insert into management (mgm_id,dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname) VALUES (2,7,''checkpoint-demo'',''{{ ssh_private_key_sample_server }}'','''',''{{ import_sample_server }}'',''{{ sample_config_user }}'',false, ''sample-configs/checkpoint_demo/'',''{{ importer_hostname }}''); END IF; END \$do\$"'
+      
+    - name: insert test fortinet device for import
+      shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=2) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (2,2,''checkpoint-demo'',''IsoAAAA'',7); END IF; END \$do\$"'
+
+#    - name: delete .pgpass file
+#      file:
+#        path: ".pgpass"
+#        state: absent
+#
+    - name: scan localhost ssh keys
+      shell: "ssh-keyscan -H 127.0.0.1 >> ~/.ssh/known_hosts"
+
+    - name: start initial imports 
+      shell: "/etc/init.d/itsecorg-importer start"
+
+    - name: clean up .pgpass file
+      file:
+        path: "{{ iso_home }}/.pgpass"
+        state: absent
+
+  become: yes
+  become_user: itsecorg

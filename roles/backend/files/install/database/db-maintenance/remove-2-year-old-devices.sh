@@ -2,7 +2,7 @@
 max_days_since_last_import=730
 #sql_code="(select mgm_id from (select mgm_id,cast (now() as date) - cast(max(stop_time) as date) as days_ago FROM import_control group by mgm_id) AS last_import_query where days_ago>$max_days_since_last_import)"
 sql_code="(select mgm_id from (select mgm_id,cast (now() as date) - cast(max(stop_time) as date) as days_ago FROM management left join import_control using (mgm_id) group by mgm_id) AS last_import_query where days_ago>$max_days_since_last_import)"
-while [ true ]
+while true
 do
    no_of_mgmgs=$(psql -qtAX -d isodb -c "select count(*) from management ")
    no_of_mgmgs_unwanted=$(psql -qtAX -d isodb -c "select count(*) from management where mgm_id IN ($sql_code)")

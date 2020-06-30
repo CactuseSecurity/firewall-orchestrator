@@ -21,7 +21,7 @@ RULE=rulebases_5_0.fws
 AUDITLOG=auditlog.export
 USR=fwauth.NDB
 USREXP=cp-users.export
-USRGRPEXP=cp-user-groups.export
+# UNUSED? USRGRPEXP=cp-user-groups.export
 MV=/bin/mv
 GREP=/bin/grep
 CAT=/bin/cat
@@ -35,7 +35,7 @@ LOGDIR=$FWDIR/log
 
 set_os_specific_cmds () {
         UNAME=/bin/uname
-        OS_RESULT=`$UNAME`
+        OS_RESULT=$($UNAME)
         # Solaris:
         if [ "$OS_RESULT" = "SunOS" ]
         then
@@ -63,14 +63,14 @@ cp_config_files_to_itsecorg_dir () {
 }
 
 wait_for_scp_to_finish () {
-        while [ `$PS | $GREP scp | $GREP itsecorg | $WC -l` != 0 ]
+        while [ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]
         do
                 $SLEEP 1
         done
 }
 
 block_scp () {
-        while [ `$PS | $GREP scp | $GREP itsecorg | $WC -l` != 0 ]
+        while [ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]
         do
                 $SLEEP 1
         done
@@ -78,7 +78,7 @@ block_scp () {
 }
 
 accept_scp () {
-        while [ `$PS | $GREP scp | $GREP itsecorg | $WC -l` != 0 ]
+        while [ $($PS | $GREP scp | $GREP itsecorg | $WC -l) != 0 ]
         do
                 $SLEEP 1
         done
@@ -87,19 +87,19 @@ accept_scp () {
 
 move_if_changed () {
         wait_for_scp_to_finish
-        if [ -f $2 ]
+        if [ -f "$2" ]
         then
-                CMP_RESULT=`$CMP $1 $2`
+                CMP_RESULT=$($CMP "$1" "$2")
                 if [ "$CMP_RESULT" = "" ]
                 then
-                        $RM $1
+                        $RM "$1"
                 else
                         wait_for_scp_to_finish
-                        $MV $1 $2
+                        $MV "$1" "$2"
                 fi
         else
                 wait_for_scp_to_finish
-                $MV $1 $2
+                $MV "$1" "$2"
         fi
 }
 
@@ -114,7 +114,7 @@ update_changed_config_files () {
 }
 
 set_file_access_rights () {
-        $CHOWN $user:$group $1
+        $CHOWN $user:$group "$1"
 }
 
 set_all_file_access_rights () {
@@ -126,7 +126,7 @@ set_all_file_access_rights () {
 
 start_audit_log_export () {
 	# start export only if it is not already running
-	if [ `$PS | grep "fw log" | grep -v grep | grep fw.adtlog | $WC -l` = 0 ]
+	if [ $($PS | grep "fw log" | grep -v grep | grep fw.adtlog | $WC -l) = 0 ]
 	then 
 		/bin/rm -f $LOGDIR/$AUDITLOG
 		/bin/rm -f $DST/$AUDITLOG

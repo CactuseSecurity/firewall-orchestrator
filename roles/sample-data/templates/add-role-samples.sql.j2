@@ -1,0 +1,46 @@
+CREATE ROLE fullreporter WITH
+  LOGIN
+  NOSUPERUSER
+  INHERIT
+  NOCREATEDB
+  NOCREATEROLE
+  NOREPLICATION
+  ENCRYPTED PASSWORD '{{ api_sample_user_pwd_hash }}';
+
+GRANT reporters TO fullreporter;
+
+CREATE ROLE fgreporter WITH
+  LOGIN
+  NOSUPERUSER
+  INHERIT
+  NOCREATEDB
+  NOCREATEROLE
+  NOREPLICATION
+  ENCRYPTED PASSWORD '{{ api_sample_user_pwd_hash }}';
+
+GRANT reporters TO fgreporter;
+
+CREATE ROLE cpreporter WITH
+  LOGIN
+  NOSUPERUSER
+  INHERIT
+  NOCREATEDB
+  NOCREATEROLE
+  NOREPLICATION
+  ENCRYPTED PASSWORD '{{ api_sample_user_pwd_hash }}';
+
+GRANT reporters TO cpreporter;
+
+insert into role (role_name, role_id, role_can_view_all_devices, role_is_superadmin) values ('fortireporter', 6, false, false);
+insert into role (role_name, role_id, role_can_view_all_devices, role_is_superadmin) values ('checkpointreporter', 7, false, false);
+
+insert into isoadmin (isoadmin_id, isoadmin_username, isoadmin_password_must_be_changed) values (5,'fullreporter', false);
+insert into isoadmin (isoadmin_id, isoadmin_username, isoadmin_password_must_be_changed) values (6,'fgreporter', false);
+insert into isoadmin (isoadmin_id, isoadmin_username, isoadmin_password_must_be_changed) values (7,'cpreporter', false);
+
+insert into role_to_user (role_id, user_id) values (2, 5);
+insert into role_to_user (role_id, user_id) values (3, 6);  -- user_id 6 fgreporter has role 3 fortireporter
+insert into role_to_user (role_id, user_id) values (4, 7);  -- user_id 7 cpreporter is checkpointreporter (role=7)
+
+insert into role_to_device (role_id, device_id) values (4, 2);  -- role 4 (cpreporter) can view cp device (2)
+insert into role_to_device (role_id, device_id) values (3, 1);  -- role 3 (fortireporter) can view fg device (1)

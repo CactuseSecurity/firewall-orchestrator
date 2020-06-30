@@ -12,19 +12,28 @@
 # Design, method, architecture decisions
 
 - language:
+
   - develoopment in English
   - GUI language: parallel English, German, allow for others
+
 - use agile approach (Rapid Prototyping, trial & error, MuP)
-# Tool decisions
-- using GitHub.com for 
+
+  # Tool decisions
+
+- using GitHub.com for
+
   - version control
   - project management
   - test automation
+
 - PostgreSQL
 - API: GraphQL
+
   - using hasura
+
 - Client
-  - Apollo (https://www.apollographql.com/)
+
+  - Apollo (<https://www.apollographql.com/>)
   - fat client: .NET core/5 with eto forms
 
 # Functional requirements (high-Level)
@@ -36,11 +45,15 @@
 - Bereitstellung offener Schnittstellen zur Automatisierung
 
 # Architecture: "encapsulate everything"
+
 - API
-  - API modules (https://medium.com/the-guild/why-is-true-modular-encapsulation-so-important-in-large-scale-graphql-projects-ed1778b03600)
-  - no direct DB access without API
-    exception: login/auth module 
-  - API calls with resolvers: https://medium.com/paypal-engineering/graphql-resolvers-best-practices-cd36fdbcef55
+
+  - API modules (<https://medium.com/the-guild/why-is-true-modular-encapsulation-so-important-in-large-scale-graphql-projects-ed1778b03600>)
+  - no direct DB access without API exception: login/auth module
+  - API calls with resolvers: <https://medium.com/paypal-engineering/graphql-resolvers-best-practices-cd36fdbcef55>
+
 - UI
+
   - UI display and data methods
-- first impression, see https://demo.itsecorg.de manual
+
+- first impression, see <https://demo.itsecorg.de> manual

@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # first connect to api should result in the following:
 # tim@acantha:~$ wget --no-check-certificate https://192.168.100.110/web_api/ 
 # --2020-06-03 13:22:19--  https://192.168.100.110/web_api/
@@ -113,4 +114,4 @@ config_json += "}\n" # 'level': 'top'"
 
 logout_result = api_call(api_host, args.port, 'logout', {}, sid)
 
-print config_json
+print(config_json)

@@ -12,7 +12,7 @@ namespace FWO
     {
         public static DataSet ReadString(string JsonString)
         {
-            JsonString = "Müll";
+            //JsonString = "Müll";
 
             JsonDocument JsonQuery = JsonDocument.Parse(JsonString);        
 

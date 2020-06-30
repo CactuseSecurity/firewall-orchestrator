@@ -7,3 +7,5 @@ api_listener_port: 8080
 ui_port: 5000
 ui_app_name: fworch
 ui_dir: "{{ iso_home }}/ui"
+ui_syslog_id: "fworch ui"
+ui_start_dir: "{{ ui_dir }}/Blazor/FWO/FWO"

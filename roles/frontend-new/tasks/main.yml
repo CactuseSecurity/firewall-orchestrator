@@ -91,17 +91,16 @@
     - name: Install dotnet runtime
       package: name=dotnet-runtime-3.1 state=present
 
+    - name: copy blazor ui systemd service script
+      template:
+        src: fworch-blazor-ui.service.j2
+        dest: "/lib/systemd/system/fworch-blazor-ui.service"
+        backup: yes
+        mode: 0644
+        owner: "root"
+
+    - name: make blazor ui run at host startup
+      command: "systemctl enable fworch-blazor-ui"
+
   become: yes
-  environment: "{{ proxy_env }}"
-
-- block:
-    - name: create new blazor ui app
-      shell: "cd {{ ui_dir }} && dotnet new blazorwasm -o {{ ui_app_name }}"
-
-    - name: start ui app
-      shell: "/usr/bin/screen -d -m -S SERVER bash -c 'cd {{ ui_dir }}/{{ ui_app_name }} && dotnet start'"
-# todo: muss noch bootfest gemacht werden
-
-  become: yes
-  become_user: "{{ iso_user }}"
   environment: "{{ proxy_env }}"

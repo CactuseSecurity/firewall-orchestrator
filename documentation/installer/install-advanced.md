@@ -9,12 +9,13 @@ note: this does not yet work 100%
 cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
 
-## Option "include_php_ui" to install old UI
+## Option "ui" to choose which UI to install
 
-Use the following command to install the old php based user interface on your server:
+Use the following command to install the old php based user interface on your server. 
+Currently it is not possible to install both UIs simultaneously.
 
 ```
-cd firewall-orchestrator; ansible-playbook -i inventory -e "include_php_ui=1" site.yml -K
+cd firewall-orchestrator; ansible-playbook -i inventory -e "ui=old" site.yml -K
 ```
 
 ## Option "clean_install" to start with fresh database

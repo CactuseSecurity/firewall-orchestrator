@@ -84,8 +84,8 @@
        copy:
         src: "install"
         dest: "{{ iso_home }}"
-        owner: itsecorg
-        group: itsecorg
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
         
      - name: make db install scripts executable
        file:

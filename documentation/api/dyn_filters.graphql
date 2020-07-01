@@ -57,6 +57,13 @@ query filter_dyn_device($manufacturer_id: [Int!], $management_id: [Int!], $devic
   }
 }
 
+# query returning the aggregate number of all devices matching triple filter:
+query filter_dyn_device_number($manufacturer_id: [Int!], $management_id: [Int!], $device_id: [Int!]) {
+  device_aggregate(where: {_and: {mgm_id: {_in: $management_id}, dev_typ_id: {_in: $manufacturer_id}, dev_id: {_in: $device_id}}}) {
+		aggregate { count}
+  }
+}
+
 # query returning a multi-level structure with all data matching triple filter:
 query filter_dyn($manufacturer_id: [Int!], $management_id: [Int!], $device_id: [Int!]) {
   __typename

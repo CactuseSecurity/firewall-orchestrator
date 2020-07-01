@@ -42,7 +42,7 @@
 - fullfil regulatory requirements (documentation of config changes, recertification of config)
 - "network CMDB"
 - do not include high risk functionality (e.g. write config changes to firewalls) in core product
-- Bereitstellung offener Schnittstellen zur Automatisierung
+- offer API for automation purposes
 
 # Architecture: "encapsulate everything"
 

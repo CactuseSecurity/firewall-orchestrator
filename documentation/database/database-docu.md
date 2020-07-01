@@ -17,8 +17,8 @@
 - allow for disk space triple the size of the DB (e.g. 500 GB for a 140 GB DB) - especially needed for the vacuum step at the end
 - restore db backup:
 
-    psql -c "create database isodb"
-    psql -d isodb -f "database-dump"
+        psql -c "create database isodb"
+        psql -d isodb -f "database-dump"
 
 ### Optimization
 

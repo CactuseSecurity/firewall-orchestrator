@@ -136,3 +136,11 @@
 - name: make hasura docker container run at host startup
   command: "systemctl enable hasura-docker-api"
   become: yes
+
+#- name: create api documentation using 2fd/graphdoc
+#  sudo apt install npm
+#  sudo npm install -g @2fd/graphdoc
+#  export NODE_OPTIONS="--max-old-space-size=4096"
+#sudo -E -u itsecorg graphdoc -x "x-hasura-admin-secret: st8chelt1er" --force \
+#  -e http://localhost:8080/v1/graphql -o /usr/share/itsecorg/ui/Blazor/FWO/FWO/wwwroot/api_schema
+#  when: "api_docu is defined and api_docu == 'yes'"

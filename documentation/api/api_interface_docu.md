@@ -1,8 +1,8 @@
-# create api interface documentation using @2fd/graphdoc
+# create api interface documentation
+
+## auto generate full schema using @2fd/graphdoc
 
 see <https://github.com/2fd/graphdoc#install>
-
-## auto generate full schema
 
 1. needs 2.3 GB additional hdd space, 8 GB RAM and 3.5 minutes to generate !!!
 
@@ -68,7 +68,6 @@ This generates a very lengthy list.
           }
         }
       }
-
 
 ### generate more information including field names and descriptions
 

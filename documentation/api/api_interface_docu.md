@@ -1,4 +1,4 @@
-# create api interface documentaion using @2fd/graphdoc
+# create api interface documentation using @2fd/graphdoc
 
 see <https://github.com/2fd/graphdoc#install>
 

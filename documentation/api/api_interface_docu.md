@@ -4,17 +4,17 @@
 
 1. needs 2.3 GB additional hdd space and 8 GB RAM !!!
 
-    sudo apt install npm
-    sudo npm install -g @2fd/graphdoc
+       sudo apt install npm
+       sudo npm install -g @2fd/graphdoc
         
-    export NODE_OPTIONS="--max-old-space-size=4096"
-    graphdoc -x "x-hasura-admin-secret: st8chelt1er" -e http://localhost:8080/v1/graphql -o /usr/share/itsecorg/ui/Blazor/FWO/FWO/api_schema
+       export NODE_OPTIONS="--max-old-space-size=4096"
+       graphdoc -x "x-hasura-admin-secret: st8chelt1er" -e http://localhost:8080/v1/graphql -o /usr/share/itsecorg/ui/Blazor/FWO/FWO/api_schema
 
-✓ complete: 2962 files generated.
+       ✓ complete: 2962 files generated.
 
 2. view with  https://localhost:8443/api_schema/index.html
 
-not really sure if result is worth it :-(
+   not really sure if result is worth it :-(
 
 ## show all types
 

@@ -10,7 +10,7 @@ see <https://github.com/2fd/graphdoc#install>
        sudo npm install -g @2fd/graphdoc
         
        export NODE_OPTIONS="--max-old-space-size=4096"
-       sudo -u itsecorg graphdoc -x "x-hasura-admin-secret: st8chelt1er" -E --force \
+       sudo -E -u itsecorg graphdoc -x "x-hasura-admin-secret: st8chelt1er" --force \
          -e http://localhost:8080/v1/graphql -o /usr/share/itsecorg/ui/Blazor/FWO/FWO/wwwroot/api_schema
 
        ✓ complete: 2962 files generated.

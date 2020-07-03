@@ -34,7 +34,7 @@ The following command adds the sting test firewall to your fw orch system (needs
 cd firewall-orchestrator; ansible-playbook -i inventory -e "connect_sting=1" site.yml -K
 ```
 
-## Install API documentation
+## Option "api_docu" to install API documentation
 
 Generating a full hasura (all tables, etc. tracked) API documentation  currently requires 
 - 2.3 GB additional hdd space (at least 10 GB total for test install)

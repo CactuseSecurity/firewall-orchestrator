@@ -1,4 +1,6 @@
-# create api interface documentaion
+# create api interface documentaion using @2fd/graphdoc
+
+see <https://github.com/2fd/graphdoc#install>
 
 ## auto generate full schema
 

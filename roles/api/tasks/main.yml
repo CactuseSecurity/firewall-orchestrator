@@ -150,7 +150,7 @@
   when: "api_docu is defined and api_docu == 'yes'"
 
 - name: create api documentation using 2fd/graphdoc
-  shell: "export NODE_OPTIONS='--max-old-space-size=4096' && graphdoc -x 'x-hasura-admin-secret: st8chelt1er' --force -e http://localhost:8080/v1/graphql -o {{ ui_dir }}/wwwroot/api_schema"
+  shell: "export NODE_OPTIONS='--max-old-space-size=4096' && graphdoc -x 'x-hasura-admin-secret: st8chelt1er' --force -e http://localhost:8080/v1/graphql -o {{ ui_start_dir }}/wwwroot/api_schema"
   become: yes
   become_user: "{{ iso_user }}"
   when: "api_docu is defined and api_docu == 'yes'"

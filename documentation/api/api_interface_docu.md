@@ -18,9 +18,9 @@ see <https://github.com/2fd/graphdoc#install>
 
    not really sure if result is worth it :-(
 
-## show all types
+## alternatively show all types using query
 
-This generates a very lenthy list.
+This generates a very lengthy list.
 
         query IntrospectionQuery {
             __schema {
@@ -69,18 +69,18 @@ This generates a very lenthy list.
       }
 
 
-### generate more information including field names and desriptions
+### generate more information including field names and descriptions
 
         query IntrospectionQuery {
-        __schema {
-        types {
-        name
-        fields {
-        __typename
-        name
-        description
-        }
-        description
-        }
-        }
+              __schema {
+                     types {
+                            name
+                            fields {
+                                   __typename
+                                   name
+                                   description
+                            }
+                            description
+                     }
+              }
         }

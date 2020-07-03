@@ -14,6 +14,8 @@ not really sure if result is worth it
 
 ## show all types
 
+This generates a very lenthy list.
+
         query IntrospectionQuery {
             __schema {
               types {
@@ -61,18 +63,18 @@ not really sure if result is worth it
       }
 
 
-### more information
+### generate more information including field names and desriptions
 
-query IntrospectionQuery {
-__schema {
-types {
-name
-fields {
-__typename
-name
-description
-}
-description
-}
-}
-}
+        query IntrospectionQuery {
+        __schema {
+        types {
+        name
+        fields {
+        __typename
+        name
+        description
+        }
+        description
+        }
+        }
+        }

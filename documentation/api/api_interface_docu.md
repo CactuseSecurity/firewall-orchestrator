@@ -4,7 +4,7 @@ see <https://github.com/2fd/graphdoc#install>
 
 ## auto generate full schema
 
-1. needs 2.3 GB additional hdd space and 12 GB RAM !!!
+1. needs 2.3 GB additional hdd space, 8 GB RAM and 3.5 minutes to generate !!!
 
        sudo apt install npm
        sudo npm install -g @2fd/graphdoc

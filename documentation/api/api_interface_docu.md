@@ -4,13 +4,13 @@ see <https://github.com/2fd/graphdoc#install>
 
 ## auto generate full schema
 
-1. needs 2.3 GB additional hdd space and 8 GB RAM !!!
+1. needs 2.3 GB additional hdd space and 12 GB RAM !!!
 
        sudo apt install npm
        sudo npm install -g @2fd/graphdoc
         
        export NODE_OPTIONS="--max-old-space-size=4096"
-       sudo -u itsecorg graphdoc -x "x-hasura-admin-secret: st8chelt1er" \
+       sudo -u itsecorg graphdoc -x "x-hasura-admin-secret: st8chelt1er" -E --force \
          -e http://localhost:8080/v1/graphql -o /usr/share/itsecorg/ui/Blazor/FWO/FWO/wwwroot/api_schema
 
        ✓ complete: 2962 files generated.

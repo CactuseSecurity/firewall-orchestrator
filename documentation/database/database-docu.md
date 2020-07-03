@@ -15,9 +15,10 @@
 - get itsecorg from isodev git: git clone 192.168.100.93:/home/git/itsecorg
 - install itsecorg cd itsecorg/ansible; ansible-playbook -i inventory site.yml -K
 - allow for disk space triple the size of the DB (e.g. 500 GB for a 140 GB DB) - especially needed for the vacuum step at the end
-- restore db backup: psql -c "create database isodb" psql -d isodb -f "
+- restore db backup:
 
-  <database-dump>"</database-dump>
+        psql -c "create database isodb"
+        psql -d isodb -f "database-dump"
 
 ### Optimization
 

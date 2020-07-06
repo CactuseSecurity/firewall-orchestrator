@@ -1,6 +1,6 @@
 # Using Visual Studio (Code) for development
 
-Useful for Blazor/C# testing. Works on Windows and Linux.
+Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
 
 ## Installation
 

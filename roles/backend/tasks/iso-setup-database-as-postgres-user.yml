@@ -39,6 +39,10 @@
   #    lineinfile:
   #       path: ...navi_vert_config_main.inc.php
 
+    #   - name: disable pwd change option altogether
+    #    lineinfile:
+    #       path: ...navi_vert_config_main.inc.php
+
      - name: (re)defines functions and views (idempotent)
        shell:  "{{ iso_home }}/install/database/db-install-scripts/db-init2-functions.sh"
 

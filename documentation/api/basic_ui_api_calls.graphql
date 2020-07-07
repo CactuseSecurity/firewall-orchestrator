@@ -105,4 +105,3 @@ query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [Str
 fragment objectFragment on object {
   obj_ip
 }
-

@@ -14,12 +14,12 @@
         owner: "{{ iso_user }}"
         group: "{{ iso_user }}"
 
-#    - name: copy iso files to frontend target
-#      copy:
-#        src: "web"
-#        dest: "{{ iso_home }}"
-#        owner: itsecorg
-#        group: itsecorg
+    - name: copy Blazor files to frontend target
+      copy:
+        src: "Blazor"
+        dest: "{{ ui_dir }}"
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
 
     - name: copy iso httpd config file to apache target
       template:
@@ -42,13 +42,6 @@
     - name: enable itsecorg web site
       shell: "a2ensite itsecorg"
 
-#    - name: add session directory - /var/itsecorg/session
-#      file:
-#        dest: /var/itsecorg/session
-#        state: directory
-#        owner: www-data
-#        group: root
-
     - name: increase apache timeout to 900 seconds
       lineinfile:
         path: /etc/apache2/apache2.conf
@@ -59,19 +52,15 @@
        name: "apache2"
        state: restarted     
 
-    # install blazor part:
-    #  wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-    #  sudo dpkg -i packages-microsoft-prod.deb
-    #  sudo apt-get update;   sudo apt-get install -y apt-transport-https &&   sudo apt-get update &&   sudo apt-get install -y dotnet-sdk-3.1
-    #  sudo apt-get install -y dotnet-runtime-3.1
-    #  sudo apt autoremove
-    #  dotnet new blazorwasm -o BlazorApp1
-    #  cd BlazorApp1/
-    #  dotnet run
+    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"
+      when: ansible_facts['distribution']|lower == 'ubuntu'
+
+    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
+      when: ansible_facts['distribution']|lower == 'debian'
 
     - name: get packages-microsoft-prod
       get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ ansible_facts['distribution_version'] }}/packages-microsoft-prod.deb"
+        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/packages-microsoft-prod.deb"
         dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
         mode: 0644
 
@@ -98,17 +87,19 @@
     - name: Install dotnet runtime
       package: name=dotnet-runtime-3.1 state=present
 
+    - name: copy blazor ui systemd service script
+      template:
+        src: fworch-blazor-ui.service.j2
+        dest: "/lib/systemd/system/fworch-blazor-ui.service"
+        backup: yes
+        mode: 0644
+        owner: "root"
+
+    - name: make blazor ui run at host startup
+      command: "systemctl enable fworch-blazor-ui"
+
+    - name: start blazor ui
+      command: "systemctl start fworch-blazor-ui"
+
   become: yes
-  environment: "{{ proxy_env }}"
-
-- block:
-    - name: create new blazor ui app
-      shell: "cd {{ ui_dir }} && dotnet new blazorwasm -o {{ ui_app_name }}"
-
-    - name: start ui app
-      shell: "/usr/bin/screen -d -m -S SERVER bash -c 'cd {{ ui_dir }}/{{ ui_app_name }} && dotnet start'"
-# todo: muss noch bootfest gemacht werden
-
-  become: yes
-  become_user: "{{ iso_user }}"
   environment: "{{ proxy_env }}"

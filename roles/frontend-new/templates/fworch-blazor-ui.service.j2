@@ -1,0 +1,14 @@
+[Unit]
+Description=FW Orch Blazor UI
+After=network.target remote-fs.target nss-lookup.target
+[Service]
+WorkingDirectory={{ ui_start_dir }}
+#ExecStartPre=/bin/sleep 10
+ExecStart=/usr/bin/dotnet run
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier={{ ui_syslog_id }}
+User={{ iso_user }}
+Environment=
+[Install]
+WantedBy=multi-user.target

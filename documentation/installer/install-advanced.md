@@ -9,12 +9,13 @@ note: this does not yet work 100%
 cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
 
-## Option "include_php_ui" to install old UI
+## Option "ui" to choose which UI to install
 
-Use the following command to install the old php based user interface on your server:
+Use the following command to install the old php based user interface on your server. 
+Currently it is not possible to install both UIs simultaneously.
 
 ```
-cd firewall-orchestrator; ansible-playbook -i inventory -e "include_php_ui=1" site.yml -K
+cd firewall-orchestrator; ansible-playbook -i inventory -e "ui=old" site.yml -K
 ```
 
 ## Option "clean_install" to start with fresh database
@@ -32,6 +33,19 @@ The following command adds the sting test firewall to your fw orch system (needs
 ```
 cd firewall-orchestrator; ansible-playbook -i inventory -e "connect_sting=1" site.yml -K
 ```
+
+## Option "api_docu" to install API documentation
+
+Generating a full hasura (all tables, etc. tracked) API documentation  currently requires 
+- 2.3 GB additional hdd space (at least 10 GB total for test install)
+- a minimum of 8 GB RAM
+- 4 minutes to generate
+
+```
+cd firewall-orchestrator; ansible-playbook -i inventory -e "create api_docu=yes" site.yml -K
+```
+
+api docu can then be accessed at <https://server/api_schema/index.html>
 
 ## Distributed setup with multiple servers
 

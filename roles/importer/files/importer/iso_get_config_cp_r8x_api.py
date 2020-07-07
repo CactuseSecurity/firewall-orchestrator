@@ -29,7 +29,7 @@ parser.add_argument('-u', '--user', metavar='api_user', default='itsecorg', help
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True, help='name of policy layer(s) to read (comma separated)')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
-parser.add_argument('-s', '--ssl', metavar='verification_mode', default=False, help='SSL verification mode. Values: "on", "off" or "/path/to/[ca]certfile"; default=on')
+parser.add_argument('-s', '--ssl', metavar='verification_mode', default='off', help='SSL verification mode. Values: "on", "off" or "/path/to/[ca]certfile"; default=on')
 
 args = parser.parse_args()
 

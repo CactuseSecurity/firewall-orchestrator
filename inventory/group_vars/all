@@ -33,5 +33,6 @@ dbadmin_pwd_hash: md515af62ba7fb33b13304643cc176ca8d3
 dbadmin_pwd: "st8chel"
 itsecorg_pwd: "st8chel"
 sting_ip: "192.168.100.110"
+sting_port: "443"
 admin_pwd: "fworch.1"
 iso_dbadmin_name: dbadmin

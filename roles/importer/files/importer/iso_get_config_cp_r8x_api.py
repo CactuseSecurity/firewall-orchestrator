@@ -18,7 +18,9 @@
 # mgmt_cli -r true --domain MDS set api-settings accepted-api-calls-from "All IP addresses"
 # api restart
 
-import requests, json, argparse
+import requests, json, argparse, pdb
+import requests.packages.urllib3
+requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('hostname', metavar='api_host', help='Check Point R8x management server')
@@ -27,6 +29,7 @@ parser.add_argument('-u', '--user', metavar='api_user', default='itsecorg', help
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True, help='name of policy layer(s) to read (comma separated)')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
+parser.add_argument('-s', '--ssl', metavar='verification_mode', default=False, help='SSL verification mode. Values: "on", "off" or "/path/to/[ca]certfile"; default=on')
 
 args = parser.parse_args()
 
@@ -36,7 +39,17 @@ proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 offset=0
 limit=100
 details_level="full"    # 'standard'
-ssl_verification=False
+
+#ssl_verification mode
+verification_mode = args.ssl
+if verification_mode.lower() in ['on','yes']:
+    ssl_verification = True
+elif verification_mode.lower() in ['off','no']:
+    ssl_verification = False
+else:
+    ssl_verification = verification_mode
+# import pdb; pdb.set_trace()
+
 use_object_dictionary='false'
 
 def api_call(ip_addr, port, command, json_payload, sid):
@@ -113,5 +126,4 @@ config_json += "]\n" # 'level': 'objects'\n"
 config_json += "}\n" # 'level': 'top'"
 
 logout_result = api_call(api_host, args.port, 'logout', {}, sid)
-
 print(config_json)

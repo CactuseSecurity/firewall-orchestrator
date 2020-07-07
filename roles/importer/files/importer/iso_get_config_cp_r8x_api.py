@@ -29,7 +29,7 @@ parser.add_argument('-u', '--user', metavar='api_user', default='itsecorg', help
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True, help='name of policy layer(s) to read (comma separated)')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
-parser.add_argument('-s', '--ssl', metavar='verification_mode', default='off', help='SSL verification mode. Values: "on", "off" or "/path/to/[ca]certfile"; default=on')
+parser.add_argument('-s', '--ssl', metavar='verification_mode', default='', help='[ca]certificate, if value not set, ssl check is off"; default=empty/off')
 
 args = parser.parse_args()
 
@@ -42,13 +42,10 @@ details_level="full"    # 'standard'
 
 #ssl_verification mode
 verification_mode = args.ssl
-if verification_mode.lower() in ['on','yes']:
-    ssl_verification = True
-elif verification_mode.lower() in ['off','no']:
+if verification_mode == '':
     ssl_verification = False
 else:
     ssl_verification = verification_mode
-# import pdb; pdb.set_trace()
 
 use_object_dictionary='false'
 

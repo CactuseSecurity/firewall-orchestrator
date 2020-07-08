@@ -172,55 +172,5 @@
       service:
        name: "apache2"
        state: restarted     
-
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"
-      when: ansible_facts['distribution']|lower == 'ubuntu'
-
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
-      when: ansible_facts['distribution']|lower == 'debian'
-
-    - name: get packages-microsoft-prod
-      get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/packages-microsoft-prod.deb"
-        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
-        mode: 0644
-
-    - name: install packages-microsoft-prod
-      command: "dpkg -i {{ ui_dir }}/packages-microsoft-prod.deb"
-
-    - name: remove package file
-      file:
-        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
-        state: absent
-
-    - name: apt update
-      apt: update_cache=true
-
-    - name: Install apt-transport-https
-      package: name=apt-transport-https state=present
-
-    - name: apt update
-      apt: update_cache=true
-
-    - name: Install dotnet-sdk-3.1
-      package: name=dotnet-sdk-3.1 state=present
-
-    - name: Install dotnet runtime
-      package: name=dotnet-runtime-3.1 state=present
-
-    - name: copy blazor ui systemd service script
-      template:
-        src: fworch-blazor-ui.service.j2
-        dest: "/lib/systemd/system/fworch-blazor-ui.service"
-        backup: yes
-        mode: 0644
-        owner: "root"
-
-    - name: make blazor ui run at host startup
-      command: "systemctl enable fworch-blazor-ui"
-
-    - name: start blazor ui
-      command: "systemctl start fworch-blazor-ui"
-
   become: yes
-  environment: "{{ proxy_env }}"
+  

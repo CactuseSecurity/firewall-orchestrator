@@ -9,7 +9,15 @@
     - backend
     - { role: api, when: "run_on_github is not defined" }
    # todo: make api (and docker) work with github actions
-    - auth
+#    - auth
+    - openldap_server
+        openldap_server_domain_name: example.com
+        openldap_server_rootpw: passme
+        openldap_server_enable_ssl: true
+        openldap_server_country: US
+        openldap_server_state: Oregon
+        openldap_server_location: Portland
+        openldap_server_organization: IT
 
 - hosts: frontends
   roles:

@@ -74,7 +74,7 @@
   - name: start the slapd service
     service: 
       name: slapd 
-      state: started 
+      state: restarted 
       enabled: yes 
     
   - name: Copy the template for creating base dn

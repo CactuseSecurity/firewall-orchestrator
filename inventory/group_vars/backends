@@ -16,3 +16,11 @@ api_port: 8080
 API_SECRET_KEY: '3s)3o5_@2d!t21nammq38hnux9cfz5#9o0&nb4y8yn5xvqdhh^'
 python_binary: /usr/bin/python3
 api_venv_dir: "{{ iso_home }}/api_venv"
+
+auth_port: 5005     # TODO: Auth port app has to be changed in Blazor
+auth_app_name: auth
+auth_dir: "{{ iso_home }}/auth"
+auth_syslog_id: "FWO-auth"
+auth_start_dir: "{{ auth_dir }}/FWO-auth/FWO-auth"
+auth_server_name: demo.itsecorg.de
+auth_server_admin: root@localhost

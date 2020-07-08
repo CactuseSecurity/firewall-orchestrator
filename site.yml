@@ -9,7 +9,7 @@
     - backend
     - { role: api, when: "run_on_github is not defined" }
    # todo: make api (and docker) work with github actions
-#    - auth
+    - auth
     - openldap-server
 
 - hosts: frontends

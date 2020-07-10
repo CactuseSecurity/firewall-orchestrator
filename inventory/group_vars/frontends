@@ -9,5 +9,32 @@ ui_app_name: fworch
 ui_dir: "{{ iso_home }}/ui"
 ui_syslog_id: "fworch ui"
 ui_start_dir: "{{ ui_dir }}/Blazor/FWO/FWO"
+ui_php_doc_root: "{{ ui_start_dir }}/wwwroot"
 ui_server_name: demo.itsecorg.de
 ui_server_admin: root@localhost
+httpd_conf_file: >
+    <VirtualHost *:443>
+        ServerName {{ ui_server_name }}:443
+        ServerAdmin {{ ui_server_admin }}
+        DocumentRoot "{{ ui_start_dir }}"
+
+        ProxyRequests On
+        <Proxy *>
+            Order deny,allow
+            Allow from all
+        </Proxy>
+
+        ProxyPass "/api"  "http://{{ api_hostname }}:{{ api_port }}/"
+        ProxyPassReverse "/api"  "http://{{ api_hostname }}:{{ api_port }}/"
+
+        ProxyPass "/"  "http://{{ api_hostname }}:{{ ui_port }}/"
+        ProxyPassReverse "/"  "http://{{ api_hostname }}:{{ ui_port }}/"
+
+        ErrorLog /var/log/apache2/error.log
+        TransferLog /var/log/apache2/access.log
+        CustomLog /var/log/apache2/ssl_request_log "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+        SSLEngine on
+        SSLCipherSuite RSA:!EXP:!NULL:+HIGH:+MEDIUM:-LOW 
+        SSLCertificateFile /etc/apache2/ssl/server.crt
+        SSLCertificateKeyFile /etc/apache2/ssl/server.key
+    </VirtualHost>

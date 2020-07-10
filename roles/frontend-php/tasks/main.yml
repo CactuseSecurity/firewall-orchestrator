@@ -81,23 +81,23 @@
         owner: root
         group: root
 
-    -name: insert php ui config into httpd conf file
-     blockinfile:
-       path: "{{ http_conf_dir }}/itsecorg.conf"
-       before: "ServerName"
-       block: >
-          # old ui: from now on you have to enter /web/htdocs path manually to reach it
-          #DocumentRoot "{{ iso_home }}/web/htdocs"
-          <Files ~ "\.(cgi|shtml|phtml|php3?)$">
-              SSLOptions +StdEnvVars
-          </Files>
-          <Directory "{{ isui_php_doc_rooto_home }}/php/">
-                  Options Indexes
-          </Directory>
-          <Directory "/usr/lib/cgi-bin">
-              SSLOptions +StdEnvVars
-          </Directory>
-          SetEnvIf User-Agent ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0
+    - name: insert php ui config into httpd conf file
+      blockinfile:
+        path: "{{ http_conf_dir }}/itsecorg.conf"
+        before: "ServerName"
+        block: >
+            # old ui: from now on you have to enter /web/htdocs path manually to reach it
+            #DocumentRoot "{{ iso_home }}/web/htdocs"
+            <Files ~ "\.(cgi|shtml|phtml|php3?)$">
+                SSLOptions +StdEnvVars
+            </Files>
+            <Directory "{{ isui_php_doc_rooto_home }}/php/">
+                    Options Indexes
+            </Directory>
+            <Directory "/usr/lib/cgi-bin">
+                SSLOptions +StdEnvVars
+            </Directory>
+            SetEnvIf User-Agent ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0
 
     - name: copy iso gui.conf file
       copy:

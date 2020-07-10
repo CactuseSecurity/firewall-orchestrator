@@ -14,10 +14,9 @@
 
 - hosts: frontends
   roles:
-#    - { role: frontend, when: "ui is not defined or (ui is defined and (ui == 'old' or ui == 'both'))"}
-    - { role: frontend, when: "ui is defined and ui == 'old'"}
-#    - { role: frontend-new, when: "ui is not defined or (ui is defined and (ui == 'new' or ui == 'both'))"}
-    - { role: frontend-new, when: "ui is not defined or ui == 'new'"}
+    - frontend
+    - { role: frontend-php, when: "ui_php is defined"}
+#    - { role: frontend-new, when: "ui is not defined or ui == 'new'"}
 
 - hosts: importers
   roles:

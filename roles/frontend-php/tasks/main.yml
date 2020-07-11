@@ -80,18 +80,19 @@
         path: "{{ ui_php_doc_root }}/web/htdocs"
         state: absent
 
-    - name: copy iso httpd config file to apache target
-      template:
-        src: "httpd.conf"
-        dest: "{{ http_conf_dir }}/itsecorg.conf"
-        owner: root
-        group: root
+    # - name: copy iso httpd config file to apache target
+    #   template:
+    #     src: "httpd.conf"
+    #     dest: "{{ http_conf_dir }}/itsecorg.conf"
+    #     owner: root
+    #     group: root
 
     - name: insert php ui config into httpd conf file
       blockinfile:
+        # old php UI:
         path: "{{ http_conf_dir }}/itsecorg.conf"
-        insertbefore: "ServerName"
-        block: >
+        insertbefore: "</VirtualHost>"
+        block: |
             <Files ~ "\.(cgi|shtml|phtml|php3?)$">
                 SSLOptions +StdEnvVars
             </Files>
@@ -102,6 +103,12 @@
                 SSLOptions +StdEnvVars
             </Directory>
             SetEnvIf User-Agent ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0
+
+    - name: add symlink to php web files
+      file: 
+        src: "{{ ui_php_doc_root }}"
+        dest: "{{ ui_start_dir }}/php"
+        state: link
 
     - name: copy iso gui.conf file
       copy:

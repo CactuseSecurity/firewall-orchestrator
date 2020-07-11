@@ -1,10 +1,4 @@
-- set_fact: wsgi_dir="{{ iso_home }}/{{ api_project_name }}/{{ api_project_name }}"
-- set_fact: api_dir="{{ iso_home }}/{{ api_project_name }}"
-
 - block:
-    - name: get user name
-      set_fact: ansible_user="{{ lookup('env','USERNAME') }}"
-
     - name: Install webserver packages
       package: name={{ item }} state=present
       with_items:
@@ -14,12 +8,6 @@
         - php-pgsql
         - php-pear
         
-    - name: Install packages for api webserver 
-      package: name={{ item }} state=present
-      with_items:
-        - apache2
-#        - libapache2-mod-wsgi-py3      
-
     - name: find out installed php version
       script: "get_php_version.sh"
       register: phpversion_result
@@ -55,37 +43,12 @@
            session.save_path = /var/itsecorg/session
            session.gc_maxlifetime = 14400   ;eight hours
 
-    - name: create web dir
-      file:
-         path: "{{ ui_php_doc_root }}"
-         state: directory
-
     - name: copy iso files to frontend target
       copy:
         src: "web"
         dest: "{{ ui_php_doc_root }}"
         owner: itsecorg
         group: itsecorg
-
-    - name: remotely copy iso htdocs files to php dir
-      copy:
-        remote_src: yes
-        src: "{{ ui_php_doc_root }}/web/htdocs"
-        dest: "{{ ui_php_doc_root }}/php"
-        owner: itsecorg
-        group: itsecorg
-
-    - name: remove htdocs files in wrong dir
-      file:
-        path: "{{ ui_php_doc_root }}/web/htdocs"
-        state: absent
-
-    # - name: copy iso httpd config file to apache target
-    #   template:
-    #     src: "httpd.conf"
-    #     dest: "{{ http_conf_dir }}/itsecorg.conf"
-    #     owner: root
-    #     group: root
 
     - name: insert php ui config into httpd conf file
       blockinfile:
@@ -106,7 +69,7 @@
 
     - name: add symlink to php web files
       file: 
-        src: "{{ ui_php_doc_root }}"
+        src: "{{ ui_php_doc_root }}/web/htdocs"
         dest: "{{ ui_start_dir }}/php"
         state: link
 

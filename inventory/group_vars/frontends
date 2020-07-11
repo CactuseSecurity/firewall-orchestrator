@@ -9,7 +9,7 @@ ui_app_name: fworch
 ui_dir: "{{ iso_home }}/ui"
 ui_syslog_id: "fworch ui"
 ui_start_dir: "{{ ui_dir }}/Blazor/FWO/FWO"
-ui_php_doc_root: "{{ ui_start_dir }}/wwwroot/htdocs"
+ui_php_doc_root: "{{ ui_start_dir }}/wwwroot"
 ui_server_name: demo.itsecorg.de
 ui_server_admin: root@localhost
 

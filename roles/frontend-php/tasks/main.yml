@@ -67,12 +67,18 @@
         owner: itsecorg
         group: itsecorg
 
-    - name: copy iso htdocs files to php dir
+    - name: remotely copy iso htdocs files to php dir
       copy:
-        remsrc: "{{ ui_php_doc_root }}/web/htdocs"
+        remote_src: yes
+        src: "{{ ui_php_doc_root }}/web/htdocs"
         dest: "{{ ui_php_doc_root }}/php"
         owner: itsecorg
         group: itsecorg
+
+    - name: remove htdocs files in wrong dir
+      file:
+        path: "{{ ui_php_doc_root }}/web/htdocs"
+        state: absent
 
     - name: copy iso httpd config file to apache target
       template:
@@ -84,14 +90,12 @@
     - name: insert php ui config into httpd conf file
       blockinfile:
         path: "{{ http_conf_dir }}/itsecorg.conf"
-        before: "ServerName"
+        insertbefore: "ServerName"
         block: >
-            # old ui: from now on you have to enter /web/htdocs path manually to reach it
-            #DocumentRoot "{{ iso_home }}/web/htdocs"
             <Files ~ "\.(cgi|shtml|phtml|php3?)$">
                 SSLOptions +StdEnvVars
             </Files>
-            <Directory "{{ isui_php_doc_rooto_home }}/php/">
+            <Directory "{{ ui_php_doc_root }}/php/">
                     Options Indexes
             </Directory>
             <Directory "/usr/lib/cgi-bin">

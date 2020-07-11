@@ -11,6 +11,7 @@
    # todo: make api (and docker) work with github actions
     - auth
     - openldap-server
+   # todo: install web frontend for auth (balzor based?)
 
 - hosts: frontends
   roles:

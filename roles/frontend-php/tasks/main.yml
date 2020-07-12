@@ -46,32 +46,9 @@
     - name: copy iso files to frontend target
       copy:
         src: "web"
-        dest: "{{ ui_php_doc_root }}"
+        dest: "{{ iso_home }}/"
         owner: itsecorg
         group: itsecorg
-
-    - name: insert php ui config into httpd conf file
-      blockinfile:
-        # old php UI:
-        path: "{{ http_conf_dir }}/itsecorg.conf"
-        insertbefore: "</VirtualHost>"
-        block: |
-            <Files ~ "\.(cgi|shtml|phtml|php3?)$">
-                SSLOptions +StdEnvVars
-            </Files>
-            <Directory "{{ ui_php_doc_root }}/php/">
-                    Options Indexes
-            </Directory>
-            <Directory "/usr/lib/cgi-bin">
-                SSLOptions +StdEnvVars
-            </Directory>
-            SetEnvIf User-Agent ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0
-
-    - name: add symlink to php web files
-      file: 
-        src: "{{ ui_php_doc_root }}/web/htdocs"
-        dest: "{{ ui_start_dir }}/php"
-        state: link
 
     - name: copy iso gui.conf file
       copy:
@@ -80,22 +57,25 @@
         owner: itsecorg
         group: itsecorg
 
-    - name: enable modules proxy proxy_http for api reverse proxy
-      command: "a2enmod proxy proxy_http"
-
     - name: enable apache mod_ssl
       shell: "a2enmod ssl"
+
+    - name: add port to apache
+      lineinfile:
+        path: "/etc/apache2/ports.conf"
+        line: Listen 443 8443
+        regexp: 'Listen 443'
 
     - name: create dummy .rnd file in users home dir to avoid error when creating certificate - workaround for ubuntu 18.04 openssl bug
       file:
         path: ~/.rnd
         state: touch
 
-    - name: copy cert creation script to apache target
-      script: "apache_create_server_cert.sh" 
+    # - name: copy cert creation script to apache target
+    #   script: "apache_create_server_cert.sh" 
 
-    - name: enable itsecorg web site
-      shell: "a2ensite itsecorg"
+    # - name: enable itsecorg web site
+    #   shell: "a2ensite itsecorg"
 
     - name: add session directory - /var/itsecorg/session
       file:

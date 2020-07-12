@@ -63,8 +63,15 @@
     - name: add port to apache
       lineinfile:
         path: "/etc/apache2/ports.conf"
-        line: Listen 443 8443
-        regexp: 'Listen 443'
+        line: Listen 8443
+        insertafter: "<IfModule ssl_module>"
+
+    - name: copy php httpd config file to apache target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/itsecorg-php.conf"
+        owner: root
+        group: root
 
     - name: create dummy .rnd file in users home dir to avoid error when creating certificate - workaround for ubuntu 18.04 openssl bug
       file:
@@ -74,8 +81,8 @@
     # - name: copy cert creation script to apache target
     #   script: "apache_create_server_cert.sh" 
 
-    # - name: enable itsecorg web site
-    #   shell: "a2ensite itsecorg"
+    - name: enable itsecorg web site
+      shell: "a2ensite itsecorg-php"
 
     - name: add session directory - /var/itsecorg/session
       file:

@@ -3,13 +3,16 @@
   roles:
     - iso-common
 
-- hosts: backends
+- hosts: backendserver
   roles:
     - database
+
+- hosts: authserver
+  roles:
     - auth
     - openldap-server
 
-- hosts: apiservers
+- hosts: apiserver
   roles:
     - { role: docker, when: "run_on_github is not defined" }
     - { role: api, when: "run_on_github is not defined" }
@@ -19,13 +22,12 @@
   roles:
     - frontend
     - { role: frontend-php, when: "ui_php is defined"}
-#    - { role: frontend-new, when: "ui is not defined or ui == 'new'"}
 
 - hosts: importers
   roles:
     - importer
 
-- hosts: sampleservers
+- hosts: sampleserver
   roles:
     - { role: sample-data, when: "without_sample_data is not defined" }
     - { role: sample-data-connect-sting, when: "connect_sting is defined" }

@@ -5,7 +5,7 @@
     - name: Install webserver packages
       package: name={{ item }} state=present
       with_items:
-        - apache2
+        - "{{ ui_web_server_name }}"
 
     - name: create ui dir
       file:
@@ -31,11 +31,6 @@
     - name: enable apache modules proxy proxy_http ssl
       command: "a2enmod proxy proxy_http ssl"
 
-#    - name: create dummy .rnd file in users home dir to avoid error when creating certificate - workaround for ubuntu 18.04 openssl bug
-#      file:
-#        path: ~/.rnd
-#        state: touch
-
     - name: copy cert creation script to apache target
       script: "apache_create_server_cert.sh" 
 
@@ -49,7 +44,7 @@
 
     - name: restart apache
       service:
-       name: "apache2"
+       name: "{{ ui_web_server_name }}"
        state: restarted     
 
     - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"

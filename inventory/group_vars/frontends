@@ -1,6 +1,6 @@
 
-apache_package: apache2
-http_conf_dir: /etc/apache2/sites-available/
+ui_web_server_name: "apache2" 
+http_conf_dir: /etc/{{ ui_web_server_name }}/sites-available/
 api_project_name: api
 api_listener_ip: 127.0.0.1
 api_listener_port: 8080
@@ -12,6 +12,6 @@ ui_start_dir: "{{ ui_dir }}/Blazor/FWO/FWO"
 ui_php_doc_root: "{{ ui_start_dir }}/wwwroot"
 ui_server_name: demo.itsecorg.de
 ui_server_admin: root@localhost
-
+ui_hostname: "127.0.0.1"
 ui_php_dir: "{{ iso_home }}/web/htdocs"
 

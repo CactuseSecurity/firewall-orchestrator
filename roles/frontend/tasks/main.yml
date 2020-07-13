@@ -24,7 +24,7 @@
     - name: copy iso httpd config file to apache target
       template:
         src: "httpd.conf"
-        dest: "{{ http_conf_dir }}/itsecorg.conf"
+        dest: "{{ ui_http_conf_dir }}/itsecorg.conf"
         owner: root
         group: root
         

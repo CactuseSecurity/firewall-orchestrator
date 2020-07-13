@@ -69,7 +69,7 @@
     - name: copy php httpd config file to apache target
       template:
         src: "httpd.conf"
-        dest: "{{ http_conf_dir }}/itsecorg-php.conf"
+        dest: "{{ ui_http_conf_dir }}/itsecorg-php.conf"
         owner: root
         group: root
 

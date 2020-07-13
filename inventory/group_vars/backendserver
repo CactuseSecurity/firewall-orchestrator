@@ -2,4 +2,3 @@ database_dir: /var/lib/pgsql/data
 postgresql_package: postgresql
 postgresql_test_package: pgtap
 postgresql_dev_package_prefix: postgresql-server-dev
-

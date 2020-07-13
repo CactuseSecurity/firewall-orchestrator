@@ -3,7 +3,6 @@ ui_web_server_name: "apache2"
 ui_http_conf_dir: /etc/{{ ui_web_server_name }}/sites-available/
 ui_port: 5000
 ui_web_port: 443
-ui_php_web_port: 8443
 ui_app_name: fworch
 ui_dir: "{{ iso_home }}/ui"
 ui_syslog_id: "fworch ui"
@@ -12,3 +11,4 @@ ui_server_name: demo.itsecorg.de
 ui_server_admin: root@localhost
 ui_hostname: "127.0.0.1"
 ui_php_dir: "{{ iso_home }}/web/htdocs"
+ui_php_web_port: 8443

@@ -5,13 +5,15 @@
 
 - hosts: backends
   roles:
-    - { role: docker, when: "run_on_github is not defined" }
-    - backend
-    - { role: api, when: "run_on_github is not defined" }
-   # todo: make api (and docker) work with github actions
+    - database
     - auth
     - openldap-server
-   # todo: install web frontend for auth (balzor based?)
+
+- hosts: apiservers
+  roles:
+    - { role: docker, when: "run_on_github is not defined" }
+    - { role: api, when: "run_on_github is not defined" }
+   # todo: make api (and docker) work with github actions
 
 - hosts: frontends
   roles:

@@ -43,10 +43,10 @@
 
 - The roles of backends are
 
-  - backend
-  - auth_backend
   - docker
+  - backend
   - api
+  - auth_backend
   
 - The role docker executes the tasks
 
@@ -59,3 +59,13 @@
   - copies install directory (roles/backend/files/install) to {{ iso_home }}. It contains the database
   - makes database install scripts executable
   - sets passwords for database users
+  - removes all containers # (Tim fragen)
+  
+- The role api executes the tasks
+  - defines the directories
+      ```
+      - api_home="{{ iso_home }}/api"
+      - hasura_bin="/usr/local/bin/hasura"
+      ```
+  - sets up hasura in {{ api_home }}
+  

@@ -16,6 +16,7 @@ Currently it is not possible to install both UIs simultaneously.
 
 ```
 cd firewall-orchestrator; ansible-playbook -i inventory -e "ui=old" site.yml -K
+
 ```
 
 ## Option "clean_install" to start with fresh database

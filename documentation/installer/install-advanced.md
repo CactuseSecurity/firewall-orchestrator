@@ -27,6 +27,14 @@ if you want to drop the database and re-install from scratch, simply add the var
 cd firewall-orchestrator; ansible-playbook -i inventory -e "clean_install=1" site.yml -K
 ```
 
+## Option "without_sample_data" to not create sample data (i.e. in production)
+
+The following command prevents the creation of sample data in the database:
+
+```
+cd firewall-orchestrator; ansible-playbook -i inventory -e "without_sample_data=1" site.yml -K
+```
+
 ## Option "connect_sting" to add Cactus test firewall CP R8x
 
 The following command adds the sting test firewall to your fw orch system (needs VPN tunnel to Cactus)

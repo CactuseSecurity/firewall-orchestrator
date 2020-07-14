@@ -9,13 +9,13 @@
     - backend
     - { role: api, when: "run_on_github is not defined" }
    # todo: make api (and docker) work with github actions
-    - auth_backend
+    - auth
+    - openldap-server
 
 - hosts: frontends
   roles:
 #    - { role: frontend, when: "ui is not defined or (ui is defined and (ui == 'old' or ui == 'both'))"}
     - { role: frontend, when: "ui is defined and ui == 'old'"}
-    - auth_frontend
 #    - { role: frontend-new, when: "ui is not defined or (ui is defined and (ui == 'new' or ui == 'both'))"}
     - { role: frontend-new, when: "ui is not defined or ui == 'new'"}
 
@@ -25,5 +25,5 @@
 
 - hosts: sampleservers
   roles:
-    - sample-data
+    - { role: sample-data, when: "without_sample_data is not defined" }
     - { role: sample-data-connect-sting, when: "connect_sting is defined" }

@@ -16,10 +16,6 @@ iso_db_port: 5432
 isodb_host: 127.0.0.1
 iso_db_name: isodb
 
-# table_space variable can be used to create database in another place where there is enough space
-# table_space: /var/db/iso_tablespace
-# table_space_name: itsecorg
-
 # users & passwords
 dbadmin_pwd: "st8chel"
 itsecorg_pwd: "st8chel"

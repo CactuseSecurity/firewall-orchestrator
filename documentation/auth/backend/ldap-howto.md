@@ -82,6 +82,13 @@ dn: uid=testuser,dc=example,dc=com
 changetype: delete
 ```
 
+### communicate with multiple ldap servers ###
+
+Not tested yet!
+```
+ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
+```
+
 ## authentication against ldap from .net (C#)
 
 ## querying multiple ldap servers in a row

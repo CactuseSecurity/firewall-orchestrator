@@ -3,9 +3,67 @@
 ## ldap server on linux
 
 ## ldap client access
+
+## adding information
+
 password=passme
 
-    ldapsearch -x -b "dc=example,dc=com" -D "cn=Manager,dc=example,dc=com" -H ldaps://localhost -W
+    ldapadd -x -D "cn=Manager,dc=example,dc=com" -H ldaps://localhost -W -f x
+    
+```
+tim@ubu1804:~$ cat x
+dn: uid=testuser,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+cn: First Name
+sn: Last Name
+uid: testuser
+uidNumber: 5000
+gidNumber: 5000
+homeDirectory: /home/testuser
+loginShell: /bin/sh
+gecos: Comments
+tim@ubu1804:~$ 
+
+tim@ubu1804:~$ ldapsearch -x -b "dc=example,dc=com"  -H ldaps://localhost
+# extended LDIF
+#
+# LDAPv3
+# base <dc=example,dc=com> with scope subtree
+# filter: (objectclass=*)
+# requesting: ALL
+#
+
+# example.com
+dn: dc=example,dc=com
+objectClass: domain
+dc: example
+
+# testuser, example.com
+dn: uid=testuser,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+cn: First Name
+sn: Last Name
+uid: testuser
+uidNumber: 5000
+gidNumber: 5000
+homeDirectory: /home/testuser
+loginShell: /bin/sh
+gecos: Comments
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 3
+# numEntries: 2
+tim@ubu1804:~$ 
+
+```
+
 
 ## authentication against ldap from .net (C#)
 

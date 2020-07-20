@@ -3,6 +3,9 @@
 ## ldap server on linux
 
 ## ldap client access
+password=passme
+
+    ldapsearch -x -b "dc=example,dc=com" -D "cn=Manager,dc=example,dc=com" -H ldaps://localhost -W
 
 ## authentication against ldap from .net (C#)
 

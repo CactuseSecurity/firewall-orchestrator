@@ -91,12 +91,22 @@ ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
 
 ### set/change password of existing user
 
-Not tested yet!
 ```
 tim@ubu1804:~$ ldappasswd -s welcome123 -W -D "cn=Manager,dc=example,dc=com" -x "uid=testuser4,dc=example,dc=com"
 Enter LDAP Password: 
 tim@ubu1804:~$ 
 ```
+
+### check password
+wrong password:
+
+    tim@ubu1804:~$ ldapwhoami -x -w welcome1234 -D uid=testuser4,dc=example,dc=com  -H ldaps://localhost/
+    ldap_bind: Invalid credentials (49)
+
+correct password:
+
+    tim@ubu1804:~$ ldapwhoami -x -w welcome123 -D uid=testuser4,dc=example,dc=com  -H ldaps://localhost/
+    dn:uid=testuser4,dc=example,dc=com
 
 
 ## authentication against ldap from .net (C#)

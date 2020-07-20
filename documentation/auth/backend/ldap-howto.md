@@ -89,6 +89,16 @@ Not tested yet!
 ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
 ```
 
+### set/change password of existing user
+
+Not tested yet!
+```
+tim@ubu1804:~$ ldappasswd -s welcome123 -W -D "cn=Manager,dc=example,dc=com" -x "uid=testuser4,dc=example,dc=com"
+Enter LDAP Password: 
+tim@ubu1804:~$ 
+```
+
+
 ## authentication against ldap from .net (C#)
 
 ## querying multiple ldap servers in a row

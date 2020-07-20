@@ -70,6 +70,17 @@ tim@ubu1804:~$
 
 ```
 
+### delete entries with ldapmodify ###
+
+Delete entry testuser from last chapter with
+```
+ldapmodify -x -D "cn=Manager,dc=example,dc=com" -W -f delete.ldif
+```
+With delete.ldif
+```
+dn: uid=testuser,dc=example,dc=com
+changetype: delete
+```
 
 ## authentication against ldap from .net (C#)
 

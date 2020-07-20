@@ -8,10 +8,9 @@
 
 password=passme
 
-    ldapadd -x -D "cn=Manager,dc=example,dc=com" -H ldaps://localhost -W -f x
-    
+    ldapadd -x -D "cn=Manager,dc=example,dc=com" -H ldaps://localhost -W -f x.ldif
+    cat x.ldif
 ```
-tim@ubu1804:~$ cat x
 dn: uid=testuser,dc=example,dc=com
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -26,7 +25,9 @@ loginShell: /bin/sh
 gecos: Comments
 tim@ubu1804:~$ 
 
-tim@ubu1804:~$ ldapsearch -x -b "dc=example,dc=com"  -H ldaps://localhost
+```
+    ldapsearch -x -b "dc=example,dc=com"  -H ldaps://localhost
+```
 # extended LDIF
 #
 # LDAPv3

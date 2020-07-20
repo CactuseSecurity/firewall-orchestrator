@@ -4,7 +4,7 @@
 
 ## ldap client access
 
-## adding information
+### adding information with ldapadd
 
 password=passme
 
@@ -18,14 +18,19 @@ objectClass: inetOrgPerson
 cn: First Name
 sn: Last Name
 uid: testuser
+userPassword: abcdef
 uidNumber: 5000
 gidNumber: 5000
 homeDirectory: /home/testuser
 loginShell: /bin/sh
 gecos: Comments
 tim@ubu1804:~$ 
-
 ```
+
+### searching ldap with ldapsearch
+
+    ldapsearch uid=testuser4 -x
+
     ldapsearch -x -b "dc=example,dc=com"  -H ldaps://localhost
 ```
 # extended LDIF

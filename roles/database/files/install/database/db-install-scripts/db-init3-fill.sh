@@ -23,8 +23,6 @@ echo "adding basic data (error)" | $OUT
 $PSQLCMD -c "\copy error (error_id,error_lvl,error_txt_ger,error_txt_eng) FROM '$DATADIR/error.csv' DELIMITER ';' CSV" 2>&1 | $OUT
 echo "adding basic data (ip_proto)" | $OUT
 $PSQLCMD -c "\copy stm_ip_proto (ip_proto_id,ip_proto_name,ip_proto_comment) FROM '$DATADIR/ip-protocol-list.csv' DELIMITER ';' CSV" 2>&1 | $OUT
-echo "adding basic data (text_msg)" | $OUT
-$PSQLCMD -c "\copy text_msg (text_msg_id,text_msg_ger,text_msg_eng) FROM '$DATADIR/text_msg.csv' DELIMITER ';' CSV" 2>&1 | $OUT
 echo "adding basic data (iso-fill-stm - mixed)" | $OUT
 $PSQLCMD -c "\i $SQLDIR/iso-fill-stm.sql" 2>&1 | $OUT
 #echo "adding network specific data: sample-data/iso-fill-samples.sql|user.sql" | $OUT

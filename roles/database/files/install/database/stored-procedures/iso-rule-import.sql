@@ -108,6 +108,69 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+----------------------------------------------------
+-- FUNCTION:  import_rules_set_rule_num_numeric (control_id, device_id)
+-- purpose:   sets numeric rule order value in field rule_num_numeric for sorting rules in the correct order
+-- Parameter1: import id (control_id)
+-- Parameter2: device_id
+-- RETURNS:   nothing
+CREATE OR REPLACE FUNCTION import_rules_set_rule_num_numeric (INTEGER,INTEGER) RETURNS VOID AS $$
+DECLARE
+	i_current_control_id ALIAS FOR $1; -- ID des aktiven Imports
+	i_dev_id ALIAS FOR $2; -- ID des zu importierenden Devices
+	i_mgm_id INTEGER; -- ID des zugehoerigen Managements
+	r_rule RECORD;
+	i_prev_numeric_value INTEGER;
+	i_next_numeric_value INTEGER;
+	i_numeric_value INTEGER;
+/*  function layout:
+	for each rule in import_rule
+		if rule changed
+			get rule_num_numeric of previous and next rule from rule table
+			if no prev & no next rule exists: rule_num_numeric = 0
+			elsif no next rule exists: rule_num_numeric = prev + 1000
+			elsif no prev rule exists: rule_num_numeric = next - 1000
+			else set rule_num_numeric = (prev+next)/2
+*/
+BEGIN
+	RAISE DEBUG 'import_rules_set_rule_num_numeric - start';
+	SELECT INTO i_mgm_id mgm_id FROM device WHERE dev_id=i_dev_id;
+	RAISE DEBUG 'import_rules_set_rule_num_numeric - mgm_id=%, dev_id=%, before inserting', i_mgm_id, i_dev_id;
+	FOR r_rule IN -- set rule_num_numeric for changed (i.e. "new") rules
+		SELECT rule.rule_id, rule_num_numeric FROM import_rule LEFT JOIN rule USING (rule_uid) WHERE
+			active AND
+			import_rule.control_id = i_current_control_id AND
+			rule.dev_id=i_dev_id 
+			ORDER BY import_rule.rule_num
+	LOOP
+		RAISE DEBUG 'import_rules_set_rule_num_numeric loop rule %', CAST(r_rule.rule_id AS VARCHAR );
+		IF r_rule.rule_num_numeric IS NULL THEN
+			RAISE DEBUG 'import_rules_set_rule_num_numeric found new rule %', CAST(r_rule.rule_id AS VARCHAR );
+			-- get numeric value of next rule:
+			SELECT INTO i_next_numeric_value rule_num_numeric FROM rule 
+				WHERE active AND dev_id=i_dev_id AND mgm_id=i_mgm_id AND rule_num_numeric>i_prev_numeric_value ORDER BY rule_num_numeric LIMIT 1;
+			RAISE DEBUG 'import_rules_set_rule_num_numeric next rule %', CAST(i_next_numeric_value AS VARCHAR);
+			IF i_prev_numeric_value IS NULL AND i_next_numeric_value IS NULL THEN
+				i_numeric_value := 0;
+			ELSIF i_next_numeric_value IS NULL THEN
+				i_numeric_value := i_prev_numeric_value + 1000;
+			ELSIF i_prev_numeric_value IS NULL THEN
+				i_numeric_value := i_next_numeric_value - 1000;
+			ELSE
+				i_numeric_value := (i_prev_numeric_value + i_next_numeric_value) / 2;
+			END IF; 
+			RAISE DEBUG 'import_rules_set_rule_num_numeric determined rule_num_numeric %', CAST(i_numeric_value AS VARCHAR);
+			UPDATE rule SET rule_num_numeric = i_numeric_value WHERE rule.rule_id=r_rule.rule_id;
+			r_rule.rule_num_numeric := i_numeric_value;
+		END IF;
+		i_prev_numeric_value := r_rule.rule_num_numeric;
+	END LOOP;
+	RAISE DEBUG 'import_rules_set_rule_num_numeric - end';
+	RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
 ----------------------------------------------------
 -- FUNCTION:  insert_single_rule
 -- Zweck:     fuegt eine Regel des aktuellen Imports in die rule-Tabelle ein

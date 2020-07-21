@@ -1,17 +1,14 @@
-openldap_server
-===============
+# openldap_server
 
 This roles installs the OpenLDAP server on the target machine. It has the
 option to enable/disable SSL by setting it in defaults or overriding it.
 
-Requirements
-------------
+## Requirements
 
 This role requires Ansible 1.4 or higher, and platform requirements are listed
 in the metadata file.
 
-Role Variables
---------------
+## Role Variables
 
 The variables that can be passed to this role and a brief description about
 them are as follows:
@@ -25,11 +22,11 @@ them are as follows:
     openldap_serverorganization: IT
 
 
-Examples
---------
+## Examples
 
 1) Configure an OpenLDAP server without SSL:
 
+```
     - hosts: all
       sudo: true
       roles:
@@ -37,9 +34,11 @@ Examples
         openldap_server_domain_name: example.com
         openldap_server_rootpw: passme
         openldap_server_enable_ssl: false
+```
        
 2) Configure an OpenLDAP server with SSL:
 
+```
     - hosts: all
       sudo: true
       roles:
@@ -51,20 +50,16 @@ Examples
         openldap_server_state: Oregon
         openldap_server_location: Portland
         openldap_server_organization: IT
+```
 
-Dependencies
-------------
+## Dependencies
 
 None
 
-License
--------
+## License
 
 BSD
 
-Author Information
-------------------
+## Author Information
 
 Benno Joy
-
-

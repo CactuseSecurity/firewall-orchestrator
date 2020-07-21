@@ -889,7 +889,7 @@ Create table "report"
 
 Create table "role"
 (
-	"role_id" Integer NOT NULL Default nextval('public.role_role_id_seq'::text),
+	"role_id" SERIAL,
 	"role_name" Varchar NOT NULL,
 	"role_can_view_all_devices" Boolean NOT NULL Default false,
 	"role_is_superadmin" Boolean NOT NULL default false,	

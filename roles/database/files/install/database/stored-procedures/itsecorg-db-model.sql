@@ -1,233 +1,12 @@
 /*
 Created		29.04.2005
-Modified		12.05.2020
+Modified	21.07.2020
 Project		IT Security Organizer
 Company		Cactus eSecurity GmbH
-Database		PostgreSQL 8-12
+Database	PostgreSQL 8-12
 */
 
-
-
-/* Drop Trigger Functions */
-
-
-
-/* Drop Domains */
-
-
-
-/* Drop Aggregates */
-
-
-
-/* Drop Sequences */
-Drop sequence "public"."device_dev_id_seq" Cascade;
-Drop sequence "public"."import_object_obj_id_seq" Cascade;
-Drop sequence "public"."log_obj_seq" Cascade;
-Drop sequence "public"."stm_action_action_id_seq" Cascade;
-Drop sequence "public"."client_client_id_seq" Cascade;
-Drop sequence "public"."client_network_client_net_id_seq" Cascade;
-Drop sequence "public"."client_username_client_username_id_seq" Cascade;
-Drop sequence "public"."import_control_id_seq" Cascade;
-Drop sequence "public"."error_log_error_log_id_seq" Cascade;
-Drop sequence "public"."rule_from_rule_from_id_seq" Cascade;
-Drop sequence "public"."abs_change_id_seq" Cascade;
-Drop sequence "public"."request_request_id_seq" Cascade;
-Drop sequence "public"."change_type_change_type_id_seq" Cascade;
-Drop sequence "public"."import_changelog_seq" Cascade;
-Drop sequence "public"."role_role_id_seq" Cascade;
-
-
-
-/* Drop Schemas */
-
-
-
-/* Create Schemas */
-
-
-
-/* Create Domains */
-
-
-
-/* Create User-Defined Type Functions */
-
-
-
-/* Create User-Defined Types */
-
-
-
 /* Create Sequences */
-Create sequence "public"."device_dev_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."management_mgm_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."object_obj_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."rule_rule_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."services_srv_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."usr_user_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."zone_zone_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-
-Create sequence "public"."import_object_obj_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."import_rule_rule_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."import_user_user_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."import_zone_zone_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."log_obj_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."log_rule_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."log_svc_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."log_usr_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."stm_action_action_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."stm_color_stm_color_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."stm_dev_typ_dev_typ_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."stm_nattyp_nattyp_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."stm_obj_typ_obj_typ_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."stm_report_typ_report_typ_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."stm_track_track_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."client_client_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."client_network_client_net_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."client_username_client_username_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."import_control_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."error_log_error_log_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."rule_from_rule_from_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
 
 Create sequence "public"."abs_change_id_seq"
 Increment 1
@@ -235,38 +14,11 @@ Minvalue 1
 Maxvalue 9223372036854775807
 Cache 1;
 
-Create sequence "public"."request_request_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."change_type_change_type_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."import_changelog_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-Create sequence "public"."role_role_id_seq"
-Increment 1
-Minvalue 1
-Maxvalue 9223372036854775807
-Cache 1;
-
-
-
 /* Create Tables */
-
 
 Create table "device"
 (
-	"dev_id" Integer NOT NULL Default nextval('public.device_dev_id_seq'::text),
+	"dev_id" SERIAL,
 	"mgm_id" Integer NOT NULL,
 	"dev_name" Varchar,
 	"dev_rulebase" Varchar,
@@ -292,7 +44,7 @@ Create table "client_project"
 
 Create table "client"
 (
-	"client_id" Integer NOT NULL Default nextval('public.client_client_id_seq'::text),
+	"client_id" SERIAL,
 	"client_name" Varchar NOT NULL,
 	"client_projekt" Varchar,
 	"client_comment" Text,
@@ -310,7 +62,7 @@ Create table "client_object"
 
 Create table "client_network"
 (
-	"client_net_id" Integer NOT NULL Default nextval('public.client_network_client_net_id_seq'::text),
+	"client_net_id" BIGSERIAL,
 	"client_id" Integer NOT NULL,
 	"client_net_name" Varchar,
 	"client_net_comment" Text,
@@ -322,7 +74,7 @@ Create table "client_network"
 
 Create table "management"
 (
-	"mgm_id" Integer NOT NULL Default nextval('public.management_mgm_id_seq'::text),
+	"mgm_id" SERIAL,
 	"dev_typ_id" Integer NOT NULL,
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
@@ -349,7 +101,7 @@ Create table "management"
 
 Create table "object"
 (
-	"obj_id" Integer NOT NULL Default nextval('public.object_obj_id_seq'::text),
+	"obj_id" BIGSERIAL,
 	"last_change_admin" Integer,
 	"zone_id" Integer,
 	"mgm_id" Integer NOT NULL,
@@ -395,7 +147,7 @@ Create table "objgrp"
 
 Create table "rule"
 (
-	"rule_id" Integer NOT NULL Default nextval('public.rule_rule_id_seq'::text),
+	"rule_id" BIGSERIAL,
 	"last_change_admin" Integer,
 	"rule_name" Varchar,
 	"mgm_id" Integer NOT NULL,
@@ -433,7 +185,7 @@ Create table "rule"
 
 Create table "rule_from"
 (
-	"rule_from_id" Integer NOT NULL Default nextval('public.rule_from_rule_from_id_seq'::text) UNIQUE,
+	"rule_from_id" BIGSERIAL,
 	"rf_create" Integer NOT NULL,
 	"rf_last_seen" Integer NOT NULL,
 	"rule_id" Integer NOT NULL,
@@ -479,7 +231,7 @@ Create table "rule_to"
 
 Create table "service"
 (
-	"svc_id" Integer NOT NULL Default nextval('public.services_srv_id_seq'::text),
+	"svc_id" BIGSERIAL,
 	"svc_uid" Text,
 	"svc_name" Varchar,
 	"svc_typ_id" Integer NOT NULL,
@@ -528,14 +280,14 @@ Create table "svcgrp"
 
 Create table "stm_action"
 (
-	"action_id" Integer NOT NULL Default nextval('public.stm_action_action_id_seq'::text),
+	"action_id" SERIAL,
 	"action_name" Varchar NOT NULL,
  primary key ("action_id")
 );
 
 Create table "stm_color"
 (
-	"color_id" Integer NOT NULL Default nextval('public.stm_color_stm_color_id_seq'::text),
+	"color_id" SERIAL,
 	"color_name" Varchar NOT NULL,
 	"color_rgb" Char(7) NOT NULL,
 	"color_comment" Text,
@@ -544,7 +296,7 @@ Create table "stm_color"
 
 Create table "stm_dev_typ"
 (
-	"dev_typ_id" Integer NOT NULL Default nextval('public.stm_dev_typ_dev_typ_id_seq'::text),
+	"dev_typ_id" SERIAL,
 	"dev_typ_manufacturer" Varchar,
 	"dev_typ_name" Varchar NOT NULL,
 	"dev_typ_version" Varchar NOT NULL,
@@ -560,7 +312,7 @@ Create table "stm_dev_typ"
 
 Create table "stm_nattyp"
 (
-	"nattyp_id" Integer NOT NULL Default nextval('public.stm_nattyp_nattyp_id_seq'::text),
+	"nattyp_id" SERIAL,
 	"nattyp_name" Varchar NOT NULL,
 	"nattyp_comment" Text,
  primary key ("nattyp_id")
@@ -568,7 +320,7 @@ Create table "stm_nattyp"
 
 Create table "stm_obj_typ"
 (
-	"obj_typ_id" Integer NOT NULL Default nextval('public.stm_obj_typ_obj_typ_id_seq'::text),
+	"obj_typ_id" SERIAL,
 	"obj_typ_name" Varchar NOT NULL,
 	"obj_typ_comment" Text,
  primary key ("obj_typ_id")
@@ -576,7 +328,7 @@ Create table "stm_obj_typ"
 
 Create table "stm_track"
 (
-	"track_id" Integer NOT NULL Default nextval('public.stm_track_track_id_seq'::text),
+	"track_id" SERIAL,
 	"track_name" Varchar NOT NULL,
  primary key ("track_id")
 );
@@ -599,7 +351,7 @@ Create table "stm_svc_typ"
 
 Create table "zone"
 (
-	"zone_id" Integer NOT NULL Default nextval('public.zone_zone_id_seq'::text) UNIQUE,
+	"zone_id" BIGSERIAL,
 	"zone_create" Integer NOT NULL,
 	"zone_last_seen" Integer NOT NULL,
 	"mgm_id" Integer NOT NULL,
@@ -610,7 +362,7 @@ Create table "zone"
 
 Create table "usr"
 (
-	"user_id" Integer NOT NULL Default nextval('public.usr_user_id_seq'::text) UNIQUE,
+	"user_id" BIGSERIAL PRIMARY KEY,
 	"usr_typ_id" Integer NOT NULL,
 	"user_color_id" Integer Default 1,
 	"mgm_id" Integer NOT NULL,
@@ -631,14 +383,13 @@ Create table "usr"
 	"user_firstname" Varchar,
 	"user_lastname" Varchar,
 	"last_change_admin" Integer,
-	"client_id" Integer,
- primary key ("user_id")
+	"client_id" Integer
 );
 
 Create table "usergrp"
 (
-	"usergrp_id" Integer NOT NULL Default nextval('public.usr_user_id_seq'::text),
-	"usergrp_member_id" Integer NOT NULL Default nextval('public.usr_user_id_seq'::text),
+	"usergrp_id" BIGSERIAL,
+	"usergrp_member_id" BIGSERIAL,
 	"import_created" Integer NOT NULL,
 	"import_last_seen" Integer NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
@@ -647,7 +398,7 @@ Create table "usergrp"
 
 Create table "import_service"
 (
-	"svc_id" Integer NOT NULL Default nextval('public.services_srv_id_seq'::text) UNIQUE,
+	"svc_id" Integer BIGSERIAL,
 	"control_id" Integer NOT NULL,
 	"svc_typ" Text NOT NULL,
 	"svc_name" Varchar,
@@ -673,7 +424,7 @@ Create table "import_service"
 
 Create table "import_object"
 (
-	"obj_id" Integer NOT NULL Default nextval('public.import_object_obj_id_seq'::text) UNIQUE,
+	"obj_id" BIGSERIAL,
 	"obj_zone" Text,
 	"obj_name" Varchar,
 	"obj_typ" Text NOT NULL,
@@ -696,7 +447,7 @@ Create table "import_object"
 
 Create table "import_user"
 (
-	"user_id" Integer NOT NULL Default nextval('public.import_user_user_id_seq'::text) UNIQUE,
+	"user_id" BIGSERIAL,
 	"control_id" Integer NOT NULL,
 	"user_color" Text Default 'black',
 	"user_name" Varchar NOT NULL,
@@ -722,7 +473,7 @@ Create table "import_user"
 Create table "import_rule"
 (
 	"control_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL Default nextval('public.import_rule_rule_id_seq'::text) UNIQUE,
+	"rule_id" BIGSERIAL,
 	"rulebase_name" Varchar NOT NULL,
 	"rule_num" Integer NOT NULL,
 	"rule_uid" Text NOT NULL,
@@ -756,7 +507,7 @@ Create table "import_rule"
 
 Create table "import_control"
 (
-	"control_id" Integer NOT NULL Default nextval('public.import_control_id_seq'::text) UNIQUE,
+	"control_id" BIGSERIAL,
 	"start_time" Timestamp NOT NULL Default now(),
 	"stop_time" Timestamp,
 	"config_name" Text,
@@ -783,7 +534,7 @@ Create table "import_zone"
 
 Create table "changelog_object"
 (
-	"log_obj_id" Integer NOT NULL Default nextval('public.log_obj_seq'::text) UNIQUE,
+	"log_obj_id" BIGSERIAL,
 	"new_obj_id" Integer Constraint "changelog_object_new_obj_id_constraint" Check ((change_action='D' AND new_obj_id IS NULL) OR NOT new_obj_id IS NULL),
 	"old_obj_id" Integer Constraint "changelog_object_old_obj_id_constraint" Check ((change_action='I' AND old_obj_id IS NULL) OR NOT old_obj_id IS NULL),
 	"import_admin" Integer,
@@ -832,7 +583,7 @@ Create table "error"
 
 Create table "changelog_service"
 (
-	"log_svc_id" Integer NOT NULL Default nextval('public.log_svc_seq'::text) UNIQUE,
+	"log_svc_id" BIGSERIAL,
 	"doku_admin" Integer,
 	"control_id" Integer NOT NULL,
 	"import_admin" Integer,
@@ -854,7 +605,7 @@ Create table "changelog_service"
 
 Create table "changelog_user"
 (
-	"log_usr_id" Integer NOT NULL Default nextval('public.log_usr_seq'::text) UNIQUE,
+	"log_usr_id" BIGSERIAL,
 	"new_user_id" Integer Constraint "changelog_user_new_user_id_constraint" Check ((change_action='D' AND new_user_id IS NULL) OR NOT new_user_id IS NULL),
 	"old_user_id" Integer Constraint "changelog_user_old_user_id_contraint" Check ((change_action='I' AND old_user_id IS NULL) OR NOT old_user_id IS NULL),
 	"import_admin" Integer,
@@ -876,7 +627,7 @@ Create table "changelog_user"
 
 Create table "changelog_rule"
 (
-	"log_rule_id" Integer NOT NULL Default nextval('public.log_rule_seq'::text) UNIQUE,
+	"log_rule_id" BIGSERIAL,
 	"doku_admin" Integer,
 	"control_id" Integer NOT NULL,
 	"import_admin" Integer,
@@ -900,7 +651,7 @@ Create table "changelog_rule"
 
 Create table "error_log"
 (
-	"error_log_id" Integer NOT NULL Default nextval('public.error_log_error_log_id_seq'::text) UNIQUE,
+	"error_log_id" BIGSERIAL,
 	"error_id" Varchar NOT NULL,
 	"error_txt" Text,
 	"error_time" Timestamp NOT NULL Default now(),
@@ -909,7 +660,7 @@ Create table "error_log"
 
 Create table "config"
 (
-	"config_id" Integer NOT NULL Default 1 UNIQUE Constraint "config_single_config_check" Check (config_id=1),
+	"config_id" SERIAL,
 	"language" Char(20) Default 'english',
  primary key ("config_id")
 );
@@ -960,7 +711,7 @@ Create table "svcgrp_flat"
 
 Create table "stm_report_typ"
 (
-	"report_typ_id" Integer NOT NULL Default nextval('public.stm_report_typ_report_typ_id_seq'::text) UNIQUE,
+	"report_typ_id" SERIAL,
 	"report_typ_name_german" Varchar NOT NULL,
 	"report_typ_name_english" Varchar,
 	"report_typ_comment_german" Text,
@@ -970,20 +721,20 @@ Create table "stm_report_typ"
 
 Create table "client_user"
 (
-	"user_id" Integer NOT NULL Default nextval('public.usr_user_id_seq'::text),
-	"client_id" Integer NOT NULL Default nextval('public.client_client_id_seq'::text),
+	"user_id" BIGSERIAL,
+	"client_id" BIGSERIAL,
  primary key ("user_id","client_id")
 );
 
 Create table "request"
 (
-	"request_id" Integer NOT NULL Default nextval('public.request_request_id_seq'::text) UNIQUE,
+	"request_id" BIGSERIAL,
 	"request_number" Varchar,
 	"request_time" Timestamp,
 	"request_received" Timestamp,
 	"request_submitter" Varchar,
 	"request_approver" Varchar,
-	"client_id" Integer Default nextval('public.client_client_id_seq'::text),
+	"client_id" Integer,
 	"request_type_id" Integer,
  primary key ("request_id")
 );
@@ -1028,7 +779,7 @@ Create table "usergrp_flat"
 
 Create table "stm_change_type"
 (
-	"change_type_id" Integer NOT NULL Default nextval('public.change_type_change_type_id_seq'::text) UNIQUE,
+	"change_type_id" SERIAL,
 	"change_type_name" Varchar,
  primary key ("change_type_id")
 );
@@ -1056,8 +807,8 @@ Create table "temp_table_for_client_filtered_rule_ids"
 
 Create table "client_username"
 (
-	"client_username_id" Integer NOT NULL Default nextval('public.client_username_client_username_id_seq'::text),
-	"client_id" Integer NOT NULL Default nextval('public.client_client_id_seq'::text),
+	"client_username_id" BIGSERIAL,
+	"client_id" Integer,
 	"client_username_pattern" Varchar,
 	"client_username_comment" Text,
 	"client_username_create" Timestamp NOT NULL Default now(),
@@ -1075,13 +826,13 @@ Create table "request_type"
 Create table "temp_filtered_rule_ids"
 (
 	"report_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL Default nextval('public.rule_rule_id_seq'::text)
+	"rule_id" Integer NOT NULL
 );
 
 Create table "temp_mgmid_importid_at_report_time"
 (
-	"control_id" Integer NOT NULL Default nextval('public.import_control_id_seq'::text),
-	"mgm_id" Integer NOT NULL Default nextval('public.management_mgm_id_seq'::text),
+	"control_id" Integer,
+	"mgm_id" Integer,
 	"report_id" Integer NOT NULL
 );
 
@@ -1096,7 +847,7 @@ Create table "import_changelog"
 	"change_admin" Varchar,
 	"control_id" Integer NOT NULL,
 	"import_changelog_nr" Integer,
-	"import_changelog_id" Integer NOT NULL Default nextval('public.import_changelog_seq'::text) UNIQUE,
+	"import_changelog_id" BIGSERIAL,
  primary key ("import_changelog_id")
 );
 
@@ -1123,7 +874,7 @@ Create table "reporttyp_client_map"
 
 Create table "report"
 (
-	"report_id" Integer NOT NULL Default nextval('public.report_report_id_seq'::text) UNIQUE,
+	"report_id" BIGSERIAL,
 	"report_typ_id" Integer NOT NULL,
 	"start_import_id" Integer NOT NULL,
 	"stop_import_id" Integer,
@@ -1500,40 +1251,12 @@ Alter table "role_to_user" add  foreign key ("user_id") references "isoadmin" ("
 Alter table "role_to_device" add  foreign key ("role_id") references "role" ("role_id") on update restrict on delete cascade;
 Alter table "role_to_device" add  foreign key ("device_id") references "device" ("dev_id") on update restrict on delete cascade;
 
-/* Create Procedures */
-
-
-
-/* Create Aggregates */
-
-
-
-/* Create Views */
-
-
-
-/* Create Referential Integrity Triggers */
-
-
-
-
-
-/* Create Trigger Functions */
-
-
-
-/* Create User-Defined Triggers */
-
-
-
 /* Create Groups */
 Create group "secuadmins";
 Create group "dbbackupusers";
 Create group "configimporters";
 Create group "reporters";
 Create group "isoadmins";
-
-
 
 /* Create Users */
 Create user "itsecorg";
@@ -1545,8 +1268,6 @@ Create user "isoimporter";
 Alter group "dbbackupusers" add user "dbbackup";
 Alter group "configimporters" add user "isoimporter";
 Alter group "isoadmins" add user "itsecorg";
-
-
 
 /* Create Group Permissions */
 /* Group permissions on tables */

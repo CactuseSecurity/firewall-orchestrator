@@ -35,7 +35,8 @@ alter table "request" alter column "client_id" DROP  NOT NULL;
 -- update request set request_type_id = 1; 
 
 -- the following function has to be redefined:
-CREATE OR REPLACE FUNCTION get_request_str(VARCHAR,INTEGER) RETURNS VARCHAR AS $$
+-- CREATE OR REPLACE FUNCTION get_request_str(VARCHAR,INTEGER) RETURNS VARCHAR AS $$
+CREATE OR REPLACE FUNCTION get_request_str(VARCHAR,BIGINT) RETURNS VARCHAR AS $$
 DECLARE
 	v_table	ALIAS FOR $1;
 	i_id	ALIAS FOR $2;

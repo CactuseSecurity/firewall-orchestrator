@@ -1,3 +1,5 @@
+# git(hub) howto
+
 It is recommended to create a personal fork and work on that, except you only make changes on documentation (but no code change). Just use the Fork button on the GitHub UI.
 
 From that fork you can create local clones.
@@ -10,7 +12,7 @@ Source: <https://help.github.com/en/github/collaborating-with-issues-and-pull-re
 
 Add ssh key to profile (Profile - Settings - ssh keys)
 
-# First time add upstream URL (only has to be done once)
+## First time add upstream URL (only has to be done once)
 
 ```
 git remote -v
@@ -18,7 +20,7 @@ git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator
 git remote -v
 ```
 
-# Sync with upstream
+## Sync with upstream
 
 ```
 git fetch upstream
@@ -36,19 +38,19 @@ git pull upstream master
 git push
 ```
 
-# Working via ssh
+## Working via ssh
 
 ```
 git remote add upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 ```
 
-# Change upstream name
+## Change upstream name
 
 ```
 git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 ```
 
-# Example with non-master branch
+## Example with non-master branch
 
 ```
 git clone git@github.com:tpurschke/firewall-orchestrator.git -b tim/make-api-reinstallable
@@ -57,5 +59,20 @@ git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
 git fetch upstream
 git checkout tim/make-api-reinstallable
 git merge upstream/tim/make-api-reinstallable
+git push
+```
+
+## example: merge tpurschke/master with conflicts into CactuseSecurity/master
+```
+git clone git@github.com:tpurschke/firewall-orchestrator.git -b master
+git remote -v
+git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
+git remote -v
+git fetch upstream
+git checkout master
+git merge upstream/master
+# make manual changes, eg.:
+vi roles/database/tasks/iso-setup-database-as-postgres-user.yml
+git commit --all
 git push
 ```

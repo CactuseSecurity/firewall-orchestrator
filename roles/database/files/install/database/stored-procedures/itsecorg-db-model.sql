@@ -398,7 +398,7 @@ Create table "usergrp"
 
 Create table "import_service"
 (
-	"svc_id" Integer BIGSERIAL,
+	"svc_id" BIGSERIAL,
 	"control_id" Integer NOT NULL,
 	"svc_typ" Text NOT NULL,
 	"svc_name" Varchar,

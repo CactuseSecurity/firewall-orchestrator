@@ -1898,6 +1898,12 @@
     {
       "table": {
         "schema": "public",
+        "name": "pg_all_foreign_keys"
+      }
+    },
+    {
+      "table": {
+        "schema": "public",
         "name": "report"
       },
       "object_relationships": [
@@ -3010,6 +3016,12 @@
     {
       "table": {
         "schema": "public",
+        "name": "tap_funky"
+      }
+    },
+    {
+      "table": {
+        "schema": "public",
         "name": "temp_filtered_rule_ids"
       },
       "object_relationships": [
@@ -3262,18 +3274,6 @@
     {
       "table": {
         "schema": "public",
-        "name": "view_changes"
-      }
-    },
-    {
-      "table": {
-        "schema": "public",
-        "name": "view_changes_by_changed_element_id"
-      }
-    },
-    {
-      "table": {
-        "schema": "public",
         "name": "view_device_names"
       }
     },
@@ -3310,18 +3310,6 @@
     {
       "table": {
         "schema": "public",
-        "name": "view_obj_changes"
-      }
-    },
-    {
-      "table": {
-        "schema": "public",
-        "name": "view_reportable_changes"
-      }
-    },
-    {
-      "table": {
-        "schema": "public",
         "name": "view_rule_changes"
       }
     },
@@ -3341,12 +3329,6 @@
       "table": {
         "schema": "public",
         "name": "view_undocumented_change_counter"
-      }
-    },
-    {
-      "table": {
-        "schema": "public",
-        "name": "view_undocumented_changes"
       }
     },
     {

@@ -1048,6 +1048,9 @@ tables:
   table:
     name: objgrp_flat
     schema: public
+- table:
+    name: pg_all_foreign_keys
+    schema: public
 - object_relationships:
   - name: client
     using:
@@ -1644,6 +1647,9 @@ tables:
   table:
     name: svcgrp_flat
     schema: public
+- table:
+    name: tap_funky
+    schema: public
 - object_relationships:
   - name: rule
     using:
@@ -1779,12 +1785,6 @@ tables:
     name: view_change_counter
     schema: public
 - table:
-    name: view_changes
-    schema: public
-- table:
-    name: view_changes_by_changed_element_id
-    schema: public
-- table:
     name: view_device_names
     schema: public
 - table:
@@ -1803,12 +1803,6 @@ tables:
     name: view_import_status_table_unsorted
     schema: public
 - table:
-    name: view_obj_changes
-    schema: public
-- table:
-    name: view_reportable_changes
-    schema: public
-- table:
     name: view_rule_changes
     schema: public
 - table:
@@ -1819,9 +1813,6 @@ tables:
     schema: public
 - table:
     name: view_undocumented_change_counter
-    schema: public
-- table:
-    name: view_undocumented_changes
     schema: public
 - table:
     name: view_user_changes

@@ -29,8 +29,6 @@ $PSQLCMD_INIT -c "DROP DATABASE $ISODB" 2>&1 | tee | $OUT
 echo "creating db $ISODB" 2>&1 | tee | $OUT
 #$DBCREATE_CMD --owner $ISODBUSER $ISODB | $OUT
 $DBCREATE_CMD -c "CREATE DATABASE $ISODB" | $OUT
-echo "adding language plpgsql" 2>&1 | tee | $OUT
-$CREATE_LANG_CMD 2>&1 | $OUT
 echo "creating itsecorg-db-model" | $OUT
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/itsecorg-db-model.sql" 2>&1 | $OUT
 

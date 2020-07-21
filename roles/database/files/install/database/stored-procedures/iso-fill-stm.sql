@@ -1,7 +1,3 @@
--- $Id: iso-fill-stm.sql,v 1.1.2.11 2013-02-01 14:36:48 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-fill-stm.sql,v $
-
--- create default admin for inital login - password should be changed
 
 insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
 	VALUES (1, 'Konfiguration', 'Configuration', 'Zustand der Sicherheitskonfiguration zu einem bestimmten Zeitpunkt', 'snapshot of secuity configuration at a certian time');
@@ -48,9 +44,6 @@ insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmi
 	VALUES (2,'Check Point R8x','System','System');
 insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
 	VALUES (3,'Default','Admin Account','admin');
---insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
---	VALUES (4,'demo','test user','demo');
-
 
 insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');

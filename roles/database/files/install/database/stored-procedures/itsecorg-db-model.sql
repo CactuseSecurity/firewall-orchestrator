@@ -660,8 +660,8 @@ Create table "error_log"
 
 Create table "config"
 (
-	"config_id" SERIAL,
-	"language" Char(20) Default 'english',
+	"config_id" Integer NOT NULL UNIQUE,
+	"language" VARCHAR Default 'english',
  primary key ("config_id")
 );
 

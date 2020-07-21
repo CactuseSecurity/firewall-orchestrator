@@ -62,7 +62,7 @@ git merge upstream/tim/make-api-reinstallable
 git push
 ```
 
-## example: merge tpurschke/master with conflicts into CactuseSecurity/master
+## example: merge fork branch (tpurschke/master) with conflicts into CactuseSecurity/master
 ```
 git clone git@github.com:tpurschke/firewall-orchestrator.git -b master
 cd firewall-orchestrator

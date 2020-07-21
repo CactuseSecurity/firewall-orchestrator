@@ -3,7 +3,7 @@ Created		29.04.2005
 Modified	21.07.2020
 Project		IT Security Organizer
 Company		Cactus eSecurity GmbH
-Database	PostgreSQL 8-12
+Database	PostgreSQL 9-12
 */
 
 /* Create Sequences */
@@ -1862,6 +1862,13 @@ Grant select on "stm_color_color_id_seq" to group "configimporters";
 Grant select on "stm_color_color_id_seq" to group "reporters";
 Grant select on "stm_color_color_id_seq" to group "isoadmins";
 Grant update on "stm_color_color_id_seq" to group "isoadmins";
+
+Grant select on "abs_change_id_seq" to group "secuadmins";
+Grant select on "abs_change_id_seq" to group "dbbackupusers";
+Grant select on "abs_change_id_seq" to group "configimporters";
+Grant select on "abs_change_id_seq" to group "reporters";
+Grant select on "abs_change_id_seq" to group "isoadmins";
+Grant update on "abs_change_id_seq" to group "isoadmins";
 
 Grant select on "config_config_id_seq" to group "secuadmins";
 Grant select on "config_config_id_seq" to group "dbbackupusers";

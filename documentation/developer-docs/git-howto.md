@@ -65,6 +65,7 @@ git push
 ## example: merge tpurschke/master with conflicts into CactuseSecurity/master
 ```
 git clone git@github.com:tpurschke/firewall-orchestrator.git -b master
+cd firewall-orchestrator
 git remote -v
 git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
 git remote -v

@@ -34,7 +34,7 @@ insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_na
 -- 	VALUES (7, 'Konsistenz', 'consistency', 'Anzeige von Anomalitaeten der importierten Daten', 'show anomalies of imported data');
 
 
-insert into config (language) VALUES ('german');
+insert into config (config_id, language) VALUES (1, 'german');
 
 insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
 	VALUES (0,'automated','import','autoimport');

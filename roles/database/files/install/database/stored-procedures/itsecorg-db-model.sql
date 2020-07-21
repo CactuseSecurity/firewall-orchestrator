@@ -660,7 +660,7 @@ Create table "error_log"
 
 Create table "config"
 (
-	"config_id" Integer NOT NULL UNIQUE,
+	"config_id" BIGSERIAL,
 	"language" VARCHAR Default 'english',
  primary key ("config_id")
 );
@@ -1853,6 +1853,22 @@ Grant select on "role_to_device" to group "isoadmins";
 Grant select on "role_to_device" to group "reporters";
 Grant update on "role_to_device" to group "isoadmins";
 Grant insert on "role_to_device" to group "isoadmins";
+
+/* special grants for certain implicit sequences */
+
+Grant select on "stm_color_color_id_seq" to group "secuadmins";
+Grant select on "stm_color_color_id_seq" to group "dbbackupusers";
+Grant select on "stm_color_color_id_seq" to group "configimporters";
+Grant select on "stm_color_color_id_seq" to group "reporters";
+Grant select on "stm_color_color_id_seq" to group "isoadmins";
+Grant update on "stm_color_color_id_seq" to group "isoadmins";
+
+Grant select on "config_config_id_seq" to group "secuadmins";
+Grant select on "config_config_id_seq" to group "dbbackupusers";
+Grant select on "config_config_id_seq" to group "configimporters";
+Grant select on "config_config_id_seq" to group "reporters";
+Grant select on "config_config_id_seq" to group "isoadmins";
+Grant update on "config_config_id_seq" to group "isoadmins";
 
 /* Group permissions on views */
 

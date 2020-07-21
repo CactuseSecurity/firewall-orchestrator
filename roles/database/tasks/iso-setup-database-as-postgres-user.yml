@@ -46,7 +46,8 @@
        shell:  "{{ iso_home }}/install/database/db-install-scripts/db-init3-fill.sh"
        when: clean_install is defined or db_exists.stdout=="0"
 
-#     - name: create test user (eg. for demo.itsecorg.de)
-#       shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = ''test'') THEN CREATE ROLE test PASSWORD ''{{ test_pwd }}'' IN ROLE secuadmins LOGIN; END IF; END \$do\$"'
+     - name: create admin user (default admin for web login)
+       shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
+
   become: yes
   become_user: postgres

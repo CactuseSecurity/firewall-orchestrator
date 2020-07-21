@@ -62,7 +62,10 @@ git merge upstream/tim/make-api-reinstallable
 git push
 ```
 
-## Example: merge fork into CactuseSecurity/master with conflicts 
+## Example: merge with conflicts 
+
+How to merge fork tpurschke/master into CactuseSecurity/master 
+
 1. get fork to merge
 
        git clone git@github.com:tpurschke/firewall-orchestrator.git -b master
@@ -81,11 +84,11 @@ git push
 
        git merge upstream/master
 
-results in output:
-
-    Auto-merging roles/database/tasks/iso-setup-database-as-postgres-user.yml
-    CONFLICT (content): Merge conflict in roles/database/tasks/iso-setup-database-as-postgres-user.yml
-    Automatic merge failed; fix conflicts and then commit the result.
+    results in output:
+    
+       Auto-merging roles/database/tasks/iso-setup-database-as-postgres-user.yml
+       CONFLICT (content): Merge conflict in roles/database/tasks/iso-setup-database-as-postgres-user.yml
+       Automatic merge failed; fix conflicts and then commit the result.
 
 5. make manual changes, eg.
 

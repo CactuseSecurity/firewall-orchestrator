@@ -21,9 +21,9 @@ PATH=$PATH:$ISOBINDIR:$ISOBASE/importer
 #echo "dropping db $ISODB, may fail but fallback (drop tables) in place" | $OUT
 $PSQLCMD_INIT -c "DROP DATABASE $ISODB" 2>&1 | tee | $OUT
 #/bin/sleep 3			# waiting for connection to template to finish
-echo "creating dbusers"  2>&1 | tee | $OUT	# creating basic groups and users
-$PSQLCMD_INIT -c "create user \"$ISODBUSER\" with password '$ISODBPW'" #   2>&1 | $OUT
-$PSQLCMD_INIT -c "create user \"admin\" WITH PASSWORD '$ADMINPW' IN GROUP secuadmins, isoadmins;"
+#echo "creating dbusers"  2>&1 | tee | $OUT	# creating basic groups and users
+#$PSQLCMD_INIT -c "create user \"$ISODBUSER\" with password '$ISODBPW'" #   2>&1 | $OUT
+#$PSQLCMD_INIT -c "create user \"admin\" WITH PASSWORD '$ADMINPW' IN GROUP secuadmins, isoadmins;"
 
 # the following lines are only needed, if no DB restore is done 
 echo "creating db $ISODB" 2>&1 | tee | $OUT

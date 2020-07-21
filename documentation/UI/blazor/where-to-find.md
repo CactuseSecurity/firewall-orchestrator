@@ -1,1 +1,1 @@
-[firewall-orchestrator/roles/frontend-new/files/Blazor/](https://github.com/CactuseSecurity/firewall-orchestrator/tree/master/roles/frontend-new/files/Blazor)
+[firewall-orchestrator/roles/frontend/files/Blazor/](https://github.com/CactuseSecurity/firewall-orchestrator/tree/master/roles/frontend/files/Blazor)

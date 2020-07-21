@@ -17,12 +17,6 @@
        shell: "wget -qO - -e use_proxy=yes -e https_proxy={{ https_proxy }} https://download.docker.com/linux/ubuntu/gpg | apt-key add -"
        when: https_proxy is defined
 
-#     - name: add apt signing key for docker
-#       environment: "{{ proxy_env }}"
-#       apt_key:
-#         url: https://download.docker.com/linux/ubuntu/gpg
-#         state: present
-
      - name: add docker repo
        lineinfile:
          path: "/etc/apt/sources.list.d/docker.list"
@@ -38,14 +32,9 @@
          name: "{{ packages }}"
        vars:
          packages:
-         - gnupg2
          - docker-ce
          - docker-ce-cli
          - containerd.io
-         - apt-transport-https
-         - ca-certificates 
-         - curl 
-         - software-properties-common
        
      - name: Append the group 'docker' for ansible_user to enable him/her to run docker
        user:

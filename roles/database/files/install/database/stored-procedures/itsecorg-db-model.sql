@@ -401,6 +401,7 @@ Create table "rule"
 	"mgm_id" Integer NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"rule_num" Integer NOT NULL,
+	"rule_num_numeric" NUMERIC(16, 8),
 	"rule_ruleid" Varchar,
 	"rule_uid" Text,
 	"rule_disabled" Boolean NOT NULL Default false,

@@ -72,8 +72,10 @@ BEGIN
 				v_err_pos := 'import_rules of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
 				IF (import_rules(r_dev.dev_id, i_current_import_id)) THEN  				-- returns true if rule_order needs to be written
 																						-- currently always returns true as each import needs a rule_order
-					v_err_pos := 'import_rules_save_order of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
-					PERFORM import_rules_save_order(i_current_import_id,r_dev.dev_id);	
+					v_err_pos := 'import_rules_set_rule_num_numeric of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
+					PERFORM import_rules_save_order(i_current_import_id,r_dev.dev_id);  -- todo: to be removed
+					-- in case of any changes - adjust rule_num values in rulebase
+					PERFORM import_rules_set_rule_num_numeric (i_current_import_id,r_dev.dev_id);
 				END IF;
 			END IF;
 		END LOOP;

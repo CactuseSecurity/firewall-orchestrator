@@ -63,18 +63,32 @@ git push
 ```
 
 ## example: merge fork branch (tpurschke/master) with conflicts into CactuseSecurity/master
-```
-git clone git@github.com:tpurschke/firewall-orchestrator.git -b master
+get fork to merge:
+
+    git clone git@github.com:tpurschke/firewall-orchestrator.git -b master
+
 cd firewall-orchestrator
-git remote -v
-git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
-git remote -v
-git fetch upstream
-git checkout master
+
+add remote upstream repo
+
+    git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
+    ### not necessary? - git fetch upstream
+    ### not necessary? - git checkout master
 git merge upstream/master
-# make manual changes, eg.:
-vi roles/database/tasks/iso-setup-database-as-postgres-user.yml
-git commit --all
-git push
-```
+
+results in output:
+
+    Auto-merging roles/database/tasks/iso-setup-database-as-postgres-user.yml
+    CONFLICT (content): Merge conflict in roles/database/tasks/iso-setup-database-as-postgres-user.yml
+    Automatic merge failed; fix conflicts and then commit the result.
+
+make manual changes, eg.:
+
+    vi roles/database/tasks/iso-setup-database-as-postgres-user.yml
+
+submit changes:
+
+    git commit --all
+    git push
+
 Finally merge repos (now without conflicts) via github web ui

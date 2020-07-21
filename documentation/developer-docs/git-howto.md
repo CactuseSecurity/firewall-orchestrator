@@ -77,3 +77,4 @@ vi roles/database/tasks/iso-setup-database-as-postgres-user.yml
 git commit --all
 git push
 ```
+Finally merge repos (now without conflicts) via github web ui

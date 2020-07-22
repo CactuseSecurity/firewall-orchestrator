@@ -27,7 +27,7 @@
         group: root
         
     - name: enable apache modules proxy proxy_http ssl
-      command: "a2enmod proxy proxy_http ssl proxy_wstunnel"
+      command: "a2enmod proxy proxy_http ssl rewrite proxy_wstunnel"
 
     - name: copy cert creation script to apache target
       script: "apache_create_server_cert.sh" 

@@ -3,11 +3,13 @@
 - This project is provisioned by Ansible
 - The playbook (main) is site.yml
 - The hosts and its associated roles are described in the following sections
-- Corresponding variables are defined in inventory
+- Corresponding variables are defined in the inventory directory
+- All servers and their ip addresses are defined in inventory/hosts
+
 
 ## hosts: all
 
-- This host defines roles and variables for all other hosts
+- This host group defines roles and variables for all hosts
 - A list of important variables from inventory/all
 
   ```
@@ -28,9 +30,6 @@
   
 ## hosts: backends
 
-- This host ...
-- The server of this host is (are) defined in inventory/hosts
-
   - By default, this is isosrv (localhost) for demo purposes
   - This should be changed to fit the customers infrastructure
 
@@ -41,7 +40,7 @@
     
     ```
 
-- The roles of backends are
+- The roles to be installed on backends are
 
   - docker
   - backend
@@ -54,13 +53,13 @@
   - downloads and installs Docker and related packages
   - creates local config directory {{ iso_home }}/.docker and adds config.json
 
-- The role backend executes the tasks
+- The role database executes the tasks
 
-  - installs postgresql
+  - installs postgresql DBMS
   - copies install directory (roles/backend/files/install) to {{ iso_home }}. It contains the database
-  - makes database install scripts executable
+  - removes all containers to make sure the database can be dropped (otherwise the hasura process blocks dropping the database)
+  - copies and executes database install scripts
   - sets passwords for database users
-  - removes all containers # (Tim fragen)
   
 - The role api executes the tasks
   - defines the directories

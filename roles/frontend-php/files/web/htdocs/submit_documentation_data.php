@@ -116,7 +116,7 @@
 					while (list($changelog_id, $table_name) = each($changelog)) {
 						list($log_id_name, $request_change_table, , ) =	$change_element->set_changelog_sql_values($table_name); 
 						$sql_code .= ("INSERT INTO $request_change_table " .
-							"($log_id_name,request_id) VALUES ($changelog_id,SELECT MAX(request.request_id); ");
+							"($log_id_name,request_id) VALUES ($changelog_id,SELECT MAX(request_id) FROM request; ");
 					}
 					// build change_request string for changelog_xxx
 					if ($change_request_str<>'') $change_request_str .= '<br>';
@@ -209,7 +209,7 @@
 				while (list($changelog_id, $table_name) = each($changelog)) {
 					list($log_id_name, $request_change_table, , ) =	$change_element->set_changelog_sql_values($table_name); 
 					$sql_code .= ("INSERT INTO $request_change_table " .
-						"($log_id_name,request_id) VALUES ($changelog_id,SELECT MAX(request.request_id)); ");
+						"($log_id_name,request_id) VALUES ($changelog_id,SELECT MAX(request_id) FROM request); ");
 				}
 			}
 			output_debug ("sql_code for deleting unref requests and adding new req-relations: $sql_code");

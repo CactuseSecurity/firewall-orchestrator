@@ -1310,6 +1310,14 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group secuad
 -- granular grants:
 
 -- config importers:
+Grant ALL on "import_service" to group "configimporters";
+Grant ALL on "import_object" to group "configimporters";
+Grant ALL on "import_user" to group "configimporters";
+Grant ALL on "import_rule" to group "configimporters";
+Grant ALL on "import_control" to group "configimporters";
+Grant ALL on "import_zone" to group "configimporters";
+Grant ALL on "import_changelog" to group "configimporters";
+
 Grant update on "device" to group "configimporters";
 Grant update on "management" to group "configimporters";
 Grant update,insert on "object" to group "configimporters";
@@ -1322,37 +1330,21 @@ Grant update,insert on "rule_to" to group "configimporters";
 Grant update,insert on "service" to group "configimporters";
 Grant update,insert on "svcgrp" to group "configimporters";
 Grant update,insert on "usr" to group "configimporters";
+Grant update,insert on "zone" to group "configimporters";
 Grant update,insert on "usergrp" to group "configimporters";
+Grant update,insert on "usergrp_flat" to group "configimporters";
+Grant update,insert on "rule_order" to group "configimporters";
+Grant update,insert on "objgrp_flat" to group "configimporters";
+Grant update,insert on "svcgrp_flat" to group "configimporters";
+Grant update,insert on "client_user" to group "configimporters";
 Grant insert on "changelog_object" to group "configimporters";
 Grant insert on "changelog_service" to group "configimporters";
 Grant insert on "changelog_user" to group "configimporters";
 Grant insert on "changelog_rule" to group "configimporters";
 Grant insert on "error_log" to group "configimporters";
-Grant update on "rule_order" to group "configimporters";
-Grant update,insert on "objgrp_flat" to group "configimporters";
-Grant update,insert on "svcgrp_flat" to group "configimporters";
-Grant update,insert on "client_user" to group "configimporters";
-
-Grant ALL on "import_service" to group "configimporters";
-Grant ALL on "import_object" to group "configimporters";
-Grant ALL on "import_user" to group "configimporters";
-Grant ALL on "import_rule" to group "configimporters";
-Grant ALL on "import_control" to group "configimporters";
-Grant ALL on "import_zone" to group "configimporters";
-Grant update,insert on "usergrp_flat" to group "configimporters";
-Grant ALL on "import_changelog" to group "configimporters";
-
 
 -- secuadmins:
 
-Grant update on "isoadmin" to group "secuadmins";
-Grant update on "isoadmin" to group "reporters";
-Grant update,insert on "changelog_object" to group "secuadmins";
-Grant update,insert on "changelog_service" to group "secuadmins";
-Grant update,insert on "changelog_user" to group "secuadmins";
-Grant update,insert on "changelog_rule" to group "secuadmins";
-Grant update,insert on "error_log" to group "secuadmins";
-Grant insert on "report" to group "secuadmins";
 Grant ALL on "request" to group "secuadmins";
 Grant ALL on "request_object_change" to group "secuadmins";
 Grant ALL on "request_service_change" to group "secuadmins";
@@ -1363,13 +1355,23 @@ Grant ALL on "client_username" to group "secuadmins";
 Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
 Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
 
+Grant update on "isoadmin" to group "secuadmins";
+Grant update,insert on "changelog_object" to group "secuadmins";
+Grant update,insert on "changelog_service" to group "secuadmins";
+Grant update,insert on "changelog_user" to group "secuadmins";
+Grant update,insert on "changelog_rule" to group "secuadmins";
+Grant update,insert on "error_log" to group "secuadmins";
+Grant insert on "report" to group "secuadmins";
+
 -- reporters:
 
-Grant insert on "error_log" to group "reporters";
-Grant insert on "report" to group "reporters";
 Grant ALL on "temp_table_for_client_filtered_rule_ids" to group "reporters";
 Grant ALL on "temp_filtered_rule_ids" to group "reporters";
 Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
+
+Grant update on "isoadmin" to group "reporters";
+Grant insert on "error_log" to group "reporters";
+Grant insert on "report" to group "reporters";
 
 
 

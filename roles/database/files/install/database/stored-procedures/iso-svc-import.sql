@@ -91,8 +91,11 @@ DECLARE
 	i_previous_import_id  INTEGER; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
 	r_svc  RECORD;  -- Datensatz mit einzelner svc_id aus import_service-Tabelle des zu importierenden Services
 BEGIN
+	RAISE DEBUG 'import_svc_mark_deleted start';
 	i_previous_import_id := get_previous_import_id_for_mgmt(i_mgm_id,i_current_import_id);
+	RAISE DEBUG 'import_svc_mark_deleted 1';
 	i_import_admin_id := get_last_change_admin_of_obj_delete (i_current_import_id);	
+	RAISE DEBUG 'import_svc_mark_deleted 2';
 	IF NOT i_previous_import_id IS NULL THEN -- wenn das Management nicht zum ersten Mal importiert wurde
 	   	-- alle nicht mehr vorhandenen Services in changelog_object als geloescht eintragen
 		FOR r_svc IN -- jedes geloeschte Element wird in changelog_service eingetragen
@@ -107,6 +110,7 @@ BEGIN
 		-- active-flag von allen in diesem Import geloeschten Objekten loeschen
 		UPDATE service SET active='FALSE' WHERE mgm_id=i_mgm_id AND svc_last_seen=i_previous_import_id AND active;
 	END IF;
+	RAISE DEBUG 'import_svc_mark_deleted finished';
 	RETURN;
 END;
 $$ LANGUAGE plpgsql;

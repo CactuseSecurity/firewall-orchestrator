@@ -89,7 +89,7 @@
         owner: "root"
 
     - name: make blazor ui run at host startup
-      command: "systemctl enable "
+      command: "systemctl enable {{ ui_service_name }}"
 
     - name: start blazor ui
       command: "systemctl start {{ ui_service_name }}"

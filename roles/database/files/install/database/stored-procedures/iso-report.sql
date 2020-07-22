@@ -772,7 +772,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter3:	client_id fuer Filterung innerhalb der Regel
 -- RETURNS:		wahr, wenn in den Quellen der Regeln ein Client-relevantes Objekt enthalten ist
 --
-CREATE OR REPLACE FUNCTION rule_src_contains_client_obj (INTEGER, INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION rule_src_contains_client_obj (BIGINT, INTEGER) RETURNS BOOLEAN AS $$
 DECLARE
     i_rule_id ALIAS FOR $1;
 --    i_import_id ALIAS FOR $2;
@@ -807,7 +807,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter2:	client_id fuer Filterung innerhalb der Regel
 -- RETURNS:		wahr, wenn in den Zielen der Regeln ein Client-relevantes Objekt enthalten ist
 --
-CREATE OR REPLACE FUNCTION rule_dst_contains_client_obj (INTEGER, INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION rule_dst_contains_client_obj (BIGINT, INTEGER) RETURNS BOOLEAN AS $$
 DECLARE
     i_rule_id ALIAS FOR $1;
     i_client_id ALIAS FOR $2;
@@ -836,7 +836,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter2:	client_id
 -- RETURNS:		wahr, wenn object zum Client mit client_id gehoert
 --
-CREATE OR REPLACE FUNCTION obj_belongs_to_client (INTEGER, INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION obj_belongs_to_client (BIGINT, INTEGER) RETURNS BOOLEAN AS $$
 DECLARE
     i_obj_id ALIAS FOR $1;
     i_client_id ALIAS FOR $2;
@@ -864,7 +864,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter2:	client_id
 -- RETURNS:		wahr, wenn das Komplement von object zum Client mit client_id gehoert
 --
-CREATE OR REPLACE FUNCTION obj_neg_belongs_to_client (INTEGER, INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION obj_neg_belongs_to_client (BIGINT, INTEGER) RETURNS BOOLEAN AS $$
 DECLARE
     i_obj_id ALIAS FOR $1;
     i_client_id ALIAS FOR $2;
@@ -889,7 +889,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:	Array of Object-IDs
 -- RETURNS:		Array of Object-IDs
 --
-CREATE OR REPLACE FUNCTION flatten_obj_list (INTEGER[]) RETURNS INTEGER[] AS $$
+CREATE OR REPLACE FUNCTION flatten_obj_list (BIGINT[]) RETURNS BIGINT[] AS $$
 DECLARE
     ar_obj_ids ALIAS FOR $1;
     r_obj	RECORD;
@@ -920,7 +920,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter3:	Zeitpunkt
 -- RETURNS:		Tabelle mit allen src-obj_ids der Regel fuer Report
 --
-CREATE OR REPLACE FUNCTION get_rule_src (INTEGER, INTEGER, TIMESTAMP) RETURNS SETOF INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_rule_src (BIGINT, INTEGER, TIMESTAMP) RETURNS SETOF BIGINT AS $$
 DECLARE
     i_rule_id		ALIAS FOR $1;
     i_client_id		ALIAS FOR $2;
@@ -982,8 +982,8 @@ $$ LANGUAGE plpgsql;
 -- Parameter3:	client_id fuer Filterung innerhalb der Regel
 -- RETURNS:		Tabele mit allen dst-obj_ids der Regel fuer Report
 --
--- CREATE OR REPLACE FUNCTION get_rule_dst (INTEGER, INTEGER, INTEGER) RETURNS SETOF INTEGER AS $$
-CREATE OR REPLACE FUNCTION get_rule_dst (INTEGER, INTEGER, TIMESTAMP) RETURNS SETOF INTEGER AS $$
+-- CREATE OR REPLACE FUNCTION get_rule_dst (BIGINT, INTEGER, INTEGER) RETURNS SETOF INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_rule_dst (BIGINT, INTEGER, TIMESTAMP) RETURNS SETOF BIGINT AS $$
 DECLARE
     i_rule_id	ALIAS FOR $1;
     i_client_id ALIAS FOR $2;
@@ -1049,7 +1049,7 @@ $$ LANGUAGE plpgsql;
 
 -- DROP FUNCTION get_rule_src(integer, integer, timestamp without time zone);
 
-CREATE OR REPLACE FUNCTION get_rule_src_flat (integer, integer, timestamp without time zone)
+CREATE OR REPLACE FUNCTION get_rule_src_flat (BIGINT, integer, timestamp without time zone)
   RETURNS SETOF integer AS
 $BODY$
 DECLARE
@@ -1114,7 +1114,7 @@ $BODY$
 
 -- DROP FUNCTION get_rule_src(integer, integer, timestamp without time zone);
 
-CREATE OR REPLACE FUNCTION get_rule_dst_flat (integer, integer, timestamp without time zone)
+CREATE OR REPLACE FUNCTION get_rule_dst_flat (BIGINT, integer, timestamp without time zone)
   RETURNS SETOF integer AS
 $BODY$
 DECLARE

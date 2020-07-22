@@ -14,7 +14,7 @@
 -- DROP FUNCTION public.import_svc_main(integer, boolean);
 
 CREATE OR REPLACE FUNCTION public.import_svc_main(
-    integer,
+    BIGINT,
     boolean)
   RETURNS void AS
 $BODY$
@@ -83,7 +83,7 @@ ALTER FUNCTION public.import_svc_main(integer, boolean)
 -- Parameter: import_service.svc_id (die ID des zu importierenden Services)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_mark_deleted(INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_mark_deleted(BIGINT,INTEGER) RETURNS VOID AS $$
 DECLARE
     i_current_import_id	ALIAS FOR $1;
     i_mgm_id			ALIAS FOR $2;
@@ -124,9 +124,9 @@ $$ LANGUAGE plpgsql;
 -- DROP FUNCTION public.import_svc_single(integer, integer, integer, integer, boolean);
 
 CREATE OR REPLACE FUNCTION public.import_svc_single(
+    BIGINT,
     integer,
-    integer,
-    integer,
+    BIGINT,
     integer,
     boolean)
   RETURNS void AS

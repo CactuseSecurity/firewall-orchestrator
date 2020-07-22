@@ -1312,7 +1312,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group secuad
 -- config importers:
 Grant update on "device" to group "configimporters";
 Grant update on "management" to group "configimporters";
-Grant update on "object" to group "configimporters";
+Grant update,insert on "object" to group "configimporters";
 Grant update,insert on "objgrp" to group "configimporters";
 Grant update,insert on "rule" to group "configimporters";
 Grant update,insert on "rule_from" to group "configimporters";

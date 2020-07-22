@@ -10,7 +10,7 @@
 -- Parameter2: import_id
 -- RETURNS:   should rule_order be written (aka has anything been changed?)
 --
-CREATE OR REPLACE FUNCTION import_rules (INTEGER,INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION import_rules (INTEGER,BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
     i_dev_id  ALIAS FOR $1; -- zum Holen der dev_ID fuer Loeschen von Regeln
     i_current_import_id ALIAS FOR $2;
@@ -84,7 +84,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter: device_id::INTEGER
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_rules_save_order (INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_rules_save_order (BIGINT,INTEGER) RETURNS VOID AS $$
 DECLARE
 	i_current_control_id ALIAS FOR $1; -- ID des aktiven Imports
 	i_dev_id ALIAS FOR $2; -- ID des zu importierenden Devices
@@ -115,7 +115,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1: import id (control_id)
 -- Parameter2: device_id
 -- RETURNS:   nothing
-CREATE OR REPLACE FUNCTION import_rules_set_rule_num_numeric (INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_rules_set_rule_num_numeric (BIGINT,INTEGER) RETURNS VOID AS $$
 DECLARE
 	i_current_control_id ALIAS FOR $1; -- ID des aktiven Imports
 	i_dev_id ALIAS FOR $2; -- ID des zu importierenden Devices
@@ -182,7 +182,7 @@ $$ LANGUAGE plpgsql;
 
 -- RETURNS:   b_rule_order_to_be_written (aka has anything been changed?)
 --
-CREATE OR REPLACE FUNCTION insert_single_rule(INTEGER,INTEGER,INTEGER,INTEGER,BOOLEAN) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION insert_single_rule(BIGINT,INTEGER,INTEGER,BIGINT,BOOLEAN) RETURNS BOOLEAN AS $$
 DECLARE
     id   ALIAS FOR $1;
     i_dev_id   ALIAS FOR $2;

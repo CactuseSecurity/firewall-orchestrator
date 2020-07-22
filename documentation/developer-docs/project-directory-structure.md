@@ -46,7 +46,8 @@
   - docker
   - backend
   - api
-  - auth_backend
+  - auth
+  - openldap-server
   
 - The role docker executes the tasks
 

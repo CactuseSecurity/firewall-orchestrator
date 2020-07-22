@@ -5,25 +5,19 @@
 import fnmatch
 import datetime
 import os
+import sys
 
-# Default variables if run as individual script
-if __name__ == "__main__":
-    config_path = "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg"
-    uid = 52
-# Variables if called by config_changes_main.py
-else:
+# Define global variables that may be passed on the command line and their defaults if not
+# example$ python3 write_date_to_comment.py uid "path"
 
-    import sys
-
-    config_path = sys.argv[1]
-    uid = sys.argv[2]
+uid = sys.argv[1] if len(sys.argv) >= 2 else 52
+config_path = sys.argv[2] if len(sys.argv) >= 3 else "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg"
 
 with open(config_path, "r") as fin:
     data = fin.readlines()
 
 rule_area_flag = False
 uid_flag = False
-set_comment_flag = False
 current_line = 0
 for line in data:
     if fnmatch.filter([line], 'config firewall policy\n'):
@@ -31,12 +25,10 @@ for line in data:
     if fnmatch.filter([line], '    edit {}\n'.format(uid)):
         uid_flag = True
     if fnmatch.filter([line], '        set comments*') and uid_flag and rule_area_flag:
-        line = '        set comments "{}"\n'.format(datetime.datetime.now())
-        set_comment_flag = True
+        data[current_line] = '        set comments "{}"\n'.format(datetime.datetime.now())
         break
-    if fnmatch.filter([line], '    next\n') and uid_flag and rule_area_flag and not set_comment_flag:
+    if fnmatch.filter([line], '    next\n') and uid_flag and rule_area_flag:
         data.insert(current_line, '        set comments "{}"\n'.format(datetime.datetime.now()))
-        set_comment_flag = True
         break
     if fnmatch.filter([line], '    next\n'):
         uid_flag = False
@@ -44,8 +36,8 @@ for line in data:
         rule_area_flag = False
     current_line = current_line + 1
 
-with open(config_path + ".tmp", "w") as fout:
+with open(config_path + "2.tmp", "w") as fout:
     data = "".join(data)
     fout.write(data)
 
-os.rename(config_path + '.tmp', config_path)
+os.rename(config_path + '2.tmp', config_path)

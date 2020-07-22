@@ -5,6 +5,9 @@
 import random
 import string
 import fnmatch
+import os
+
+uid = 60
 
 
 def random_octet():
@@ -25,61 +28,78 @@ def random_uuid():
 ip_address = random_ip()
 uuid = random_uuid()
 count = 1
+config_path = "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg"
 line_to_insert_at = -1
-fin = open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "r")
-data = fin.readlines()
-fin.close()
+
+with open(config_path, "r") as fin:
+    data = fin.readlines()
+
 for line in data:
-    if fnmatch.filter([line], 'config firewall address[!6]*'):
+    if fnmatch.filter([line], 'config firewall address\n'):
         line_to_insert_at = count
+        break
     else:
         count = count + 1
-if line_to_insert_at > -1:
-    data.insert(line_to_insert_at, '    edit "{}"\n'.format(ip_address))
-    data.insert(line_to_insert_at + 1, '        set uuid {}\n'.format(uuid))
-    data.insert(line_to_insert_at + 2, '        set associated-interface "kids-wifi"\n')
-    data.insert(line_to_insert_at + 3, '        set subnet {} 255.255.255.255\n'.format(ip_address))
-    data.insert(line_to_insert_at + 4, '        set comment "Automatically built for test purposes"\n')
-    data.insert(line_to_insert_at + 5, '    next\n')
-    data.insert(line_to_insert_at + 6, '# recognition comment for auto-delete function')
 
-fout = open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "w")
-data = "".join(data)
-fout.write(data)
-fout.close()
+if line_to_insert_at > -1:
+    data.insert(line_to_insert_at, '# start recognition comment for auto-delete function\n')
+    data.insert(line_to_insert_at + 1, '    edit "{}"\n'.format(ip_address))
+    data.insert(line_to_insert_at + 2, '        set uuid {}\n'.format(uuid))
+    data.insert(line_to_insert_at + 3, '        set associated-interface "kids-wifi"\n')
+    data.insert(line_to_insert_at + 4, '        set subnet {} 255.255.255.255\n'.format(ip_address))
+    data.insert(line_to_insert_at + 5, '        set comment "Automatically built for test purposes"\n')
+    data.insert(line_to_insert_at + 6, '    next\n')
+    data.insert(line_to_insert_at + 7, '# end recognition comment for auto-delete function\n')
 
 # Third step: add new objects to rule 60
 
-with open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "r") as fin:
-    lines = fin.readlines()
-with open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "w") as fout:
-    uid_flag = False
-    delete_unused_networkobjects = False
-    for line in lines:
-        if fnmatch.filter([line], '*edit 60*'):
-            uid_flag = True
-        if fnmatch.filter([line], '*next*'):
-            uid_flag = False
-        if fnmatch.filter([line], '*set srcaddr*') and uid_flag:
-            if fnmatch.filter([line], '*"all"*') or len(line) > 200:
-                line = '        set srcaddr "{}"\n'.format(ip_address)
-                delete_unused_networkobjects = True
-            else:
-                line = line.rstrip() + ' "{}"\n'.format(ip_address)
-        fout.write(line)
+rule_area_flag = False
+uid_flag = False
+delete_unused_networkobjects = False
+replace_counter = 0
+
+for line in data:
+    if fnmatch.filter([line], 'config firewall policy\n'):
+        rule_area_flag = True
+    if fnmatch.filter([line], '    edit {}\n'.format(uid)):
+        uid_flag = True
+    if fnmatch.filter([line], '        set srcaddr*') and rule_area_flag and uid_flag:
+        if fnmatch.filter([line], '        set srcaddr "all"\n'):
+            data[replace_counter] = '        set srcaddr "{}"\n'.format(ip_address)
+        elif len(line) > 200:
+            data[replace_counter] = '        set srcaddr "{}"\n'.format(ip_address)
+            delete_unused_networkobjects = True
+        else:
+            data[replace_counter] = line.rstrip() + ' "{}"\n'.format(ip_address)
+        break
+    if fnmatch.filter([line], '    next\n'.format(uid)):
+        uid_flag = False
+    if fnmatch.filter([line], 'end\n'):
+        rule_area_flag = False
+    replace_counter = replace_counter + 1
+
 
 # Utils
 
 # This routine deletes all automatically created network objects except the most recent
-if delete_unused_networkobjects:
-    delete_flag = False
-    with open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "r") as fin:
-        lines = fin.readlines()
-    with open("/home/isosample/sample-configs/fortinet_demo/fortigate.cfg", "w") as fout:
-        for line in lines:
-            if line.strip("\n") == "# recognition comment for auto-delete function":
+with open(config_path + ".tmp", "w") as fout:
+    if delete_unused_networkobjects:
+        delete_flag = False
+        object_count = 0
+        for line in data:
+            last_comment_line_flag = False
+            if line.strip("\n") == '# start recognition comment for auto-delete function\n':
                 delete_flag = True
-            if line.strip("\n") == 'edit "SSLVPN_TUNNEL_ADDR1"':
+                object_count = object_count + 1
+            if line.strip("\n") == '# end recognition comment for auto-delete function\n':
                 delete_flag = False
-            if not delete_flag:
+                last_comment_line_flag = True
+            if object_count < 2:
                 fout.write(line)
+            elif not (delete_flag or last_comment_line_flag):
+                fout.write(line)
+    else:
+        for line in data:
+            fout.write(line)
+
+os.rename(config_path + ".tmp", config_path)

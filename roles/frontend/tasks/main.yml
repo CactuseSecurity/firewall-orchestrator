@@ -1,5 +1,3 @@
-- set_fact: wsgi_dir="{{ iso_home }}/{{ api_project_name }}/{{ api_project_name }}"
-- set_fact: api_dir="{{ iso_home }}/{{ api_project_name }}"
 
 - block:
     - name: Install webserver packages
@@ -53,18 +51,18 @@
     - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
       when: ansible_facts['distribution']|lower == 'debian'
 
-    - name: get packages-microsoft-prod
+    - name: get package {{ ui_ms_deb_name }}
       get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/packages-microsoft-prod.deb"
-        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
+        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ ui_ms_deb_name }}"
+        dest: "{{ ui_dir }}/{{ ui_ms_deb_name }}"
         mode: 0644
 
     - name: install packages-microsoft-prod
-      command: "dpkg -i {{ ui_dir }}/packages-microsoft-prod.deb"
+      command: "dpkg -i {{ ui_dir }}/{{ ui_ms_deb_name }}"
 
     - name: remove package file
       file:
-        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
+        dest: "{{ ui_dir }}/{{ ui_ms_deb_name }}"
         state: absent
 
     - name: apt update
@@ -76,25 +74,25 @@
     - name: apt update
       apt: update_cache=true
 
-    - name: Install dotnet-sdk-3.1
-      package: name=dotnet-sdk-3.1 state=present
+    - name: Install dotnet-sdk-{{ ui_dotnet_version }}
+      package: "name=dotnet-sdk-{{ ui_dotnet_version }} state=present"
 
-    - name: Install dotnet runtime
-      package: name=dotnet-runtime-3.1 state=present
+    - name: Install dotnet runtime {{ ui_dotnet_version }}
+      package: "name=dotnet-runtime-{{ ui_dotnet_version }} state=present"
 
     - name: copy blazor ui systemd service script
       template:
         src: fworch-blazor-ui.service.j2
-        dest: "/lib/systemd/system/fworch-blazor-ui.service"
+        dest: "/lib/systemd/system/{{ ui_service_name }}.service"
         backup: yes
         mode: 0644
         owner: "root"
 
     - name: make blazor ui run at host startup
-      command: "systemctl enable fworch-blazor-ui"
+      command: "systemctl enable "
 
     - name: start blazor ui
-      command: "systemctl start fworch-blazor-ui"
+      command: "systemctl start {{ ui_service_name }}"
 
   become: yes
   environment: "{{ proxy_env }}"

@@ -5,7 +5,7 @@
 
 -- DROP FUNCTION public.import_all_main(integer);
 
-CREATE OR REPLACE FUNCTION public.import_all_main(integer)
+CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT)
   RETURNS boolean AS
 $BODY$
 DECLARE
@@ -117,9 +117,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.import_all_main(integer)
-  OWNER TO itsecorg;
-
+ALTER FUNCTION public.import_all_main(BIGINT) OWNER TO itsecorg;
 
 ----------------------------------------------------
 -- FUNCTION:  import_global_refhandler_main
@@ -131,7 +129,7 @@ ALTER FUNCTION public.import_all_main(integer)
 -- Parameter: current_import_id
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_global_refhandler_main (INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION import_global_refhandler_main (BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1; -- ID des laufenden Imports
 	i_mgm_id INTEGER;
@@ -216,7 +214,7 @@ isodb=# select * from view_changes;
 
 */
 
-CREATE OR REPLACE FUNCTION import_changelog_sync (INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_changelog_sync (BIGINT, INTEGER) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1; -- ID des laufenden Imports
 	i_mgm_id ALIAS FOR $2;			 -- mgm_id

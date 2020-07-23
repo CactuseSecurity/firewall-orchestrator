@@ -73,8 +73,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.import_svc_main(integer, boolean)
-  OWNER TO itsecorg;
+ALTER FUNCTION public.import_svc_main(BIGINT, boolean) OWNER TO itsecorg;
 
 ----------------------------------------------------
 -- FUNCTION:  import_svc_mark_deleted
@@ -345,6 +344,5 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.import_svc_single(integer, integer, integer, integer, boolean)
-  OWNER TO itsecorg;
+ALTER FUNCTION public.import_svc_single(BIGINT, integer, BIGINT, integer, boolean) OWNER TO itsecorg;
 

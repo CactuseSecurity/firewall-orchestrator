@@ -10,6 +10,7 @@ proxy_env:
         https_proxy: "{{ https_proxy }}"
         validate_certs: false
 
+product_name: fworch
 iso_user: itsecorg
 iso_home: "/usr/share/{{ iso_user }}"
 iso_db_port: 5432

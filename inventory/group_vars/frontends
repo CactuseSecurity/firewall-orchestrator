@@ -1,7 +1,6 @@
 
 ui_web_server_name: "apache2" 
 ui_http_conf_dir: /etc/{{ ui_web_server_name }}/sites-available/
-ui_http_conf_file: "{{ }}"
 ui_port: 5000
 ui_web_port: 443
 ui_app_name: "{{ product_name }}"

@@ -15,7 +15,7 @@ see <https://github.com/2fd/graphdoc#install>
 
        ✓ complete: 2962 files generated.
 
-2. view with  https://localhost/api_schema/index.html
+2. view with <https://localhost/api_schema/index.html>
 
    not really sure if result is worth it :-(
 

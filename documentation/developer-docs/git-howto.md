@@ -1,3 +1,5 @@
+# git howto
+
 It is recommended to create a personal fork and work on that, except you only make changes on documentation (but no code change). Just use the Fork button on the GitHub UI.
 
 From that fork you can create local clones.
@@ -10,17 +12,17 @@ Source: <https://help.github.com/en/github/collaborating-with-issues-and-pull-re
 
 Add ssh key to profile (Profile - Settings - ssh keys)
 
-# First time add upstream URL (only has to be done once)
+## working with remote / upstream repos
+### show all remote repos
+    git remote -v
 
-```
-git remote -v
-git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
-git remote -v
-```
+### add upstream URL (only has to be done once)
 
-# Sync with upstream
+    git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
 
-```
+### Sync with upstream
+
+```console
 git fetch upstream
 git checkout master
 
@@ -36,21 +38,16 @@ git pull upstream master
 git push
 ```
 
-# Working via ssh
+### Working via ssh
 
-```
-git remote add upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
-```
+    git remote add upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 
-# Change upstream name
-
-```
-git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
-```
+### Change upstream name
+    git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 
 # Example with non-master branch
 
-```
+```console
 git clone git@github.com:tpurschke/firewall-orchestrator.git -b tim/make-api-reinstallable
 cd firewall-orchestrator/
 git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git

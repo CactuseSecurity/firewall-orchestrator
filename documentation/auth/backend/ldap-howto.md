@@ -6,10 +6,10 @@
 
 ### adding information with ldapadd
 
-password=passme
+(default password=passme)
 
     ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=example,dc=com -w passme -x -f adduser1.ldif
-```
+```console
 tim@ubu1804:~$ cat adduser1.ldif 
 dn: uid=user1,dc=example,dc=com
 changetype: add
@@ -18,7 +18,6 @@ uid: user1
 sn: Meier
 objectClass: inetOrgPerson
 tim@ubu1804:~$ 
-
 ```
 
 ### set/change password of existing user
@@ -26,7 +25,7 @@ tim@ubu1804:~$
     tim@ubu1804:~$ ldappasswd -s changeme -w passme -D "cn=Manager,dc=example,dc=com" -x "uid=user1,dc=example,dc=com"
 
 ### searching ldap with ldapsearch
-```
+```console
 tim@ubu1804:~$ ldapsearch uid=user1 -x
 # extended LDIF
 #
@@ -52,7 +51,6 @@ result: 0 Success
 # numEntries: 1
 
 tim@ubu1804:~$ 
-
 ```
 
 ### check password
@@ -73,17 +71,15 @@ Delete entry user1 with
     ldapmodify -x -D "cn=Manager,dc=example,dc=com" -W -f delete.ldif
 
 With delete.ldif
-```
-dn: uid=user1,dc=example,dc=com
-changetype: delete
-```
+
+    dn: uid=user1,dc=example,dc=com
+    changetype: delete
 
 ### communicate with multiple ldap servers ###
-
 Not tested yet!
-```
-ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
-```
+
+    ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
+
 
 ## authentication against ldap from .net (C#)
 

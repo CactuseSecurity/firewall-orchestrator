@@ -1,10 +1,12 @@
+# How to install hasura
+
 Setup: <https://docs.hasura.io/1.0/graphql/manual/deployment/docker/index.html>
 
 NB: depends on docker role!
 
 - edit docker-run.sh as follows:
 
-  ```
+  ```console
   \#! /bin/bash
       docker run -d --net=host -p 8080:8080 \\
              \-e HASURA_GRAPHQL_DATABASE_URL=postgres://dbadmin:st8chel@localhost:5432/isodb \\
@@ -15,7 +17,7 @@ NB: depends on docker role!
 
 - startup via
 
-  ```
+  ```console
   docker-run.sh
   ```
 

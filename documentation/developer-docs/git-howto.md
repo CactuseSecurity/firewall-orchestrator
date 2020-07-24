@@ -83,7 +83,7 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
 3. add remote upstream repo
 
-       git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
+       git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
        git fetch upstream
        
 4. merge

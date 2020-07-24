@@ -41,13 +41,17 @@ git push
 ## Working via ssh
 
 ```
+
 git remote add upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
+
 ```
 
 ## Change upstream name
 
 ```
+
 git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
+
 ```
 
 ## Example with non-master branch

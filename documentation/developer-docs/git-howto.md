@@ -69,17 +69,23 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 1. get fork to merge
 
        git clone git@github.com:tpurschke/firewall-orchestrator.git -b master
+   
+   if you need to acces a "foreign" fork where you do not have access via ssh, use something like:
+   
+       git clone https://github.com/dos-box/firewall-orchestrator.git
 
-2. change into repo
+2. change into repo and check out the correct branch or commit via its hash
 
        cd firewall-orchestrator
+       a) git checkout b77e63e6e4e315164029ff20d2096ba75fd150d2
+       b) git checkout testbranch123
+       c) git checkout master
 
 3. add remote upstream repo
 
        git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
-       ### not necessary? - git fetch upstream
-       ### not necessary? - git checkout master
-
+       git fetch upstream
+       
 4. merge
 
        git merge upstream/master

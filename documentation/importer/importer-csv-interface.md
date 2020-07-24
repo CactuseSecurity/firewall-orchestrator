@@ -1,7 +1,7 @@
+# CSV interface of importer
+## General:
 
-General:
-
-```
+```console
 - boolean fields (negated, disabled) can contain either 0/1 or true/false?
 - directory:
 - import arrays/fields are defined in CACTUS/ISO/import.pm:
@@ -13,9 +13,9 @@ General:
   our @auditlog_import_fields
 ```
 
-A) rule.csv:
+## rule.csv:
 
-```
+```console
 name: <rulebase_name>_rulebase.csv
 fields (total=25):
   control_id
@@ -45,9 +45,9 @@ fields (total=25):
   last_change_admin
 ```
 
-B) network_objects.csv
+## network_objects.csv
 
-```
+```console
 name: <mgmt_name>_netzobjekte.csv
 fields (total=15):
   control_id
@@ -67,9 +67,9 @@ fields (total=15):
   last_change_time
 ```
 
-C) services
+## services.csv
 
-```
+```console
 name: <mgmt_name>_services.csv
 fields (total=19):
   control_id
@@ -93,9 +93,9 @@ fields (total=19):
   last_change_time
 ```
 
-D) users.csv
+## users.csv
 
-```
+```console
 name: <mgmt_name>_users.csv
 fields (total=10):
   control_id
@@ -110,9 +110,9 @@ fields (total=10):
   last_change_admin
 ```
 
-E) zones.csv
+## zones.csv
 
-```
+```console
 name: <mgmt_name>_zones.csv
 fields (total=2):
   control_id

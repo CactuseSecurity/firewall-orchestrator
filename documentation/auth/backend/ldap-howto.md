@@ -87,5 +87,7 @@ ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
 
 ## authentication against ldap from .net (C#)
 
+ext. documentation, see https://auth0.com/blog/using-ldap-with-c-sharp/
+
 ## querying multiple ldap servers in a row
 

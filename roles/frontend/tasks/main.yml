@@ -2,103 +2,40 @@
 - set_fact: api_dir="{{ iso_home }}/{{ api_project_name }}"
 
 - block:
-    - name: get user name
-      set_fact: ansible_user="{{ lookup('env','USERNAME') }}"
-
     - name: Install webserver packages
       package: name={{ item }} state=present
       with_items:
-        - apache2
-        - php
-        - libapache2-mod-php
-        - php-pgsql
-        - php-pear
-        
-    - name: Install packages for api webserver 
-      package: name={{ item }} state=present
-      with_items:
-        - apache2
-#        - libapache2-mod-wsgi-py3      
+        - "{{ ui_web_server_name }}"
 
-    - name: find out installed php version
-      script: "get_php_version.sh"
-      register: phpversion_result
-      changed_when: false
-       
-    - set_fact:
-         phpversion: "{{ phpversion_result.stdout }}"
+    - name: create ui dir
+      file:
+        dest: "{{ ui_dir }}"
+        state: directory
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
 
-    - set_fact:
-         phpini: "/etc/php/{{ phpversion }}/apache2/php.ini"
-         cliphpini: "/etc/php/{{ phpversion }}/cli/php.ini"
-
-    - name: create backup of php.ini files and link cli php.ini to apache php.ini
-      shell: "cp {{ phpini }} {{ phpini }}.orig && mv {{ cliphpini }} {{ cliphpini }}.orig && cp {{ phpini }} {{ cliphpini }}"
-
-    - name: edit php.ini
-      blockinfile:
-        path: "{{ phpini }}"
-        block: |
-           memory_limit = 200M    ; mehr Speicher: von Default 8MB hochsetzen
-           max_execution_time = 900
-           default_charset = "utf-8"
-           date.timezone = "Europe/Berlin"
-           include_path="/usr/share/php:/usr/share/lib/php:{{ iso_home }}/web/include:{{ iso_home }}/etc:{{ iso_home }}/web/htdocs/inctxt:{{ iso_home }}/web/htdocs/hilfe"
-           doc_root = "{{ iso_home }}/web"
-           sql.safe_mode = On
-           expose_php = Off
-           display_errors = Off              ; for production
-           display_startup_errors = Off  ;for production (both can be switched to On for testing purposes)
-           error_log = syslog
-           log_errors_max_len = 0             ; abgeschnittene sql-statements beim debugging verhindern
-           pgsql.log_notice = 1
-           session.save_path = /var/itsecorg/session
-           session.gc_maxlifetime = 14400   ;eight hours
-
-    - name: copy iso files to frontend target
+    - name: copy Blazor files to frontend target
       copy:
-        src: "web"
-        dest: "{{ iso_home }}"
-        owner: itsecorg
-        group: itsecorg
+        src: "Blazor"
+        dest: "{{ ui_dir }}"
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
 
     - name: copy iso httpd config file to apache target
       template:
         src: "httpd.conf"
-        dest: "{{ http_conf_dir }}/itsecorg.conf"
+        dest: "{{ ui_http_conf_dir }}/itsecorg.conf"
         owner: root
         group: root
         
-    - name: copy iso gui.conf file
-      copy:
-        src: "gui.conf"
-        dest: "{{ iso_home }}/etc/gui.conf"
-        owner: itsecorg
-        group: itsecorg
-
-    - name: enable modules proxy proxy_http for api reverse proxy
-      command: "a2enmod proxy proxy_http"
-
-    - name: enable apache mod_ssl
-      shell: "a2enmod ssl"
-
-    - name: create dummy .rnd file in users home dir to avoid error when creating certificate - workaround for ubuntu 18.04 openssl bug
-      file:
-        path: ~/.rnd
-        state: touch
+    - name: enable apache modules proxy proxy_http ssl
+      command: "a2enmod proxy proxy_http ssl"
 
     - name: copy cert creation script to apache target
       script: "apache_create_server_cert.sh" 
 
     - name: enable itsecorg web site
       shell: "a2ensite itsecorg"
-
-    - name: add session directory - /var/itsecorg/session
-      file:
-        dest: /var/itsecorg/session
-        state: directory
-        owner: www-data
-        group: root
 
     - name: increase apache timeout to 900 seconds
       lineinfile:
@@ -107,6 +44,57 @@
 
     - name: restart apache
       service:
-       name: "apache2"
+       name: "{{ ui_web_server_name }}"
        state: restarted     
+
+    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"
+      when: ansible_facts['distribution']|lower == 'ubuntu'
+
+    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
+      when: ansible_facts['distribution']|lower == 'debian'
+
+    - name: get packages-microsoft-prod
+      get_url:
+        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/packages-microsoft-prod.deb"
+        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
+        mode: 0644
+
+    - name: install packages-microsoft-prod
+      command: "dpkg -i {{ ui_dir }}/packages-microsoft-prod.deb"
+
+    - name: remove package file
+      file:
+        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
+        state: absent
+
+    - name: apt update
+      apt: update_cache=true
+
+    - name: Install apt-transport-https
+      package: name=apt-transport-https state=present
+
+    - name: apt update
+      apt: update_cache=true
+
+    - name: Install dotnet-sdk-3.1
+      package: name=dotnet-sdk-3.1 state=present
+
+    - name: Install dotnet runtime
+      package: name=dotnet-runtime-3.1 state=present
+
+    - name: copy blazor ui systemd service script
+      template:
+        src: fworch-blazor-ui.service.j2
+        dest: "/lib/systemd/system/fworch-blazor-ui.service"
+        backup: yes
+        mode: 0644
+        owner: "root"
+
+    - name: make blazor ui run at host startup
+      command: "systemctl enable fworch-blazor-ui"
+
+    - name: start blazor ui
+      command: "systemctl start fworch-blazor-ui"
+
   become: yes
+  environment: "{{ proxy_env }}"

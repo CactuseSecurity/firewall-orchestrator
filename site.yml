@@ -3,27 +3,31 @@
   roles:
     - iso-common
 
-- hosts: backends
+- hosts: backendserver
   roles:
-    - { role: docker, when: "run_on_github is not defined" }
-    - backend
-    - { role: api, when: "run_on_github is not defined" }
-   # todo: make api (and docker) work with github actions
+    - database
+
+- hosts: authserver
+  roles:
     - auth
     - openldap-server
 
+- hosts: apiserver
+  roles:
+    - { role: docker, when: "run_on_github is not defined" }
+    - { role: api, when: "run_on_github is not defined" }
+   # todo: make api (and docker) work with github actions
+
 - hosts: frontends
   roles:
-#    - { role: frontend, when: "ui is not defined or (ui is defined and (ui == 'old' or ui == 'both'))"}
-    - { role: frontend, when: "ui is defined and ui == 'old'"}
-#    - { role: frontend-new, when: "ui is not defined or (ui is defined and (ui == 'new' or ui == 'both'))"}
-    - { role: frontend-new, when: "ui is not defined or ui == 'new'"}
+    - frontend
+    - { role: frontend-php, when: "ui_php is defined"}
 
 - hosts: importers
   roles:
     - importer
 
-- hosts: sampleservers
+- hosts: sampleserver
   roles:
     - { role: sample-data, when: "without_sample_data is not defined" }
     - { role: sample-data-connect-sting, when: "connect_sting is defined" }

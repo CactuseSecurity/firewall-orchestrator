@@ -1,8 +1,4 @@
-database_dir: /var/lib/pgsql/data
-postgresql_package: postgresql
-postgresql_test_package: pgtap
-postgresql_dev_package_prefix: postgresql-server-dev
-# api
+
 api_user: "{{ iso_dbadmin_name }}"
 api_user_password: "{{ dbadmin_pwd }}"
 api_user_email: "{{ api_user }}@localhost"
@@ -13,6 +9,6 @@ api_container_name: hasura_fw_orch
 api_hasura_version: "v1.2.2"
 api_hostname: "127.0.0.1"
 api_port: 8080
-API_SECRET_KEY: '3s)3o5_@2d!t21nammq38hnux9cfz5#9o0&nb4y8yn5xvqdhh^'
-python_binary: /usr/bin/python3
-api_venv_dir: "{{ iso_home }}/api_venv"
+api_project_name: api
+api_listener_ip: 127.0.0.1
+api_listener_port: 8080

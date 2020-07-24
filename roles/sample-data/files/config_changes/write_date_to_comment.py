@@ -1,5 +1,5 @@
 # Changes the comment in rule x to the current date in fortigate.cfg
-# x = 52 by default, can be changed in config_changes_main.py
+# x = 52 by default, can be changed in ansible
 # Created by alf
 
 import fnmatch

@@ -44,7 +44,7 @@ BEGIN
 	FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen (standard groups)
 		SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id AND NOT change_action='D'
 	LOOP
-		RAISE DEBUG 'import_svc_refhandler_main - first loop (std grps): old_svc_id %', CAST(old_svc_id as VARCHAR);
+		RAISE DEBUG 'import_svc_refhandler_main - first loop';
 		IF r_svc.change_action = 'I' THEN
 			PERFORM import_svc_refhandler_insert(r_svc.new_svc_id,r_ctrl.delimiter_group,i_current_import_id);
 		ELSIF r_svc.change_action = 'C' THEN
@@ -55,7 +55,7 @@ BEGIN
 	FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen (flattened groups)
 		SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id AND NOT change_action='D'
 	LOOP
-		RAISE DEBUG 'import_svc_refhandler_main - second loop (flat grps): old_svc_id %', CAST(old_svc_id as VARCHAR);
+		RAISE DEBUG 'import_svc_refhandler_main - second loop (flat grps)';
 		IF r_svc.change_action = 'I' THEN
 			PERFORM import_svc_refhandler_insert_flat(r_svc.new_svc_id,r_ctrl.delimiter_group,i_current_import_id);
 		ELSIF r_svc.change_action = 'C' THEN
@@ -193,7 +193,7 @@ $$ language plpgsql;
 -- Funktionen: add_references_for_inserted_group_svc
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_insert_flat (BIGINT,varchar,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_insert_flat (BIGINT,varchar,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_new_id ALIAS FOR $1;
 	v_delimiter ALIAS FOR $2;
@@ -222,7 +222,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: f_add_single_group_member_service, insert_svc_group_relations (rekursiv)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_add_group (BIGINT,varchar,varchar,integer,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_add_group (BIGINT,varchar,varchar,integer,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_group_id ALIAS FOR $1;
 	v_member_string ALIAS FOR $2;
@@ -277,7 +277,7 @@ DECLARE
 	i_group_id ALIAS FOR $2;
 	i_mgm_id ALIAS FOR $3;
 	i_current_import_id ALIAS FOR $4;
-	i_svc_id integer;
+	i_svc_id BIGINT;
 	r_group RECORD;
 	v_error_str VARCHAR;
 	r_debug RECORD;	

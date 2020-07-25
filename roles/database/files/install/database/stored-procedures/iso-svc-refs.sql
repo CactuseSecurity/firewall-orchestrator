@@ -1,18 +1,3 @@
--- $Id: iso-svc-refs.sql,v 1.1.2.4 2011-09-28 21:14:05 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-svc-refs.sql,v $
-
-/*
- import_svc_refhandler_main (INTEGER) RETURNS VOID
- import_svc_refhandler_change(INTEGER, INTEGER, INTEGER)
- import_svc_refhandler_insert (integer,varchar) RETURNS VOID
- import_svc_refhandler_svcgrp_add_group (integer,varchar,varchar,integer)
- import_svc_refhandler_svcgrp_add_single_groupmember(varchar,integer,INTEGER) RETURNS VOID
- import_svc_refhandler_svcgrp_flat_add_group (INTEGER,INTEGER,INTEGER) RETURNS VOID
- import_svc_refhandler_change_svcgrp_member_refs(INTEGER, INTEGER) RETURNS VOID
- import_svc_refhandler_change_svcgrp_flat_member_refs(INTEGER, INTEGER) RETURNS VOID
- import_svc_refhandler_change_rule_from_refs (INTEGER, INTEGER) RETURNS VOID
- import_svc_refhandler_change_rule_to_refs (INTEGER, INTEGER) RETURNS VOID
-*/
 
 ----------------------------------------------------
 -- FUNCTION:  import_svc_refhandler_main

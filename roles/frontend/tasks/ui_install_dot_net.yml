@@ -32,8 +32,8 @@
     - name: Install dotnet-sdk-{{ ui_dotnet_version }}
       package: "name=dotnet-sdk-{{ ui_dotnet_version }} state=present"
 
-    - name: Install dotnet runtime {{ ui_dotnet_version }}
-      package: "name=dotnet-runtime-{{ ui_dotnet_version }} state=present"
+#    - name: Install dotnet runtime {{ ui_dotnet_version }}
+#      package: "name=dotnet-runtime-{{ ui_dotnet_version }} state=present"
 
     - name: copy blazor ui systemd service script
       template:

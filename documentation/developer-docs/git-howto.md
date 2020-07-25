@@ -1,4 +1,4 @@
-# git howto
+# git(hub) howto
 
 It is recommended to create a personal fork and work on that, except you only make changes on documentation (but no code change). Just use the Fork button on the GitHub UI.
 
@@ -12,14 +12,10 @@ Source: <https://help.github.com/en/github/collaborating-with-issues-and-pull-re
 
 Add ssh key to profile (Profile - Settings - ssh keys)
 
-## working with remote / upstream repos
-### show all remote repos
-    git remote -v
-
-### add upstream URL (only has to be done once)
+## add upstream URL (only has to be done once)
 
     git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
-
+    
 ### Sync with upstream
 
 ```console
@@ -45,7 +41,7 @@ git push
 ### Change upstream name
     git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 
-# Example with non-master branch
+## Example with non-master branch
 
 ```console
 git clone git@github.com:tpurschke/firewall-orchestrator.git -b tim/make-api-reinstallable
@@ -56,3 +52,48 @@ git checkout tim/make-api-reinstallable
 git merge upstream/tim/make-api-reinstallable
 git push
 ```
+
+## Example: merge with conflicts 
+
+How to merge fork tpurschke/master into CactuseSecurity/master 
+
+1. get fork to merge
+
+       git clone git@github.com:tpurschke/firewall-orchestrator.git -b master
+   
+   if you need to acces a "foreign" fork where you do not have access via ssh, use something like:
+   
+       git clone https://github.com/dos-box/firewall-orchestrator.git
+
+2. change into repo and check out the correct branch or commit via its hash
+
+       cd firewall-orchestrator
+       a) git checkout b77e63e6e4e315164029ff20d2096ba75fd150d2
+       b) git checkout testbranch123
+       c) git checkout master
+
+3. add remote upstream repo
+
+       git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
+       git fetch upstream
+       
+4. merge
+
+       git merge upstream/master
+
+    results in output:
+    
+       Auto-merging roles/database/tasks/iso-setup-database-as-postgres-user.yml
+       CONFLICT (content): Merge conflict in roles/database/tasks/iso-setup-database-as-postgres-user.yml
+       Automatic merge failed; fix conflicts and then commit the result.
+
+5. make manual changes, eg.
+
+       vi roles/database/tasks/iso-setup-database-as-postgres-user.yml
+
+6. submit changes
+
+       git commit --all
+       git push
+
+7. Finally merge repos (now without conflicts) via github web ui

@@ -83,5 +83,7 @@ Not tested yet!
 
 ## authentication against ldap from .net (C#)
 
+ext. documentation, see https://auth0.com/blog/using-ldap-with-c-sharp/
+
 ## querying multiple ldap servers in a row
 

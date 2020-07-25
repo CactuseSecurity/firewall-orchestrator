@@ -24,38 +24,45 @@
 -- Parameter: current_import_id
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_main (INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_main (BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id   ALIAS FOR $1; -- ID des laufenden Imports
 	r_svc	RECORD;	-- temp service
 	r_ctrl		RECORD;	-- zum Holen des group-delimiters
 	v_debug		VARCHAR; --debug-output
-	i_previous_import_id INTEGER;
+	i_previous_import_id BIGINT;
 	i_mgm_id INTEGER;
 BEGIN
+	RAISE DEBUG 'import_svc_refhandler_main - 1 start';
 	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
+	RAISE DEBUG 'import_svc_refhandler_main - 2';
 	i_previous_import_id := get_previous_import_id_for_mgmt (i_mgm_id, i_current_import_id);
-
+	RAISE DEBUG 'import_svc_refhandler_main - 3';
 	SELECT INTO r_ctrl delimiter_group FROM import_control WHERE control_id=i_current_import_id;
+	RAISE DEBUG 'import_svc_refhandler_main - 4';
 		-- neue Member-Beziehungen von i_new_id eintragen
-	FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen
+	FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen (standard groups)
 		SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id AND NOT change_action='D'
 	LOOP
+		RAISE DEBUG 'import_svc_refhandler_main - first loop (std grps): old_svc_id %', CAST(old_svc_id as VARCHAR);
 		IF r_svc.change_action = 'I' THEN
 			PERFORM import_svc_refhandler_insert(r_svc.new_svc_id,r_ctrl.delimiter_group,i_current_import_id);
 		ELSIF r_svc.change_action = 'C' THEN
 			PERFORM import_svc_refhandler_change(r_svc.old_svc_id,r_svc.new_svc_id,i_current_import_id);
 		END IF;
 	END LOOP;
-	FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen
+	RAISE DEBUG 'import_svc_refhandler_main - 5';
+	FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen (flattened groups)
 		SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id AND NOT change_action='D'
 	LOOP
+		RAISE DEBUG 'import_svc_refhandler_main - second loop (flat grps): old_svc_id %', CAST(old_svc_id as VARCHAR);
 		IF r_svc.change_action = 'I' THEN
 			PERFORM import_svc_refhandler_insert_flat(r_svc.new_svc_id,r_ctrl.delimiter_group,i_current_import_id);
 		ELSIF r_svc.change_action = 'C' THEN
 			PERFORM import_svc_refhandler_change_flat(r_svc.old_svc_id,r_svc.new_svc_id,i_current_import_id);
 		END IF;
 	END LOOP;
+	RAISE DEBUG 'import_svc_refhandler_main - 6';
 	----------------------------------------------------------------------------------------------
 	-- die alten (nicht mehr gueltigen) Objekte auf non-active setzen
 	UPDATE svcgrp SET active=FALSE WHERE svcgrp_id IN
@@ -74,6 +81,7 @@ BEGIN
 		(SELECT svc_id FROM service WHERE mgm_id=i_mgm_id AND active) AND active;
 	UPDATE svcgrp_flat	SET import_last_seen=i_current_import_id WHERE svcgrp_flat_id IN
 		(SELECT svc_id FROM service WHERE service.mgm_id=i_mgm_id AND active) AND active;
+	RAISE DEBUG 'import_svc_refhandler_main - 7 - end';
 	RETURN;
 END; 
 $$ LANGUAGE plpgsql;
@@ -86,7 +94,7 @@ $$ LANGUAGE plpgsql;
 -- RETURNS:   VOID
 -- an allen Stellen, an denen das alte Objekt in einem aktiven Datensatz referenziert wird,
 -- muss es durch das neue ersetzt werden
-CREATE OR REPLACE FUNCTION import_svc_refhandler_change(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_change(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus service
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus service
@@ -126,7 +134,7 @@ $$ language plpgsql;
 -- Funktionen: add_references_for_inserted_group_svc
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_insert (integer,varchar,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_insert (BIGINT,varchar,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_new_id ALIAS FOR $1;
 	v_delimiter ALIAS FOR $2;
@@ -152,7 +160,7 @@ $$ LANGUAGE plpgsql;
 -- RETURNS:   VOID
 -- an allen Stellen, an denen das alte Objekt in einem aktiven Datensatz referenziert wird,
 -- muss es durch das neue ersetzt werden
-CREATE OR REPLACE FUNCTION import_svc_refhandler_change_flat(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_change_flat(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus service
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus service
@@ -185,7 +193,7 @@ $$ language plpgsql;
 -- Funktionen: add_references_for_inserted_group_svc
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_insert_flat (integer,varchar,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_insert_flat (BIGINT,varchar,integer) RETURNS VOID AS $$
 DECLARE
 	i_new_id ALIAS FOR $1;
 	v_delimiter ALIAS FOR $2;
@@ -214,7 +222,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: f_add_single_group_member_service, insert_svc_group_relations (rekursiv)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_add_group (integer,varchar,varchar,integer,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_add_group (BIGINT,varchar,varchar,integer,integer) RETURNS VOID AS $$
 DECLARE
 	i_group_id ALIAS FOR $1;
 	v_member_string ALIAS FOR $2;
@@ -240,7 +248,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter: $1: svc_id eines Dienstes
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_flat_add_self (INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_flat_add_self (BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
     i_svc_id	ALIAS FOR $1;
 	i_current_import_id ALIAS FOR $2;
@@ -263,7 +271,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: KEINE
 -- RETURNS:    VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_add_single_groupmember(VARCHAR,INTEGER,INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_add_single_groupmember(VARCHAR,BIGINT,INTEGER,BIGINT) RETURNS VOID AS $$
 DECLARE
 	v_member_name ALIAS FOR $1;
 	i_group_id ALIAS FOR $2;
@@ -319,7 +327,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: insert_svc_group_relations_flat (rekursiv)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_flat_add_group (INTEGER,INTEGER,INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_svcgrp_flat_add_group (BIGINT,BIGINT,INTEGER,BIGINT) RETURNS VOID AS $$
 DECLARE
     i_top_group_id	ALIAS FOR $1;
     i_group_id		ALIAS FOR $2;
@@ -356,7 +364,7 @@ $$ LANGUAGE plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_svc_id, new_svc_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_svc_refhandler_change_svcgrp_member_refs(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_change_svcgrp_member_refs(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus service
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus service
@@ -379,7 +387,7 @@ $$ language plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_svc_id, new_svc_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_svc_refhandler_change_svcgrp_flat_member_refs(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_change_svcgrp_flat_member_refs(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus service
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus service
@@ -407,7 +415,7 @@ $$ language plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_svc_id, new_svc_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_svc_refhandler_change_rule_service_refs (INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_svc_refhandler_change_rule_service_refs (BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus service
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus service

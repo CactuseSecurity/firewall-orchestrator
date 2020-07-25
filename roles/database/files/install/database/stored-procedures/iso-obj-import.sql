@@ -10,7 +10,7 @@
 -- Parameter2: flag fuer initial_import
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_main(integer, boolean)
+CREATE OR REPLACE FUNCTION import_nwobj_main(BIGINT, boolean)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -68,12 +68,12 @@ $BODY$
 -- Parameter: import_object.obj_id (die ID des zu importierenden Objekts)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_mark_deleted(INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_mark_deleted(BIGINT,INTEGER) RETURNS VOID AS $$
 DECLARE
     i_current_import_id	ALIAS FOR $1;
     i_mgm_id			ALIAS FOR $2;
     i_import_admin_id	INTEGER;
-	i_previous_import_id  INTEGER; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
+	i_previous_import_id  BIGINT; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
 	r_obj  RECORD;  -- Datensatz mit einzelner obj_id aus import_object-Tabelle des zu importierenden Objekts
 BEGIN
 --	SELECT INTO i_import_admin_id import_admin FROM import_control WHERE control_id=i_current_import_id;

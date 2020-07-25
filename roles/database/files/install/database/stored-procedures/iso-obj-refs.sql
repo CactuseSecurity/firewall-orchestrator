@@ -28,7 +28,7 @@
 
 -- DROP FUNCTION import_nwobj_refhandler_main(integer);
 
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_main(integer)
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_main(BIGINT)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -37,7 +37,7 @@ DECLARE
 	r_ctrl 	RECORD;	-- zum Holen des group-delimiters
 	v_debug	VARCHAR; --debug-output
 	v_obj_name VARCHAR;
-	i_previous_import_id INTEGER;
+	i_previous_import_id BIGINT;
 	i_mgm_id INTEGER;
 BEGIN
 --	CREATE TEMPORARY TABLE objidx1temp ( pos INTEGER NOT NULL ) ON COMMIT DELETE ROWS;
@@ -140,7 +140,7 @@ $BODY$
 -- an allen Stellen, an denen das alte Objekt in einem aktiven Datensatz referenziert wird,
 -- muss es durch das neue ersetzt werden
 
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus object
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus object
@@ -175,7 +175,7 @@ $$ language plpgsql;
 -- Funktionen: add_references_for_inserted_group_obj
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_insert (integer,varchar,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_insert (BIGINT,varchar,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_new_id ALIAS FOR $1;
 	v_delimiter ALIAS FOR $2;
@@ -198,7 +198,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_flat (INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_flat (BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus object
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus object
@@ -235,7 +235,7 @@ $$ language plpgsql;
 -- Funktionen: add_references_for_inserted_group_obj
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_insert_flat (integer,varchar,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_insert_flat (BIGINT,varchar,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_new_id ALIAS FOR $1;
 	v_delimiter ALIAS FOR $2;
@@ -264,7 +264,7 @@ $$ LANGUAGE plpgsql;
 -- verwendete
 -- Funktionen: f_add_single_group_member_object, insert_nwobj_group_relations (rekursiv)
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_objgrp_add_group (integer,varchar,varchar,integer,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_objgrp_add_group (BIGINT,varchar,varchar,integer,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_group_id ALIAS FOR $1;
 	v_member_string ALIAS FOR $2;
@@ -294,7 +294,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: KEINE
 -- RETURNS:    VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_objgrp_add_single_groupmember(varchar,integer,INTEGER,INTEGER)
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_objgrp_add_single_groupmember(varchar,BIGINT,INTEGER,BIGINT)
 	RETURNS VOID AS $$
 DECLARE
 	v_member_name ALIAS FOR $1;
@@ -369,7 +369,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: insert_nwobj_group_relations_flat (rekursiv)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_objgrp_flat_add_group (INTEGER,INTEGER,INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_objgrp_flat_add_group (BIGINT,BIGINT,INTEGER,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_top_group_id		ALIAS FOR $1;
 	i_group_id			ALIAS FOR $2;
@@ -411,7 +411,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter: $1: obj_id eines NW-Objekts
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_objgrp_flat_add_self (INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_objgrp_flat_add_self (BIGINT,BIGINT) RETURNS VOID AS $$
 DECLARE
     i_obj_id	ALIAS FOR $1;
     i_current_import_id	ALIAS FOR $2;
@@ -428,7 +428,7 @@ $$ LANGUAGE plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_obj_id, new_obj_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_objgrp_member_refs(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_objgrp_member_refs(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus object
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus object
@@ -451,7 +451,7 @@ $$ language plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_obj_id, new_obj_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_objgrp_flat_member_refs(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_objgrp_flat_member_refs(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus object
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus object
@@ -481,7 +481,7 @@ $$ language plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_obj_id, new_obj_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_rule_from_refs (INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_rule_from_refs (BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus object
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus object
@@ -504,7 +504,7 @@ $$ language plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_obj_id, new_obj_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_rule_to_refs (INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_refhandler_change_rule_to_refs (BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus object
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus object

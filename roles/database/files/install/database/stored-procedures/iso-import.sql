@@ -135,7 +135,7 @@ CREATE OR REPLACE FUNCTION get_previous_import_id_for_mgmt (INTEGER,BIGINT) RETU
 DECLARE
 	i_mgm_id ALIAS FOR $1; -- ID des Managements
 	i_import_id ALIAS FOR $2; -- ID des Imports
-	i_prev_import_id INTEGER; -- temp. Record
+	i_prev_import_id BIGINT; -- temp. Record
 BEGIN
 	SELECT INTO i_prev_import_id MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND control_id<i_import_id AND successful_import;
 	IF NOT FOUND THEN
@@ -170,7 +170,7 @@ $$ LANGUAGE plpgsql;
 -- FUNCTION:  get_previous_import_id
 -- Zweck:     liefert die ID des direkt vor $2 liegenden Imports des selben Managements zurueck
 -- Parameter1: Import_id (normalerweise = current_import_id)
--- RETURNS:   INTEGER Import-ID
+-- RETURNS:   BIGINT Import-ID
 --
 CREATE OR REPLACE FUNCTION get_previous_import_id (BIGINT) RETURNS BIGINT AS $$
 DECLARE
@@ -194,7 +194,7 @@ DECLARE
 	i_dev_id ALIAS FOR $1; -- ID des Devices
 	t_time ALIAS FOR $2; -- Report-Zeitpunkt
 	i_mgm_id INTEGER; -- ID des Managements
-	i_import_id INTEGER; -- Result
+	i_import_id BIGINT; -- Result
 BEGIN
 	SELECT INTO i_mgm_id mgm_id FROM device WHERE dev_id=i_dev_id;
 	RETURN get_import_id_for_mgmt_at_time(i_mgm_id, t_time);
@@ -318,7 +318,7 @@ $$ LANGUAGE plpgsql;
 ----------------------------------------------------
 -- FUNCTION:  show_change_summary
 -- Zweck:     gibt einen String mit allen Aenderungen zurueck
--- Parameter: import_id (INTEGER)
+-- Parameter: import_id (BIGINT)
 -- RETURNS:   VARCHAR
 --
 CREATE OR REPLACE FUNCTION show_change_summary(BIGINT) RETURNS VARCHAR AS $$

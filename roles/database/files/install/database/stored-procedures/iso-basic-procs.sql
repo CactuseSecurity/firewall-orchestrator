@@ -82,13 +82,24 @@ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION are_equal(BIGINT,BIGINT) RETURNS BOOLEAN AS $$
+DECLARE
+	v_str VARCHAR;
+BEGIN
+IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
+	RETURN TRUE;
+ELSE 
+	RETURN FALSE;
+END IF;
+END;
+$$ LANGUAGE plpgsql;
 ----------------------------------------------------
 -- FUNCTION:    is_svc_group
 -- Zweck:       liefert TRUE, wenn service eine Gruppe ist
 -- Parameter1:  svc_id
 -- RETURNS:     BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_svc_group (INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_svc_group (BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
 	i_svc_id ALIAS FOR $1;
 	r_svc   RECORD;             -- zu pruefendes Objekt
@@ -109,7 +120,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:  obj_id
 -- RETURNS:     BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_obj_group (INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_obj_group (BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
 	i_obj_id ALIAS FOR $1;
 	r_obj   RECORD;             -- zu pruefendes Objekt
@@ -130,7 +141,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:  user_id
 -- RETURNS:     BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_user_group (INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_user_group (BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
 	i_user_id ALIAS FOR $1;
 	r_user   RECORD;             -- zu pruefendes Objekt

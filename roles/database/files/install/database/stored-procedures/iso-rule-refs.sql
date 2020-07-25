@@ -110,8 +110,8 @@ DECLARE
     i_mgm_id   ALIAS FOR $3;
     i_zone_id  ALIAS FOR $4;
 	i_current_import_id ALIAS FOR $5;
-    i_obj      			INTEGER;
-    i_usr      			INTEGER;
+    i_obj      			BIGINT;
+    i_usr      			BIGINT;
     i_at_sign_pos 		INTEGER;
     v_usergroup_name	VARCHAR;
     v_src_obj			VARCHAR;

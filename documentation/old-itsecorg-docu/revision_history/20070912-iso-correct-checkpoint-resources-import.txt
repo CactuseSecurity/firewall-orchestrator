@@ -1,5 +1,0 @@
-# $Id: 20070912-iso-correct-checkpoint-resources-import.txt,v 1.1.2.2 2007-12-13 10:47:31 tim Exp $
-# $Source: /home/cvs/iso/package/install/migration/Attic/20070912-iso-correct-checkpoint-resources-import.txt,v $
-
-replace check point parser $ISOHOME/importer/CACTUS/ISO/import/checkpoint.pm
-replace db-rule.php

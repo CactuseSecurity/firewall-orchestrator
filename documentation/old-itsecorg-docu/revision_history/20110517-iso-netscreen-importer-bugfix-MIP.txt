@@ -1,7 +1,0 @@
-Veränderte Dateien:
-
-mod:
- $ISODIR/importer/CACTUS/ISO/
- 	import/netscreen.pm --> MIP-Handling eingebaut
- 	import.pm --> Funktion convert_mask_to_dot_notation ergänzt
-

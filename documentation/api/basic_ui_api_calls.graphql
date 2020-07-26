@@ -105,3 +105,16 @@ query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [Str
 fragment objectFragment on object {
   obj_ip
 }
+
+query get_import_id($management_id: Int!, $time: Int) {
+  import_control_aggregate(where:{mgm_id:{_eq:$management_id}}) {
+    aggregate {
+      max {
+        control_id
+      }
+    }
+  }
+  import_control {
+    control_id
+  }
+}

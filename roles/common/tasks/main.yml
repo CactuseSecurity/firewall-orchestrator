@@ -2,7 +2,7 @@
      - name: remove complete {{ base_dir }} dir 
        file:
           state: absent
-          path: "{{ {{ base_dir }} }}"
+          path: "{{ base_dir }}"
 
      - name: update operating system packages .deb based
        apt:

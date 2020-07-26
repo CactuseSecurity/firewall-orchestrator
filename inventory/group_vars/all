@@ -11,8 +11,11 @@ proxy_env:
         validate_certs: false
 
 product_name: fworch
+user_id: 60320
 iso_user: itsecorg
 iso_home: "/usr/share/{{ iso_user }}"
+base_dir: "/usr/share/{{ iso_user }}"
+
 iso_db_port: 5432
 isodb_host: 127.0.0.1
 iso_db_name: isodb

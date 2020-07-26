@@ -4,6 +4,16 @@
           state: absent
           path: "{{ iso_home }}"
 
+     - name: update operating system packages .deb based
+       apt:
+         upgrade: dist
+       when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+
+     - name: update operating system packages .rpm based (untested)
+       apt:
+         upgrade: dist
+       when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+
      - name: install package rsyslog
        package:
         name: "rsyslog"
@@ -60,6 +70,7 @@
                            /etc/init.d/itsecorg-import start >/dev/null
                    endscript
             }
+
      - name: reload rsyslog service
        service:
         name: "rsyslog"

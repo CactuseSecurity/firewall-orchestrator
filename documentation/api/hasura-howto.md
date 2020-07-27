@@ -136,15 +136,27 @@ CREATE OR REPLACE FUNCTION public.get_user_visible_managements(integer) RETURNS 
   - get secret from /usr/share/itsecorg/api/jwt.secret
   - create JWT with
   ~~~pgsql
-  select sign('{"https://hasura.io/jwt/claims": {
-    "x-hasura-allowed-roles": [
-      "user"
-    ],
-    "x-hasura-default-role": "user",
-    "x-hasura-user-id": "tim"
-  }}', '86496cb8be0ca4f3d68c0d947229c65d5490377e8b77eabd135ebd8e53a4d2bc');
-  -- result: eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjogewogICAgIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOiBbCiAgICAgICJ1c2VyIgogICAgXSwKICAgICJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiAidXNlciIsCiAgICAieC1oYXN1cmEtdXNlci1pZCI6ICJ0aW0iCiAgfX0.Nuu7_UL8JwJHs5lo5IXqLC3VnyShbu2L12tCHVnOP8OluZp7sh9eFLkCVoo0yvZf
-  ~~~
+  select sign('{
+  "sub": "1234567890",
+  "name": "Tim Purschke",
+  "checkpointreporter": true,
+  "iat": 1516239022,
+  "hasura": {
+    "claims": {
+      "x-hasura-allowed-roles": [
+        "cpreporter",
+        "user"
+      ],
+      "x-hasura-default-role": "cpreporter",
+      "x-hasura-user-id": "tim",
+      "x-hasura-org-id": "123",
+      "x-hasura-custom": "custom-value"
+    }
+  }
+}
+', '86496cb8be0ca4f3d68c0d947229c65d5490377e8b77eabd135ebd8e53a4d2bc');
+  -- result: eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.ewogICJzdWIiOiAiMTIzNDU2Nzg5MCIsCiAgIm5hbWUiOiAiVGltIFB1cnNjaGtlIiwKICAiY2hlY2twb2ludHJlcG9ydGVyIjogdHJ1ZSwKICAiaWF0IjogMTUxNjIzOTAyMiwKICAiaGFzdXJhIjogewogICAgImNsYWltcyI6IHsKICAgICAgIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOiBbCiAgICAgICAgImNwcmVwb3J0ZXIiLAogICAgICAgICJ1c2VyIgogICAgICBdLAogICAgICAieC1oYXN1cmEtZGVmYXVsdC1yb2xlIjogImNwcmVwb3J0ZXIiLAogICAgICAieC1oYXN1cmEtdXNlci1pZCI6ICJ0aW0iLAogICAgICAieC1oYXN1cmEtb3JnLWlkIjogIjEyMyIsCiAgICAgICJ4LWhhc3VyYS1jdXN0b20iOiAiY3VzdG9tLXZhbHVlIgogICAgfQogIH0KfQo.7H13UhdSffuAhsHLLYZnvX4MkRhpYt7MQvSXif0VwGBLsDGWadBeQtjiibfVGDev
+~~~
 
 use graphiql to
 - define all parameters directly (no auth, no jwt) like so:

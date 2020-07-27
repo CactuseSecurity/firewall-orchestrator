@@ -48,8 +48,4 @@ todo:
   {"dev_id":"_in":user_visible_devices("x-Hasura-User_Id")}
   {"mgm_id":"_in":user_visible_managements("x-Hasura-User_Id")}
 
-- create auth site (using turbogears and pgjwt)
-
-- make installer work when multiple php or postgres versions are insalled
-
-- get pgadmin working again (error:  ERROR:  column "proisagg" does not exist LINE 9:  WHERE proisagg = FALSE AND pronamespace = 2200::oid)
+- create auth site (using .NET)

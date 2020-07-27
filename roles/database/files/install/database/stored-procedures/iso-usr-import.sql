@@ -8,7 +8,7 @@
 -- Parameter: KEINE
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_main (INTEGER,BOOLEAN) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_main (BIGINT,BOOLEAN) RETURNS VOID AS $$
 DECLARE
     i_current_import_id ALIAS FOR $1; -- ID des aktiven Imports
     b_is_initial_import ALIAS FOR $2; -- ID des aktiven Imports
@@ -58,7 +58,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter: import_user.usr_id (die ID des zu importierenden Users)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_mark_deleted(INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_mark_deleted(BIGINT,INTEGER) RETURNS VOID AS $$
 DECLARE
     i_current_import_id ALIAS FOR $1;
     i_mgm_id            ALIAS FOR $2;
@@ -101,7 +101,7 @@ $$ LANGUAGE plpgsql;
 
 -- DROP FUNCTION import_usr_single(integer, integer, integer, boolean);
 
-CREATE OR REPLACE FUNCTION import_usr_single(integer, integer, integer, boolean)
+CREATE OR REPLACE FUNCTION import_usr_single(BIGINT, integer, BIGINT, boolean)
   RETURNS void AS
 $BODY$
 DECLARE

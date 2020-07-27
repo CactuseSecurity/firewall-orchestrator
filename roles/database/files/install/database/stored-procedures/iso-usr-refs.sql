@@ -24,7 +24,7 @@
 -- Parameter: current_import_id
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_refhandler_main (INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_main (BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id   ALIAS FOR $1; -- ID des laufenden Imports
 	r_user	RECORD;	-- temp usr
@@ -101,7 +101,7 @@ $$ LANGUAGE plpgsql;
 -- RETURNS:   VOID
 -- an allen Stellen, an denen das alte Objekt in einem aktiven Datensatz referenziert wird,
 -- muss es durch das neue ersetzt werden
-CREATE OR REPLACE FUNCTION import_usr_refhandler_change(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_change(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus usr
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus usr
@@ -141,7 +141,7 @@ $$ language plpgsql;
 -- Funktionen: add_references_for_inserted_group_user
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_refhandler_insert (integer,varchar,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_insert (BIGINT,varchar,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_new_id ALIAS FOR $1;
 	v_delimiter ALIAS FOR $2;
@@ -169,7 +169,7 @@ $$ LANGUAGE plpgsql;
 -- RETURNS:   VOID
 -- an allen Stellen, an denen das alte Objekt in einem aktiven Datensatz referenziert wird,
 -- muss es durch das neue ersetzt werden
-CREATE OR REPLACE FUNCTION import_usr_refhandler_change_flat(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_change_flat(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus usr
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus usr
@@ -201,7 +201,7 @@ $$ language plpgsql;
 -- Funktionen: add_references_for_inserted_group_user
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_refhandler_insert_flat (integer,varchar,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_insert_flat (BIGINT,varchar,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_new_id ALIAS FOR $1;
 	v_delimiter ALIAS FOR $2;
@@ -230,7 +230,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: f_add_single_group_member_usr, insert_user_group_relations (rekursiv)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_refhandler_usergrp_add_group (integer,varchar,varchar,integer,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_usergrp_add_group (BIGINT,varchar,varchar,integer,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_group_id ALIAS FOR $1;
 	v_member_string ALIAS FOR $2;
@@ -261,13 +261,13 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: KEINE
 -- RETURNS:    VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_refhandler_usergrp_add_single_groupmember(VARCHAR,INTEGER,INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_usergrp_add_single_groupmember(VARCHAR,BIGINT,INTEGER,BIGINT) RETURNS VOID AS $$
 DECLARE
 	v_member_name ALIAS FOR $1;
 	i_group_id ALIAS FOR $2;
 	i_mgm_id ALIAS FOR $3;
 	i_current_import_id ALIAS FOR $4;
-	i_user_id integer;
+	i_user_id BIGINT;
 	r_group RECORD;
 BEGIN 
 	SELECT INTO i_user_id user_id FROM usr WHERE mgm_id=i_mgm_id AND user_uid = v_member_name AND active;
@@ -287,7 +287,7 @@ $$ LANGUAGE plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_user_id, new_user_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_usr_refhandler_change_usergrp_member_refs(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_change_usergrp_member_refs(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus usr
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus usr
@@ -316,7 +316,7 @@ $$ language plpgsql;
 -- Parameter: $1: user_id des Benutzers
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_refhandler_usergrp_flat_add_self (INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_usergrp_flat_add_self (BIGINT,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_user_id	ALIAS FOR $1;
 	i_current_import_id	ALIAS FOR $2;
@@ -343,7 +343,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: insert_user_group_relations_flat (rekursiv)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_usr_refhandler_usergrp_flat_add_group (INTEGER,INTEGER,INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_usergrp_flat_add_group (BIGINT,BIGINT,INTEGER,BIGINT) RETURNS VOID AS $$
 DECLARE
     i_top_group_id	ALIAS FOR $1;
     i_group_id		ALIAS FOR $2;
@@ -384,7 +384,7 @@ $$ LANGUAGE plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_user_id, new_user_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_usr_refhandler_change_usergrp_flat_member_refs(INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_change_usergrp_flat_member_refs(BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus usr
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus usr
@@ -419,7 +419,7 @@ $$ language plpgsql;
 -- Zweck:	  muessen die Referenzen vom alten auf das neue Objekt umgebogen werden
 -- Parameter: old_user_id, new_user_id, import_id
 -- RETURNS:   VOID
-CREATE OR REPLACE FUNCTION import_usr_refhandler_change_rule_usr_refs (INTEGER, INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_usr_refhandler_change_rule_usr_refs (BIGINT, BIGINT, BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_old_id ALIAS FOR $1; -- id des bestehenden Datensatzes aus usr
 	i_new_id ALIAS FOR $2; -- id des neuen Datensatzes aus usr

@@ -10,7 +10,7 @@
 -- Parameter2: flag fuer initial_import
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_main(integer, boolean)
+CREATE OR REPLACE FUNCTION import_nwobj_main(BIGINT, boolean)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -68,12 +68,12 @@ $BODY$
 -- Parameter: import_object.obj_id (die ID des zu importierenden Objekts)
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_nwobj_mark_deleted(INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_nwobj_mark_deleted(BIGINT,INTEGER) RETURNS VOID AS $$
 DECLARE
     i_current_import_id	ALIAS FOR $1;
     i_mgm_id			ALIAS FOR $2;
     i_import_admin_id	INTEGER;
-	i_previous_import_id  INTEGER; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
+	i_previous_import_id  BIGINT; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
 	r_obj  RECORD;  -- Datensatz mit einzelner obj_id aus import_object-Tabelle des zu importierenden Objekts
 BEGIN
 --	SELECT INTO i_import_admin_id import_admin FROM import_control WHERE control_id=i_current_import_id;
@@ -109,7 +109,7 @@ $$ LANGUAGE plpgsql;
 
 -- DROP FUNCTION import_nwobj_single(integer, integer, integer, boolean);
 
-CREATE OR REPLACE FUNCTION import_nwobj_single(integer, integer, integer, boolean)
+CREATE OR REPLACE FUNCTION import_nwobj_single(BIGINT, integer, BIGINT, boolean)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -139,6 +139,7 @@ BEGIN
     b_insert := FALSE;
     b_change := FALSE;
     b_change_security_relevant := FALSE;
+	RAISE DEBUG 'processing import_nwobj_single start';
     SELECT INTO to_import * FROM import_object WHERE obj_id = id; -- zu importierenden Datensatz aus import_object einlesen
     IF NOT (to_import.obj_zone IS NULL) THEN  -- wenn Zone-Info vorhanden (i.e. Netscreen-Object)
 	    SELECT INTO z zone_id FROM zone WHERE zone_name = to_import.obj_zone AND mgm_id = i_mgm_id; -- ZoneID holen
@@ -148,11 +149,13 @@ BEGIN
 	    zoneID := z.zone_id; -- zoneID fuer spaeteres INSERT zwischenspeichern
     ELSE zoneID := NULL; -- zoneID fuer spaeteres INSERT auf NULL setzen
     END IF;
+	RAISE DEBUG 'processing import_nwobj_single 2';
     SELECT INTO i_typ obj_typ_id FROM stm_obj_typ WHERE obj_typ_name = to_import.obj_typ; -- obj_typ_id holen (network,host,...)
     IF NOT FOUND THEN -- TODO: das muss noch automatisiert werden: Neuanlegen eines obj_typ
        PERFORM error_handling('ERR_OBJTYP_MISS', to_import.obj_typ);
     END IF;
     -- color_id holen (normalisiert ohne SPACES und in Kleinbuchstaben)
+	RAISE DEBUG 'processing import_nwobj_single 3';
     SELECT INTO i_farbe color_id FROM stm_color WHERE color_name = LOWER(remove_spaces(to_import.obj_color));
     IF NOT FOUND THEN -- TODO: Fehlerbehandlung bzw. automat. Neuanlegen einer Farbe?
 		i_farbe := NULL;

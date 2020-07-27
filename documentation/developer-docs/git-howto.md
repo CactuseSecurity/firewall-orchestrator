@@ -12,17 +12,13 @@ Source: <https://help.github.com/en/github/collaborating-with-issues-and-pull-re
 
 Add ssh key to profile (Profile - Settings - ssh keys)
 
-## First time add upstream URL (only has to be done once)
+## add upstream URL (only has to be done once)
 
-```
-git remote -v
-git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
-git remote -v
-```
+    git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
+    
+### Sync with upstream
 
-## Sync with upstream
-
-```
+```console
 git fetch upstream
 git checkout master
 
@@ -38,25 +34,16 @@ git pull upstream master
 git push
 ```
 
-## Working via ssh
+### Working via ssh
 
-```
+    git remote add upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 
-git remote add upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
-
-```
-
-## Change upstream name
-
-```
-
-git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
-
-```
+### Change upstream name
+    git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 
 ## Example with non-master branch
 
-```
+```console
 git clone git@github.com:tpurschke/firewall-orchestrator.git -b tim/make-api-reinstallable
 cd firewall-orchestrator/
 git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git

@@ -2,7 +2,7 @@
 
 ## minimize client size
 
-```
+```console
 cd app-dir
 rm -rf obj/Debug
 rm -rf bin/Debug

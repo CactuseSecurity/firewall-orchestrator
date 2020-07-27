@@ -7,7 +7,7 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 	SELECT
 		abs_change_id,
 		log_obj_id AS local_change_id,
-		get_request_str('object', changelog_object.log_obj_id) as change_request_info,
+		get_request_str(CAST('object' as VARCHAR), changelog_object.log_obj_id) as change_request_info,
 		CAST('object' AS VARCHAR) as change_element,
 		CAST('basic_element' AS VARCHAR) as change_element_order,
 		changelog_object.old_obj_id AS old_id,	

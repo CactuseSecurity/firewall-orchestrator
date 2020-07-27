@@ -29,8 +29,8 @@
 -- RETURNS:     VARCHAR
 --
 
--- DROP FUNCTION get_request_str(VARCHAR,INTEGER);
-CREATE OR REPLACE FUNCTION get_request_str(VARCHAR,INTEGER) RETURNS VARCHAR AS $$
+-- DROP FUNCTION get_request_str(VARCHAR,BIGINT);
+CREATE OR REPLACE FUNCTION get_request_str(VARCHAR,BIGINT) RETURNS VARCHAR AS $$
 DECLARE
 	v_table	ALIAS FOR $1;
 	i_id	ALIAS FOR $2;
@@ -77,7 +77,7 @@ $$ LANGUAGE plpgsql;
 --
 
 -- DROP FUNCTION get_last_change_admin_of_rulebase_change (INTEGER, INTEGER);
-CREATE OR REPLACE FUNCTION get_last_change_admin_of_rulebase_change (INTEGER, INTEGER) RETURNS INTEGER AS
+CREATE OR REPLACE FUNCTION get_last_change_admin_of_rulebase_change (BIGINT, INTEGER) RETURNS INTEGER AS
 $BODY$
 DECLARE
     i_import_id			ALIAS FOR $1;
@@ -115,7 +115,7 @@ $BODY$
 --
 
 -- DROP FUNCTION get_last_change_admin_of_obj_delete (INTEGER);
-CREATE OR REPLACE FUNCTION get_last_change_admin_of_obj_delete (INTEGER) RETURNS INTEGER AS
+CREATE OR REPLACE FUNCTION get_last_change_admin_of_obj_delete (BIGINT) RETURNS INTEGER AS
 $BODY$
 DECLARE
     i_import_id			ALIAS FOR $1;
@@ -279,7 +279,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter2:	relevante import_id
 -- RETURNS:		alle obj_ids als Tabelle
 --
-CREATE OR REPLACE FUNCTION get_exploded_src_of_rule(INTEGER) RETURNS SETOF INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_exploded_src_of_rule(BIGINT) RETURNS SETOF BIGINT AS $$
 DECLARE
 	i_rule_id ALIAS FOR $1;
 --	i_import_id ALIAS FOR $2;
@@ -308,7 +308,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:	relevante import_id
 -- RETURNS:		alle obj_ids als Tabelle
 --
-CREATE OR REPLACE FUNCTION get_exploded_dst_of_rule(INTEGER) RETURNS SETOF INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_exploded_dst_of_rule(BIGINT) RETURNS SETOF BIGINT AS $$
 DECLARE
 	i_rule_id ALIAS FOR $1;
 --	i_import_id ALIAS FOR $2;
@@ -336,7 +336,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:	rule_id der Regel
 -- RETURNS:		alle obj_ids als Tabelle
 --
-CREATE OR REPLACE FUNCTION get_exploded_dst_of_rule(INTEGER) RETURNS SETOF INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_exploded_dst_of_rule(BIGINT) RETURNS SETOF BIGINT AS $$
 DECLARE
 	i_rule_id ALIAS FOR $1;
 	r_obj	RECORD;
@@ -363,7 +363,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter2:	Time (timestamp)
 -- RETURNS:		ID des vorherigen Imports
 --
-CREATE OR REPLACE FUNCTION get_previous_import_id(INTEGER,TIMESTAMP) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_previous_import_id(INTEGER,TIMESTAMP) RETURNS BIGINT AS $$
 DECLARE
 	i_device_id ALIAS FOR $1;
 	t_report_time_in ALIAS FOR $2;
@@ -401,7 +401,7 @@ DECLARE
 	i_mgm_id INTEGER;
 	r_dev RECORD;
 	v_id_string VARCHAR;
-	i_prev_import_id INTEGER;
+	i_prev_import_id BIGINT;
 BEGIN
 	IF t_report_time_in IS NULL THEN
 		t_report_time := now();
@@ -432,13 +432,13 @@ $$ LANGUAGE plpgsql;
 -- Parameter2:	Time (timestamp)
 -- RETURNS:		ID des naechsten Imports
 --
-CREATE OR REPLACE FUNCTION get_next_import_id(INTEGER,TIMESTAMP) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_next_import_id(INTEGER,TIMESTAMP) RETURNS BIGINT AS $$
 DECLARE
 	i_device_id ALIAS FOR $1;
 	t_report_time_in ALIAS FOR $2;
 	t_report_time TIMESTAMP;
 	i_mgm_id INTEGER;
-	i_next_import_id INTEGER;
+	i_next_import_id BIGINT;
 BEGIN
 	IF t_report_time_in IS NULL THEN
 		t_report_time := now();
@@ -460,11 +460,11 @@ $$ LANGUAGE plpgsql;
 -- Parameter2:	Zeitpunkt (TIMESTAMP)
 -- RETURNS:		ID des Imports
 --
-CREATE OR REPLACE FUNCTION get_matching_import_id(INTEGER, TIMESTAMP) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_matching_import_id(INTEGER, TIMESTAMP) RETURNS BIGINT AS $$
 DECLARE
 	i_device_id ALIAS FOR $1;
 	t_report_time_in ALIAS FOR $2;
-	i_import_id INTEGER;
+	i_import_id BIGINT;
 	i_mgm_id INTEGER;
 	t_report_time TIMESTAMP;
 BEGIN
@@ -489,7 +489,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:	obj_id
 -- RETURNS:		wahr, wenn das Komplement von object zum Client mit client_id gehoert
 --
-CREATE OR REPLACE FUNCTION explode_objgrp (INTEGER) RETURNS SETOF INTEGER AS $$
+CREATE OR REPLACE FUNCTION explode_objgrp (BIGINT) RETURNS SETOF BIGINT AS $$
 DECLARE
     i_obj_id ALIAS FOR $1;
     r_obj	RECORD;				-- zu pruefendes Objekt
@@ -514,7 +514,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:	rule_id
 -- RETURNS:		BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_rule_src_negated (INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_rule_src_negated (BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
     i_rule_id ALIAS FOR $1;
     r_rule_src_neg	BOOLEAN; -- result
@@ -530,7 +530,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:	rule_id
 -- RETURNS:		BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_rule_dst_negated (INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_rule_dst_negated (BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
     i_rule_id ALIAS FOR $1;
     r_rule_dst_neg	BOOLEAN; -- result
@@ -546,7 +546,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:	rule_id
 -- RETURNS:		action_id und string der Aktion
 --
-CREATE OR REPLACE FUNCTION get_rule_action (INTEGER) RETURNS RECORD AS $$
+CREATE OR REPLACE FUNCTION get_rule_action (BIGINT) RETURNS RECORD AS $$
 DECLARE
     i_rule_id ALIAS FOR $1;
     r_rule	RECORD; -- record to be returned

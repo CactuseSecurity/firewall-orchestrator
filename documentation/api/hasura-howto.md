@@ -25,13 +25,14 @@
 ### option 1
 source: <https://www.commandlinefu.com/commands/view/12221/convert-json-to-yaml>
 
+~~~console
        python -c 'import sys, yaml, json; yaml.safe_dump(json.load(sys.stdin), sys.stdout, default_flow_style=False)' < file.json > file.yaml
-
+~~~
 
 ### option 2
 source: <https://blog.jasoncallaway.com/2015/10/11/python-one-liner-converting-json-to-yaml/>
 
-```
+```python
 #!/usr/bin/env python
 
 import simplejson

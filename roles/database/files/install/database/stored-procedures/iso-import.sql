@@ -131,11 +131,11 @@ $$ LANGUAGE plpgsql;
 -- Parameter2: Bezugspunkt (normalerweise = current_import_id)
 -- RETURNS:   INTEGER Import-ID
 --
-CREATE OR REPLACE FUNCTION get_previous_import_id_for_mgmt (INTEGER,INTEGER) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_previous_import_id_for_mgmt (INTEGER,BIGINT) RETURNS INTEGER AS $$
 DECLARE
 	i_mgm_id ALIAS FOR $1; -- ID des Managements
 	i_import_id ALIAS FOR $2; -- ID des Imports
-	i_prev_import_id INTEGER; -- temp. Record
+	i_prev_import_id BIGINT; -- temp. Record
 BEGIN
 	SELECT INTO i_prev_import_id MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND control_id<i_import_id AND successful_import;
 	IF NOT FOUND THEN
@@ -152,10 +152,10 @@ $$ LANGUAGE plpgsql;
 -- Parameter1: Management-ID
 -- RETURNS:   INTEGER Import-ID
 --
-CREATE OR REPLACE FUNCTION get_last_import_id_for_mgmt (INTEGER) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_last_import_id_for_mgmt (INTEGER) RETURNS BIGINT AS $$
 DECLARE
 	i_mgm_id ALIAS FOR $1; -- ID des Managements
-	i_prev_import_id INTEGER; -- temp. Record
+	i_prev_import_id BIGINT; -- temp. Record
 BEGIN
 	SELECT INTO i_prev_import_id MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND successful_import;
 	IF NOT FOUND THEN
@@ -170,9 +170,9 @@ $$ LANGUAGE plpgsql;
 -- FUNCTION:  get_previous_import_id
 -- Zweck:     liefert die ID des direkt vor $2 liegenden Imports des selben Managements zurueck
 -- Parameter1: Import_id (normalerweise = current_import_id)
--- RETURNS:   INTEGER Import-ID
+-- RETURNS:   BIGINT Import-ID
 --
-CREATE OR REPLACE FUNCTION get_previous_import_id (INTEGER) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_previous_import_id (BIGINT) RETURNS BIGINT AS $$
 DECLARE
 	i_import_id ALIAS FOR $1; 
 	i_mgm_id INTEGER; -- ID des Managements
@@ -189,12 +189,12 @@ $$ LANGUAGE plpgsql;
 -- Parameter2: Zeitpunkt
 -- RETURNS:   INTEGER Import-ID
 --
-CREATE OR REPLACE FUNCTION get_import_id_for_dev_at_time (INTEGER,TIMESTAMP) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_import_id_for_dev_at_time (INTEGER,TIMESTAMP) RETURNS BIGINT AS $$
 DECLARE
 	i_dev_id ALIAS FOR $1; -- ID des Devices
 	t_time ALIAS FOR $2; -- Report-Zeitpunkt
 	i_mgm_id INTEGER; -- ID des Managements
-	i_import_id INTEGER; -- Result
+	i_import_id BIGINT; -- Result
 BEGIN
 	SELECT INTO i_mgm_id mgm_id FROM device WHERE dev_id=i_dev_id;
 	RETURN get_import_id_for_mgmt_at_time(i_mgm_id, t_time);
@@ -208,11 +208,11 @@ $$ LANGUAGE plpgsql;
 -- Parameter2: Zeitpunkt
 -- RETURNS:   INTEGER Import-ID
 --
-CREATE OR REPLACE FUNCTION get_import_id_for_mgmt_at_time (INTEGER,TIMESTAMP) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_import_id_for_mgmt_at_time (INTEGER,TIMESTAMP) RETURNS BIGINT AS $$
 DECLARE
 	i_mgm_id ALIAS FOR $1; -- ID des Managements
 	t_time ALIAS FOR $2; -- Report-Zeitpunkt
-	i_import_id INTEGER; -- Result
+	i_import_id BIGINT; -- Result
 BEGIN
 	SELECT INTO i_import_id MAX(control_id) FROM import_control
 		WHERE mgm_id=i_mgm_id AND start_time<t_time AND NOT stop_time IS NULL AND successful_import;
@@ -232,7 +232,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION rollback_current_import() RETURNS VOID AS $$
 DECLARE
 	last_import_time RECORD;
-	i_cur_ctrl_id INTEGER;
+	i_cur_ctrl_id BIGINT;
 BEGIN
 	SELECT INTO last_import_time MAX(start_time) AS last_import FROM import_control;
 	SELECT INTO i_cur_ctrl_id control_id FROM import_control WHERE stop_time IS NULL AND start_time = last_import_time.last_import AND successful_import;
@@ -274,7 +274,7 @@ CREATE OR REPLACE FUNCTION rollback_import_of_mgm(INTEGER) RETURNS VOID AS $$
 DECLARE
 	i_mgm_id ALIAS FOR $1; -- ID des zurueckzuruderndes Managements
 	last_import_time RECORD;
-	i_cur_ctrl_id INTEGER;
+	i_cur_ctrl_id BIGINT;
 BEGIN
 	SELECT INTO i_cur_ctrl_id MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND stop_time is NULL;
 	IF FOUND THEN
@@ -306,7 +306,7 @@ $$ LANGUAGE plpgsql;
 -- Parameter: control_id
 -- RETURNS:   TRUE (dummy)
 --
-CREATE OR REPLACE FUNCTION remove_import_lock(INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION remove_import_lock(BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
     i_last_control_id ALIAS FOR $1; -- ID des aktiven Imports
 BEGIN    -- setzen der stop_time
@@ -318,10 +318,10 @@ $$ LANGUAGE plpgsql;
 ----------------------------------------------------
 -- FUNCTION:  show_change_summary
 -- Zweck:     gibt einen String mit allen Aenderungen zurueck
--- Parameter: import_id (INTEGER)
+-- Parameter: import_id (BIGINT)
 -- RETURNS:   VARCHAR
 --
-CREATE OR REPLACE FUNCTION show_change_summary(INTEGER) RETURNS VARCHAR AS $$
+CREATE OR REPLACE FUNCTION show_change_summary(BIGINT) RETURNS VARCHAR AS $$
 DECLARE
     ctrl_id ALIAS FOR $1;
     r_change RECORD; -- Record mit Anzahl Aenderungen
@@ -384,7 +384,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION clean_up_tables (INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION clean_up_tables (BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1;
 BEGIN

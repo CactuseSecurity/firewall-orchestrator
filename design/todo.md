@@ -25,7 +25,6 @@
 
 - done: prevent database from being deleted (add force_db_replace variable)
 
-
 # installation
 
 - add wrapper to simplify installation further

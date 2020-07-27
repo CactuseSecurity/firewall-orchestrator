@@ -5,7 +5,7 @@
 
 -- DROP FUNCTION public.import_all_main(integer);
 
-CREATE OR REPLACE FUNCTION public.import_all_main(integer)
+CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT)
   RETURNS boolean AS
 $BODY$
 DECLARE
@@ -72,8 +72,10 @@ BEGIN
 				v_err_pos := 'import_rules of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
 				IF (import_rules(r_dev.dev_id, i_current_import_id)) THEN  				-- returns true if rule_order needs to be written
 																						-- currently always returns true as each import needs a rule_order
-					v_err_pos := 'import_rules_save_order of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
-					PERFORM import_rules_save_order(i_current_import_id,r_dev.dev_id);	
+					v_err_pos := 'import_rules_set_rule_num_numeric of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
+					PERFORM import_rules_save_order(i_current_import_id,r_dev.dev_id);  -- todo: to be removed
+					-- in case of any changes - adjust rule_num values in rulebase
+					PERFORM import_rules_set_rule_num_numeric (i_current_import_id,r_dev.dev_id);
 				END IF;
 			END IF;
 		END LOOP;
@@ -115,9 +117,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION public.import_all_main(integer)
-  OWNER TO itsecorg;
-
+ALTER FUNCTION public.import_all_main(BIGINT) OWNER TO itsecorg;
 
 ----------------------------------------------------
 -- FUNCTION:  import_global_refhandler_main
@@ -129,7 +129,7 @@ ALTER FUNCTION public.import_all_main(integer)
 -- Parameter: current_import_id
 -- RETURNS:   VOID
 --
-CREATE OR REPLACE FUNCTION import_global_refhandler_main (INTEGER) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION import_global_refhandler_main (BIGINT) RETURNS BOOLEAN AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1; -- ID des laufenden Imports
 	i_mgm_id INTEGER;
@@ -214,7 +214,7 @@ isodb=# select * from view_changes;
 
 */
 
-CREATE OR REPLACE FUNCTION import_changelog_sync (INTEGER, INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_changelog_sync (BIGINT, INTEGER) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1; -- ID des laufenden Imports
 	i_mgm_id ALIAS FOR $2;			 -- mgm_id

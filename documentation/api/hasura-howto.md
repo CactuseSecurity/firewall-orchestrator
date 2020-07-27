@@ -34,11 +34,9 @@ Hasura permissions are based on roles. Table permissions are defined on a per-ro
     
       to be defined later
 
-2) define custom functions (see <https://hasura.io/docs/1.0/graphql/manual/schema/custom-functions.html> for requirements regarding this function)
+2) define custom functions (see <https://hasura.io/docs/1.0/graphql/manual/schema/custom-functions.html> for requirements regarding these functions)
 ~~~console
-visible_devices_for_role(role_id) returns setof device-ids
 visible_devices_for_user(user_id) returns setof device-ids
-visible_managements_for_role(role_id) returns setof mgmt-ids
 visible_managements_for_user(user_id) returns setof mgmt-ids
 ~~~
 ### define permissions using user defined functions:

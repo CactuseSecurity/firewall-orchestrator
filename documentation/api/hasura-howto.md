@@ -132,10 +132,24 @@ existing functions:
 CREATE OR REPLACE FUNCTION public.get_user_visible_devices(integer) RETURNS SETOF integer
 CREATE OR REPLACE FUNCTION public.get_user_visible_managements(integer) RETURNS SETOF integer 
 ~~~
+- use pgjwt to create jwt as follows
+  - get secret from /usr/share/itsecorg/api/jwt.secret
+  - create JWT with
+  ~~~pgsql
+  select sign('{"https://hasura.io/jwt/claims": {
+    "x-hasura-allowed-roles": [
+      "user"
+    ],
+    "x-hasura-default-role": "user",
+    "x-hasura-user-id": "tim"
+  }}', '86496cb8be0ca4f3d68c0d947229c65d5490377e8b77eabd135ebd8e53a4d2bc');
+  -- result: eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjogewogICAgIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOiBbCiAgICAgICJ1c2VyIgogICAgXSwKICAgICJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiAidXNlciIsCiAgICAieC1oYXN1cmEtdXNlci1pZCI6ICJ0aW0iCiAgfX0.Nuu7_UL8JwJHs5lo5IXqLC3VnyShbu2L12tCHVnOP8OluZp7sh9eFLkCVoo0yvZf
+  ~~~
 
 use graphiql to
 - define all parameters directly (no auth, no jwt) like so:
   - unset x-hasura-admin-secret
+  - set JWT
   - set x-hasura-user-id: "tim"
   - set x-hasura-
 

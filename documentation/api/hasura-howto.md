@@ -16,9 +16,38 @@
   - hdb_catalog.view.hdb_role contains roles
 
 ## authentication
+how to devine roles & permissions in hasura:
+### prerequisites
+Hasura permissions are based on roles. Table permissions are defined on a per-role basis, user-specific permissions can be realized using functions with X-Hasura-User-Id as input parameter.
 
-- <https://hasura.io/blog/hasura-authentication-explained/#jwt-auth>
-- how to devine roles & permissions in hasura:
+1) create roles (role based access control, RBAC)
+  - admin - full admin - able to change tables management, device, stm_...
+    full access for insert, select, update, delete
+  - reporters - able to request reports
+    no  insert, update, delete for "data tables" like management, rule, object, ...
+    select access restricted via functions returning visible mgmts or devices
+  - fw-admin - able to document changes
+    to be defined later
+
+2) define custom functions (see <https://hasura.io/docs/1.0/graphql/manual/schema/custom-functions.html> for requirements regarding this function)
+~~~console
+visible_devices_for_role(role_id) returns setof device-ids
+visible_devices_for_user(user_id) returns setof device-ids
+visible_managements_for_role(role_id) returns setof mgmt-ids
+visible_managements_for_user(user_id) returns setof mgmt-ids
+~~~
+### define permissions using user defined functions:
+- add the following code for all exposed tables containing mgm_id:
+~~~graphql
+   {"mgm_id":{"_in":["visible_managements_for_user(X-Hasura-User-Id)"]}}
+~~~
+- add the following code for all exposed tables containing dev_id:
+~~~graphql
+   {"dev_id":{"_in":["visible_devices_for_user(X-Hasura-User-Id)"]}}
+~~~
+
+### JWT usage
+see <https://hasura.io/blog/hasura-authentication-explained/#jwt-auth>
 
 ## How to convert hasura metadata file from json to yaml
 

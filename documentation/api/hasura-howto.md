@@ -21,13 +21,18 @@ how to devine roles & permissions in hasura:
 Hasura permissions are based on roles. Table permissions are defined on a per-role basis, user-specific permissions can be realized using functions with X-Hasura-User-Id as input parameter.
 
 1) create roles (role based access control, RBAC)
-  - admin - full admin - able to change tables management, device, stm_...
-    full access for insert, select, update, delete
-  - reporters - able to request reports
-    no  insert, update, delete for "data tables" like management, rule, object, ...
-    select access restricted via functions returning visible mgmts or devices
-  - fw-admin - able to document changes
-    to be defined later
+     - admin - full admin - able to change tables management, device, stm_...
+     
+      full access for insert, select, update, delete
+     - reporters - able to request reports
+     
+      no  insert, update, delete for "data tables" like management, rule, object, ...
+      
+      select access restricted via functions returning visible mgmts or devices
+      
+    - fw-admin - able to document changes
+    
+      to be defined later
 
 2) define custom functions (see <https://hasura.io/docs/1.0/graphql/manual/schema/custom-functions.html> for requirements regarding this function)
 ~~~console

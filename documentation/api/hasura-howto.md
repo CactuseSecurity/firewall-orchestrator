@@ -135,7 +135,7 @@ CREATE OR REPLACE FUNCTION public.get_user_visible_managements(integer) RETURNS 
 - use pgjwt to create jwt as follows
   - get secret from /usr/share/itsecorg/api/jwt.secret
   - create JWT with
-  ~~~pgsql
+~~~pgsql
   select sign('{
   "sub": "1234567890",
   "name": "Tim Purschke",

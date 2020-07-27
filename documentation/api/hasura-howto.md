@@ -16,9 +16,13 @@
   - hdb_catalog.view.hdb_role contains roles
 
 ## authentication
-how to devine roles & permissions in hasura:
+how to devine roles & permissions in hasura.
+For an example see <https://dev.to/lineup-ninja/modelling-teams-and-user-security-with-hasura-204i>
+
 ### prerequisites
 Hasura permissions are based on roles. Table permissions are defined on a per-role basis, user-specific permissions can be realized using functions with X-Hasura-User-Id as input parameter.
+
+
 
 1) create roles (role based access control, RBAC)
      - admin - full admin - able to change tables management, device, stm_...
@@ -50,7 +54,43 @@ visible_managements_for_user(user_id) returns setof mgmt-ids
 ~~~
 
 ### JWT usage
-see <https://hasura.io/blog/hasura-authentication-explained/#jwt-auth>
+see <https://hasura.io/blog/hasura-authentication-explained/#jwt-auth> and <https://dev.to/lineup-ninja/modelling-teams-and-user-security-with-hasura-204i>
+
+#### Example JWT content
+~~~console
+"https://hasura.io/jwt/claims": {
+    "x-hasura-allowed-roles": [
+      "user"
+    ],
+    "x-hasura-default-role": "user",
+    "x-hasura-user": "bdb04fa3-4de3-4434-8d7f-75b10fe2669a",
+
+  },
+~~~
+
+#### Example permissions
+~~~graphql
+{
+    "team": {
+        "memberships": {
+            "_and": [
+                {
+                    "roles": {
+                        "event_write": {
+                            "_eq": true
+                        }
+                    }
+                },
+                {
+                    "user_id": {
+                        "_eq": "x-hasura-user"
+                    }
+                }
+            ]
+        }
+    }
+}
+~~~
 
 ## How to convert hasura metadata file from json to yaml
 

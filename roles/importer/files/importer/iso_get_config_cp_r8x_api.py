@@ -18,7 +18,9 @@
 # mgmt_cli -r true --domain MDS set api-settings accepted-api-calls-from "All IP addresses"
 # api restart
 
-import requests, json, argparse
+import requests, json, argparse, pdb
+import requests.packages.urllib3, time, logging
+requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('hostname', metavar='api_host', help='Check Point R8x management server')
@@ -27,6 +29,9 @@ parser.add_argument('-u', '--user', metavar='api_user', default='itsecorg', help
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True, help='name of policy layer(s) to read (comma separated)')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
+parser.add_argument('-s', '--ssl', metavar='verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
+parser.add_argument('-i', '--limit', metavar='verification_mode', default='500', help='The maximal number of returned results per HTTPS Connection; default=500')
+parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0') 
 
 args = parser.parse_args()
 
@@ -34,9 +39,25 @@ api_host=args.hostname
 api_password=args.password
 proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 offset=0
-limit=100
+limit = args.limit
 details_level="full"    # 'standard'
-ssl_verification=False
+
+# logging config
+debug_level = int(args.debug)
+if debug_level == 4:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+elif debug_level == 41:
+    logging.basicConfig(filename='/var/tmp/iso_get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+#ssl_verification mode
+verification_mode = args.ssl
+if verification_mode == '':
+    ssl_verification = False
+else:
+    ssl_verification = verification_mode
+
+# import pdb; pdb.set_trace() # debug python
+
 use_object_dictionary='false'
 
 def api_call(ip_addr, port, command, json_payload, sid):
@@ -54,8 +75,14 @@ def login(user,password,api_host,api_port):
     return response["sid"]
 
 sid = login(args.user,api_password,api_host,args.port)
+logging.debug ("iso_get_config_cp_r8x_api - limit:"+ limit )
+logging.debug ("iso_get_config_cp_r8x_api - login:"+ args.user )
+logging.debug ("iso_get_config_cp_r8x_api - sid:"+ sid )
+
 
 # top level dict start
+starttime = int(time.time())
+logging.debug ("iso_get_config_cp_r8x_api - top level dict start" )
 config_json = "{\n"
 config_json += "\"rulebases\": [\n"
 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
@@ -66,6 +93,7 @@ for layer in args.layer.split(','):
     config_json +=  "\"layerchunks\": [\n"
     current=0
     total=current+1
+    logging.debug ( "iso_get_config_cp_r8x_api - layer:"+ layer )
     while (current<total) :
 #        show_params_rules = {'name':layer,'offset':current,'limit':limit,'use-object-dictionary':'false','details-level':'full'}
         show_params_rules['offset']=current
@@ -74,10 +102,12 @@ for layer in args.layer.split(','):
         config_json +=  ",\n"
         total=rulebase['total']
         current=rulebase['to']
+        logging.debug ( "iso_get_config_cp_r8x_api - rulebase current:"+ str(current) )
     config_json = config_json[:-2]
     config_json +=  "]\n},\n"
 config_json = config_json[:-2]
 config_json += "],\n"  # 'level': 'rulebases'
+logging.debug ( "iso_get_config_cp_r8x_api - rulebase total:"+ str(total) )
 
 # read all objects:
 obj_types = [
@@ -95,6 +125,7 @@ for obj_type in obj_types:
     current=0
     total=current+1
     show_cmd = 'show-' + obj_type
+    logging.debug ( "iso_get_config_cp_r8x_api - obj_type: "+ obj_type )
     while (current<total) :
 #        show_params_objs = {'offset':current,'limit':limit,'details-level':'full'}
         show_params_objs['offset']=current
@@ -104,8 +135,11 @@ for obj_type in obj_types:
         if 'total' in objects  and 'to' in objects :
             total=objects['total']
             current=objects['to']
+            logging.debug ( "iso_get_config_cp_r8x_api - "+ obj_type +" current:"+ str(current) )
+            logging.debug ( "iso_get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
         else :
             current = total
+            logging.debug ( "iso_get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
     config_json = config_json[:-2]
     config_json += "]\n},\n" # 'level': 'top::object'\n"
 config_json = config_json[:-2]
@@ -113,5 +147,7 @@ config_json += "]\n" # 'level': 'objects'\n"
 config_json += "}\n" # 'level': 'top'"
 
 logout_result = api_call(api_host, args.port, 'logout', {}, sid)
-
+endtime = int(time.time())
+duration = endtime - starttime
+logging.debug ( "iso_get_config_cp_r8x_api - duration: "+ str(duration) )
 print(config_json)

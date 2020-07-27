@@ -1,3 +1,11 @@
-# sample graphql queries for api testing
+# all a developer needs to know ;-)
 
-- see <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/roles/api/doc/api_calls.txt>
+## tools & apps
+
+- jiffy time tracking: android app, see play store
+- nextcloud talk app: android app, see play store, alerts via beeps!
+- 
+
+## git ettiquete
+- changes in documemtation dir can be done directly without pull-request
+- all other changes need to be reviewed via pull-request

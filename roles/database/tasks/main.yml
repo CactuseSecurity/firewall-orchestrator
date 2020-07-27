@@ -1,0 +1,131 @@
+- block:
+     - name: install package postgresql
+       package:
+        name: "{{ postgresql_package }}"
+        state: present
+
+     - name: get user name
+       set_fact: ansible_user="{{ lookup('env','USERNAME') }}"
+
+     - name: find out installed postgres version
+       script: "get_pg_version.sh"
+       register: pg_version_result
+       changed_when: false
+
+     - name: set fact pg_version
+       set_fact:
+          pg_version: "{{ pg_version_result.stdout }}"
+
+     - name: install test package for postgresql
+       package:
+        name: "{{ postgresql_test_package }}"
+        state: present
+
+     - name: set fact postgresql_dev_package
+       set_fact:
+          postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+
+     - name: install development package for postgresql (needed for pgcrypto jwt auth)
+       package:
+        name: "{{ postgresql_dev_package }}"
+        state: present
+
+     - name: edit postgresql.conf
+       blockinfile:
+        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        block: |
+          # listen_addresses = 'localhost,1.2.3.4'  # wenn IP des Servers die 1.2.3.4 ist
+          # syslog 
+          log_destination = 'syslog'
+          syslog_facility = 'LOCAL6'
+          syslog_ident = 'postgres-ITSecOrg'
+          client_min_messages = log
+          log_min_messages = info
+        backup: yes
+        
+     - name: edit pg_hba.conf
+       blockinfile:
+        path: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+        backup: yes
+        insertbefore: '# IPv4 local connections:'
+        block: |
+          host    all         dbadmin             127.0.0.1/32          md5
+          # host    all         dbadmin             0.0.0.0/0              md5
+          # host    all         dbadmin             {{ ansible_host }}/32          md5
+          host    all         itsecorg            127.0.0.1/32           trust
+          host    all         +dbbackupusers      127.0.0.1/32           trust
+          # bei lokalem importer:
+          host    all         +configimporters    127.0.0.1/32           trust
+          host    all         confexporter        127.0.0.1/32           trust
+          host    all         textreader          127.0.0.1/32           trust
+          # bei lokalem Webfrontend:
+          host    all         +secuadmins         127.0.0.1/32           md5
+          host    all         +reporters          127.0.0.1/32           md5
+          # bei abgesetztem Webfrontend:
+          # host    all         +secuadmins       <webserver-ip>/32          md5
+          # host    all         +reporters        <webserver-ip>/32          md5
+          # bei remote-importer:
+          # host    all         +configimporters   <importer-ip>/32          trust
+        
+     - name: edit postgresql.conf listener
+       lineinfile:
+        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        backrefs: yes
+        regexp: '^#?\s*(listen_addresses\s*=\s*)(.*)'
+        line: '\1''{{ ansible_host }},localhost'''
+        backup: yes
+
+     - name: reload postgres service
+       service:
+         name: "{{ postgresql_package }}"
+         state: restarted
+
+     - name: copy iso files to backend target
+       copy:
+        src: "install"
+        dest: "{{ iso_home }}"
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
+        
+     - name: make db install scripts executable
+       file:
+        path: "{{ iso_home }}/install/database/db-install-scripts"
+        mode: "u+x,g+x,o+x"
+        recurse: yes
+  
+     - name: include task install db to extra tablespace if defined
+       include_tasks: tablespace_as_root_prereq.yml      
+       when: table_space is defined
+
+     # TODO: replace the following 3 tasks with template/ansible instead of shell
+     - name: setting itscorg db password
+       lineinfile: 
+        path: "{{ iso_home }}/install/database/db-install-scripts/iso-set-vars.sh"
+        backrefs: yes
+        regexp: '^\s*(ISODBPW\s*=)'
+        line: '\1"{{ itsecorg_pwd }}"'
+        backup: yes
+       
+     - name: setting dbadmin password
+       lineinfile: 
+        path: "{{ iso_home }}/install/database/db-install-scripts/iso-set-vars.sh"
+        backrefs: yes
+        regexp: '^\s*(DBADMINPW\s*=)'
+        line: '\1"{{ dbadmin_pwd }}"'
+        backup: yes        
+       
+     - name: setting admin webuser password
+       lineinfile: 
+        path: "{{ iso_home }}/install/database/db-install-scripts/iso-set-vars.sh"
+        backrefs: yes
+        regexp: '^\s*(ADMINPW\s*=)'
+        line: '\1"{{ admin_pwd }}"'
+        backup: yes
+
+     - name: remove all containers including api to make sure the database can be dropped
+       script: "remove_all_containers.sh"
+
+  become: yes
+
+# now in non-root context:            
+- import_tasks: iso-setup-database-as-postgres-user.yml

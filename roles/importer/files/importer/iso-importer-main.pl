@@ -17,6 +17,7 @@ my ($res, $mgm_name, $mgm_id, $fehler);
 if ($#ARGV>=0) { if (defined($ARGV[0]) && is_numeric($ARGV[0])) { $sleep_time = $ARGV[0] * 1; } }
 
 while (1) {
+	output_txt("Import: another loop is starting... ");
 	# Managementsysteme aus der DB holen
 	my $dbh1 = DBI->connect("dbi:Pg:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port","$iso_srv_user","$iso_srv_pw");
 	if ( !defined $dbh1 ) { die "Cannot connect to database!\n"; }
@@ -29,11 +30,13 @@ while (1) {
 	$dbh1->disconnect;
 	# Schleife ueber alle Managementsysteme
 	foreach $mgm_name (sort keys %{$management_hash}) {
+		output_txt("Import: looking at $mgm_name ... ");
 		$mgm_id = $management_hash->{"$mgm_name"}->{"mgm_id"};
 		if (defined($management_hash->{"$mgm_name"}->{"importer_hostname"})) {
 			$importer_hostname = $management_hash->{"$mgm_name"}->{"importer_hostname"};	
 		}
 		if ($importer_hostname eq $hostname_localhost) {
+			output_txt("Import: running on responsible importer $importer_hostname ... ");
 			$fehler = system("$importdir/iso-importer-single.pl mgm_id=$mgm_id");
 		}
 	}

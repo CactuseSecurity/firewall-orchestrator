@@ -6,14 +6,14 @@
 
 1) prepare your test system (install packages needed for install script and create and autorize ssh key pair to allow ssh login to localhost for ansible connect)
 
-```
+```console
 su -
 apt-get install git ansible ssh sudo
 ```
 
 if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
 
-```
+```console
 usermod -a -G sudo `whoami`
 
 exit
@@ -28,28 +28,28 @@ chmod 600 .ssh/authorized_keys
 
 test ssh connectivity to localhost (127.0.0.1) using public key auth (add .ssh/authorized_keys)
 
-```
+```console
 ssh 127.0.0.1
 ```
 
 make sure you can use ansible locally
 
-```
+```console
 ansible -m ping 127.0.0.1
 ```
 
 3) get Firewall Orchestrator with the following command
 
-```
+```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 (or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git, needs ssh key to be uploaded)
 ```
 
 4) install (on localhost)
 
-```
+```console
 cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
-enter sudo password when prompted "BECOME or SUDO password:"
 ```
+Enter sudo password when prompted "BECOME or SUDO password:"
 
-that's it firewall-orchestrator is ready for usage
+That's it firewall-orchestrator is ready for usage

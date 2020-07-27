@@ -1,5 +1,6 @@
+# Design topics
 
-# Design goals
+## Design goals
 
 - simple & enjoyable development in an easily expandable team
 - Open Source
@@ -9,7 +10,7 @@
 - modern & "non-aging" GUI
 - supportability (easy update mechanisms, build updater functionality?)
 
-# Design, method, architecture decisions
+## Design, method, architecture decisions
 
 - language:
 
@@ -18,10 +19,9 @@
 
 - use agile approach (Rapid Prototyping, trial & error, MuP)
 
-  # Tool decisions
+## Tool decisions
 
 - using GitHub.com for
-
   - version control
   - project management
   - test automation
@@ -36,15 +36,15 @@
   - Apollo (<https://www.apollographql.com/>)
   - fat client: .NET core/5 with eto forms
 
-# Functional requirements (high-Level)
+## Functional requirements (high-Level)
 
 - low-cost alternative to core functionality of competition (Tufin, Algosec, Skybox, Firemon)
 - fullfil regulatory requirements (documentation of config changes, recertification of config)
 - "network CMDB"
 - do not include high risk functionality (e.g. write config changes to firewalls) in core product
-- Bereitstellung offener Schnittstellen zur Automatisierung
+- offer API for automation purposes
 
-# Architecture: "encapsulate everything"
+## Architecture: "encapsulate everything"
 
 - API
 

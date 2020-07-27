@@ -8,6 +8,17 @@
 - No hard tabs
 - Must have newline character at end of file
 
+##  MD040/fenced-code-language Fenced code blocks should have a language specified
+
+Code blocks must contain language in first line. Either use three ~ or ` chars, e.g.
+```console
+~~~yaml
+- test
+  abc:
+    def:
+~~~
+```
+
 ## Headers
 
 - Only one top level header in the same document

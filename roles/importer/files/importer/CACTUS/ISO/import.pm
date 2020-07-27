@@ -342,7 +342,7 @@ sub insert_control_entry {
 	$sth = $dbh->prepare( $sql_str );
 	if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 	$sth->execute;
-	$sth = $dbh->prepare( "SELECT CURRVAL('import_control_id_seq');");
+	$sth = $dbh->prepare( "SELECT MAX(control_id) FROM import_control;");
 	if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 	$sth->execute;
 	($current_control_id) = $sth->fetchrow();

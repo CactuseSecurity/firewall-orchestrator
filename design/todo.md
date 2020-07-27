@@ -1,7 +1,7 @@
 
 # team work
 
-- all developers: setup github account and send name to tim for granting access
+- done: all developers: setup github account and send name to tim for granting access
 - all developers: create ssh key and send public key to tim for granting access
 
 # security
@@ -23,7 +23,7 @@
 
 # div
 
-- prevent database from being deleted (add force_db_replace variable)
+- done: prevent database from being deleted (add force_db_replace variable)
 
 # installation
 

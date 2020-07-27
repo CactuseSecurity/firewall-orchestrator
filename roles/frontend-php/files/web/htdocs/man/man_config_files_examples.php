@@ -1,6 +1,4 @@
 <?php
-// $Id: man_config_files_examples.php,v 1.1.2.3 2011-09-15 18:59:49 tim Exp $
-// $Source: /home/cvs/iso/package/web/htdocs/man/Attic/man_config_files_examples.php,v $
 	$stamm="/";
 	$page="man";
 	require_once("check_privs.php");

@@ -19,7 +19,7 @@
 - text filter is derived and automatically displayed when clicking filters
 - user is able to choose filter modules
 - UI must prevent filters from being displayed that do not belong to the current data (dependencies)
-- low prio: display further info per element (ip, client, manufacturer)
+- low prio: display further info per element (ip, client, manufacturer), might be implemented by mouse-over functionality
 
 #### reporting
 

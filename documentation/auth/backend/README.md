@@ -15,45 +15,22 @@
 - defining permissions only works for tables containing dev or mgm
 - create auth site (using .NET)
 
-## JWT
-### sign JWT
-
-```console
-isodb=# select sign('{ "sub": "1234567890", "name": "Tim Purschke", "checkpointreporter": true, "iat": 1516239022, "hasura": { "claims": { "x-hasura-allowed-roles": ["cpreporter","user"], "x-hasura-default-role": "cpreporter", "x-hasura-user-id": "7", "x-hasura-org-id": "123", "x-hasura-custom": "custom-value" } } }', 'ab957df1a33ea38a821278fb04d92abce830175ce9bcdef0e597622434480ccd', 'HS384');
-```
-
-gives: eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyAic3ViIjogIjEyMzQ1Njc4OTAiLCAibmFtZSI6ICJUaW0gUHVyc2Noa2UiLCAiY2hlY2twb2ludHJlcG9ydGVyIjogdHJ1ZSwgImlhdCI6IDE1MTYyMzkwMjIsICJoYXN1cmEiOiB7ICJjbGFpbXMiOiB7ICJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjogWyJjcHJlcG9ydGVyIiwidXNlciJdLCAieC1oYXN1cmEtZGVmYXVsdC1yb2xlIjogImNwcmVwb3J0ZXIiLCAieC1oYXN1cmEtdXNlci1pZCI6ICI3IiwgIngtaGFzdXJhLW9yZy1pZCI6ICIxMjMiLCAieC1oYXN1cmEtY3VzdG9tIjogImN1c3RvbS12YWx1ZSIgfSB9IH0.w8Hqgx2WI0W6sHcIj7Tb5E5-fgsbLIcP8y07GuPIxXeR5E3h9wiXkef4-1SXNqZQ
-
-### running a query with Header
-
-```console
-Authorization: Bearer <JWT>
-```
-
 ## Add Basic roles and permissions in postgresql permissions (grants)
-- Anonymous
-- Authenticated User
-- Documenter
-- Admin
+- anonymous
+- authenticated user
+- reporter
+- fw-admin
+- admin
 
 Second Layer of roles then allows granular access based on device permissions
 
-## prerequisites
+## prerequisites: prepare for hasura auth
 Hasura permissions are based on roles. Table permissions are defined on a per-role basis, user-specific permissions can be realized using functions with X-Hasura-User-Id as input parameter.
 
 1) create roles (role based access control, RBAC)
-     - admin - full admin - able to change tables management, device, stm_...
-     
-      full access for insert, select, update, delete
-     - reporters - able to request reports
-     
-      no  insert, update, delete for "data tables" like management, rule, object, ...
-      
-      select access restricted via functions returning visible mgmts or devices
-      
-    - fw-admin - able to document changes
-    
-      to be defined later
+    - admin - full admin - able to change tables management, device, stm_...: full access for insert, select, update, delete
+    - reporters - able to request reports: no insert, update, delete for "data tables" like management, rule, object, ...:  select access restricted via functions returning visible mgmts or devices
+    - fw-admin - able to document changes: to be defined later
 
 2) use stored procedures to create set of ids
 ~~~console
@@ -64,11 +41,12 @@ Hasura permissions are based on roles. Table permissions are defined on a per-ro
 3) add the result of the functions to the jwt!
 see <https://hasura.io/blog/hasura-authentication-explained/#jwt-auth> and <https://dev.to/lineup-ninja/modelling-teams-and-user-security-with-hasura-204i>
 
-Use existing functions to create jwt:
-  - FUNCTION public.get_user_visible_devices(integer) RETURNS SETOF integer
-  - FUNCTION public.get_user_visible_managements(integer) RETURNS SETOF integer 
+Use existing functions to create list of device & user ids:
+- FUNCTION public.get_user_visible_devices(integer) RETURNS SETOF integer
+- FUNCTION public.get_user_visible_managements(integer) RETURNS SETOF integer 
 
-~~~console
+Use pgjwt to create jwt as follows (get secret from /usr/share/itsecorg/api/jwt_secret):
+~~~sql
   select sign('{
   "sub": "1234567890",
   "name": "Tim Purschke",
@@ -81,27 +59,56 @@ Use existing functions to create jwt:
       "x-hasura-user-id": "tim",
       "x-hasura-org-id": "123",
       "x-hasura-visible-managements": "{1,7,17}",
-	    "x-hasura-visible-devices": "{1,4}"
+	  "x-hasura-visible-devices": "{1,4}"
     }
   }
 }
 ', '<secret>');
-
--- result: eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.ewogICJzdWIiOiAiMTIzNDU2Nzg5MCIsCiAgIm5hbWUiOiAiVGltIFB1cnNjaGtlIiwKICAiaWF0IjogMTUxNjIzOTAyMiwKICAiaGFzdXJhIjogewogICAgImNsYWltcyI6IHsKICAgICAgIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOiBbImFub255bW91cyIsImNwcmVwb3J0ZXIiLCJyZXBvcnRlciIsImFkbWluIl0sCiAgICAgICJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiAicmVwb3J0ZXIiLAogICAgICAieC1oYXN1cmEtcm9sZSI6ICJyZXBvcnRlciIsCiAgICAgICJ4LWhhc3VyYS11c2VyLWlkIjogInRpbSIsCiAgICAgICJ4LWhhc3VyYS1vcmctaWQiOiAiMTIzIgogICAgfQogIH0KfQo.KYpM7Tcg4DJT1G8ps1rTfCdfL3nJWp5tBzz5lMayAO2x1Sl5X2PkdmzhdPr7sxzM
-
 ~~~
 
 4) set permissions for tables in data
-custom row check for tables with management: 
-~~~json
-{"mgm_id":{"_in":"X-Hasura-Visible-Managements"}}
-~~~
-custom row  check for tables with management: 
-~~~json
-{"mgm_id":{"_in":"X-Hasura-Visible-Managements"}}
-~~~
 
-## fill permissions via sql
+tables with device & management reference:
+~~~json
+    "filter": {
+        "_and": [
+            {
+                "mgm_id": {
+                    "_in": "X-Hasura-visible-managements"
+                }
+            },
+            {
+                "dev_id": {
+                    "_in": "X-Hasura-visible-devices"
+                }
+            }
+        ]
+    },
+~~~
+tables with management reference (object, service):
+~~~json
+    "filter": {
+        "mgm_id": {
+            "_in": "X-Hasura-visible-managements"
+        }
+    },
+~~tables with device reference (?):
+~~~json
+    "filter": {
+        "mgm_id": {
+            "_in": "X-Hasura-visible-devices"
+        }
+    },
+~~~
+## how to set hasura permissions
+
+### via web ui
+
+- got to graphiql <https://demo.itsecorg.de/api/console/data/schema/public/tables/device/permissions>
+- choose a role and add "Row select permissions"
+
+  {"dev_id":{"_in":"X-Hasura-Visible-Devices"}}
+### via sql
 
 ~~~sql
 
@@ -234,6 +241,12 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
 }', 'restrict reporter view on rule table', false);
 ~~~
 
+### running a query with Header
+
+```console
+Authorization: Bearer <JWT>
+```
+
 ## simple test of authorization
 
 Define permissions on management table using hasura data console for role reporters as follows:
@@ -259,9 +272,6 @@ public       | management | reporters | select    | {
 (1 row)
 ~~~
 
-- use pgjwt to create jwt as follows
-  - get secret from /usr/share/itsecorg/api/jwt.secret
-  - create JWT as above
 
 use graphiql to
 - define all parameters directly (no auth, no jwt) like so:

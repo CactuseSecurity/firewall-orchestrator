@@ -106,6 +106,44 @@ fragment objectFragment on object {
   obj_ip
 }
 
+query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [String!]) {
+  management(where: {mgm_id: {_in: $management_id}}) {
+    mgm_id
+    mgm_name
+    devices(where: {dev_id: {_in: $device_id}}) {
+      dev_id
+      dev_name
+      rules(where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc, rule_froms_aggregate: {}}) {
+        rule_num
+        rule_src
+        rule_froms {
+          object {
+            obj_ip
+          }
+        }
+        rule_dst
+        rule_tos {
+          object {
+            obj_ip
+          }
+        }
+        rule_svc
+        rule_services {
+          service {
+            svc_name
+            svc_port
+            stm_svc_typ {
+              svc_typ_name
+            }
+          }
+        }
+        rule_action
+        rule_track
+      }
+    }
+  }
+}
+
 query get_import_id($management_id: Int!, $time: Int) {
   import_control_aggregate(where:{mgm_id:{_eq:$management_id}}) {
     aggregate {

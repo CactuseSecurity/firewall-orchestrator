@@ -101,6 +101,139 @@ custom row  check for tables with management:
 {"mgm_id":{"_in":"X-Hasura-Visible-Managements"}}
 ~~~
 
+## fill permissions via sql
+
+~~~sql
+
+-- TODO: the following inserts are not sufficent, still need to define this via web UI (why?)
+-- TODO: set permissions for all relevant data tables: 
+
+-- delete from hdb_catalog.hdb_permission where table_schema='public' and table_name='device' and role_name='reporter' and perm_type='select';
+-- delete from hdb_catalog.hdb_permission where table_schema='public' and table_name='management' and role_name='reporter' and perm_type='select';
+-- delete from hdb_catalog.hdb_permission where table_schema='public' and table_name='object' and role_name='reporter' and perm_type='select';
+-- delete from hdb_catalog.hdb_permission where table_schema='public' and table_name='rule' and role_name='reporter' and perm_type='select';
+
+insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values 
+('public', 'device', 'reporter', 'select', '{
+    "filter": {
+        "dev_id": {
+            "_in": "X-Hasura-Visible-Devices"
+        }
+    },
+    "columns": [
+        "client_id",
+        "dev_active",
+        "dev_comment",
+        "dev_create",
+        "dev_id",
+        "dev_name",
+        "dev_rulebase",
+        "dev_typ_id",
+        "dev_update",
+        "hide_in_gui",
+        "mgm_id"
+    ],
+    "computed_fields": [],
+    "allow_aggregations": true
+}', 'restrict reporter view on device table', false);
+
+insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values 
+('public', 'management', 'reporter', 'select', '{
+    "filter": {
+        "mgm_id": {
+            "_in": "X-Hasura-visible-managements"
+        }
+    },
+    "columns": [
+        "mgm_id",
+        "dev_typ_id",
+        "mgm_name",
+        "mgm_comment",
+        "client_id",
+        "mgm_create",
+        "mgm_update",
+        "hide_in_gui"
+    ],
+    "computed_fields": [],
+    "allow_aggregations": true
+}', 'restrict reporter view on management table', false);
+
+insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values 
+('public', 'object', 'reporter', 'select', '{
+    "filter": {
+        "mgm_id": {
+            "_in": "X-Hasura-visible-managements"
+        }
+    },
+    "columns": [
+        "mgm_id",
+        "obj_id",
+        "obj_name",
+        "obj_comment",
+        "obj_create",
+        "obj_update",
+        "obj_ip"
+    ],
+    "computed_fields": [],
+    "allow_aggregations": true
+}', 'restrict reporter view on network object table', false);
+
+insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values 
+('public', 'rule', 'reporter', 'select', '{
+    "filter": {
+        "_and": [
+            {
+                "mgm_id": {
+                    "_in": "X-Hasura-visible-managements"
+                }
+            },
+            {
+                "dev_id": {
+                    "_in": "X-Hasura-visible-devices"
+                }
+            }
+        ]
+    },
+    "columns": [
+        "active",
+        "rule_disabled",
+        "rule_dst_neg",
+        "rule_implied",
+        "rule_src_neg",
+        "rule_svc_neg",
+        "action_id",
+        "dev_id",
+        "last_change_admin",
+        "mgm_id",
+        "rule_create",
+        "rule_from_zone",
+        "rule_last_seen",
+        "rule_num",
+        "rule_to_zone",
+        "track_id",
+        "rule_id",
+        "rule_num_numeric",
+        "rule_action",
+        "rule_comment",
+        "rule_dst",
+        "rule_dst_refs",
+        "rule_head_text",
+        "rule_src",
+        "rule_src_refs",
+        "rule_svc",
+        "rule_svc_refs",
+        "rule_track",
+        "rule_uid",
+        "rule_installon",
+        "rule_name",
+        "rule_ruleid",
+        "rule_time"
+    ],
+    "computed_fields": [],
+    "allow_aggregations": true
+}', 'restrict reporter view on rule table', false);
+~~~
+
 ## simple test of authorization
 
 Define permissions on management table using hasura data console for role reporters as follows:

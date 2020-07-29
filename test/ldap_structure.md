@@ -23,7 +23,7 @@ n.n.
     rolle1          rolle2             
     cn: rolle1
     member-uids
-    link:-> 12345 (mamager)
+    link:-> 12345 (admin)
     link:->
     link:->
 

@@ -2,7 +2,7 @@
 (root)
 dc:fworch.internal--------------------------------------------------------------------------------------
 |                                                                                                      |
-ou:user-------------------------------------------------------------------------------|               ou:groups -->
+ou:user----------------------------------------------------------------------------|               ou:groups -->
 |                                                                                  |
 |                                                                                  anwender-----------------------------------------------------------------------------------------
 |                                                                                  |                                                                                               |
@@ -30,7 +30,7 @@ n.n.
 
 
 -->> testuser
-# testuser, People, user, bla, internal
+# testuser, mandant1, anwender, user, bla, internal
 dn: uid=testuser,ou=mandant1,ou=anwender,ou=user,dc=bla.internal
 mail: fred.feuerstein@mail.de
 departmentNumber: 76543

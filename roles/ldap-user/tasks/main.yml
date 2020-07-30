@@ -12,15 +12,12 @@
 #          src: roles/openldap-server/files
 #          dest: /etc/ldap/ldif_files/
 
-    - debug:
-        msg: "{{ openldap_server_random_rootpw }}"
-
     - name: Create organizational unit user
-      shell: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f add_ou_user.ldif"
+      shell: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_ou_user.ldif"
 
     - name: Create organizational unit user/systemuser
-      shell: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f add_ou_systemuser.ldif"
+      shell: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_ou_systemuser.ldif"
 
     - name: Create common name user/systemuser/admin (GUI admin)
-      shell: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f add_uid_admin.ldif"
+      shell: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_uid_admin.ldif"
   become: no

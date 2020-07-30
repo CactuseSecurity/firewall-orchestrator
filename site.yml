@@ -11,7 +11,7 @@
   roles:
     - auth
     - openldap-server
-#    - ldap-user
+    - ldap-user
 
 - hosts: apiserver
   roles:

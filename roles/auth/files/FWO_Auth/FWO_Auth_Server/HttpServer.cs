@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace FWO_Auth
 {
-    class HttpServer
+    public class HttpServer
     {
         HttpListener Listener;
 

@@ -1,4 +1,5 @@
 # Hasura Auth
+- The role based access control can be found in <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/auth/backend/rbac.md>
 - how to define roles & permissions in hasura.
 - Starting point: https://hasura.io/docs/1.0/graphql/manual/auth/authorization/index.html
 - For an example see <https://dev.to/lineup-ninja/modelling-teams-and-user-security-with-hasura-204i>
@@ -9,6 +10,7 @@
   - full admin (able to change tables management, device, stm_...)
   - fw admin (able to document changes)
   - reporter (able to request reports)
+- defines roles to implement tenant permissions
 - add get_user_visible_devices in auth function to create JWT containing dev_ids then use this dev_id list in sign command
 - define permissions for all roles
 - find an elegant way to define permissions (only via web UI?)
@@ -17,11 +19,10 @@
 
 ## Add Basic roles and permissions in postgresql permissions (grants)
 - anonymous
-- authenticated user
 - reporter
 - fw-admin
 - admin
-
+- ... more: see <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/auth/backend/rbac.md>
 Second Layer of roles then allows granular access based on device permissions
 
 ## prerequisites: prepare for hasura auth
@@ -108,12 +109,21 @@ tables with management reference (object, service):
 - choose a role and add "Row select permissions"
 
   {"dev_id":{"_in":"X-Hasura-Visible-Devices"}}
-### via sql
+### via sql (you have to execute metadata reload afterwards: hasura metadata reload)
 
 ~~~sql
+/*
+  TODO: set permissions for 
+  a) restricted data tables: 
+    object
+    service
+    ...
 
--- TODO: the following inserts are not sufficent, still need to define this via web UI (why?)
--- TODO: set permissions for all relevant data tables: 
+  b) fully readable data tables (those without dev_id or mgm_id):
+    objgrp
+    objgrp_flat
+    ...
+*/
 
 -- delete from hdb_catalog.hdb_permission where table_schema='public' and table_name='device' and role_name='reporter' and perm_type='select';
 -- delete from hdb_catalog.hdb_permission where table_schema='public' and table_name='management' and role_name='reporter' and perm_type='select';
@@ -148,7 +158,7 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
 ('public', 'management', 'reporter', 'select', '{
     "filter": {
         "mgm_id": {
-            "_in": "X-Hasura-visible-managements"
+            "_in": "X-Hasura-Visible-Managements"
         }
     },
     "columns": [
@@ -159,7 +169,21 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
         "client_id",
         "mgm_create",
         "mgm_update",
-        "hide_in_gui"
+        "ssh_public_key",
+        "ssh_private_key",
+        "ssh_hostname",
+        "ssh_port",
+        "ssh_user",
+        "last_import_md5_complete_config",
+        "last_import_md5_rules",
+        "last_import_md5_objects",
+        "last_import_md5_users",
+        "do_not_import",
+        "clearing_import_ran",
+        "force_initial_import",
+        "config_path",
+        "hide_in_gui",
+        "importer_hostname"
     ],
     "computed_fields": [],
     "allow_aggregations": true
@@ -178,7 +202,7 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
         "obj_name",
         "obj_comment",
         "obj_create",
-        "obj_update",
+        "obj_last_seen",
         "obj_ip"
     ],
     "computed_fields": [],

@@ -33,15 +33,15 @@ This has to be defined in the following database tables:
 
 ## LDAP - remote vs. local
 - When using only the local LDAP server, the user <--> role matching is implemented with LDAP groups managed via the web user interface.
-- When using a remote LDAP server, the user <--> role matching can be either 
+- When using a remote LDAP server, the user <--> role matching can be either
 - In both cases the roles need to be added to the role table.
 
 ### Adding users
 
-#### When creating a new user locally ...
-The user does not get any role assignments to avoid any unwanted access rights. 
+#### When creating a new user locally
+The user does not get any role assignments to avoid any unwanted access rights.
 
-#### When adding a new user or user group from a remote LDAP server ...
+#### When adding a new user or user group from a remote LDAP server
 
 The user or user group does not get any role assignments to avoid any unwanted access rights.
 

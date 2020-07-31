@@ -25,6 +25,9 @@
     set_fact:
       openldap_server_random_rootpw: "{{ openldap_server_rootpw }}"
 
+  - debug:
+      msg: "{{ openldap_server_random_rootpw }}"
+
   - name: Generate the root password for ldap
     shell: "slappasswd -s {{ openldap_server_random_rootpw }} "
     register: root_password

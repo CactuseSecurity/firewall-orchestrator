@@ -25,6 +25,7 @@
     set_fact:
       openldap_server_random_rootpw: "{{ openldap_server_rootpw }}"
 
+# WARNING: THIS PRINTS THE MANAGER PASSWORD DURING INSTALLATION, ONLY FOR TESTING, HAS TO BE REMOVED LATER
   - debug:
       msg: "{{ openldap_server_random_rootpw }}"
 

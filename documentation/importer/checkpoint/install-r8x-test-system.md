@@ -36,4 +36,5 @@ a) increase api access speed
 	Environment variable: MGMT_CLI_SYNC
 ```
 b) add 2FA
+
         mgmt_cli login --client-cert path-to-certificate-file.p12 password secret

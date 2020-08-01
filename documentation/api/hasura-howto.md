@@ -99,4 +99,6 @@ use json instead of graphql!!!
             }
         }'
 
-Not clear how to access these collections though.
+Not clear how to access these collections though. Only purpose seems to be for handling allow-list.
+    
+In production instances: Enabling the allow-list is highly recommended when running the GraphQL engine in production.

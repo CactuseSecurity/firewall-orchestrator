@@ -1,0 +1,141 @@
+
+
+# returns a (filtered) list of rules
+query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [cidr!]) {
+  management(where: {mgm_id: {_in: $management_id}}) {
+    mgm_id
+    mgm_name
+    devices(where: {dev_id: {_in: $device_id}}) {
+      dev_id
+      dev_name
+      rules(where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}, rule_froms: {object: {obj_ip: {_in: $rule_src_ip}}}}, order_by: {rule_num: asc}) {
+        rule_num
+        rule_disabled
+        rule_src_neg
+        rule_src
+        rule_froms {
+          object {
+            obj_ip
+          }
+        }
+        rule_dst_neg
+        rule_dst
+        rule_svc_neg
+        rule_svc
+        rule_action
+        rule_track
+      }
+    }
+  }
+}
+
+
+query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [String!]) {
+  management(where: {mgm_id: {_in: $management_id}}) {
+    mgm_id
+    mgm_name
+    devices(where: {dev_id: {_in: $device_id}}) {
+      dev_id
+      dev_name
+      rules(where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc, rule_froms_aggregate: {}}) {
+        rule_num
+        rule_src
+        rule_froms {
+          object {
+            obj_ip
+          }
+        }
+        rule_dst
+        rule_tos {
+          object {
+            obj_ip
+          }
+        }
+        rule_svc
+        rule_services {
+          service {
+            svc_name
+            svc_port
+            stm_svc_typ {
+              svc_typ_name
+            }
+          }
+        }
+        rule_action
+        rule_track
+      }
+    }
+  }
+}
+
+query listRulesOfAllDevicesResolved {
+  device {
+    dev_id
+    dev_name
+    stm_dev_typ {
+      dev_typ_name
+      dev_typ_version
+    }
+    management {
+      mgm_id
+      mgm_name
+    }
+    rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
+      rule_num
+      rule_id
+      rule_uid
+      rule_froms {
+        object {
+          obj_name
+        }
+      }
+      rule_tos {
+        object {
+          obj_name
+        }
+      }
+      rule_services {
+        service {
+          svc_name
+          svc_id
+        }
+      }
+      rule_action
+      rule_track
+    }
+  }
+}
+
+#Query variables:
+#{
+#  "rule_id":156
+#}
+query getSpecificRuleById($rule_id: Int!) {
+  __typename
+  rule(where: {rule_id: {_eq: $rule_id}}) {
+    rule_id
+    rule_src
+    rule_dst
+  }
+}
+
+query listRulesSimple($management_id: [Int!], $device_id: [Int!]) {
+  __typename
+  management(where: {mgm_id: {_in: $management_id}}) {
+    mgm_id
+    mgm_name
+    devices(where: {dev_id: {_in: $device_id}}) {
+      dev_id
+      dev_name
+      rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
+        rule_num
+        rule_src
+        rule_dst
+        rule_svc
+        rule_action
+        rule_track
+      }
+    }
+  }
+}
+

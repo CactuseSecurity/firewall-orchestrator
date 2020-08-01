@@ -39,3 +39,13 @@ import yaml
 
 print yaml.dump(simplejson.loads(str(sys.stdin.read())), default_flow_style=False)
 ~~~
+
+## Sending graphql queries
+
+    Method: POST
+    URL:    https://demo.itsecorg.de/api/v1/graphql
+
+    Header:
+  	  x-hasura-admin-secret --> st8chelt1er
+   	  content-type --> application/json
+   	  x-hasura-role-id --> ?

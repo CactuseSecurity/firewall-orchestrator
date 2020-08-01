@@ -24,15 +24,3 @@
     show route all
     show route static all
 
-## Check Point R8x API access ideas
-
-a) increase api access speed
-```console
-[--sync] {true|false}
-	Synchronous execution of task - commands that generate the task will wait until the task is finished.
-	Default {true}
-	Environment variable: MGMT_CLI_SYNC
-```
-b) add 2FA
-
-        mgmt_cli login --client-cert path-to-certificate-file.p12 password secret

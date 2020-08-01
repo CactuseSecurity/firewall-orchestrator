@@ -1,0 +1,17 @@
+
+mutation updateRuleRuleComment($rule_id: Int!, $new_comment: String!) {
+  __typename
+  update_rule(where: {rule_id: {_eq: $rule_id}}, _set: {rule_comment: $new_comment}) {
+     affected_rows
+    returning {
+      rule_id
+      rule_comment_post: rule_comment
+    }
+  }
+}
+
+# Query variables:
+{
+  "rule_id":156,
+  "new_comment": "ganz neuer Kommentar"
+}

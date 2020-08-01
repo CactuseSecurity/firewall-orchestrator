@@ -11,7 +11,7 @@
 - 1 CPU
 
 ### for production
-- 80 GB HDD
+- 80 GB HDD (large, long-running installations might need 500 GB or more)
 - 16 GB RAM
 - 4 CPUs
 

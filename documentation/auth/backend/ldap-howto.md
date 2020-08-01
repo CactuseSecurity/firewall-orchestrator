@@ -24,7 +24,14 @@ tim@ubu1804:~$
 
 ### set/change password of existing user
 
+For default installation:
+
     tim@ubu1804:~$ ldappasswd -s changeme -w passme -D "cn=Manager,dc=example,dc=com" -x "uid=user1,dc=example,dc=com"
+
+For cactus installation:
+
+    ldappasswd -s <new passwd of user admin> -w <pwd of Manager> -D "cn=Manager,dc=fworch,dc=internal" -x "uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal"
+
 
 ### searching ldap with ldapsearch
 ```console

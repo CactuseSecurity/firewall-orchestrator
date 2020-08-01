@@ -49,3 +49,54 @@ print yaml.dump(simplejson.loads(str(sys.stdin.read())), default_flow_style=Fals
   	  x-hasura-admin-secret --> st8chelt1er
    	  content-type --> application/json
    	  x-hasura-role-id --> ?
+
+## Using the other APIs
+- Use Insomnia
+- see <https://hasura.io/docs/1.0/graphql/manual/api-reference/index.html>
+
+### version API
+
+    curl --request GET \
+      --url https://127.0.0.1:18443/api//v1/version \
+      --header 'content-type: application/json' \
+      --data '{"query":""}'
+
+### config API
+
+    curl --request GET \
+        --url https://127.0.0.1:18443/api//v1alpha1/config \
+        --header 'content-type: application/json' \
+        --header 'x-hasura-admin-secret: st8chelt1er' \
+        --header 'x-hasura-role: admin' \
+        --data '{"query":""}'
+
+
+### Health API
+
+    curl --request GET \
+        --url https://127.0.0.1:18443/api//healthz \
+        --header 'content-type: application/json' \
+        --data '{"query":""}'
+
+### Create query collection 
+use json instead of graphql!!!
+
+    curl --request POST \
+        --url https://127.0.0.1:18443/api/v1/query \
+        --header 'content-type: application/json' \
+        --header 'x-hasura-admin-secret: st8chelt1er' \
+        --header 'x-hasura-role: admin' \
+        --data '{
+            "type" : "create_query_collection",
+            "args": {
+                "name": "my_collection",
+                "comment": "an optional comment",
+                "definition": {
+                    "queries": [
+                        {"name": "listNwObjects", "query": "query { object { obj_name } }"}
+                    ]
+                }
+            }
+        }'
+
+Not clar how to access these collections though.

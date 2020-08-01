@@ -1,15 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
+﻿//using Newtonsoft.Json.Linq;
+using System;
+//using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+//using System.Linq;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
+//using System.Text.Json;
 using System.Threading.Tasks;
-using GraphQL;
+//using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
-using Microsoft.AspNetCore.Mvc.Formatters;
+//using Microsoft.AspNetCore.Mvc.Formatters;
 
 namespace FWO
 {
@@ -33,8 +34,8 @@ namespace FWO
         //Query is structured as follow: { "query" : " 'query' ", "variables" : { 'variables' } } with 'query' as query to send and 'variables' as corresponding variables
         public async Task<string> SendQuery(string Query, object Variables = null, string OperationName = "")
         {
-            int a = 0;
-            int b = 0;
+            //int a = 0;
+            //int b = 0;
 
             //new GraphQLRequest("test", a, b, "a");
             //Client.SendQueryAsync(new GraphQLRequest(Query, , ))
@@ -52,8 +53,8 @@ namespace FWO
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 #endif
-            HttpResponseMessage response;
-            string responseString;
+            //HttpResponseMessage response;
+            //string responseString;
 
             try
             {

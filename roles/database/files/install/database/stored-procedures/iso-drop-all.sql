@@ -79,42 +79,8 @@ Drop table "temp_filtered_rule_ids" Cascade;
 Drop table "temp_mgmid_importid_at_report_time" Cascade;
 Drop table "temp_table_for_client_filtered_rule_ids" Cascade;
 
-/* Drop Sequences */
-Drop sequence "public"."device_dev_id_seq" Cascade;
-Drop sequence "public"."client_client_id_seq" Cascade;
-Drop sequence "public"."client_network_client_net_id_seq" Cascade;
-Drop sequence "public"."management_mgm_id_seq" Cascade;
-Drop sequence "public"."object_obj_id_seq" Cascade;
-Drop sequence "public"."rule_rule_id_seq" Cascade;
-Drop sequence "public"."services_srv_id_seq" Cascade;
-Drop sequence "public"."stm_action_action_id_seq" Cascade;
-Drop sequence "public"."stm_color_stm_color_id_seq" Cascade;
-Drop sequence "public"."stm_dev_typ_dev_typ_id_seq" Cascade;
-Drop sequence "public"."stm_nattyp_nattyp_id_seq" Cascade;
-Drop sequence "public"."stm_obj_typ_obj_typ_id_seq" Cascade;
-Drop sequence "public"."stm_track_track_id_seq" Cascade;
-Drop sequence "public"."import_control_id_seq" Cascade;
-Drop sequence "public"."log_obj_seq" Cascade;
-Drop sequence "public"."log_svc_seq" Cascade;
-Drop sequence "public"."log_usr_seq" Cascade;
-Drop sequence "public"."log_rule_seq" Cascade;
-Drop sequence "public"."import_object_obj_id_seq" Cascade;
-Drop sequence "public"."import_rule_rule_id_seq" Cascade;
-Drop sequence "public"."error_log_error_log_id_seq" Cascade;
-Drop sequence "public"."usr_user_id_seq" Cascade;
-Drop sequence "public"."import_user_user_id_seq" Cascade;
-Drop sequence "public"."rule_from_rule_from_id_seq" Cascade;
+
 Drop sequence "public"."abs_change_id_seq" Cascade;
-Drop sequence "public"."stm_report_typ_report_typ_id_seq" Cascade;
-Drop sequence "public"."zone_zone_id_seq" Cascade;
-Drop sequence "public"."request_request_id_seq" Cascade;
-Drop sequence "public"."change_type_change_type_id_seq" Cascade;
----
-Drop sequence "public"."client_username_client_username_id_seq" Cascade;
-Drop sequence "public"."import_changelog_seq" Cascade; 
-Drop sequence "public"."import_service_svc_id_seq" Cascade; 
-Drop sequence "public"."import_zone_zone_id_seq" Cascade;
-Drop sequence "public"."report_report_id_seq" Cascade;
 
 /* Drop functions */
 

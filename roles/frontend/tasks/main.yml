@@ -1,11 +1,5 @@
-- set_fact: wsgi_dir="{{ iso_home }}/{{ api_project_name }}/{{ api_project_name }}"
-- set_fact: api_dir="{{ iso_home }}/{{ api_project_name }}"
 
 - block:
-    - name: Install webserver packages
-      package: name={{ item }} state=present
-      with_items:
-        - "{{ ui_web_server_name }}"
 
     - name: create ui dir
       file:
@@ -21,80 +15,9 @@
         owner: "{{ iso_user }}"
         group: "{{ iso_user }}"
 
-    - name: copy iso httpd config file to apache target
-      template:
-        src: "httpd.conf"
-        dest: "{{ ui_http_conf_dir }}/itsecorg.conf"
-        owner: root
-        group: root
-        
-    - name: enable apache modules proxy proxy_http ssl
-      command: "a2enmod proxy proxy_http ssl"
-
-    - name: copy cert creation script to apache target
-      script: "apache_create_server_cert.sh" 
-
-    - name: enable itsecorg web site
-      shell: "a2ensite itsecorg"
-
-    - name: increase apache timeout to 900 seconds
-      lineinfile:
-        path: /etc/apache2/apache2.conf
-        line: "Timeout 900"
-
-    - name: restart apache
-      service:
-       name: "{{ ui_web_server_name }}"
-       state: restarted     
-
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"
-      when: ansible_facts['distribution']|lower == 'ubuntu'
-
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
-      when: ansible_facts['distribution']|lower == 'debian'
-
-    - name: get packages-microsoft-prod
-      get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/packages-microsoft-prod.deb"
-        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
-        mode: 0644
-
-    - name: install packages-microsoft-prod
-      command: "dpkg -i {{ ui_dir }}/packages-microsoft-prod.deb"
-
-    - name: remove package file
-      file:
-        dest: "{{ ui_dir }}/packages-microsoft-prod.deb"
-        state: absent
-
-    - name: apt update
-      apt: update_cache=true
-
-    - name: Install apt-transport-https
-      package: name=apt-transport-https state=present
-
-    - name: apt update
-      apt: update_cache=true
-
-    - name: Install dotnet-sdk-3.1
-      package: name=dotnet-sdk-3.1 state=present
-
-    - name: Install dotnet runtime
-      package: name=dotnet-runtime-3.1 state=present
-
-    - name: copy blazor ui systemd service script
-      template:
-        src: fworch-blazor-ui.service.j2
-        dest: "/lib/systemd/system/fworch-blazor-ui.service"
-        backup: yes
-        mode: 0644
-        owner: "root"
-
-    - name: make blazor ui run at host startup
-      command: "systemctl enable fworch-blazor-ui"
-
-    - name: start blazor ui
-      command: "systemctl start fworch-blazor-ui"
-
   become: yes
-  environment: "{{ proxy_env }}"
+
+- include: ui_apache_install_and_setup.yml
+
+- include: ui_install_dot_net.yml
+

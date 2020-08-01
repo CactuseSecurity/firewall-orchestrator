@@ -63,7 +63,7 @@
     - name: add port to apache
       lineinfile:
         path: "/etc/apache2/ports.conf"
-        line: Listen 8443
+        line: "    Listen {{ ui_php_web_port }}"
         insertafter: "<IfModule ssl_module>"
 
     - name: copy php httpd config file to apache target

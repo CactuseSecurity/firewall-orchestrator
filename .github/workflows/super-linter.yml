@@ -9,8 +9,7 @@ on:
       - '**'
     paths-ignore:
       - 'design/**'
-      - 'documentation/old-itsecorg-docu/**'
-      - 'roles/frontend/**'
+      - 'roles/frontend-php/**'
       - 'roles/unused/**'
       - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
   pull_request:
@@ -18,8 +17,7 @@ on:
       - '**'
     paths-ignore:
       - 'design/**'
-      - 'documentation/old-itsecorg-docu/**'
-      - 'roles/frontend/**'
+      - 'roles/frontend-php/**'
       - 'roles/unused/**' 
       - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
 

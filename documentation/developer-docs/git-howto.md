@@ -12,17 +12,13 @@ Source: <https://help.github.com/en/github/collaborating-with-issues-and-pull-re
 
 Add ssh key to profile (Profile - Settings - ssh keys)
 
-## First time add upstream URL (only has to be done once)
+## add upstream URL (only has to be done once)
 
-```
-git remote -v
-git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
-git remote -v
-```
+    git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
+    
+### Sync with upstream
 
-## Sync with upstream
-
-```
+```console
 git fetch upstream
 git checkout master
 
@@ -38,25 +34,16 @@ git pull upstream master
 git push
 ```
 
-## Working via ssh
+### Working via ssh
 
-```
+    git remote add upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 
-git remote add upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
-
-```
-
-## Change upstream name
-
-```
-
-git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
-
-```
+### Change upstream name
+    git remote set-url upstream ssh://github.com:CactuseSecurity/firewall-orchestrator.git
 
 ## Example with non-master branch
 
-```
+```console
 git clone git@github.com:tpurschke/firewall-orchestrator.git -b tim/make-api-reinstallable
 cd firewall-orchestrator/
 git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
@@ -87,7 +74,7 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
 3. add remote upstream repo
 
-       git remote add upstream git@github.com:CactuseSecurity/firewall-orchestrator.git
+       git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
        git fetch upstream
        
 4. merge
@@ -110,3 +97,27 @@ How to merge fork tpurschke/master into CactuseSecurity/master
        git push
 
 7. Finally merge repos (now without conflicts) via github web ui
+
+## Working with additional branch
+ 1. create branch in main repo cactus via github WebUI
+ 2. go into local repo linked to both upsteam cactus and own fork and check links:
+ ~~~console
+tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator$ git remote -v
+origin	git@github.com:tpurschke/firewall-orchestrator.git (fetch)
+origin	git@github.com:tpurschke/firewall-orchestrator.git (push)
+upstream-cactus	git@github.com:CactuseSecurity/firewall-orchestrator.git (fetch)
+upstream-cactus	git@github.com:CactuseSecurity/firewall-orchestrator.git (push)
+tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator
+~~~
+2. fetch new branch into local repo:
+ ~~~console
+git fetch upstream-cactus
+~~~
+3. checkout new branch
+~~~console
+git checkout -b auth_frontend
+~~~
+4. push new branch to fork
+~~~console
+git push -u origin auth_frontend
+~~~

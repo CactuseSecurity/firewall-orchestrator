@@ -97,7 +97,7 @@
        include_tasks: tablespace_as_root_prereq.yml      
        when: table_space is defined
 
-     # replace the following 3 tasks with template/ansible instead of shell
+     # TODO: replace the following 3 tasks with template/ansible instead of shell
      - name: setting itscorg db password
        lineinfile: 
         path: "{{ iso_home }}/install/database/db-install-scripts/iso-set-vars.sh"

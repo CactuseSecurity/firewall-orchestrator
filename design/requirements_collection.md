@@ -1,8 +1,10 @@
-# functional requirements
+# Requirements
 
-## UI
+## functional requirements
 
-### UI general
+### UI
+
+#### UI general
 
 - resizing of areas (e.g. navigation menue)
 - multi-language support (start with German + English)
@@ -11,15 +13,15 @@
 - allow for tenants (rbac per firewall device or management plus IP-ranges - at least that is the status quo)
 - use symbols in menues in addition to text (e.g. oi cog)
 
-#### multi-purpose filter
+##### multi-purpose filter
 
 - implement as text box and graphical element in parallel
 - text filter is derived and automatically displayed when clicking filters
 - user is able to choose filter modules
 - UI must prevent filters from being displayed that do not belong to the current data (dependencies)
-- low prio: display further info per element (ip, client, manufacturer)
+- low prio: display further info per element (ip, client, manufacturer), might be implemented by mouse-over functionality
 
-### reporting
+#### reporting
 
 - create templates that define report
 - provide filter line with simple language containing logical operators
@@ -29,7 +31,7 @@
 - nice to have: positional bar at upper edge (see nzz.ch)
 - part of UI functionality must be "schedulable" (report generation)
 
-### admin gui parts
+#### admin gui parts
 
 - add/edit/delete management
 - add/edit/delete device
@@ -37,11 +39,11 @@
 - add/edit/delete user
 - add/edit/delete external LDAP
 
-### workflow creation
+#### workflow creation
 
-### worklow deployment
+#### worklow deployment
 
-## rest
+### rest
 
 - fulfill regulatory requirements of financial institutions
 
@@ -73,9 +75,9 @@
 
   - can run on separate servers
   - planning to access db via api (phase 2)
-  - support cp r7x (phase out), r8x (api), fortigate (add api support), junos (keep as is), iptables, palo alto (start with api), baracuda (drop support), netscreen (drop support), ...
+  - support cp r7x (phase out), r8x (api), fortigate (add api support), junos (keep as is), iptables, palo alto (start with api), baracuda (drop support), netscreen #(drop support), ...
 
-# non-functional requirements
+## non-functional requirements
 
 - database:
 

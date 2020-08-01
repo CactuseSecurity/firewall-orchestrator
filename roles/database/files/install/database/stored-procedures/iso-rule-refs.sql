@@ -12,7 +12,7 @@
 -- Funktionen: resolve_rule_list_obj, resolve_rule_list_svc, resolve_rule_list_user
 -- RETURNS:   nix
 --
-CREATE OR REPLACE FUNCTION import_rule_refhandler_main(INTEGER,INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION import_rule_refhandler_main(BIGINT,INTEGER) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id  ALIAS FOR $1; --  Import-ID
 	i_dev_id  ALIAS FOR $2; -- Device ID
@@ -60,7 +60,7 @@ $$ LANGUAGE plpgsql;
 -- RETURNS:   VOID
 --
 
-CREATE OR REPLACE FUNCTION resolve_rule_list (integer,varchar,varchar,integer,integer,varchar,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION resolve_rule_list (BIGINT,varchar,varchar,integer,BIGINT,varchar,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_rule_id ALIAS FOR $1;
 	v_dst_table ALIAS FOR $2;
@@ -103,15 +103,15 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: KEINE
 -- RETURNS:    VOID
 --
-CREATE OR REPLACE FUNCTION f_add_single_rule_from_element(integer,varchar,integer,integer,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION f_add_single_rule_from_element(BIGINT,varchar,integer,BIGINT,BIGINT) RETURNS VOID AS $$
 DECLARE
     i_rule_id  ALIAS FOR $1;
     v_element  ALIAS FOR $2;
     i_mgm_id   ALIAS FOR $3;
     i_zone_id  ALIAS FOR $4;
 	i_current_import_id ALIAS FOR $5;
-    i_obj      			INTEGER;
-    i_usr      			INTEGER;
+    i_obj      			BIGINT;
+    i_usr      			BIGINT;
     i_at_sign_pos 		INTEGER;
     v_usergroup_name	VARCHAR;
     v_src_obj			VARCHAR;
@@ -195,7 +195,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: KEINE
 -- RETURNS:    VOID
 --
-CREATE OR REPLACE FUNCTION f_add_single_rule_to_element(integer,varchar,integer,integer,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION f_add_single_rule_to_element(BIGINT,varchar,integer,BIGINT,BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_rule_id  ALIAS FOR $1;
 	v_element  ALIAS FOR $2;
@@ -256,7 +256,7 @@ $$ LANGUAGE plpgsql;
 -- Funktionen: KEINE
 -- RETURNS:    VOID
 --
-CREATE OR REPLACE FUNCTION f_add_single_rule_svc_element(integer,varchar,integer,integer) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION f_add_single_rule_svc_element(BIGINT,varchar,integer,BIGINT) RETURNS VOID AS $$
 DECLARE
     i_rule_id  ALIAS FOR $1;
     v_element  ALIAS FOR $2;

@@ -1048,6 +1048,9 @@ tables:
   table:
     name: objgrp_flat
     schema: public
+- table:
+    name: pg_all_foreign_keys
+    schema: public
 - object_relationships:
   - name: client
     using:
@@ -1643,6 +1646,9 @@ tables:
       foreign_key_constraint_on: svcgrp_flat_id
   table:
     name: svcgrp_flat
+    schema: public
+- table:
+    name: tap_funky
     schema: public
 - object_relationships:
   - name: rule

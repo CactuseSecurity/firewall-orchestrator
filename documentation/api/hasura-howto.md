@@ -99,4 +99,4 @@ use json instead of graphql!!!
             }
         }'
 
-Not clar how to access these collections though.
+Not clear how to access these collections though.

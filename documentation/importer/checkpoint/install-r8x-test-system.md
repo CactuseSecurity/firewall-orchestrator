@@ -12,7 +12,7 @@
 
         add user fworch userid 1000 homedir /home/fworch
         add rba user fworch roles monitorRole
-        set user fworch password DC1gus.
+        set user fworch password 'secret'
         # add allowed-client network ipv4-address 10.8.6.0 mask-length 24
         
 ## Tell api to listen for all gui clients without GUI client

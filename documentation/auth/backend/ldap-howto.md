@@ -56,13 +56,13 @@ tim@ubu1804:~$
 ### check password
 wrong password:
 
-    tim@ubu1804:~$ ldapwhoami -x -w dontchangeme -D uid=user1,dc=example,dc=com  -H ldaps://localhost/
+    tim@ubu1804:~$ ldapwhoami -x -w fworch.2  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
     ldap_bind: Invalid credentials (49)
 
 correct password:
 
-    tim@ubu1804:~$ ldapwhoami -x -w changeme -D uid=user1,dc=example,dc=com  -H ldaps://localhost/
-    dn:uid=user1,dc=example,dc=com
+    tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
+    dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
 
 ### delete entries with ldapmodify ###
 

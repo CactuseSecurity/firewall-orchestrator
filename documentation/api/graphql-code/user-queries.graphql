@@ -1,9 +1,9 @@
 
-query listUsers($management_id: [Int!], $time: String, $user_name: [String!]) {
+query listUsers($management_id: [Int!], $time: String, $user_name: [String!], $limit:Int, $offset:Int) {
   management(where: {mgm_id: {_in: $management_id}}) {
     mgm_id
     mgm_name
-    usrs(where: {active: {_eq: true}, user_name: {_in: $user_name}}, order_by: {user_name: asc}) {
+    usrs(limit: $limit, offset: $offset, where: {active: {_eq: true}, user_name: {_in: $user_name}}, order_by: {user_name: asc}) {
       user_id
       user_uid
       user_name

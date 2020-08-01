@@ -11,11 +11,11 @@
 #   - svc_typ_id is a reference refering to stm_svc_typ table
 #   - svc_color_id is a reference refering to stm_color table
 
-query listNwServices($management_id: [Int!], $time: String, $service_name: [String!], $service_port: [Int!]) {
+query listNwServices($management_id: [Int!], $time: String, $service_name: [String!], $service_port: [Int!], $limit:Int, $offset:Int) {
   management(where: {mgm_id: {_in: $management_id}}) {
     mgm_id
     mgm_name
-    services(where: {active: {_eq: true}, svc_name: {_in: $service_name}, svc_port: {_in: $service_port}}, order_by: {svc_name: asc}) {
+    services(limit: $limit, offset: $offset, where: {active: {_eq: true}, svc_name: {_in: $service_name}, svc_port: {_in: $service_port}}, order_by: {svc_name: asc}) {
       svc_id
       svc_name
       svc_uid

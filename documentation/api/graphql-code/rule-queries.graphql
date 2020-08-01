@@ -1,15 +1,13 @@
 
-
-# returns a (filtered) list of rules
-query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [cidr!]) {
+query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [cidr!], $limit: Int, $offset: Int) {
   management(where: {mgm_id: {_in: $management_id}}) {
     mgm_id
     mgm_name
     devices(where: {dev_id: {_in: $device_id}}) {
       dev_id
       dev_name
-      rules(where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}, rule_froms: {object: {obj_ip: {_in: $rule_src_ip}}}}, order_by: {rule_num: asc}) {
-        rule_num
+      rules(limit: $limit, offset: $offset, where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}, rule_froms: {object: {obj_ip: {_in: $rule_src_ip}}}}, order_by: {rule_num_numeric: asc}) {
+        rule_num_numeric
         rule_disabled
         rule_src_neg
         rule_src
@@ -20,37 +18,12 @@ query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [Str
         }
         rule_dst_neg
         rule_dst
-        rule_svc_neg
-        rule_svc
-        rule_action
-        rule_track
-      }
-    }
-  }
-}
-
-
-query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [String!]) {
-  management(where: {mgm_id: {_in: $management_id}}) {
-    mgm_id
-    mgm_name
-    devices(where: {dev_id: {_in: $device_id}}) {
-      dev_id
-      dev_name
-      rules(where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc, rule_froms_aggregate: {}}) {
-        rule_num
-        rule_src
-        rule_froms {
-          object {
-            obj_ip
-          }
-        }
-        rule_dst
         rule_tos {
           object {
             obj_ip
           }
         }
+        rule_svc_neg
         rule_svc
         rule_services {
           service {
@@ -68,44 +41,103 @@ query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [Str
   }
 }
 
-query listRulesOfAllDevicesResolved {
-  device {
-    dev_id
-    dev_name
-    stm_dev_typ {
-      dev_typ_name
-      dev_typ_version
-    }
-    management {
-      mgm_id
-      mgm_name
-    }
-    rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
-      rule_num
-      rule_id
-      rule_uid
-      rule_froms {
-        object {
-          obj_name
-        }
+# returns (with query vars '{"management_id": 2,"limit": 1}'):
+{
+  "data": {
+    "management": [
+      {
+        "mgm_id": 2,
+        "mgm_name": "checkpoint-demo",
+        "devices": [
+          {
+            "dev_id": 2,
+            "dev_name": "checkpoint-demo",
+            "rules": [
+              {
+                "rule_num_numeric": 5000,
+                "rule_disabled": false,
+                "rule_src_neg": false,
+                "rule_src": "Cactus-extern@vpn-sources-IsoAAAA",
+                "rule_froms": [
+                  {
+                    "object": {
+                      "obj_ip": null
+                    }
+                  }
+                ],
+                "rule_dst_neg": false,
+                "rule_dst": "IsoAAADray.local|gateway.local",
+                "rule_tos": [
+                  {
+                    "object": {
+                      "obj_ip": "10.222.0.15/32"
+                    }
+                  },
+                  {
+                    "object": {
+                      "obj_ip": "10.222.0.19/32"
+                    }
+                  }
+                ],
+                "rule_svc_neg": false,
+                "rule_svc": "CIFS|rdp|ntp-udp|domain-udp|http",
+                "rule_services": [
+                  {
+                    "service": {
+                      "svc_name": "CIFS",
+                      "svc_port": null,
+                      "stm_svc_typ": {
+                        "svc_typ_name": "group"
+                      }
+                    }
+                  },
+                  {
+                    "service": {
+                      "svc_name": "rdp",
+                      "svc_port": 3389,
+                      "stm_svc_typ": {
+                        "svc_typ_name": "simple"
+                      }
+                    }
+                  },
+                  {
+                    "service": {
+                      "svc_name": "ntp-udp",
+                      "svc_port": 123,
+                      "stm_svc_typ": {
+                        "svc_typ_name": "simple"
+                      }
+                    }
+                  },
+                  {
+                    "service": {
+                      "svc_name": "domain-udp",
+                      "svc_port": 53,
+                      "stm_svc_typ": {
+                        "svc_typ_name": "simple"
+                      }
+                    }
+                  },
+                  {
+                    "service": {
+                      "svc_name": "http",
+                      "svc_port": 80,
+                      "stm_svc_typ": {
+                        "svc_typ_name": "simple"
+                      }
+                    }
+                  }
+                ],
+                "rule_action": "client encrypt",
+                "rule_track": "Log"
+              }
+            ]
+          }
+        ]
       }
-      rule_tos {
-        object {
-          obj_name
-        }
-      }
-      rule_services {
-        service {
-          svc_name
-          svc_id
-        }
-      }
-      rule_action
-      rule_track
-    }
+    ]
   }
 }
-
 #Query variables:
 #{
 #  "rule_id":156
@@ -116,26 +148,6 @@ query getSpecificRuleById($rule_id: Int!) {
     rule_id
     rule_src
     rule_dst
-  }
-}
-
-query listRulesSimple($management_id: [Int!], $device_id: [Int!]) {
-  __typename
-  management(where: {mgm_id: {_in: $management_id}}) {
-    mgm_id
-    mgm_name
-    devices(where: {dev_id: {_in: $device_id}}) {
-      dev_id
-      dev_name
-      rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) {
-        rule_num
-        rule_src
-        rule_dst
-        rule_svc
-        rule_action
-        rule_track
-      }
-    }
   }
 }
 

@@ -1,5 +1,5 @@
 
-query listNwServices($management_id: [Int!], $time: String, $user_name: [String!]) {
+query listUsers($management_id: [Int!], $time: String, $user_name: [String!]) {
   management(where: {mgm_id: {_in: $management_id}}) {
     mgm_id
     mgm_name

@@ -106,7 +106,7 @@ fragment objectFragment on object {
   obj_ip
 }
 
-query listRules($management_id: [Int], $device_id: [Int], $rule_src_name: [String], $rule_src_ip: [String]) {
+query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [String!]) {
   management(where: {mgm_id: {_in: $management_id}}) {
     mgm_id
     mgm_name

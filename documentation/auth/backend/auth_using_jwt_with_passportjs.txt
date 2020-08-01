@@ -1,5 +1,0 @@
-https://hasura.io/blog/add-authentication-and-authorization-to-next-js-8-serverless-apps-using-jwt-and-graphql/
-
-choosing between auth modes JWT & webhook: https://hasura.io/learn/graphql/hasura-auth-slack/choosing-jwt-mode/
-
-https://hasura.io/learn/graphql/hasura-auth-slack/choosing-jwt-mode/1-choosing-auth-mode/

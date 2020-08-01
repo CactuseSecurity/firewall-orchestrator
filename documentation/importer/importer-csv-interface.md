@@ -1,5 +1,5 @@
 # CSV interface of importer
-## General:
+## General
 
 ```console
 - boolean fields (negated, disabled) can contain either 0/1 or true/false?
@@ -13,7 +13,7 @@
   our @auditlog_import_fields
 ```
 
-## rule.csv:
+## rule.csv
 
 ```console
 name: <rulebase_name>_rulebase.csv

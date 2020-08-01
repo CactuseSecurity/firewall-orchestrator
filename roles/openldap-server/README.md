@@ -23,7 +23,7 @@ openldap_serverlocation: Portland
 openldap_serverorganization: IT
 ```
 
-## Example: Configure an OpenLDAP server with SSL:
+## Example: Configure an OpenLDAP server with SSL
 
 ~~~yaml
 - hosts: all

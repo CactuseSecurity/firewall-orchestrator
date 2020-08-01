@@ -11,7 +11,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.
 
 ## Option "ui_php" to additionally install old php UI
 
-With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443): 
+With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
 
 ```console
 cd firewall-orchestrator; ansible-playbook -i inventory -e "ui_php=1 ui_php_web_port=8888" site.yml -K

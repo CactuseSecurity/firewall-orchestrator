@@ -13,7 +13,16 @@
      file:
         path: "{{ api_home }}"
         state: absent
-   
+
+   - name: write api_hasura_jwt_secret into file for reference
+     lineinfile:
+        path: "{{ api_home }}/jwt_secret"
+        line: "{{ jwt_secret.stdout }}"
+        create: yes
+        mode: 0600
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
+
    - name: create api home
      file:
         path: "{{ api_home }}"

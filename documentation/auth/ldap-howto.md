@@ -11,16 +11,15 @@ see ansible installation under <https://github.com/CactuseSecurity/firewall-orch
 (default password=passme)
 
     ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=example,dc=com -w passme -x -f adduser1.ldif
-```console
-tim@ubu1804:~$ cat adduser1.ldif 
-dn: uid=user1,dc=example,dc=com
-changetype: add
-cn: user1
-uid: user1
-sn: Meier
-objectClass: inetOrgPerson
-tim@ubu1804:~$ 
-```
+
+    tim@ubu1804:~$ cat adduser1.ldif
+    dn: uid=user1,dc=example,dc=com
+    changetype: add
+    cn: user1
+    uid: user1
+    sn: Meier
+    objectClass: inetOrgPerson
+    tim@ubu1804:~$
 
 ### set/change password of existing user
 
@@ -89,10 +88,8 @@ Not tested yet!
 
     ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
 
-
 ## authentication against ldap from .net (C#)
 
-ext. documentation, see https://auth0.com/blog/using-ldap-with-c-sharp/
+ext. documentation, see <https://auth0.com/blog/using-ldap-with-c-sharp/>
 
 ## querying multiple ldap servers in a row
-

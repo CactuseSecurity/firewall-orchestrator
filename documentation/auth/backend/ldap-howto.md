@@ -2,6 +2,8 @@
 
 ## ldap server on linux
 
+see ansible installation under <https://github.com/CactuseSecurity/firewall-orchestrator/tree/master/roles/openldap-server>
+
 ## ldap client access
 
 ### adding information with ldapadd

@@ -1,5 +1,4 @@
 ---
-- block:
 #    - name: set ldif path variable (later with variables)
 #      file:
 #        path: "/etc/ldap/ldif_files/"   #later var: openldap_server_app_path
@@ -11,12 +10,6 @@
 #        copy:
 #          src: roles/openldap-server/files
 #          dest: /etc/ldap/ldif_files/
-
-  - name: copy ldif files
-    template:
-      src: "*.ldif"
-      dst: "{{ iso_home }}/auth/"
-  become: yes
 
 - block:
 
@@ -31,11 +24,5 @@
 
     - name: Create common name user/systemuser/admin (GUI admin)
       shell: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_uid_admin.ldif"
-
-    - name: Create test roles
-      command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ iso_home }}/auth/add_ou_test_roles.ldif"
-
-    - name: Create test users
-      command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ iso_home }}/auth/add_uid_test_users.ldif"
 
   become: no

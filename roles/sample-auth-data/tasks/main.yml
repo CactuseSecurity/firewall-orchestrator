@@ -1,0 +1,21 @@
+# this playbook sets up some sample auth data (roles, users)
+
+- block:
+  - name: add auth test data to database
+    include_tasks: auth_test_data.yml
+  become: yes
+  become_user: postgres
+
+- name: copy ldif templates
+  template:
+    src: "*.ldif"
+    dest: "{{ iso_home }}/auth/"
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
+
+- name: Create test roles in ldap
+  command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ iso_home }}/auth/add_ou_test_roles.ldif"
+
+- name: Create test users in ldap
+  command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ iso_home }}/auth/add_uid_test_users.ldif"

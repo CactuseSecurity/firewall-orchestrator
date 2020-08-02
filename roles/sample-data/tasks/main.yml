@@ -7,4 +7,9 @@
 - block:
     - import_tasks: iso-setup-import-samples.yml
   become: no
-    
+
+- block:
+  - name: add auth test data
+    include_tasks: auth_test_data.yml
+  become: yes
+  become_user: postgres

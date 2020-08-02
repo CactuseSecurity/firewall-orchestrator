@@ -7,11 +7,11 @@ name: test-install
 # test change
 
 on:
-  push:
-    branches: [ master ]
-    paths-ignore:
-    - 'documentation/**'
-    - 'design/**'
+  # push:
+  #   branches: [ master ]
+  #   paths-ignore:
+  #   - 'documentation/**'
+  #   - 'design/**'
   pull_request:
     branches: [ master ]
     paths-ignore:

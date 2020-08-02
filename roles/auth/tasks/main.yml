@@ -1,14 +1,5 @@
 # source: https://github.com/michelp/pgjwt
 
-- name: include pgjwt
-  include auth_pgjwt
-
-- name: add standard roles
-  include auth_standard_roles
-
-- name: add auth test data
-  include auth_test_data
-
 - name: create auth directory
   file:
     dest: "{{ iso_home }}/auth"
@@ -16,6 +7,12 @@
     owner: "{{ iso_user }}"
     group: "{{ iso_user }}"
   become: yes
+
+- name: include pgjwt
+  include_tasks: auth_pgjwt.yml
+
+- name: add standard roles
+  include_tasks: auth_standard_roles.yml
 
 - name: copy authentication sql file
   copy:

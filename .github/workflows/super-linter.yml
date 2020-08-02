@@ -4,14 +4,14 @@ name: super-linter
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 on:
-  push:
-    branches:
-      - '**'
-    paths-ignore:
-      - 'design/**'
-      - 'roles/frontend-php/**'
-      - 'roles/unused/**'
-      - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
+  # push:
+  #   branches:
+  #     - '**'
+  #   paths-ignore:
+  #     - 'design/**'
+  #     - 'roles/frontend-php/**'
+  #     - 'roles/unused/**'
+  #     - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
   pull_request:
     branches:
       - '**'

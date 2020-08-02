@@ -778,13 +778,6 @@ tables:
         table:
           name: object
           schema: public
-  - name: role_to_users
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: role_to_user
-          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
@@ -1178,13 +1171,6 @@ tables:
         table:
           name: role_to_device
           schema: public
-  - name: role_to_users
-    using:
-      foreign_key_constraint_on:
-        column: role_id
-        table:
-          name: role_to_user
-          schema: public
   table:
     name: role
     schema: public
@@ -1205,9 +1191,6 @@ tables:
   - name: role
     using:
       foreign_key_constraint_on: role_id
-  table:
-    name: role_to_user
-    schema: public
 - array_relationships:
   - name: changelog_rules
     using:

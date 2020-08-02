@@ -25,4 +25,6 @@
     - name: Create common name user/systemuser/admin (GUI admin)
       shell: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_uid_admin.ldif"
 
+    # todo: set password via ldappasswd to have a proper hash
+
   become: no

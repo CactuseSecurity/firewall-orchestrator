@@ -4,7 +4,6 @@ objectClass: top
 objectclass: inetorgperson
 cn: fgreporter
 sn: fgreporter
-userpassword: {{ auth_ldap_user_inital_pwd }}
 
 dn: uid=checkreporter,ou=check,{{ auth_ldap_std_user_path }}
 changetype: add
@@ -12,7 +11,6 @@ objectClass: top
 objectclass: inetorgperson
 cn: checkreporter
 sn: checkreporter
-userpassword: {{ auth_ldap_user_inital_pwd }}
 
 dn: uid=viewallreporter,ou=viewall,{{ auth_ldap_std_user_path }}
 changetype: add
@@ -20,4 +18,3 @@ objectClass: top
 objectclass: inetorgperson
 cn: viewallreporter
 sn: viewallreporter
-userpassword: {{ auth_ldap_user_inital_pwd }}

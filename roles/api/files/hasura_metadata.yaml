@@ -1184,13 +1184,6 @@ tables:
   table:
     name: role_to_device
     schema: public
-- object_relationships:
-  - name: isoadmin
-    using:
-      foreign_key_constraint_on: user_id
-  - name: role
-    using:
-      foreign_key_constraint_on: role_id
 - array_relationships:
   - name: changelog_rules
     using:

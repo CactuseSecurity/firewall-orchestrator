@@ -6,16 +6,18 @@
   become: yes
   become_user: postgres
 
-- name: copy ldif templates
-  template:
-    src: "*.ldif"
-    dest: "{{ iso_home }}/auth/"
-    owner: "{{ iso_user }}"
-    group: "{{ iso_user }}"
+- name: copy ldif template for roles
+    template: src=add_ou_test_roles.ldif.j2 dest={{ iso_home }}/auth/add_ou_test_roles.ldif
   become: yes
 
 - name: Create test roles in ldap
   command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ iso_home }}/auth/add_ou_test_roles.ldif"
 
+- name: copy ldif template for users
+    template: src=add_uid_test_users.ldif.j2 dest={{ iso_home }}/auth/add_uid_test_users.ldif
+  become: yes
+
 - name: Create test users in ldap
   command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ iso_home }}/auth/add_uid_test_users.ldif"
+
+# todo: remove ldif files

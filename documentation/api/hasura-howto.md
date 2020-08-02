@@ -99,6 +99,23 @@ use json instead of graphql!!!
             }
         }'
 
+#### Add query to existing collection
+
+    curl --insecure --request POST \
+        --url https://127.0.0.1:18443/api/v1/query \
+        --header 'content-type: application/json' \
+        --header 'x-hasura-admin-secret: st8chelt1er' \
+        --header 'x-hasura-role: admin' \
+        --data '{
+            "type" : "add_query_to_collection",
+            "args": {
+                "collection_name": "NwObjQueries",
+                "query_name": "listSvcs",
+                "query": "query listSvcs { service { svc_name } }"
+            }
+        }'
+
+
 Not clear how to access these collections though. Only purpose seems to be for handling allow-list.
     
 In production instances: Enabling the allow-list is highly recommended when running the GraphQL engine in production.

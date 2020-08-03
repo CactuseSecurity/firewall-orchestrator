@@ -32,7 +32,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: show github variable
-      run: echo "::warning {github.event_name}::testing"
+      run: echo "::debug {GITHUB_EVENT_NAME}::testing"
       
     - name: Run a one-line script
       if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true

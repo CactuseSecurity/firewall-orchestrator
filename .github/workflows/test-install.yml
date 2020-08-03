@@ -7,16 +7,17 @@ name: test-install
 # test change
 
 on:
-  # push:
-  #   branches: [ master ]
-  #   paths-ignore:
-  #   - 'documentation/**'
-  #   - 'design/**'
-  pull_request:
-    branches: [ master ]
-    paths-ignore:
-    - 'documentation/**'
-    - 'design/**'
+   push:
+     branches: [ master ]
+     paths-ignore:
+     - 'documentation/**'
+     - 'design/**'
+
+   pull_request:
+     branches: [ master ]
+     paths-ignore:
+     - 'documentation/**'
+     - 'design/**'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -32,5 +33,6 @@ jobs:
 
     # Runs a single command using the runners shell
     - name: Run a one-line script
+      if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory -e 'run_on_github=yes' site.yml -K
       

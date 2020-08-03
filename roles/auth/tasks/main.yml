@@ -9,10 +9,11 @@
 
 - name: copy auth module files to authserver
   copy:
-    src: "FWO_Auth"
-    dest: "{{ auth_server_base_dir }}"
+    src: "{{ auth_path_rel }}"
+    dest: "{{ auth_server_start_dir }}"
     owner: "{{ iso_user }}"
     group: "{{ iso_user }}"
+  become: yes
 
 - name: add standard roles
   include_tasks: auth_standard_roles.yml

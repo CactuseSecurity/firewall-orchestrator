@@ -5,6 +5,8 @@
 - For an example see <https://dev.to/lineup-ninja/modelling-teams-and-user-security-with-hasura-204i>
 - see [hasura doc on auth](https://hasura.io/docs/1.0/graphql/manual/auth/authorization/roles-variables.html)
 
+![Auth process overview](fworch-auth-process.png)
+
 ## Todos
 - define role based access model:
   - full admin (able to change tables management, device, stm_...)
@@ -35,8 +37,8 @@ Hasura permissions are based on roles. Table permissions are defined on a per-ro
 
 2) use stored procedures to create set of ids
 ~~~console
-  - FUNCTION public.get_user_visible_devices(integer) RETURNS SETOF integer
-  - FUNCTION public.get_user_visible_managements(integer) RETURNS SETOF integer 
+  - FUNCTION public.get_role_visible_devices(integer) RETURNS SETOF integer
+  - FUNCTION public.get_role_visible_managements(integer) RETURNS SETOF integer 
 ~~~
 
 3) add the result of the functions to the jwt!

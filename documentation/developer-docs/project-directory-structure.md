@@ -31,9 +31,9 @@ sample_config_user_home: "/home/{{ sample_config_user }}"
 - This should be changed to fit the customers infrastructure
 - Important variables from inventory/backends include
   
-~~~code
+```console
 database_dir: /var/lib/pgsql/data
-~~~
+```
 
 - The roles to be installed on the backend are
   - docker
@@ -54,11 +54,9 @@ database_dir: /var/lib/pgsql/data
   - sets passwords for database users
   
 - The role api executes the tasks
-  - create the directories
+  1. create the directories
 ```console
 api_home="{{ iso_home }}/api"
 hasura_bin="/usr/local/bin/hasura"
 ```
-  - sets up hasura in {{ api_home }}
-
-  
+  2. sets up hasura in {{ api_home }}

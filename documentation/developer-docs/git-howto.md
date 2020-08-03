@@ -72,7 +72,7 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
        git remote add upstream https://github.com/CactuseSecurity/firewall-orchestrator.git
        git fetch upstream
-       
+
 4. merge
 
        git merge upstream/master
@@ -94,9 +94,9 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
 7. Finally merge repos (now without conflicts) via github web ui
 
-## Working with additional branch
- 1. create branch in main repo cactus via github WebUI
- 2. go into local repo linked to both upsteam cactus and own fork and check links:
+## Working with an additional branch
+1. create branch in main repo cactus via github WebUI
+2. go into local repo linked to both upsteam cactus and own fork and check links:
 
         tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator$ git remote -v
         origin git@github.com:tpurschke/firewall-orchestrator.git (fetch)
@@ -116,4 +116,3 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 5. push new branch to fork
 
         git push -u origin auth_frontend
-

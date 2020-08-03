@@ -33,33 +33,30 @@ For cactus installation:
 
 
 ### searching ldap with ldapsearch
-```console
-tim@ubu1804:~$ ldapsearch uid=user1 -x
-# extended LDIF
-#
-# LDAPv3
-# base <dc=example,dc=com> (default) with scope subtree
-# filter: uid=user1
-# requesting: ALL
-#
 
-# user1, example.com
-dn: uid=user1,dc=example,dc=com
-cn: user1
-uid: user1
-sn: Meier
-objectClass: inetOrgPerson
-userPassword:: e1NTSEF9VmhoditGb3RabnlzZjNsbmZNZ0ZKVUJsT05QckVJQWo=
+    tim@ubu1804:~$ ldapsearch uid=user1 -x
+    # extended LDIF
+    #
+    # LDAPv3
+    # base <dc=example,dc=com> (default) with scope subtree
+    # filter: uid=user1
+    # requesting: ALL
+    #
 
-# search result
-search: 2
-result: 0 Success
+    # user1, example.com
+    dn: uid=user1,dc=example,dc=com
+    cn: user1
+    uid: user1
+    sn: Meier
+    objectClass: inetOrgPerson
+    userPassword:: e1NTSEF9VmhoditGb3RabnlzZjNsbmZNZ0ZKVUJsT05QckVJQWo=
 
-# numResponses: 2
-# numEntries: 1
+    # search result
+    search: 2
+    result: 0 Success
 
-tim@ubu1804:~$ 
-```
+    # numResponses: 2
+    # numEntries: 1
 
 ### check password
 wrong password:

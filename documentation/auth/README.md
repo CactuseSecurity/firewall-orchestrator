@@ -62,7 +62,7 @@ Use pgjwt to create jwt as follows (get secret from /usr/share/itsecorg/api/jwt_
       "x-hasura-user-id": "tim",
       "x-hasura-org-id": "123",
       "x-hasura-visible-managements": "{1,7,17}",
-	  "x-hasura-visible-devices": "{1,4}"
+      "x-hasura-visible-devices": "{1,4}"
     }
   }
 }

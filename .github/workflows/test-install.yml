@@ -31,7 +31,9 @@ jobs:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
 
-    # Runs a single command using the runners shell
+    - name: show github variable
+      run: echo ::debug::{github}
+      
     - name: Run a one-line script
       if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory -e 'run_on_github=yes' site.yml -K

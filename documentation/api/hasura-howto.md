@@ -30,9 +30,9 @@
     URL:    https://demo.itsecorg.de/api/v1/graphql
 
     Header:
-  	  x-hasura-admin-secret --> st8chelt1er
-   	  content-type --> application/json
-   	  x-hasura-role-id --> ?
+        x-hasura-admin-secret --> st8chelt1er
+        content-type --> application/json
+        x-hasura-role-id --> ?
 
 ## Using the other APIs
 - Use Insomnia
@@ -62,7 +62,7 @@
         --header 'content-type: application/json' \
         --data '{"query":""}'
 
-### Create query collection 
+### Create query collection
 use json instead of graphql!!!
 
     curl --request POST \
@@ -101,5 +101,4 @@ use json instead of graphql!!!
 
 
 Not clear how to access these collections though. Only purpose seems to be for handling allow-list.
-    
-In production instances: Enabling the allow-list is highly recommended when running the GraphQL engine in production.
+See docu hint: In production instances: Enabling the allow-list is highly recommended when running the GraphQL engine in production.

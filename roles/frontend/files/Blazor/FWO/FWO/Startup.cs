@@ -32,7 +32,7 @@ namespace FWO
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
-            services.AddSingleton<AuthClient>();
+            services.AddScoped<AuthClient>(auth => new AuthClient("http://localhost:8888/"));
             services.AddSingleton<APIConnection>();
         }
 

@@ -2,10 +2,10 @@
 
 - download r80.40 all-in-one system from <https://supportcenter.checkpoint.com/supportcenter/portal/role/supportcenterUser/page/default.psml/media-type/html?action=portlets.DCFileAction&eventSubmit_doGetdcdetails=&fileid=101083>
 - install on virtual box machine
-    - bridged fixed ip virtual box using linux 64-bit kernel 2.4/2.6/3/4
-    - at least 8 GB RAM
-    - at least 2 CPUs (Mgmt-Server and API won't run witha single CPU)
-    - during install dialogue, choose mgmt + gateway install (or later try multi domain mgmt)
+  - bridged fixed ip virtual box using linux 64-bit kernel 2.4/2.6/3/4
+  - at least 8 GB RAM
+  - at least 2 CPUs (Mgmt-Server and API won't run witha single CPU)
+  - during install dialogue, choose mgmt + gateway install (or later try multi domain mgmt)
 - connect to mgmt interface via https and run first time wizard (keep clients can connect from any host), restart
 - connect via ssh and set expert password
 - also run

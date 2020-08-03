@@ -69,7 +69,7 @@ correct password:
     tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
     dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
 
-### delete entries with ldapmodify ###
+### delete entries with ldapmodify
 
 Delete entry user1 with
 
@@ -80,7 +80,7 @@ With delete.ldif
     dn: uid=user1,dc=example,dc=com
     changetype: delete
 
-### communicate with multiple ldap servers ###
+### communicate with multiple ldap servers
 Not tested yet!
 
     ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x

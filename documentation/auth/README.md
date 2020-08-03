@@ -152,8 +152,8 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
     "allow_aggregations": true
 }', 'restrict reporter view on device table', false);
 
-insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values 
-('public', 'management', 'reporter', 'select', '{
+insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values
+    ('public', 'management', 'reporter', 'select', '{
     "filter": {
         "mgm_id": {
             "_in": "X-Hasura-Visible-Managements"
@@ -187,8 +187,8 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
     "allow_aggregations": true
 }', 'restrict reporter view on management table', false);
 
-insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values 
-('public', 'object', 'reporter', 'select', '{
+insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values
+    ('public', 'object', 'reporter', 'select', '{
     "filter": {
         "mgm_id": {
             "_in": "X-Hasura-visible-managements"
@@ -207,8 +207,8 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
     "allow_aggregations": true
 }', 'restrict reporter view on network object table', false);
 
-insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values 
-('public', 'rule', 'reporter', 'select', '{
+insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined)
+values ('public', 'rule', 'reporter', 'select', '{
     "filter": {
         "_and": [
             {
@@ -265,17 +265,14 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
 
 ### running a query with Header
 
-```console
-Authorization: Bearer <JWT>
-```
+    Authorization: Bearer <JWT>
 
 ## simple test of authorization
 
 - Define permissions on management table using hasura data console for role reporters as follows:
 ~~~sql
 SELECT * FROM hdb_catalog.hdb_permission ORDER BY table_schema ASC, table_name ASC, role_name ASC, perm_type ASC ;
-table_schema | table_name | role_name | perm_type | perm_def | comment | is_system_defined 
-
+table_schema | table_name | role_name | perm_type | perm_def | comment | is_system_defined
 public       | management | reporters | select    | {
     "filter": {
         "mgm_id": {

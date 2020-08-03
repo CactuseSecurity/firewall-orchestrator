@@ -11,6 +11,7 @@
   roles:
     - auth
     - openldap-server
+    - ldap-user
 
 - hosts: apiserver
   roles:
@@ -31,3 +32,7 @@
   roles:
     - { role: sample-data, when: "without_sample_data is not defined" }
     - { role: sample-data-connect-sting, when: "connect_sting is defined" }
+
+- hosts: authserver
+  roles:
+    - { role: sample-auth-data, when: "without_sample_data is not defined" }

@@ -1,0 +1,20 @@
+# role forti - users are only able to see fortigate firewalls
+dn: ou=forti,{{ auth_ldap_std_user_path }}
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: forti
+
+# role check - users are only able to see check point firewalls
+dn: ou=check,{{ auth_ldap_std_user_path }}
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: check
+
+# role viewall - users can see all firewalls
+dn: ou=viewall,{{ auth_ldap_std_user_path }}
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: viewall

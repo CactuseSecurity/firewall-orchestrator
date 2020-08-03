@@ -1,0 +1,18 @@
+
+- name: insert role forti
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''forti'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''forti'', false, false); END IF; END \$do\$"'
+
+- name: add devices for role forti
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM role_to_device LEFT JOIN role USING (role_id) WHERE role_name=''forti'') THEN INSERT INTO role_to_device (role_id, device_id) select role_id, 1 from role where role_name=''forti''; END IF; END \$do\$"'
+
+- name: insert role check
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''check'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''check'', false, false); END IF; END \$do\$"'
+
+- name: add devices for role check
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM role_to_device LEFT JOIN role USING (role_id) WHERE role_name=''check'') THEN INSERT INTO role_to_device (role_id, device_id) select role_id, 2 from role where role_name=''check''; END IF; END \$do\$"'
+
+- name: insert role viewall
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''viewall'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''viewall'', false, false); END IF; END \$do\$"'
+
+- name: add devices for role viewall
+  shell: 'psql -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM role_to_device LEFT JOIN role USING (role_id) WHERE role_name=''viewall'') THEN INSERT INTO role_to_device (role_id, device_id) select role.role_id, device.dev_id FROM role, device WHERE role_name=''viewall''; END IF; END \$do\$"'

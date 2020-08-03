@@ -1,7 +1,7 @@
 # Hasura Auth
 - The role based access control can be found in <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/auth/backend/rbac.md>
 - how to define roles & permissions in hasura.
-- Starting point: https://hasura.io/docs/1.0/graphql/manual/auth/authorization/index.html
+- Starting point: <https://hasura.io/docs/1.0/graphql/manual/auth/authorization/index.html>
 - For an example see <https://dev.to/lineup-ninja/modelling-teams-and-user-security-with-hasura-204i>
 - see [hasura doc on auth](https://hasura.io/docs/1.0/graphql/manual/auth/authorization/roles-variables.html)
 
@@ -38,15 +38,11 @@ Hasura permissions are based on roles. Table permissions are defined on a per-ro
 2) use stored procedures to create set of ids
 ~~~console
   - FUNCTION public.get_role_visible_devices(integer) RETURNS SETOF integer
-  - FUNCTION public.get_role_visible_managements(integer) RETURNS SETOF integer 
+  - FUNCTION public.get_role_visible_managements(integer) RETURNS SETOF integer
 ~~~
 
 3) add the result of the functions to the jwt!
 see <https://hasura.io/blog/hasura-authentication-explained/#jwt-auth> and <https://dev.to/lineup-ninja/modelling-teams-and-user-security-with-hasura-204i>
-
-Use existing functions to create list of device & user ids:
-- FUNCTION public.get_user_visible_devices(integer) RETURNS SETOF integer
-- FUNCTION public.get_user_visible_managements(integer) RETURNS SETOF integer 
 
 Use pgjwt to create jwt as follows (get secret from /usr/share/itsecorg/api/jwt_secret):
 ~~~sql
@@ -115,8 +111,8 @@ tables with management reference (object, service):
 
 ~~~sql
 /*
-  TODO: set permissions for 
-  a) restricted data tables: 
+  TODO: set permissions for
+  a) restricted data tables:
     object
     service
     ...
@@ -132,8 +128,8 @@ tables with management reference (object, service):
 -- delete from hdb_catalog.hdb_permission where table_schema='public' and table_name='object' and role_name='reporter' and perm_type='select';
 -- delete from hdb_catalog.hdb_permission where table_schema='public' and table_name='rule' and role_name='reporter' and perm_type='select';
 
-insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values 
-('public', 'device', 'reporter', 'select', '{
+insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, perm_type, perm_def, comment, is_system_defined) values
+    ('public', 'device', 'reporter', 'select', '{
     "filter": {
         "dev_id": {
             "_in": "X-Hasura-Visible-Devices"
@@ -275,9 +271,8 @@ Authorization: Bearer <JWT>
 
 ## simple test of authorization
 
-Define permissions on management table using hasura data console for role reporters as follows:
-
-~~~console
+- Define permissions on management table using hasura data console for role reporters as follows:
+~~~sql
 SELECT * FROM hdb_catalog.hdb_permission ORDER BY table_schema ASC, table_name ASC, role_name ASC, perm_type ASC ;
 table_schema | table_name | role_name | perm_type | perm_def | comment | is_system_defined 
 
@@ -297,9 +292,7 @@ public       | management | reporters | select    | {
 } |         | f
 (1 row)
 ~~~
-
-
-use graphiql to
+- use graphiql to
 - define all parameters directly (no auth, no jwt) like so:
   - unset x-hasura-admin-secret
   - set Authorization to "Bearer <JWT>"

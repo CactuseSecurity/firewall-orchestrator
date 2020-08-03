@@ -1,0 +1,13 @@
+[Unit]
+Description=FW Orch Auth Server
+After=network.target remote-fs.target nss-lookup.target
+[Service]
+WorkingDirectory={{ auth_server_start_dir }}
+ExecStart=/usr/bin/dotnet run
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier={{ auth_server_syslog_id }}
+User={{ iso_user }}
+Environment=
+[Install]
+WantedBy=multi-user.target

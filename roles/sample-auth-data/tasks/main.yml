@@ -1,10 +1,7 @@
 # this playbook sets up some sample auth data (roles, users)
 
-- block:
-  - name: add auth test data to database
-    include_tasks: auth_test_data.yml
-  become: yes
-  become_user: postgres
+- name: add auth test data to database
+  include_tasks: auth_test_data.yml
 
 - name: copy ldif template for roles
   template: src=add_ou_test_roles.ldif.j2 dest={{ iso_home }}/auth/add_ou_test_roles.ldif

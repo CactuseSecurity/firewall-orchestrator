@@ -2,14 +2,21 @@
 
 - name: create auth directory
   file:
-    dest: "{{ iso_home }}/auth"
+    dest: "{{  }}"
     state: directory
     owner: "{{ iso_user }}"
     group: "{{ iso_user }}"
-  become: yes
+  become:
 
-- name: include pgjwt
-  include_tasks: auth_pgjwt.yml
+- name: copy auth module files to authserver
+  copy:
+    src: "FWO_Auth/FWO_Auth_Server"
+    dest: "{{ auth_server_base_dir }}"
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+
+#- name: include pgjwt
+#  include_tasks: auth_pgjwt.yml
 
 - name: add standard roles
   include_tasks: auth_standard_roles.yml
@@ -26,3 +33,6 @@
   shell: 'psql -d {{ iso_db_name }} -c "\i {{ iso_home }}/auth/pre_auth_functions.sql"'
   become: yes
   become_user: postgres
+
+
+- include: auth_install_dot_net.yml

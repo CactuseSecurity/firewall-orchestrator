@@ -127,5 +127,14 @@
 
   become: yes
 
+- block:
+     - name: check if database already exists
+       shell: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ iso_db_name }}''"'
+       register: db_exists
+
+     - name: create new database - drop existing db before when clean_install is set
+       import_tasks: iso-setup-database-as-postgres-user.yml
+       when: clean_install is defined or db_exists.stdout=="0"
+  become: yes
+  become_user: postgres 
 # now in non-root context:            
-- import_tasks: iso-setup-database-as-postgres-user.yml

@@ -22,7 +22,7 @@ namespace FWO_Auth_Client
 
         public async Task<string> GetJWT(string Username, string Password)
         {
-            var Parameters = new Dictionary<string, string>
+            Dictionary<string, string> Parameters = new Dictionary<string, string>
             {
                 { "Username", Username },
                 { "Password", Password }
@@ -30,7 +30,7 @@ namespace FWO_Auth_Client
 
             string ParametersJson = JsonSerializer.Serialize(Parameters);
 
-            StringContent content = new StringContent(ParametersJson);
+            StringContent content = new StringContent(ParametersJson);           
             Console.WriteLine("Sending Request...");
             HttpResponseMessage response = await HttpClient.PostAsync(ServerUri + "jwt", content);
             return await response.Content.ReadAsStringAsync();

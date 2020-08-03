@@ -37,7 +37,7 @@ namespace FWO_Auth_Server
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
-            (
+            (               
                 issuer: issuer,
                 audience: audience,
                 subject: subject,

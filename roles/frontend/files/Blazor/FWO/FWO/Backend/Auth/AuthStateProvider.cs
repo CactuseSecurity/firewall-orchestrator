@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using FWO_Auth_Client;
 using Microsoft.AspNetCore.Components.Authorization;
 
 namespace FWO.Auth
@@ -21,15 +22,16 @@ namespace FWO.Auth
             return Task.FromResult(new AuthenticationState(user));            
         }
 
-        public void AuthenticateUser(string Username, string Password)
+        public async void AuthenticateUser(string Username, string Password, AuthClient AuthClient)
         {           
-
             string auth_type = ""; // default = not authenticated = empty
 
-            // if (correct_credentials(Username, Password))
-            // {
-                auth_type = "Fake authentication type";
-            // }          
+            string JWT = await AuthClient.GetJWT(Username, Password);
+
+            if (JWT != "")
+            {
+                auth_type = JWT;
+            }       
 
             var identity = new ClaimsIdentity
             (

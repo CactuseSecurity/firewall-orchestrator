@@ -8,7 +8,7 @@ namespace Test_Auth
     {
         static async Task Main(string[] args)
         {
-            AuthClient authClient = new AuthClient("http://localhost:8080/");
+            AuthClient authClient = new AuthClient("http://localhost:8888/");
             string jwt = await authClient.GetJWT("User", "Password");
             Console.WriteLine("JWT: " + jwt);
             Console.ReadLine();

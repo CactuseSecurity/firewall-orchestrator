@@ -1,5 +1,7 @@
 ﻿@using FWO.Auth 
+@using FWO_Auth_Client
 
+@inject AuthClient AuthClient
 @inject AuthenticationStateProvider AuthService
 
 <div class="row m-4 justify-content-center">
@@ -20,7 +22,7 @@
 
     private void LoginSubmit()
     {
-        ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password);
+        ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, AuthClient);
         //Validate(Email, Password)
 
         //GenerateJWT(Email, Password)

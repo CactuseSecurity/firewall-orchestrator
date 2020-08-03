@@ -6,15 +6,9 @@ using System.Threading.Tasks;
 
 namespace FWO.Backend.Data.API
 {
-    public class Management
+    public class ServiceType
     {
-        [JsonPropertyName("mgm_id")]
-        public int Id { get; set; }
-
-        [JsonPropertyName("mgm_name")]
+        [JsonPropertyName("svc_typ_name")]
         public string Name { get; set; }
-
-        [JsonPropertyName("devices")]
-        public Device[] Devices { get; set; }
     }
 }

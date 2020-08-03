@@ -20,7 +20,6 @@ namespace FWO_Auth
 
         private void Start()
         {
-            // testing github...
             // Create listener.
             Listener = new HttpListener();
 
@@ -31,42 +30,45 @@ namespace FWO_Auth
             Listener.Start();
             Console.WriteLine("Listening...");
 
-            // Note: The GetContext method blocks while waiting for a request.
-            HttpListenerContext context = Listener.GetContext();
-
-            HttpListenerRequest request = context.Request;
-            HttpStatusCode status = HttpStatusCode.NotFound;
-
-            string responseString = "";
-
-            switch (request.Url.LocalPath)
+            while(true)
             {
-                case "/jwt":
-                    if (request.HttpMethod == HttpMethod.Post.Method)
-                    {
-                        string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
-                        Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
-                        status = HttpStatusCode.OK;
-                        responseString = "jwt stub " + Parameters["Username"] + " " + Parameters["Password"];
-                    }                      
-                    break;
+                // Note: The GetContext method blocks while waiting for a request.
+                HttpListenerContext context = Listener.GetContext();
 
-                default:
-                    break;
+                HttpListenerRequest request = context.Request;
+                HttpStatusCode status = HttpStatusCode.NotFound;
+
+                string responseString = "";
+
+                switch (request.Url.LocalPath)
+                {
+                    case "/jwt":
+                        if (request.HttpMethod == HttpMethod.Post.Method)
+                        {
+                            status = HttpStatusCode.OK;
+                            string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
+                            Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
+                            responseString = "jwt stub " + Parameters["Username"] + " " + Parameters["Password"];
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+
+                // Obtain a response object.
+                HttpListenerResponse response = context.Response;
+
+                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
+                // Get a response stream and write the response to it.
+                response.StatusCode = (int)status;
+                response.ContentLength64 = buffer.Length;
+                Stream output = response.OutputStream;
+                output.Write(buffer, 0, buffer.Length);
+                // You must close the output stream.
+                output.Close();
+                Listener.Stop();
             }
-
-            // Obtain a response object.
-            HttpListenerResponse response = context.Response;
-
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-            // Get a response stream and write the response to it.
-            response.StatusCode = (int)status;
-            response.ContentLength64 = buffer.Length;
-            Stream output = response.OutputStream;
-            output.Write(buffer, 0, buffer.Length);
-            // You must close the output stream.
-            output.Close();
-            Listener.Stop();
         }
     }
 }

@@ -20,12 +20,11 @@ namespace FWO_Auth
 
         private void Start()
         {
-            // testing github...
             // Create listener.
             Listener = new HttpListener();
 
             // Add the prefixes.
-            Listener.Prefixes.Add("http://localhost:8080/jwt/");
+            Listener.Prefixes.Add("http://localhost:8888/jwt/");
 
             // Start listener.
             Listener.Start();
@@ -44,9 +43,9 @@ namespace FWO_Auth
                 case "/jwt":
                     if (request.HttpMethod == HttpMethod.Post.Method)
                     {
-                        string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
-                        Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
                         status = HttpStatusCode.OK;
+                        string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
+                        Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);                      
                         responseString = "jwt stub " + Parameters["Username"] + " " + Parameters["Password"];
                     }                      
                     break;

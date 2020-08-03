@@ -15,7 +15,7 @@ namespace FWO_Auth_Server
         }
 
         public bool CheckIfValid(string Username, string Password)
-        {
+        {          
             DirectoryRequest Request = new SearchRequest("NAME", "FILTER", SearchScope.Subtree, "ATTRIBUTES");
             DirectoryResponse Response =  Connection.SendRequest(Request);
             return Response.MatchedDN != "";

@@ -22,7 +22,7 @@ namespace FWO_Auth_Client
 
         public async Task<string> GetJWT(string Username, string Password)
         {
-            var Parameters = new Dictionary<string, string>
+            Dictionary<string, string> Parameters = new Dictionary<string, string>
             {
                 { "Username", Username },
                 { "Password", Password }

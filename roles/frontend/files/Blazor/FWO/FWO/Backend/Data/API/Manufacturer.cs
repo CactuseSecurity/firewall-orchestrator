@@ -7,14 +7,8 @@ namespace FWO.Backend.Data.API
 {
     public class Manufacturer
     {
+        public readonly int Id;
         public readonly string Name;
-
         public readonly Management[] Managements;
-
-        public Manufacturer(string Name, Management[] Managements)
-        {
-            this.Name = Name;
-            this.Managements = Managements;
-        }
     }
 }

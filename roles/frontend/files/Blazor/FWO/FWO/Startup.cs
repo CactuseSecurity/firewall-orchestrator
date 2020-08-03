@@ -4,6 +4,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using FWO.Auth;
+using FWO_Auth_Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -31,6 +32,7 @@ namespace FWO
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
+            services.AddSingleton<AuthClient>();
             services.AddSingleton<APIConnection>();
         }
 

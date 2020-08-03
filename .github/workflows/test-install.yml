@@ -13,11 +13,11 @@ on:
      - 'documentation/**'
      - 'design/**'
 
-   pull_request:
-     branches: [ master ]
-     paths-ignore:
-     - 'documentation/**'
-     - 'design/**'
+#   pull_request:
+#     branches: [ master ]
+#     paths-ignore:
+#     - 'documentation/**'
+#     - 'design/**'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -31,13 +31,7 @@ jobs:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
 
-    - name: show github env variable
-      run: echo "::debug {GITHUB_EVENT_NAME}::testing"
-
-    - name: show github variable
-      run: echo "::debug {github.event.action}"
-
-    - name: Run a one-line script
-      if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    - name: do test install in case of merged pull request
+      if: github.event_name == 'push' && github.event.action == 'closed' && github.event.pull_request.merged == true
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory -e 'run_on_github=yes' site.yml -K
       

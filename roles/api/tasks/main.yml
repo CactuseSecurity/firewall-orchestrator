@@ -134,6 +134,7 @@
   shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata apply --from-file"
   become: yes
   become_user: "{{ iso_user }}"
+  when: "api_no_metadata is not defined"
 
 - name: copy hasura docker systemd service script
   template:
@@ -161,7 +162,7 @@
   when: "api_docu is defined and api_docu == 'yes'"
 
 - name: create api documentation using 2fd/graphdoc
-  shell: "export NODE_OPTIONS='--max-old-space-size=4096' && graphdoc -x 'x-hasura-admin-secret: {{ api_hasura_admin_secret }}' --force -e http://localhost:8080/v1/graphql -o {{ ui_start_dir }}/wwwroot/api_schema"
+  shell: "export NODE_OPTIONS='--max-old-space-size=4096' && graphdoc -x 'x-hasura-admin-secret: {{ api_hasura_admin_secret }}' --force -e http://{{ api_hostname }}:{{ api_port }}/v1/graphql -o {{ ui_start_dir }}/wwwroot/api_schema"
   become: yes
   become_user: "{{ iso_user }}"
   when: "api_docu is defined and api_docu == 'yes'"

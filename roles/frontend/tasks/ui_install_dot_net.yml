@@ -6,18 +6,18 @@
     - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
       when: ansible_facts['distribution']|lower == 'debian'
 
-    - name: get package list from ms {{ ui_ms_deb_name }}
+    - name: get package list from ms {{ dotnet_deb_name }}
       get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ ui_ms_deb_name }}"
-        dest: "{{ ui_dir }}/{{ ui_ms_deb_name }}"
+        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
+        dest: "{{ ui_dir }}/{{ dotnet_deb_name }}"
         mode: 0644
 
     - name: install ms package list
-      command: "dpkg -i {{ ui_dir }}/{{ ui_ms_deb_name }}"
+      command: "dpkg -i {{ ui_dir }}/{{ dotnet_deb_name }}"
 
     - name: remove package list file
       file:
-        dest: "{{ ui_dir }}/{{ ui_ms_deb_name }}"
+        dest: "{{ ui_dir }}/{{ dotnet_deb_name }}"
         state: absent
 
     - name: apt update

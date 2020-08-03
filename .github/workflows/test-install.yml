@@ -31,7 +31,11 @@ jobs:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
 
+    - name: show github object
+      run: "echo ::debug github"
+
     - name: do test install in case of merged pull request
-      if: github.event_name == 'push' && github.event.action == 'closed' && github.event.pull_request.merged == true
+      # if: github.event_name == 'push' && github.event.action == 'closed' && github.event.pull_request.merged == true
+      if: github.event_name == 'push' && github.event.pull_request.merged == true
       run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory -e 'run_on_github=yes' site.yml -K
       

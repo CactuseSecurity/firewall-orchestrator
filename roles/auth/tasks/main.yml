@@ -9,7 +9,7 @@
 
 - name: copy auth module files to authserver
   copy:
-    src: "FWO_Auth/FWO_Auth_Server"
+    src: "FWO_Auth"
     dest: "{{ auth_server_base_dir }}"
     owner: "{{ iso_user }}"
     group: "{{ iso_user }}"

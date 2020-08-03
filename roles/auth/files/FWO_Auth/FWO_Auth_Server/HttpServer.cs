@@ -25,7 +25,7 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Add the prefixes.
-            Listener.Prefixes.Add("http://localhost:8080/jwt/");
+            Listener.Prefixes.Add("http://localhost:8888/jwt/");
 
             // Start listener.
             Listener.Start();

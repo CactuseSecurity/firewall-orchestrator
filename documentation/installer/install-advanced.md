@@ -25,6 +25,14 @@ if you want to drop the database and re-install from scratch, simply add the var
 cd firewall-orchestrator; ansible-playbook -i inventory -e "clean_install=1" site.yml -K
 ```
 
+## Option "api_no_metadata" to prevent meta data import
+
+e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::
+
+```console
+cd firewall-orchestrator; ansible-playbook -i inventory -e "api_no_metadata=1" site.yml -K
+```
+
 ## Option "without_sample_data" to not create sample data (i.e. in production)
 
 The following command prevents the creation of sample data in the database:

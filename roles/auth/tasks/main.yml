@@ -7,14 +7,6 @@
     group: "{{ iso_user }}"
   become: yes
 
-- name: copy auth module files to authserver
-  copy:
-    src: "{{ auth_path_rel }}"
-    dest: "{{ auth_server_start_dir }}"
-    owner: "{{ iso_user }}"
-    group: "{{ iso_user }}"
-  become: yes
-
 - name: add standard roles
   include_tasks: auth_standard_roles.yml
 
@@ -31,5 +23,12 @@
   become: yes
   become_user: postgres
 
+- name: copy auth module files to authserver
+  copy:
+    src: "{{ auth_path_rel }}"
+    dest: "{{ auth_server_base_dir }}"
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
 
 - include: auth_install_dot_net.yml

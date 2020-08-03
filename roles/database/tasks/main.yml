@@ -21,14 +21,14 @@
         name: "{{ postgresql_test_package }}"
         state: present
 
-     - name: set fact postgresql_dev_package
-       set_fact:
-          postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+    #  - name: set fact postgresql_dev_package
+    #    set_fact:
+    #       postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
 
-     - name: install development package for postgresql (needed for pgcrypto jwt auth)
-       package:
-        name: "{{ postgresql_dev_package }}"
-        state: present
+    #  - name: install development package for postgresql (needed for pgcrypto jwt auth)
+    #    package:
+    #     name: "{{ postgresql_dev_package }}"
+    #     state: present
 
      - name: edit postgresql.conf
        blockinfile:

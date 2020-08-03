@@ -1,8 +1,0 @@
-name: 'debug-action'
-description: 'Outputs debug information'
-inputs:
-  GITHUB_EVENT_NAME:
-    description: What kind of amazing creature are you?
-    default: person
-runs:
-  echo "::GITHUB_EVENT_NAME::"

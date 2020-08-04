@@ -264,9 +264,9 @@ values ('public', 'rule', 'reporter', 'select', '{
 ~~~
 
 ### running a query with Header
-```console
+~~~console
     Authorization: Bearer <JWT>
-```
+~~~
 ## simple test of authorization
 
 - Define permissions on management table using hasura data console for role reporters as follows:

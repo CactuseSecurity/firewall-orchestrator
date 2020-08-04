@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\auth\files\FWO_Auth\FWO_Auth_Client\FWO_Auth_Client.csproj" />
+    <ProjectReference Include="..\..\..\FWO_Auth_Client\FWO_Auth_Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

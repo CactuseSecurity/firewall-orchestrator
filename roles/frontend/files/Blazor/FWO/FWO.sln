@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO", "FWO\FWO.csproj", "{B
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Test", "FWO-Test\FWO_Test.csproj", "{EF5753A9-DCAC-4129-BE4A-32FCED682F48}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Auth_Client", "..\..\..\..\auth\files\FWO_Auth\FWO_Auth_Client\FWO_Auth_Client.csproj", "{13ADF6EC-B2EF-47F8-BD06-D81B8CCB0F7B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Auth_Client", "FWO_Auth\FWO_Auth_Client\FWO_Auth_Client.csproj", "{13ADF6EC-B2EF-47F8-BD06-D81B8CCB0F7B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

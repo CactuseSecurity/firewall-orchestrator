@@ -1,6 +1,8 @@
 # Advanced installation options
 
-## Installation behind a proxy (no direct Internet connection)
+
+## Install parameters
+### Installation behind a proxy (no direct Internet connection)
 
 e.g. with IP 1.2.3.4, listening on port 3128<br>
 note: this does not yet work 100%
@@ -9,7 +11,7 @@ note: this does not yet work 100%
 cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
 
-## Option "ui_php" to additionally install old php UI
+### Parameter "ui_php" to additionally install old php UI
 
 With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
 
@@ -17,7 +19,7 @@ With the following option the old php based user interface will be installed in 
 cd firewall-orchestrator; ansible-playbook -i inventory -e "ui_php=1 ui_php_web_port=8888" site.yml -K
 ```
 
-## Option "clean_install" to start with fresh database
+### Parameter "clean_install" to start with fresh database
 
 if you want to drop the database and re-install from scratch, simply add the variable clean_install as follows:
 
@@ -25,7 +27,7 @@ if you want to drop the database and re-install from scratch, simply add the var
 cd firewall-orchestrator; ansible-playbook -i inventory -e "clean_install=1" site.yml -K
 ```
 
-## Option "api_no_metadata" to prevent meta data import
+### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::
 
@@ -33,7 +35,7 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 cd firewall-orchestrator; ansible-playbook -i inventory -e "api_no_metadata=1" site.yml -K
 ```
 
-## Option "without_sample_data" to not create sample data (i.e. in production)
+### Parameter "without_sample_data" to not create sample data (i.e. in production)
 
 The following command prevents the creation of sample data in the database:
 
@@ -41,7 +43,7 @@ The following command prevents the creation of sample data in the database:
 cd firewall-orchestrator; ansible-playbook -i inventory -e "without_sample_data=1" site.yml -K
 ```
 
-## Option "connect_sting" to add Cactus test firewall CP R8x
+### Parameter "connect_sting" to add Cactus test firewall CP R8x
 
 The following command adds the sting test firewall to your fw orch system (needs VPN tunnel to Cactus)
 
@@ -49,7 +51,7 @@ The following command adds the sting test firewall to your fw orch system (needs
 cd firewall-orchestrator; ansible-playbook -i inventory -e "connect_sting=1" site.yml -K
 ```
 
-## Option "api_docu" to install API documentation
+### Parameter "api_docu" to install API documentation
 
 Generating a full hasura (all tables, etc. tracked) API documentation  currently requires
 - 2.3 GB additional hdd space (at least 10 GB total for test install)

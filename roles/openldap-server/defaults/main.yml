@@ -1,10 +1,10 @@
 ---
 
 #The domain prefix for ldap
-openldap_server_domain_name: example.com
+openldap_server_domain_name: fworch.internal
 
 #This is the password for admin for openldap 
-openldap_server_rootpw: passme
+openldap_server_rootpw: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
 
 #The self signed ssl parameters
 openldap_server_country: US

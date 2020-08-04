@@ -13,19 +13,19 @@ tables:
       foreign_key_constraint_on: control_id
   - name: isoadmin
     using:
-      foreign_key_constraint_on: import_admin
-  - name: isoadminByDokuAdmin
-    using:
       foreign_key_constraint_on: doku_admin
+  - name: isoadminByImportAdmin
+    using:
+      foreign_key_constraint_on: import_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
   - name: object
     using:
-      foreign_key_constraint_on: old_obj_id
-  - name: objectByNewObjId
-    using:
       foreign_key_constraint_on: new_obj_id
+  - name: objectByOldObjId
+    using:
+      foreign_key_constraint_on: old_obj_id
   - name: stm_change_type
     using:
       foreign_key_constraint_on: change_type_id
@@ -49,19 +49,19 @@ tables:
       foreign_key_constraint_on: control_id
   - name: isoadmin
     using:
-      foreign_key_constraint_on: import_admin
-  - name: isoadminByDokuAdmin
-    using:
       foreign_key_constraint_on: doku_admin
+  - name: isoadminByImportAdmin
+    using:
+      foreign_key_constraint_on: import_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
   - name: rule
     using:
-      foreign_key_constraint_on: old_rule_id
-  - name: ruleByNewRuleId
-    using:
       foreign_key_constraint_on: new_rule_id
+  - name: ruleByOldRuleId
+    using:
+      foreign_key_constraint_on: old_rule_id
   - name: stm_change_type
     using:
       foreign_key_constraint_on: change_type_id
@@ -82,19 +82,19 @@ tables:
       foreign_key_constraint_on: control_id
   - name: isoadmin
     using:
-      foreign_key_constraint_on: import_admin
-  - name: isoadminByDokuAdmin
-    using:
       foreign_key_constraint_on: doku_admin
+  - name: isoadminByImportAdmin
+    using:
+      foreign_key_constraint_on: import_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
   - name: service
     using:
-      foreign_key_constraint_on: old_svc_id
-  - name: serviceByNewSvcId
-    using:
       foreign_key_constraint_on: new_svc_id
+  - name: serviceByOldSvcId
+    using:
+      foreign_key_constraint_on: old_svc_id
   - name: stm_change_type
     using:
       foreign_key_constraint_on: change_type_id
@@ -115,10 +115,10 @@ tables:
       foreign_key_constraint_on: control_id
   - name: isoadmin
     using:
-      foreign_key_constraint_on: import_admin
-  - name: isoadminByDokuAdmin
-    using:
       foreign_key_constraint_on: doku_admin
+  - name: isoadminByImportAdmin
+    using:
+      foreign_key_constraint_on: import_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -127,14 +127,21 @@ tables:
       foreign_key_constraint_on: change_type_id
   - name: usr
     using:
-      foreign_key_constraint_on: old_user_id
-  - name: usrByNewUserId
-    using:
       foreign_key_constraint_on: new_user_id
+  - name: usrByOldUserId
+    using:
+      foreign_key_constraint_on: old_user_id
   table:
     name: changelog_user
     schema: public
 - array_relationships:
+  - name: clientProjectsByPrjId
+    using:
+      foreign_key_constraint_on:
+        column: prj_id
+        table:
+          name: client_project
+          schema: public
   - name: client_networks
     using:
       foreign_key_constraint_on:
@@ -153,13 +160,6 @@ tables:
     using:
       foreign_key_constraint_on:
         column: client_id
-        table:
-          name: client_project
-          schema: public
-  - name: clientProjectsByPrjId
-    using:
-      foreign_key_constraint_on:
-        column: prj_id
         table:
           name: client_project
           schema: public
@@ -270,10 +270,10 @@ tables:
 - object_relationships:
   - name: client
     using:
-      foreign_key_constraint_on: prj_id
-  - name: clientByClientId
-    using:
       foreign_key_constraint_on: client_id
+  - name: clientByPrjId
+    using:
+      foreign_key_constraint_on: prj_id
   table:
     name: client_project
     schema: public
@@ -480,17 +480,17 @@ tables:
         table:
           name: object
           schema: public
-  - name: objgrp_flats
-    using:
-      foreign_key_constraint_on:
-        column: import_created
-        table:
-          name: objgrp_flat
-          schema: public
   - name: objgrpFlatsByImportLastSeen
     using:
       foreign_key_constraint_on:
         column: import_last_seen
+        table:
+          name: objgrp_flat
+          schema: public
+  - name: objgrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: import_created
         table:
           name: objgrp_flat
           schema: public
@@ -522,17 +522,31 @@ tables:
         table:
           name: report
           schema: public
-  - name: rule_froms
-    using:
-      foreign_key_constraint_on:
-        column: rf_create
-        table:
-          name: rule_from
-          schema: public
   - name: ruleFromsByRfLastSeen
     using:
       foreign_key_constraint_on:
         column: rf_last_seen
+        table:
+          name: rule_from
+          schema: public
+  - name: ruleServicesByRsLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rs_last_seen
+        table:
+          name: rule_service
+          schema: public
+  - name: ruleTosByRtLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rt_last_seen
+        table:
+          name: rule_to
+          schema: public
+  - name: rule_froms
+    using:
+      foreign_key_constraint_on:
+        column: rf_create
         table:
           name: rule_from
           schema: public
@@ -542,6 +556,20 @@ tables:
         column: control_id
         table:
           name: rule_order
+          schema: public
+  - name: rule_services
+    using:
+      foreign_key_constraint_on:
+        column: rs_create
+        table:
+          name: rule_service
+          schema: public
+  - name: rule_tos
+    using:
+      foreign_key_constraint_on:
+        column: rt_create
+        table:
+          name: rule_to
           schema: public
   - name: rules
     using:
@@ -557,34 +585,6 @@ tables:
         table:
           name: rule
           schema: public
-  - name: rule_services
-    using:
-      foreign_key_constraint_on:
-        column: rs_create
-        table:
-          name: rule_service
-          schema: public
-  - name: ruleServicesByRsLastSeen
-    using:
-      foreign_key_constraint_on:
-        column: rs_last_seen
-        table:
-          name: rule_service
-          schema: public
-  - name: rule_tos
-    using:
-      foreign_key_constraint_on:
-        column: rt_create
-        table:
-          name: rule_to
-          schema: public
-  - name: ruleTosByRtLastSeen
-    using:
-      foreign_key_constraint_on:
-        column: rt_last_seen
-        table:
-          name: rule_to
-          schema: public
   - name: services
     using:
       foreign_key_constraint_on:
@@ -599,17 +599,17 @@ tables:
         table:
           name: service
           schema: public
-  - name: svcgrp_flats
-    using:
-      foreign_key_constraint_on:
-        column: import_created
-        table:
-          name: svcgrp_flat
-          schema: public
   - name: svcgrpFlatsByImportLastSeen
     using:
       foreign_key_constraint_on:
         column: import_last_seen
+        table:
+          name: svcgrp_flat
+          schema: public
+  - name: svcgrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: import_created
         table:
           name: svcgrp_flat
           schema: public
@@ -634,17 +634,17 @@ tables:
         table:
           name: temp_mgmid_importid_at_report_time
           schema: public
-  - name: usergrp_flats
-    using:
-      foreign_key_constraint_on:
-        column: import_created
-        table:
-          name: usergrp_flat
-          schema: public
   - name: usergrpFlatsByImportLastSeen
     using:
       foreign_key_constraint_on:
         column: import_last_seen
+        table:
+          name: usergrp_flat
+          schema: public
+  - name: usergrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: import_created
         table:
           name: usergrp_flat
           schema: public
@@ -715,17 +715,38 @@ tables:
     name: import_zone
     schema: public
 - array_relationships:
-  - name: changelog_objects
-    using:
-      foreign_key_constraint_on:
-        column: doku_admin
-        table:
-          name: changelog_object
-          schema: public
   - name: changelogObjectsByImportAdmin
     using:
       foreign_key_constraint_on:
         column: import_admin
+        table:
+          name: changelog_object
+          schema: public
+  - name: changelogRulesByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_rule
+          schema: public
+  - name: changelogServicesByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_service
+          schema: public
+  - name: changelogUsersByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_user
+          schema: public
+  - name: changelog_objects
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
         table:
           name: changelog_object
           schema: public
@@ -736,24 +757,10 @@ tables:
         table:
           name: changelog_rule
           schema: public
-  - name: changelogRulesByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_rule
-          schema: public
   - name: changelog_services
     using:
       foreign_key_constraint_on:
         column: doku_admin
-        table:
-          name: changelog_service
-          schema: public
-  - name: changelogServicesByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
         table:
           name: changelog_service
           schema: public
@@ -764,26 +771,12 @@ tables:
         table:
           name: changelog_user
           schema: public
-  - name: changelogUsersByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_user
-          schema: public
   - name: objects
     using:
       foreign_key_constraint_on:
         column: last_change_admin
         table:
           name: object
-          schema: public
-  - name: role_to_users
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: role_to_user
           schema: public
   - name: rules
     using:
@@ -922,17 +915,17 @@ tables:
     name: manual
     schema: public
 - array_relationships:
-  - name: changelog_objects
-    using:
-      foreign_key_constraint_on:
-        column: new_obj_id
-        table:
-          name: changelog_object
-          schema: public
   - name: changelogObjectsByOldObjId
     using:
       foreign_key_constraint_on:
         column: old_obj_id
+        table:
+          name: changelog_object
+          schema: public
+  - name: changelog_objects
+    using:
+      foreign_key_constraint_on:
+        column: new_obj_id
         table:
           name: changelog_object
           schema: public
@@ -943,17 +936,17 @@ tables:
         table:
           name: client_object
           schema: public
-  - name: objgrp_flats
-    using:
-      foreign_key_constraint_on:
-        column: objgrp_flat_id
-        table:
-          name: objgrp_flat
-          schema: public
   - name: objgrpFlatsByObjgrpFlatMemberId
     using:
       foreign_key_constraint_on:
         column: objgrp_flat_member_id
+        table:
+          name: objgrp_flat
+          schema: public
+  - name: objgrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: objgrp_flat_id
         table:
           name: objgrp_flat
           schema: public
@@ -989,10 +982,10 @@ tables:
   - name: device
     using:
       foreign_key_constraint_on: obj_nat_install
-  - name: import_control
+  - name: importControlByObjLastSeen
     using:
       foreign_key_constraint_on: obj_last_seen
-  - name: importControlByObjCreate
+  - name: import_control
     using:
       foreign_key_constraint_on: obj_create
   - name: isoadmin
@@ -1017,39 +1010,36 @@ tables:
     name: object
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByImportLastSeen
     using:
       foreign_key_constraint_on: import_last_seen
-  - name: importControlByImportCreated
+  - name: import_control
     using:
       foreign_key_constraint_on: import_created
   - name: object
     using:
-      foreign_key_constraint_on: objgrp_member_id
-  - name: objectByObjgrpId
-    using:
       foreign_key_constraint_on: objgrp_id
+  - name: objectByObjgrpMemberId
+    using:
+      foreign_key_constraint_on: objgrp_member_id
   table:
     name: objgrp
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByImportLastSeen
     using:
       foreign_key_constraint_on: import_last_seen
-  - name: importControlByImportCreated
+  - name: import_control
     using:
       foreign_key_constraint_on: import_created
   - name: object
     using:
-      foreign_key_constraint_on: objgrp_flat_member_id
-  - name: objectByObjgrpFlatId
-    using:
       foreign_key_constraint_on: objgrp_flat_id
+  - name: objectByObjgrpFlatMemberId
+    using:
+      foreign_key_constraint_on: objgrp_flat_member_id
   table:
     name: objgrp_flat
-    schema: public
-- table:
-    name: pg_all_foreign_keys
     schema: public
 - object_relationships:
   - name: client
@@ -1058,10 +1048,10 @@ tables:
   - name: device
     using:
       foreign_key_constraint_on: dev_id
-  - name: import_control
+  - name: importControlByStopImportId
     using:
       foreign_key_constraint_on: stop_import_id
-  - name: importControlByStartImportId
+  - name: import_control
     using:
       foreign_key_constraint_on: start_import_id
   - name: stm_report_typ
@@ -1178,13 +1168,6 @@ tables:
         table:
           name: role_to_device
           schema: public
-  - name: role_to_users
-    using:
-      foreign_key_constraint_on:
-        column: role_id
-        table:
-          name: role_to_user
-          schema: public
   table:
     name: role
     schema: public
@@ -1198,28 +1181,18 @@ tables:
   table:
     name: role_to_device
     schema: public
-- object_relationships:
-  - name: isoadmin
-    using:
-      foreign_key_constraint_on: user_id
-  - name: role
-    using:
-      foreign_key_constraint_on: role_id
-  table:
-    name: role_to_user
-    schema: public
 - array_relationships:
-  - name: changelog_rules
-    using:
-      foreign_key_constraint_on:
-        column: new_rule_id
-        table:
-          name: changelog_rule
-          schema: public
   - name: changelogRulesByOldRuleId
     using:
       foreign_key_constraint_on:
         column: old_rule_id
+        table:
+          name: changelog_rule
+          schema: public
+  - name: changelog_rules
+    using:
+      foreign_key_constraint_on:
+        column: new_rule_id
         table:
           name: changelog_rule
           schema: public
@@ -1269,10 +1242,10 @@ tables:
   - name: device
     using:
       foreign_key_constraint_on: dev_id
-  - name: import_control
+  - name: importControlByRuleLastSeen
     using:
       foreign_key_constraint_on: rule_last_seen
-  - name: importControlByRuleCreate
+  - name: import_control
     using:
       foreign_key_constraint_on: rule_create
   - name: isoadmin
@@ -1289,18 +1262,18 @@ tables:
       foreign_key_constraint_on: track_id
   - name: zone
     using:
-      foreign_key_constraint_on: rule_to_zone
-  - name: zoneByRuleFromZone
-    using:
       foreign_key_constraint_on: rule_from_zone
+  - name: zoneByRuleToZone
+    using:
+      foreign_key_constraint_on: rule_to_zone
   table:
     name: rule
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByRfLastSeen
     using:
       foreign_key_constraint_on: rf_last_seen
-  - name: importControlByRfCreate
+  - name: import_control
     using:
       foreign_key_constraint_on: rf_create
   - name: object
@@ -1339,10 +1312,10 @@ tables:
     name: rule_review
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByRsLastSeen
     using:
       foreign_key_constraint_on: rs_last_seen
-  - name: importControlByRsCreate
+  - name: import_control
     using:
       foreign_key_constraint_on: rs_create
   - name: rule
@@ -1355,10 +1328,10 @@ tables:
     name: rule_service
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByRtLastSeen
     using:
       foreign_key_constraint_on: rt_last_seen
-  - name: importControlByRtCreate
+  - name: import_control
     using:
       foreign_key_constraint_on: rt_create
   - name: object
@@ -1371,17 +1344,17 @@ tables:
     name: rule_to
     schema: public
 - array_relationships:
-  - name: changelog_services
-    using:
-      foreign_key_constraint_on:
-        column: new_svc_id
-        table:
-          name: changelog_service
-          schema: public
   - name: changelogServicesByOldSvcId
     using:
       foreign_key_constraint_on:
         column: old_svc_id
+        table:
+          name: changelog_service
+          schema: public
+  - name: changelog_services
+    using:
+      foreign_key_constraint_on:
+        column: new_svc_id
         table:
           name: changelog_service
           schema: public
@@ -1392,17 +1365,17 @@ tables:
         table:
           name: rule_service
           schema: public
-  - name: svcgrp_flats
-    using:
-      foreign_key_constraint_on:
-        column: svcgrp_flat_id
-        table:
-          name: svcgrp_flat
-          schema: public
   - name: svcgrpFlatsBySvcgrpFlatMemberId
     using:
       foreign_key_constraint_on:
         column: svcgrp_flat_member_id
+        table:
+          name: svcgrp_flat
+          schema: public
+  - name: svcgrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: svcgrp_flat_id
         table:
           name: svcgrp_flat
           schema: public
@@ -1421,10 +1394,10 @@ tables:
           name: svcgrp
           schema: public
   object_relationships:
-  - name: import_control
+  - name: importControlBySvcLastSeen
     using:
       foreign_key_constraint_on: svc_last_seen
-  - name: importControlBySvcCreate
+  - name: import_control
     using:
       foreign_key_constraint_on: svc_create
   - name: isoadmin
@@ -1616,39 +1589,36 @@ tables:
     name: stm_usr_typ
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByImportLastSeen
     using:
       foreign_key_constraint_on: import_last_seen
-  - name: importControlByImportCreated
+  - name: import_control
     using:
       foreign_key_constraint_on: import_created
   - name: service
     using:
-      foreign_key_constraint_on: svcgrp_member_id
-  - name: serviceBySvcgrpId
-    using:
       foreign_key_constraint_on: svcgrp_id
+  - name: serviceBySvcgrpMemberId
+    using:
+      foreign_key_constraint_on: svcgrp_member_id
   table:
     name: svcgrp
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByImportLastSeen
     using:
       foreign_key_constraint_on: import_last_seen
-  - name: importControlByImportCreated
+  - name: import_control
     using:
       foreign_key_constraint_on: import_created
   - name: service
     using:
-      foreign_key_constraint_on: svcgrp_flat_member_id
-  - name: serviceBySvcgrpFlatId
-    using:
       foreign_key_constraint_on: svcgrp_flat_id
+  - name: serviceBySvcgrpFlatMemberId
+    using:
+      foreign_key_constraint_on: svcgrp_flat_member_id
   table:
     name: svcgrp_flat
-    schema: public
-- table:
-    name: tap_funky
     schema: public
 - object_relationships:
   - name: rule
@@ -1674,49 +1644,49 @@ tables:
     name: text_msg
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByImportLastSeen
     using:
       foreign_key_constraint_on: import_last_seen
-  - name: importControlByImportCreated
+  - name: import_control
     using:
       foreign_key_constraint_on: import_created
   - name: usr
     using:
-      foreign_key_constraint_on: usergrp_member_id
-  - name: usrByUsergrpId
-    using:
       foreign_key_constraint_on: usergrp_id
+  - name: usrByUsergrpMemberId
+    using:
+      foreign_key_constraint_on: usergrp_member_id
   table:
     name: usergrp
     schema: public
 - object_relationships:
-  - name: import_control
+  - name: importControlByImportLastSeen
     using:
       foreign_key_constraint_on: import_last_seen
-  - name: importControlByImportCreated
+  - name: import_control
     using:
       foreign_key_constraint_on: import_created
   - name: usr
     using:
-      foreign_key_constraint_on: usergrp_flat_member_id
-  - name: usrByUsergrpFlatId
-    using:
       foreign_key_constraint_on: usergrp_flat_id
+  - name: usrByUsergrpFlatMemberId
+    using:
+      foreign_key_constraint_on: usergrp_flat_member_id
   table:
     name: usergrp_flat
     schema: public
 - array_relationships:
-  - name: changelog_users
-    using:
-      foreign_key_constraint_on:
-        column: new_user_id
-        table:
-          name: changelog_user
-          schema: public
   - name: changelogUsersByOldUserId
     using:
       foreign_key_constraint_on:
         column: old_user_id
+        table:
+          name: changelog_user
+          schema: public
+  - name: changelog_users
+    using:
+      foreign_key_constraint_on:
+        column: new_user_id
         table:
           name: changelog_user
           schema: public
@@ -1734,17 +1704,17 @@ tables:
         table:
           name: rule_from
           schema: public
-  - name: usergrp_flats
-    using:
-      foreign_key_constraint_on:
-        column: usergrp_flat_id
-        table:
-          name: usergrp_flat
-          schema: public
   - name: usergrpFlatsByUsergrpFlatMemberId
     using:
       foreign_key_constraint_on:
         column: usergrp_flat_member_id
+        table:
+          name: usergrp_flat
+          schema: public
+  - name: usergrp_flats
+    using:
+      foreign_key_constraint_on:
+        column: usergrp_flat_id
         table:
           name: usergrp_flat
           schema: public
@@ -1855,10 +1825,10 @@ tables:
           name: rule
           schema: public
   object_relationships:
-  - name: import_control
+  - name: importControlByZoneLastSeen
     using:
       foreign_key_constraint_on: zone_last_seen
-  - name: importControlByZoneCreate
+  - name: import_control
     using:
       foreign_key_constraint_on: zone_create
   - name: management

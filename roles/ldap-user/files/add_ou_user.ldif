@@ -1,0 +1,5 @@
+dn: ou=user,dc=fworch,dc=internal
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: user

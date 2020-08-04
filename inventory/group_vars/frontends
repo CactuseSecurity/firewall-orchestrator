@@ -12,6 +12,4 @@ ui_server_admin: root@localhost
 ui_hostname: "127.0.0.1"
 ui_php_dir: "{{ iso_home }}/web/htdocs"
 ui_php_web_port: 8443
-ui_dotnet_version: "3.1"
 ui_service_name: "{{ product_name }}-ui"
-ui_ms_deb_name: "packages-microsoft-prod.deb"

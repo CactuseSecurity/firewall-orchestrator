@@ -12,7 +12,7 @@
 - make ssh available in virtual box: choose NAT networking - advanced - add port forwarding for ssh from port e.g. 2222 to 22 (see <http://ask.xmodulo.com/access-nat-guest-from-host-virtualbox.html>)
 - ssh to guest
 - cp ssh pub key to user's authorized_keys on repo server
-- get repo from git: 
+- get repo from git:
 ~~~console
   github: git clone git@github.com:CactuseSecurity/firewall-orchestrator.git
 ~~~

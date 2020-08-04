@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\FWO_Auth_Client\FWO_Auth_Client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Update="wwwroot\images\FWO_Logo.png">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

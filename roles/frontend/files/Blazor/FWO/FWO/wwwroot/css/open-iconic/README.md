@@ -6,7 +6,7 @@ Open Iconic is the open source sibling of [Iconic](http://useiconic.com). It is 
 ## What's in Open Iconic?
 
 * 223 icons designed to be legible down to 8 pixels
-* Super-light SVG files - 61.8 for the entire set 
+* Super-light SVG files - 61.8 for the entire set
 * SVG sprite&mdash;the modern replacement for icon fonts
 * Webfont (EOT, OTF, SVG, TTF, WOFF), PNG and WebP formats
 * Webfont stylesheets (including versions for Bootstrap and Foundation) in CSS, LESS, SCSS and Stylus formats
@@ -58,7 +58,7 @@ Coloring icons is even easier. All you need to do is set the `fill` rule on the 
 
 To learn more about SVG Sprites, read [Chris Coyier's guide](http://css-tricks.com/svg-sprites-use-better-icon-fonts/).
 
-#### Using Open Iconic's Icon Font...
+#### Using Open Iconic's Icon Font
 
 
 ##### …with Bootstrap

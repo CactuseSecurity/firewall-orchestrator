@@ -896,12 +896,14 @@ Create table "role"
  primary key ("role_id")
 );
 
+/*
 Create table "role_to_user"
 (
 	"role_id" Integer NOT NULL,
 	"user_id" Integer NOT NULL,
  primary key ("role_id", "user_id")
 );
+*/
 
 Create table "role_to_device"
 (
@@ -1246,8 +1248,11 @@ Create index "IX_Relationship158" on "changelog_rule" ("change_type_id");
 Alter table "changelog_rule" add  foreign key ("change_type_id") references "stm_change_type" ("change_type_id") on update restrict on delete restrict;
 Create index "IX_Relationship181" on "request" ("request_type_id");
 Alter table "request" add  foreign key ("request_type_id") references "request_type" ("request_type_id") on update restrict on delete restrict;
+
+/*
 Alter table "role_to_user" add  foreign key ("role_id") references "role" ("role_id") on update restrict on delete cascade;
 Alter table "role_to_user" add  foreign key ("user_id") references "isoadmin" ("isoadmin_id") on update restrict on delete cascade;
+*/
 Alter table "role_to_device" add  foreign key ("role_id") references "role" ("role_id") on update restrict on delete cascade;
 Alter table "role_to_device" add  foreign key ("device_id") references "device" ("dev_id") on update restrict on delete cascade;
 

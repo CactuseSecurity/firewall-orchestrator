@@ -6,7 +6,11 @@ isosrv ansible_connection=local ansible_host=localhost    # can be used for loca
 isosrv
 #isofront
 
-[backends]
+[backendserver]
+isosrv
+#isoback
+
+[apiserver]
 isosrv
 #isoback
 
@@ -14,10 +18,10 @@ isosrv
 isosrv
 #isoback
 
-[authservers]
+[authserver]
 isosrv
 #isoback
 
-[sampleservers]
+[sampleserver]
 isosrv
 #isoback

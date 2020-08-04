@@ -1,0 +1,34 @@
+
+- name: create auth directory
+  file:
+    dest: "{{ auth_server_base_dir }}"
+    state: directory
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
+
+- name: add standard roles
+  include_tasks: auth_standard_roles.yml
+
+- name: copy authentication sql file
+  copy:
+    src: pre_auth_functions.sql
+    dest: "{{ iso_home }}/auth/"
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
+
+- name: create funtions needed during authentication
+  shell: 'psql -d {{ iso_db_name }} -c "\i {{ iso_home }}/auth/pre_auth_functions.sql"'
+  become: yes
+  become_user: postgres
+
+- name: copy auth module files to authserver
+  copy:
+    src: "{{ auth_path_rel }}"
+    dest: "{{ auth_server_base_dir }}"
+    owner: "{{ iso_user }}"
+    group: "{{ iso_user }}"
+  become: yes
+
+- include: auth_install_dot_net.yml

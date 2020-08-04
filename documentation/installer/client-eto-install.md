@@ -16,19 +16,19 @@ Tested with
 
 - Windows:
 
-  ```
+  ```console
   Click "Download .NET Core SDK"
   ```
 
 - MacOS:
 
-  ```
+  ```console
   Click "Download .NET Core SDK"
   ```
 
 - Linux:
 
-  ```
+  ```console
   1\. Click "Install .NET Core"
      2\. Select your Linux packet manager
      3\. Follow instructions for paragraph "Install .NET Core SDK"
@@ -40,19 +40,19 @@ Tested with
 
 - Windows:
 
-  ```
+  ```console
   firewall-orchestrator\client\eto.forms\Firewall-Orchestrator.Wpf
   ```
 
 - MacOS:
 
-  ```
+  ```console
   firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Mac
   ```
 
 - Linux:
 
-  ```
+  ```console
   firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk
   ```
 
@@ -60,19 +60,19 @@ Tested with
 
 - Windows:
 
-  ```
+  ```console
   dotnet publish --configuration Release --output publish --self-contained false --runtime win-x64 --framework netcoreapp3.1
   ```
 
 - MacOs:
 
-  ```
+  ```console
   dotnet publish --configuration Release --output publish --self-contained false --runtime osx-x64 --framework netcoreapp3.1
   ```
 
 - Linux:
 
-  ```
+  ```console
   dotnet publish --configuration Release --output publish --self-contained false --runtime linux-x64 --framework netcoreapp3.1
   ```
 
@@ -80,19 +80,19 @@ Tested with
 
 - Windows:
 
-  ```
+  ```console
   firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Wpf/publish
   ```
 
 - MacOs:
 
-  ```
+  ```console
   firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Mac/publish
   ```
 
 - Linux:
 
-  ```
+  ```console
   firewall-orchestrator/client/eto.forms/Firewall-Orchestrator.Gtk/publish
   ```
 
@@ -110,11 +110,11 @@ Tested with
 
 - Windows:
 
-  Execute execetuable
+  run executable
 
 - MacOs:
 
-  Execute execetuable
+  run executable
 
 - Linux:
 

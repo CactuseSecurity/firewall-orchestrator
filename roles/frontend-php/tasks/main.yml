@@ -1,0 +1,103 @@
+- block:
+    - name: Install webserver packages
+      package: name={{ item }} state=present
+      with_items:
+        - apache2
+        - php
+        - libapache2-mod-php
+        - php-pgsql
+        - php-pear
+        
+    - name: find out installed php version
+      script: "get_php_version.sh"
+      register: phpversion_result
+      changed_when: false
+       
+    - set_fact:
+         phpversion: "{{ phpversion_result.stdout }}"
+
+    - set_fact:
+         phpini: "/etc/php/{{ phpversion }}/apache2/php.ini"
+         cliphpini: "/etc/php/{{ phpversion }}/cli/php.ini"
+
+    - name: create backup of php.ini files and link cli php.ini to apache php.ini
+      shell: "cp {{ phpini }} {{ phpini }}.orig && mv {{ cliphpini }} {{ cliphpini }}.orig && cp {{ phpini }} {{ cliphpini }}"
+
+    - name: edit php.ini
+      blockinfile:
+        path: "{{ phpini }}"
+        block: |
+           memory_limit = 200M    ; mehr Speicher: von Default 8MB hochsetzen
+           max_execution_time = 900
+           default_charset = "utf-8"
+           date.timezone = "Europe/Berlin"
+           include_path="/usr/share/php:/usr/share/lib/php:{{ iso_home }}/web/include:{{ iso_home }}/etc:{{ iso_home }}/web/htdocs/inctxt:{{ iso_home }}/web/htdocs/hilfe"
+           doc_root = "{{ iso_home }}/web"
+           sql.safe_mode = On
+           expose_php = Off
+           display_errors = Off              ; for production
+           display_startup_errors = Off  ;for production (both can be switched to On for testing purposes)
+           error_log = syslog
+           log_errors_max_len = 0             ; abgeschnittene sql-statements beim debugging verhindern
+           pgsql.log_notice = 1
+           session.save_path = /var/itsecorg/session
+           session.gc_maxlifetime = 14400   ;eight hours
+
+    - name: copy iso files to frontend target
+      copy:
+        src: "web"
+        dest: "{{ iso_home }}/"
+        owner: itsecorg
+        group: itsecorg
+
+    - name: copy iso gui.conf file
+      copy:
+        src: "gui.conf"
+        dest: "{{ iso_home }}/etc/gui.conf"
+        owner: itsecorg
+        group: itsecorg
+
+    - name: enable apache mod_ssl
+      shell: "a2enmod ssl"
+
+    - name: add port to apache
+      lineinfile:
+        path: "/etc/apache2/ports.conf"
+        line: "    Listen {{ ui_php_web_port }}"
+        insertafter: "<IfModule ssl_module>"
+
+    - name: copy php httpd config file to apache target
+      template:
+        src: "httpd.conf"
+        dest: "{{ ui_http_conf_dir }}/itsecorg-php.conf"
+        owner: root
+        group: root
+
+    - name: create dummy .rnd file in users home dir to avoid error when creating certificate - workaround for ubuntu 18.04 openssl bug
+      file:
+        path: ~/.rnd
+        state: touch
+
+    # - name: copy cert creation script to apache target
+    #   script: "apache_create_server_cert.sh" 
+
+    - name: enable itsecorg web site
+      shell: "a2ensite itsecorg-php"
+
+    - name: add session directory - /var/itsecorg/session
+      file:
+        dest: /var/itsecorg/session
+        state: directory
+        owner: www-data
+        group: root
+
+    - name: increase apache timeout to 900 seconds
+      lineinfile:
+        path: /etc/apache2/apache2.conf
+        line: "Timeout 900"
+
+    - name: restart apache
+      service:
+       name: "apache2"
+       state: restarted     
+  become: yes

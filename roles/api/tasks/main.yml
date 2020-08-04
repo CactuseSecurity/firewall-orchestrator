@@ -1,18 +1,28 @@
 ---
-# working under ubuntu 20.4 with
-# tim@ubu204test:~$ ansible --version
-# ansible 2.9.6
-# python version = 3.8.2 (default, Apr 27 2020, 15:53:34) [GCC 9.3.0]
 
 - block:  
    - set_fact: api_home="{{ iso_home }}/api"
    - set_fact: hasura_bin="/usr/local/bin/hasura"
+   - name: generate jwt secret
+     shell: "< /dev/urandom tr -dc a-f0-9 | head -c${1:-64}"
+     register: jwt_secret
 
+   - set_fact: api_hasura_jwt_secret="{{ jwt_secret.stdout }}"
+  
    - name: remove api home
      file:
         path: "{{ api_home }}"
         state: absent
-   
+
+   - name: write api_hasura_jwt_secret into file for reference
+     lineinfile:
+        path: "{{ api_home }}/jwt_secret"
+        line: "{{ jwt_secret.stdout }}"
+        create: yes
+        mode: 0600
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
+
    - name: create api home
      file:
         path: "{{ api_home }}"
@@ -78,6 +88,7 @@
     env:
       HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ isodb_host }}:{{ iso_db_port }}/{{ iso_db_name }}"
       HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
       HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
       HASURA_GRAPHQL_JWT_SECRET:       '
                                         {
@@ -123,6 +134,7 @@
   shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata apply --from-file"
   become: yes
   become_user: "{{ iso_user }}"
+  when: "api_no_metadata is not defined"
 
 - name: copy hasura docker systemd service script
   template:
@@ -136,3 +148,21 @@
 - name: make hasura docker container run at host startup
   command: "systemctl enable hasura-docker-api"
   become: yes
+
+- block:
+  - name: create api documentation using 2fd/graphdoc - install npm
+    package:
+      name: npm
+
+  - name: create api documentation using 2fd/graphdoc - install graphdoc
+    command: "npm install -g @2fd/graphdoc"
+
+  environment: "{{ proxy_env }}"
+  become: yes
+  when: "api_docu is defined and api_docu == 'yes'"
+
+- name: create api documentation using 2fd/graphdoc
+  shell: "export NODE_OPTIONS='--max-old-space-size=4096' && graphdoc -x 'x-hasura-admin-secret: {{ api_hasura_admin_secret }}' --force -e http://{{ api_hostname }}:{{ api_port }}/v1/graphql -o {{ ui_start_dir }}/wwwroot/api_schema"
+  become: yes
+  become_user: "{{ iso_user }}"
+  when: "api_docu is defined and api_docu == 'yes'"

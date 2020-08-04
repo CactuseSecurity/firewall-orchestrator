@@ -1,0 +1,8 @@
+database_dir: /var/lib/pgsql/data
+postgresql_package: postgresql
+postgresql_test_package: pgtap
+postgresql_dev_package_prefix: postgresql-server-dev
+
+# table_space variable can be used to create database in another place where there is enough space
+# table_space: /var/db/iso_tablespace
+# table_space_name: itsecorg

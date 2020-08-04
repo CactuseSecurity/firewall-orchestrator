@@ -15,6 +15,20 @@
         owner: "{{ iso_user }}"
         group: "{{ iso_user }}"
 
+    - name: copy FWO_Auth_Client files to frontend target
+      copy:
+        src: "FWO_Auth_Client"
+        dest: "{{ ui_dir }}"
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
+
+    - name: copy FWO_Filter files to frontend target
+      copy:
+        src: "FWO_Filter"
+        dest: "{{ ui_dir }}"
+        owner: "{{ iso_user }}"
+        group: "{{ iso_user }}"
+
   become: yes
 
 - include: ui_apache_install_and_setup.yml

@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30128.74
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO", "FWO\FWO.csproj", "{BF33A047-3216-44B0-A32C-463F5CE7B195}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO_Test", "FWO-Test\FWO_Test.csproj", "{EF5753A9-DCAC-4129-BE4A-32FCED682F48}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Test", "FWO-Test\FWO_Test.csproj", "{EF5753A9-DCAC-4129-BE4A-32FCED682F48}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

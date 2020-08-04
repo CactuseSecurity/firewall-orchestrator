@@ -1,14 +1,57 @@
 ﻿@using BlazorTable
+@using FWO.Backend.Data.API
+@using System.Data 
 
 <div class="card d-inline m-2 shadow">
     <div class="card-body">
-        <Table TableItem="Manufactor" Items="manufactors" ShowSearchBar="true" RowClickAction="@(x => x.Selected = !x.Selected)" PageSize="3">
-            <Column TableItem="Manufactor" Title="Select" Field="@(x => x.Selected)" Sortable="true" Filterable="false" Width="15%">
+        <Table TableItem="DataRow" Items="Data.AsEnumerable()" PageSize="10">
+            <Column TableItem="DataRow" Title="@Data.Columns[0].ColumnName" Field="@(x => x[0])" Sortable="true" Filterable="true">
                 <Template>
-                    <div class="oi @(context.Selected? "oi-check" : "oi-x")"></div>
+                    <div class="oi @((bool)context[0] ? "oi-check bg-success" : "oi-x  bg-danger")"></div>
                 </Template>
             </Column>
-            <Column TableItem="Manufactor" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="false" Width="10%" />
+
+            @for (int i = 1; i < FilterData.AttributeDefinitions.Length; i++)
+            {
+                <Column TableItem="DataRow" Title="@Data.Columns[i].ColumnName" Field="@(x => x[i])" Sortable="true" Filterable="true">
+                    <Template>
+                        @switch (context[i])
+                        {
+                            case bool value:
+                                <div class="oi @(value? "oi-check" : "oi-x")"></div>
+                                break;
+
+                            default:
+                                <p>@context[i].ToString()</p>
+                                break;
+                        }
+                    </Template>
+                </Column>
+
+                /*
+                <Column TableItem="FilterDataObject" Title="@FilterData.AttributeDefinitions[i].Name" Field="@(x => x.Attributes[i].Value)" Sortable="true" Filterable="true" Width="10%">
+                    <Template>
+                        @switch (FilterData.AttributeDefinitions[i].Type)
+                        {
+                            case "string":
+                                <p>@context.Attributes[i].Value</p>
+                                break;
+
+                            case "int":
+                                <p>@context.Attributes[i].Value</p>
+                                break;
+
+                            case "bool":
+                                <div class="oi @((bool)context.Attributes[i].Value? "oi-check" : "oi-x")"></div>
+                                break;
+
+                            default:
+                                break;
+                        }
+                    </Template>
+                </Column>
+                */
+            }
             <Pager ShowPageNumber="true"></Pager>
         </Table>
     </div>
@@ -19,19 +62,14 @@
     [Parameter]
     public string Title { get; set; }
 
-    Manufactor[] manufactors = new Manufactor[4]
-    {
-        new Manufactor { Selected = true, Name = "Cisco" },
-        new Manufactor { Selected = true, Name = "Checkpoint" },
-        new Manufactor { Selected = true, Name = "Juniper" },
-        new Manufactor { Selected = true, Name = "Palo Alto" }
-    };
+    [Parameter]
+    public DataTable Data { get; set; }
 
-    bool CheckpointChecked = true;
+    [Parameter]
+    public FilterData FilterData { get; set; }
 
-    class Manufactor
+    private void Test()
     {
-        public bool Selected { get; set; }
-        public string Name { get; set; }
+        
     }
 }

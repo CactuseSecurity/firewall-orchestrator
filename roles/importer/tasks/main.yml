@@ -43,7 +43,7 @@
 
     - name: copy importer rc script
       copy:
-        src: "import_{{ product_name }}-main-rc"
+        src: "import-main-rc"
         dest: "/etc/init.d/{{ product_name }}-importer"
         mode: 0755
         owner: root

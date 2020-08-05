@@ -1,14 +1,14 @@
 # !/usr/bin/perl -w
 # $Id: juniper.pm,v 1.1.2.12 2012-03-24 13:57:03 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/ISO/import/Attic/juniper.pm,v $
+# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/juniper.pm,v $
 
-package CACTUS::ISO::import::parser;
+package CACTUS::FWORCH::import::parser;
 
 use strict;
 use warnings;
 use Time::HiRes qw(time); # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
-use CACTUS::ISO;
-use CACTUS::ISO::import;
+use CACTUS::FWORCH;
+use CACTUS::FWORCH::import;
 use CACTUS::read_config;
 
 require Exporter;
@@ -486,13 +486,13 @@ sub copy_config_from_mgm_to_iso {
 	if ($simulate) {  # get config from std ssh server, not from native junos system
 		$cmd = "echo \"applications {\" > $cfg_dir/$obj_file_base";
 		if (system ($cmd)) { $fehler_count++; }
-		$cmd = "$scp_bin $scp_batch_mode_switch -i $workdir/$CACTUS::ISO::ssh_id_basename $ssh_user\@$ssh_hostname:predef_svc_junos $cfg_dir/$obj_file_base.1";
+		$cmd = "$scp_bin $scp_batch_mode_switch -i $workdir/$CACTUS::FWORCH::ssh_id_basename $ssh_user\@$ssh_hostname:predef_svc_junos $cfg_dir/$obj_file_base.1";
 		if (system ($cmd)) { $fehler_count++; }
 		$cmd = "cat $cfg_dir/$obj_file_base.1 >> $cfg_dir/$obj_file_base";
 		if (system ($cmd)) { $fehler_count++; }
 		$cmd = "echo \"}\" >> $cfg_dir/$obj_file_base";
 		if (system ($cmd)) { $fehler_count++; }
-		$cmd = "$scp_bin $scp_batch_mode_switch -i $workdir/$CACTUS::ISO::ssh_id_basename $ssh_user\@$ssh_hostname:junos_config $cfg_dir/$obj_file_base.1";
+		$cmd = "$scp_bin $scp_batch_mode_switch -i $workdir/$CACTUS::FWORCH::ssh_id_basename $ssh_user\@$ssh_hostname:junos_config $cfg_dir/$obj_file_base.1";
 		if (system ($cmd)) { $fehler_count++; }
 		$cmd = "cat $cfg_dir/$obj_file_base.1 >> $cfg_dir/$obj_file_base";
 		if (system ($cmd)) { $fehler_count++; }
@@ -500,11 +500,11 @@ sub copy_config_from_mgm_to_iso {
 		if (system ($cmd)) { $fehler_count++; }
 	} else {
 		if (system ("echo \"applications {\" > $cfg_dir/$obj_file_base")) { $fehler_count++; }
-		$cmd = "$ssh_bin -i $workdir/$CACTUS::ISO::ssh_id_basename $ssh_user\@$ssh_hostname show configuration groups junos-defaults applications > $cfg_dir/$obj_file_base.1";
+		$cmd = "$ssh_bin -i $workdir/$CACTUS::FWORCH::ssh_id_basename $ssh_user\@$ssh_hostname show configuration groups junos-defaults applications > $cfg_dir/$obj_file_base.1";
 		if (system ($cmd)) { $fehler_count++; }
 		if (system ("cat $cfg_dir/$obj_file_base.1 >> $cfg_dir/$obj_file_base")) { $fehler_count++; }
 		if (system ("echo \"}\" >> $cfg_dir/$obj_file_base")) { $fehler_count++; }
-		$cmd = "$ssh_bin -i $workdir/$CACTUS::ISO::ssh_id_basename $ssh_user\@$ssh_hostname show config > $cfg_dir/$obj_file_base.1";
+		$cmd = "$ssh_bin -i $workdir/$CACTUS::FWORCH::ssh_id_basename $ssh_user\@$ssh_hostname show config > $cfg_dir/$obj_file_base.1";
 		if (system ($cmd)) { $fehler_count++; }
 		if (system ("cat $cfg_dir/$obj_file_base.1 >> $cfg_dir/$obj_file_base")) { $fehler_count++; }
 		if (system ("rm $cfg_dir/$obj_file_base.1")) { $fehler_count++; }
@@ -573,9 +573,9 @@ sub sort_rules_and_add_zone_headers {
 	}
 }
 
-sub parse_mgm_name { # ($obj_file, $iso_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
+sub parse_mgm_name { # ($obj_file, $fworch_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
 	my $in_file_main = shift;
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $debuglevel_main = shift;
 	my $mgm_name = shift;
 	my $config_dir = shift;
@@ -620,9 +620,9 @@ sub parse_mgm_name { # ($obj_file, $iso_workdir, $debug_level, $mgm_name, $confi
 }
 
 # the following function does only parse simple objects without groups. Groups are parsed in a second run using function parse_config_group_objects
-sub parse_config_base_objects { # ($obj_file, $iso_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
+sub parse_config_base_objects { # ($obj_file, $fworch_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
 	my $in_file_main = shift;
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $debug = shift;
 	my $mgm_name = shift;
 	my $config_dir = shift;
@@ -737,9 +737,9 @@ sub parse_config_base_objects { # ($obj_file, $iso_workdir, $debug_level, $mgm_n
 }
 
 
-sub parse_config_group_objects { # ($obj_file, $iso_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
+sub parse_config_group_objects { # ($obj_file, $fworch_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
 	my $in_file_main = shift;
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $debug = shift;
 	my $mgm_name = shift;
 	my $config_dir = shift;
@@ -873,9 +873,9 @@ sub switch_context {
 	return $new_level;
 }
 
- sub parse_config_rules  { # ($in_file_main, $iso_workdir, $debuglevel_main, $mgm_name_in_config, $config_dir, $import_id)
+ sub parse_config_rules  { # ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name_in_config, $config_dir, $import_id)
 	my $in_file_main = shift;
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $debug = shift;
 	my $mgm_name = shift;
 	my $config_dir = shift;
@@ -1006,10 +1006,10 @@ sub switch_context {
 #####################################################################################
 # MAIN
 
-sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $iso_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
+sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $fworch_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
 	my $in_file_main = shift;
 	shift; shift; shift; # $rule_file und $rulebases und $user nicht verwendet
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $debuglevel_main = shift;
 	my $mgm_name = shift;
 	my $config_dir = shift;
@@ -1018,7 +1018,7 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $iso_workdir, $d
 	# initializing global variables:
 	@services = ();
 	@network_objects = ();
-	&print_debug ("in_file_main=$in_file_main, iso_workdir=$iso_workdir, debuglevel_main=$debuglevel_main, mgm_name=$mgm_name, config_dir=$config_dir, import_id=$import_id", $debuglevel_main, 6);
+	&print_debug ("in_file_main=$in_file_main, fworch_workdir=$fworch_workdir, debuglevel_main=$debuglevel_main, mgm_name=$mgm_name, config_dir=$config_dir, import_id=$import_id", $debuglevel_main, 6);
 
 	open (IN, $in_file_main) || die "$in_file_main konnte nicht geoeffnet werden.\n";
 	@config_lines = <IN>;	# sichern Config-array fuer spaetere Verwendung
@@ -1028,17 +1028,17 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $iso_workdir, $d
 	else {
 		my $device_type=8; # junos 10.x fest gesetzt		# move to config
 		&read_predefined_services($device_type, $debuglevel_main);		# schreibt die predefined services in @services und %services
-		my $mgm_name_in_config = &parse_mgm_name($in_file_main, $iso_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id);
-		&parse_config_base_objects  ($in_file_main, $iso_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id); # zones, simple network and service objects  
+		my $mgm_name_in_config = &parse_mgm_name($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id);
+		&parse_config_base_objects  ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id); # zones, simple network and service objects  
 		push @zones, "global"; 	# Global Zone immer hinzufuegen
 		foreach my $zone (@zones) {	object_address_add("any", "0.0.0.0", "0.0.0.0", $zone, "any-obj for zone $zone added by ITSecOrg"); &print_debug(""); } #		Any-Objekte fuer alle Zonen einfuegen
-		&parse_config_group_objects ($in_file_main, $iso_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id); # groups are parsed in separate cycle to ensure that all base objects are complete
+		&parse_config_group_objects ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id); # groups are parsed in separate cycle to ensure that all base objects are complete
 #		&resolve_service_uuid_references ($debuglevel_main);
-		&parse_config_rules ($in_file_main, $iso_workdir, $debuglevel_main, $mgm_name_in_config, $config_dir, $import_id); # finally parsing the rule base, ignoring the rulebase name in itsecorg config
+		&parse_config_rules ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name_in_config, $config_dir, $import_id); # finally parsing the rule base, ignoring the rulebase name in itsecorg config
 
-		&print_results_files_objects($iso_workdir, $mgm_name, $import_id);
-		&print_results_files_rules  ($iso_workdir, $mgm_name, $import_id);
-		&print_results_files_zones  ($iso_workdir, $mgm_name, $import_id);
+		&print_results_files_objects($fworch_workdir, $mgm_name, $import_id);
+		&print_results_files_rules  ($fworch_workdir, $mgm_name, $import_id);
+		&print_results_files_zones  ($fworch_workdir, $mgm_name, $import_id);
 #		print_results_monitor('objects');
 #		print_results_monitor('rules');
 	}
@@ -1050,11 +1050,11 @@ __END__
 
 =head1 NAME
 
-CACTUS::ISO::parser - Perl extension for IT Security Organizer netscreen parser
+CACTUS::FWORCH::parser - Perl extension for IT Security Organizer netscreen parser
 
 =head1 SYNOPSIS
 
-  use CACTUS::ISO::import::netscreen;
+  use CACTUS::FWORCH::import::netscreen;
 
 =head1 DESCRIPTION
 

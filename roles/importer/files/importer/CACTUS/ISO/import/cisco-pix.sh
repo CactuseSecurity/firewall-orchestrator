@@ -1,6 +1,6 @@
 #!/usr/bin/expect -f
 # $Id: cisco-pix.sh,v 1.1.2.2 2007-12-13 10:47:32 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/ISO/import/Attic/cisco-pix.sh,v $
+# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/cisco-pix.sh,v $
 
 set timeout 15
 spawn /usr/bin/ssh -p 2222 admin@localhost

@@ -148,7 +148,7 @@
 
 		if ($aktion == 'delete' and $client_or_network == 'network' and isset($client_net_id) and $client_net_id <> '') { // Loeschen eines bestehenden client_net
 			$sql_code = "DELETE FROM client_network WHERE client_net_id=$client_net_id";
-			$result = $db_connection->iso_db_query($sql_code);
+			$result = $db_connection->fworch_db_query($sql_code);
 			if ($e->isError($result)) $input_fehler = "L&ouml;schen fehlgeschlagen.";
 		}
 		if ($aktion == 'save') {
@@ -164,7 +164,7 @@
 				// check for existing client with same name
 				if (!$client_id or $client_id=='')	{ // Aenderung an bestehendem Mandant
 					$client_double_sql_code = "SELECT client_name FROM client WHERE client_name='$client_name'";
-					$client_double = $db_connection->iso_db_query($client_double_sql_code);
+					$client_double = $db_connection->fworch_db_query($client_double_sql_code);
 					if ($client_double->rows) $input_fehler = "Ein Mandant mit Namen $client_name existiert bereits.";
 				}
 				if (!$input_fehler) {
@@ -172,12 +172,12 @@
 						$sql_code = "UPDATE client SET client_name='$client_name' WHERE client_id=$client_id";
 					else { // neuen Client anlegen
 						$client_id_code = "SELECT MAX(client_id)+1 AS client_id FROM client";
-						$next_free_client_id = $db_connection->iso_db_query($client_id_code); $next_free_client_id_no = $next_free_client_id->data[0]['client_id'];
+						$next_free_client_id = $db_connection->fworch_db_query($client_id_code); $next_free_client_id_no = $next_free_client_id->data[0]['client_id'];
 						if (!isset($next_free_client_id_no)) $next_free_client_id_no = 1;
 						$sql_code = "INSERT INTO client (client_id, client_name) VALUES ($next_free_client_id_no, '$client_name')";					
 					}
 //					echo "sql_code: $sql_code<br>";
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					if ($e->isError($result)) $input_fehler = "IP-Adresse &uuml;berpr&uuml;fen.";
 				}
 			}
@@ -192,7 +192,7 @@
 						$sql_code = "UPDATE client_network SET client_net_ip='$client_net_ip' WHERE client_net_id=$client_net_id";
 					else { // neues Netz anlegen
 						$client_net_id_code		 = "SELECT MAX(client_net_id)+1 AS client_net_id FROM client_network";
-						$next_free_client_net_id = $db_connection->iso_db_query($client_net_id_code);
+						$next_free_client_net_id = $db_connection->fworch_db_query($client_net_id_code);
 						$next_free_client_net_id_no	 = $next_free_client_net_id->data[0]['client_net_id'];
 						if (!isset($next_free_client_net_id_no)) $next_free_client_net_id_no = 1;
 						$sql_code	= "INSERT INTO client_network (client_net_id, client_net_ip, client_id) " .
@@ -200,7 +200,7 @@
 						$client_net_id = $next_free_client_net_id_no;
 					}
 //							echo "sql_code: $sql_code<br>";
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					if ($e->isError($result) or !$result) $input_fehler = "IP-Adresse &uuml;berpr&uuml;fen.";
 					else {
 						$client_network_new = new ClientNetwork($db_connection, $client_net_id);

@@ -16,7 +16,7 @@ parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=Tr
 parser.add_argument('-n', '--number_of_test_objs', metavar='number_of_objs_to_create', default=3,
                     help='How many objects and rules to generate; default=3')
 parser.add_argument('-d', '--delete_all_test_data', action="store_true",
-                    help='delete all test data (all objects and rules with name iso_test_*')
+                    help='delete all test data (all objects and rules with name fworch_test_*')
 args = parser.parse_args()
 
 api_host = args.hostname
@@ -27,7 +27,7 @@ limit = 100
 details_level = "full"  # 'standard'
 ssl_verification = False
 use_object_dictionary = 'false'
-name_prefix = 'iso_test_'
+name_prefix = 'fworch_test_'
 obj_types = ['hosts', 'networks', 'services-tcp']
 base_ip = '10.88.99.'
 

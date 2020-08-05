@@ -193,7 +193,7 @@ $$ LANGUAGE plpgsql;
 /*
 Example import_changelog entries:
 
-isodb=# select * from import_changelog where control_id=14;
+fworchdb=# select * from import_changelog where control_id=14;
      change_time     | management_name | changed_object_name |          changed_object_uid          | changed_object_type | change_action | change_admin | control_id | import_changelog_nr | import_changelog_id 
 ---------------------+-----------------+---------------------+--------------------------------------+---------------------+---------------+--------------+------------+---------------------+---------------------
  2007-09-25 11:08:02 | fw1             | Standard            | 4C6B3F06-B6B0-4287-AF4B-A7B553925F02 |  rule               | C             | tim          |         14 |                   8 |                 311
@@ -203,7 +203,7 @@ isodb=# select * from import_changelog where control_id=14;
 (10 Zeilen)
 
 
-isodb=# select * from view_changes;
+fworchdb=# select * from view_changes;
  abs_change_id | local_change_id | change_request_info | change_element | change_element_order | old_id | new_id | change_documented | change_type_id | change_type | change_comment | obj_comment |        change_time         | mgm_name | mgm_id | dev_name | dev_id | change_admin | change_admin_id | doku_admin | doku_admin_id | security_relevant |                               unique_name                               | change_diffs | change_new_element 
 ---------------+-----------------+---------------------+----------------+----------------------+--------+--------+-------------------+----------------+-------------+----------------+-------------+----------------------------+----------+--------+----------+--------+--------------+-----------------+------------+---------------+-------------------+-------------------------------------------------------------------------+--------------+--------------------
            460 |               9 |                     | rule           | rule_element         |      4 |      8 | f                 |              3 | C           |                |             | 2007-09-25 11:04:41.951275 | fw1      |    444 | fw1      |    444 | Tim Purschke |               4 |            |               | t                 | Standard__uid__26E762E9-4DF2-406C-B3D4-F57C2C19F7A9, Rulebase: Standard |              | 

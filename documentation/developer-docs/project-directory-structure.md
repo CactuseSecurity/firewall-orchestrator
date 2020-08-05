@@ -11,8 +11,8 @@
 - A list of important variables from inventory/all
 
 ```console
-iso_user: itsecorg
-iso_home: "/usr/share/{{ iso_user }}"
+fworch_user: itsecorg
+fworch_home: "/usr/share/{{ fworch_user }}"
 sample_config_user: isosample
 sample_config_user_home: "/home/{{ sample_config_user }}"
 ```
@@ -44,11 +44,11 @@ database_dir: /var/lib/pgsql/data
   
 - The role docker executes the tasks
   - downloads and installs Docker and related packages
-  - creates local config directory {{ iso_home }}/.docker and adds config.json
+  - creates local config directory {{ fworch_home }}/.docker and adds config.json
 
 - The role database executes the tasks
   - installs postgresql DBMS
-  - copies install directory (roles/backend/files/install) to {{ iso_home }}. It contains the database
+  - copies install directory (roles/backend/files/install) to {{ fworch_home }}. It contains the database
   - removes all containers to make sure the database can be dropped (otherwise the hasura process blocks dropping the database)
   - copies and executes database install scripts
   - sets passwords for database users
@@ -56,7 +56,7 @@ database_dir: /var/lib/pgsql/data
 - The role api executes the tasks
   1. create the directories
 ```console
-api_home="{{ iso_home }}/api"
+api_home="{{ fworch_home }}/api"
 hasura_bin="/usr/local/bin/hasura"
 ```
   2. sets up hasura in {{ api_home }}

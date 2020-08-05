@@ -26,7 +26,7 @@ class DbConnection {
 		$this->dbtype = $DBConnection->dbtype;
 		$this->error = new PEAR();
 	}
-	function iso_db_query_with_flags($sql_code, $flags) {
+	function fworch_db_query_with_flags($sql_code, $flags) {
 		$log = new LogConnection();
 		$start = explode(" ", microtime());
 		$stime = $start[0] + $start[1];
@@ -66,11 +66,11 @@ class DbConnection {
 			}
 		}
 	}
-	function iso_db_query_no_assoc($sql_code) {
-		return $this->iso_db_query_with_flags($sql_code, 'DBX_RESULT_INDEX');
+	function fworch_db_query_no_assoc($sql_code) {
+		return $this->fworch_db_query_with_flags($sql_code, 'DBX_RESULT_INDEX');
 	}
-	function iso_db_query($sql_code) {
-		return $this->iso_db_query_with_flags($sql_code, 'DBX_RESULT_INDEX' | 'DBX_RESULT_INFO' | 'DBX_RESULT_ASSOC');
+	function fworch_db_query($sql_code) {
+		return $this->fworch_db_query_with_flags($sql_code, 'DBX_RESULT_INDEX' | 'DBX_RESULT_INFO' | 'DBX_RESULT_ASSOC');
 	}
 
 	function getUser() {
@@ -83,7 +83,7 @@ class DbConnection {
 		$log = new LogConnection();
 		$delimiter = '%';
 		$sql_request = "SELECT isoadmin_pwd_history FROM isoadmin WHERE isoadmin_username = '$user'; ";
-		$result = $this->iso_db_query($sql_request);
+		$result = $this->fworch_db_query($sql_request);
 		if (!isset($result) or $result == '' or $result->data[0]['isoadmin_pwd_history']=='') {
 //			$log->log_debug("isoadmin_check_kennwort_history:: no history found");
 			return true;
@@ -106,7 +106,7 @@ class DbConnection {
 	function isoadmin_append_pwd_hash($user, $password) {
 		$delimiter = '%';
 		$sql_request = "SELECT isoadmin_pwd_history FROM isoadmin WHERE isoadmin_username = '$user'; ";
-		$result = $this->iso_db_query($sql_request);
+		$result = $this->fworch_db_query($sql_request);
 		if (!isset($result) or $result == '' or $result->data[0]['isoadmin_pwd_history']=='') {
 			$old_hash_string = '';
 		} else {
@@ -114,7 +114,7 @@ class DbConnection {
 		}
 		$pwd_hash = password_hash($password, PASSWORD_DEFAULT);
 		$sql_request = "UPDATE isoadmin SET isoadmin_pwd_history='$old_hash_string$pwd_hash' WHERE isoadmin_username = '$user'; ";
-		$result = $this->iso_db_query($sql_request);
+		$result = $this->fworch_db_query($sql_request);
 
 		// TODO: only keep last x passwords - using $old_hashes = preg_split("\%", $old_hash_string);
 	}
@@ -147,7 +147,7 @@ class DbConnection {
 						$log->log_debug("checking whether Kennwort for user $user_in must be changed");
 						$testrequest = "SELECT isoadmin_username, isoadmin_last_name, isoadmin_password_must_be_changed " . 
 							"FROM isoadmin WHERE isoadmin_username='" . $user_in . "';";
-						$result = $this->iso_db_query($testrequest);
+						$result = $this->fworch_db_query($testrequest);
 //						if (is_null($isoadmin_username) or $isoadmin_username=='') {
 //						if ($this->error->isError($result)) {
 						if (!$result) {

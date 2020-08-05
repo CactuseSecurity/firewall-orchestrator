@@ -1,5 +1,5 @@
 
-api_user: "{{ iso_dbadmin_name }}"
+api_user: "{{ fworch_dbadmin_name }}"
 api_user_password: "{{ dbadmin_pwd }}"
 api_user_email: "{{ api_user }}@localhost"
 api_hasura_admin_secret: "st8chelt1er"

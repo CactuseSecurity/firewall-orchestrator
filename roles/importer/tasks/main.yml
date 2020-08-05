@@ -14,21 +14,21 @@
     - name: copy importer files
       copy:
         src: "importer"
-        dest: "{{ iso_home }}"
+        dest: "{{ fworch_home }}"
         owner: itsecorg
         group: itsecorg
         mode: 0755
 
 #    - name: set x-flag for importer executables
 #      file:
-#        path: "{{ iso_home }}/importer/*"
+#        path: "{{ fworch_home }}/importer/*"
 #        state: file
 #        mode: 0755
 
     - name: copy importer bin
       copy:
         src: "bin/"
-        dest: "{{ iso_home }}/bin/"
+        dest: "{{ fworch_home }}/bin/"
         mode: 0755
         owner: itsecorg
         group: itsecorg
@@ -36,7 +36,7 @@
     - name: copy import.conf
       copy:
         src: "import.conf"
-        dest: "{{ iso_home }}/etc/import.conf"
+        dest: "{{ fworch_home }}/etc/import.conf"
         mode: 0755
         owner: itsecorg
         group: itsecorg

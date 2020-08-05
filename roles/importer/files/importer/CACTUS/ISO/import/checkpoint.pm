@@ -1,7 +1,7 @@
 # $Id: checkpoint.pm,v 1.1.2.12 2013-01-31 21:58:05 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/ISO/import/Attic/checkpoint.pm,v $
+# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/checkpoint.pm,v $
 
-package CACTUS::ISO::import::parser;
+package CACTUS::FWORCH::import::parser;
 
 use strict;
 use warnings;
@@ -10,8 +10,8 @@ use Getopt::Long;
 use File::Basename;
 use Time::HiRes qw(time);    # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
 use Net::CIDR;
-use CACTUS::ISO;
-use CACTUS::ISO::import;
+use CACTUS::FWORCH;
+use CACTUS::FWORCH::import;
 use Date::Calc qw(Add_Delta_DHMS);
 
 require Exporter;
@@ -24,7 +24,7 @@ our $VERSION = '0.3';
 
 # variblendefinition check point parser - global
 # -------------------------------------------------------------------------------------------
-my $GROUPSEP = $CACTUS::ISO::group_delimiter; 
+my $GROUPSEP = $CACTUS::FWORCH::group_delimiter; 
 
 my $UID      = "UID";    # globale konstante UID
 
@@ -274,15 +274,15 @@ sub copy_config_from_mgm_to_iso {
 	}
 	my $tar_archive = 'cp_config.tar.gz';		# compress files for bandwidth optimization
 	my $tar_cmd = "cd $config_path_on_mgmt; tar chf $tar_archive $obj_file_base $rule_file_base $user_db_file";
-	$cmd = "$ssh_bin -i $workdir/$CACTUS::ISO::ssh_id_basename $ssh_user\@$ssh_hostname \"$tar_cmd\"";
+	$cmd = "$ssh_bin -i $workdir/$CACTUS::FWORCH::ssh_id_basename $ssh_user\@$ssh_hostname \"$tar_cmd\"";
 #	print("DEBUG - tar_cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++;	}
 
-	$cmd = "$scp_bin $scp_batch_mode_switch -P $ssh_port -i $workdir/$CACTUS::ISO::ssh_id_basename $ssh_user\@$ssh_hostname:$config_path_on_mgmt$tar_archive $cfg_dir";
+	$cmd = "$scp_bin $scp_batch_mode_switch -P $ssh_port -i $workdir/$CACTUS::FWORCH::ssh_id_basename $ssh_user\@$ssh_hostname:$config_path_on_mgmt$tar_archive $cfg_dir";
 #	print("DEBUG - copy_cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++;	}
 
-	$cmd = "$ssh_bin -i $workdir/$CACTUS::ISO::ssh_id_basename $ssh_user\@$ssh_hostname \"rm $tar_archive\"";   # cleanup
+	$cmd = "$ssh_bin -i $workdir/$CACTUS::FWORCH::ssh_id_basename $ssh_user\@$ssh_hostname \"rm $tar_archive\"";   # cleanup
 #	print("DEBUG - tar_cmd = $cmd\n");
 
 	# gunzip -c xx.tar.gz | tar tvf -
@@ -413,7 +413,7 @@ sub result_handler_obj {
 			if (   ( $parse_obj_attr eq "primary_management" )
 				&& ( $parse_obj_attr_value eq "true" ) )
 			{
-				$mgm_name = $parse_obj_name;    # setting mgm_name defined in CACTUS::ISO::import.pm
+				$mgm_name = $parse_obj_name;    # setting mgm_name defined in CACTUS::FWORCH::import.pm
 			}
 
 			# Attribute in lowercase wandeln
@@ -498,17 +498,17 @@ sub result_handler_obj {
 				  SWITCH_OBJ_ATTR: {
 						# start ipv6
 						if ( $parse_obj_attr eq 'ipv6_prefix') {    # IPV6 netmask
-							$parse_obj_attr_value = CACTUS::ISO::remove_space_at_end($parse_obj_attr_value);
+							$parse_obj_attr_value = CACTUS::FWORCH::remove_space_at_end($parse_obj_attr_value);
 							$network_objects{"$parse_obj_name.netmask"} = $parse_obj_attr_value;
 							last SWITCH_OBJ_ATTR;
 						}
 						if ( $parse_obj_attr eq 'ipv6_address') {    # IPV6 ip addr
-							$parse_obj_attr_value = CACTUS::ISO::remove_space_at_end($parse_obj_attr_value);
+							$parse_obj_attr_value = CACTUS::FWORCH::remove_space_at_end($parse_obj_attr_value);
 							$network_objects{"$parse_obj_name.ipaddr"} = $parse_obj_attr_value;
 							last SWITCH_OBJ_ATTR;
 						}
 						if ( $parse_obj_attr eq 'ipv6_type') {    # IPV6 ip addr
-							$parse_obj_attr_value = CACTUS::ISO::remove_space_at_end($parse_obj_attr_value);
+							$parse_obj_attr_value = CACTUS::FWORCH::remove_space_at_end($parse_obj_attr_value);
 							$network_objects{"$parse_obj_name.type"} = $parse_obj_attr_value;
 							last SWITCH_OBJ_ATTR;
 						}
@@ -518,7 +518,7 @@ sub result_handler_obj {
 						# end ipv6
 						if ( $parse_obj_attr eq 'ipaddr_first' || $parse_obj_attr eq 'bogus_ip') {    # R75 new feature zone objects without ip_addr
 							$parse_obj_attr_value =
-							  CACTUS::ISO::remove_space_at_end($parse_obj_attr_value);
+							  CACTUS::FWORCH::remove_space_at_end($parse_obj_attr_value);
 							$network_objects{"$parse_obj_name.ipaddr"} = $parse_obj_attr_value;
 							last SWITCH_OBJ_ATTR;
 						}
@@ -1725,7 +1725,7 @@ ende: </users>
 =cut	
 
 	my $in_file_main    = shift;
-	my $iso_workdir     = shift;
+	my $fworch_workdir     = shift;
 	my $debuglevel_main = shift;
 	my $line            = '';
 	my $last_line       = '';
@@ -1814,7 +1814,7 @@ user3;	orange;	{group2};	{Any};  {Any};  Internal Password;      08:00;  18:00; 
 =cut	
 
 	my $in_file_main    = shift;
-	my $iso_workdir     = shift;
+	my $fworch_workdir     = shift;
 	my $debuglevel_main = shift;
 	my $line            = '';
 	my $last_line       = '';
@@ -1986,7 +1986,7 @@ sub cp_parse_users_original_format {
 	}
 
 	my $in_file_main    = shift;
-	my $iso_workdir     = shift;
+	my $fworch_workdir     = shift;
 	my $debuglevel_main = shift;
 	my $line            = '';
 	my $name;
@@ -2413,11 +2413,11 @@ __END__
 
 =head1 NAME
 
-CACTUS::ISO::parser - Perl extension for IT Security Organizer check point parser
+CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point parser
 
 =head1 SYNOPSIS
 
-  use CACTUS::ISO::import::checkpoint;
+  use CACTUS::FWORCH::import::checkpoint;
 
 =head1 DESCRIPTION
 

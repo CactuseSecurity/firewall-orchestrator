@@ -1,17 +1,17 @@
 #!/bin/sh
 # $Id: db-init2-functions-with-output.sh,v 1.1.2.1 2011-05-11 08:01:42 tim Exp $
 # $Source: /home/cvs/iso/package/install/bin/Attic/db-init2-functions-with-output.sh,v $
-if [ ! $ISOBASE ]; then
-        ISOBASE="/usr/share/itsecorg"
-        echo "ISOBASE was not set, using default directory $ISOBASE."
+if [ ! $FWORCHBASE ]; then
+        FWORCHBASE="/usr/share/itsecorg"
+        echo "FWORCHBASE was not set, using default directory $FWORCHBASE."
 fi
-ISOBINDIR=$ISOBASE/install/database/db-install-scripts
-PATH=$PATH:$ISOBINDIR:$ISOBASE/importer
+FWORCHBINDIR=$FWORCHBASE/install/database/db-install-scripts
+PATH=$PATH:$FWORCHBINDIR:$FWORCHBASE/importer
 
 echo "Make sure you have the correct values for database name, dbadmin password, ... set in iso-set-vars.sh"
 
-. $ISOBINDIR/iso-set-vars.sh $ISOBASE
-. $ISOBINDIR/iso-pgpass-create.sh $ISOBASE
+. $FWORCHBINDIR/iso-set-vars.sh $FWORCHBASE
+. $FWORCHBINDIR/iso-pgpass-create.sh $FWORCHBASE
 
 # this script redefines all funtions (stored procedures) and views within the db
 # can be aplied repeatedly
@@ -48,12 +48,12 @@ echo "settings grants: iso-grants.sql"
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/iso-grants.sql"
 
 # delete .pgpass
-. $ISOBINDIR/iso-pgpass-remove.sh
+. $FWORCHBINDIR/iso-pgpass-remove.sh
 
 # create commands to change owner of all db objects to itsecorg:
-# pg_dump -U dbadmin -h localhost -s isodb | grep -i 'owner to' | grep -v 'PROCEDURAL LANGUAGE' | sed -e 's/OWNER TO .*;/OWNER TO itsecorg;/i'
+# pg_dump -U dbadmin -h localhost -s fworchdb | grep -i 'owner to' | grep -v 'PROCEDURAL LANGUAGE' | sed -e 's/OWNER TO .*;/OWNER TO itsecorg;/i'
 
 # create commands to drop all functions:
-# pg_dump -U dbadmin -h localhost -s isodb | grep -i 'create function' | sed -e 's/CREATE/DROP/' | sed -e 's/RETURNS.*/CASCADE;/'
+# pg_dump -U dbadmin -h localhost -s fworchdb | grep -i 'create function' | sed -e 's/CREATE/DROP/' | sed -e 's/RETURNS.*/CASCADE;/'
 # create commands to drop all views (does not work without manual modifications because of dependencies):
-# pg_dump -U dbadmin -h localhost -s isodb | grep -i 'create view' | sed -e 's/CREATE/DROP/' | sed -e 's/AS/CASCADE;/'
+# pg_dump -U dbadmin -h localhost -s fworchdb | grep -i 'create view' | sed -e 's/CREATE/DROP/' | sed -e 's/AS/CASCADE;/'

@@ -1,24 +1,24 @@
 #!/bin/sh
 if [ -z "$1" ]
 then
-	if [ -z $ISOBASE ]
+	if [ -z $FWORCHBASE ]
 	then
-	        ISOBASE="/usr/share/itsecorg"
-			# echo "ISOBASE was not set. Using default directory $ISOBASE."
+	        FWORCHBASE="/usr/share/itsecorg"
+			# echo "FWORCHBASE was not set. Using default directory $FWORCHBASE."
 	fi
 else
-        ISOBASE=$1
+        FWORCHBASE=$1
 fi
-echo "using ISOBASE $ISOBASE"
-ISOBINDIR=$ISOBASE/install/database/db-install-scripts
-PATH=$PATH:$ISOBINDIR:$ISOBASE/importer
+echo "using FWORCHBASE $FWORCHBASE"
+FWORCHBINDIR=$FWORCHBASE/install/database/db-install-scripts
+PATH=$PATH:$FWORCHBINDIR:$FWORCHBASE/importer
 
-. $ISOBINDIR/iso-set-vars.sh $ISOBASE
-. $ISOBINDIR/iso-pgpass-create.sh $ISOBASE
+. $FWORCHBINDIR/iso-set-vars.sh $FWORCHBASE
+. $FWORCHBINDIR/iso-pgpass-create.sh $FWORCHBASE
 
-$PSQLCMD_INIT -c "DROP DATABASE $ISODB" 2>&1 | tee | $OUT
-echo "creating db $ISODB" 2>&1 | tee | $OUT
-$DBCREATE_CMD -c "CREATE DATABASE $ISODB" | $OUT
+$PSQLCMD_INIT -c "DROP DATABASE $FWORCHDB" 2>&1 | tee | $OUT
+echo "creating db $FWORCHDB" 2>&1 | tee | $OUT
+$DBCREATE_CMD -c "CREATE DATABASE $FWORCHDB" | $OUT
 echo "creating itsecorg-db-model" | $OUT
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/itsecorg-db-model.sql" 2>&1 | $OUT
 
@@ -28,4 +28,4 @@ $PSQLCMD_CREATE_REST -c "\i $SQLDIR/iso-grants.sql" 2>&1 | $OUT
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/iso-change-to-delete-cascade.sql" 2>&1 | $OUT
 
 # delete .pgpass
-. $ISOBINDIR/iso-pgpass-remove.sh
+. $FWORCHBINDIR/iso-pgpass-remove.sh

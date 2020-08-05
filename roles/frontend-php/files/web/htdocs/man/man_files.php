@@ -30,7 +30,7 @@
 <div id="inhalt">
  <b class="headlinemain">Filestruktur</b>
 <br><br>
-ITSecOrg Home ($ISOHOME): Hier liegen die ITSecOrg-Config-Dateien (conf),
+ITSecOrg Home ($FWORCHHOME): Hier liegen die ITSecOrg-Config-Dateien (conf),
  die Import-Skripte (importer) sowie die Web-GUI (web)
  
  <pre>

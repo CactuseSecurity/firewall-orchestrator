@@ -133,7 +133,7 @@ class DisplayConfig extends Config {  // setting default values here
  */
 class DbConfig extends Config {
 	var $dbhost = 'localhost'; // setting default values
-	var $dbname = 'isodb';
+	var $dbname = 'fworchdb';
 	var $dbport = '5432';
 	var $dbtype = 'DBX_PGSQL';
 	var $dbuser;
@@ -320,7 +320,7 @@ class UserConfig extends Config {
 	}
 	function getUserId($username,$password) {
 		$db_connection = new DbConnection(new DbConfig($username,$password));
-		$isoadmin_id = $db_connection->iso_db_query ("SELECT isoadmin_id FROM isoadmin WHERE isoadmin_username='" . $username . "'");
+		$isoadmin_id = $db_connection->fworch_db_query ("SELECT isoadmin_id FROM isoadmin WHERE isoadmin_username='" . $username . "'");
 		$isoadmin_id = $isoadmin_id->data[0]['isoadmin_id'];
 		return $isoadmin_id;
 	}
@@ -380,7 +380,7 @@ class UserConfig extends Config {
 				$log->log_debug("getReportFilter() processing report $report");
 				$sql_statement = "SELECT report_typ_id FROM stm_report_typ WHERE lower(report_typ_name_english) like lower('%$report%')";
 				$log->log_debug("sql=$sql_statement");
-				$report_id = $db_connection->iso_db_query ($sql_statement);
+				$report_id = $db_connection->fworch_db_query ($sql_statement);
 				if (isset($report_id->data[0]['report_typ_id']) && !$report_id->data[0]['report_typ_id']=='') {
 					$rep_filter[] = $report_id->data[0]['report_typ_id'];
 					$log->log_debug("report_filter_array=" . implode(',',$rep_filter));
@@ -388,7 +388,7 @@ class UserConfig extends Config {
 			}
 		} else {
 			$sql_statement = "SELECT report_typ_id FROM stm_report_typ";
-			$report_id = $db_connection->iso_db_query ($sql_statement);
+			$report_id = $db_connection->fworch_db_query ($sql_statement);
 			$anzahl_reports = $report_id->rows;
 			for ($zi = 0; $zi < $anzahl_reports; ++ $zi) { $rep_filter[] = $report_id->data[$zi]['report_typ_id']; }
 		}
@@ -419,7 +419,7 @@ class UserConfig extends Config {
 		if (array_search('ALL', $this->visible_managements)===false) { 
 			foreach ($this->visible_managements as $mgm) {
 				// get mgm_id for name:
-				$mgm_id = $db_connection->iso_db_query ("SELECT mgm_id FROM management WHERE mgm_name='$mgm'");
+				$mgm_id = $db_connection->fworch_db_query ("SELECT mgm_id FROM management WHERE mgm_name='$mgm'");
 				if (isset($mgm_id) and isset($mgm_id->data[0])) {
 					$mgm_id = $mgm_id->data[0]['mgm_id'];
 					if (isset($mgm_id) and $mgm_id<>"NULL" and !($mgm_id===''))
@@ -431,7 +431,7 @@ class UserConfig extends Config {
 		if (array_search('ALL', $this->visible_devices)===false) { 
 			foreach ($this->visible_devices as $dev) {
 				if (strpos($dev,'all-of-mgm(')===false) { // normaler device-Eintrag 
-					$dev_id = $db_connection->iso_db_query ("SELECT dev_id FROM device WHERE dev_name='$dev'");
+					$dev_id = $db_connection->fworch_db_query ("SELECT dev_id FROM device WHERE dev_name='$dev'");
 					if (isset($dev_id) and isset($dev_id->data[0])) {
 						$dev_id = $dev_id->data[0]['dev_id'];
 						if (isset($dev_id)) { if ($dev_id==='') {} else { $dev_filter .= (" OR ${dev_table_name}dev_id=$dev_id "); } } 
@@ -439,7 +439,7 @@ class UserConfig extends Config {
 				} else  // all of management Eintrag
 					list(,$mgm) = explode('(', $dev);
 					$mgm = substr($mgm,0, strlen($mgm)-1); // Klammer-zu abschneiden
-					$mgm_id = $db_connection->iso_db_query ("SELECT mgm_id FROM management WHERE mgm_name='$mgm'");
+					$mgm_id = $db_connection->fworch_db_query ("SELECT mgm_id FROM management WHERE mgm_name='$mgm'");
 					if (isset($mgm_id) and isset($mgm_id->data[0])) {
 						$mgm_id = $mgm_id->data[0]['mgm_id'];
 						if (isset($mgm_id)) { if ($mgm_id==='') {} else { $dev_filter .= " OR ${mgm_table_name}mgm_id=$mgm_id "; } } 

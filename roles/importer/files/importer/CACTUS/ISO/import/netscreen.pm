@@ -1,14 +1,14 @@
 #!/usr/bin/perl -w
 # $Id: netscreen.pm,v 1.1.2.17 2013-02-04 21:12:35 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/ISO/import/Attic/netscreen.pm,v $
+# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/netscreen.pm,v $
 
-package CACTUS::ISO::import::parser;
+package CACTUS::FWORCH::import::parser;
 
 use strict;
 use warnings;
 use Time::HiRes qw(time); # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
-use CACTUS::ISO;
-use CACTUS::ISO::import;
+use CACTUS::FWORCH;
+use CACTUS::FWORCH::import;
 use CACTUS::read_config;
 # use Scalar::Util;
 
@@ -922,8 +922,8 @@ sub copy_config_from_mgm_to_iso {
 	my $result;
 
 #	the scp command has to be used for tests with non-netscreen devices
-#	$cmd = "$scp_bin $scp_batch_mode_switch -i $workdir/$CACTUS::ISO::ssh_id_basename $ssh_user\@$ssh_hostname:ns_sys_config $cfg_dir/$obj_file_base";
-	$cmd = "$ssh_client_screenos -z $ssh_hostname -t netscreen -i $workdir/$CACTUS::ISO::ssh_id_basename -c 'get config' -u $ssh_user -d 0 -o $cfg_dir/$obj_file_base";
+#	$cmd = "$scp_bin $scp_batch_mode_switch -i $workdir/$CACTUS::FWORCH::ssh_id_basename $ssh_user\@$ssh_hostname:ns_sys_config $cfg_dir/$obj_file_base";
+	$cmd = "$ssh_client_screenos -z $ssh_hostname -t netscreen -i $workdir/$CACTUS::FWORCH::ssh_id_basename -c 'get config' -u $ssh_user -d 0 -o $cfg_dir/$obj_file_base";
 	if (system ($cmd)) { $fehler_count++; }
 	return ($fehler_count, "$cfg_dir/$obj_file_base" );
 }
@@ -1024,12 +1024,12 @@ sub parse_users { # not implemented yet
 # MAIN
 
 sub parse_config {
-	# ($obj_file, $rule_file, $rulebases, $iso_workdir, $debug_level)
+	# ($obj_file, $rule_file, $rulebases, $fworch_workdir, $debug_level)
 	my $in_file_main = shift;
 	shift; 
 	shift; # $rule_file und $user nicht verwendet
 	my $dev_info_hash = shift;  # fuer netscreen gibt es pro management immer nur genau ein device
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $debuglevel_main = shift;
 	my $mgm_name = shift;
 	my $config_dir = shift;
@@ -1113,9 +1113,9 @@ sub parse_config {
 	    $rulebases{"$rulebase_name.ruleorder"} = join(',', @ruleorder);
 #		print_results_monitor('objects');
 #		print_results_monitor('rules');
-		print_results_files_objects($iso_workdir, $mgm_name, $import_id);
-		print_results_files_rules  ($iso_workdir, $mgm_name, $import_id);
-		print_results_files_zones  ($iso_workdir, $mgm_name, $import_id);
+		print_results_files_objects($fworch_workdir, $mgm_name, $import_id);
+		print_results_files_rules  ($fworch_workdir, $mgm_name, $import_id);
+		print_results_files_zones  ($fworch_workdir, $mgm_name, $import_id);
 		return 0;
 	}
 }
@@ -1125,10 +1125,10 @@ __END__
 
 =head1 NAME
 
-CACTUS::ISO::parser - Perl extension for IT Security Organizer netscreen parser
+CACTUS::FWORCH::parser - Perl extension for IT Security Organizer netscreen parser
 
 =head1 SYNOPSIS
- use CACTUS::ISO::import::netscreen;
+ use CACTUS::FWORCH::import::netscreen;
 
 =head1 DESCRIPTION
 

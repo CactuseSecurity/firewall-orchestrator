@@ -9,7 +9,7 @@ NB: depends on docker role!
   ```console
   \#! /bin/bash
       docker run -d --net=host -p 8080:8080 \\
-             \-e HASURA_GRAPHQL_DATABASE_URL=postgres://dbadmin:st8chel@localhost:5432/isodb \\
+             \-e HASURA_GRAPHQL_DATABASE_URL=postgres://dbadmin:st8chel@localhost:5432/fworchdb \\
              \-e HASURA_GRAPHQL_ENABLE_CONSOLE=true \\
              \-e HASURA_GRAPHQL_ADMIN_SECRET=st8chelt1er \\
              hasura/graphql-engine:v1.0.0

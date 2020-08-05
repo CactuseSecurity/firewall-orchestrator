@@ -44,7 +44,7 @@ Hasura permissions are based on roles. Table permissions are defined on a per-ro
 3) add the result of the functions to the jwt!
 see <https://hasura.io/blog/hasura-authentication-explained/#jwt-auth> and <https://dev.to/lineup-ninja/modelling-teams-and-user-security-with-hasura-204i>
 
-Use pgjwt to create jwt as follows (get secret from /usr/share/itsecorg/api/jwt_secret):
+Use pgjwt to create jwt as follows (get secret from {{ fworch_home }}/api/jwt_secret):
 ~~~sql
   select sign('{
   "sub": "1234567890",

@@ -4,18 +4,18 @@
   include_tasks: auth_test_data.yml
 
 - name: copy ldif template for roles
-  template: src=add_ou_test_roles.ldif.j2 dest={{ iso_home }}/auth/add_ou_test_roles.ldif
+  template: src=add_ou_test_roles.ldif.j2 dest={{ fworch_home }}/auth/add_ou_test_roles.ldif
   become: yes
 
 - name: Create test roles in ldap
-  command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ iso_home }}/auth/add_ou_test_roles.ldif"
+  command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ fworch_home }}/auth/add_ou_test_roles.ldif"
 
 - name: copy ldif template for users
-  template: src=add_uid_test_users.ldif.j2 dest={{ iso_home }}/auth/add_uid_test_users.ldif
+  template: src=add_uid_test_users.ldif.j2 dest={{ fworch_home }}/auth/add_uid_test_users.ldif
   become: yes
 
 - name: Create test users in ldap
-  command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ iso_home }}/auth/add_uid_test_users.ldif"
+  command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ fworch_home }}/auth/add_uid_test_users.ldif"
 
 - name: set user fgreporter password in ldap
   command: "ldappasswd -s {{ auth_ldap_user_inital_pwd }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=fgreporter,ou=forti,{{ auth_ldap_std_user_path }}'"

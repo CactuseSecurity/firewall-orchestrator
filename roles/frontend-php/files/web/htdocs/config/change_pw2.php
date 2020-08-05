@@ -39,7 +39,7 @@
 	if (!$error_str) {
 		//Save the request in SQL syntax to a string
 		$sql_request = 'ALTER ROLE "' . $user . '" WITH PASSWORD ' . "'" . $newpass . "'";
-		$results = $conn->iso_db_query($sql_request);
+		$results = $conn->fworch_db_query($sql_request);
 		if ($results) {
 			$_SESSION['dbpwd'] = $newpass;	// pwd has been changed: set new pwd in session for get_text_msg calls
 			$log->log_debug("KennwortPolicy::Kennwort for user $user erfolgreich modifiziert (mittels ALTER ROLE).");
@@ -47,7 +47,7 @@
 			// set isoadmin_password_must_be_changed = false
 			$sql_request = "UPDATE isoadmin SET isoadmin_password_must_be_changed = FALSE WHERE isoadmin_username = '$user'; ";
 			$sql_request .= "UPDATE isoadmin SET isoadmin_last_password_change = now() WHERE isoadmin_username = '$user'; ";
-			$results = $conn->iso_db_query($sql_request);			
+			$results = $conn->fworch_db_query($sql_request);			
 			if (!$results) {
 				$log->log_debug("KennwortPolicy::isoadmin_kennwort_must_be_changed for user $user nicht erfolgreich modifiziert.");
 				$log->log_error("KennwortPolicy::isoadmin_kennwort_must_be_changed for user $user nicht erfolgreich modifiziert.");

@@ -8,7 +8,7 @@
 				" WHERE start_time<='$report_timestamp' AND NOT stop_time IS NULL AND $mgm_filter AND successful_import" .
 				" AND NOT device.hide_in_gui AND NOT management.hide_in_gui " . 
 				" GROUP BY import_control.mgm_id";
-		$import_id_table = $this->db_connection->iso_db_query($sqlcmd);
+		$import_id_table = $this->db_connection->fworch_db_query($sqlcmd);
 		if (!$this->error->isError($import_id_table)) {
 			$this->import_id_mgm_id_table = $import_id_table;
 		} else {

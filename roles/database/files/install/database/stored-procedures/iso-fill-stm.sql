@@ -602,7 +602,7 @@ where dev_typ_id=8;
 
 -- UPDATE stm_dev_typ SET dev_typ_predef_svc='any;0;0;65535;;junos-predefined-service;simple;' WHERE dev_typ_id=8;
 
--- pg_dump -t text_msg --column-inserts -a isodb >db_dump.sql
+-- pg_dump -t text_msg --column-inserts -a fworchdb >db_dump.sql
 --
 -- PostgreSQL database dump
 --

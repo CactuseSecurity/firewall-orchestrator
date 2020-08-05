@@ -1,14 +1,14 @@
 #!/bin/sh
 if [ ! $1 ]; then
-	ISOBASE="/usr/share/itsecorg"
+	FWORCHBASE="/usr/share/itsecorg"
 else
-	ISOBASE=$1
+	FWORCHBASE=$1
 fi
-ISOBINDIR=$ISOBASE/install/database/db-install-scripts
+FWORCHBINDIR=$FWORCHBASE/install/database/db-install-scripts
 PGPASS=$HOME/.pgpass
-. $ISOBINDIR/iso-set-vars.sh
+. $FWORCHBINDIR/iso-set-vars.sh
 # creating .pgpass for current user to login to database
-echo "$ISODBHOST:$ISODBPORT:$ISODB:$ISODBUSER:$ISODBPW" >$PGPASS
-echo "$ISODBHOST:$ISODBPORT:$ISODB:$DBADMIN:$DBADMINPW" >>$PGPASS
-echo "$ISODBHOST:$ISODBPORT:template1:$DBADMIN:$DBADMINPW" >>$PGPASS
+echo "$FWORCHDBHOST:$FWORCHDBPORT:$FWORCHDB:$FWORCHDBUSER:$FWORCHDBPW" >$PGPASS
+echo "$FWORCHDBHOST:$FWORCHDBPORT:$FWORCHDB:$DBADMIN:$DBADMINPW" >>$PGPASS
+echo "$FWORCHDBHOST:$FWORCHDBPORT:template1:$DBADMIN:$DBADMINPW" >>$PGPASS
 /bin/chmod 600 $PGPASS

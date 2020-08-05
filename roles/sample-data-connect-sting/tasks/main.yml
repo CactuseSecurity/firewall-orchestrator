@@ -4,20 +4,20 @@
 
     - name: create .pgpass file
       lineinfile:
-        path: "{{ iso_home }}/.pgpass"
+        path: "{{ fworch_home }}/.pgpass"
         create: yes
         mode: 0600
-        line: "{{ isodb_host }}:{{ iso_db_port }}:{{ iso_db_name }}:{{ iso_dbadmin_name }}:{{ dbadmin_pwd }}"
+        line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
 
     - name: insert sting-mgmt
-      shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM management WHERE mgm_id=3) THEN insert into management (mgm_id,dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_port,ssh_user,do_not_import,config_path,importer_hostname) VALUES (3,9,''sting-mgmt'',''{{ dbadmin_pwd }}'','''',''{{ sting_ip }}'',''{{ sting_port }}'',''{{ iso_user }}'',false, '''',''{{ importer_hostname }}'');  END IF; END \$do\$"'
+      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM management WHERE mgm_id=3) THEN insert into management (mgm_id,dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_port,ssh_user,do_not_import,config_path,importer_hostname) VALUES (3,9,''sting-mgmt'',''{{ dbadmin_pwd }}'','''',''{{ sting_ip }}'',''{{ sting_port }}'',''{{ fworch_user }}'',false, '''',''{{ importer_hostname }}'');  END IF; END \$do\$"'
 
     - name: insert sting-gw
-      shell: 'psql -h {{ isodb_host }} -U {{ iso_dbadmin_name }} -d {{ iso_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=3) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (3,3,''sting-gateway'',''cactus_Security_neu'',9); END IF; END \$do\$"'
+      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=3) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (3,3,''sting-gateway'',''cactus_Security_neu'',9); END IF; END \$do\$"'
 
     - name: clean up .pgpass file
       file:
-        path: "{{ iso_home }}/.pgpass"
+        path: "{{ fworch_home }}/.pgpass"
         state: absent
 
   become: yes

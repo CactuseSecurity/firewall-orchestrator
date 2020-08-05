@@ -1,14 +1,14 @@
 #!/bin/sh
 
-if [ ! "$ISOBASE" ]; then
-        ISOBASE="/usr/share/itsecorg"
-        echo "ISOBASE was not set, using default diretory $ISOBASE."
+if [ ! "$FWORCHBASE" ]; then
+        FWORCHBASE="/usr/share/itsecorg"
+        echo "FWORCHBASE was not set, using default diretory $FWORCHBASE."
 fi
-ISOBINDIR=$ISOBASE/install/database/db-install-scripts
-PATH=$PATH:$ISOBINDIR:$ISOBASE/importer
+FWORCHBINDIR=$FWORCHBASE/install/database/db-install-scripts
+PATH=$PATH:$FWORCHBINDIR:$FWORCHBASE/importer
 
-. $ISOBINDIR/iso-set-vars.sh $ISOBASE
-. $ISOBINDIR/iso-pgpass-create.sh $ISOBASE
+. $FWORCHBINDIR/iso-set-vars.sh $FWORCHBASE
+. $FWORCHBINDIR/iso-pgpass-create.sh $FWORCHBASE
 
 ### now inserting data
 echo "adding basic data (stm_color)" | $OUT
@@ -21,4 +21,4 @@ echo "adding basic data (iso-fill-stm - mixed)" | $OUT
 $PSQLCMD -c "\i $SQLDIR/iso-fill-stm.sql" 2>&1 | $OUT
 
 # delete .pgpass
-. $ISOBINDIR/iso-pgpass-remove.sh
+. $FWORCHBINDIR/iso-pgpass-remove.sh

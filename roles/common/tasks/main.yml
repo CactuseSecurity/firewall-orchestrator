@@ -1,8 +1,8 @@
 - block: 
-     - name: remove complete {{ base_dir }} dir 
+     - name: remove complete {{ fworch_home }} dir 
        file:
           state: absent
-          path: "{{ base_dir }}"
+          path: "{{ fworch_home }}"
 
      - name: update operating system packages .deb based
        apt:
@@ -82,12 +82,12 @@
         gid: "{{ user_id }}"
         state: present
        
-     - name: add user {{ iso_user }}
+     - name: add user {{ fworch_user }}
        user:
-        name: "{{ iso_user }}"
+        name: "{{ fworch_user }}"
         comment: "{{ product_name }} User"
         uid: "{{ user_id }}"
-        home: "{{ iso_home }}"
+        home: "{{ fworch_home }}"
         shell: /bin/bash
         group: itsecorg
         generate_ssh_key: yes
@@ -96,17 +96,17 @@
 
      - name: create etc dir
        file:
-         path: "{{ iso_home }}/etc"
+         path: "{{ fworch_home }}/etc"
          state: directory
-         owner: "{{ iso_user }}"
-         group: "{{ iso_user }}"
+         owner: "{{ fworch_user }}"
+         group: "{{ fworch_user }}"
 
      - name: copy iso.conf to target
        copy:
         src: iso.conf
-        dest: "{{ iso_home }}/etc/iso.conf"
-        owner: "{{ iso_user }}"
-        group: "{{ iso_user }}"
+        dest: "{{ fworch_home }}/etc/iso.conf"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_user }}"
         
   become: yes
   

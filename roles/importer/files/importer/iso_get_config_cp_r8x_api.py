@@ -47,7 +47,7 @@ debug_level = int(args.debug)
 if debug_level == 4:
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 elif debug_level == 41:
-    logging.basicConfig(filename='/var/tmp/iso_get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='/var/tmp/fworch_get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 #ssl_verification mode
 verification_mode = args.ssl
@@ -75,14 +75,14 @@ def login(user,password,api_host,api_port):
     return response["sid"]
 
 sid = login(args.user,api_password,api_host,args.port)
-logging.debug ("iso_get_config_cp_r8x_api - limit:"+ limit )
-logging.debug ("iso_get_config_cp_r8x_api - login:"+ args.user )
-logging.debug ("iso_get_config_cp_r8x_api - sid:"+ sid )
+logging.debug ("fworch_get_config_cp_r8x_api - limit:"+ limit )
+logging.debug ("fworch_get_config_cp_r8x_api - login:"+ args.user )
+logging.debug ("fworch_get_config_cp_r8x_api - sid:"+ sid )
 
 
 # top level dict start
 starttime = int(time.time())
-logging.debug ("iso_get_config_cp_r8x_api - top level dict start" )
+logging.debug ("fworch_get_config_cp_r8x_api - top level dict start" )
 config_json = "{\n"
 config_json += "\"rulebases\": [\n"
 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
@@ -93,7 +93,7 @@ for layer in args.layer.split(','):
     config_json +=  "\"layerchunks\": [\n"
     current=0
     total=current+1
-    logging.debug ( "iso_get_config_cp_r8x_api - layer:"+ layer )
+    logging.debug ( "fworch_get_config_cp_r8x_api - layer:"+ layer )
     while (current<total) :
 #        show_params_rules = {'name':layer,'offset':current,'limit':limit,'use-object-dictionary':'false','details-level':'full'}
         show_params_rules['offset']=current
@@ -102,12 +102,12 @@ for layer in args.layer.split(','):
         config_json +=  ",\n"
         total=rulebase['total']
         current=rulebase['to']
-        logging.debug ( "iso_get_config_cp_r8x_api - rulebase current:"+ str(current) )
+        logging.debug ( "fworch_get_config_cp_r8x_api - rulebase current:"+ str(current) )
     config_json = config_json[:-2]
     config_json +=  "]\n},\n"
 config_json = config_json[:-2]
 config_json += "],\n"  # 'level': 'rulebases'
-logging.debug ( "iso_get_config_cp_r8x_api - rulebase total:"+ str(total) )
+logging.debug ( "fworch_get_config_cp_r8x_api - rulebase total:"+ str(total) )
 
 # read all objects:
 obj_types = [
@@ -125,7 +125,7 @@ for obj_type in obj_types:
     current=0
     total=current+1
     show_cmd = 'show-' + obj_type
-    logging.debug ( "iso_get_config_cp_r8x_api - obj_type: "+ obj_type )
+    logging.debug ( "fworch_get_config_cp_r8x_api - obj_type: "+ obj_type )
     while (current<total) :
 #        show_params_objs = {'offset':current,'limit':limit,'details-level':'full'}
         show_params_objs['offset']=current
@@ -135,11 +135,11 @@ for obj_type in obj_types:
         if 'total' in objects  and 'to' in objects :
             total=objects['total']
             current=objects['to']
-            logging.debug ( "iso_get_config_cp_r8x_api - "+ obj_type +" current:"+ str(current) )
-            logging.debug ( "iso_get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
+            logging.debug ( "fworch_get_config_cp_r8x_api - "+ obj_type +" current:"+ str(current) )
+            logging.debug ( "fworch_get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
         else :
             current = total
-            logging.debug ( "iso_get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
+            logging.debug ( "fworch_get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
     config_json = config_json[:-2]
     config_json += "]\n},\n" # 'level': 'top::object'\n"
 config_json = config_json[:-2]
@@ -149,5 +149,5 @@ config_json += "}\n" # 'level': 'top'"
 logout_result = api_call(api_host, args.port, 'logout', {}, sid)
 endtime = int(time.time())
 duration = endtime - starttime
-logging.debug ( "iso_get_config_cp_r8x_api - duration: "+ str(duration) )
+logging.debug ( "fworch_get_config_cp_r8x_api - duration: "+ str(duration) )
 print(config_json)

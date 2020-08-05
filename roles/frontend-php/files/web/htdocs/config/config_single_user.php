@@ -66,7 +66,7 @@
 							"do_not_import=" . (($dev_do_import)?"FALSE":"TRUE") . ", dev_update='$dev_updated' WHERE dev_id=$dev_id";
 				else { // neues Device anlegen
 					$user_id_code = "SELECT MAX(user_id)+1 AS user_id FROM isoadmin";
-					$next_free_user_id = $db_connection->iso_db_query($user_id_code); $next_free_user_id_no = $next_free_user_id->data[0]['user_id'];
+					$next_free_user_id = $db_connection->fworch_db_query($user_id_code); $next_free_user_id_no = $next_free_user_id->data[0]['user_id'];
 					$sql_code = 'CREATE ROLE "username" WITH PASSWORD \'1n1t1al\' LOGIN IN GROUP secuadmins';
 					if ($is_isoadmin) $sql_code .= ',isoadmins';
 					$sql_code .= '; ';
@@ -74,7 +74,7 @@
 						"($next_free_user_id_no,'$first_name','$last_name','$username');";
 				}
 				echo "sql_code: $sql_code<br>";
-//				$result = $db_connection->iso_db_query($sql_code);
+//				$result = $db_connection->fworch_db_query($sql_code);
 				if (!$e->isError($result) and $result) $ergebnis = '<BR><B>Speichern erfolgreich: </B>';
 				else $ergebnis = '<BR><B>FEHLER: Speichern nicht erfolgreich!</B>';
 			} else {

@@ -18,7 +18,7 @@ class ImportStatusList extends DbList {
 		if (!$this->error->isError($this->db_connection)) {
 			$sqlcmd = "SELECT * FROM view_import_status_table";
 
-			$db_imports = $this->db_connection->iso_db_query($sqlcmd);
+			$db_imports = $this->db_connection->fworch_db_query($sqlcmd);
 			if (!$this->error->isError($db_imports)) {
 				$import_status_array = array ();
 				for ($zi = 0; $zi < $db_imports->rows; ++ $zi)

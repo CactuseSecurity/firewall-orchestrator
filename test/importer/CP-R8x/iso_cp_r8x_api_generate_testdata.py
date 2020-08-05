@@ -5,8 +5,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Create configuration from Check Point R8x management via API calls')
 parser.add_argument('hostname', metavar='api_host', help='Check Point R8x management server')
 parser.add_argument('password', metavar='api_password', help='password for management server')
-parser.add_argument('-u', '--user', metavar='api_user', default='itsecorg',
-                    help='user for connecting to Check Point R8x management server, default=itsecorg')
+parser.add_argument('-u', '--user', metavar='api_user', default='fworch',
+                    help='user for connecting to Check Point R8x management server, default=fworch')
 parser.add_argument('-p', '--port', metavar='api_port', default='443',
                     help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='',

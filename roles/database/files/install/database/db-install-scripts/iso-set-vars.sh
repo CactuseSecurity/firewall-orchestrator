@@ -10,7 +10,7 @@ if [ -z "$1" ]
 then
 	if [ -z "$FWORCHBASE" ]
 	then
-	        FWORCHBASE="/usr/share/itsecorg"
+	        FWORCHBASE="/usr/local/fworch"
 			# echo "FWORCHBASE was not set. Using default directory $FWORCHBASE."
 	fi
 else
@@ -28,7 +28,7 @@ SQLDIR=$DBDIR/stored-procedures
 DATADIR=$DBDIR/csv-data
 SAMPLEDIR=$FWORCHBASE/sample-data
 FWORCHDB=fworchdb
-FWORCHDBUSER=itsecorg
+FWORCHDBUSER=fworch
 FWORCHDBPORT=5432
 FWORCHDBHOST=127.0.0.1
 #FWORCHDBHOST=localhost # could end up in ipv6 connection

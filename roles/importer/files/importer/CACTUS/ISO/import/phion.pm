@@ -1786,7 +1786,7 @@ support for importing configs into ITSecOrg Database
 
 =head2 EXPORT
 
-   &copy_config_from_mgm_to_iso - transfer phion MC rangetree fw rules to itsecorg
+   &copy_config_from_mgm_to_iso - transfer phion MC rangetree fw rules to fworch
    &parse_config 				- parse phion MC config rangetree
 
 =head1 SEE ALSO

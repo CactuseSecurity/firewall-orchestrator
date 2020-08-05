@@ -948,7 +948,7 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $fworch_workdir,
 		foreach my $zone (@zones) {	object_address_add("any", "0.0.0.0", "0.0.0.0", $zone, "any-obj for Zone added by ITSecOrg"); &print_debug(""); } #		Any-Objekte fuer alle Zonen einfuegen
 		&parse_config_group_objects ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id); # groups are parsed in separate cycle to ensure that all base objects are complete
 #		&resolve_service_uuid_references ($debuglevel_main);
-		&parse_config_rules ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name_in_config, $config_dir, $import_id); # finally parsing the rule base, ignoring the rulebase name in itsecorg config
+		&parse_config_rules ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name_in_config, $config_dir, $import_id); # finally parsing the rule base, ignoring the rulebase name in fworch config
 
 		&print_results_files_objects($fworch_workdir, $mgm_name, $import_id);
 		&print_results_files_rules  ($fworch_workdir, $mgm_name, $import_id);

@@ -11,8 +11,8 @@
 - A list of important variables from inventory/all
 
 ```console
-fworch_user: itsecorg
-fworch_home: "/usr/share/{{ fworch_user }}"
+fworch_user: fworch
+fworch_home: "{{ fworch_parent_dir }}/{{ fworch_user }}"
 sample_config_user: isosample
 sample_config_user_home: "/home/{{ sample_config_user }}"
 ```
@@ -20,9 +20,9 @@ sample_config_user_home: "/home/{{ sample_config_user }}"
 - The only role defined in all is iso-common
 - The tasks of iso-common include
 
-  - creating /usr/share/itsecorg
-  - creating user itsecorg
-  - adding file iso.conf to /usr/share/itsecorg/etc
+  - creating {{ fworch_parent_dir }}/fworch
+  - creating user fworch
+  - adding file iso.conf to {{ fworch_parent_dir }}/fworch/etc
   - creating logs
   
 ## hosts: backends

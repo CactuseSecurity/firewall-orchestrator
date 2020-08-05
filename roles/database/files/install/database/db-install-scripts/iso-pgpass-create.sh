@@ -1,6 +1,6 @@
 #!/bin/sh
 if [ ! $1 ]; then
-	FWORCHBASE="/usr/share/itsecorg"
+	FWORCHBASE="/usr/local/fworch"
 else
 	FWORCHBASE=$1
 fi

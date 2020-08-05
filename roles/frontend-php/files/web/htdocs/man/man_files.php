@@ -34,7 +34,7 @@ ITSecOrg Home ($FWORCHHOME): Hier liegen die ITSecOrg-Config-Dateien (conf),
  die Import-Skripte (importer) sowie die Web-GUI (web)
  
  <pre>
-/usr/share/itsecorg
+/usr/local/fworch
 |-- etc
 |   |-- gui.conf
 |   |-- import.conf
@@ -71,9 +71,9 @@ Unter /var/iso liegen die Datenbank-Daten sowie die PosgreSQL-Konfigurationsdate
 Unter /var/log/ liegen die Logdaten:
 
 <pre>
-/var/log/itsecorg.error   - Fehler und Warnungen
-/var/log/itsecorg         - normales Logging
-/var/log/itsecorg.debug   - Debug-Logging (Bei Bedarf)
+/var/log/fworch.error   - Fehler und Warnungen
+/var/log/fworch         - normales Logging
+/var/log/fworch.debug   - Debug-Logging (Bei Bedarf)
 </pre>
 </div>
 </body></html> 

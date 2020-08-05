@@ -33,9 +33,9 @@ hasura init --directory DIR --endpoint <http://localhost:8080> --admin-secret XX
 cd DIR
 hasura metadata export
 ```
-add migrations/metadata.yaml to itsecorg sources
+add migrations/metadata.yaml to fworch sources
 
-h) import metadata again when installing itsecorg (is there a way to do this automatially?)
+h) import metadata again when installing fworch (is there a way to do this automatially?)
 ```console
 hasura init --directory DIR --endpoint <http://localhost:8080> --admin-secret XXX
 cd DIR

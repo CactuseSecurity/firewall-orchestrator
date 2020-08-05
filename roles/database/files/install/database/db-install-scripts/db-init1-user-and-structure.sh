@@ -3,7 +3,7 @@ if [ -z "$1" ]
 then
 	if [ -z $FWORCHBASE ]
 	then
-	        FWORCHBASE="/usr/share/itsecorg"
+	        FWORCHBASE="/usr/local/fworch"
 			# echo "FWORCHBASE was not set. Using default directory $FWORCHBASE."
 	fi
 else
@@ -19,8 +19,8 @@ PATH=$PATH:$FWORCHBINDIR:$FWORCHBASE/importer
 $PSQLCMD_INIT -c "DROP DATABASE $FWORCHDB" 2>&1 | tee | $OUT
 echo "creating db $FWORCHDB" 2>&1 | tee | $OUT
 $DBCREATE_CMD -c "CREATE DATABASE $FWORCHDB" | $OUT
-echo "creating itsecorg-db-model" | $OUT
-$PSQLCMD_CREATE_REST -c "\i $SQLDIR/itsecorg-db-model.sql" 2>&1 | $OUT
+echo "creating fworch-db-model" | $OUT
+$PSQLCMD_CREATE_REST -c "\i $SQLDIR/fworch-db-model.sql" 2>&1 | $OUT
 
 echo "settings privileges" | $OUT
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/iso-user-textreader.sql" 2>&1 | $OUT

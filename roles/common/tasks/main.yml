@@ -42,9 +42,9 @@
          path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
          create: yes
          block: |
-             # syslog for ITSecOrg
-             # Log ITSecOrg log messages to file
-             :msg,contains,"ITSecOrg" /var/log/itsecorg.log
+             # syslog for {{ product_name }}
+             # Log {{ product_name }} log messages to file
+             :msg,contains,"{{ product_name }}" /var/log/{{ product_name }}.log
              local6.warning                 /var/log/{{ product_name }}/{{ product_name }}.error
              local6.notice                  /var/log/{{ product_name }}/{{ product_name }}.log
              local6.=info                   /var/log/{{ product_name }}/{{ product_name }}.login
@@ -64,10 +64,10 @@
                copytruncate
                sharedscripts
                    prerotate
-                           /etc/init.d/itsecorg-import stop >/dev/null
+                           /etc/init.d/{{ product_name }}-import stop >/dev/null
                    endscript
                    postrotate
-                           /etc/init.d/itsecorg-import start >/dev/null
+                           /etc/init.d/{{ product_name }}-import start >/dev/null
                    endscript
             }
 
@@ -76,9 +76,9 @@
         name: "rsyslog"
         state: restarted
 
-     - name: create group itsecorg
+     - name: create group {{ fworch_user }}
        group:
-        name: itsecorg
+        name: "{{ fworch_user }}"
         gid: "{{ user_id }}"
         state: present
        
@@ -89,7 +89,7 @@
         uid: "{{ user_id }}"
         home: "{{ fworch_home }}"
         shell: /bin/bash
-        group: itsecorg
+        group: "{{ fworch_user }}"
         generate_ssh_key: yes
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa

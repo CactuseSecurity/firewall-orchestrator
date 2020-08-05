@@ -12,13 +12,13 @@
 <ul>
 <li>iso.conf
 <pre>
-ITSecOrgDir	/usr/share/itsecorg		# Installationsverzeichnis
+ITSecOrgDir	/usr/local/fworch		# Installationsverzeichnis
 	
 ###################### database connection ##############################
-itsecorg database hostname              localhost
-itsecorg database type                  DBX_PGSQL
-itsecorg database name                  fworchdb
-itsecorg database port                  5432
+fworch database hostname              localhost
+fworch database type                  DBX_PGSQL
+fworch database name                  fworchdb
+fworch database port                  5432
 
 ###################### logging options ##################################
 set loglevel		6
@@ -86,10 +86,10 @@ config password minimal-length 6
 <pre>
 ImportSleepTime         300					# Zeit zwischen den Import-Laeufen in Sekunden
 
-ImportDir               /usr/share/itsecorg/importer		# Import main directory
-PerlInc                 /usr/share/itsecorg/importer		# Perl Include Directory
+ImportDir               /usr/local/fworch/importer		# Import main directory
+PerlInc                 /usr/local/fworch/importer		# Perl Include Directory
 fworch_workdir		/tmp/isotmp				# Temporaeres Verzeichnis fuer Import-Daten
-archive_dir		/var/itsecorg/import_archive		# Verzeichnis fuer Archivierung von Fehlimporten
+archive_dir		/var/fworch/import_archive		# Verzeichnis fuer Archivierung von Fehlimporten
 simple_bin_dir		/bin					# wo liegen tar, date, mkdir, ...
 save_import_results_to_file	1
 

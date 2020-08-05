@@ -10,7 +10,7 @@
 	require_once ("db-import-status.php");
 	require_once ("display_import_status.php");
 	
-	$db_connection = new DbConnection(new DbConfig('itsecorg',''));
+	$db_connection = new DbConnection(new DbConfig('fworch',''));
 	$import_status_table = new DisplayImportStatusTable(new ImportStatusList());
 	if ($opt = getopt("o:", array("outputmode:"))) {
 		$opt = $cleaner->clean_structure($opt);

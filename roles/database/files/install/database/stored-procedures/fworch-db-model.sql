@@ -85,7 +85,7 @@ Create table "management"
 	"ssh_private_key" Text NOT NULL,
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
-	"ssh_user" Varchar NOT NULL Default 'itsecorg',
+	"ssh_user" Varchar NOT NULL Default 'fworch',
 	"last_import_md5_complete_config" Varchar Default 0,
 	"last_import_md5_rules" Varchar Default 0,
 	"last_import_md5_objects" Varchar Default 0,
@@ -1264,7 +1264,7 @@ Create group "reporters";
 Create group "isoadmins";
 
 /* Create Users */
-Create user "itsecorg";
+Create user "fworch";
 Create user "dbbackup";
 Create user "isoimporter";
 
@@ -1272,7 +1272,7 @@ Create user "isoimporter";
 /* Add Users To Groups */
 Alter group "dbbackupusers" add user "dbbackup";
 Alter group "configimporters" add user "isoimporter";
-Alter group "isoadmins" add user "itsecorg";
+Alter group "isoadmins" add user "fworch";
 
 /* Create Group Permissions */
 

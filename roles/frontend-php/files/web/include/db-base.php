@@ -123,7 +123,7 @@ class DbConnection {
 		$log->log_debug("start of check_login for user $user_in");
 		$return_value = '';
 //		$return_value = false;
-		if ($user_in == 'dbadmin' or $user_in == 'itsecorg' or $user_in == 'postgres') {
+		if ($user_in == 'dbadmin' or $user_in == 'fworch' or $user_in == 'postgres') {
 			$log->log(LOG_ERR, "E-DB4: Login mit Admin $user_in nicht erlaubt.");
 			$return_value = 'superuser_login';
 		} else {

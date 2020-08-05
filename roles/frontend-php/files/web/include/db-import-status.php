@@ -14,7 +14,7 @@ class ImportStatusList extends DbList {
 	
 	function __construct() {
 		$this->error = new PEAR();
-		$this->db_connection = $this->initConnection('itsecorg', '');
+		$this->db_connection = $this->initConnection('fworch', '');
 		if (!$this->error->isError($this->db_connection)) {
 			$sqlcmd = "SELECT * FROM view_import_status_table";
 

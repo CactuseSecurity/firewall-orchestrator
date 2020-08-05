@@ -9,7 +9,7 @@ if [ ! -f $SSLDIR/server.key ]; then
         TOPLEVEL=DE
         ORG='Cactus eSecurity'
         LOCALITY=Frankfurt
-        EMAIL=itsecorg@cactus.de
+        EMAIL=fworch@cactus.de
         SUBJ="
 C=$TOPLEVEL
 O=$ORG

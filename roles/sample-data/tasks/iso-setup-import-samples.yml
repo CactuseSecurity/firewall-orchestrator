@@ -35,7 +35,7 @@
       shell: "ssh-keyscan -H 127.0.0.1 >> ~/.ssh/known_hosts"
 
     - name: start initial imports 
-      shell: "/etc/init.d/itsecorg-importer start"
+      shell: "/etc/init.d/{{ product_name }}-importer start"
 
     - name: clean up .pgpass file
       file:
@@ -43,4 +43,4 @@
         state: absent
 
   become: yes
-  become_user: itsecorg
+  become_user: "{{ fworch_user }}"

@@ -38,7 +38,7 @@
           # syslog 
           log_destination = 'syslog'
           syslog_facility = 'LOCAL6'
-          syslog_ident = 'postgres-ITSecOrg'
+          syslog_ident = 'postgres-{{ product_name }}'
           client_min_messages = log
           log_min_messages = info
         backup: yes
@@ -52,7 +52,7 @@
           host    all         dbadmin             127.0.0.1/32          md5
           # host    all         dbadmin             0.0.0.0/0              md5
           # host    all         dbadmin             {{ ansible_host }}/32          md5
-          host    all         itsecorg            127.0.0.1/32           trust
+          host    all         {{ fworch_user }}            127.0.0.1/32           trust
           host    all         +dbbackupusers      127.0.0.1/32           trust
           # bei lokalem importer:
           host    all         +configimporters    127.0.0.1/32           trust
@@ -103,7 +103,7 @@
         path: "{{ fworch_home }}/install/database/db-install-scripts/iso-set-vars.sh"
         backrefs: yes
         regexp: '^\s*(FWORCHDBPW\s*=)'
-        line: '\1"{{ itsecorg_pwd }}"'
+        line: '\1"{{ fworch_pwd }}"'
         backup: yes
        
      - name: setting dbadmin password

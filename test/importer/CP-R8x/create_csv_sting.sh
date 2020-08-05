@@ -3,7 +3,7 @@
 Targetdir=/tmp/isotmp/1111
 Sourcecfg=/home/tim/sting-manager.cfg
 Dstcfg=/tmp/isotmp/1111/cfg/sting-manager.cfg
-Bindir=/usr/share/itsecorg/importer
+Bindir=/usr/local/fworch/importer
 cd $Bindir || exit
 mkdir -p $Targetdir/cfg
 cp $Sourcecfg $Dstcfg

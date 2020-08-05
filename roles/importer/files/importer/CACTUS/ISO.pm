@@ -52,9 +52,9 @@ our $syslog_facility = CACTUS::read_config::read_config('syslog_facility');
 
 our $webuser;
 our $fworch_srv_pw = '';
-our $fworch_srv_host = &CACTUS::read_config::read_config("itsecorg database hostname");
-our $fworch_database = &CACTUS::read_config::read_config("itsecorg database name");
-our $fworch_srv_port = &CACTUS::read_config::read_config("itsecorg database port");
+our $fworch_srv_host = &CACTUS::read_config::read_config("fworch database hostname");
+our $fworch_database = &CACTUS::read_config::read_config("fworch database name");
+our $fworch_srv_port = &CACTUS::read_config::read_config("fworch database port");
 our $csv_delimiter = &CACTUS::read_config::read_config("csv_delimiter");
 our $group_delimiter = &CACTUS::read_config::read_config("group_delimiter");
 our $csv_user_delimiter = &CACTUS::read_config::read_config("csv_user_delimiter");

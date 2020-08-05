@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ ! "$FWORCHBASE" ]; then
-        FWORCHBASE="/usr/share/itsecorg"
+        FWORCHBASE="/usr/local/fworch"
         echo "FWORCHBASE was not set, using default diretory $FWORCHBASE."
 fi
 FWORCHBINDIR=$FWORCHBASE/install/database/db-install-scripts

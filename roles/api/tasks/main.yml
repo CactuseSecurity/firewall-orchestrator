@@ -117,21 +117,21 @@
   become: yes
 
 - name: initialize hasura cli directory
-  shell: "cd {{ api_home }} && {{ hasura_bin }} init --directory itsecorg --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  shell: "cd {{ api_home }} && {{ hasura_bin }} init --directory {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
   become: yes
   become_user: "{{ fworch_user }}"
 
 - name: copy hasura metadata to cli directory
   copy:
      src: hasura_metadata.yaml
-     dest: "{{ api_home }}/itsecorg/migrations/metadata.yaml"
+     dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.yaml"
      backup: yes
      mode: 0644
      owner: "{{ fworch_user }}"
   become: yes
 
 - name: import hasura metadata
-  shell: "cd {{ api_home }}/itsecorg && {{ hasura_bin }} metadata apply --from-file"
+  shell: "cd {{ api_home }}/{{ product_name }} && {{ hasura_bin }} metadata apply --from-file"
   become: yes
   become_user: "{{ fworch_user }}"
   when: "api_no_metadata is not defined"

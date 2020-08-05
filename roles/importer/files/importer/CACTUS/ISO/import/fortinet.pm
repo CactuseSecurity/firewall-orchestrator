@@ -1165,7 +1165,7 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $fworch_workdir,
 		}
 		&parse_config_base_objects  ($debuglevel_main, $mgm_name); # zones, simple network and service objects  
 		push @zones, "global"; 	# Global Zone immer hinzufuegen
-		&parse_config_rules ($debuglevel_main, $mgm_name); # finally parsing the rule base, ignoring the rulebase name in itsecorg config
+		&parse_config_rules ($debuglevel_main, $mgm_name); # finally parsing the rule base, ignoring the rulebase name in fworch config
 
 		&print_results_files_objects($fworch_workdir, $mgm_name, $import_id);
 		&print_results_files_rules  ($fworch_workdir, $mgm_name, $import_id);

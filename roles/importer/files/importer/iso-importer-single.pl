@@ -60,10 +60,10 @@ if (defined(param("-fullauditlog"))) { $fullauditlog = 1; } else { $fullauditlog
 if (defined(param("-clear-all-rules"))) { $clear_all_rules = 1; } else { $clear_all_rules = 0; }
 if (defined(param("-clear-management"))) { $clear_whole_mgm_config = 1; } else { $clear_whole_mgm_config = 0; }
 if (defined(param("-no-md5-checks"))) { $no_md5_checks = 1; } else { $no_md5_checks = 0; }
-if (defined(param("-do-not-copy"))) { $do_not_copy = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to itsecorg importer
-if (defined(param("-use-scp"))) { $use_scp = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to itsecorg importer
-if (defined(param("-direct-from-csv"))) { $direct_from_csv = 1; $do_not_copy = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to itsecorg importer
-if (defined(param("-no-cleanup"))) { $no_cleanup = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to itsecorg importer
+if (defined(param("-do-not-copy"))) { $do_not_copy = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
+if (defined(param("-use-scp"))) { $use_scp = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
+if (defined(param("-direct-from-csv"))) { $direct_from_csv = 1; $do_not_copy = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
+if (defined(param("-no-cleanup"))) { $no_cleanup = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
 if (defined(param("-debug"))) { $debug_level = param("-debug"); }
 
 # set basic parameters (read from import.conf)
@@ -103,7 +103,7 @@ if (!$error_count_global) {
 			$prev_imp_time	= exec_pgsql_cmd_return_value("SELECT start_time FROM import_control WHERE control_id=$prev_imp_id AND successful_import");
 		}
 		# 1) read names of rulebases of each device from database
-		# copy config data from management system to itsecorg import system
+		# copy config data from management system to fworch import system
 		($error_count_local, $config_files_str) =
 			&CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso 
 				($ssh_user, $ssh_hostname, $mgm_name, $obj_file_base, $cfg_dir, $rule_file_base,

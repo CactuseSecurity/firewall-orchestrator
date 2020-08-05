@@ -13,7 +13,8 @@ proxy_env:
 product_name: fworch
 user_id: 60320
 fworch_user: "{{ product_name }}"
-fworch_home: "/usr/local/{{ fworch_user }}"
+fworch_parent_dir: "/usr/local"
+fworch_home: "{{ fworch_parent_dir }}/{{ fworch_user }}"
 #base_dir: "/usr/share/{{ fworch_user }}"
 
 fworch_db_port: 5432
@@ -22,7 +23,7 @@ fworch_db_name: fworchdb
 
 # users & passwords
 dbadmin_pwd: "st8chel"
-itsecorg_pwd: "st8chel"
+fworch_pwd: "st8chel"
 admin_pwd: "fworch.1"
 fworch_dbadmin_name: dbadmin
 

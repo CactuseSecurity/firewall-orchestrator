@@ -37,7 +37,7 @@ sub read_file_into_string {
 ############################################################
 sub read_config {
 	my $param = shift;
-	my $confdir =  '/usr/share/itsecorg/etc';
+	my $confdir =  '/usr/local/fworch/etc';
 	my $result;
 
 	my $global_conf_lines	= &read_file_into_string ("$confdir/iso.conf");

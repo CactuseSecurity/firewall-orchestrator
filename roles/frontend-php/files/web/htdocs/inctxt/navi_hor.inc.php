@@ -33,7 +33,7 @@
 								echo create_link($stamm, $page, '/documentation.php?change_docu=1', $language->get_text_msg_no_break ('change_documentation', 'html'), '2', 'changedoc', false);
 							echo create_link($stamm, $page, '/reporting.php', 'Reporting', '3', 'rep', false);
 							echo create_link($stamm, $page, '/config/configuration.php', $language->get_text_msg ('settings', 'html'), '4', 'config', false);
-							echo create_link($stamm, $page, 'http://www.fworch.de/support/', 'fworchSupport', '5', 'support', true);
+							echo create_link($stamm, $page, 'http://www.itsecorg.de/support/', 'fworchSupport', '5', 'support', true);
 							echo create_link($stamm, $page, '/man/manual.php', $language->get_text_msg ('manual', 'html'), '6', 'man', false);
 							$url = "javascript:OpenHilfe('" . $page . "')";
 							echo create_link($stamm, $page, $url, $language->get_text_msg ('help', 'html'), '7', 'hilfe', false);

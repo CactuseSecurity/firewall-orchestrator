@@ -16,7 +16,7 @@ namespace FWO
     public class APIConnection
     {
         // Server URL
-        private const string ServerURI = "https://demo.itsecorg.de/api/v1/graphql";
+        private const string ServerURI = "https://localhost/api/v1/graphql";
 
         // Http/s Client
         private readonly HttpClient Client;
@@ -85,7 +85,7 @@ namespace FWO
         public static async Task<string> Test()
         {
             // Server URL
-            const string ServerURI = "https://demo.itsecorg.de/api/v1/graphql";
+            // const string ServerURI = "https://demo.itsecorg.de/api/v1/graphql";
 
             // Erlaube alle Zertifikate // ENTFERNEN SOBALD SERVER GÜLTIGES ZERTIFIKAT HAT
             // ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;

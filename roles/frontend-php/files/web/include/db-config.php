@@ -25,7 +25,7 @@ class Device {
 		$sql_code = "SELECT device.*, stm_dev_typ.dev_typ_id, dev_typ_name, dev_typ_manufacturer, mgm_name, mgm_id " . 
 					"FROM device LEFT JOIN management USING (mgm_id) LEFT JOIN stm_dev_typ ON (device.dev_typ_id=stm_dev_typ.dev_typ_id) WHERE dev_id=$dev_id";
 		if ($this->error->isError($db_connection)) $this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$dev_details = $db_connection->iso_db_query ($sql_code,0);
+		$dev_details = $db_connection->fworch_db_query ($sql_code,0);
 		if ($this->error->isError($dev_details)) $this->error->raiseError($dev_details->getMessage());
 		$this->dev_id		= $dev_id;
 		$this->dev_name		= $dev_details->data[0]['dev_name'];
@@ -101,7 +101,7 @@ class Management {
 		$sql_code = "SELECT management.*, stm_dev_typ.dev_typ_id, dev_typ_name, dev_typ_manufacturer " . 
 					"FROM management LEFT JOIN stm_dev_typ USING (dev_typ_id) WHERE mgm_id=$mgm_id";
 		if ($this->error->isError($db_connection)) $this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$mgm_details = $db_connection->iso_db_query ($sql_code,0);
+		$mgm_details = $db_connection->fworch_db_query ($sql_code,0);
 		if ($this->error->isError($mgm_details)) $this->error->raiseError($dev_details->getMessage());
 		$this->mgm_id		= $mgm_id;
 		$this->mgm_name		= $mgm_details->data[0]['mgm_name'];
@@ -175,7 +175,7 @@ class DevTypList {
 		
 	function __construct ($db) {
 		$sql_code = "SELECT * FROM stm_dev_typ ORDER BY dev_typ_name"; 
-		$this->dev_typ_list = $db->iso_db_query ($sql_code);
+		$this->dev_typ_list = $db->fworch_db_query ($sql_code);
 	}
 	function getDevTypList() {
 		return $this->dev_typ_list;
@@ -219,7 +219,7 @@ class IsoadminUser {
 		$this->error = new PEAR();
 		$sql_code = "SELECT * FROM isoadmin WHERE isoadmin_id=$user_id";
 		if ($this->error->isError($db_connection)) $this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$user_details = $db_connection->iso_db_query ($sql_code,0);
+		$user_details = $db_connection->fworch_db_query ($sql_code,0);
 		if ($this->error->isError($user_details)) $this->error->raiseError($dev_details->getMessage());
 		$this->user_id		= $user_id;
 		$this->username		= $user_details->data[0]['isoadmin_username'];
@@ -266,7 +266,7 @@ class IsoadminList {
 		$db = new DbList();
 		$db->initSessionConnection();
 		$sql_code = "SELECT * FROM isoadmin ORDER BY isoadmin_username"; 
-		$this->isoadmin_list =$db->db_connection->iso_db_query($sql_code);
+		$this->isoadmin_list =$db->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($this->isoadmin_list)) $this->error->raiseError($this->isoadmin_list->getMessage());
 	}
 	function GetUsers() {

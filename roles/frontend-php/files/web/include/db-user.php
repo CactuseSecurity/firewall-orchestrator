@@ -49,7 +49,7 @@ class UserList extends DbList {
 	function select_users($sql_code, $import_ids) {
 		$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$usr_table = $this->db_connection->iso_db_query($sql_code);
+			$usr_table = $this->db_connection->fworch_db_query($sql_code);
 			if (!$this->error->isError($usr_table)) {
 				$this->rows = $usr_table->rows;
 				$usr_list = array();
@@ -94,7 +94,7 @@ class UserChangedList extends DbList {
 				" ORDER BY changelog_user.log_usr_id";
 			$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 			if (!$this->error->isError($this->db_connection)) {
-				$changeuser_table = $this->db_connection->iso_db_query($sqlcmd);
+				$changeuser_table = $this->db_connection->fworch_db_query($sqlcmd);
 				if (!$this->error->isError($changeuser_table)) {
 					$this->rows = $changeuser_table->rows;
 					$this->changes = array ();
@@ -168,7 +168,7 @@ class ChangedUser extends DbItem {
 	function select_olduser($log_user_id, $import_id) {
 		if (is_null($log_user_id))
 			$this->error->raiseError("E-CHU1: User Id is null.");
-		$change_table_old = $this->db_connection->iso_db_query($this->getSelectStatement("old",$log_user_id));
+		$change_table_old = $this->db_connection->fworch_db_query($this->getSelectStatement("old",$log_user_id));
 		if ($this->error->isError($change_table_old)) {
 			$this->error->raiseError($change_table_old->getMessage());
 		}
@@ -182,7 +182,7 @@ class ChangedUser extends DbItem {
 	function select_newuser($log_user_id, $import_id) {
 		if (is_null($log_user_id))
 			$this->error->raiseError("E-CHU2: User Id is null");
-		$change_table_new = $this->db_connection->iso_db_query($this->getSelectStatement("new",$log_user_id));
+		$change_table_new = $this->db_connection->fworch_db_query($this->getSelectStatement("new",$log_user_id));
 		if ($this->error->isError($change_table_new)) {
 			$this->error->raiseError($change_table_new->getMessage());
 		}
@@ -234,7 +234,7 @@ class User extends DbItem {
 		$sqlcmd = "SELECT usergrp_member_id,usr.user_name " .
 				"FROM usergrp LEFT JOIN usr ON usergrp_member_id=usr.user_id " .
 				"WHERE usergrp_id=$usr_id AND usr.user_create<=$import_id AND usr.user_last_seen>=$import_id";
-		$group_members = $this->db_connection->iso_db_query($sqlcmd);
+		$group_members = $this->db_connection->fworch_db_query($sqlcmd);
 		if ($this->error->isError($group_members)) PEAR::raiseError($group_members->getMessage());
 		$members = array();
 		for($zi=0; $zi<$group_members->rows; ++$zi) $members[] = new MemberUser($group_members->data[$zi]);
@@ -279,7 +279,7 @@ class UserSingle extends DbList {
 					"WHERE user_id=$usr_id";
 		$this->db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$data = $this->db_connection->iso_db_query($sqlcmd);
+			$data = $this->db_connection->fworch_db_query($sqlcmd);
 			if (!$this->error->isError($data)) {
 				$data = $data->data[0];
 			} else {
@@ -318,7 +318,7 @@ class UserCompare extends DbList {
 		$sqlcmd =	"SELECT * FROM usr WHERE user_id=$oldid OR user_id=$newid order by user_id";
 		$this->db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$changes = $this->db_connection->iso_db_query($sqlcmd);
+			$changes = $this->db_connection->fworch_db_query($sqlcmd);
 			if ($this->error->isError($changes)) {
 				echo "error_case?!";
 				$this->changeobject = $changes;

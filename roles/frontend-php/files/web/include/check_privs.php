@@ -89,9 +89,9 @@
 			$log->log_login("ITSecOrg User $user successfully logged in.");
 			// write last login date to isoadmin
 			$sql_code = "UPDATE isoadmin SET isoadmin_last_login = now() WHERE isoadmin_username='$user'";
-			$conn->iso_db_query($sql_code);
+			$conn->fworch_db_query($sql_code);
 		}
-	} elseif (isset($fehler))  {	// only failed login, when $fehler is set (this accepts cli logins via itsecorg-user)
+	} elseif (isset($fehler))  {	// only failed login, when $fehler is set (this accepts cli logins via fworch-user)
 		$log->log_login("ITSecOrg User $user: failed login ($fehler).");			
 		if ($conn->is_session_started()) session_destroy();
 		header("Location: ".$stamm."index.php?failure=$fehler");

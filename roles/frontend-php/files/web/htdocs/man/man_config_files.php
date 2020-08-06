@@ -32,7 +32,7 @@
 <div id="inhalt">
 <b class="headlinemain">ITSecOrg Konfigurationsdateien</b>
 
-Es gibt die folgenden Konfigurationsdateien in $ISOHOME/etc/:
+Es gibt die folgenden Konfigurationsdateien in $FWORCHHOME/etc/:
 <ul>
 <li>iso.conf: globale Eintr&auml;ge (Datenbankverbindung, etc.)
 <li>gui.conf: hier stehen die Konfigurationsdaten des Web-Frontends

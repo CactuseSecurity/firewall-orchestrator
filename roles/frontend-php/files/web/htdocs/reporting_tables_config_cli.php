@@ -44,7 +44,7 @@
 		if (!isset($dev_id) or $dev_id == 'NULL' or $dev_id == '') { echo "ERROR: device with name $dev_name not found - aborting\n"; exit (1); }	
 	}
 	$_REQUEST['Device'] = $dev_name;
-	$_REQUEST['ManSystem'] = getMgmNameFromDevId ($dev_id, 'itsecorg', '');
+	$_REQUEST['ManSystem'] = getMgmNameFromDevId ($dev_id, 'fworch', '');
 	$_SESSION['ManagementFilter'] = $mgm_filter;
 	if (isset($client_id) and !($client_id == '')) $_SESSION['ClientFilter'] = " (client_id=$client_id) ";
 	$_REQUEST['devId'] = $dev_id;
@@ -67,7 +67,7 @@
 		include ($stamm . "inctxt/report_header.inc.php");
 	} else $linie = '';
 	
-	$db_connection = new DbConnection(new DbConfig('itsecorg',''));
+	$db_connection = new DbConnection(new DbConfig('fworch',''));
 	$ruleFilter = new RuleConfigurationFilter($request,$session);
 	$import_ids = new ImportIds($ruleFilter); // generating relevant import ids per mgmt in temp table  // to optimize for a single device
 	$import_ids->set_all_tables();

@@ -47,7 +47,7 @@ require_once ("db-base.php");
 		$e = new PEAR();
 		$DbConf = new DbConfig($user,$pw); // enters database connection info into session
 		$conn = new DbConnection($DbConf);
-		$result = $conn->iso_db_query("select dev_name from device where dev_id=$devId");
+		$result = $conn->fworch_db_query("select dev_name from device where dev_id=$devId");
 		if (!$e->isError($result) and isset($result->data[0]['dev_name'])) return $result->data[0]['dev_name'];	
 		else return "";
 	}
@@ -55,7 +55,7 @@ require_once ("db-base.php");
 		$e = new PEAR();
 		$DbConf = new DbConfig($user,$pw); // enters database connection info into session
 		$conn = new DbConnection($DbConf);
-		$result = $conn->iso_db_query("select dev_id from device where dev_name='$devName'");
+		$result = $conn->fworch_db_query("select dev_id from device where dev_name='$devName'");
 		if (!$e->isError($result) and isset($result->data[0]['dev_id'])) return $result->data[0]['dev_id'];	
 		else return "";
 	}
@@ -63,7 +63,7 @@ require_once ("db-base.php");
 		$e = new PEAR();
 		$DbConf = new DbConfig($user,$pw); // enters database connection info into session
 		$conn = new DbConnection($DbConf);
-		$result = $conn->iso_db_query("select mgm_name from device LEFT JOIN management using (mgm_id) where dev_id=$devId");
+		$result = $conn->fworch_db_query("select mgm_name from device LEFT JOIN management using (mgm_id) where dev_id=$devId");
 		if (!$e->isError($result) and isset($result->data[0]['mgm_name'])) return $result->data[0]['mgm_name'];	
 		else return "";
 	}

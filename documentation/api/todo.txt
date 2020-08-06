@@ -2,8 +2,8 @@
 - expose (track) only necessary tables - and use ansible to do so
 - is it possible to add data to hdb_table
    see: https://docs.hasura.io/1.0/graphql/manual/how-it-works/metadata-schema.html -
-        isodb=# select * from hdb_catalog.hdb_table;
-		isodb=# \dt hdb_catalog.*
+        fworchdb=# select * from hdb_catalog.hdb_table;
+		fworchdb=# \dt hdb_catalog.*
 		                    List of relations
 		   Schema    |          Name           | Type  |  Owner  
 		-------------+-------------------------+-------+---------
@@ -12,7 +12,7 @@
 		 hdb_catalog | remote_schemas          | table | dbadmin
 		(13 rows)
 		
-		isodb=# select * from hdb_catalog.hdb_table where table_name='rule';
+		fworchdb=# select * from hdb_catalog.hdb_table where table_name='rule';
 		 table_schema | table_name |                                                                            configuration                                                                            | is_system_defined | is_enum 
 		--------------+------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------+---------
 		 public       | rule       | {"custom_root_fields": {"delete": null, "insert": null, "select": null, "update": null, "select_by_pk": null, "select_aggregate": null}, "custom_column_names": {}} | f                 | f

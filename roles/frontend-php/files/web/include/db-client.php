@@ -17,7 +17,7 @@ class Client {
 		$sql_code = "SELECT client_name, client_create FROM client WHERE client_id=$client_id";
 		if ($this->error->isError($db_connection))
 			$this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$client_details = $db_connection->iso_db_query ($sql_code);
+		$client_details = $db_connection->fworch_db_query ($sql_code);
 		if ($this->error->isError($client_details)) $this->error->raiseError($client_details->getMessage());
 		$this->client_name = $client_details->data[0]['client_name'];
 		$this->client_created = $client_details->data[0]['client_create'];
@@ -41,7 +41,7 @@ class ClientNetwork {
 		$this->error = new PEAR();		
 		$sql_code = "SELECT client_net_ip, client_name, client_id, client_net_create FROM client_network LEFT JOIN client USING (client_id) WHERE client_net_id=$client_net_id";
 		if ($this->error->isError($db_connection)) $this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$client_net_details = $db_connection->iso_db_query ($sql_code);
+		$client_net_details = $db_connection->fworch_db_query ($sql_code);
 		if ($this->error->isError($client_net_details)) $this->error->raiseError($client_net_details->getMessage());
 		$this->client_net_ip = $client_net_details->data[0]['client_net_ip'];
 		$this->client_id = $client_net_details->data[0]['client_id'];
@@ -74,7 +74,7 @@ class ClientList {
 		if (isset($filter->client_filter_expr)) $client_sql_code .= " WHERE " . $filter->client_filter_expr; 
 		$client_sql_code .= " ORDER BY client_name";
 //		echo "client_sql_code: $client_sql_code<br>";
-		$this->client_list = $db_connection->iso_db_query ($client_sql_code);
+		$this->client_list = $db_connection->fworch_db_query ($client_sql_code);
 		if ($this->error->isError($this->client_list)) $this->error->raiseError($this->client_list->getMessage());
 	}
 	function getClients() {
@@ -160,7 +160,7 @@ class ClientNetList extends ClientList {
 		if (isset($filter->client_filter_expr)) $client_sql_code .= " WHERE " . $filter->client_filter_expr;
 		$client_sql_code .= " ORDER BY client_name, client_net_ip";
 		//		echo "client_sql_code: $client_sql_code<br>";
-		$this->client_net_list = $db_connection->iso_db_query ($client_sql_code);
+		$this->client_net_list = $db_connection->fworch_db_query ($client_sql_code);
 		$this->client_net_ar = array();
 		for ($zi = 0; $zi < $this->client_net_list->rows; ++ $zi) $this->client_net_ar[] = $this->client_net_list->data[$zi]['client_net_ip'];
 		if ($this->error->isError($this->client_net_list)) $this->error->raiseError($this->client_net_list->getMessage());

@@ -1,6 +1,6 @@
-package CACTUS::ISO::import;
+package CACTUS::FWORCH::import;
 # $Id: import.pm,v 1.1.2.16 2013-01-31 21:57:48 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/ISO/Attic/import.pm,v $
+# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/Attic/import.pm,v $
 
 use strict;
 use warnings;
@@ -12,7 +12,7 @@ use File::Basename;
 use FileHandle;
 use CGI qw(:standard);
 use Time::HiRes qw(time); # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
-use CACTUS::ISO;
+use CACTUS::FWORCH;
 use CACTUS::read_config;
 
 require Exporter;
@@ -24,7 +24,7 @@ our %EXPORT_TAGS = (
 		&insert_control_entry &is_initial_import
 		&put_ssh_keys_in_place
 		&get_import_infos_for_device &get_import_infos_for_mgm
-		&import_cleanup_and_summary &ruleset_does_not_fit &clean_up_iso_db
+		&import_cleanup_and_summary &ruleset_does_not_fit &clean_up_fworch_db
 		&print_debug &print_verbose &d2u &calc_subnetmask &convert_mask_to_dot_notation
 		&print_results_monitor
 		&print_results_files_objects
@@ -211,12 +211,12 @@ sub put_ssh_keys_in_place {
 
 	# debugging
 	# print ("put_ssh_keys_in_place::workdir=$workdir, ssh_public_key=$ssh_public_key, ssh_private_key=$ssh_private_key\n");
-	$fehler_count += (system("$echo_bin \"$ssh_private_key\" > $workdir/$CACTUS::ISO::ssh_id_basename") != 0);
+	$fehler_count += (system("$echo_bin \"$ssh_private_key\" > $workdir/$CACTUS::FWORCH::ssh_id_basename") != 0);
 	if (length($ssh_public_key)>5) {
 		# only create public key file if the key is of a reasonable length (otherwise assuming that it is empty)
-		$fehler_count += (system("$echo_bin \"$ssh_public_key\" > $workdir/$CACTUS::ISO::ssh_id_basename.pub") != 0); # only necessary for netscreen
+		$fehler_count += (system("$echo_bin \"$ssh_public_key\" > $workdir/$CACTUS::FWORCH::ssh_id_basename.pub") != 0); # only necessary for netscreen
 	}
-	$fehler_count += (system("$chmod_bin 400 $workdir/$CACTUS::ISO::ssh_id_basename") != 0);
+	$fehler_count += (system("$chmod_bin 400 $workdir/$CACTUS::FWORCH::ssh_id_basename") != 0);
 	return $fehler_count;
 }
 
@@ -289,7 +289,7 @@ sub get_matching_import_id {
 	my ($mgm_id, $dbh, $sth, $relevant_import_id, $err_str, $sqlcode);
 
 	$sqlcode = "SELECT mgm_id FROM device WHERE dev_id=$dev_id";
-	$dbh = DBI->connect("dbi:Pg:dbname=$CACTUS::ISO::iso_database;host=$CACTUS::ISO::iso_srv_host;port=$CACTUS::ISO::iso_srv_port","$CACTUS::ISO::iso_srv_user","$CACTUS::ISO::iso_srv_pw");
+	$dbh = DBI->connect("dbi:Pg:dbname=$CACTUS::FWORCH::fworch_database;host=$CACTUS::FWORCH::fworch_srv_host;port=$CACTUS::FWORCH::fworch_srv_port","$CACTUS::FWORCH::fworch_srv_user","$CACTUS::FWORCH::fworch_srv_pw");
 	if ( !defined $dbh ) { die "Cannot connect to database!\n"; }
 	$sth = $dbh->prepare( $sqlcode );
 	if ( !defined $sth ) { die "Cannot prepare statement: $DBI::errstr\n"; }
@@ -333,8 +333,8 @@ sub insert_control_entry {
 	my $sql_str;
 
 	$is_initial_import = (($is_initial_import)?'TRUE':'FALSE');
-	$dbh = DBI->connect("dbi:Pg:dbname=$CACTUS::ISO::iso_database;host=$CACTUS::ISO::iso_srv_host;port=$CACTUS::ISO::iso_srv_port",
-		"$CACTUS::ISO::iso_srv_user","$CACTUS::ISO::iso_srv_pw");
+	$dbh = DBI->connect("dbi:Pg:dbname=$CACTUS::FWORCH::fworch_database;host=$CACTUS::FWORCH::fworch_srv_host;port=$CACTUS::FWORCH::fworch_srv_port",
+		"$CACTUS::FWORCH::fworch_srv_user","$CACTUS::FWORCH::fworch_srv_pw");
 	if ( !defined $dbh ) { die "Cannot connect to database!\n"; }
 	$rc  = $dbh->begin_work;
 	$sql_str = "INSERT INTO import_control (is_initial_import,mgm_id) VALUES ($is_initial_import,$mgm_id)";
@@ -365,7 +365,7 @@ sub set_last_change_time {
 		my $sql_cmd1 =
 			"UPDATE import_control SET last_change_in_config='$last_change_time_of_config' " .
 				"WHERE control_id=$current_import_id";
-		CACTUS::ISO::exec_pgsql_cmd_no_result($sql_cmd1);
+		CACTUS::FWORCH::exec_pgsql_cmd_no_result($sql_cmd1);
 	}
 }
 ############################################################
@@ -379,18 +379,18 @@ sub remove_control_entry {
 }
 
 ############################################################
-# get_import_infos_for_mgm($mgm_id, $iso_workdir)
+# get_import_infos_for_mgm($mgm_id, $fworch_workdir)
 # liefert vielfaeltige Infos zu einem zu importierenden Management zurueck
 ############################################################
 sub get_import_infos_for_mgm {
 	my $mgm_id = shift;
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $cfg_dir = shift;
 	my ($dbh, $sth, $rc, $sth2);
 	my ($err_str, %devices_with_rulebases, $mgm_name, $fields, $tables, $filter, $order, $sqlcode,
 		$dev_typ_id,$ssh_hostname,$ssh_user,$ssh_private_key,$ssh_public_key,$hersteller);
 	my ($template, $obj_file, $obj_file_base, $user_file, $user_file_base, $rule_file, $rule_file_base,
-		$iso_ctrl, $cmd_str, $is_netscreen, $ssh_port, $config_path_on_mgmt);
+		$fworch_ctrl, $cmd_str, $is_netscreen, $ssh_port, $config_path_on_mgmt);
 	my @result = ();
 	my $fehler_cnt = 0;
 	my $res = '';
@@ -421,11 +421,11 @@ sub get_import_infos_for_mgm {
 	elsif ($hersteller =~ /check/) { $hersteller = 'checkpoint'; }
 	if ($hersteller =~ /phion/) { $hersteller = 'phion'; }
 
-	my $csv_zone_file  = "$iso_workdir/" . $mgm_name . "_zones" . ".csv";
-	my $csv_obj_file   = "$iso_workdir/" . $mgm_name . "_netzobjekte" . ".csv";
-	my $csv_svc_file   = "$iso_workdir/" . $mgm_name . "_services" . ".csv";
-	my $csv_usr_file   = "$iso_workdir/" . $mgm_name . "_users" . ".csv";
-	my $csv_auditlog_file   = "$iso_workdir/" . $mgm_name . "_auditlog" . ".csv";
+	my $csv_zone_file  = "$fworch_workdir/" . $mgm_name . "_zones" . ".csv";
+	my $csv_obj_file   = "$fworch_workdir/" . $mgm_name . "_netzobjekte" . ".csv";
+	my $csv_svc_file   = "$fworch_workdir/" . $mgm_name . "_services" . ".csv";
+	my $csv_usr_file   = "$fworch_workdir/" . $mgm_name . "_users" . ".csv";
+	my $csv_auditlog_file   = "$fworch_workdir/" . $mgm_name . "_auditlog" . ".csv";
 
 	if ($hersteller eq 'checkpoint')  {  # checkpoint
 		$obj_file_base  = "objects_5_0.C";
@@ -471,11 +471,11 @@ sub get_import_infos_for_mgm {
 }
 
 ############################################################
-# clean_up_iso_db ($current_import_id)
+# clean_up_fworch_db ($current_import_id)
 # fuehrt vacuum analyze fuer diverse Tabellen durch
 # loescht die Eintraege des aktuellen Imports aus den import_*-Tabellen
 ############################################################
-sub clean_up_iso_db {
+sub clean_up_fworch_db {
 	my $current_import_id = shift;
 
 	# loeschen der Import-Tabellen und neuordnen
@@ -652,7 +652,7 @@ sub get_proto_number {
 sub print_cell_no_delimiter {
 	my $file = shift;
 	my $cell = shift;
-	$cell =~ s/$CACTUS::ISO::csv_delimiter/\\$CACTUS::ISO::csv_delimiter/g;
+	$cell =~ s/$CACTUS::FWORCH::csv_delimiter/\\$CACTUS::FWORCH::csv_delimiter/g;
 	if (defined($cell) && $cell ne '') {
 		if ($cell =~ /^\".*?\"$/) {  # Zelle schon von doppelten Anfuehrungszeichen eingerahmt
 			print $file "$cell";
@@ -678,7 +678,7 @@ sub print_cell {
 
 sub print_cell_delimiter {
 	my $file = shift;
-	print $file $CACTUS::ISO::csv_delimiter;
+	print $file $CACTUS::FWORCH::csv_delimiter;
 	return;
 }
 
@@ -761,7 +761,7 @@ sub print_results_files_objects {
 										$local_schluessel eq 'ipaddr' &&
 										$network_objects{"$schluessel.ipaddr"} !~ /\//) {
 										# berechnen
-										my $ip2 = CACTUS::ISO::remove_space_at_end(remove_quotes($network_objects{"$schluessel.$local_schluessel"}));
+										my $ip2 = CACTUS::FWORCH::remove_space_at_end(remove_quotes($network_objects{"$schluessel.$local_schluessel"}));
 										$maske = $network_objects{"$schluessel.netmask"};
 										if ($maske =~ /^\d+\.\d+\.\d+\.\d+$/) {
 											$maske = calc_subnetmask($maske); # in bit-Notation umwandeln
@@ -1127,35 +1127,35 @@ sub fill_import_tables_from_csv {
 	my $csv_svc_file = shift;
 	my $csv_usr_file = shift;
 	my $rulebases = shift;      # ref to hash of rulebase-infos
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $csv_audit_log_file = shift;
 	my ($csv_rule_file,$fehler, $fields, $sqlcode, $psql_cmd, $start_time);
 
 	$start_time = time();
 	if (file_exists($csv_zone_file)) { # optional nur fuer Netscreen
 		$fields = "(" . join(',',@zone_import_fields) . ")";
-		$sqlcode = "COPY import_zone $fields FROM STDIN DELIMITER '$CACTUS::ISO::csv_delimiter' CSV";
-		$fehler = CACTUS::ISO::copy_file_to_db($sqlcode,$csv_zone_file);
+		$sqlcode = "COPY import_zone $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
+		$fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_zone_file);
 	}
 	if (defined($csv_audit_log_file) && file_exists($csv_audit_log_file)) { # optional nur wenn auditlog existiert
 		$fields = "(" . join(',',@auditlog_import_fields) . ")";
-		$sqlcode = "COPY import_changelog $fields FROM STDIN DELIMITER '$CACTUS::ISO::csv_delimiter' CSV";
-		$fehler = CACTUS::ISO::copy_file_to_db($sqlcode,$csv_audit_log_file);
+		$sqlcode = "COPY import_changelog $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
+		$fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_audit_log_file);
 	}
 	$fields = "(" . join(',',@obj_import_fields) . ")";
-	$sqlcode = "COPY import_object $fields FROM STDIN DELIMITER '$CACTUS::ISO::csv_delimiter' CSV";
-	if ($fehler = CACTUS::ISO::copy_file_to_db($sqlcode,$csv_obj_file)) {
+	$sqlcode = "COPY import_object $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
+	if ($fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_obj_file)) {
 		print_error("dbimport: $fehler"); print_linebreak(); $fehler_count += 1;
 	}
 	$fields = "(" . join(',',@svc_import_fields) . ")";
-	$sqlcode = "copy import_service $fields FROM STDIN DELIMITER '$CACTUS::ISO::csv_delimiter' CSV";
-	if ($fehler = CACTUS::ISO::copy_file_to_db($sqlcode,$csv_svc_file)) {
+	$sqlcode = "copy import_service $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
+	if ($fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_svc_file)) {
 		print_error("dbimport: $fehler"); print_linebreak(); $fehler_count += 1;
 	}
 	if (file_exists($csv_usr_file)) {
 		$fields = "(" . join(',',@user_import_fields) . ")";
-		$sqlcode = "COPY import_user $fields FROM STDIN DELIMITER '$CACTUS::ISO::csv_delimiter' CSV";
-		if ($fehler = CACTUS::ISO::copy_file_to_db($sqlcode,$csv_usr_file)) { }
+		$sqlcode = "COPY import_user $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
+		if ($fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_usr_file)) { }
 	}
 	$fields = "(" . join(',',@rule_import_fields) . ")";
 	my @rulebase_ar = ();
@@ -1163,10 +1163,10 @@ sub fill_import_tables_from_csv {
 		my $rb = $rulebases->{$d}->{'dev_rulebase'};
 		if ( !grep( /^$rb$/, @rulebase_ar ) ) {
 			@rulebase_ar = (@rulebase_ar, $rb);
-			$csv_rule_file = $iso_workdir . '/' . $rb . '_rulebase.csv';
+			$csv_rule_file = $fworch_workdir . '/' . $rb . '_rulebase.csv';
 			print ("\nrulebase found: $rb, rule_file: $csv_rule_file, device: $d  ");
-			$sqlcode = "COPY import_rule $fields FROM STDIN DELIMITER '$CACTUS::ISO::csv_delimiter' CSV";
-			if ($fehler = CACTUS::ISO::copy_file_to_db($sqlcode,$csv_rule_file)) {
+			$sqlcode = "COPY import_rule $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
+			if ($fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_rule_file)) {
 				print_error("dbimport: $fehler"); print_linebreak(); $fehler_count += 1;
 			}
 		} else {
@@ -1190,7 +1190,7 @@ sub fill_import_tables_from_csv_with_sql {
 	my $csv_svc_file = shift;
 	my $csv_usr_file = shift;
 	my $rulebases = shift;      # ref to hash of rulebase-infos
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $csv_audit_log_file = shift;
 	my ($csv_rule_file,$fehler, $fields, $sqlcode, $psql_cmd, $start_time);
 
@@ -1225,7 +1225,7 @@ sub fill_import_tables_from_csv_with_sql {
 			$fehler_count += 1;
 			return $fehler_count;
 		}
-		$delimiter = qr/$CACTUS::ISO::csv_delimiter/;
+		$delimiter = qr/$CACTUS::FWORCH::csv_delimiter/;
 
 		while ($input_line = <$CSVhdl>) {
 			$sqlcode = "INSERT INTO $target_table ($str_of_fields) VALUES (";
@@ -1250,7 +1250,7 @@ sub fill_import_tables_from_csv_with_sql {
 			}
 			$sqlcode .= ");";
 			#		print ("sql_code: $sqlcode\n");
-			if ($fehler = CACTUS::ISO::exec_pgsql_cmd_no_result($sqlcode)) {
+			if ($fehler = CACTUS::FWORCH::exec_pgsql_cmd_no_result($sqlcode)) {
 				output_txt($fehler . "; $csv_file",3);
 				$fehler_count += 1;
 			}
@@ -1286,7 +1286,7 @@ sub fill_import_tables_from_csv_with_sql {
 	$fields = join(',',@rule_import_fields);
 	foreach my $d (keys %{$rulebases}) {
 		my $rb = $rulebases->{$d}->{'dev_rulebase'};
-		$csv_rule_file = $iso_workdir . '/' . $rb . '_rulebase.csv';
+		$csv_rule_file = $fworch_workdir . '/' . $rb . '_rulebase.csv';
 		$fehler = build_and_exec_sql_statements('import_rule',$fields, $csv_rule_file);
 		if ($fehler) { $fehler_count ++; }
 	}
@@ -1301,11 +1301,11 @@ __END__
 
 =head1 NAME
 
-ISO::import - Perl extension for IT Security Organizer Import
+FWORCH::import - Perl extension for IT Security Organizer Import
 
 =head1 SYNOPSIS
 
-  use CACTUS::ISO::import;
+  use CACTUS::FWORCH::import;
 
 =head1 DESCRIPTION
 

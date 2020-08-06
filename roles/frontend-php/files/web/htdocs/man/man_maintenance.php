@@ -59,34 +59,34 @@ Das Stoppen des Import-Prozesses verl&auml;uft "sanft", d.h. ein eventuell laufe
 <ul>
 	<li>Webserver: /etc/init.d/apache2 start | stop
 	<li>Datenbank: /etc/init.d/postgres start | stop
-	<li>ITSecOrg Import-Prozess: /etc/init.d/itsecorg.import start | stop | status
+	<li>ITSecOrg Import-Prozess: /etc/init.d/fworch.import start | stop | status
 </ul>
 <br><br>
-Beispiel f�r itsecorg-import Aufrufe:
+Beispiel f�r fworch-import Aufrufe:
 
 <pre>
-ITSecOrg-Dev:/etc/init.d # ./itsecorg-import start
+ITSecOrg-Dev:/etc/init.d # ./fworch-import start
 
 Starting ITSecOrg Import process ...
 
 the following import processes are running:
-itsecorg  9461  0.0  0.2  2840 1172 pts/2    S+   11:21   0:00 bash -c (cd /usr/share/itsecorg/importer; /usr/local/itsecorg/importer/iso-importer-main.pl) >/dev/null 2>&1 &
-itsecorg  9462  0.0  0.4  4452 2452 pts/2    R+   11:21   0:00 /usr/bin/perl -w /usr/share/itsecorg/importer/iso-importer-main.pl
+fworch  9461  0.0  0.2  2840 1172 pts/2    S+   11:21   0:00 bash -c (cd /usr/local/fworch/importer; /usr/local/fworch/importer/iso-importer-main.pl) >/dev/null 2>&1 &
+fworch  9462  0.0  0.4  4452 2452 pts/2    R+   11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-main.pl
 
-ITSecOrg-Dev:/etc/init.d # ./itsecorg-import status
+ITSecOrg-Dev:/etc/init.d # ./fworch-import status
 
 the following import processes are running:
-itsecorg  9461  0.0  0.2  2840 1172 pts/2    S    11:21   0:00 bash -c (cd /usr/share/itsecorg/importer; /usr/local/itsecorg/importer/iso-importer-main.pl) >/dev/null 2>&1 &
-itsecorg  9462  0.0  1.1  8152 5920 pts/2    S    11:21   0:00 /usr/bin/perl -w /usr/share/itsecorg/importer/iso-importer-main.pl
-itsecorg  9472  0.0  1.2  8516 6544 pts/2    S    11:21   0:00 /usr/bin/perl -w /usr/share/itsecorg/importer/iso-importer-loop.pl
-itsecorg  9502  0.0  2.6 16184 13788 pts/2   S    11:21   0:03 /usr/bin/perl -w /usr/share/itsecorg/importer/iso-importer-single.pl mgm_id=540
+fworch  9461  0.0  0.2  2840 1172 pts/2    S    11:21   0:00 bash -c (cd /usr/local/fworch/importer; /usr/local/fworch/importer/iso-importer-main.pl) >/dev/null 2>&1 &
+fworch  9462  0.0  1.1  8152 5920 pts/2    S    11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-main.pl
+fworch  9472  0.0  1.2  8516 6544 pts/2    S    11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-loop.pl
+fworch  9502  0.0  2.6 16184 13788 pts/2   S    11:21   0:03 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-single.pl mgm_id=540
 
-ITSecOrg-Dev:/etc/init.d # ./itsecorg-import stop
+ITSecOrg-Dev:/etc/init.d # ./fworch-import stop
 
 Shutting down ITSecorg Import process ... waiting for running imports to finish
 
 the following import processes are running:
-itsecorg  9502  0.0  2.6 16184 13788 pts/2   S    11:21   0:03 /usr/bin/perl -w /usr/share/itsecorg/importer/iso-importer-single.pl mgm_id=540
+fworch  9502  0.0  2.6 16184 13788 pts/2   S    11:21   0:03 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-single.pl mgm_id=540
 
 no import processes are running
 </pre>

@@ -1,18 +1,18 @@
 # $Id: phion.pm,v 1.1.2.20 2013-01-31 21:58:05 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/ISO/import/Attic/phion.pm,v $
+# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/phion.pm,v $
 #######################################################################
 # phion Parser
 #######################################################################
 
-package CACTUS::ISO::import::parser;
+package CACTUS::FWORCH::import::parser;
 
 use strict;
 use warnings;
 use IO::File;
 use File::Find;
 
-use CACTUS::ISO;
-use CACTUS::ISO::import;
+use CACTUS::FWORCH;
+use CACTUS::FWORCH::import;
 use Date::Calc qw(Add_Delta_DHMS Delta_DHMS);
 
 require Exporter;
@@ -122,20 +122,20 @@ sub copy_config_from_mgm_to_iso {
 		$ssh_port = "22";
 	}
 
-	$cmd = "$ssh_bin -i $workdir/$CACTUS::ISO::ssh_id_basename -p $ssh_port $ssh_user\@$ssh_hostname $tar_cmd";
+	$cmd = "$ssh_bin -i $workdir/$CACTUS::FWORCH::ssh_id_basename -p $ssh_port $ssh_user\@$ssh_hostname $tar_cmd";
 	$fehler_count += (system ($cmd) != 0);
 
-	$cmd = "$scp_bin -i $workdir/$CACTUS::ISO::ssh_id_basename -P $ssh_port $ssh_user\@$ssh_hostname:$tar_archive $cfg_dir";
+	$cmd = "$scp_bin -i $workdir/$CACTUS::FWORCH::ssh_id_basename -P $ssh_port $ssh_user\@$ssh_hostname:$tar_archive $cfg_dir";
 	$fehler_count += (system ($cmd) != 0);
 
-	$cmd = "$ssh_bin -i $workdir/$CACTUS::ISO::ssh_id_basename -p $ssh_port $ssh_user\@$ssh_hostname rm $tar_archive";
+	$cmd = "$ssh_bin -i $workdir/$CACTUS::FWORCH::ssh_id_basename -p $ssh_port $ssh_user\@$ssh_hostname rm $tar_archive";
 	$fehler_count += (system ($cmd) != 0);
 
 	$cmd = "cd $cfg_dir; tar xfz $tar_archive; rm $tar_archive";
 	$fehler_count += (system ($cmd) != 0);
 	
 	find(\&collect_config_files, $cfg_dir);		# erzeugt einen String mit allen gefundenen Config-Files
-	$UTC_diff = &get_UTC_diff_unix($ssh_user, $ssh_hostname, $ssh_port, "$workdir/$CACTUS::ISO::ssh_id_basename"); # hole UTC-Verschiebung mittels date-Befehl (globale Var setzen)
+	$UTC_diff = &get_UTC_diff_unix($ssh_user, $ssh_hostname, $ssh_port, "$workdir/$CACTUS::FWORCH::ssh_id_basename"); # hole UTC-Verschiebung mittels date-Befehl (globale Var setzen)
 	return ($fehler_count,$config_files_str);
 }
 
@@ -1773,11 +1773,11 @@ __END__
 
 =head1 NAME
 
-CACTUS::ISO::parser - Perl extension for IT Security Organizer phion parser
+CACTUS::FWORCH::parser - Perl extension for IT Security Organizer phion parser
 
 =head1 SYNOPSIS
 
-  use CACTUS::ISO::import::phion;
+  use CACTUS::FWORCH::import::phion;
 
 =head1 DESCRIPTION
 
@@ -1786,7 +1786,7 @@ support for importing configs into ITSecOrg Database
 
 =head2 EXPORT
 
-   &copy_config_from_mgm_to_iso - transfer phion MC rangetree fw rules to itsecorg
+   &copy_config_from_mgm_to_iso - transfer phion MC rangetree fw rules to fworch
    &parse_config 				- parse phion MC config rangetree
 
 =head1 SEE ALSO

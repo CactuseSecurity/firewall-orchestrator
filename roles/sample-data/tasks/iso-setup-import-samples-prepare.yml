@@ -8,7 +8,7 @@
         uid: 60321
         home: "{{ sample_config_user_home }}"
         shell: /bin/bash
-        group: itsecorg
+        group: "{{ fworch_user }}"
         generate_ssh_key: yes
         ssh_key_bits: 4096
         ssh_key_file: ".ssh/id_rsa.{{ sample_config_user }}"
@@ -37,14 +37,14 @@
         src: "sample-configs"
         dest: "{{ sample_config_user_home }}"
         owner: "{{ sample_config_user }}"
-        group: itsecorg
+        group: "{{ fworch_user }}"
 
     - name: copy config changes scripts
       copy:
         src: "config_changes"
         dest: "{{ sample_config_user_home }}"
         owner: "{{ sample_config_user }}"
-        group: itsecorg
+        group: "{{ fworch_user }}"
 
     - name: Executes write_date_to_comment.py as cronjob in /etc/cron.d
       cron:

@@ -3,8 +3,8 @@
   file:
     dest: "{{ auth_server_base_dir }}"
     state: directory
-    owner: "{{ iso_user }}"
-    group: "{{ iso_user }}"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
   become: yes
 
 - name: add standard roles
@@ -13,13 +13,13 @@
 - name: copy authentication sql file
   copy:
     src: pre_auth_functions.sql
-    dest: "{{ iso_home }}/auth/"
-    owner: "{{ iso_user }}"
-    group: "{{ iso_user }}"
+    dest: "{{ fworch_home }}/auth/"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
   become: yes
 
 - name: create funtions needed during authentication
-  shell: 'psql -d {{ iso_db_name }} -c "\i {{ iso_home }}/auth/pre_auth_functions.sql"'
+  shell: 'psql -d {{ fworch_db_name }} -c "\i {{ fworch_home }}/auth/pre_auth_functions.sql"'
   become: yes
   become_user: postgres
 
@@ -27,8 +27,8 @@
   copy:
     src: "{{ auth_path_rel }}"
     dest: "{{ auth_server_base_dir }}"
-    owner: "{{ iso_user }}"
-    group: "{{ iso_user }}"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
   become: yes
 
 - include: auth_install_dot_net.yml

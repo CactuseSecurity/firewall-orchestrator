@@ -86,7 +86,7 @@ modify isohome/etc/iso.conf on frontend(s):
 enter the address of the database backend server, e.g.
 
 ```console
-itsecorg database hostname              10.5.10.10
+fworch database hostname              10.5.10.10
 ```
 
 modify /etc/postgresql/x.y/main/pg_hba.conf to allow secuadmins access from web frontend(s), e.g.

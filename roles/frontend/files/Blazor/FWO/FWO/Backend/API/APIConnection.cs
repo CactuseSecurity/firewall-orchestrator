@@ -16,16 +16,18 @@ namespace FWO
 {
     public class APIConnection
     {
-        const string httpPort = "443";
-        const string httpHost = "localhost";
-
-        // for local API testing, create a local ssh tunneling to the http server on the virtual machine on an arbitrary port
-        // (here 8443) to connect to the api like this:
-        // const string httpPort = "8443";
-        // const string httpHost = "demo.itsecorg.de";
-
+        const string APIHost = "localhost";
+        const string APIPort = "443";
+        const string APIPath = "/api/v1/graphql";
+/*
+        for local API testing, either 
+            - create a local ssh tunneling to the http server on the virtual machine on an arbitrary port (here 8443) to connect to api like this:
+              const string APIPort = "8443";
+            - or use the demo system as api host like this: 
+              const string APIHost = "demo.itsecorg.de";
+*/
         // Server URL
-        private const string ServerURI = "https://" + httpHost + ":" + httpPort + "/api/v1/graphql";
+        private const string ServerURI = "https://" + APIHost + ":" + APIPort + APIPath;
 
         // Http/s Client
         private readonly HttpClient Client;

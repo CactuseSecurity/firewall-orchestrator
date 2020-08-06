@@ -6,15 +6,18 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using FWO_Auth_Server;
 
 namespace FWO_Auth
 {
     public class HttpServer
     {
         HttpListener Listener;
+        LdapServerConnection LdapConnection;
 
         public HttpServer()
         {
+            LdapConnection = new LdapServerConnection("ldaps://localhost/");
             Start();
         }
 
@@ -48,7 +51,7 @@ namespace FWO_Auth
                             status = HttpStatusCode.OK;
                             string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
                             Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
-                            responseString = "jwt stub " + Parameters["Username"] + " " + Parameters["Password"];
+                            responseString = LdapConnection.Valid(Parameters["Username"], Parameters["Password"]) ? "a" : "";
                         }
                         break;
 

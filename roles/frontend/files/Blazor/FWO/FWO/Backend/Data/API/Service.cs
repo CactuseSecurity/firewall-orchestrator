@@ -13,5 +13,8 @@ namespace FWO.Backend.Data.API
 
         [JsonPropertyName("svc_port")]
         public int Port { get; set; }
+
+        [JsonPropertyName("stm_svc_typ")]
+        public ServiceType Type { get; set; }
     }
 }

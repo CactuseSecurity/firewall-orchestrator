@@ -9,8 +9,11 @@ namespace FWO.Backend.Data.API
 {
     public class Rule
     {
-        [JsonPropertyName("rule_num_numeric")]
-        public decimal Number { get; set; }  
+        [JsonPropertyName("rule_id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("rule_num")]
+        public int Number { get; set; }  
 
         [JsonPropertyName("rule_disabled")]
         public bool Disabled { get; set; }

@@ -31,10 +31,10 @@ namespace FWO
         }
 
         //Query is structured as follow: { "query" : " 'query' ", "variables" : { 'variables' } } with 'query' as query to send and 'variables' as corresponding variables
-        public async Task<string> SendQuery(string Query, object Variables = null, string OperationName = "")
+        public async Task<string> SendQuery(string Query, string Variables = "", string OperationName = "")
         {
             // New http-body containing the query
-            StringContent content = new StringContent(Query, Encoding.UTF8);
+            StringContent content = new StringContent("{ \"query\": \"" + Query + "\" , \"variables\" : { " + Variables + " } }", Encoding.UTF8);
             // Remove all standard headers
             content.Headers.Clear();
             // Add content header
@@ -115,8 +115,6 @@ namespace FWO
             // Antwort zu string konvertieren
             string responseString = await response.Content.ReadAsStringAsync();
 
-            return responseString;
-
             // Zeitmessung Stop
             stopwatch.Stop();
 
@@ -124,6 +122,9 @@ namespace FWO
             Console.WriteLine(responseString);
             // Zeitmessungsausgabe
             Console.WriteLine("\nZeit für Abfrage: " + stopwatch.Elapsed.ToString());
+
+            return responseString;
+
             Console.ReadLine();
         }
     }

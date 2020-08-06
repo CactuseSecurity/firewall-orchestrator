@@ -1,4 +1,4 @@
-# dotnet core 3.x does not support ldap
+# dotnet core 3.x does not support ldap standard lib System.DirectoryServices on linux
 
 ## error
 
@@ -8,6 +8,6 @@ System.DirectoryServices is not supported on this platform. Stack Trace:    at S
    at FWO_Auth_Server.LdapServerConnection.Valid(String Username, String Password) in /home/tim/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator/roles/auth/files/FWO_Auth/FWO_Auth_Server/LdapServerConnection.cs:line 23
 ```
 
-## next try
-
-use Novell.Directory.Ldap.NETStandard library
+## alternatives
+- use Novell.Directory.Ldap.NETStandard library
+- replace by flask auth server

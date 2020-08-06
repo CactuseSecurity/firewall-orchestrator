@@ -9,7 +9,7 @@
 		echo '<html>';
 		echo '<head>';
 		echo '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">';
-		echo '<title>Cactus eSecurity GmbH - ITSecOrg</title>';
+		echo '<title>Cactus eSecurity GmbH - fworch</title>';
 		echo '<meta http-equiv="cache-control" content="no-cache">';
 		echo '<meta http-equiv="content-language" content="de">';
 		echo '<link rel="stylesheet" type="text/css" href="' . $stamm . 'css/firewall.css">';
@@ -37,7 +37,7 @@
 		echo '<li class="abstand"><a href="/config/configuration.php">' . $language->get_text_msg ('settings', 'html');
 		echo "</a>: " . $language->get_text_msg ('settings_description', 'html') . '</li>';
 	
-		echo ' <li class="abstand"><a href="http://cactus.de/support" target="_blank">ITSecOrgSupport</a>:';
+		echo ' <li class="abstand"><a href="http://cactus.de/support" target="_blank">fworchSupport</a>:';
 		echo $language->get_text_msg ('support_description', 'html') . '</li>';
 		echo '<li class="abstand"><a href="/man/manual.php">' . $language->get_text_msg ('manual', 'html') . '</a>:'; 
 		echo $language->get_text_msg ('manual_description', 'html') . '</li>';

@@ -7,7 +7,7 @@ use CACTUS::read_config;
 use CGI qw(:standard);          
 use Sys::Hostname;
 
-my $isobase	= &CACTUS::read_config::read_config('ITSecOrgDir');
+my $isobase	= &CACTUS::read_config::read_config('TopDir');
 my $importdir	= &CACTUS::read_config::read_config('ImportDir');
 my $sleep_time	= &CACTUS::read_config::read_config('ImportSleepTime');
 my $hostname_localhost = hostname();

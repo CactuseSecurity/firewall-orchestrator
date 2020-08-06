@@ -1190,7 +1190,7 @@ CACTUS::FWORCH::parser - Perl extension for IT Security Organizer fortinet parse
 =head1 DESCRIPTION
 
 IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+support for importing configs into fworch Database
 
 =head2 EXPORT
 

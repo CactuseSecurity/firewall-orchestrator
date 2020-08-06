@@ -131,7 +131,7 @@ sub parse_config {
 
 ############################################################
 # gen_uid (geparste uid)
-# wandelt geparste uid in ITSecOrg-kompatible UID um
+# wandelt geparste uid in fworch-kompatible UID um
 # derzeit ist lediglich ein upercase notwendig
 ############################################################
 sub gen_uid {
@@ -2422,7 +2422,7 @@ CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point pa
 =head1 DESCRIPTION
 
 IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+support for importing configs into fworch Database
 
 =head2 EXPORT
 

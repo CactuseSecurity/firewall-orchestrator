@@ -930,8 +930,8 @@ FWORCH - Perl extension for IT Security Organizer
 
 IT Security Organizer Perl Module
 support for
-- importing configs into ITSecOrg Database
-- basic functions to access ITSecOrg DB
+- importing configs into fworch Database
+- basic functions to access fworch DB
 
 =head2 EXPORT
 

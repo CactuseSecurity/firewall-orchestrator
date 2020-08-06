@@ -8,7 +8,7 @@
 # Should-Stop:          $syslog
 # Default-Start:        2 3 4 5
 # Default-Stop:         0 1 6
-# Short-Description:    ITSecOrg Import
+# Short-Description:    fworch Import
 ### END INIT INFO
 
 IMPORTER_PATH=/usr/share/itsecorg/importer
@@ -30,7 +30,7 @@ case "$1" in
     start)
         if [ `pidof -x $IMPORTER_BASENAME | wc -l` -eq 0 ]
         then
-                echo "Starting ITSecOrg Import process ..."
+                echo "Starting fworch Import process ..."
                 /bin/su -l -c "(cd $IMPORTER_PATH; $IMPORTER_BIN) >/dev/null 2>&1 &" itsecorg
                 $0 status
         else

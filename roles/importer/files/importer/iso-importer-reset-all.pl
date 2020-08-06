@@ -23,7 +23,7 @@ my $management_hash = $sth1->fetchall_hashref('mgm_name');
 $sth1->finish;
 $dbh1->disconnect;
 
-my $isobase	= &CACTUS::read_config::read_config('ITSecOrgDir');
+my $isobase	= &CACTUS::read_config::read_config('TopDir');
 my $importdir	= &CACTUS::read_config::read_config('ImportDir');
 
 # Schleife ueber alle Managementsysteme: Loeschen und wieder einlesen aller Configs

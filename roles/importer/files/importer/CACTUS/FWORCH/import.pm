@@ -1310,7 +1310,7 @@ FWORCH::import - Perl extension for IT Security Organizer Import
 =head1 DESCRIPTION
 
 IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+support for importing configs into fworch Database
 
 =head2 EXPORT
 

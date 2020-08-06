@@ -636,11 +636,11 @@ INSERT INTO text_msg VALUES ('wrong_creds', 'Fehler bei der Anmeldung. Fehlernum
 INSERT INTO text_msg VALUES ('expired', 'Fehler bei der Anmeldung. Fehlernummer: A002.', 'Login error. Error code: A002.');
 INSERT INTO text_msg VALUES ('superuser_login', 'Fehler bei der Anmeldung. Fehlernummer: A003.', 'Login error. Error code: A003.');
 INSERT INTO text_msg VALUES ('login_failure_generic', 'Fehler bei der Anmeldung. Fehlernummer: A000.', 'Login error. Error code: A000.');
-INSERT INTO text_msg VALUES ('support_description', 'Bei Problemen mit ITSecOrg erfahren Sie hier, wie Sie den Support kontaktieren können.', 'In case of problems with ITSecOrg you can get the contact details of our support department.');
+INSERT INTO text_msg VALUES ('support_description', 'Bei Problemen mit fworch erfahren Sie hier, wie Sie den Support kontaktieren können.', 'In case of problems with fworch you can get the contact details of our support department.');
 INSERT INTO text_msg VALUES ('manual', 'Handbuch', 'Manual');
 INSERT INTO text_msg VALUES ('logout', 'Abmelden', 'Log Out');
 INSERT INTO text_msg VALUES ('reporting_description', 'Hier können Reports über Konfigurations(-änderungen) erstellt werden.', 'You can generate various reports about configuration (changes) here.');
-INSERT INTO text_msg VALUES ('manual_description', 'Die Online-Handbuch von ITSecOrg.', 'The online manual.');
+INSERT INTO text_msg VALUES ('manual_description', 'Die Online-Handbuch von fworch.', 'The online manual.');
 INSERT INTO text_msg VALUES ('help', 'Hilfe', 'Help');
 INSERT INTO text_msg VALUES ('help_description', 'Die kontextsensitive Online-Hilfe.', 'The context-sensitive online help.');
 INSERT INTO text_msg VALUES ('logged_in', 'Angemeldet', 'Logged in');
@@ -659,7 +659,7 @@ INSERT INTO text_msg VALUES ('missing_request_number', 'Bitte mindestens eine Au
 INSERT INTO text_msg VALUES ('missing_request_type', 'Die eingetragenen Auftragsdaten passen nicht. Bitte zu jeder eingetragenen Auftragsnummer einen Auftragstyp auswählen.', 'Mismatch in request data. Please enter a request type for each request number.');
 INSERT INTO text_msg VALUES ('missing_client_for_request', 'Die eingetragenen Auftragsdaten passen nicht. Bitte zu jeder eingetragenen Auftragsnummer einen Mandanten auswählen.', 'Mismatch in request data. Please enter a client name for each request number.');
 INSERT INTO text_msg VALUES ('missing_comment', 'Bitte Kommentarfeld ausfüllen.', 'Please fill-in comment field.');
-INSERT INTO text_msg VALUES ('exceeded_max_request_number', 'Die Anzahl der Auftragsfelder übersteigt die maximale Anzahl von 9. Bitte in der ITSecOrg-Konfiguration (gui.conf) anpassen.', 'Please set  request number to not more than 9 in gui.conf. ');
+INSERT INTO text_msg VALUES ('exceeded_max_request_number', 'Die Anzahl der Auftragsfelder übersteigt die maximale Anzahl von 9. Bitte in der fworch-Konfiguration (gui.conf) anpassen.', 'Please set  request number to not more than 9 in gui.conf. ');
 INSERT INTO text_msg VALUES ('no_change_selected', 'Bitte mindestens eine Änderung auswählen.', 'Please select at least one change.');
 INSERT INTO text_msg VALUES ('all_systems', 'Alle Systeme', 'All systems');
 INSERT INTO text_msg VALUES ('display_filter', 'Anzeigefilter', 'Display filter');
@@ -684,7 +684,7 @@ INSERT INTO text_msg VALUES ('please_select', 'Bitte wählen Sie ...', 'Please s
 INSERT INTO text_msg VALUES ('no_device_selected', 'Bitte wählen Sie ein Device aus.', 'Please select a device.');
 INSERT INTO text_msg VALUES ('select_on_left', 'Bitte links auswählen.', 'Please select on left hand side.');
 INSERT INTO text_msg VALUES ('settings', 'Einstellungen', 'Settings');
-INSERT INTO text_msg VALUES ('settings_description', 'Änderungen der Einstellungen von ITSecOrg.', 'Change the settings of ITSecOrg.');
+INSERT INTO text_msg VALUES ('settings_description', 'Änderungen der Einstellungen von fworch.', 'Change the settings of fworch.');
 INSERT INTO text_msg VALUES ('user_id', 'Benutzer-ID', 'User ID');
 INSERT INTO text_msg VALUES ('client', 'Mandant', 'Client');
 INSERT INTO text_msg VALUES ('change_documentation', 'Dokumentation ändern', 'Change Documentation');

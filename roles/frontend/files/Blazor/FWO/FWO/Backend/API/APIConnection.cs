@@ -10,24 +10,31 @@ using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using System.Net;
 
 namespace FWO
 {
     public class APIConnection
     {
+        const string httpPort = "443";
+        // for local API testing, create a local ssh tunneling to the http server on the virtual machine on an arbitrary port
+        // (here 8443) to connect to the api like this:
+        //  const string httpPort = "8443";
+
         // Server URL
-        private const string ServerURI = "https://localhost/api/v1/graphql";
+        private const string ServerURI = "https://localhost" + httpPort + "/api/v1/graphql";
 
         // Http/s Client
         private readonly HttpClient Client;
 
         public APIConnection()
-        {
+        {         
             // Allow all certificates // REMOVE IF SERVER GOT VALID CERTIFICATE
-            //ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+            HttpClientHandler Handler = new HttpClientHandler();
+            Handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 
             // New http/s client
-            Client = new HttpClient();
+            Client = new HttpClient(Handler);
         }
 
         //Query is structured as follow: { "query" : " 'query' ", "variables" : { 'variables' } } with 'query' as query to send and 'variables' as corresponding variables
@@ -82,50 +89,5 @@ namespace FWO
             //TODO: https://www.youtube.com/watch?v=4XlA2WDXyTo
         }
 
-        public static async Task<string> Test()
-        {
-            // Server URL
-            // const string ServerURI = "https://demo.itsecorg.de/api/v1/graphql";
-
-            // Erlaube alle Zertifikate // ENTFERNEN SOBALD SERVER GÜLTIGES ZERTIFIKAT HAT
-            // ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
-            // Neuer Http Client
-            HttpClient client = new HttpClient();
-
-            // Query aufgebaut wie folgt { "query" : " 'query' ", "variables" : { 'variables' } } mit 'query' für die zu versendende Query und 'variables' für die dazugehörigen Variablen
-            string Query = "{ \"query\":\" { device { dev_id dev_name stm_dev_typ { dev_typ_name dev_typ_version } management { mgm_id mgm_name} rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) { rule_num rule_id rule_uid rule_froms { object { obj_name } } rule_tos { object { obj_name } } rule_services { service { svc_name svc_id } } rule_action rule_track } }} \", \" variables \" : {} }";
-
-            // Neuer Http-Body der die Query enthält
-            StringContent content = new StringContent(Query, Encoding.UTF8);
-            // Alle Standard-Header entfernen
-            content.Headers.Clear();
-            // Inhaltstypheader hinzufügen
-            content.Headers.Add("content-type", "application/json");
-            // Authorisierungsheader hinzufügen
-            content.Headers.Add("x-hasura-admin-secret", "st8chelt1er");
-
-            // Zeitmessung Start
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            // Http-Packet mit Query und Headern versenden und Antwort des Server empfangen
-            HttpResponseMessage response = await client.PostAsync(ServerURI, content);
-
-            // Antwort zu string konvertieren
-            string responseString = await response.Content.ReadAsStringAsync();
-
-            // Zeitmessung Stop
-            stopwatch.Stop();
-
-            // Antwort ausgeben
-            Console.WriteLine(responseString);
-            // Zeitmessungsausgabe
-            Console.WriteLine("\nZeit für Abfrage: " + stopwatch.Elapsed.ToString());
-
-            return responseString;
-
-            Console.ReadLine();
-        }
     }
 }

@@ -30,7 +30,7 @@ namespace FWO_Auth
             Listener.Start();
             Console.WriteLine("Listening...");
 
-            while(true)
+            while (true)
             {
                 // Note: The GetContext method blocks while waiting for a request.
                 HttpListenerContext context = Listener.GetContext();
@@ -67,7 +67,6 @@ namespace FWO_Auth
                 output.Write(buffer, 0, buffer.Length);
                 // You must close the output stream.
                 output.Close();
-                Listener.Stop();
             }
         }
     }

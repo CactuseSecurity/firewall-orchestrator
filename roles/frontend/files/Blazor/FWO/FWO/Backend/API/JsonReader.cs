@@ -1,14 +1,27 @@
 ﻿using FWO.Backend.Data.API;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Razor.Language;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Data;
-//using System.Text.Json;
+using System.Text.Json;
+using static System.Text.Json.JsonElement;
 
 namespace FWO
 {
     public static class JsonReader
     {
+        public static Management[] JsonToReport(string Json)
+        {
+            string testJson = JsonSerializer.Serialize(new Management[] { new Management { Id = 2 }, new Management { Id = 3 } });
+
+            JsonDocument JsonRoot = JsonDocument.Parse(Json);
+            ObjectEnumerator test = JsonRoot.RootElement.EnumerateObject();
+            test.MoveNext();
+            string hallo = test.Current.Value.GetString("management");
+            return JsonSerializer.Deserialize<Management[]>(hallo);
+        }
+
         /*
         public static void ReadFilter(string JsonStringFilter)
         {

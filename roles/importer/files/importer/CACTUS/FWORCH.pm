@@ -1,6 +1,3 @@
-# $Id: FWORCH.pm,v 1.1.2.4 2010-02-14 12:02:03 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/Attic/FWORCH.pm,v $
-
 package CACTUS::FWORCH;
 
 use strict;
@@ -918,7 +915,7 @@ __END__
 
 =head1 NAME
 
-FWORCH - Perl extension for IT Security Organizer
+FWORCH - Perl extension for fworch
 
 =head1 SYNOPSIS
 
@@ -928,7 +925,7 @@ FWORCH - Perl extension for IT Security Organizer
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
+fworch Perl Module
 support for
 - importing configs into fworch Database
 - basic functions to access fworch DB
@@ -954,14 +951,8 @@ support for
 
   behind the door
 
-
 =head1 AUTHOR
 
   Tim Purschke, tmp@cactus.de
 
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2005 by Cactus eSecurity GmbH, Frankfurt, Germany
-
 =cut
-

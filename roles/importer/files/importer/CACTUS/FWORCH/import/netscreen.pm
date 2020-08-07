@@ -1,7 +1,3 @@
-#!/usr/bin/perl -w
-# $Id: netscreen.pm,v 1.1.2.17 2013-02-04 21:12:35 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/netscreen.pm,v $
-
 package CACTUS::FWORCH::import::parser;
 
 use strict;
@@ -1125,20 +1121,18 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer netscreen parser
+CACTUS::FWORCH::parser - Perl extension for fworch netscreen parser
 
 =head1 SYNOPSIS
  use CACTUS::FWORCH::import::netscreen;
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into fworch Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
   global variables
-
 
 =head1 SEE ALSO
 
@@ -1146,6 +1140,6 @@ support for importing configs into fworch Database
 
 =head1 AUTHOR
 
-  Holger Dost, Tim Purschke, tmp@cactus.de
+  Cactus eSecurity, tmp@cactus.de
 
-
+=cut

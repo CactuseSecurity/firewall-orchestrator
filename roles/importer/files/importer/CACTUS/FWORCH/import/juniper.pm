@@ -1,6 +1,3 @@
-# !/usr/bin/perl -w
-# $Id: juniper.pm,v 1.1.2.12 2012-03-24 13:57:03 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/juniper.pm,v $
 
 package CACTUS::FWORCH::import::parser;
 
@@ -1050,16 +1047,15 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer netscreen parser
+CACTUS::FWORCH::parser - Perl extension for JunOS parser
 
 =head1 SYNOPSIS
 
-  use CACTUS::FWORCH::import::netscreen;
+  use CACTUS::FWORCH::import::juniper;
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into fworch Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -1072,4 +1068,6 @@ support for importing configs into fworch Database
 
 =head1 AUTHOR
 
-  Tim Purschke, tmp@cactus.de
+  Cactus eSecurity, tmp@cactus.de
+
+=cut

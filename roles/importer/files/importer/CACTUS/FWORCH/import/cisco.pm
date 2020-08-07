@@ -1,7 +1,3 @@
-# !/usr/bin/perl -w
-# $Id: cisco.pm,v 1.1.2.2 2011-05-30 07:42:18 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/cisco.pm,v $
-
 package CACTUS::FWORCH::import::parser;
 
 use strict;
@@ -964,28 +960,22 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer netscreen parser
+CACTUS::FWORCH::parser - Perl extension for fworch cisco parser
 
 =head1 SYNOPSIS
 
-  use CACTUS::FWORCH::import::netscreen;
+  use CACTUS::FWORCH::import::cisco;
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into fworch Database
+fworch perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
   global variables
 
-
 =head1 SEE ALSO
 
   behind the door
 
-=head1 AUTHOR
-
-  Holger Dost, Tim Purschke, tmp@cactus.de
-
-
+=cut

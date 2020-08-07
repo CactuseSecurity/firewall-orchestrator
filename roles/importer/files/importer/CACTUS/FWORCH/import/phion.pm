@@ -1,8 +1,3 @@
-# $Id: phion.pm,v 1.1.2.20 2013-01-31 21:58:05 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/phion.pm,v $
-#######################################################################
-# phion Parser
-#######################################################################
 
 package CACTUS::FWORCH::import::parser;
 
@@ -1773,7 +1768,7 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer phion parser
+CACTUS::FWORCH::parser - Perl extension for fworch phion parser
 
 =head1 SYNOPSIS
 
@@ -1781,8 +1776,7 @@ CACTUS::FWORCH::parser - Perl extension for IT Security Organizer phion parser
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into fworch Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -1795,10 +1789,6 @@ support for importing configs into fworch Database
 
 =head1 AUTHOR
 
-  Tim Purschke, tmp@cactus.de
-
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2006 by Cactus eSecurity GmbH, Frankfurt, Germany
+  Cactus eSecurity, tmp@cactus.de
 
 =cut

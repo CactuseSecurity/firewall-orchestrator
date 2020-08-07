@@ -1,5 +1,4 @@
 #! /usr/bin/perl -w
-# iso-importer-main.pl
 use strict;
 use lib '.';
 use CACTUS::FWORCH;

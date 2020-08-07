@@ -1,18 +1,13 @@
 #! /usr/bin/perl -w
-# $Id: iso-importer-reset-all.pl,v 1.1.2.5 2013-02-12 09:36:56 tim Exp $
-# $Source: /home/cvs/iso/package/importer/Attic/iso-importer-reset-all.pl,v $
-# -------------------------------------------------------------------------------------------
-# iso-importer-loop.pl
-# -------------------------------------------------------------------------------------------
 use strict;
 use lib '.';
-use CACTUS::FWORCH;                                        # Basisfunktionen und Variablen fuer FWORCH-DB-Zugriff
+use CACTUS::FWORCH;
 use CACTUS::read_config;
 use CGI qw(:standard);          
 
 my ($res, $mgm_name, $mgm_id, $fehler);
 
-# Managementsysteme aus der DB holen
+# get management systems from the database
 my $dbh1 = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port","$fworch_srv_user","$fworch_srv_pw");
 if ( !defined $dbh1 ) { die "Cannot connect to database!\n"; }
 my $sth1 = $dbh1->prepare("SELECT mgm_id, mgm_name from management LEFT JOIN stm_dev_typ USING (dev_typ_id)" .

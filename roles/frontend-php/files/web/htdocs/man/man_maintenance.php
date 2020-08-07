@@ -70,23 +70,23 @@ fworch-Dev:/etc/init.d # ./fworch-import start
 Starting fworch Import process ...
 
 the following import processes are running:
-fworch  9461  0.0  0.2  2840 1172 pts/2    S+   11:21   0:00 bash -c (cd /usr/local/fworch/importer; /usr/local/fworch/importer/iso-importer-main.pl) >/dev/null 2>&1 &
-fworch  9462  0.0  0.4  4452 2452 pts/2    R+   11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-main.pl
+fworch  9461  0.0  0.2  2840 1172 pts/2    S+   11:21   0:00 bash -c (cd /usr/local/fworch/importer; /usr/local/fworch/importer/fworch-importer-main.pl) >/dev/null 2>&1 &
+fworch  9462  0.0  0.4  4452 2452 pts/2    R+   11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/fworch-importer-main.pl
 
 fworch-Dev:/etc/init.d # ./fworch-import status
 
 the following import processes are running:
-fworch  9461  0.0  0.2  2840 1172 pts/2    S    11:21   0:00 bash -c (cd /usr/local/fworch/importer; /usr/local/fworch/importer/iso-importer-main.pl) >/dev/null 2>&1 &
-fworch  9462  0.0  1.1  8152 5920 pts/2    S    11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-main.pl
-fworch  9472  0.0  1.2  8516 6544 pts/2    S    11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-loop.pl
-fworch  9502  0.0  2.6 16184 13788 pts/2   S    11:21   0:03 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-single.pl mgm_id=540
+fworch  9461  0.0  0.2  2840 1172 pts/2    S    11:21   0:00 bash -c (cd /usr/local/fworch/importer; /usr/local/fworch/importer/fworch-importer-main.pl) >/dev/null 2>&1 &
+fworch  9462  0.0  1.1  8152 5920 pts/2    S    11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/fworch-importer-main.pl
+fworch  9472  0.0  1.2  8516 6544 pts/2    S    11:21   0:00 /usr/bin/perl -w /usr/local/fworch/importer/fworch-importer-loop.pl
+fworch  9502  0.0  2.6 16184 13788 pts/2   S    11:21   0:03 /usr/bin/perl -w /usr/local/fworch/importer/fworch-importer-single.pl mgm_id=540
 
 fworch-Dev:/etc/init.d # ./fworch-import stop
 
 Shutting down ITSecorg Import process ... waiting for running imports to finish
 
 the following import processes are running:
-fworch  9502  0.0  2.6 16184 13788 pts/2   S    11:21   0:03 /usr/bin/perl -w /usr/local/fworch/importer/iso-importer-single.pl mgm_id=540
+fworch  9502  0.0  2.6 16184 13788 pts/2   S    11:21   0:03 /usr/bin/perl -w /usr/local/fworch/importer/fworch-importer-single.pl mgm_id=540
 
 no import processes are running
 </pre>

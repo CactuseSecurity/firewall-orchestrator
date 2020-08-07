@@ -41,10 +41,10 @@ fworch Home ($FWORCHHOME): Hier liegen die fworch-Config-Dateien (conf),
 |   `-- iso.conf
 |-- importer
 |   |-- CACTUS
-|   |-- iso-importer-loop.pl
-|   |-- iso-importer-main.pl
-|   |-- iso-importer-rollback.pl
-|   |-- iso-importer-single.pl
+|   |-- fworch-importer-loop.pl
+|   |-- fworch-importer-main.pl
+|   |-- fworch-importer-rollback.pl
+|   |-- fworch-importer-single.pl
 `-- web
     |-- htdocs
     `-- include

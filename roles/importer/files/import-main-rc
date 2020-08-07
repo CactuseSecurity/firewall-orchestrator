@@ -12,8 +12,8 @@
 ### END INIT INFO
 
 IMPORTER_PATH=/usr/local/fworch/importer
-IMPORTER_BASENAME=iso-importer-main.pl
-IMPORTER_SINGLE=iso-importer-single.pl
+IMPORTER_BASENAME=fworch-importer-main.pl
+IMPORTER_SINGLE=fworch-importer-single.pl
 IMPORTER_BIN=$IMPORTER_PATH/$IMPORTER_BASENAME
 
 if [ -x $IMPORTER_BIN ]
@@ -54,7 +54,7 @@ case "$1" in
                         fi
         fi
                 $0 status
-        # do not kill currently running import (iso-importer-single.pl)
+        # do not kill currently running import (fworch-importer-single.pl)
         ;;
     status)
         if [ `pidof -x $IMPORTER_BASENAME | wc -l` -eq 0 ]

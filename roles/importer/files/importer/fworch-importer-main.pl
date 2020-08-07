@@ -36,7 +36,7 @@ while (1) {
 		}
 		if ($importer_hostname eq $hostname_localhost) {
 			output_txt("Import: running on responsible importer $importer_hostname ... ");
-			$fehler = system("$importdir/iso-importer-single.pl mgm_id=$mgm_id");
+			$fehler = system("$importdir/fworch-importer-single.pl mgm_id=$mgm_id");
 		}
 	}
 	output_txt("-------- Import module: going back to sleep for $sleep_time seconds --------\n");

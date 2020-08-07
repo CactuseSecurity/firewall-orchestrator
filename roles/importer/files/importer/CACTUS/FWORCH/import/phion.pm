@@ -218,7 +218,7 @@ sub process_basic_object_files {
 #				output_txt ("change_admin: $change_admin");
 				&parse_basic_elements ($File::Find::name);
 			} else {
-				output_txt ("ERROR: iso-importer: phion.pm: cannot access file $File::Find::name\n", 2);			
+				output_txt ("ERROR: fworch-importer: phion.pm: cannot access file $File::Find::name\n", 2);			
 			}
 		}
 	}
@@ -247,7 +247,7 @@ sub process_rule_files {
 #				output_txt ("change_admin: $change_admin");
 				&parse_rules ($File::Find::name);
 			} else {
-				output_txt ("ERROR: iso-importer: phion.pm: cannot access file $File::Find::name\n", 2);			
+				output_txt ("ERROR: fworch-importer: phion.pm: cannot access file $File::Find::name\n", 2);			
 			}
 		}
 	}

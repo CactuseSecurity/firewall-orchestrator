@@ -84,7 +84,7 @@
     network_mode: host
     recreate: yes
     ports:
-      - "{{ api_listener_ip }}:{{ api_listener_port }}:{{ api_listener_port }}"
+      - "{{ api_hostname }}:{{ api_port }}:{{ api_port }}"
     env:
       HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
       HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"

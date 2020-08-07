@@ -24,7 +24,7 @@ my $importdir	= &CACTUS::read_config::read_config('ImportDir');
 # Schleife ueber alle Managementsysteme: Loeschen und wieder einlesen aller Configs
 foreach $mgm_name (sort keys %{$management_hash}) {
 	$mgm_id = $management_hash->{"$mgm_name"}->{"mgm_id"};
-	$fehler = system("$importdir/iso-importer-single.pl mgm_id=$mgm_id -no-md5-checks -clear-management");
-	$fehler = system("$importdir/iso-importer-single.pl mgm_id=$mgm_id -no-md5-checks");
+	$fehler = system("$importdir/fworch-importer-single.pl mgm_id=$mgm_id -no-md5-checks -clear-management");
+	$fehler = system("$importdir/fworch-importer-single.pl mgm_id=$mgm_id -no-md5-checks");
 }
 exit(0);

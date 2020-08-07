@@ -9,7 +9,6 @@
 - name: establish cron job to simulate hourly changes to configs
   import_tasks: setup-config-changes.yml
 
-- name: start importing sample configs
-  shell: "/etc/init.d/{{ product_name }}-importer start"
+- name: restart importing sample configs
+  shell: "/etc/init.d/{{ product_name }}-importer restart"
   become: yes
-  become_user: "{{ fworch_user }}"

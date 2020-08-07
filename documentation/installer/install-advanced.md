@@ -16,7 +16,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.
 With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "ui_php=1 ui_php_web_port=8888" site.yml -K
+cd firewall-orchestrator; ansible-playbook -i inventory -e "ui_php=1 ui_php_web_port=44310" site.yml -K
 ```
 
 ### Parameter "clean_install" to start with fresh database

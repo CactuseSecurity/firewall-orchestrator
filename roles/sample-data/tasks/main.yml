@@ -1,9 +1,15 @@
 # this playbook sets up some sample devices with configs to play around with
 
-- block:
-    - import_tasks: iso-setup-import-samples-prepare.yml
-  become: yes
+- name: create import sample user and copy configs
+  import_tasks: setup-sample-import.yml
 
-- block:
-    - import_tasks: iso-setup-import-samples.yml
-  become: no
+- name: create sample devices in database
+  import_tasks: create devices.yml
+
+- name: establish cron job to simulate hourly changes to configs
+- import_tasks: setup-config-changes.yml
+
+- name: start importing sample configs
+  shell: "/etc/init.d/{{ product_name }}-importer start"
+  become: yes
+  become_user: "{{ fworch_user }}"

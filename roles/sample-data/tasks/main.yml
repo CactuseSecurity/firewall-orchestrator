@@ -4,10 +4,10 @@
   import_tasks: setup-sample-import.yml
 
 - name: create sample devices in database
-  import_tasks: create devices.yml
+  import_tasks: create-devices.yml
 
 - name: establish cron job to simulate hourly changes to configs
-- import_tasks: setup-config-changes.yml
+  import_tasks: setup-config-changes.yml
 
 - name: start importing sample configs
   shell: "/etc/init.d/{{ product_name }}-importer start"

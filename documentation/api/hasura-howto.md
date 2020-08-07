@@ -66,7 +66,7 @@
 use json instead of graphql!!!
 
     curl --request POST \
-        --url https://127.0.0.1:18443/api/v1/query \
+        --url https://127.0.0.1:10443/api/v1/query \
         --header 'content-type: application/json' \
         --header 'x-hasura-admin-secret: st8chelt1er' \
         --header 'x-hasura-role: admin' \
@@ -99,6 +99,21 @@ use json instead of graphql!!!
             }
         }'
 
-
 Not clear how to access these collections though. Only purpose seems to be for handling allow-list.
 See docu hint: In production instances: Enabling the allow-list is highly recommended when running the GraphQL engine in production.
+
+<https://hasura.io/docs/1.0/graphql/manual/api-reference/schema-metadata-api/query-collections.html#id8>
+
+    {
+        "type" : "add_collection_to_allowlist",
+        "args": {
+            "collection": "my_collection"
+        }
+    }
+
+    {
+        "type" : "drop_collection_from_allowlist",
+        "args": {
+            "collection": "my_collection_1"
+        }
+    }

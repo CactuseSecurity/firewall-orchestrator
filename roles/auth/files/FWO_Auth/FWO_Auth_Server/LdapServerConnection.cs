@@ -25,8 +25,9 @@ namespace FWO_Auth_Server
                 ds.FindOne();
                 return true;
             }
-            catch (DirectoryServicesCOMException ex)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message + " Stack Trace: " + ex.StackTrace);
                 return false;
             }
 

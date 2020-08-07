@@ -211,8 +211,7 @@ CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point R8
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -224,10 +223,6 @@ support for importing configs into ITSecOrg Database
 
 =head1 AUTHOR
 
-  Tim Purschke, tmp@cactus.de
-
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2017 by Cactus eSecurity GmbH, Frankfurt, Germany
+  Cactus eSecurity, tmp@cactus.de
 
 =cut

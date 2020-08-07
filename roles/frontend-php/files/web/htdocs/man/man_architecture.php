@@ -31,7 +31,7 @@
  <b class="headlinemain">Architektur</b>
  <p></p>
 <br>
-ITSecOrg besteht aus drei Komponenten:
+fworch besteht aus drei Komponenten:
 <ul>
 	<li>Datenbank-Server
 	<li>Import-Modul(e)
@@ -47,7 +47,7 @@ der scp-Zugriff auf verschiedene Systeme nicht von einer zentralen Stelle m&ouml
 sicherheitstechnisch nicht erlaubt ist.
 <br>
 Die Verwendung von mehereren Frontend-Webservern ist dann sinnvoll, wenn unterschiedliche Gruppen
-(z.B. interne Revision, Sicherheitsadministration, Sicherheitsmanagement und Mandanten) auf ITSecOrg zugreifen.
+(z.B. interne Revision, Sicherheitsadministration, Sicherheitsmanagement und Mandanten) auf fworch zugreifen.
 <br><br>
 <img src="<?php echo $stamm ?>img/components.jpg">
 </div>

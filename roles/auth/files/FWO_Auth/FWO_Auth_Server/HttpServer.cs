@@ -51,7 +51,7 @@ namespace FWO_Auth
                             status = HttpStatusCode.OK;
                             string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
                             Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
-                            responseString = LdapConnection.Valid(Parameters["Username"], Parameters["Password"]) ? "a" : "";
+                            responseString = LdapConnection.Valid(Parameters["Username"], Parameters["Password"]) ? "ok" : "wrong";
                         }
                         break;
 

@@ -24,7 +24,7 @@
 			<td style="height:30px;">
 				<table cellpadding="0" cellspacing="0">
 					<tr>
-						<td align="center" style="width:<?php echo $vert_menu_width?>px;"><B>ITSecOrg v<?php include ("version.inc.php"); ?><B></td>
+						<td align="center" style="width:<?php echo $vert_menu_width?>px;"><B>fworch v<?php include ("version.inc.php"); ?><B></td>
 						<td><img src="<?php echo $stamm ?>img/navi_linie.gif" width="9" height="23"></td>
 						<?php
 							if ($allowedToDocumentChanges)
@@ -33,7 +33,7 @@
 								echo create_link($stamm, $page, '/documentation.php?change_docu=1', $language->get_text_msg_no_break ('change_documentation', 'html'), '2', 'changedoc', false);
 							echo create_link($stamm, $page, '/reporting.php', 'Reporting', '3', 'rep', false);
 							echo create_link($stamm, $page, '/config/configuration.php', $language->get_text_msg ('settings', 'html'), '4', 'config', false);
-							echo create_link($stamm, $page, 'http://www.fworch.de/support/', 'ITSecOrgSupport', '5', 'support', true);
+							echo create_link($stamm, $page, 'http://www.itsecorg.de/support/', 'fworchSupport', '5', 'support', true);
 							echo create_link($stamm, $page, '/man/manual.php', $language->get_text_msg ('manual', 'html'), '6', 'man', false);
 							$url = "javascript:OpenHilfe('" . $page . "')";
 							echo create_link($stamm, $page, $url, $language->get_text_msg ('help', 'html'), '7', 'hilfe', false);

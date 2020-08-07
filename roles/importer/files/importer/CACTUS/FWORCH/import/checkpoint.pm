@@ -1,6 +1,3 @@
-# $Id: checkpoint.pm,v 1.1.2.12 2013-01-31 21:58:05 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/checkpoint.pm,v $
-
 package CACTUS::FWORCH::import::parser;
 
 use strict;
@@ -131,7 +128,7 @@ sub parse_config {
 
 ############################################################
 # gen_uid (geparste uid)
-# wandelt geparste uid in ITSecOrg-kompatible UID um
+# wandelt geparste uid in fworch-kompatible UID um
 # derzeit ist lediglich ein upercase notwendig
 ############################################################
 sub gen_uid {
@@ -2413,7 +2410,7 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point parser
+CACTUS::FWORCH::parser - Perl extension for fworch check point parser
 
 =head1 SYNOPSIS
 
@@ -2422,7 +2419,7 @@ CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point pa
 =head1 DESCRIPTION
 
 IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -2434,10 +2431,6 @@ support for importing configs into ITSecOrg Database
 
 =head1 AUTHOR
 
-  Tim Purschke, tmp@cactus.de
-
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2005 by Cactus eSecurity GmbH, Frankfurt, Germany
+  Cactus eSecurity, tmp@cactus.de
 
 =cut

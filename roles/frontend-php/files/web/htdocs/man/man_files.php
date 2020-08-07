@@ -30,7 +30,7 @@
 <div id="inhalt">
  <b class="headlinemain">Filestruktur</b>
 <br><br>
-ITSecOrg Home ($FWORCHHOME): Hier liegen die ITSecOrg-Config-Dateien (conf),
+fworch Home ($FWORCHHOME): Hier liegen die fworch-Config-Dateien (conf),
  die Import-Skripte (importer) sowie die Web-GUI (web)
  
  <pre>
@@ -41,10 +41,10 @@ ITSecOrg Home ($FWORCHHOME): Hier liegen die ITSecOrg-Config-Dateien (conf),
 |   `-- iso.conf
 |-- importer
 |   |-- CACTUS
-|   |-- iso-importer-loop.pl
-|   |-- iso-importer-main.pl
-|   |-- iso-importer-rollback.pl
-|   |-- iso-importer-single.pl
+|   |-- fworch-importer-loop.pl
+|   |-- fworch-importer-main.pl
+|   |-- fworch-importer-rollback.pl
+|   |-- fworch-importer-single.pl
 `-- web
     |-- htdocs
     `-- include

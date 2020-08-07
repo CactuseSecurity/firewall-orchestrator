@@ -1,6 +1,3 @@
-# $Id: FWORCH.pm,v 1.1.2.4 2010-02-14 12:02:03 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/Attic/FWORCH.pm,v $
-
 package CACTUS::FWORCH;
 
 use strict;
@@ -903,7 +900,7 @@ sub evaluate_parameters {
         if (defined($mgm_name) && $mgm_name ne '') {
             $mgm_id = exec_pgsql_cmd_return_value("select mgm_id from management where mgm_name='$mgm_name'");
         }
-        else {&error_handler_add(undef, my $error_level = 5, "iso-importer-single.pl: missing argument (mgm_id || mgm_name)", 1, 0);} # no valid input given
+        else {&error_handler_add(undef, my $error_level = 5, "fworch-importer-single.pl: missing argument (mgm_id || mgm_name)", 1, 0);} # no valid input given
     }
     if (!defined($mgm_id) || $mgm_id eq '') {
         &error_handler_add(undef, my $error_level = 5, 'Management ' . (($mgm_name ne '') ? $mgm_name . ' ' : '') . 'not found', 1, 0);
@@ -918,7 +915,7 @@ __END__
 
 =head1 NAME
 
-FWORCH - Perl extension for IT Security Organizer
+FWORCH - Perl extension for fworch
 
 =head1 SYNOPSIS
 
@@ -928,10 +925,10 @@ FWORCH - Perl extension for IT Security Organizer
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
+fworch Perl Module
 support for
-- importing configs into ITSecOrg Database
-- basic functions to access ITSecOrg DB
+- importing configs into fworch Database
+- basic functions to access fworch DB
 
 =head2 EXPORT
 
@@ -954,14 +951,8 @@ support for
 
   behind the door
 
-
 =head1 AUTHOR
 
   Tim Purschke, tmp@cactus.de
 
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2005 by Cactus eSecurity GmbH, Frankfurt, Germany
-
 =cut
-

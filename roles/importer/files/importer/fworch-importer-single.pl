@@ -1,30 +1,24 @@
 #! /usr/bin/perl -w
-# $Id: iso-importer-single.pl,v 1.1.2.18 2013-01-31 21:57:22 tim Exp $
-# $Source: /home/cvs/iso/package/importer/Attic/iso-importer-single.pl,v $
-# -------------------------------------------------------------------------------------------
-# iso-importer-single.pl
-# -------------------------------------------------------------------------------------------
 
 use strict;
 use lib '.';
-use CACTUS::FWORCH;					# Basisfunktionen und Variablen fuer FWORCH-DB-Zugriff
-use CACTUS::FWORCH::import;			# Import-Funktionen (Parser, etc.)
-use CGI qw(:standard);				# fuer Paramemteruebergabe via HTTP (auch Commandline)
-use Time::HiRes qw(time tv_interval); # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
-#use File::Path;
+use CACTUS::FWORCH;					  # base functions and variables for fworch db access
+use CACTUS::FWORCH::import;			  # import functions, parsers
+use CGI qw(:standard);				  # provides argument handling
+use Time::HiRes qw(time tv_interval); # provides exact measurement of import execution time
 use File::Path qw(make_path rmtree);
 use File::Find;
 use CACTUS::read_config;
 
 ##############################################
 
-sub empty_rule_files { # this function deletes a rule file and creates an empty rule file instead
+sub empty_rule_files { # deletes a rule file and creates an empty rule file instead
 	if ($File::Find::name =~ /\_rulebase\.csv$/) {
 		system("rm $File::Find::name");
 		system("touch $File::Find::name");
 	}
 }
-sub empty_config_files { # this function deletes a csv config file and creates an empty csv file instead
+sub empty_config_files { # deletes a csv config file and creates an empty csv file instead
 	if ($File::Find::name =~ /\.csv$/) {
 		system("rm $File::Find::name");
 		system("touch $File::Find::name");
@@ -161,7 +155,7 @@ if (!$error_count_global) {
 					}
 				}
 				# 4) now transfering data from import_ tables to final tables:
-				if (!$error_count_global) {  # import nur bei fehlerfreiem Verlauf
+				if (!$error_count_global) {  # import ony when no previous errors occured
 					$error_count_local = 0;						
 					if (!&exec_pgsql_cmd_return_value("SET client_min_messages TO NOTICE; SELECT import_all_main($current_import_id)")) {
 						$error_count_local = 1;
@@ -193,7 +187,7 @@ if (!$error_count_global) {
 			&exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id");
 		}
 	}
-	# Cleanup und Statistik
+	# Cleanup and statistics
 	&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()
 	&clean_up_fworch_db($current_import_id);
 	if (defined($save_import_results_to_file) && $save_import_results_to_file && ($error_count_global || $changes ne '')) { # if changes or errors occured: move config & csv to archive

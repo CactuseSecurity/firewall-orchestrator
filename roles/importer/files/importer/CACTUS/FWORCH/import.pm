@@ -1,7 +1,4 @@
 package CACTUS::FWORCH::import;
-# $Id: import.pm,v 1.1.2.16 2013-01-31 21:57:48 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/Attic/import.pm,v $
-
 use strict;
 use warnings;
 use DBD::Pg;
@@ -1301,7 +1298,7 @@ __END__
 
 =head1 NAME
 
-FWORCH::import - Perl extension for IT Security Organizer Import
+FWORCH::import - Perl extension for fworch Import
 
 =head1 SYNOPSIS
 
@@ -1309,8 +1306,7 @@ FWORCH::import - Perl extension for IT Security Organizer Import
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -1325,10 +1321,6 @@ support for importing configs into ITSecOrg Database
 
 =head1 AUTHOR
 
-  Tim Purschke, tmp@cactus.de
-
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2020 by Cactus eSecurity GmbH, Frankfurt, Germany
+  Cactus eSecurity, tmp@cactus.de
 
 =cut

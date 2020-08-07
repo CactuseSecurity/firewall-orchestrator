@@ -3,13 +3,9 @@ api_user: "{{ fworch_dbadmin_name }}"
 api_user_password: "{{ dbadmin_pwd }}"
 api_user_email: "{{ api_user }}@localhost"
 api_hasura_admin_secret: "st8chelt1er"
-api_sample_user_pwd_hash : "md52dd181e8bab17b9cfac36805211a4ff2"
 api_hasura_jwt_alg: "HS384"
 api_container_name: hasura_fw_orch
-#api_hasura_version: "v1.2.2"
 api_hasura_version: "v1.3.0"
+api_project_name: api
 api_hostname: "127.0.0.1"
 api_port: 8080
-api_project_name: api
-api_listener_ip: 127.0.0.1
-api_listener_port: 8080

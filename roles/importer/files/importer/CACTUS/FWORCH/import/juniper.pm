@@ -1,6 +1,3 @@
-# !/usr/bin/perl -w
-# $Id: juniper.pm,v 1.1.2.12 2012-03-24 13:57:03 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/juniper.pm,v $
 
 package CACTUS::FWORCH::import::parser;
 
@@ -1031,7 +1028,7 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $fworch_workdir,
 		my $mgm_name_in_config = &parse_mgm_name($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id);
 		&parse_config_base_objects  ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id); # zones, simple network and service objects  
 		push @zones, "global"; 	# Global Zone immer hinzufuegen
-		foreach my $zone (@zones) {	object_address_add("any", "0.0.0.0", "0.0.0.0", $zone, "any-obj for zone $zone added by ITSecOrg"); &print_debug(""); } #		Any-Objekte fuer alle Zonen einfuegen
+		foreach my $zone (@zones) {	object_address_add("any", "0.0.0.0", "0.0.0.0", $zone, "any-obj for zone $zone added by fworch"); &print_debug(""); } #		Any-Objekte fuer alle Zonen einfuegen
 		&parse_config_group_objects ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name, $config_dir, $import_id); # groups are parsed in separate cycle to ensure that all base objects are complete
 #		&resolve_service_uuid_references ($debuglevel_main);
 		&parse_config_rules ($in_file_main, $fworch_workdir, $debuglevel_main, $mgm_name_in_config, $config_dir, $import_id); # finally parsing the rule base, ignoring the rulebase name in fworch config
@@ -1050,16 +1047,15 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer netscreen parser
+CACTUS::FWORCH::parser - Perl extension for JunOS parser
 
 =head1 SYNOPSIS
 
-  use CACTUS::FWORCH::import::netscreen;
+  use CACTUS::FWORCH::import::juniper;
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -1072,4 +1068,6 @@ support for importing configs into ITSecOrg Database
 
 =head1 AUTHOR
 
-  Tim Purschke, tmp@cactus.de
+  Cactus eSecurity, tmp@cactus.de
+
+=cut

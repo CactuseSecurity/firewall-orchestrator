@@ -1,7 +1,3 @@
-# !/usr/bin/perl -w
-# $Id: fortinet.pm,v 1.1.2.12 2012-03-24 13:57:03 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/FWORCH/import/Attic/juniper.pm,v $
-
 package CACTUS::FWORCH::import::parser;
 
 use strict;
@@ -1181,7 +1177,7 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer fortinet parser
+CACTUS::FWORCH::parser - Perl extension for fworch fortinet parser
 
 =head1 SYNOPSIS
 
@@ -1189,8 +1185,7 @@ CACTUS::FWORCH::parser - Perl extension for IT Security Organizer fortinet parse
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -1203,6 +1198,6 @@ support for importing configs into ITSecOrg Database
 
 =head1 AUTHOR
 
-  Holger Dost, Tim Purschke, tmp@cactus.de
+Cactus eSecurity, tmp@cactus.de
 
-
+=cut

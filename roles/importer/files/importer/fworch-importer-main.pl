@@ -1,5 +1,4 @@
 #! /usr/bin/perl -w
-# iso-importer-main.pl
 use strict;
 use lib '.';
 use CACTUS::FWORCH;
@@ -7,7 +6,7 @@ use CACTUS::read_config;
 use CGI qw(:standard);          
 use Sys::Hostname;
 
-my $isobase	= &CACTUS::read_config::read_config('ITSecOrgDir');
+my $isobase	= &CACTUS::read_config::read_config('TopDir');
 my $importdir	= &CACTUS::read_config::read_config('ImportDir');
 my $sleep_time	= &CACTUS::read_config::read_config('ImportSleepTime');
 my $hostname_localhost = hostname();
@@ -37,7 +36,7 @@ while (1) {
 		}
 		if ($importer_hostname eq $hostname_localhost) {
 			output_txt("Import: running on responsible importer $importer_hostname ... ");
-			$fehler = system("$importdir/iso-importer-single.pl mgm_id=$mgm_id");
+			$fehler = system("$importdir/fworch-importer-single.pl mgm_id=$mgm_id");
 		}
 	}
 	output_txt("-------- Import module: going back to sleep for $sleep_time seconds --------\n");

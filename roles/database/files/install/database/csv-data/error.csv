@@ -22,7 +22,7 @@
 "INFO_RULE_CHANGED";4;"Regel wurde geaendert";"rule changed"
 "INFO_OBJ_CHANGED";4;"Objekt wurde geaendert";"object changed"
 "INFO_USR_CHANGED";4;"Benutzer wurde geaendert";"user changed"
-"INFO_ADMIN_NOT_FOUND";4;"Der folgende Administrator wurde in der ITSecOrg-Datenbank nicht gefunden.";"The following administrator was not found in ITSecOrg."
+"INFO_ADMIN_NOT_FOUND";4;"Der folgende Administrator wurde in der fworch-Datenbank nicht gefunden.";"The following administrator was not found in fworch."
 "DEBUG_GENERAL_INFO";3;"Debug-Info";"Debug-Info"
 "WARN_NO_IMP_ID_FOUND";3;"Es wurde keine passende Import-ID zu diesem Zeitpunkt und Managementsystem gefunden.";"No matching import id for time and management system found."
 "ERR_PORT_INVALID";2;"Der konfigurierte Port ist nicht gueltig und wurde automatisch auf den max. zulaessigen Wert korrigiert.";"the port configured is invalid. It has been automatically changed to a max. valid value."

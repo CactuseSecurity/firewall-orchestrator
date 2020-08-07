@@ -30,7 +30,7 @@
 
 <form>
 <div id="inhalt">
-<b class="headlinemain">ITSecOrg Konfigurationsdateien</b>
+<b class="headlinemain">fworch Konfigurationsdateien</b>
 
 Es gibt die folgenden Konfigurationsdateien in $FWORCHHOME/etc/:
 <ul>

@@ -12,7 +12,7 @@
 <ul>
 <li>iso.conf
 <pre>
-ITSecOrgDir	/usr/local/fworch		# Installationsverzeichnis
+TopDir	/usr/local/fworch		# Installationsverzeichnis
 	
 ###################### database connection ##############################
 fworch database hostname              localhost

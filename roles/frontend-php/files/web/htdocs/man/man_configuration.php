@@ -29,8 +29,8 @@
 
 <form>
 <div id="inhalt">
-<b class="headlinemain">ITSecOrg Konfiguration</b>
-<big><big>ITSecOrg Konfiguration</big></big><br>
+<b class="headlinemain">fworch Konfiguration</b>
+<big><big>fworch Konfiguration</big></big><br>
 Folgende Konfigurationen k&ouml;nnen via Web-GUI modifiziert werden:
 <br>
 <ul>
@@ -41,13 +41,13 @@ Folgende Konfigurationen k&ouml;nnen via Web-GUI modifiziert werden:
 </ul>
 <br>
 
-Diese Aktionen kann ein ITSecOrg Benutzer (sofern er die notwendigen Berechtigungen besitzt) &uuml;ber den Men&uuml;punkt Einstellungen durchf&uuml;hren.
+Diese Aktionen kann ein fworch Benutzer (sofern er die notwendigen Berechtigungen besitzt) &uuml;ber den Men&uuml;punkt Einstellungen durchf&uuml;hren.
 <br>
 Mit der Option &quot;Passwort &auml;ndern&quot; kann der Benutzer ein neues Passwort vergeben.
 Dies sollte erstmalig direkt nach dem ersten Anmelden geschehen, um das Initial-Passwort abzu&auml;ndern,
 das eventuell auch anderen Personen als dem Benutzer selbst bekannt sein kann.
 <br>
-Administratoren, die nach Inbetriebnahme des ITSecOrg-Systems das Team der Sicherheitsadministratoren verlassen,
+Administratoren, die nach Inbetriebnahme des fworch-Systems das Team der Sicherheitsadministratoren verlassen,
 d&uuml;rfen nicht gel&ouml;scht werden, da sonst das Reporting der von diesem Administrator durchgef&uml;hrten
 &Auml;nderungen nicht mehr sauber dargestellt w&uuml;rde. Stattdessen ist Das Austrittsdatum (isoadmin_end_date) einzutragen, um
 den Login zu unterbinden.

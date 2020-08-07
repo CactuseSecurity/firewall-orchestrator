@@ -11,7 +11,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>ITSecOrg Change Device Config</title>
+<title>fworch Change Device Config</title>
 <script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
 <script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">
@@ -92,8 +92,8 @@
 			$email				= $isoadmin->getEmail();
 			$is_isoadmin		= $isoadmin->getIsIsoadmin();
 	}
-	$headers = array('ITSecOrg Administrator', $user_id);
-	$user_table = new DisplayTable('ITSecOrg Administrator', $headers);
+	$headers = array('fworch Administrator', $user_id);
+	$user_table = new DisplayTable('fworch Administrator', $headers);
 	
 	if ($aktion=='display' or ($aktion=='save' and (!isset($input_fehler) or $input_fehler=='')))
 		{ $nurlesen = 'readonly'; $select_disabled = 'disabled'; }
@@ -114,7 +114,7 @@
 			$end_date. '" ' . $nurlesen . ' size="'  . $size . '">');
 	$form .= $user_table->displayRowSimple() . $user_table->displayColumn('Email-Adresse') . $user_table->displayColumn('<input type="text" name="email" value="' .
 			$email. '" ' . $nurlesen . ' size="'  . $size . '">');
-	$form .= $user_table->displayRowSimple() . $user_table->displayColumn('ITSecOrg-Superuser?') . $user_table->displayColumn('<SELECT ' . $select_disabled  . ' name="is_isoadmin">' .
+	$form .= $user_table->displayRowSimple() . $user_table->displayColumn('fworch-Superuser?') . $user_table->displayColumn('<SELECT ' . $select_disabled  . ' name="is_isoadmin">' .
 			'<OPTION ' . (($is_isoadmin)?'selected':'') . ' value="1">ja</OPTION>' .
 			'<OPTION ' . (($is_isoadmin)?'':'selected') . ' value="0">nein</OPTION>');
 	$form .= $user_table->displayTableClose();

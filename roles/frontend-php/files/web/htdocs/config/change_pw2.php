@@ -66,7 +66,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>ITSecOrg Password Change failed</title>
+<title>fworch Password Change failed</title>
 <meta name="robots" content="index,follow">
 <meta http-equiv="cache-control" content="no-cache">
 <meta name="revisit-after" content="2 days">

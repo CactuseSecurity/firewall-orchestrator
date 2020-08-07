@@ -7,7 +7,10 @@ ui_app_name: "{{ product_name }}"
 ui_dir: "{{ fworch_home }}/ui"
 ui_syslog_id: "{{ product_name }} ui"
 ui_start_dir: "{{ ui_dir }}/Blazor/FWO/FWO"
+
+# correct name for demo installation:
 ui_server_name: demo.itsecorg.de
+
 ui_server_admin: root@localhost
 ui_hostname: "127.0.0.1"
 ui_php_dir: "{{ fworch_home }}/web/htdocs"

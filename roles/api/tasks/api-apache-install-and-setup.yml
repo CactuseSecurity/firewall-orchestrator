@@ -15,8 +15,14 @@
     - name: enable apache modules proxy proxy_http ssl
       command: "a2enmod proxy proxy_http ssl rewrite proxy_wstunnel"
 
-    - name: copy cert creation script to apache target
+    - name: execute cert creation script
       script: "apache_create_server_cert.sh" 
+
+    - name: copy cert to /etc/ssl/certs/ to make it acceptable
+      copy: 
+        src:"/etc/apache2/ssl/server.crt"
+        dest: "/etc/ssl/certs/"
+        remote: yes
 
     - name: enable {{ product_name }} web site
       shell: "a2ensite {{ product_name }}-api"

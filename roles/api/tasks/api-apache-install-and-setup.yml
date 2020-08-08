@@ -19,11 +19,11 @@
       script: "apache_create_server_cert.sh" 
 
     - name: copy cert to /etc/ssl/certs/ to make it acceptable
-      copy: 
-        src:"/etc/apache2/ssl/server.crt"
+      copy:
+        src: "/etc/apache2/ssl/server.crt"
         dest: "/etc/ssl/certs/"
-        remote: yes
-
+        remote_src: yes
+  
     - name: enable {{ product_name }} web site
       shell: "a2ensite {{ product_name }}-api"
 

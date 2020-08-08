@@ -1,6 +1,9 @@
 
 # this playbook sets up the api
 
+- name: install apache2
+  import_tasks: api-apache-install-and-setup.yml
+
 - name: hasura basic file setup 
   import_tasks: hasura-files.yml
 

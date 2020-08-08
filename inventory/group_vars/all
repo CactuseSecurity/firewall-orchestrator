@@ -23,9 +23,10 @@ fworch_db_name: fworchdb
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "3.1"
 
+### to be moved:
+
 # users & passwords
 fworch_dbadmin_name: dbadmin
 dbadmin_pwd: "st8chel"
 fworch_pwd: "st8chel"
 admin_pwd: "fworch.1"
-

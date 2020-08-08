@@ -1,0 +1,26 @@
+# create query collection for basic tasks fworch_basics
+
+- name: create basic queries
+  uri:
+    url: "{{ api_url_queries }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      x-hasura-admin-secret: "st8chelt1er"
+      x-hasura-role: "admin"
+    body_format: json
+    src: api-queries-basic.json
+
+# - name: add basic query collection to allow-list
+#   shell: "sleep 1"
+
+# create query collection for reporting fworch_reporting
+
+# - name: create reporting queries
+#   uri:
+#     url: "{{ api_url_queries }}"
+#     method: POST
+#     src: api-queries-reporting.graphql
+
+# - name: add basic query collection to allow-list
+#   shell: "sleep 1"

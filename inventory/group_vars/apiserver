@@ -11,4 +11,5 @@ api_container_name: hasura_fw_orch
 api_hasura_version: "v1.3.0"
 api_project_name: api
 api_hostname: "127.0.0.1"
+api_web_port: 9443
 api_port: 8080

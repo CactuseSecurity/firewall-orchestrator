@@ -8,7 +8,7 @@
     - name: copy iso httpd config file to apache target
       template:
         src: "httpd.conf"
-        dest: "{{ http_conf_dir }}/{{ product_name }}.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-api.conf"
         owner: root
         group: root
         
@@ -19,12 +19,18 @@
       script: "apache_create_server_cert.sh" 
 
     - name: enable {{ product_name }} web site
-      shell: "a2ensite {{ product_name }}"
+      shell: "a2ensite {{ product_name }}-api"
 
     - name: increase apache timeout to 900 seconds
       lineinfile:
         path: /etc/apache2/apache2.conf
         line: "Timeout 900"
+
+    - name: add port to apache
+      lineinfile:
+        path: "/etc/apache2/ports.conf"
+        line: "    Listen {{ api_web_port }}"
+        insertafter: "<IfModule ssl_module>"
 
     - name: restart apache
       service:

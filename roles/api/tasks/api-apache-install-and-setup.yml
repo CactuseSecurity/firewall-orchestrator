@@ -5,6 +5,8 @@
       with_items:
         - "{{ web_server_name }}"
 
+    - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend
+
     - name: copy iso httpd config file to apache target
       template:
         src: "httpd.conf"

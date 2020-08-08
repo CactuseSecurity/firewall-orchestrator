@@ -15,3 +15,4 @@ api_hasura_jwt_alg: "HS384"
 api_container_name: hasura_fw_orch
 api_hasura_version: "v1.3.0"
 api_project_name: api
+api_server_admin: root@localhost

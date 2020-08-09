@@ -22,6 +22,8 @@ fworch_db_name: fworchdb
 
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "3.1"
+dotnet_mode: "Debug"
+# dotnet_mode: "Release"
 
 ### to be moved:
 

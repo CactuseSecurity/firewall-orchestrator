@@ -47,7 +47,7 @@
   environment: "{{ proxy_env }}"
 
 - name: publish authserver
-  shell: "cd {{ auth_server_start_dir }} && dotnet publish -c Debug"
+  shell: "cd {{ auth_server_start_dir }} && dotnet publish -c {{ dotnet_mode }}"
   become: yes
   become_user: "{{ fworch_user }}"
 

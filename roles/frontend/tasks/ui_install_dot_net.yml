@@ -47,7 +47,7 @@
   environment: "{{ proxy_env }}"
 
 - name: publish blazor ui
-  shell: "cd {{ ui_start_dir }} ; dotnet publish -c Debug"
+  shell: "cd {{ ui_start_dir }} ; dotnet publish -c {{ dotnet_mode }}"
   become: yes
   become_user: "{{ fworch_user }}"
 

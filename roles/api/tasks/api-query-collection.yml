@@ -1,6 +1,6 @@
 # create query collection for basic tasks fworch_basics
 
-- set_fact: api_url_queries="https://{{ ansible_hostname }}:{{ api_web_port }}/api/query"
+- set_fact: api_url_queries="https://{{ ansible_hostname }}:{{ api_web_port }}/api/v1/query"
 
 - name: create basic queries
   uri:
@@ -12,6 +12,7 @@
       x-hasura-role: "admin"
     body_format: json
     src: api-queries-basic.json
+    validate_certs: no
 
 # - name: add basic query collection to allow-list
 #   shell: "sleep 1"

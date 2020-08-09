@@ -25,14 +25,17 @@
     - name: remove all collections for cleanup
       shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DELETE FROM {{ collection_table }};"'
 
+    - name: remove all collections from allowlist opening up the db
+      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DELETE FROM {{ allow_table }};"'
+
     - name: insert basicQueries collection
       shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-basic.sql"'
 
     - name: insert ruleQueries collection
       shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-rule.sql"'
 
-    - name: insert nwobjQueries collection
-      shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-nwobj.sql"'
+    - name: insert filterQueries collection
+      shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-filters.sql"'
 
     - name: clean up .pgpass file
       file:

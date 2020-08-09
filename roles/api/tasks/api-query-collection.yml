@@ -6,8 +6,12 @@
 
 - name: copy query files to target
   template:
-    src: "query-collections/api-queries-basic.sql.j2"
-    dest: "{{ api_home }}/api-queries-basic.sql"
+    src: "query-collections/reporting/{{ item.src }}"
+    dest: "{{ api_home }}/{{ item.dest }}"
+  with_items:
+    - {src: 'api-queries-report-basic.sql.j2',dest: 'api-queries-report-basic.sql'}
+    - {src: 'api-queries-report-rule.sql.j2',dest: 'api-queries-report-rule.sql'}
+    - {src: 'api-queries-report-filters.sql.j2',dest: 'api-queries-report-filters.sql'}
   become: yes
 
 - block:
@@ -22,8 +26,13 @@
       shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DELETE FROM {{ collection_table }};"'
 
     - name: insert basicQueries collection
-      shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-basic.sql"'
-#      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT collection_name FROM {{ collection_table }} WHERE collection_name=''basicQueries'') THEN \\i api-queries-basic.sql; END IF; END \$do\$"'
+      shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-basic.sql"'
+
+    - name: insert ruleQueries collection
+      shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-rule.sql"'
+
+    - name: insert nwobjQueries collection
+      shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-nwobj.sql"'
 
     - name: clean up .pgpass file
       file:
@@ -32,35 +41,3 @@
 
   become: yes
   become_user: "{{ fworch_user }}"
-
-
-# 1st try: via hasura API:
-
-#- set_fact: api_url_queries="https://{{ ansible_hostname }}:{{ api_web_port }}/api/v1/query"
-
-# - name: create basic queries
-#   uri:
-#     url: "{{ api_url_queries }}"
-#     method: POST
-#     headers:
-#       Content-Type: "application/json"
-#       x-hasura-admin-secret: "st8chelt1er"
-#       x-hasura-role: "admin"
-#     src: api-queries-basic.json
-#     validate_certs: no
-
-#    body_format: json
-
-# - name: add basic query collection to allow-list
-#   shell: "sleep 1"
-
-# create query collection for reporting fworch_reporting
-
-# - name: create reporting queries
-#   uri:
-#     url: "{{ api_url_queries }}"
-#     method: POST
-#     src: api-queries-reporting.graphql
-
-# - name: add basic query collection to allow-list
-#   shell: "sleep 1"

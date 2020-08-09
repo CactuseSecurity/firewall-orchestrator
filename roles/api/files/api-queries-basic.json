@@ -1,19 +1,18 @@
 {
-  "type": "create_query_collection",
+  "type" : "create_query_collection",
   "args": {
-    "name": "basicQueries",
-    "comment": "queries used in other collections",
-    "definition": {
-      "queries": [
-        {
-          "name": "listNwObjects",
-          "query": "query { object { obj_name } }"
-        },
-        {
-          "name": "getImportId",
-          "query": "query getImportId($management_id: Int!, $time: timestamp!) { import_control_aggregate(where: {mgm_id: {_eq:$management_id},stop_time: {_lte:$time } }) { aggregate { max { control_id } } } }"
-        }
-      ]
-    }
+      "name": "basicCollection",
+      "definition": {
+          "queries": [
+              {
+              "name": "getImportId",
+              "query": "query getImportId($management_id: Int!, $time: timestamp!) { import_control_aggregate(where: {mgm_id: {_eq:$management_id},stop_time: {_lte:$time } }) { aggregate { max { control_id } } } }"
+              },
+              {
+              "name": "getImportId2",
+              "query": "query getImportId2($management_id: Int!, $time: timestamp!) { import_control_aggregate(where: {mgm_id: {_eq:$management_id},stop_time: {_lte:$time } }) { aggregate { max { control_id } } } }"
+              }
+          ]
+      }
   }
 }

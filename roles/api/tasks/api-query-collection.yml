@@ -10,9 +10,10 @@
       Content-Type: "application/json"
       x-hasura-admin-secret: "st8chelt1er"
       x-hasura-role: "admin"
-    body_format: json
     src: api-queries-basic.json
     validate_certs: no
+
+#    body_format: json
 
 # - name: add basic query collection to allow-list
 #   shell: "sleep 1"

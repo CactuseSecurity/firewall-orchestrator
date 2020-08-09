@@ -66,7 +66,7 @@
 use json instead of graphql!!!
 
     curl --request POST \
-        --url https://127.0.0.1:10443/api/v1/query \
+        --url http://127.0.0.1:8080/v1/query \
         --header 'content-type: application/json' \
         --header 'x-hasura-admin-secret: st8chelt1er' \
         --header 'x-hasura-role: admin' \
@@ -77,7 +77,32 @@ use json instead of graphql!!!
                 "comment": "an optional comment",
                 "definition": {
                     "queries": [
-                        {"name": "listNwObjects", "query": "query { object { obj_name } }"}
+                        {"name": "listNwObjects", "query": "query { object { obj_name } }"}                    ]
+                }
+            }
+        }'
+
+adding query with parameters:
+
+    curl --request POST \
+        --url http://127.0.0.1:8080/v1/query \
+        --header 'content-type: application/json' \
+        --header 'x-hasura-admin-secret: st8chelt1er' \
+        --header 'x-hasura-role: admin' \
+        --data '{
+            "type" : "create_query_collection",
+            "args": {
+                "name": "basicCollection",
+                "definition": {
+                    "queries": [
+                        {
+                        "name": "getImportId",
+                        "query": "query getImportId($management_id: Int!, $time: timestamp!) { import_control_aggregate(where: {mgm_id: {_eq:$management_id},stop_time: {_lte:$time } }) { aggregate { max { control_id } } } }"
+                        },
+                        {
+                        "name": "getImportId2",
+                        "query": "query getImportId2($management_id: Int!, $time: timestamp!) { import_control_aggregate(where: {mgm_id: {_eq:$management_id},stop_time: {_lte:$time } }) { aggregate { max { control_id } } } }"
+                        }
                     ]
                 }
             }

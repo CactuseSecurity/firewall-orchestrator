@@ -1,5 +1,5 @@
 
-INSERT INTO {{ collection_table }} (collection_name, collection_defn, comment, is_system_defined) 
+INSERT INTO hdb_catalog.hdb_query_collection (collection_name, collection_defn, comment, is_system_defined) 
 VALUES ('ruleQueries', '{"queries": [
     {
         "name": "listRules",
@@ -46,5 +46,3 @@ VALUES ('ruleQueries', '{"queries": [
         }"
     }
 ]}', 'rule queries', FALSE);
-
-INSERT INTO {{ allow_table }} (collection_name) VALUES ('ruleQueries');

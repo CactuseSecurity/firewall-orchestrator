@@ -1,5 +1,5 @@
 
-INSERT INTO {{ collection_table }} (collection_name, collection_defn, comment, is_system_defined) 
+INSERT INTO  hdb_catalog.hdb_query_collection (collection_name, collection_defn, comment, is_system_defined) 
 VALUES ('filterQueries', '{"queries": [
     {
         "name": "filterDevices",
@@ -29,8 +29,3 @@ VALUES ('filterQueries', '{"queries": [
         }"
     }
 ]}', 'filter queries', FALSE);
-
-INSERT INTO {{ allow_table }} (collection_name) VALUES ('filterQueries');
-
-
-

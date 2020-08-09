@@ -1,5 +1,5 @@
 
-INSERT INTO {{ collection_table }} (collection_name, collection_defn, comment, is_system_defined) 
+INSERT INTO hdb_catalog.hdb_query_collection (collection_name, collection_defn, comment, is_system_defined) 
 VALUES ('basicQueries', '{"queries": [
     {
         "name": "getImportId",
@@ -107,8 +107,4 @@ VALUES ('basicQueries', '{"queries": [
         }"
     }
 ]}', 'base queries to be used elsewhere', FALSE);
-
-INSERT INTO {{ allow_table }} (collection_name) VALUES ('basicQueries');
-
-
 

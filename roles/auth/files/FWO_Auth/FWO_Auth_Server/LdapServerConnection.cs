@@ -1,39 +1,41 @@
-﻿using System;
+﻿using Novell.Directory.Ldap;
+using System;
 using System.Collections.Generic;
-using System.DirectoryServices;
 using System.Text;
 
 namespace FWO_Auth_Server
 {
     class LdapServerConnection
     {
-        private readonly string Address;
+        private readonly string Domain;
+        private readonly int Port;
 
-        public LdapServerConnection(string Address)
+        public LdapServerConnection(string Domain, int Port)
         {
-            this.Address = Address;
+            this.Domain = Domain;
+            this.Port = Port;
         }
 
         // tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
         // dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
-        public bool Valid(string Username, string Password)
+        public bool ValidateUser(string Username, string Password)
         {
+            string userDn = $"{Username}@{Domain}";
             try
             {
-                DirectoryEntry de = new DirectoryEntry(Address, Username, Password, AuthenticationTypes.Secure);
-                DirectorySearcher ds = new DirectorySearcher(de);
-                ds.FindOne();
-                return true;
+                using (var connection = new LdapConnection { SecureSocketLayer = true })
+                {
+                    connection.Connect(Domain, Port);
+                    connection.Bind(userDn, Password);
+                    if (connection.Bound)
+                        return true;
+                }
             }
-            catch (Exception ex)
+            catch (LdapException ex)
             {
-                Console.WriteLine(ex.Message + " Stack Trace: " + ex.StackTrace);
-                return false;
+                // Log exception
             }
-
-            //DirectoryRequest Request = new SearchRequest("NAME", "FILTER", SearchScope.Subtree, "ATTRIBUTES");
-            //DirectoryResponse Response =  Connection.SendRequest(Request);
-            //return Response.MatchedDN != "";
+            return false;
         }
 
         public IEnumerable<Role> GetRoles(string Username, string Password)

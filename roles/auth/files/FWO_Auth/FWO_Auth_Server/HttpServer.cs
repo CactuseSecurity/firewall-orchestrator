@@ -17,7 +17,7 @@ namespace FWO_Auth
 
         public HttpServer()
         {
-            LdapConnection = new LdapServerConnection("ldaps://localhost/");
+            LdapConnection = new LdapServerConnection("localhost", 636);
             Start();
         }
 
@@ -51,7 +51,7 @@ namespace FWO_Auth
                             status = HttpStatusCode.OK;
                             string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
                             Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
-                            responseString = LdapConnection.Valid(Parameters["Username"], Parameters["Password"]) ? "ok" : "wrong";
+                            responseString = LdapConnection.ValidateUser(Parameters["Username"], Parameters["Password"]) ? "ok" : "wrong";
                         }
                         break;
 

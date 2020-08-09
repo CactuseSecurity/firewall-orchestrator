@@ -1,17 +1,48 @@
 # create query collection for basic tasks fworch_basics
+# via direct hasura DB access
 
-- set_fact: api_url_queries="https://{{ ansible_hostname }}:{{ api_web_port }}/api/v1/query"
+- set_fact: collection_table: hdb_catalog.hdb_query_collection
+- set_fact: allow_table: hdb_catalog.hdb_allowlist
 
-- name: create basic queries
-  uri:
-    url: "{{ api_url_queries }}"
-    method: POST
-    headers:
-      Content-Type: "application/json"
-      x-hasura-admin-secret: "st8chelt1er"
-      x-hasura-role: "admin"
-    src: api-queries-basic.json
-    validate_certs: no
+- block:
+    - name: copy query files to target
+      template:
+        src: "query-collections/api-queries-basic.sql.j2"
+        dest: "{{ api_home }}/api-queries-basic.sql"
+  
+    - name: create .pgpass file
+      lineinfile:
+        path: "{{ fworch_home }}/.pgpass"
+        create: yes
+        mode: 0600
+        line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
+      
+    - name: insert basicQueries collection
+      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT collection_name FROM {{ collection_table }} WHERE collection_name='basicQueries') THEN \i api-queries-basic.sql ;  END IF; END \$do\$"'
+
+      - name: clean up .pgpass file
+      file:
+        path: "{{ fworch_home }}/.pgpass"
+        state: absent
+
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+
+# 1st try: via hasura API:
+
+#- set_fact: api_url_queries="https://{{ ansible_hostname }}:{{ api_web_port }}/api/v1/query"
+
+# - name: create basic queries
+#   uri:
+#     url: "{{ api_url_queries }}"
+#     method: POST
+#     headers:
+#       Content-Type: "application/json"
+#       x-hasura-admin-secret: "st8chelt1er"
+#       x-hasura-role: "admin"
+#     src: api-queries-basic.json
+#     validate_certs: no
 
 #    body_format: json
 

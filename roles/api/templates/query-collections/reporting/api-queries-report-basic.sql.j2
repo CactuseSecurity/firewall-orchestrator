@@ -9,7 +9,7 @@ VALUES ('basicQueries', '{"queries": [
     {
         "name": "showManufacturers",
         "query": "query showManufacturers {
-            stm_dev_typ {
+            stm_dev_typ(order_by: {dev_typ_manufacturer: asc, dev_typ_version: asc}) {
                 dev_typ_id
                 dev_typ_manufacturer
                 dev_typ_version

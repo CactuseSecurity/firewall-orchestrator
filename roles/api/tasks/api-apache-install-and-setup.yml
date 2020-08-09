@@ -17,8 +17,20 @@
     - name: enable apache modules proxy proxy_http ssl
       command: "a2enmod proxy proxy_http ssl rewrite proxy_wstunnel"
 
+    - name: copy apache_create_server_cert.sh to apache target
+      template:
+        src: "apache_create_server_cert.sh"
+        dest: "{{ fworch_home }}"
+        owner: root
+        group: root
+
     - name: execute cert creation script
-      script: "apache_create_server_cert.sh" 
+      command: "{{ fworch_home }}/apache_create_server_cert.sh" 
+
+    - name: remove cert gen script
+      file: 
+        path: "{{ fworch_home }}/apache_create_server_cert.sh" 
+        state: absent
 
     - name: copy cert to /etc/ssl/certs/ to make it acceptable
       copy:

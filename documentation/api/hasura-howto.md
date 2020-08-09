@@ -111,7 +111,7 @@ adding query with parameters:
 #### Add query to existing collection
 
     curl --insecure --request POST \
-        --url https://127.0.0.1:18443/api/v1/query \
+        --url http://127.0.0.1:8080/v1/query \
         --header 'content-type: application/json' \
         --header 'x-hasura-admin-secret: st8chelt1er' \
         --header 'x-hasura-role: admin' \
@@ -129,12 +129,17 @@ See docu hint: In production instances: Enabling the allow-list is highly recomm
 
 <https://hasura.io/docs/1.0/graphql/manual/api-reference/schema-metadata-api/query-collections.html#id8>
 
-    {
-        "type" : "add_collection_to_allowlist",
-        "args": {
-            "collection": "my_collection"
-        }
-    }
+    curl --insecure --request POST \
+        --url http://127.0.0.1:8080/v1/query \
+        --header 'content-type: application/json' \
+        --header 'x-hasura-admin-secret: st8chelt1er' \
+        --header 'x-hasura-role: admin' \
+        --data '{
+            "type" : "add_collection_to_allowlist",
+            "args": {
+                "collection": "my_collection"
+            }
+        }'
 
     {
         "type" : "drop_collection_from_allowlist",

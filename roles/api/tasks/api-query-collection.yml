@@ -18,8 +18,12 @@
         mode: 0600
         line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
       
+    - name: remove all collections for cleanup
+      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DELETE FROM {{ collection_table }};"'
+
     - name: insert basicQueries collection
-      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT collection_name FROM {{ collection_table }} WHERE collection_name=''basicQueries'') THEN \i api-queries-basic.sql ;  END IF; END \$do\$"'
+      shell: 'cd {{ api_home }}; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-basic.sql"'
+#      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT collection_name FROM {{ collection_table }} WHERE collection_name=''basicQueries'') THEN \\i api-queries-basic.sql; END IF; END \$do\$"'
 
     - name: clean up .pgpass file
       file:

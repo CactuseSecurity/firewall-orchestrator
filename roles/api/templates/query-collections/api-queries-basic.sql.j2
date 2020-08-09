@@ -19,3 +19,5 @@ INSERT INTO {{ collection_table }} (collection_name, collection_defn, comment, i
     }
     }
 ', 'base queries to be used in other collections', FALSE);
+
+INSERT INTO {{ allow_table }} (collection_name) VALUES ('basicQueries');

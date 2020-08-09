@@ -1,5 +1,7 @@
 # create query collection for basic tasks fworch_basics
 
+- set_fact: api_url_queries="https://{{ ansible_hostname }}:{{ api_web_port }}/api/query"
+
 - name: create basic queries
   uri:
     url: "{{ api_url_queries }}"

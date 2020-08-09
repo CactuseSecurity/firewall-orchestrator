@@ -9,7 +9,6 @@ api_user_password: "{{ dbadmin_pwd }}"
 api_user_email: "{{ api_user }}@{{ api_hostname }}"
 api_home: "{{ fworch_home }}/api"
 api_hasura_bin: "/usr/local/bin/hasura"
-api_url_queries: "https://{{ api_hostname }}:{{ api_web_port }}/api/query"
 api_hasura_admin_secret: "st8chelt1er"
 api_hasura_jwt_alg: "HS384"
 api_container_name: hasura_fw_orch

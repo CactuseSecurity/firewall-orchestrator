@@ -8,7 +8,8 @@ namespace FWO_Filter
     {
         public static void Compile(string Input)
         {
-            Parser.Parse(Scanner.Scan(Input));
+            Parser parser = new Parser(Scanner.Scan(Input));
+            parser.Parse();
         }
     }
 }

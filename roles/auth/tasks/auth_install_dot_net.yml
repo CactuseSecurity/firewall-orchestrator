@@ -44,7 +44,7 @@
       command: "systemctl enable {{ auth_service_name }}"
 
     - name: publish authserver
-      command: "cd {{ auth_server_start_dir }}; dotnet publish -c Debug"
+      shell: "cd {{ auth_server_start_dir }} && dotnet publish -c Debug"
 
     - name: start auth service
       command: "systemctl start {{ auth_service_name }}"

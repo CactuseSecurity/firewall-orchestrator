@@ -44,7 +44,7 @@
       command: "systemctl enable {{ ui_service_name }}"
 
     - name: publish blazor ui
-      command: "cd {{ ui_start_dir }}; dotnet publish -c Debug"
+      shell: "cd {{ ui_start_dir }} ; dotnet publish -c Debug"
 
     - name: start blazor ui
       command: "systemctl start {{ ui_service_name }}"

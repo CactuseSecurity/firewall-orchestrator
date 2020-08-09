@@ -1,15 +1,16 @@
 # create query collection for basic tasks fworch_basics
 # via direct hasura DB access
 
-- set_fact: collection_table: hdb_catalog.hdb_query_collection
-- set_fact: allow_table: hdb_catalog.hdb_allowlist
+- set_fact: collection_table=hdb_catalog.hdb_query_collection
+- set_fact: allow_table=hdb_catalog.hdb_allowlist
+
+- name: copy query files to target
+  template:
+    src: "query-collections/api-queries-basic.sql.j2"
+    dest: "{{ api_home }}/api-queries-basic.sql"
+  become: yes
 
 - block:
-    - name: copy query files to target
-      template:
-        src: "query-collections/api-queries-basic.sql.j2"
-        dest: "{{ api_home }}/api-queries-basic.sql"
-  
     - name: create .pgpass file
       lineinfile:
         path: "{{ fworch_home }}/.pgpass"
@@ -18,9 +19,9 @@
         line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
       
     - name: insert basicQueries collection
-      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT collection_name FROM {{ collection_table }} WHERE collection_name='basicQueries') THEN \i api-queries-basic.sql ;  END IF; END \$do\$"'
+      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT collection_name FROM {{ collection_table }} WHERE collection_name=''basicQueries'') THEN \i api-queries-basic.sql ;  END IF; END \$do\$"'
 
-      - name: clean up .pgpass file
+    - name: clean up .pgpass file
       file:
         path: "{{ fworch_home }}/.pgpass"
         state: absent

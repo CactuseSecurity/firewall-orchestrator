@@ -4,7 +4,7 @@
 ```console
 - boolean fields (negated, disabled) can contain either 0/1 or true/false?
 - directory:
-- import arrays/fields are defined in CACTUS/ISO/import.pm:
+- import arrays/fields are defined in CACTUS/FWORCH/import.pm:
   our @obj_import_fields
   our @svc_import_fields
   our @user_import_fields

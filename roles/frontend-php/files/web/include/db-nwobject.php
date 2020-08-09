@@ -102,7 +102,7 @@ class NetworkObjectList extends DbList {
 		}
 	}
 	function select_nwobjects($sql_code, $import_ids) {
-		$obj_table = $this->db_connection->iso_db_query($sql_code);
+		$obj_table = $this->db_connection->fworch_db_query($sql_code);
 		if (!$this->error->isError($obj_table)) {
 			$this->rows = $obj_table->rows;
 			$obj_list = array ();
@@ -158,7 +158,7 @@ class NetworkObjectChangedList extends DbList {
 			" ORDER BY changelog_object.log_obj_id";
 			$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 			if (!$this->error->isError($this->db_connection)) {
-				$changeobject_table = $this->db_connection->iso_db_query($sqlcmd);
+				$changeobject_table = $this->db_connection->fworch_db_query($sqlcmd);
 				if (!$this->error->isError($changeobject_table)) {
 					$this->rows = $changeobject_table->rows;
 					$this->changes = array ();
@@ -233,7 +233,7 @@ class ChangedNetworkObject extends DbItem {
 	function select_oldobject($object_id, $import_id) {
 		if (is_null($object_id))
 			$this->error->raiseError("E-CHNW1: Object Id is null.");
-		$change_table_old = $this->db_connection->iso_db_query($this->getSelectStatement("old", $object_id));
+		$change_table_old = $this->db_connection->fworch_db_query($this->getSelectStatement("old", $object_id));
 		if ($this->error->isError($change_table_old)) {
 			$this->error->raiseError($change_table_old->getMessage());
 		}
@@ -247,7 +247,7 @@ class ChangedNetworkObject extends DbItem {
 	function select_newobject($object_id, $import_id) {
 		if (is_null($object_id))
 			$this->error->raiseError("E-CHNW2: Object Id is null");
-		$change_table_new = $this->db_connection->iso_db_query($this->getSelectStatement("new", $object_id));
+		$change_table_new = $this->db_connection->fworch_db_query($this->getSelectStatement("new", $object_id));
 		if ($this->error->isError($change_table_new)) {
 			$this->error->raiseError($change_table_new->getMessage());
 		}
@@ -307,7 +307,7 @@ class NetworkObjectSingle extends DbList {
 		$this->db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		//		$this->db_connection = $this->initSessionConnection();
 		if (!$this->error->isError($this->db_connection)) {
-			$data = $this->db_connection->iso_db_query($sqlcmd);
+			$data = $this->db_connection->fworch_db_query($sqlcmd);
 			//			echo "data: $data<br>";
 			if (!$this->error->isError($data)) {
 				//				echo "rows: $data->rows<br>";
@@ -351,7 +351,7 @@ class NetworkObjectCompare extends DbList {
 		$sqlcmd = "SELECT * FROM object WHERE obj_id=$obj_id1 OR obj_id=$obj_id2 order by obj_id";
 		$this->db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$changes = $this->db_connection->iso_db_query($sqlcmd);
+			$changes = $this->db_connection->fworch_db_query($sqlcmd);
 			if ($this->error->isError($changes)) {
 				echo "error_case?!";
 				$this->changeobject = $changes;
@@ -435,7 +435,7 @@ class NetworkObject extends DbItem {
 		"WHERE objgrp_id=$obj_id AND object.obj_create<=$import_id AND object.obj_last_seen>=$import_id " .
 		"$obj_list_query ORDER BY obj_name";
 		$log = new LogConnection(); $log->log_debug("NetworkObject::resolve_group: sql = $sqlcmd");	
-		$group_members = $this->db_connection->iso_db_query($sqlcmd);
+		$group_members = $this->db_connection->fworch_db_query($sqlcmd);
 		if ($this->error->isError($group_members)) {
 			$this->error->raiseError($group_members->getMessage());
 		}
@@ -455,7 +455,7 @@ class NetworkObject extends DbItem {
 		"FROM objgrp LEFT JOIN object ON objgrp_member_id=object.obj_id " .
 		"WHERE objgrp_id=$obj_id AND object.obj_create<=$import_id AND object.obj_last_seen>=$import_id " .
 		" ORDER BY obj_name";
-		$group_members = $this->db_connection->iso_db_query($sqlcmd);
+		$group_members = $this->db_connection->fworch_db_query($sqlcmd);
 		if ($this->error->isError($group_members)) {
 			$this->error->raiseError($group_members->getMessage());
 		}
@@ -535,7 +535,7 @@ class NWObjectGroupFlat extends DbList { // used for filtering into groups (conf
 		"FROM objgrp_flat LEFT JOIN object ON objgrp_flat_member_id=object.obj_id " .
 		"WHERE objgrp_flat_id=$obj_id_of_group" .
 		" AND objgrp_flat.import_created<=$import_id AND objgrp_flat.import_last_seen>=$import_id";
-		$group_members = $this->db_connection->iso_db_query($sqlcmd);
+		$group_members = $this->db_connection->fworch_db_query($sqlcmd);
 		if ($this->error->isError($group_members))
 			$this->error->raiseError($group_members->getMessage());
 		$this->obj_ips = array ();
@@ -578,7 +578,7 @@ class NWObjectGroupFlatNoGroups extends DbList { // used for filtering into grou
 		"FROM objgrp_flat LEFT JOIN object ON objgrp_flat_member_id=object.obj_id LEFT JOIN stm_obj_typ USING (obj_typ_id) " .
 		"WHERE objgrp_flat_id=$obj_id_of_group AND NOT obj_typ_name='group' AND " .
 		"objgrp_flat.import_created<=$import_id AND objgrp_flat.import_last_seen>=$import_id";
-		$group_members = $this->db_connection->iso_db_query($sqlcmd);
+		$group_members = $this->db_connection->fworch_db_query($sqlcmd);
 		if ($this->error->isError($group_members))
 			$this->error->raiseError($group_members->getMessage());
 		$this->obj_ips = array ();

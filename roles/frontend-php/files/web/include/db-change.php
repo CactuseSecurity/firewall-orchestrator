@@ -31,7 +31,7 @@ class ChangeList extends DbList {
 			if (isset($additional_sql_filter)) $sqlcmd .= " AND $additional_sql_filter";
 			if (isset($this->filter->dev_id) AND $this->filter->dev_id<>'NULL') {
 				$sqlcmd_get_mgm_id = "SELECT mgm_id FROM device WHERE dev_id=" . $this->filter->dev_id;
-				$mgm_data = $this->db_connection->iso_db_query($sqlcmd_get_mgm_id);
+				$mgm_data = $this->db_connection->fworch_db_query($sqlcmd_get_mgm_id);
 				if (!$this->error->isError($mgm_data)) {
 					$mgm_id = $mgm_data->data[0]['mgm_id'];
 				} 
@@ -71,7 +71,7 @@ class ChangeList extends DbList {
 				$sqlcmd .= " LIMIT " . $display_config->display_undoc_changes;
 // BBC
 			$log = new LogConnection(); $log->log_debug("ChangeList sql debug: $sqlcmd");
-			$db_changes = $this->db_connection->iso_db_query($sqlcmd);
+			$db_changes = $this->db_connection->fworch_db_query($sqlcmd);
 			if (!$this->error->isError($db_changes)) {
 				$this->change_number = $db_changes->rows;
 				$change_array = array ();
@@ -95,7 +95,7 @@ class ChangeList extends DbList {
 		return $this->change_number;
 	}
 	function total_undocumented_change_number($additional_sql_filter) {
-		$data = $this->db_connection->iso_db_query ("SELECT COUNT(*) FROM view_undocumented_change_counter WHERE $additional_sql_filter");
+		$data = $this->db_connection->fworch_db_query ("SELECT COUNT(*) FROM view_undocumented_change_counter WHERE $additional_sql_filter");
 		$result = $data->data[0]['count'];
 //		echo "found total undoc changes $result<br>";
 		return $result;
@@ -103,20 +103,20 @@ class ChangeList extends DbList {
 	function undocumented_change_number_per_user($user_id,$additional_sql_filter) {
 //		echo "add-Filter: $additional_sql_filter, user_id: $user_id<br>";
 		$user_filter = (isset($user_id) and $user_id<>'')?'(NOT import_admin IS NULL AND import_admin = ' . $user_id .')':'(TRUE)';
-		$data = $this->db_connection->iso_db_query
+		$data = $this->db_connection->fworch_db_query
 			("SELECT COUNT(*) FROM view_undocumented_change_counter WHERE $user_filter AND $additional_sql_filter");
 		$result = $data->data[0]['count'];
 //		echo "found undoc changes per user $user_id: $result<br>";
 		return $result;
 	}
 	function undocumented_change_number_anonymous($additional_sql_filter) {
-		$data = $this->db_connection->iso_db_query
+		$data = $this->db_connection->fworch_db_query
 			("SELECT COUNT(*) FROM view_undocumented_change_counter WHERE import_admin IS NULL AND $additional_sql_filter");
 		$result = $data->data[0]['count'];
 		return $result;
 	}
 	function total_documented_change_number($additional_sql_filter) {
-		$data = $this->db_connection->iso_db_query ("SELECT COUNT(*) FROM view_documented_change_counter WHERE $additional_sql_filter");
+		$data = $this->db_connection->fworch_db_query ("SELECT COUNT(*) FROM view_documented_change_counter WHERE $additional_sql_filter");
 		$result = $data->data[0]['count'];
 //		echo "found total doc changes $result<br>";
 		return $result;
@@ -124,14 +124,14 @@ class ChangeList extends DbList {
 	function documented_change_number_per_user($user_id,$additional_sql_filter) {
 //		echo "add-Filter: $additional_sql_filter, user_id: $user_id<br>";
 		$user_filter = (isset($user_id) and $user_id<>'')?'(NOT import_admin IS NULL AND import_admin = ' . $user_id .')':'(TRUE)';
-		$data = $this->db_connection->iso_db_query
+		$data = $this->db_connection->fworch_db_query
 			("SELECT COUNT(*) FROM view_documented_change_counter WHERE $user_filter AND $additional_sql_filter");
 		$result = $data->data[0]['count'];
 //		echo "found undoc changes per user $user_id: $result<br>";
 		return $result;
 	}
 	function documented_change_number_anonymous($additional_sql_filter) {
-		$data = $this->db_connection->iso_db_query
+		$data = $this->db_connection->fworch_db_query
 			("SELECT COUNT(*) FROM view_documented_change_counter WHERE import_admin IS NULL AND $additional_sql_filter");
 		$result = $data->data[0]['count'];
 		return $result;
@@ -190,7 +190,7 @@ class ChangedElement extends DbItem {
 	function select_mgm_name($mgmid) {
 		if (is_null($mgmid))
 			$this->error->raiseError("E-R3: Management Id is null.");
-		$name = $this->db_connection->iso_db_query("SELECT mgm_name FROM management WHERE mgm_id=$mgmid",$this->filter->getLogLevel());
+		$name = $this->db_connection->fworch_db_query("SELECT mgm_name FROM management WHERE mgm_id=$mgmid",$this->filter->getLogLevel());
 		if ($this->error->isError($name)) {
 			$this->error->raiseError($name->getMessage());
 		}
@@ -199,7 +199,7 @@ class ChangedElement extends DbItem {
 	function select_dev_name($devid) {
 		if (is_null($devid))
 			return NULL;
-		$name = $this->db_connection->iso_db_query("SELECT dev_name FROM device WHERE dev_id=$devid");
+		$name = $this->db_connection->fworch_db_query("SELECT dev_name FROM device WHERE dev_id=$devid");
 		if ($this->error->isError($name)) {
 			$this->error->raiseError($name->getMessage());
 		}

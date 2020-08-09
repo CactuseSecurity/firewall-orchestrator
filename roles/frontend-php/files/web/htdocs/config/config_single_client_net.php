@@ -19,7 +19,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-language" content="de">
-<title>ITSecOrg Change Client Config</title>
+<title>fworch Change Client Config</title>
 <script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
 <script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">

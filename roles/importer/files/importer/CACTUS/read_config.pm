@@ -1,6 +1,3 @@
-# $Id: read_config.pm,v 1.1.2.1 2007-12-13 08:48:49 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/Attic/read_config.pm,v $
-
 package CACTUS::read_config;
 
 use strict;
@@ -37,7 +34,7 @@ sub read_file_into_string {
 ############################################################
 sub read_config {
 	my $param = shift;
-	my $confdir =  '/usr/share/itsecorg/etc';
+	my $confdir =  '/usr/local/fworch/etc';
 	my $result;
 
 	my $global_conf_lines	= &read_file_into_string ("$confdir/iso.conf");
@@ -62,7 +59,7 @@ __END__
 
 =head1 NAME
 
-read_config - Perl extension for IT Security Organizer
+read_config - Perl extension for fworch
 
 =head1 SYNOPSIS
 
@@ -70,8 +67,7 @@ read_config - Perl extension for IT Security Organizer
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for reading config files
+fworch Perl Module support for reading config files
 
 =head2 EXPORT
 
@@ -85,10 +81,6 @@ support for reading config files
 
 =head1 AUTHOR
 
-  Tim Purschke, tmp@cactus.de
-
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2005-2007 by Cactus eSecurity GmbH, Frankfurt, Germany
+  Cactus eSecurity, tmp@cactus.de
 
 =cut

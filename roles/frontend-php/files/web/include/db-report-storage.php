@@ -23,9 +23,9 @@
 				$options = [
 						'projection' => ['_id' => 0],
 				];
-				$isodb = new MongoDB\Driver\Manager($connect_str);
+				$fworchdb = new MongoDB\Driver\Manager($connect_str);
 				$query = new MongoDB\Driver\Query($filter, $options);
-				$cursor = $isodb->executeQuery($collection, $query);
+				$cursor = $fworchdb->executeQuery($collection, $query);
 				foreach ($cursor as $document) {
 					$log->log_debug("db-report-storage::reportExists found existing report in DB");
 					return true;
@@ -43,13 +43,13 @@
 				if (preg_match("/config/", $report_type)) { // standard config report
 					$db_connection = new DbConnection(new DbConfig($session["dbuser"], $session["dbpw"]));
 					$sql_code = "SELECT * FROM get_import_id_for_dev_at_time($dev_id, '$time1')"; // get_import_id_for_dev_at_time
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					if (isset($result->data[0]['get_import_id_for_dev_at_time'])) {
 						$first_import_id = $result->data[0]['get_import_id_for_dev_at_time'];
 						$second_import_id = 'NULL';
 						if (!isset($time2) or $time2=='') { $time2 = 'NULL'; } else {
 							$sql_code = "SELECT * FROM get_import_id_for_dev_at_time($dev_id, '$time2')";
-							$result = $db_connection->iso_db_query($sql_code);
+							$result = $db_connection->fworch_db_query($sql_code);
 							$second_import_id = $result->data[0]['get_import_id_for_dev_at_time'];
 						}
 						// TODO: report_typ_id --> not to be set fixed
@@ -61,7 +61,7 @@
 							else $sql_code .= " AND client_id=$client_id";
 						}
 						$log->log_debug("db-report-storage::reportExists SQL code: $sql_code");
-						$result = $db_connection->iso_db_query($sql_code);
+						$result = $db_connection->fworch_db_query($sql_code);
 						return (isset($result->data[0]));
 					} else {
 						return false;
@@ -70,13 +70,13 @@
 				if (preg_match("/audit/", $report_type)) { // standard config report
 					$db_connection = new DbConnection(new DbConfig($session["dbuser"], $session["dbpw"]));
 					$sql_code = "SELECT * FROM get_import_id_for_dev_at_time($dev_id, '$time1')"; // get_import_id_for_dev_at_time
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					if (isset($result->data[0]['get_import_id_for_dev_at_time'])) {
 						$first_import_id = $result->data[0]['get_import_id_for_dev_at_time'];
 						$second_import_id = 'NULL';
 						if (!isset($time2) or $time2=='') { $time2 = 'NULL'; } else {
 							$sql_code = "SELECT * FROM get_import_id_for_dev_at_time($dev_id, '$time2')";
-							$result = $db_connection->iso_db_query($sql_code);
+							$result = $db_connection->fworch_db_query($sql_code);
 							$second_import_id = $result->data[0]['get_import_id_for_dev_at_time'];
 						}
 						$sql_code = 
@@ -89,7 +89,7 @@
 							else $sql_code .= " AND client_id=$client_id";
 						}
 						$log->log_debug("db-report-storage::reportExists SQL code: $sql_code");
-						$result = $db_connection->iso_db_query($sql_code);
+						$result = $db_connection->fworch_db_query($sql_code);
 						return (isset($result->data[0]));
 					} else {
 						return false;
@@ -114,9 +114,9 @@
 				$options = [
 						'projection' => ['_id' => 0],
 				];
-				$isodb = new MongoDB\Driver\Manager($connect_str);
+				$fworchdb = new MongoDB\Driver\Manager($connect_str);
 				$query = new MongoDB\Driver\Query($filter, $options);
-				$cursor = $isodb->executeQuery($collection, $query);
+				$cursor = $fworchdb->executeQuery($collection, $query);
 				foreach ($cursor as $document) {
 					$log->log_debug("db-report-storage::readReport retrieved stored report");
 					return json_encode($document->report);
@@ -133,12 +133,12 @@
 				if (preg_match("/config/", $report_type)) { // standard config report
 					$db_connection = new DbConnection(new DbConfig($session["dbuser"], $session["dbpw"]));
 					$sql_code = "SELECT * FROM get_import_id_for_dev_at_time($dev_id, '$time1')"; // get_import_id_for_dev_at_time
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					$first_import_id = $result->data[0]['get_import_id_for_dev_at_time'];
 					$second_import_id = 'NULL';
 					if (!isset($time2) or $time2=='') { $time2 = 'NULL'; } else {
 						$sql_code = "SELECT * FROM get_import_id_for_dev_at_time($dev_id, '$time2')";
-						$result = $db_connection->iso_db_query($sql_code);
+						$result = $db_connection->fworch_db_query($sql_code);
 						$second_import_id = $result->data[0]['get_import_id_for_dev_at_time'];
 					}
 					// TODO: report_typ_id --> not to be set fixed to config (1)
@@ -149,7 +149,7 @@
 						else $sql_code .= " AND client_id=$client_id";
 					}
 					$log->log_debug("db-report-storage::readReport SQL code: $sql_code");
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					return ($result->data[0]['report_document']);
 				} else { // audit/change reports: TODO, not implemented / not needed yet
 				}
@@ -160,7 +160,7 @@
 			//	write report to database
 			$log = new LogConnection();
 			if ($db_type=='mongo') {
-				$isodb = new MongoDB\Driver\Manager($connect_str);
+				$fworchdb = new MongoDB\Driver\Manager($connect_str);
 				$bulk = new MongoDB\Driver\BulkWrite;
 				$bulk->insert([
 						"report_time" => $this->report_time, 
@@ -171,7 +171,7 @@
 						"client_id" => $client_id,
 						"report" => $this->report
 				]);
-				$isodb->executeBulkWrite($collection, $bulk);
+				$fworchdb->executeBulkWrite($collection, $bulk);
 			}
 			if ($db_type=='postgres') {
 				require_once 'db-base.php';
@@ -181,13 +181,13 @@
 //				elseif (preg_match("/audit changes/i", $report_type)) { $report_typ_id=5; }
 				$db_connection = new DbConnection(new DbConfig($session["dbuser"], $session["dbpw"]));
 				$sql_code = "SELECT * FROM get_import_id_for_dev_at_time($dev_id, '$time1')"; // get_import_id_for_dev_at_time
-				$result = $db_connection->iso_db_query($sql_code);
+				$result = $db_connection->fworch_db_query($sql_code);
 //				if (isset($result->data[0]['get_import_id_for_dev_at_time'])) {			
 				$first_import_id = $result->data[0]['get_import_id_for_dev_at_time'];
 				$second_import_id = 'NULL';
 				if (!isset($time2) or $time2=='') { $time2 = 'NULL'; } else {
 					$sql_code = "SELECT * FROM get_import_id_for_dev_at_time($dev_id, '$time2')";
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					$second_import_id = $result->data[0]['get_import_id_for_dev_at_time'];
 				}
 				if (isset($first_import_id)) {
@@ -202,7 +202,7 @@
 					} else $sql_code .= ', NULL';
 					$sql_code .= ", '" . $this->getReportJson() . "')";
 //					$log->log_debug("db-report-storage::dumpReport INSERT code: $sql_code");
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 				}
 			}
 		}

@@ -26,7 +26,7 @@
 <head>
 <!--			  document.reporting.repFormat.value='<?php echo $report_format ?>'; -->
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<title>ITSecOrg Reporting</title>
+	<title>fworch Reporting</title>
 	<meta http-equiv="content-language" content="de">
 	<script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
 	<script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>

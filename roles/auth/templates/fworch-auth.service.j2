@@ -7,7 +7,7 @@ ExecStart=/usr/bin/dotnet run
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier={{ auth_server_syslog_id }}
-User={{ iso_user }}
+User={{ fworch_user }}
 Environment=
 [Install]
 WantedBy=multi-user.target

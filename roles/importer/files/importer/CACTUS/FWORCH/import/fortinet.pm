@@ -1,14 +1,10 @@
-# !/usr/bin/perl -w
-# $Id: fortinet.pm,v 1.1.2.12 2012-03-24 13:57:03 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/ISO/import/Attic/juniper.pm,v $
-
-package CACTUS::ISO::import::parser;
+package CACTUS::FWORCH::import::parser;
 
 use strict;
 use warnings;
 use Time::HiRes qw(time); # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
-use CACTUS::ISO;
-use CACTUS::ISO::import;
+use CACTUS::FWORCH;
+use CACTUS::FWORCH::import;
 use CACTUS::read_config;
 
 require Exporter;
@@ -419,9 +415,9 @@ sub copy_config_from_mgm_to_iso {
 	my $result;
 
 	if ($config_path_on_mgmt ne '') {	# not a real fortigate but a standard ssh server
-		$cmd = "$scp_bin $scp_batch_mode_switch -i $workdir/${CACTUS::ISO::ssh_id_basename} $ssh_user\@$ssh_hostname:$config_path_on_mgmt/fortigate.cfg $cfg_dir/$obj_file_base";
+		$cmd = "$scp_bin $scp_batch_mode_switch -i $workdir/${CACTUS::FWORCH::ssh_id_basename} $ssh_user\@$ssh_hostname:$config_path_on_mgmt/fortigate.cfg $cfg_dir/$obj_file_base";
 	} else { # standard fortigate
-		$cmd = "$ssh_bin -o StrictHostKeyChecking=no -i $workdir/${CACTUS::ISO::ssh_id_basename} $ssh_user\@$ssh_hostname show full-configuration > $cfg_dir/$obj_file_base";	# fortigate
+		$cmd = "$ssh_bin -o StrictHostKeyChecking=no -i $workdir/${CACTUS::FWORCH::ssh_id_basename} $ssh_user\@$ssh_hostname show full-configuration > $cfg_dir/$obj_file_base";	# fortigate
 		# adding "-o StrictHostKeyChecking=no" to allow for failover of fortinet machines:
 	}
 	if (system ($cmd)) { $fehler_count++; }
@@ -608,7 +604,7 @@ sub parse_config_base_objects { # ($debug_level, $mgm_name)
 				$current_port = $1;
 				$source_port = $2;
 			}
-			my $member = "${application_name}_ISO-multiGRP-${current_port}_$proto";
+			my $member = "${application_name}_FWORCH-multiGRP-${current_port}_$proto";
 			$members .= '"' . $member . '" ';
 			print_debug("adding arty service ${application_name}::$member with dst-port $current_port", $debug, 7);
 			&add_nw_service_obj ($member, $proto, $source_port, $current_port, $uuid, $rpc, $icmp_art, $icmp_nummer, $comment, $debug);
@@ -1130,10 +1126,10 @@ sub remove_pagination { # removes --More-- ^M         ^M
 #####################################################################################
 # MAIN
 
-sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $iso_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
+sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $fworch_workdir, $debug_level, $mgm_name, $config_dir, $import_id)
 	my $in_file_main = shift;
 	shift; shift; shift; # $rule_file und $rulebases und $user nicht verwendet
-	my $iso_workdir = shift;
+	my $fworch_workdir = shift;
 	my $debuglevel_main = shift;
 	my $mgm_name = shift;
 	my $config_dir = shift;
@@ -1143,7 +1139,7 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $iso_workdir, $d
 	# initializing global variables:
 	@services = ();
 	@network_objects = ();
-	&print_debug ("in_file_main=$in_file_main, iso_workdir=$iso_workdir, debuglevel_main=$debuglevel_main, mgm_name=$mgm_name, config_dir=$config_dir, import_id=$import_id", $debuglevel_main, 6);
+	&print_debug ("in_file_main=$in_file_main, fworch_workdir=$fworch_workdir, debuglevel_main=$debuglevel_main, mgm_name=$mgm_name, config_dir=$config_dir, import_id=$import_id", $debuglevel_main, 6);
 
 	open (IN, $in_file_main) || die "$in_file_main konnte nicht geoeffnet werden.\n";
 	@config_lines = <IN>;	# sichern Config-array fuer spaetere Verwendung
@@ -1165,11 +1161,11 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $iso_workdir, $d
 		}
 		&parse_config_base_objects  ($debuglevel_main, $mgm_name); # zones, simple network and service objects  
 		push @zones, "global"; 	# Global Zone immer hinzufuegen
-		&parse_config_rules ($debuglevel_main, $mgm_name); # finally parsing the rule base, ignoring the rulebase name in itsecorg config
+		&parse_config_rules ($debuglevel_main, $mgm_name); # finally parsing the rule base, ignoring the rulebase name in fworch config
 
-		&print_results_files_objects($iso_workdir, $mgm_name, $import_id);
-		&print_results_files_rules  ($iso_workdir, $mgm_name, $import_id);
-		&print_results_files_zones  ($iso_workdir, $mgm_name, $import_id);
+		&print_results_files_objects($fworch_workdir, $mgm_name, $import_id);
+		&print_results_files_rules  ($fworch_workdir, $mgm_name, $import_id);
+		&print_results_files_zones  ($fworch_workdir, $mgm_name, $import_id);
 #		print_results_monitor('objects');
 #		print_results_monitor('rules');
 	}
@@ -1181,16 +1177,15 @@ __END__
 
 =head1 NAME
 
-CACTUS::ISO::parser - Perl extension for IT Security Organizer fortinet parser
+CACTUS::FWORCH::parser - Perl extension for fworch fortinet parser
 
 =head1 SYNOPSIS
 
-  use CACTUS::ISO::import::fortinet;
+  use CACTUS::FWORCH::import::fortinet;
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -1203,6 +1198,6 @@ support for importing configs into ITSecOrg Database
 
 =head1 AUTHOR
 
-  Holger Dost, Tim Purschke, tmp@cactus.de
+Cactus eSecurity, tmp@cactus.de
 
-
+=cut

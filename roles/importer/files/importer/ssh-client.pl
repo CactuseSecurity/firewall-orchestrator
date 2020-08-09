@@ -1,7 +1,5 @@
 #! /usr/bin/perl -w
-# $Id: iso-ssh-client.pl,v 1.1.2.8 2011-11-29 19:01:53 tim Exp $
-# $Source: /home/cvs/iso/package/importer/Attic/iso-ssh-client.pl,v $
-#program: sendcommand.pl 2009-2011
+#origin: program: sendcommand.pl 2009-2011
 #author: Youri Reddy-Girard (melk0r101@yahoo.com - http//sendcommand.sourceforge.net/)
 #version: 0.1.6 (20110213)
 # SendCommand is a perl script using expect library. It permits the execution of remote
@@ -11,8 +9,8 @@
 #   - on debian type "aptitude install libexpect-perl"
 #   - on centos type "cpan" and then type "install Expect"
 #
-
-# calling syntax: ./netscreen-ssh-client.pl -z 89.19.225.167 -t netscreen -i .ssh/id_rsa -c "get config" -u cadmin -d 0 -o /tmp/publikat_fw02.cfg
+# calling syntax: ./ssh-client.pl -z 89.19.225.167 -t netscreen -i .ssh/id_rsa -c "get config" -u cadmin -d 0 -o /tmp/publikat_fw02.cfg
+# needed to handle netscreen imports
 
 #external librairies
 use strict;
@@ -28,7 +26,7 @@ use Getopt::Long qw(:config no_ignore_case bundling);
 # GLOBAL VARIABLE DECLARATION
 #############################################################
 #global constants
-use constant PROGRAM => 'iso-ssh-client.pl';                      # name of this program / script
+use constant PROGRAM => 'ssh-client.pl';                      # name of this program / script
 use constant VERSION => "1.1";                                    # version of the program
 use constant SSH => "/usr/bin/ssh";                               # path to the ssh binary
 use constant TELNET => "/usr/bin/telnet";                         # path to the telnet binary

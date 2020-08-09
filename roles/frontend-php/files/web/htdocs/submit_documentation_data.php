@@ -145,7 +145,7 @@
 				$sql_code .= " OR (local_change_id=$changelog_id AND change_element='" . $table_name . "')";
 			reset($changelog); // pointer auf Anfang des Feldes zuruecksetzen
 			output_debug ("sql: $sql_code");
-			$changes_to_change_list = $dblist->db_connection->iso_db_query($sql_code);
+			$changes_to_change_list = $dblist->db_connection->fworch_db_query($sql_code);
 			
 			// die alten zu l�schenden Relationen (request <-> request_xxx_change) l�schen
 			$rows = $changes_to_change_list->rows;
@@ -158,7 +158,7 @@
 				$sql_code .= "DELETE FROM $request_xxx_change_table WHERE $log_id_name=$log_id; ";
 			}
 			output_debug ("<br>sql: $sql_code");
-			$dblist->db_connection->iso_db_query($sql_code);
+			$dblist->db_connection->fworch_db_query($sql_code);
 			
 			// anschliessend alle Eintraege in request loeschen, auf die nicht mehr verwiesen wird.
 			// a) nicht referenzierte Requests identifizieren
@@ -171,7 +171,7 @@
 						" (select request.request_id from request left join request_user_change using (request_id) " .
 						" where request_user_change.request_id IS NULL) ";
 			output_debug ("sql: $sql_code");
-			$unreferenced_requests = $dblist->db_connection->iso_db_query($sql_code);
+			$unreferenced_requests = $dblist->db_connection->fworch_db_query($sql_code);
 	
 			// b) sql_code zum Loeschen der nicht referenzierten Requests erzeugen
 			$sql_code = '';
@@ -233,7 +233,7 @@
 			$redirect_destination = "Location: /documentation.php?change_docu=1";
 		}
 		output_debug ("sql_code before execution: $sql_code");
-		$dblist->db_connection->iso_db_query($sql_code);
+		$dblist->db_connection->fworch_db_query($sql_code);
 		if (!DEBUGGING)
 			header($redirect_destination);
 	}

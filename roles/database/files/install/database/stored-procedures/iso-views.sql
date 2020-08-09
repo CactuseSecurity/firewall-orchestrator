@@ -524,5 +524,5 @@ GRANT SELECT ON TABLE view_device_names TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_rule_source_or_destination TO GROUP secuadmins, reporters;
 
 -- view for import status
-GRANT SELECT ON TABLE view_import_status_table TO itsecorg;  -- {{base_dir}}/bin/write_import_status_file.sh is run as itsecorg as it will also be invoked via cli
+GRANT SELECT ON TABLE view_import_status_table TO fworch;  -- {{fworch_home}}/bin/write_import_status_file.sh is run as fworch as it will also be invoked via cli
 GRANT SELECT ON TABLE view_import_status_table TO GROUP secuadmins, reporters; -- not really neccessary

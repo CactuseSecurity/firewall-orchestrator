@@ -65,17 +65,17 @@
             
      - name: create local user docker config dir .docker
        file:
-         dest: "{{ iso_home }}/.docker"
+         dest: "{{ fworch_home }}/.docker"
          state: directory
-         owner: "{{ iso_user }}"
-         group: "{{ iso_user }}"
+         owner: "{{ fworch_user }}"
+         group: "{{ fworch_user }}"
          mode: 0775
 
      - name: create local user docker config file .docker/config.json
        template:
          src: docker_config.j2
-         dest: "{{ iso_home }}/.docker/config.json"
-         owner: "{{ iso_user }}"
-         group: "{{ iso_user }}"
+         dest: "{{ fworch_home }}/.docker/config.json"
+         owner: "{{ fworch_user }}"
+         group: "{{ fworch_user }}"
          mode: 0644
   become: yes

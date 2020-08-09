@@ -1,7 +1,4 @@
-# $Id: ISO.pm,v 1.1.2.4 2010-02-14 12:02:03 tim Exp $
-# $Source: /home/cvs/iso/package/importer/CACTUS/Attic/ISO.pm,v $
-
-package CACTUS::ISO;
+package CACTUS::FWORCH;
 
 use strict;
 use warnings;
@@ -27,7 +24,7 @@ our %EXPORT_TAGS = (
         &error_handler &error_handler_add &error_handler_get
         $output_method $dbdriver
         $echo_bin $chmod_bin $scp_bin $ssh_bin $scp_batch_mode_switch $ssh_client_screenos
-        $iso_database $iso_srv_host $iso_srv_user $iso_srv_user $iso_srv_port $iso_srv_pw $psql_exe $psql_params
+        $fworch_database $fworch_srv_host $fworch_srv_user $fworch_srv_user $fworch_srv_port $fworch_srv_pw $psql_exe $psql_params
         &get_client_id_for_user_via_ldap
         &get_client_filter &get_device_ids_for_mgm
         &eval_boolean_sql &exec_pgsql_file &exec_pgsql_cmd &exec_pgsql_cmd_no_result
@@ -51,14 +48,14 @@ our $syslog_ident = CACTUS::read_config::read_config('syslog_ident');
 our $syslog_facility = CACTUS::read_config::read_config('syslog_facility');
 
 our $webuser;
-our $iso_srv_pw = '';
-our $iso_srv_host = &CACTUS::read_config::read_config("itsecorg database hostname");
-our $iso_database = &CACTUS::read_config::read_config("itsecorg database name");
-our $iso_srv_port = &CACTUS::read_config::read_config("itsecorg database port");
+our $fworch_srv_pw = '';
+our $fworch_srv_host = &CACTUS::read_config::read_config("fworch database hostname");
+our $fworch_database = &CACTUS::read_config::read_config("fworch database name");
+our $fworch_srv_port = &CACTUS::read_config::read_config("fworch database port");
 our $csv_delimiter = &CACTUS::read_config::read_config("csv_delimiter");
 our $group_delimiter = &CACTUS::read_config::read_config("group_delimiter");
 our $csv_user_delimiter = &CACTUS::read_config::read_config("csv_user_delimiter");
-our $iso_srv_user = &CACTUS::read_config::read_config("iso_srv_user");
+our $fworch_srv_user = &CACTUS::read_config::read_config("fworch_srv_user");
 our $psql_exe = &CACTUS::read_config::read_config("psql_exe");
 our $psql_params = &CACTUS::read_config::read_config("psql_params");
 our $LDAP_enabled = &CACTUS::read_config::read_config("LDAP_enabled");
@@ -574,7 +571,7 @@ sub copy_file_to_db {
 
     my $CSVFILE = new IO::File("< $csv_file");
     if ($CSVFILE) {
-        $dbh = DBI->connect("dbi:Pg:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+        $dbh = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
         if (!defined $dbh) {
             output_txt("Cannot connect to database!\n", 3);
         }
@@ -602,10 +599,10 @@ sub eval_boolean_sql {
     my ($sqlcode);
     my ($rc, $dbh, $sth);
     my (@result);
-    our ($iso_srv_host, $iso_database, $iso_srv_port, $iso_srv_user, $iso_srv_pw, $dbdriver);
+    our ($fworch_srv_host, $fworch_database, $fworch_srv_port, $fworch_srv_user, $fworch_srv_pw, $dbdriver);
 
     $sqlcode = $_[0];
-    $dbh = DBI->connect("dbi:$dbdriver:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+    $dbh = DBI->connect("dbi:$dbdriver:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
     if (!defined $dbh) {die "Cannot connect to database!\n";}
     $sth = $dbh->prepare($sqlcode);
     if (!defined $sth) {die "Cannot prepare statement: $DBI::errstr\n";}
@@ -633,11 +630,11 @@ sub exec_pgsql_cmd_return_array_ref {
     my ($res, $err_str, $err_flag, $sqlcode, $result);
     # $result: references the result array
     my ($rc, $dbh, $sth);
-    our ($iso_srv_host, $iso_database, $iso_srv_port, $iso_srv_user, $iso_srv_pw, $dbdriver);
+    our ($fworch_srv_host, $fworch_database, $fworch_srv_port, $fworch_srv_user, $fworch_srv_pw, $dbdriver);
 
     $sqlcode = $_[0];
     $err_flag = 0;
-    $dbh = DBI->connect("dbi:$dbdriver:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+    $dbh = DBI->connect("dbi:$dbdriver:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
     if (!defined $dbh) {die "Cannot connect to database!\n";}
     if ($sqlcode !~ /^$/) {
         #    print "$sqlcode\n";
@@ -671,12 +668,12 @@ sub exec_pgsql_cmd_return_table_ref {
     my ($res, $err_str, $err_flag, $sqlcode, $result);
     # $result: references the result array
     my ($rc, $dbh, $sth);
-    our ($iso_srv_host, $iso_database, $iso_srv_port, $iso_srv_user, $iso_srv_pw);
+    our ($fworch_srv_host, $fworch_database, $fworch_srv_port, $fworch_srv_user, $fworch_srv_pw);
 
     $sqlcode = $_[0];
     my $keyfield = $_[1];
     $err_flag = 0;
-    $dbh = DBI->connect("dbi:Pg:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+    $dbh = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
     if (!defined $dbh) {die "Cannot connect to database!\n";}
     if ($sqlcode !~ /^$/) {
         #    print "$sqlcode\n";
@@ -711,11 +708,11 @@ sub exec_pgsql_cmd_return_table_ref {
 sub exec_pgsql_cmd {
     my ($res, $err_str, $err_flag, $sqlcode, @result);
     my ($rc, $dbh, $sth);
-    our ($iso_srv_host, $iso_database, $iso_srv_port, $iso_srv_user, $iso_srv_pw);
+    our ($fworch_srv_host, $fworch_database, $fworch_srv_port, $fworch_srv_user, $fworch_srv_pw);
 
     $sqlcode = $_[0];
     $err_flag = 0;
-    $dbh = DBI->connect("dbi:Pg:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+    $dbh = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
     if (!defined $dbh) {die "Cannot connect to database!\n";}
     if ($sqlcode !~ /^$/) {
         #    print "$sqlcode\n";
@@ -754,11 +751,11 @@ sub exec_pgsql_cmd {
 sub exec_pgsql_cmd_no_result {
     my ($res, $err_str, $sqlcode, $err_flag);
     my ($dbh, $sth);
-    our ($iso_srv_host, $iso_database, $iso_srv_port, $iso_srv_user, $iso_srv_pw);
+    our ($fworch_srv_host, $fworch_database, $fworch_srv_port, $fworch_srv_user, $fworch_srv_pw);
 
     $err_flag = 0;
     $sqlcode = $_[0];
-    $dbh = DBI->connect("dbi:Pg:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+    $dbh = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
     if (!defined $dbh) {die "Cannot connect to database!\n";}
     if ($sqlcode !~ /^$/) {
         #    print "$sqlcode\n";
@@ -783,11 +780,11 @@ sub exec_pgsql_cmd_no_result {
 sub exec_pgsql_file {
     my ($line, $input, $file, $sqlcode, $res, $err_str, $err_flag);
     my ($dbh, $sth);
-    our ($iso_srv_host, $iso_database, $iso_srv_port, $iso_srv_user, $iso_srv_pw);
+    our ($fworch_srv_host, $fworch_database, $fworch_srv_port, $fworch_srv_user, $fworch_srv_pw);
 
     $err_flag = 0;
     $input = new IO::File("< $_[0]") or die "Cannot open file $_[0] for reading: $!";
-    $dbh = DBI->connect("dbi:Pg:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+    $dbh = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
     if (!defined $dbh) {die "Cannot connect to database!\n";}
     while (<$input>) {
         $sqlcode = $_;
@@ -830,12 +827,12 @@ sub get_device_ids_for_mgm {
 sub get_client_filter {
     my $client_id = $_[0];
     my ($client_net_ip, $filter, $dbh, $sth, $relevant_import_id, $err_str, $sqlcode);
-    our ($iso_database, $iso_srv_host, $iso_srv_port, $iso_srv_user, $iso_srv_pw);
+    our ($fworch_database, $fworch_srv_host, $fworch_srv_port, $fworch_srv_user, $fworch_srv_pw);
 
     $filter = "TRUE";
     if (defined($client_id) && $client_id ne '' && $client_id != 0) {
         $sqlcode = "SELECT client_net_ip FROM client_network WHERE client_id=$client_id";
-        $dbh = DBI->connect("dbi:Pg:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+        $dbh = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
         if (!defined $dbh) {die "Cannot connect to database!\n";}
         $sth = $dbh->prepare($sqlcode);
         if (!defined $sth) {die "Cannot prepare statement: $DBI::errstr\n";}
@@ -858,13 +855,13 @@ sub get_rulebase_names {
     # getting device-info for all devices of the current mgmt
     my $mgm_id = shift;
     my $dbdriver = shift;
-    my $iso_database = shift;
-    my $iso_srv_host = shift;
-    my $iso_srv_port = shift;
-    my $iso_srv_user = shift;
-    my $iso_srv_pw = shift;
+    my $fworch_database = shift;
+    my $fworch_srv_host = shift;
+    my $fworch_srv_port = shift;
+    my $fworch_srv_user = shift;
+    my $fworch_srv_pw = shift;
 
-    my $dbh = DBI->connect("dbi:$dbdriver:dbname=$iso_database;host=$iso_srv_host;port=$iso_srv_port", "$iso_srv_user", "$iso_srv_pw");
+    my $dbh = DBI->connect("dbi:$dbdriver:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port", "$fworch_srv_user", "$fworch_srv_pw");
     if (!defined $dbh) {die "Cannot connect to database!\n";}
     my $sth = $dbh->prepare("SELECT dev_id,dev_name,dev_rulebase FROM device WHERE mgm_id=$mgm_id AND NOT do_not_import");
     if (!defined $sth) {die "Cannot prepare statement: $DBI::errstr\n";}
@@ -903,7 +900,7 @@ sub evaluate_parameters {
         if (defined($mgm_name) && $mgm_name ne '') {
             $mgm_id = exec_pgsql_cmd_return_value("select mgm_id from management where mgm_name='$mgm_name'");
         }
-        else {&error_handler_add(undef, my $error_level = 5, "iso-importer-single.pl: missing argument (mgm_id || mgm_name)", 1, 0);} # no valid input given
+        else {&error_handler_add(undef, my $error_level = 5, "fworch-importer-single.pl: missing argument (mgm_id || mgm_name)", 1, 0);} # no valid input given
     }
     if (!defined($mgm_id) || $mgm_id eq '') {
         &error_handler_add(undef, my $error_level = 5, 'Management ' . (($mgm_name ne '') ? $mgm_name . ' ' : '') . 'not found', 1, 0);
@@ -918,20 +915,20 @@ __END__
 
 =head1 NAME
 
-ISO - Perl extension for IT Security Organizer
+FWORCH - Perl extension for fworch
 
 =head1 SYNOPSIS
 
-  use ISO;
-  the function read_basic_ISO_data() must be called first to
+  use FWORCH;
+  the function read_basic_fworch_data() must be called first to
   generate the hashes before using the DB-lookup functions
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
+fworch Perl Module
 support for
-- importing configs into ITSecOrg Database
-- basic functions to access ITSecOrg DB
+- importing configs into fworch Database
+- basic functions to access fworch DB
 
 =head2 EXPORT
 
@@ -941,7 +938,7 @@ support for
     %IP_protocolID
 
   DB functions
-    read_basic_ISO_data()
+    read_basic_fworch_data()
     these functions perform the lookups into the above hashes:
       get_mgmtID(management-name)
       get_object_typID(objekt-name)
@@ -954,14 +951,8 @@ support for
 
   behind the door
 
-
 =head1 AUTHOR
 
   Tim Purschke, tmp@cactus.de
 
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2005 by Cactus eSecurity GmbH, Frankfurt, Germany
-
 =cut
-

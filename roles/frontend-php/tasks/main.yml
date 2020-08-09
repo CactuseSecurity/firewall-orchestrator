@@ -31,8 +31,8 @@
            max_execution_time = 900
            default_charset = "utf-8"
            date.timezone = "Europe/Berlin"
-           include_path="/usr/share/php:/usr/share/lib/php:{{ iso_home }}/web/include:{{ iso_home }}/etc:{{ iso_home }}/web/htdocs/inctxt:{{ iso_home }}/web/htdocs/hilfe"
-           doc_root = "{{ iso_home }}/web"
+           include_path="/usr/share/php:/usr/share/lib/php:{{ fworch_home }}/web/include:{{ fworch_home }}/etc:{{ fworch_home }}/web/htdocs/inctxt:{{ fworch_home }}/web/htdocs/hilfe"
+           doc_root = "{{ fworch_home }}/web"
            sql.safe_mode = On
            expose_php = Off
            display_errors = Off              ; for production
@@ -40,22 +40,22 @@
            error_log = syslog
            log_errors_max_len = 0             ; abgeschnittene sql-statements beim debugging verhindern
            pgsql.log_notice = 1
-           session.save_path = /var/itsecorg/session
+           session.save_path = /var/{{ product_name }}/session
            session.gc_maxlifetime = 14400   ;eight hours
 
     - name: copy iso files to frontend target
       copy:
         src: "web"
-        dest: "{{ iso_home }}/"
-        owner: itsecorg
-        group: itsecorg
+        dest: "{{ fworch_home }}/"
+        owner: "{{ product_name }}"
+        group: "{{ product_name }}"
 
     - name: copy iso gui.conf file
       copy:
         src: "gui.conf"
-        dest: "{{ iso_home }}/etc/gui.conf"
-        owner: itsecorg
-        group: itsecorg
+        dest: "{{ fworch_home }}/etc/gui.conf"
+        owner: "{{ product_name }}"
+        group: "{{ product_name }}"
 
     - name: enable apache mod_ssl
       shell: "a2enmod ssl"
@@ -69,7 +69,7 @@
     - name: copy php httpd config file to apache target
       template:
         src: "httpd.conf"
-        dest: "{{ ui_http_conf_dir }}/itsecorg-php.conf"
+        dest: "{{ ui_http_conf_dir }}/{{ product_name }}-php.conf"
         owner: root
         group: root
 
@@ -81,12 +81,12 @@
     # - name: copy cert creation script to apache target
     #   script: "apache_create_server_cert.sh" 
 
-    - name: enable itsecorg web site
-      shell: "a2ensite itsecorg-php"
+    - name: enable {{ product_name }} web site
+      shell: "a2ensite {{ product_name }}-php"
 
-    - name: add session directory - /var/itsecorg/session
+    - name: add session directory - /var/{{ product_name }}/session
       file:
-        dest: /var/itsecorg/session
+        dest: "/var/{{ product_name }}/session"
         state: directory
         owner: www-data
         group: root

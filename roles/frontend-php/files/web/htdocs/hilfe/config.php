@@ -7,16 +7,16 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Hilfe zu ITSecOrg Einstellungen</title>
+<title>Hilfe zu fworch Einstellungen</title>
 <meta name="robots" content="index,follow">
 <meta http-equiv="content-language" content="de">
 <link rel="stylesheet" type="text/css" href="/css/firewall.css">
 </head>
 <body>
 <br>&nbsp;<br>
-<b class="headlinemain">Hilfe zu ITSecOrg Einstellungen</b>
+<b class="headlinemain">Hilfe zu fworch Einstellungen</b>
 <br>&nbsp;<br>
-Auf dieser Seite k&ouml;nnen Sie die Einstellungen von ITSecOrg &auml;ndern.
+Auf dieser Seite k&ouml;nnen Sie die Einstellungen von fworch &auml;ndern.
 <br>&nbsp;<br>
 <table cellpadding="0" cellspacing="0" class="tab-border" style="margin:0px 10px;">
 <tr><td class="celldev_wrap">&quot;Passwort &auml;ndern&quot;</td>

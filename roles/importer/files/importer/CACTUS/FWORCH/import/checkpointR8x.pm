@@ -1,4 +1,4 @@
-package CACTUS::ISO::import::parser;
+package CACTUS::FWORCH::import::parser;
 
 use strict;
 use warnings;
@@ -7,8 +7,8 @@ use Getopt::Long;
 use File::Basename;
 use Time::HiRes qw(time);    # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
 use Net::CIDR;
-use CACTUS::ISO;
-use CACTUS::ISO::import;
+use CACTUS::FWORCH;
+use CACTUS::FWORCH::import;
 use Date::Calc qw(Add_Delta_DHMS);
 
 require Exporter;
@@ -21,7 +21,7 @@ our $VERSION = '0.3';
 
 # variblendefinition check point parser - global
 # -------------------------------------------------------------------------------------------
-my $GROUPSEP = $CACTUS::ISO::group_delimiter; 
+my $GROUPSEP = $CACTUS::FWORCH::group_delimiter; 
 
 my $UID      = "UID";    # globale konstante UID
 
@@ -97,7 +97,7 @@ sub parse_config {
 	my $result;
 	my $cmd;
 	my $return_code = 0;
-	my $parser_py = "/usr/bin/python3 ./iso_parse_config_cp_r8x_api.py";
+	my $parser_py = "/usr/bin/python3 ./fworch_parse_config_cp_r8x_api.py";
 
 # parsing rulebases
 	my $rulebase_names = get_ruleset_name_list($rulebase_name);
@@ -175,20 +175,20 @@ sub copy_config_from_mgm_to_iso {
 	my $return_code;
 	my $fehler_count = 0;
 
-#iso_parse_config_cp_r8x_api.py
+#fworch_parse_config_cp_r8x_api.py
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
-	my $pwd = `cat $workdir/$CACTUS::ISO::ssh_id_basename`;
+	my $pwd = `cat $workdir/$CACTUS::FWORCH::ssh_id_basename`;
 	chomp($pwd);
 	my $ssl_verify;
-	if ( -r "$workdir/${CACTUS::ISO::ssh_id_basename}.pub" ) {
-		$ssl_verify = "-s $workdir/${CACTUS::ISO::ssh_id_basename}.pub";
+	if ( -r "$workdir/${CACTUS::FWORCH::ssh_id_basename}.pub" ) {
+		$ssl_verify = "-s $workdir/${CACTUS::FWORCH::ssh_id_basename}.pub";
 	} else {
 		$ssl_verify = '';
 	}
 	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
 	if (!defined($api_port) || $api_port eq '') { $api_port = "443"; }
-	my $api_bin = "/usr/bin/python3 ./iso_get_config_cp_r8x_api.py";
+	my $api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
 	$cmd = "$api_bin $api_hostname '$pwd' -l '$rulebase_names' -p $api_port $ssl_verify > \"$cfg_dir/$obj_file_base\"";
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
@@ -203,16 +203,15 @@ __END__
 
 =head1 NAME
 
-CACTUS::ISO::parser - Perl extension for IT Security Organizer check point R8x API access to config
+CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point R8x API access to config
 
 =head1 SYNOPSIS
 
-  use CACTUS::ISO::import::checkpointR8x;
+  use CACTUS::FWORCH::import::checkpointR8x;
 
 =head1 DESCRIPTION
 
-IT Security Organizer Perl Module
-support for importing configs into ITSecOrg Database
+fworch Perl Module support for importing configs into fworch Database
 
 =head2 EXPORT
 
@@ -224,10 +223,6 @@ support for importing configs into ITSecOrg Database
 
 =head1 AUTHOR
 
-  Tim Purschke, tmp@cactus.de
-
-=head1 COPYRIGHT AND LICENSE
-
-  Copyright (C) 2017 by Cactus eSecurity GmbH, Frankfurt, Germany
+  Cactus eSecurity, tmp@cactus.de
 
 =cut

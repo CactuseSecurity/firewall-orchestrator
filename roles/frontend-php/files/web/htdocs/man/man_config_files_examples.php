@@ -12,13 +12,13 @@
 <ul>
 <li>iso.conf
 <pre>
-ITSecOrgDir	/usr/share/itsecorg		# Installationsverzeichnis
+TopDir	/usr/local/fworch		# Installationsverzeichnis
 	
 ###################### database connection ##############################
-itsecorg database hostname              localhost
-itsecorg database type                  DBX_PGSQL
-itsecorg database name                  isodb
-itsecorg database port                  5432
+fworch database hostname              localhost
+fworch database type                  DBX_PGSQL
+fworch database name                  fworchdb
+fworch database port                  5432
 
 ###################### logging options ##################################
 set loglevel		6
@@ -86,10 +86,10 @@ config password minimal-length 6
 <pre>
 ImportSleepTime         300					# Zeit zwischen den Import-Laeufen in Sekunden
 
-ImportDir               /usr/share/itsecorg/importer		# Import main directory
-PerlInc                 /usr/share/itsecorg/importer		# Perl Include Directory
-iso_workdir		/tmp/isotmp				# Temporaeres Verzeichnis fuer Import-Daten
-archive_dir		/var/itsecorg/import_archive		# Verzeichnis fuer Archivierung von Fehlimporten
+ImportDir               /usr/local/fworch/importer		# Import main directory
+PerlInc                 /usr/local/fworch/importer		# Perl Include Directory
+fworch_workdir		/tmp/isotmp				# Temporaeres Verzeichnis fuer Import-Daten
+archive_dir		/var/fworch/import_archive		# Verzeichnis fuer Archivierung von Fehlimporten
 simple_bin_dir		/bin					# wo liegen tar, date, mkdir, ...
 save_import_results_to_file	1
 
@@ -99,7 +99,7 @@ csv_delimiter           %
 csv_user_delimiter      ;
 group_delimiter      	|
 
-iso_srv_user            isoimporter
+fworch_srv_user            isoimporter
 output_method           text
 
 echo_bin                /bin/echo
@@ -109,7 +109,7 @@ chmod_bin               /bin/chmod
 scp_batch_mode_switch   -B -q
 
 psql_exe                        /usr/bin/psql			# for netscreen predef-services copy from
-psql_params                     -t -q -A -h $iso_srv_host -d $iso_database -U $iso_srv_user
+psql_params                     -t -q -A -h $fworch_srv_host -d $fworch_database -U $fworch_srv_user
 
 # LDAP stuff
 LDAP_enabled            1

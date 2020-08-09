@@ -273,7 +273,7 @@ def csv_dump_nw_obj(nw_obj):
 
 #def nw_objs_add_any_obj(uid_any_obj):
 #    nw_objects.extend([{ 'obj_uid': uid_any_obj, 'obj_name': 'Any', 'obj_color': 'black', 
-#                            'obj_comment': 'Any obj added by ITSecOrg',
+#                            'obj_comment': 'Any obj added by fworch',
 #                            'obj_typ': 'network', 'obj_ip': '0.0.0.0/0', 'obj_member_refs': '', 'obj_member_names': '' }])
 
 def get_ip_of_obj (obj):
@@ -494,7 +494,7 @@ def collect_svcs_from_rule(rule):
 
 #def svc_objs_add_any_obj(uid_any_obj):
 #    # TODO: need to parse the any-uid from rules
-#    svc_objects.extend([{ 'svc_uid': uid_any_obj, 'svc_name': 'Any', 'svc_color': 'black', 'svc_comment': 'Svc Any obj by ISO',
+#    svc_objects.extend([{ 'svc_uid': uid_any_obj, 'svc_name': 'Any', 'svc_color': 'black', 'svc_comment': 'Svc Any obj by FWORCH',
 #                          'svc_typ': 'simple', 'svc_port': '1', 'svc_port_end': '65535', 'svc_member_refs': '', 
 #                          'svc_member_names': '', 'ip_proto': '255', 'svc_timeout': '3600', 'rpc_nr': '' }])
 

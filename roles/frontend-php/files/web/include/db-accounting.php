@@ -28,7 +28,7 @@ class AccRuleList extends RuleList {
 			(is_null($this->filter->getClientId()) ? 'NULL' : $this->filter->getClientId()) . ", '" . $this->filter->getMgmFilter4ReportConfig() . "')";
 		$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$db_rule_ids = $this->db_connection->iso_db_query($sqlcmd);
+			$db_rule_ids = $this->db_connection->fworch_db_query($sqlcmd);
 			$this->rows = $db_rule_ids->rows;
 			$rule_cnt = 0;
 			$rule_id_list = '';
@@ -45,7 +45,7 @@ class AccRuleList extends RuleList {
 	//		echo "RuleList sql: $sqlcmd<br>";
 			$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 			if (!$this->error->isError($this->db_connection)) {
-				$db_rule_ids = $this->db_connection->iso_db_query($sqlcmd);
+				$db_rule_ids = $this->db_connection->fworch_db_query($sqlcmd);
 				if (!$this->error->isError($db_rule_ids)) {
 					$this->rows = $db_rule_ids->rows;
 					$this->AccRuleNumber = $db_rule_ids->rows;
@@ -92,7 +92,7 @@ class AccNetworkObjectList extends DbList {
 			" GROUP BY id";
 		$db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($db_connection)) {
-			$obj_list = $db_connection->iso_db_query($sql_code);
+			$obj_list = $db_connection->fworch_db_query($sql_code);
 			$this->obj_number = $obj_list->rows; 
 		}
 	}
@@ -115,7 +115,7 @@ class AccServiceList extends DbList{
 					"GROUP BY id"; 
 		$db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($db_connection)) {
-			$svc_list = $db_connection->iso_db_query($sql_code);
+			$svc_list = $db_connection->fworch_db_query($sql_code);
 			$this->svc_number = $svc_list->rows; 
 		}
 	}
@@ -138,7 +138,7 @@ class AccUserList extends DbList{
 					" GROUP BY id"; 
 		$db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($db_connection)) {
-			$user_list = $db_connection->iso_db_query($sql_code);
+			$user_list = $db_connection->fworch_db_query($sql_code);
 			$this->user_number = $user_list->rows; 
 		}
 	}

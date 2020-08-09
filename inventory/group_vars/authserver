@@ -4,9 +4,9 @@ auth_ldap_server_internal: "ldaps://localhost"
 auth_ldap_superuser_name: "cn=Manager,{{ auth_ldap_path }}"
 auth_ldap_user_inital_pwd: "fworch.1"
 auth_ldap_std_user_path: "ou=operator,ou=user,{{ auth_ldap_path }}"
-auth_web_listener: 8888
+auth_web_listener_port: 8888
 auth_path_rel: FWO_Auth
-auth_server_base_dir: "{{ iso_home}}/auth"
+auth_server_base_dir: "{{ fworch_home}}/auth"
 auth_server_start_dir: "{{ auth_server_base_dir }}/FWO_Auth/FWO_Auth_Server"
 auth_server_syslog_id: "{{ product_name }}.auth_server"
 auth_service_name: "{{ product_name }}-auth"

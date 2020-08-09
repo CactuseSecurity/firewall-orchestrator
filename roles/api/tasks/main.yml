@@ -17,5 +17,5 @@
   import_tasks: api-query-collection.yml
 
 - name: api create documentation
-  import_tasks: hasura-create-docu.yml
+  import_tasks: api-create-docu.yml
   when: "api_docu is defined and api_docu == 'yes'"

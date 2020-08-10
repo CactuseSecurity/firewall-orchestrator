@@ -35,10 +35,10 @@ select mgm_id, max(stop_time) as last_import,
 #!/bin/bash
 while [ true ]
 do
-   mgm_to_delete=$(psql -qtAX -d isodb -c "select mgm_name from management left join import_control using (mgm_id) where do_not_import and hide_in_gui group by mgm_id order by count(control_id) limit 1")
+   mgm_to_delete=$(psql -qtAX -d fworchdb -c "select mgm_name from management left join import_control using (mgm_id) where do_not_import and hide_in_gui group by mgm_id order by count(control_id) limit 1")
    echo "next mgm to delete: $mgm_to_delete" 
-   echo "executing: time psql -qtAX -d isodb -c delete from management where mgm_name=$mgm_to_delete"
-   time psql -d isodb -c "delete from management where mgm_name='$mgm_to_delete'"
+   echo "executing: time psql -qtAX -d fworchdb -c delete from management where mgm_name=$mgm_to_delete"
+   time psql -d fworchdb -c "delete from management where mgm_name='$mgm_to_delete'"
 done
 
 */

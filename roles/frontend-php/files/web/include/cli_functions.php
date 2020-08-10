@@ -47,7 +47,7 @@ require_once ("db-base.php");
 		$e = new PEAR();
 		$DbConf = new DbConfig($user,$pw); // enters database connection info into session
 		$conn = new DbConnection($DbConf);
-		$result = $conn->iso_db_query("select dev_name from device where dev_id=$devId");
+		$result = $conn->fworch_db_query("select dev_name from device where dev_id=$devId");
 		if (!$e->isError($result) and isset($result->data[0]['dev_name'])) return $result->data[0]['dev_name'];	
 		else return "";
 	}
@@ -55,7 +55,7 @@ require_once ("db-base.php");
 		$e = new PEAR();
 		$DbConf = new DbConfig($user,$pw); // enters database connection info into session
 		$conn = new DbConnection($DbConf);
-		$result = $conn->iso_db_query("select dev_id from device where dev_name='$devName'");
+		$result = $conn->fworch_db_query("select dev_id from device where dev_name='$devName'");
 		if (!$e->isError($result) and isset($result->data[0]['dev_id'])) return $result->data[0]['dev_id'];	
 		else return "";
 	}
@@ -63,7 +63,7 @@ require_once ("db-base.php");
 		$e = new PEAR();
 		$DbConf = new DbConfig($user,$pw); // enters database connection info into session
 		$conn = new DbConnection($DbConf);
-		$result = $conn->iso_db_query("select mgm_name from device LEFT JOIN management using (mgm_id) where dev_id=$devId");
+		$result = $conn->fworch_db_query("select mgm_name from device LEFT JOIN management using (mgm_id) where dev_id=$devId");
 		if (!$e->isError($result) and isset($result->data[0]['mgm_name'])) return $result->data[0]['mgm_name'];	
 		else return "";
 	}
@@ -77,7 +77,7 @@ require_once ("db-base.php");
 		return $report_date;	
 	}
 	function output_html_header_config_report($stamm) {
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">' ."\n". '<html><head><title>ITSecOrg Report</title>' . "\n".
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">' ."\n". '<html><head><title>fworch Report</title>' . "\n".
 			'<meta name="robots" content="index,follow"><meta http-equiv="cache-control" content="no-cache">' ."\n". '<meta name="revisit-after" content="2 days"><meta http-equiv="content-language" content="de">' . "\n" .
 			'<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">';
 		echo  "\n" . '<script type="text/javascript" src="' . $stamm . 'js/client.js"></script>' .

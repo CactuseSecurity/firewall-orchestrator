@@ -270,13 +270,13 @@ all netmasks to /32.
  
 Anonymizing a whole (ASCII) Postgresql database:
   # creating an ASCII dump of the database:
-  pg_dump -U dbadmin -d isodb -W >/var/tmp/iso_db.dump.sql
-  # or as postgres user:  pg_dump -d isodb >/var/tmp/iso_db.dump.sql
-  # turn binary .Fc dump into ascii (only necessary if you do not already have an ascii dump): pg_restore /var/tmp/iso_db.dump.Fc >/var/tmp/iso_db.dump.sql
+  pg_dump -U dbadmin -d fworchdb -W >/var/tmp/fworch_db.dump.sql
+  # or as postgres user:  pg_dump -d fworchdb >/var/tmp/fworch_db.dump.sql
+  # turn binary .Fc dump into ascii (only necessary if you do not already have an ascii dump): pg_restore /var/tmp/fworch_db.dump.Fc >/var/tmp/fworch_db.dump.sql
   # anonymizing:
-  iso-anonymizer.pl -txt-subst-file=/var/tmp/strings.txt /var/tmp/iso_db.dump.sql
+  iso-anonymizer.pl -txt-subst-file=/var/tmp/strings.txt /var/tmp/fworch_db.dump.sql
   # restoring anonymized database:
-  psql --set ON_ERROR_STOP=on targetdb </var/tmp/iso_db.dump.sql
+  psql --set ON_ERROR_STOP=on targetdb </var/tmp/fworch_db.dump.sql
 
 =head1 TODO
 - reliably replace network address by networks with consistent netmasks

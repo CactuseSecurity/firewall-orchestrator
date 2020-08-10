@@ -5,15 +5,29 @@
       file:
         dest: "{{ ui_dir }}"
         state: directory
-        owner: "{{ iso_user }}"
-        group: "{{ iso_user }}"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_user }}"
 
     - name: copy Blazor files to frontend target
       copy:
         src: "Blazor"
         dest: "{{ ui_dir }}"
-        owner: "{{ iso_user }}"
-        group: "{{ iso_user }}"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_user }}"
+
+    - name: copy FWO_Auth_Client files to frontend target
+      copy:
+        src: "FWO_Auth_Client"
+        dest: "{{ ui_dir }}"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_user }}"
+
+    - name: copy FWO_Filter files to frontend target
+      copy:
+        src: "FWO_Filter"
+        dest: "{{ ui_dir }}"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_user }}"
 
   become: yes
 

@@ -124,7 +124,7 @@ class DisplayFilter {
 		if ($client_id=='' or $client_id == 'NULL') return '';
 
 		$sql_code = "SELECT client_username_pattern FROM client_username WHERE NOT client_id=$client_id";
-		$foreign_user_pattern = $this->db_connection->iso_db_query($sql_code);
+		$foreign_user_pattern = $this->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($foreign_user_pattern)) $this->error->raiseError($foreign_user_pattern->getMessage());
 
 		$foreign_user_pattern_array = array();
@@ -296,7 +296,7 @@ class DisplayFilter {
 	}
 	function get_mgm_id_of_dev_id($dev_id) {
 		if (!is_null($dev_id) && !($dev_id == '') && !($dev_id == 'NULL')) {
-			$mgm_table = $this->db_connection->iso_db_query("SELECT mgm_id FROM device WHERE dev_id=$dev_id");
+			$mgm_table = $this->db_connection->fworch_db_query("SELECT mgm_id FROM device WHERE dev_id=$dev_id");
 			$mgm_id = $mgm_table->data[0]['mgm_id'];
 		} else {
 			$mgm_id = NULL;
@@ -540,7 +540,7 @@ class RuleConfigurationFilter extends DisplayFilter {
 				
 		if (!is_null($dev_id) && !($dev_id == '') && !($dev_id == 'NULL')) {
 			// TODO: auf db-import-ids.php umstellen:
-			$import_id_dev_id_table = $this->db_connection->iso_db_query($sqlcmd);
+			$import_id_dev_id_table = $this->db_connection->fworch_db_query($sqlcmd);
 			if (!$this->error->isError($import_id_dev_id_table)) {
 				$import_id = $import_id_dev_id_table->data[0]['import_id']; 
 			} else {
@@ -670,13 +670,13 @@ class RuleChangesFilter extends DisplayFilter {
 		$sqlcmd1 = "select get_next_import_id as import_id from get_next_import_id($devid,'".$time1."')";
 		$sqlcmd2 = "select get_previous_import_id as import_id from get_previous_import_id($devid,'".$time2."')";
 		if (!is_null($time1)) {
-			$import_id1 = $this->db_connection->iso_db_query($sqlcmd1);
+			$import_id1 = $this->db_connection->fworch_db_query($sqlcmd1);
 			$id1 = $import_id1->data[0]['import_id'];
 		} else {
 			$id1 = NULL;
 		}
 		if (!is_null($time2)) {
-			$import_id2 = $this->db_connection->iso_db_query($sqlcmd2);
+			$import_id2 = $this->db_connection->fworch_db_query($sqlcmd2);
 			$id2 = $import_id2->data[0]['import_id'];
 		} else {
 			$id2 = NULL;
@@ -691,7 +691,7 @@ class RuleChangesFilter extends DisplayFilter {
 			$sql_code = "SELECT * FROM client WHERE $client_filter ORDER BY client_name";
 		else
 			$sql_code = "SELECT * FROM client ORDER BY client_name";
-		$clients = $this->db_connection->iso_db_query($sql_code);
+		$clients = $this->db_connection->fworch_db_query($sql_code);
 
 		if ($this->error->isError($clients)) {
 			$this->error->raiseError($clients->getMessage());

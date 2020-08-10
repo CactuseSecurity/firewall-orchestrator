@@ -24,7 +24,7 @@
 		$_SESSION["logtarget"] = $config->getLogTarget();
 		$_SESSION["logfacility"] = $config->getLogFacility();
 		$log = new LogConnection();
-		$log->log_login("ITSecOrg User " . $session["dbuser"] . " logged out.");
+		$log->log_login("fworch User " . $session["dbuser"] . " logged out.");
 		session_destroy();
 		header("Location: index.php");
 	}
@@ -33,7 +33,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>ITSecOrg Login</title>
+<title>fworch Login</title>
 <meta name="robots" content="index,follow">
 <meta http-equiv="cache-control" content="no-cache">
 <meta name="revisit-after" content="2 days">
@@ -57,7 +57,7 @@
  <table align="center">
 	<tr><td><a href="http://www.cactus.de" target="_blank"><img src="<?php echo $stamm ?>img/cactus_logo.gif" width="187" height="67"></a></td></tr>
 	<tr><td width="50">&nbsp;</td></tr>
- 	<tr><td><h2>ITSecOrg Version <?php include ("version.inc.php"); ?></h2></td></tr>
+ 	<tr><td><h2>fworch Version <?php include ("version.inc.php"); ?></h2></td></tr>
  </table>
  <p>
  &nbsp;</p><p>

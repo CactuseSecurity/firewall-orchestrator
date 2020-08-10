@@ -18,7 +18,7 @@
 			if (!strpos(strtolower($text), "password")===false OR !strpos(strtolower($text), "pw")===false OR !strpos(strtolower($text), "pass")===false)
 				$text = "<log text might have contained password in cleartext: this will not be logged>";			
 			if ($this->getLogTarget() == 'syslog' AND ($log_level+0)<=(0+$this->getLogLevel())) {
-				openlog("ITSecOrg php", LOG_PID, $this->getFacility());
+				openlog("fworch php", LOG_PID, $this->getFacility());
 				syslog($log_level, $text);
 				closelog();
 			}

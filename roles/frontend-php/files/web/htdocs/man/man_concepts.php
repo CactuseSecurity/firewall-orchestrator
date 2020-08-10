@@ -29,14 +29,14 @@
 <form>
 <div id="inhalt">
 <br>
-<b class="headlinemain">ITSecOrg Konzepte</b>
+<b class="headlinemain">fworch Konzepte</b>
 <br>&nbsp;<br>
 <A name="clients"></A>
 <h3>Mandantentrennung</h3>
-In ITSecOrg werden die folgenden Kriterien f&uuml;r die Trennung der Sicherheitskonfigurationen nach Mandanten verwendet:
+In fworch werden die folgenden Kriterien f&uuml;r die Trennung der Sicherheitskonfigurationen nach Mandanten verwendet:
 <br>
 <ul>
-<li>IP-Adressen: Die ITSecOrg-Datenbank enth&auml;lt eine Tabelle mit IP-Adressbereichen und eine Zuordnung
+<li>IP-Adressen: Die fworch-Datenbank enth&auml;lt eine Tabelle mit IP-Adressbereichen und eine Zuordnung
 zu den einzelnen Mandanten.
 <li>Directory-Abfragen f&uuml;r Benutzer: Sofern ein LDAP-Verzeichnis vorhanden ist, kann die Mandantenzugeh&ouml;rigkeit
 	eines Benutzers dort abgefragt werden.
@@ -66,7 +66,7 @@ Dieses Objekt, das alle IP-Adressen umfasst, beinhaltet in jedem Fall das Netzwe
 Mandanten und somit werden solche Regeln immer angezeigt.  
 <A name="roles"></A>
 <h3>Rollen</h3>
-F&uuml;r die Verwendung von ITSecOrg k&ouml;nnen verschiedene Benutzergruppen definiert werden.
+F&uuml;r die Verwendung von fworch k&ouml;nnen verschiedene Benutzergruppen definiert werden.
 Abh&auml;ngig von der Gruppenzugeh&ouml;rigkeit kann ein Benutzer verschiedene Rollen und damit auch 
 verschiedene Privilegien erhalten.
 <br>
@@ -83,7 +83,7 @@ Die folgende Liste zeigt einen Auszug der zu vergebenden Privilegien:
 <li> &Auml;nderung der Dokumentation m&ouml;glich
 </ul>
 <br>
-Ein Beispiel f&uuml;r aus verschiedenen Rollen resultierende Sichten auf die ITSecOrg-GUI zeigt die folgende Abbildung:
+Ein Beispiel f&uuml;r aus verschiedenen Rollen resultierende Sichten auf die fworch-GUI zeigt die folgende Abbildung:
 <br><br>
 <img src="<?php echo $stamm ?>img/roles.jpg">
 <br><br>
@@ -94,7 +94,7 @@ kann der Benutzer nicht auf die Dokumentationsseite gelangen.
 <A name="revision"></A>
 <h3>Revisionssicherheit</h3>
 
-ITSecOrg gew&auml;hrleistet eine l&uuml;ckenlose Dokumentation der &Auml;nderungen
+fworch gew&auml;hrleistet eine l&uuml;ckenlose Dokumentation der &Auml;nderungen
 an allen unterst&uuml;tzten Sicherheitssystemen:<br>
 <ul>
 <li>Alle &Auml;nderungen werden automatisch eingelesen
@@ -103,10 +103,10 @@ an allen unterst&uuml;tzten Sicherheitssystemen:<br>
 	werden ebenfalls in einer Historie protokolliert. 
 </ul>
 <br><br>
-Voraussetzung f&uuml;r die Revisisonssicherheit des ITSecOrg-Systems ist allerdings, dass sichergestellt ist, 
-dass niemand die ITSecOrg-Datenbank direkt (ohne Verwendung der ITSecOrg-GUI) ver&auml;ndern kann.
+Voraussetzung f&uuml;r die Revisisonssicherheit des fworch-Systems ist allerdings, dass sichergestellt ist, 
+dass niemand die fworch-Datenbank direkt (ohne Verwendung der fworch-GUI) ver&auml;ndern kann.
 <br><br>
 Dies kann erreicht werden, wenn sowohl der Unix-root-Account sowie alle Datenbanknutzer mit administrativen Rechten
-des ITSecOrg-Datenbanksystems kontrolliert werden und z.B. nur unter Einhaltung des 4-Augen-Prinzips verwendet werden.
+des fworch-Datenbanksystems kontrolliert werden und z.B. nur unter Einhaltung des 4-Augen-Prinzips verwendet werden.
 </div>
 </body></html> 

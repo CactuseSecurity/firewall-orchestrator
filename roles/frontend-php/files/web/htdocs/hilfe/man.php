@@ -17,5 +17,5 @@
 
 <body>
 <br>&nbsp;<br>
-Das Handbuch ist die Online-Dokumentation von ITSecOrg.
+Das Handbuch ist die Online-Dokumentation von fworch.
 </body></html>

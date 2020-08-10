@@ -1,4 +1,7 @@
 ---
+
+# todo: add switch "demo_install" to disable all invasive actions like change pwd, delete devices, ... 
+
 - hosts: all
   roles:
     - common
@@ -32,3 +35,8 @@
   roles:
     - { role: sample-data, when: "without_sample_data is not defined" }
     - { role: sample-data-connect-sting, when: "connect_sting is defined" }
+
+- hosts: authserver
+  roles:
+    - { role: sample-auth-data, when: "without_sample_data is not defined" }
+  # todo: add meta dependency on role sample-data

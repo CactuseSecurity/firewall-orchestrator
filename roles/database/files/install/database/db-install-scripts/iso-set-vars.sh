@@ -4,43 +4,43 @@
 
 PATH=$PATH:/bin:/usr/bin
 
-OUT='logger -t ITSecOrg:db-init.sh -p local6.notice'
-ERROR_OUT='logger -t ITSecOrg:db-init.sh -p local6.error'
+OUT='logger -t fworch:db-init.sh -p local6.notice'
+ERROR_OUT='logger -t fworch:db-init.sh -p local6.error'
 if [ -z "$1" ]
 then
-	if [ -z "$ISOBASE" ]
+	if [ -z "$FWORCHBASE" ]
 	then
-	        ISOBASE="/usr/share/itsecorg"
-			# echo "ISOBASE was not set. Using default directory $ISOBASE."
+	        FWORCHBASE="/usr/local/fworch"
+			# echo "FWORCHBASE was not set. Using default directory $FWORCHBASE."
 	fi
 else
-        ISOBASE=$1
+        FWORCHBASE=$1
 fi
-echo "using ISOBASE $ISOBASE"
+echo "using FWORCHBASE $FWORCHBASE"
 
-ISODBPW="§(FUIOD§($/)EU_.s MjsfEIUFIDFUDFI"
+FWORCHDBPW="§(FUIOD§($/)EU_.s MjsfEIUFIDFUDFI"
 DBADMINPW="§(FUIOD§($/) 9239dsf2 EUEIUFIDFUDFI"
 ADMINPW="§(FUIOD§($/)EUEIUFIdioasd9  dsaf21=DFUDFI"
-DBDIR=$ISOBASE/install/database
-PATH=$PATH:$ISOBINDIR:$ISOBASE/importer
-ISOBINDIR=$DBDIR/db-install-scripts
+DBDIR=$FWORCHBASE/install/database
+PATH=$PATH:$FWORCHBINDIR:$FWORCHBASE/importer
+FWORCHBINDIR=$DBDIR/db-install-scripts
 SQLDIR=$DBDIR/stored-procedures
 DATADIR=$DBDIR/csv-data
-SAMPLEDIR=$ISOBASE/sample-data
-ISODB=isodb
-ISODBUSER=itsecorg
-ISODBPORT=5432
-ISODBHOST=127.0.0.1
-#ISODBHOST=localhost # could end up in ipv6 connection
+SAMPLEDIR=$FWORCHBASE/sample-data
+FWORCHDB=fworchdb
+FWORCHDBUSER=fworch
+FWORCHDBPORT=5432
+FWORCHDBHOST=127.0.0.1
+#FWORCHDBHOST=localhost # could end up in ipv6 connection
 DBADMIN=dbadmin
 DBBACKUPUSER=dbbackup   # no auth, direct access (trust)
 #POSTGRESBIN=/usr/share/pgsql/bin  # manual compilation
 POSTGRESBIN=/usr/bin # package installation
 PSQLBIN=$POSTGRESBIN/psql
 DBCREATEBIN=$POSTGRESBIN/createdb
-PSQLCMD_INIT="$PSQLBIN -h $ISODBHOST -U $DBADMIN -d template1"
-PSQLCMD_INIT_USER="$PSQLBIN -h $ISODBHOST -U $DBADMIN -d $ISODB"
-PSQLCMD_CREATE_REST="$PSQLBIN -h $ISODBHOST -U $DBADMIN -d $ISODB"
-#DBCREATE_CMD="$DBCREATEBIN -h $ISODBHOST -U $DBADMIN"
-DBCREATE_CMD="$PSQLBIN -h $ISODBHOST -U $DBADMIN -d template1"
-PSQLCMD="$PSQLBIN -h $ISODBHOST -U $ISODBUSER -d $ISODB"
+PSQLCMD_INIT="$PSQLBIN -h $FWORCHDBHOST -U $DBADMIN -d template1"
+PSQLCMD_INIT_USER="$PSQLBIN -h $FWORCHDBHOST -U $DBADMIN -d $FWORCHDB"
+PSQLCMD_CREATE_REST="$PSQLBIN -h $FWORCHDBHOST -U $DBADMIN -d $FWORCHDB"
+#DBCREATE_CMD="$DBCREATEBIN -h $FWORCHDBHOST -U $DBADMIN"
+DBCREATE_CMD="$PSQLBIN -h $FWORCHDBHOST -U $DBADMIN -d template1"
+PSQLCMD="$PSQLBIN -h $FWORCHDBHOST -U $FWORCHDBUSER -d $FWORCHDB"

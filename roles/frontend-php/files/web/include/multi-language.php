@@ -52,7 +52,7 @@ class Multilanguage extends DbConfig {
 		$text_field = "text_msg_" . $this->language;
 		$sql_code ="SELECT $text_field FROM text_msg WHERE text_msg_id='$id'";
 		$db_connection = $this->db_connection;
-		$text = $db_connection->iso_db_query($sql_code);
+		$text = $db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($text)) $this->error->raiseError($text->getMessage());
 		$result = $text->data[0]["$text_field"];
 		if ($format=='html' or $format=='simple.html')

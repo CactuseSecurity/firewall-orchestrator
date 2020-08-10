@@ -141,7 +141,7 @@ class Rule extends DbItem {
 	}
 	function getDevString() {
 		$sql_code = "SELECT dev_name,mgm_name FROM device LEFT JOIN management USING (mgm_id) WHERE dev_id=" . $this->rule_dev_id;
-		$dev_infos = $this->db_connection->iso_db_query($sql_code);
+		$dev_infos = $this->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($dev_infos)) {
 			$this->error->raiseError($dev_infos->getMessage());
 		}
@@ -166,7 +166,7 @@ class Rule extends DbItem {
 				" WHERE rule_from.rule_id=$rule_id AND $relevant_import_filter object.obj_id IN (SELECT * FROM get_rule_src($rule_id, " .
 				(is_null($filter->getClientId()) ? 'NULL' : $filter->getClientId()) .
 				", '". $filter->getReportTime() . "'))  ORDER BY obj_name, user_name";
-				$rule_src_table = $this->db_connection->iso_db_query($sql_code);
+				$rule_src_table = $this->db_connection->fworch_db_query($sql_code);
 
 				if ($this->error->isError($rule_src_table)) $this->error->raiseError($rule_src_table->getMessage());
 
@@ -190,7 +190,7 @@ class Rule extends DbItem {
 				"WHERE obj_id IN (SELECT * FROM get_rule_dst(".
 				$rule_id.", " . (is_null($filter->getClientId()) ? 'NULL' : $filter->getClientId()).
 				", '". $filter->getReportTime() . "'))  ORDER BY obj_name";
-				$rule_dst_table = $rule_src_table = $this->db_connection->iso_db_query($sql_code);
+				$rule_dst_table = $rule_src_table = $this->db_connection->fworch_db_query($sql_code);
 				if ($this->error->isError($rule_dst_table)) {
 					$this->error->raiseError($rule_dst_table->getMessage());
 				}
@@ -216,7 +216,7 @@ class Rule extends DbItem {
 				" WHERE rule_id=$rule_id AND temp_mgmid_importid_at_report_time.report_id=$report_id" .
 				" AND temp_mgmid_importid_at_report_time.control_id<=service.svc_last_seen AND " .
 				" temp_mgmid_importid_at_report_time.control_id>=service.svc_create ORDER BY service.svc_name";
-		$rule_svc_table = $this->db_connection->iso_db_query($sql_code);
+		$rule_svc_table = $this->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($rule_svc_table)) {
 			$this->error->raiseError($rule_svc_table->getMessage());
 		}
@@ -252,13 +252,13 @@ class RuleList extends DbList {
 			(is_null($this->filter->getDeviceId()) ? 'NULL' : $this->filter->getDeviceId()). ",'".$this->filter->getReportTime()."', '" .
  			 $this->filter->getMgmFilter4ReportConfig() . "')";
 		if (!$this->error->isError($this->db_connection)) {
-			$this->db_connection->iso_db_query($sqlcmd);
+			$this->db_connection->fworch_db_query($sqlcmd);
 	 		$sqlcmd = "SELECT rule.rule_id FROM rule " . 
 	 				" JOIN temp_filtered_rule_ids ON (temp_filtered_rule_ids.rule_id=rule.rule_id) " .
 	 				" WHERE  temp_filtered_rule_ids.report_id=$report_id" .
 	 				" GROUP BY rule.rule_id ";				
 			$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
-			$db_rule_ids = $this->db_connection->iso_db_query($sqlcmd);
+			$db_rule_ids = $this->db_connection->fworch_db_query($sqlcmd);
 			if (!$this->error->isError($db_rule_ids)) {
 				$this->rows = $db_rule_ids->rows;
 				$rule_cnt = 0;
@@ -279,7 +279,7 @@ class RuleList extends DbList {
 	}
 	function deleteTempReport ($report_id) {
 	 		$sqlcmd = "DELETE FROM temp_filtered_rule_ids WHERE report_id=$report_id";
-			$this->db_connection->iso_db_query($sqlcmd);		
+			$this->db_connection->fworch_db_query($sqlcmd);		
 	}
 	function getRules($report_timestamp, $report_id) {
 		if (empty ($this->rule_list)) {
@@ -301,7 +301,7 @@ class RuleList extends DbList {
 					" INNER JOIN temp_filtered_rule_ids ON (rule.rule_id=temp_filtered_rule_ids.rule_id)" .
 					" WHERE temp_filtered_rule_ids.report_id=$report_id AND successful_import AND (rule_order.control_id, management.mgm_id) IN $import_id_mgm_id_str" .
 					" ORDER BY rule_order.dev_id,rule_from_zone_name,rule_to_zone_name,rule_order.rule_number";
-			$rule_table = $this->db_connection->iso_db_query($sqlcmd);
+			$rule_table = $this->db_connection->fworch_db_query($sqlcmd);
 			$rules = array ();
 			$rule_anz = $rule_table->rows;
 			$this->filter->setRelevantImportId($this->filter->getImportId());
@@ -338,12 +338,12 @@ class RuleFindList extends RuleList {
 			", ". 'NULL' . "," . 'NULL' . "," . 'NULL' . ", '" . $this->filter->getMgmFilter4ReportRulesearch() . "')";
 		$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$this->db_connection->iso_db_query($sqlcmd);
+			$this->db_connection->fworch_db_query($sqlcmd);
 	 		$sqlcmd = "SELECT rule.rule_id FROM rule " . 
 	 				" JOIN temp_filtered_rule_ids ON (temp_filtered_rule_ids.rule_id=rule.rule_id) " .
 	 				" WHERE  temp_filtered_rule_ids.report_id=$report_id" .
 	 				" GROUP BY rule.rule_id ";				
-			$db_rule_ids = $this->db_connection->iso_db_query($sqlcmd);
+			$db_rule_ids = $this->db_connection->fworch_db_query($sqlcmd);
 			if (!$this->error->isError($db_rule_ids)) {
 				$this->rows = $db_rule_ids->rows;
 				$rule_cnt = 0;
@@ -499,7 +499,7 @@ class RuleSingle extends DbList {
 					" WHERE rule_id=$rule_id";
 		$this->db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$data = $this->db_connection->iso_db_query($sqlcmd);
+			$data = $this->db_connection->fworch_db_query($sqlcmd);
 			if (!$this->error->isError($data)) {
 				$data = $data->data[0];
 			} else {
@@ -555,7 +555,7 @@ class RuleCompare extends DbList {
 		$sqlcmd = "SELECT rule.* FROM rule WHERE rule_id=$oldid OR rule_id=$newid order by rule_id";
 		$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$changes = $this->db_connection->iso_db_query($sqlcmd);
+			$changes = $this->db_connection->fworch_db_query($sqlcmd);
 			if ($this->error->isError($changes)) $log->log_error("ERROR: RuleCompare cannot exec $sqlcmd");
 		} else {
 			$error = $this->db_connection;

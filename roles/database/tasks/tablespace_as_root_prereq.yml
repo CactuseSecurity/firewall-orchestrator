@@ -8,7 +8,7 @@
        
      - name: change db create command if using a specific tablespace location
        lineinfile: 
-        path: "{{ iso_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
+        path: "{{ fworch_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
         backrefs: yes
-        regexp: '^(\$DBCREATE_CMD -c \"CREATE DATABASE \$ISODB)(\" \| \$OUT)$'
+        regexp: '^(\$DBCREATE_CMD -c \"CREATE DATABASE \$FWORCHDB)(\" \| \$OUT)$'
         line: '\1 TABLESPACE={{ table_space_name }} \2'

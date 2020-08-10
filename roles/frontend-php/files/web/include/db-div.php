@@ -20,7 +20,7 @@ class ReportList {
 		$sql_code = "SELECT get_report_typ_list_ger('report_typ'); FETCH ALL FROM report_typ";
 		if ($language->getLanguage($filter->getUser())=='eng')
 			$sql_code = "SELECT get_report_typ_list_eng('report_typ'); FETCH ALL FROM report_typ";
-		$this->report_list =$db->db_connection->iso_db_query($sql_code);
+		$this->report_list =$db->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($this->report_list)) $this->error->raiseError($this->system_list->getMessage());
 	}
 	function getReports() {
@@ -65,7 +65,7 @@ class RequestTypeList {
 		$client_sql_code = "SELECT * FROM request_type ";
 		$client_sql_code .= " ORDER BY request_type_name";
 //		echo "client_sql_code: $client_sql_code<br>";
-		$this->request_type_list = $db_connection->iso_db_query ($client_sql_code);
+		$this->request_type_list = $db_connection->fworch_db_query ($client_sql_code);
 		if ($this->error->isError($this->request_type_list)) $this->error->raiseError($this->request_type_list->getMessage());
 	}
 	function getRequestTypes() {
@@ -146,7 +146,7 @@ class IsoAdmin {
 		$sql_code = "SELECT isoadmin_id, isoadmin_first_name, isoadmin_last_name FROM isoadmin WHERE isoadmin_username='" . $isoadmin_name . "'";
 		if ($this->error->isError($db_connection))
 			$this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$isoadmin_details = $db_connection->iso_db_query ($sql_code,$filter->getLogLevel());
+		$isoadmin_details = $db_connection->fworch_db_query ($sql_code,$filter->getLogLevel());
 		if ($this->error->isError($isoadmin_details)) $this->error->raiseError($isoadmin_details->getMessage());
 		$this->isoadmin_full_name = $isoadmin_details->data[0]['isoadmin_first_name'] . 
 			' ' . $isoadmin_details->data[0]['isoadmin_last_name'] ;
@@ -175,7 +175,7 @@ class RequestList {
 		$sql_code = "SELECT request_id FROM $request_change_table WHERE $log_id_name=$local_change_id";
 		if ($this->error->isError($db_connection))
 			$this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$request_id_list = $db_connection->iso_db_query ($sql_code);
+		$request_id_list = $db_connection->fworch_db_query ($sql_code);
 		if ($this->error->isError($request_id_list)) $this->error->raiseError($request_id_list->getMessage());
 		$sql_code = "SELECT request_id,request_number,client_name,client_id,$comment_field AS comment FROM request " . 
 					"LEFT JOIN client USING(client_id) " . 
@@ -184,7 +184,7 @@ class RequestList {
 		for ($i=0; $i<$request_id_list->rows; $i++) $sql_code .= $request_id_list->data[$i]['request_id'] . ',';
 		$sql_code = substr($sql_code,0,strlen($sql_code)-1) . ')';
 //		echo "sql: $sql_code<br>";
-		$this->requests = $db_connection->iso_db_query ($sql_code,$loglevel);
+		$this->requests = $db_connection->fworch_db_query ($sql_code,$loglevel);
 		if ($this->error->isError($this->requests)) $this->error->raiseError($this->requests->getMessage());
 	}
 	function getRequestClientName($number) {
@@ -213,7 +213,7 @@ class IpProtoList {
 		if ($this->error->isError($db_connection))
 			$this->error->raiseError("F-RCF: Connection not initialized. ".$this->db_connection->getMessage());
 		$sql_code = "SELECT * FROM stm_ip_proto WHERE ip_proto_id>0 ORDER BY ip_proto_id";
-		$ip_protos = $db_connection->iso_db_query($sql_code);
+		$ip_protos = $db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($ip_protos)) $this->error->raiseError($ip_protos->getMessage());
 		$this->ip_proto_list = $ip_protos;
 	}
@@ -254,7 +254,7 @@ class SystemList {
 		if ($filter->isMgmFilterSet()) $sql_code .= " AND " . $filter->getMgmFilter();
 //		if (isset($filter->client_filter_expr)) $sql_code .=  " AND " . $filter->client_filter_expr; 
 		$sql_code .= " ORDER BY dev_typ_manufacturer,mgm_name,dev_name"; 
-		$this->system_list =$db->db_connection->iso_db_query($sql_code);
+		$this->system_list =$db->db_connection->fworch_db_query($sql_code);
 //		echo "found " . $this->system_list->rows . " systems with sql code:  $sql_code<br"; 
 		if ($this->error->isError($this->system_list)) $this->error->raiseError($this->system_list->getMessage());
 	}
@@ -281,7 +281,7 @@ class DeviceList {
 		if (isset($management_filter)) $sql_code .= " AND $management_filter ";
 //		if (isset($filter->client_filter_expr)) $client_sql_code .=  " AND " . $filter->client_filter_expr; 
 		$sql_code .= " ORDER BY dev_typ_manufacturer,mgm_name"; 
-		$this->device_list =$db->db_connection->iso_db_query($sql_code);
+		$this->device_list =$db->db_connection->fworch_db_query($sql_code);
 		
 		if ($this->error->isError($this->device_list)) $this->error->raiseError($this->device_list->getMessage());
 
@@ -317,7 +317,7 @@ class ManagementList {
 		if (isset($management_filter)) $sql_code .= " AND $management_filter ";
 //		if (isset($filter->client_filter_expr)) $sql_code .=  " AND " . $filter->client_filter_expr; 
 		$sql_code .= " ORDER BY dev_typ_manufacturer,mgm_name"; 
-		$this->management_list =$db->db_connection->iso_db_query($sql_code);
+		$this->management_list =$db->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($this->management_list)) $this->error->raiseError($this->management_list->getMessage());
 	}
 	function GetSystems() {

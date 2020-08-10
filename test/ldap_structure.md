@@ -1,3 +1,4 @@
+# ldap structure
 ~~~console
 (root)
 dc:fworch.internal--------------------------------------------------------------------------------------
@@ -20,7 +21,7 @@ n.n.
 
 --> groups-----------------------------------------------
       |                |                  |              |
-    rolle1          rolle2             
+    rolle1          rolle2
     cn: rolle1
     member-uids
     link:-> 12345 (admin)

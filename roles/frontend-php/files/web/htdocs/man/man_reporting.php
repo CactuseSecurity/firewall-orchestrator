@@ -33,9 +33,9 @@
 ?>
 <form>
 <div id="inhalt">
-<b class="headlinemain">ITSecOrg Reporting</b>
+<b class="headlinemain">fworch Reporting</b>
 <br>&nbsp;<br>
-Mit Hilfe des Men&uuml;punkts &quot;Reporting&quot; k&ouml;nnen verschiedene Reports aus der ITSecOrg 
+Mit Hilfe des Men&uuml;punkts &quot;Reporting&quot; k&ouml;nnen verschiedene Reports aus der fworch 
 Konfigurationsdatenbank generiert werden.<br>&nbsp;<br>
 <br>
 <b class="headline">Auswahl Report</b>

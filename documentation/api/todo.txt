@@ -1,16 +1,9 @@
-
-i) use http://json2html.com/#getstarted to convert json results from api calls to html tables?
-
-todo:
-- define role based access model:
-  - full admin (able to change tables management, device, stm_...)
-  - fw admin (able to document changes)
-  - reporter (able to request reports)
-- add authentiation & authorization
+- use http://json2html.com/#getstarted to convert json results from api calls to html tables?
 - expose (track) only necessary tables - and use ansible to do so
-   see: https://docs.hasura.io/1.0/graphql/manual/how-it-works/metadata-schema.html - is it possible to add data to hdb_table
-        isodb=# select * from hdb_catalog.hdb_table;
-		isodb=# \dt hdb_catalog.*
+- is it possible to add data to hdb_table
+   see: https://docs.hasura.io/1.0/graphql/manual/how-it-works/metadata-schema.html -
+        fworchdb=# select * from hdb_catalog.hdb_table;
+		fworchdb=# \dt hdb_catalog.*
 		                    List of relations
 		   Schema    |          Name           | Type  |  Owner  
 		-------------+-------------------------+-------+---------
@@ -19,37 +12,13 @@ todo:
 		 hdb_catalog | remote_schemas          | table | dbadmin
 		(13 rows)
 		
-		isodb=# select * from hdb_catalog.hdb_table where table_name='rule';
+		fworchdb=# select * from hdb_catalog.hdb_table where table_name='rule';
 		 table_schema | table_name |                                                                            configuration                                                                            | is_system_defined | is_enum 
 		--------------+------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------+---------
 		 public       | rule       | {"custom_root_fields": {"delete": null, "insert": null, "select": null, "update": null, "select_by_pk": null, "select_aggregate": null}, "custom_column_names": {}} | f                 | f
 
-- decide if dependency on postgres when using hasura is ok --> yes
-- hasura only supports cidr as string - should not be a problem --> ok
-- PoC: build usage report
 - get config at a certain date not just the active config
-- define some queries & mutations
-- let someone build a client
-- define query that resolves all groups
 - make run natively without docker --> not necessary
 - test performance with fits import
-- find out how to handle tenants (users able to see only certain managements & devices)
 - decide whether to drop client views (filter based on ip addresses) within a rulebase
-- get rid of rule_order table or at least reduce it
 - find a way to delete all old data (>x years)
-
-------
-
-- define permission functions based on role tables:
-   user_visible_managements(user_id)
-   user_visible_devices(user_id)
-
-- define permissions (only works for tables containing dev or mgm
-  {"dev_id":"_in":user_visible_devices("x-Hasura-User_Id")}
-  {"mgm_id":"_in":user_visible_managements("x-Hasura-User_Id")}
-
-- create auth site (using turbogears and pgjwt)
-
-- make installer work when multiple php or postgres versions are insalled
-
-- get pgadmin working again (error:  ERROR:  column "proisagg" does not exist LINE 9:  WHERE proisagg = FALSE AND pronamespace = 2200::oid)

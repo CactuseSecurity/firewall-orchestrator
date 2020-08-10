@@ -1,0 +1,36 @@
+---
+#    - name: set ldif path variable (later with variables)
+#      file:
+#        path: "/etc/ldap/ldif_files/"   #later var: openldap_server_app_path
+#        state: directory
+#        owner: "ldap"  #later var: openldap_server_user
+#        group: "ldap"  #later var: openldap_server_user
+
+- name: copy ldif template for roles
+  template: src=add_ou_test_roles.ldif.j2 dest={{ fworch_home }}/auth/add_ou_test_roles.ldif
+  become: yes
+
+- name: copy the ldif templates to system
+  template:
+    src: "{{ item }}"
+    dest: /tmp/{{ item | basename | regex_replace('\.j2$', '') }}
+  with_fileglob:
+    - ../templates/*.j2
+
+- block:
+
+    - name: Create organizational unit user
+      command: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_ou_user.ldif"
+
+    - name: Create organizational unit user/systemuser
+      command: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_ou_systemuser.ldif"
+
+    - name: Create organizational unit user/operator
+      command: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_ou_operator.ldif.j2"
+
+    - name: Create common name user/systemuser/admin (GUI admin)
+      command: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_uid_admin.ldif"
+
+    # todo: set password via ldappasswd to have a proper hash
+
+  become: no

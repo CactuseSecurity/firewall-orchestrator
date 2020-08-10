@@ -25,9 +25,9 @@
     set_fact:
       openldap_server_random_rootpw: "{{ openldap_server_rootpw }}"
 
-# WARNING: THIS PRINTS THE MANAGER PASSWORD DURING INSTALLATION, ONLY FOR TESTING, HAS TO BE REMOVED LATER
-  - debug:
-      msg: "{{ openldap_server_random_rootpw }}"
+# WARNING: THIS PRINTS THE MANAGER PASSWORD TO AN UNPROTECTED FILE. ALSO PATH IS NOT FINAL YET
+  - name: Write random root password to file
+    copy: content="{{ openldap_server_random_rootpw }}" dest={{ fworch_home }}/ldap_manager_pw.txt
 
   - name: Generate the root password for ldap
     shell: "slappasswd -s {{ openldap_server_random_rootpw }} "

@@ -61,3 +61,4 @@ passwd: laberbla
 - uid numeric or string?
 - difference cn, uid?
 - difference uidNumber, uid?
+- security? ldapsearch returns roles, hashed pwd without authentication

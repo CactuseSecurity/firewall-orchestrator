@@ -6,7 +6,7 @@
 - name: copy ldif template for roles
   template: 
     src: add_ou_test_roles.ldif.j2 
-    dest: {{ fworch_home }}/auth/add_ou_test_roles.ldif
+    dest: "{{ fworch_home }}/auth/add_ou_test_roles.ldif"
   become: yes
 
 - name: Create test roles in ldap

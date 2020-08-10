@@ -27,7 +27,7 @@
         line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
 
     - name: insert query collection
-      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-set-all-queries.sql'
+      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-set-all-queries.sql"'
 
     - name: add collections to allowlist
       command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-add-query-collections-to-allowlist.sql"'

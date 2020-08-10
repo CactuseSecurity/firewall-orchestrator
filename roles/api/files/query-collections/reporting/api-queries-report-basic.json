@@ -1,6 +1,5 @@
 
-INSERT INTO hdb_catalog.hdb_query_collection (collection_name, collection_defn, comment, is_system_defined) 
-VALUES ('basicQueries', '{"queries": [
+{ "queries": [
     {
         "name": "getImportId",
         "query": "query getImportId($management_id: Int!, $time: timestamp!) {
@@ -106,5 +105,6 @@ VALUES ('basicQueries', '{"queries": [
             }
         }"
     }
-]}', 'base queries to be used elsewhere', FALSE);
+]}
+
 

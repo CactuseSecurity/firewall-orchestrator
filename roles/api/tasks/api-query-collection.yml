@@ -1,9 +1,6 @@
 # create query collection for basic tasks fworch_basics
 # via direct hasura DB access
 
-#- set_fact: collection_table=hdb_catalog.hdb_query_collection
-#- set_fact: allow_table=hdb_catalog.hdb_allowlist
-
 - name: copy query files to target
   copy:
     src: "query-collections"
@@ -11,31 +8,29 @@
     mode: 0644
   become: yes
 
+- name: copy template for query sql code
+  template:
+    src: "api-set-all-queries.sql.j2"
+    dest: "{{ api_home }}/query-collections/api-set-all-queries.sql"
+    mode: 0644
+  become: yes
+
 - block:
+    - name: remove all collections from allowlist and delete them opening up the db
+      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DELETE FROM hdb_catalog.hdb_allowlist; DELETE FROM hdb_catalog.hdb_query_collection;"'
+
     - name: create .pgpass file
       lineinfile:
         path: "{{ fworch_home }}/.pgpass"
         create: yes
         mode: 0600
         line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
-      
-    - name: remove all collections from allowlist opening up the db
-      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DELETE FROM hdb_catalog.hdb_allowlist;"'
 
-    - name: remove all collections for cleanup
-      shell: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DELETE FROM hdb_catalog.hdb_query_collection;"'
-
-    - name: insert basicQueries collection
-      shell: 'cd {{ api_home }}/query-collections/reporting; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-basic.sql"'
-
-    - name: insert ruleQueries collection
-      shell: 'cd {{ api_home }}/query-collections/reporting; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-rule.sql"'
-
-    - name: insert filterQueries collection
-      shell: 'cd {{ api_home }}/query-collections/reporting; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-queries-report-filters.sql"'
+    - name: insert query collection
+      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-set-all-queries.sql'
 
     - name: add collections to allowlist
-      shell: 'cd {{ api_home }}/query-collections; psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i api-add-query-collections-to-allowlist.sql"'
+      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-add-query-collections-to-allowlist.sql"'
 
     - name: clean up .pgpass file
       file:

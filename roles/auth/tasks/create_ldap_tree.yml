@@ -1,36 +1,38 @@
 ---
-#    - name: set ldif path variable (later with variables)
-#      file:
-#        path: "/etc/ldap/ldif_files/"   #later var: openldap_server_app_path
-#        state: directory
-#        owner: "ldap"  #later var: openldap_server_user
-#        group: "ldap"  #later var: openldap_server_user
 
-- name: copy ldif template for roles
-  template: src=add_ou_test_roles.ldif.j2 dest={{ fworch_home }}/auth/add_ou_test_roles.ldif
-  become: yes
-
-- name: copy the ldif templates to system
-  template:
-    src: "{{ item }}"
-    dest: /tmp/{{ item | basename | regex_replace('\.j2$', '') }}
-  with_fileglob:
-    - ../templates/*.j2
+tasks:
+  - name: Check if ldap tree already exists
+      shell: "ldapsearch ou=user -x | grep 'dn: ou=user,dc=fworch,dc=internal' | wc -l"
+      register: is_ldap_present_flag
 
 - block:
+    - name: copy the ldif templates to system
+      template:
+        src: "{{ item }}"
+        dest: /tmp/{{ item | basename | regex_replace('\.j2$', '') }}
+      with_fileglob:
+        # Frage: passt der file so?
+        - ../templates/ldif_files/*.j2
 
     - name: Create organizational unit user
-      command: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_ou_user.ldif"
+      command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f /tmp/add_ou_user.ldif"
 
     - name: Create organizational unit user/systemuser
-      command: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_ou_systemuser.ldif"
+      command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f /tmp/add_ou_systemuser.ldif"
 
     - name: Create organizational unit user/operator
-      command: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_ou_operator.ldif.j2"
+      command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f /tmp/add_ou_operator.ldif.j2"
 
     - name: Create common name user/systemuser/admin (GUI admin)
-      command: "ldapmodify -H ldaps://localhost/ -D cn=Manager,dc=fworch,dc=internal -w {{ openldap_server_random_rootpw }} -x -f roles/ldap-user/files/add_uid_admin.ldif"
+      command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f /tmp/add_uid_admin.ldif"
 
     # todo: set password via ldappasswd to have a proper hash
+  when: not is_ldap_present_flag
 
-  become: no
+## Das ist nicht best practice, könnte andere ldif files treffen
+#- name: delete all .ldif files in /tmp
+#  file:
+#    path: "{{ item }}"
+#    state: absent
+#  with_fileglob:
+#    /tmp/*.ldif

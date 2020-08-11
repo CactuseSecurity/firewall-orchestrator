@@ -1,4 +1,3 @@
-
 # this playbook sets up the api
 
 - name: install apache2

@@ -1,24 +1,57 @@
 # create query collection for basic tasks fworch_basics
 # via direct hasura DB access
+# source: https://plkmarudny.hashnode.dev/importing-json-array-into-the-postgres-jsonb-column-cjwuex4dv003os9s1u97c58n2?guid=none&deviceId=385c42a7-7fc2-4dcd-bbcc-b59e01215eae
+
+- set_fact:
+    query_collection_list:
+      - basic
+      - filters
+      - rule
+    query_collection_struct:
+      - basic
+        name: basic
+        comment: "basic queries"
+        query_file: "api-queries-report-basic-squashed.json"
+      - "filters"
+        name: filters
+        comment: "filter queries"
+        query_file: "api-queries-report-filters-squashed.json"
+      - "rule"
+        name: rule
+        comment: "rule queries"
+        query_file: "api-queries-report-rule-squashed.json"
 
 - name: copy query files to target
   copy:
     src: "query-collections"
     dest: "{{ api_home }}/"
-    mode: 0644
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
   become: yes
 
-- name: copy template for query sql code
-  template:
-    src: "api-set-all-queries.sql.j2"
-    dest: "{{ api_home }}/query-collections/api-set-all-queries.sql"
-    mode: 0644
+- name: removeline breaks and multiple consecutive spaces from json files
+  shell: "cat api-queries-report-{{ item }}.json | tr -s '[:space:]' | tr -d '\n' > api-queries-report-{{ item }}-squashed.json"
   become: yes
+  become_user: "{{ fworch_user }}"
+  args:
+    chdir: "{{ api_home }}/query-collection/reporting"
+    creates: "{{ api_home }}/query-collection/reportingapi-queries-report-{{ item }}-squashed.json"
+  loop: "{{ query_collection_list }}"
+
+- name: create sql command files from template for adding query collections
+  template:
+    src: "api-set-queries.sql.j2"
+    dest: "{{ api_home }}/query-collection/reporting/{{ item.query_file }}"
+    mode: 0644
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
+  become: yes
+  args:
+    chdir: "{{ api_home }}/query-collection"
+    # creates: "{{ item.query_file }}"
+  loop: "{{ query_collection_struct }}"
 
 - block:
-    - name: remove all collections from allowlist and delete them opening up the db
-      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DELETE FROM hdb_catalog.hdb_allowlist; DELETE FROM hdb_catalog.hdb_query_collection;"'
-
     - name: create .pgpass file
       lineinfile:
         path: "{{ fworch_home }}/.pgpass"
@@ -26,11 +59,12 @@
         mode: 0600
         line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
 
-    - name: insert query collection
-      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-set-all-queries.sql"'
-
-    - name: add collections to allowlist
-      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-add-query-collections-to-allowlist.sql"'
+    - name: execute sql command files for adding query collections
+      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-set-queries-{{ item }}.sql"'
+      become: yes
+      args:
+        chdir: "{{ api_home }}/query-collection"
+      loop: "{{ query_collection_list }}"
 
     - name: clean up .pgpass file
       file:

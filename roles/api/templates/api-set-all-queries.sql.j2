@@ -1,9 +1,0 @@
-
-\set content `{{ api_home }}/query-collections/reporting/api-queries-report-basic.json`; 
-INSERT INTO hdb_catalog.hdb_query_collection (collection_name, collection_defn, comment, is_system_defined) VALUES ('basicQueries', :'content', 'base queries to be used elsewhere', FALSE);
-
-\set content `{{ api_home }}/query-collections/reporting/api-queries-report-filters.json`; 
-INSERT INTO hdb_catalog.hdb_query_collection (collection_name, collection_defn, comment, is_system_defined) VALUES ('filterQueries', :'content', 'filter queries for UI', FALSE);
-
-\set content `{{ api_home }}/query-collections/reporting/api-queries-report-rule.json`; 
-INSERT INTO hdb_catalog.hdb_query_collection (collection_name, collection_defn, comment, is_system_defined) VALUES ('ruleQueries', :'content', 'queries for rule reporting', FALSE);

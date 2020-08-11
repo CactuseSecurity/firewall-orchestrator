@@ -9,15 +9,15 @@
       - rule
     query_collection_struct:
       - basic:
-        name: basic
+        collection_name: basic
         comment: "basic queries"
         query_file: "api-queries-report-basic-squashed.json"
       - filters:
-        name: filters
+        collection_name: filters
         comment: "filter queries"
         query_file: "api-queries-report-filters-squashed.json"
       - rule:
-        name: rule
+        collection_name: rule
         comment: "rule queries"
         query_file: "api-queries-report-rule-squashed.json"
 

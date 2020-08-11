@@ -34,21 +34,18 @@
   become: yes
   become_user: "{{ fworch_user }}"
   args:
-    chdir: "{{ api_home }}/query-collection/reporting"
-    creates: "{{ api_home }}/query-collection/reportingapi-queries-report-{{ item }}-squashed.json"
+    chdir: "{{ api_home }}/query-collections/reporting"
+    creates: "{{ api_home }}/query-collections/reporting/api-queries-report-{{ item }}-squashed.json"
   loop: "{{ query_collection_list }}"
 
 - name: create sql command files from template for adding query collections
   template:
     src: "api-set-queries.sql.j2"
-    dest: "{{ api_home }}/query-collection/reporting/{{ item.query_file }}"
+    dest: "{{ api_home }}/query-collections/reporting/{{ item.query_file }}"
     mode: 0644
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
   become: yes
-  args:
-    chdir: "{{ api_home }}/query-collection"
-    # creates: "{{ item.query_file }}"
   loop: "{{ query_collection_struct }}"
 
 - block:
@@ -62,8 +59,6 @@
     - name: execute sql command files for adding query collections
       command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/api-set-queries-{{ item }}.sql"'
       become: yes
-      args:
-        chdir: "{{ api_home }}/query-collection"
       loop: "{{ query_collection_list }}"
 
     - name: clean up .pgpass file

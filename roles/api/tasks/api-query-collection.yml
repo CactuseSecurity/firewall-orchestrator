@@ -52,6 +52,8 @@
 
     - name: execute sql command files for adding query collections
       command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ api_home }}/query-collections/reporting/api-set-queries-{{ item.collection_name }}.sql"'
+      args:
+        chdir: "{{ api_home }}/query-collections/reporting"
       loop: "{{ query_collection_dict }}"
       register: sql_result
       # todo: error handling

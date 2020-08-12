@@ -37,7 +37,7 @@
   environment: "{{proxy_env}}"
 
 - name: create extension pgcrypto for jwt auth
-  shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgcrypto'') THEN CREATE EXTENSION pgcrypto; END IF; END \$do\$"'
+  command: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgcrypto'') THEN CREATE EXTENSION pgcrypto; END IF; END \$do\$"'
   become: yes
   become_user: postgres
 
@@ -47,7 +47,7 @@
   register: pgtap_control
 
 - name: create pgtap extension for running unit tests on database
-  shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgtap'') THEN CREATE EXTENSION pgtap; END IF; END \$do\$"'
+  command: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgtap'') THEN CREATE EXTENSION pgtap; END IF; END \$do\$"'
   become: yes
   become_user: postgres
   when: pgtap_control.stat.exists == True
@@ -59,17 +59,19 @@
   become: yes
        
 - name: install pgjwt extension
-  shell: "cd {{ fworch_home }}/install/database/pgjwt && make install"
+  command: "make install"
+  args: chdir="{{ fworch_home }}/install/database/pgjwt"
   become: yes
 
 # todo: decide if we also need updates for extensions (or simply drop and re-create?)
 - name: create pgjwt extension in iso database
-  shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgjwt'') THEN CREATE EXTENSION pgjwt; END IF; END \$do\$"'
+  command: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgjwt'') THEN CREATE EXTENSION pgjwt; END IF; END \$do\$"'
   become: yes
   become_user: postgres
 
 - name: test pgjwt extension
-  shell: 'cd {{ fworch_home }}/install/database/pgjwt && psql -d {{ fworch_db_name }} -c "\i test_pgjwt.sql"'
+  command: 'psql -d {{ fworch_db_name }} -c "\i test_pgjwt.sql"'
+  args: chdir="{{ fworch_home }}/install/database/pgjwt"
   become: yes
   become_user: postgres
   when: pgtap_control.stat.exists == True

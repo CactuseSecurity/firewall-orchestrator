@@ -1,9 +1,9 @@
 #- block:
      - name: create dbadmin user (owner of database fworchdb and all tables)
-       shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''dbadmin'') THEN CREATE ROLE dbadmin PASSWORD ''{{ dbadmin_pwd }}'' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN; END IF; END \$do\$"'
+       command: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''dbadmin'') THEN CREATE ROLE dbadmin PASSWORD ''{{ dbadmin_pwd }}'' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN; END IF; END \$do\$"'
 
      - name: create {{ fworch_user }} user
-       shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ fworch_user }}'') THEN CREATE ROLE {{ fworch_user }} PASSWORD ''{{ fworch_pwd }}'' LOGIN; END IF; END \$do\$"'
+       command: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ fworch_user }}'') THEN CREATE ROLE {{ fworch_user }} PASSWORD ''{{ fworch_pwd }}'' LOGIN; END IF; END \$do\$"'
 
 #     leave out tablespace creation for now as this cannot be done within a pgsql function (might use dblink later on) 
 #     - name: create tablespace {{ fworch_user }}
@@ -28,7 +28,7 @@
        when: clean_install is defined or db_exists.stdout=="0"
 
      - name: create admin user (default admin for web login)
-       shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
+       command: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
 
      - name: (re)defines functions and views (idempotent)
        shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init2-functions.sh"
@@ -36,6 +36,3 @@
      - name: add base data to the database (if db was just freshly created or clean_install is set)
        shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init3-fill.sh"
        when: clean_install is defined or db_exists.stdout=="0"
-
-  # become: yes
-  # become_user: postgres  # already in main.yml

@@ -129,7 +129,7 @@
 
 - block:
      - name: check if database already exists
-       shell: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
+       command: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
        register: db_exists
 
      - name: create new database - drop existing db before when clean_install is set

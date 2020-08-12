@@ -53,6 +53,6 @@
       command: "/usr/sbin/update-rc.d {{ product_name }}-importer defaults"
 
     - name: start {{ product_name }} importer 
-      shell: "/etc/init.d/{{ product_name }}-importer start"
+      command: "/etc/init.d/{{ product_name }}-importer start"
   become: yes
       

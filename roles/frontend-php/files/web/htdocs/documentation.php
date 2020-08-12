@@ -33,7 +33,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>ITSecOrg Documentation</title>
+<title>fworch Documentation</title>
 <meta name="robots" content="index,follow">
 <meta http-equiv="cache-control" content="no-cache">
 <meta http-equiv="content-language" content="de">

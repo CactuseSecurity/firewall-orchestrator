@@ -1,47 +1,52 @@
-﻿//using Newtonsoft.Json.Linq;
-using System;
-//using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-//using System.Linq;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
-//using System.Text.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
-//using GraphQL;
+using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
-//using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.Mvc.Formatters;
+using System.Net;
 
 namespace FWO
 {
     public class APIConnection
     {
+        const string APIHost = "localhost";
+        const string APIPort = "443";
+        const string APIPath = "/api/v1/graphql";
+/*
+        for local API testing (in visual studio without running full ansible installer), either 
+            - create a local ssh tunneling to the http server on the virtual machine on an arbitrary port (here 8443) to connect to api like this:
+              const string APIPort = "8443";
+            - or use the demo system as api host like this: 
+              const string APIHost = "demo.itsecorg.de";
+*/
         // Server URL
-        private const string ServerURI = "https://demo.itsecorg.de/api/v1/graphql";
+        private const string ServerURI = "https://" + APIHost + ":" + APIPort + APIPath;
 
         // Http/s Client
-        private readonly GraphQLHttpClient Client;
+        private readonly HttpClient Client;
 
         public APIConnection()
-        {
+        {         
             // Allow all certificates // REMOVE IF SERVER GOT VALID CERTIFICATE
-            //ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+            HttpClientHandler Handler = new HttpClientHandler();
+            Handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 
             // New http/s client
-            Client = new GraphQLHttpClient(ServerURI, new SystemTextJsonSerializer());
+            Client = new HttpClient(Handler);
         }
 
         //Query is structured as follow: { "query" : " 'query' ", "variables" : { 'variables' } } with 'query' as query to send and 'variables' as corresponding variables
-        public async Task<string> SendQuery(string Query, object Variables = null, string OperationName = "")
+        public async Task<string> SendQuery(string Query, string Variables = "", string OperationName = "")
         {
-            //int a = 0;
-            //int b = 0;
-
-            //new GraphQLRequest("test", a, b, "a");
-            //Client.SendQueryAsync(new GraphQLRequest(Query, , ))
-
             // New http-body containing the query
-            StringContent content = new StringContent(Query, Encoding.UTF8);
+            StringContent content = new StringContent("{ \"query\": \"" + Query + "\" , \"variables\" : { " + Variables + " } }", Encoding.UTF8);
             // Remove all standard headers
             content.Headers.Clear();
             // Add content header
@@ -53,13 +58,13 @@ namespace FWO
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 #endif
-            //HttpResponseMessage response;
-            //string responseString;
+            HttpResponseMessage response;
+            string responseString;
 
             try
             {
                 // Send http-packet with query and header. Receive answer
-                //response = await Client.PostAsync(ServerURI, content);
+                response = await Client.PostAsync(ServerURI, content);
             }
             catch (Exception e)
             {
@@ -75,7 +80,7 @@ namespace FWO
             try
             {
                 // Convert answer to string
-                //responseString = await response.Content.ReadAsStringAsync();
+                responseString = await response.Content.ReadAsStringAsync();
             }
             catch (Exception e)
             {
@@ -84,9 +89,10 @@ namespace FWO
             }
 
             // Return answer
-            return "";//responseString;
+            return responseString;
 
             //TODO: https://www.youtube.com/watch?v=4XlA2WDXyTo
         }
+
     }
 }

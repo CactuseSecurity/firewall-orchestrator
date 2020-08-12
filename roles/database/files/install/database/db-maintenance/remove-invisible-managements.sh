@@ -5,9 +5,9 @@
 
 while true
 do
-   no_of_mgmgs=$(psql -qtAX -d isodb -c "select count(*) from management ")
-   no_of_mgmgs_unwanted=$(psql -qtAX -d isodb -c "select count(*) from management where do_not_import and hide_in_gui")
-   mgm_to_delete=$(psql -qtAX -d isodb -c "select mgm_name from management left join import_control using (mgm_id) where do_not_import and hide_in_gui group by mgm_id order by count(control_id) limit 1")
+   no_of_mgmgs=$(psql -qtAX -d fworchdb -c "select count(*) from management ")
+   no_of_mgmgs_unwanted=$(psql -qtAX -d fworchdb -c "select count(*) from management where do_not_import and hide_in_gui")
+   mgm_to_delete=$(psql -qtAX -d fworchdb -c "select mgm_name from management left join import_control using (mgm_id) where do_not_import and hide_in_gui group by mgm_id order by count(control_id) limit 1")
    echo "total number of managements: $no_of_mgmgs, remaining managements to remove: $no_of_mgmgs_unwanted, next management to remove: $mgm_to_delete"
    if [ "$mgm_to_delete" == "" ]
    then
@@ -15,7 +15,7 @@ do
       exit 0
    fi
    echo "next mgm to delete: $mgm_to_delete" 
-   echo "executing: time psql -qtAX -d isodb -c delete from management where mgm_name=$mgm_to_delete"
-   time psql -d isodb -c "delete from management where mgm_name='$mgm_to_delete'"
+   echo "executing: time psql -qtAX -d fworchdb -c delete from management where mgm_name=$mgm_to_delete"
+   time psql -d fworchdb -c "delete from management where mgm_name='$mgm_to_delete'"
 done
 

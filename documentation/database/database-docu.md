@@ -12,7 +12,7 @@
 - make ssh available in virtual box: choose NAT networking - advanced - add port forwarding for ssh from port e.g. 2222 to 22 (see <http://ask.xmodulo.com/access-nat-guest-from-host-virtualbox.html>)
 - ssh to guest
 - cp ssh pub key to user's authorized_keys on repo server
-- get repo from git: 
+- get repo from git:
 ~~~console
   github: git clone git@github.com:CactuseSecurity/firewall-orchestrator.git
 ~~~
@@ -20,12 +20,12 @@
 - allow for disk space triple the size of the DB (e.g. 500 GB for a 140 GB DB) - especially needed for the vacuum step at the end
 - restore db backup:
 ~~~console
-psql -c "create database isodb"
-psql -d isodb -f "database-dump"
+psql -c "create database fworchdb"
+psql -d fworchdb -f "database-dump"
 ~~~
 ### Optimization
 
 - allow for disk space triple the size of the DB (e.g. 500 GB for a 140 GB DB) - especially needed for the vacuum step at the end
 - transform database tables to auto cascade thru all tables when deleting unwanted managements: see install/database/stored-procedures/iso-change-to-delete-cascade.sql
 - start this shell script as a dbadmin to remove all unwanted managements: see install/database/db-maintenance/remove-2-year-old-devices.sh
-- stop all db activity before the next command: time psql -d isodb -c "vacuum full verbose"
+- stop all db activity before the next command: time psql -d fworchdb -c "vacuum full verbose"

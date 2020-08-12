@@ -26,7 +26,7 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<title>ITSecOrg Configuration</title>
+	<title>fworch Configuration</title>
 	<script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
 	<script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 	<link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">
@@ -199,7 +199,7 @@
 				// check for existing mgm with same name and same type
 				if (!$mgm_id or $mgm_id=='')	{// Aenderung an bestehendem Management
 					$mgm_double_sql_code = "SELECT mgm_name, dev_typ_id FROM management WHERE mgm_name='$mgm_name' AND dev_typ_id=$device_type_id";
-					$mgm_double = $db_connection->iso_db_query($mgm_double_sql_code);
+					$mgm_double = $db_connection->fworch_db_query($mgm_double_sql_code);
 					if ($mgm_double->rows) $input_fehler = "Ein Management mit dem Namen $mgm_name vom selben Typ existiert bereits.";
 				}				
 				if (!$input_fehler) {
@@ -209,14 +209,14 @@
 								"do_not_import=" . (($dev_do_import)?"FALSE":"TRUE") . ", hide_in_gui=" . (($mgm_hide_in_gui)?"TRUE":"FALSE") . ", mgm_update='$mgm_updated' WHERE mgm_id=$mgm_id";
 					else { // neues Mgm anlegen
 						$mgm_id_code = "SELECT MAX(mgm_id)+1 AS mgm_id FROM management";
-						$next_free_mgm_id = $db_connection->iso_db_query($mgm_id_code); $next_free_mgm_id_no = $next_free_mgm_id->data[0]['mgm_id'];
+						$next_free_mgm_id = $db_connection->fworch_db_query($mgm_id_code); $next_free_mgm_id_no = $next_free_mgm_id->data[0]['mgm_id'];
 						if (!isset($next_free_mgm_id_no)) $next_free_mgm_id_no = 1;
 						$sql_code = "INSERT INTO management (mgm_id, mgm_name, dev_typ_id, do_not_import, ssh_hostname, importer_hostname, ssh_user, ssh_public_key, ssh_private_key, ssh_port, config_path, hide_in_gui) " .
 								"VALUES ($next_free_mgm_id_no, '$mgm_name', $device_type_id, " . (($dev_do_import)?"FALSE":"TRUE") .
 									", '$mgm_ssh_hostname', '$mgm_importer_hostname', '$mgm_ssh_user', '$mgm_ssh_pub_key', '$mgm_ssh_priv_key', $mgm_ssh_port, '$mgm_config_path', " . (($mgm_hide_in_config)?"TRUE":"FALSE") . ") ";					
 					}
 //					echo "sql_code: $sql_code<br>"; // exit (1);
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					if ($e->isError($result)) $input_fehler = 'db-sql-error';
 				}
 			}
@@ -230,9 +230,9 @@
 					// check for dev_typ == mgm_typ
 					$mgm_sql_code = "SELECT dev_typ_manufacturer FROM management LEFT JOIN stm_dev_typ USING (dev_typ_id) WHERE mgm_id=$dev_mgm_id";
 					$dev_sql_code = "SELECT dev_typ_manufacturer FROM stm_dev_typ WHERE dev_typ_id=$device_type_id";
-					$mgm_manu = $db_connection->iso_db_query($mgm_sql_code);
+					$mgm_manu = $db_connection->fworch_db_query($mgm_sql_code);
 					$mgm_manu_name = $mgm_manu->data[0]['dev_typ_manufacturer'];
-					$dev_manu = $db_connection->iso_db_query($dev_sql_code);
+					$dev_manu = $db_connection->fworch_db_query($dev_sql_code);
 					$dev_manu_name = $dev_manu->data[0]['dev_typ_manufacturer'];
 					if ($mgm_manu_name != $dev_manu_name) {  // unless dev and mgm are from check point: do not accept different manu strings
 						if (!(preg_match("/check/", $mgm_manu_name) and preg_match("/check/", $dev_manu_name)))
@@ -241,7 +241,7 @@
 					if (!isset($dev_id) or $dev_id == '') { // Aenderung an bestehendem Management
 						// check for existing dev with same name and same type
 						$dev_double_sql_code = "SELECT dev_name, dev_typ_id FROM device WHERE dev_name='$dev_name' AND dev_typ_id=$device_type_id";
-						$dev_double = $db_connection->iso_db_query($dev_double_sql_code);
+						$dev_double = $db_connection->fworch_db_query($dev_double_sql_code);
 						if ($dev_double->rows) $input_fehler = "Ein Device mit dem Namen $dev_name vom selben Device-Typ existiert bereits.";
 					}		
 					if ($dev_manu_name == 'phion') {
@@ -267,7 +267,7 @@
 							. ", dev_update='$dev_updated' WHERE dev_id=$dev_id";
 					else { // neues Device anlegen
 						$dev_id_code			= "SELECT MAX(dev_id)+1 AS dev_id FROM device";
-						$next_free_dev_id		= $db_connection->iso_db_query($dev_id_code);
+						$next_free_dev_id		= $db_connection->fworch_db_query($dev_id_code);
 						$next_free_dev_id_no	= $next_free_dev_id->data[0]['dev_id'];
 						if (!isset($next_free_dev_id_no)) $next_free_dev_id_no = 1;
 						$sql_code				= "INSERT INTO device (dev_id, dev_name, mgm_id, dev_rulebase, dev_typ_id, do_not_import, hide_in_gui) " .
@@ -275,7 +275,7 @@
 								"," . (($dev_hide_in_gui) ? "TRUE" : "FALSE") . ")";
 					}
 		//					echo "sql_code: $sql_code<br>";
-					$result = $db_connection->iso_db_query($sql_code);
+					$result = $db_connection->fworch_db_query($sql_code);
 					if ($e->isError($result) or !$result) $input_fehler = 'db-sql-error';
 				}
 			}

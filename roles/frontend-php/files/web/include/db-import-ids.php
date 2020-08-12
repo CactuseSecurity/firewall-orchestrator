@@ -40,12 +40,12 @@ class ImportIds extends DbItem {
 			list ($import_id, $mgm_id) = explode(',', $ids);
 			$sqlcmd .= "INSERT INTO temp_mgmid_importid_at_report_time (control_id, mgm_id, report_id) VALUES ($import_id, $mgm_id, $report_id); ";
 		}
-		$this->db_connection->iso_db_query($sqlcmd);
+		$this->db_connection->fworch_db_query($sqlcmd);
 	}	
 	function delete_relevant_import_times_from_temp_table() {
 		$report_id = $this->filter->getReportId();
 		$sqlcmd = "DELETE FROM temp_mgmid_importid_at_report_time WHERE report_id=$report_id";
-		$this->db_connection->iso_db_query($sqlcmd);
+		$this->db_connection->fworch_db_query($sqlcmd);
 	}
 // setters (only these access the DB directly - just once at report start)
 	function setImportIdMgmList() {
@@ -57,7 +57,7 @@ class ImportIds extends DbItem {
 				" WHERE start_time<='$report_timestamp' AND NOT stop_time IS NULL AND $mgm_filter AND successful_import" .
 				" AND NOT device.hide_in_gui AND NOT management.hide_in_gui " . 
 				" GROUP BY import_control.mgm_id";
-		$import_id_table = $this->db_connection->iso_db_query($sqlcmd);
+		$import_id_table = $this->db_connection->fworch_db_query($sqlcmd);
 		if (!$this->error->isError($import_id_table)) {
 			$this->import_id_mgm_id_table = $import_id_table;
 		} else {
@@ -74,7 +74,7 @@ class ImportIds extends DbItem {
 				" INNER JOIN device ON (management.mgm_id=device.mgm_id)" .
 				" WHERE start_time<='$report_timestamp' AND NOT stop_time IS NULL AND $mgm_filter AND successful_import" .
 				" GROUP BY device.dev_id";
-		$import_id_dev_id_table = $this->db_connection->iso_db_query($sqlcmd);
+		$import_id_dev_id_table = $this->db_connection->fworch_db_query($sqlcmd);
 		if (!$this->error->isError($import_id_dev_id_table)) {
 			for ($idx = 0; $idx < $import_id_dev_id_table->rows; ++$idx) {
 				$dev_id = $import_id_dev_id_table->data[$idx]['dev_id'];
@@ -107,7 +107,7 @@ class ImportIds extends DbItem {
 				" INNER JOIN device ON (management.mgm_id=device.mgm_id)" .		
 				" WHERE $where_clause" .
 				" GROUP BY obj_id, object.mgm_id" ;
-		$obj_mgm_id_table = $this->db_connection->iso_db_query($sqlcmd);
+		$obj_mgm_id_table = $this->db_connection->fworch_db_query($sqlcmd);
 		if (!$this->error->isError($obj_mgm_id_table)) {
 			for ($idx = 0; $idx < $obj_mgm_id_table->rows; ++$idx) {
 				$obj_id = $obj_mgm_id_table->data[$idx]['obj_id'];
@@ -134,7 +134,7 @@ class ImportIds extends DbItem {
 				" INNER JOIN device ON (management.mgm_id=device.mgm_id)" .		
 				" WHERE $where_clause" .
 				" GROUP BY svc_id,service.mgm_id";
-		$svc_mgm_id_table = $this->db_connection->iso_db_query($sqlcmd);
+		$svc_mgm_id_table = $this->db_connection->fworch_db_query($sqlcmd);
 		if (!$this->error->isError($svc_mgm_id_table)) {
 			for ($idx = 0; $idx < $svc_mgm_id_table->rows; ++$idx) {
 				$svc_id = $svc_mgm_id_table->data[$idx]['svc_id'];
@@ -161,7 +161,7 @@ class ImportIds extends DbItem {
 				" INNER JOIN device ON (management.mgm_id=device.mgm_id)" .		
 				" WHERE $where_clause" .
 				" GROUP BY user_id,usr.mgm_id";
-		$usr_mgm_id_table = $this->db_connection->iso_db_query($sqlcmd);
+		$usr_mgm_id_table = $this->db_connection->fworch_db_query($sqlcmd);
 		if (!$this->error->isError($usr_mgm_id_table)) {
 			for ($idx = 0; $idx < $usr_mgm_id_table->rows; ++$idx) {
 				$usr_id = $usr_mgm_id_table->data[$idx]['user_id'];

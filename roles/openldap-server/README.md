@@ -23,9 +23,9 @@ openldap_serverlocation: Portland
 openldap_serverorganization: IT
 ```
 
-## Example: Configure an OpenLDAP server with SSL:
+## Example: Configure an OpenLDAP server with SSL
 
-~~~yaml
+```yaml
 - hosts: all
   sudo: true
   roles:
@@ -37,7 +37,7 @@ openldap_serverorganization: IT
     openldap_server_state: Oregon
     openldap_server_location: Portland
     openldap_server_organization: IT
-~~~
+```
 
 ## Dependencies
 

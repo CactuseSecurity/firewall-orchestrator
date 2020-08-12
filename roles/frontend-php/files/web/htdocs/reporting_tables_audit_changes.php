@@ -58,7 +58,7 @@
 		if (!isset($dev_id) or $dev_id == 'NULL' or $dev_id == '') { echo "ERROR: device with name $dev_name not found - aborting\n"; exit (1); }	
 	}
 	$_REQUEST['Device'] = $dev_name;
-	$_REQUEST['ManSystem'] = getMgmNameFromDevId ($dev_id, 'itsecorg', '');
+	$_REQUEST['ManSystem'] = getMgmNameFromDevId ($dev_id, 'fworch', '');
 	$_SESSION['ManagementFilter'] = $mgm_filter;
 	if (isset($client_id) and !($client_id == '')) $_SESSION['ClientFilter'] = " (client_id=$client_id) ";
 	$_REQUEST['devId'] = $dev_id;
@@ -474,7 +474,7 @@ function create_json_config_report($request, $session, $dev_id, $report_format, 
 	$log->log_debug("Starting reporting_tables_audit_changes.php (dev_id=$dev_id, dev_name=$dev_name, client_id=$client_id, date1=$report_date, date2=$report_date2; report_typ=$report_type)");
 	$attributes = JSON_PRETTY_PRINT;
 	$connection_string = "mongodb://localhost:27017/";
-	$collection = "itsecorg.reports";
+	$collection = "fworch.reports";
 //	$db_type = "mongo";
 	$db_type = "postgres";
 	

@@ -15,12 +15,17 @@
     <PackageReference Include="GraphQL.Client" Version="3.1.3" />
     <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="3.1.3" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.3" />
+    <PackageReference Include="Radzen.Blazor" Version="2.10.20" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="wwwroot\images\FWO_Logo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\FWO_Auth_Client\FWO_Auth_Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

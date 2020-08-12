@@ -7,7 +7,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>ITSecOrg Hilfe zum Dokumentieren der offenen &Auml;nderungen</title>
+<title>fworch Hilfe zum Dokumentieren der offenen &Auml;nderungen</title>
 <meta name="robots" content="index,follow">
 <meta http-equiv="content-language" content="de">
 <link rel="stylesheet" type="text/css" href="/css/firewall.css">
@@ -15,10 +15,10 @@
 
 <body>
 <br>&nbsp;<br>
-<b class="headlinemain">ITSecOrg Dokumentation offener &Auml;nderungen</b>
+<b class="headlinemain">fworch Dokumentation offener &Auml;nderungen</b>
 <br>&nbsp;<br>
 Diese Seite dient zur Dokumentation von an den Sicherheitssystemen vorgenommenen &Auml;nderungen.<br>
-Das Import-Modul von ITSecOrg analysiert regelm&auml;&szlig;ig die Konfiguration der eingebundenen Sicherheitssysteme und
+Das Import-Modul von fworch analysiert regelm&auml;&szlig;ig die Konfiguration der eingebundenen Sicherheitssysteme und
 tr&auml;gt diese in die Konfigurationsdatenbank ein.<br>
 Auf dieser Seite erh&auml;lt der Administrator die M&ouml;glichkeit, Informationen nachzutragen,
 die nicht in der nativen Konfiguration des Sicherheitssystem vorhanden sind und somit nicht automatisiert dokumentiert

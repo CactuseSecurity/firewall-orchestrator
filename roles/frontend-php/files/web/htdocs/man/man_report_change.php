@@ -65,11 +65,11 @@ Zu jeder &Auml;nderung werden die folgenden Details aufgelistet:
 		echo '<tr><td class="celldev_wrap">&quot;Change Admin&quot;</td>';
 		echo '<td class="celldev_wrap">Enth&auml;lt den Namen des Administrators des Sicherheitssystems,' .
 			 ' der die &Auml;nderung vorgenommen hat, sofern dieser bekannt ist. Ob hier ein Name erscheint, '.
-		 	 ' h&auml;ngt davon ab, ob das ITSecOrg-Import-Modul den Namen in der Konfiguration des' .
-		 	 ' Sicherheitssystems finden konnte. Zus&auml;tzlich muss der Username zuvor in der ITSecOrg-Datenbank angelegt' .
+		 	 ' h&auml;ngt davon ab, ob das fworch-Import-Modul den Namen in der Konfiguration des' .
+		 	 ' Sicherheitssystems finden konnte. Zus&auml;tzlich muss der Username zuvor in der fworch-Datenbank angelegt' .
 		 	 ' worden sein.</td></tr>';
 		echo '<tr><td class="celldev_wrap">&quot;Doku Admin&quot;</td>';
-		echo '<td class="celldev_wrap">Enth&auml;lt den Namen des ITSecOrg-Administrators,' .
+		echo '<td class="celldev_wrap">Enth&auml;lt den Namen des fworch-Administrators,' .
 			 ' der die &Auml;nderung dokumentiert hat, sofern dieser bekannt ist. Der Name ist hier zu sehen, wenn '.
 		 	 ' die &Auml;nderung dokumentiert wurde.</td></tr>';
 	}

@@ -14,7 +14,7 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<title>Import-Status ITSecOrg</title>
+	<title>Import-Status fworch</title>
 	<meta http-equiv="content-language" content="de">
 	<script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
 	<script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>

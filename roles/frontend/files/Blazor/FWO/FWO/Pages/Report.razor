@@ -1,6 +1,10 @@
 ﻿@using BlazorTable
+@using FWO.Backend.API
+@using FWO.Backend.Data.API
 
 @page "/report"
+
+@inject APIConnection Connection
 
 <h3>Test-Report</h3>
 
@@ -10,7 +14,7 @@
     <input type="text" class="form-control" placeholder="Filter" />
 </div>
 
-<div class="card m-2">
+@*<div class="card m-2">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h4 class="d-inline-flex align-items-center">
             Filter
@@ -23,71 +27,95 @@
     </div>
     <div class="collapse card-body @FilterCollapseCSS">
         <div class="m-2 d-flex flex-wrap">
-            @for (int i = 0; i < 10; i++)
+            @foreach (DataTable CurrentFilterDataTable in FilterDataTables)
             {
-                <Filter Title="@("title" + i)"></Filter>
+                <Filter Data="CurrentFilterDataTable"></Filter>
             }
         </div>
     </div>
-</div>
+</div>*@
 
 <div class="card m-2 shadow">
     <div class="card-body">
-        <Table TableItem="Rule" Items="Rules" ShowSearchBar="true" PageSize="47">
-            <Column TableItem="Rule" Title="ID" Field="@(x => x.ID)" Sortable="true" Filterable="false" Width="15%" />
-            <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="false" Width="10%" />
-            <Column TableItem="Rule" Title="IP" Field="@(x => x.IP)" Sortable="true" Filterable="false" Width="10%" />
-            <Pager ShowPageNumber="true"></Pager>
-        </Table>
+
+        @foreach (Management management in Managements)
+        {
+            <h3>@management.Name</h3>
+            <hr />
+
+            foreach (Device device in management.Devices)
+            {
+                <h4>@device.Name</h4>
+
+                <Table TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="20" >
+                    <Column TableItem="Rule" Title="ID" Field="@(x => x.Id)" Sortable="true" Filterable="false" Width="15%">
+                    </Column>
+                    <Column TableItem="Rule" Title="Source" Field="@(x => x.Source)" Sortable="true" Filterable="false" Width="10%" />
+                    <Column TableItem="Rule" Title="Destination" Field="@(x => x.Destination)" Sortable="true" Filterable="false" Width="10%" />
+                    <Pager ShowPageNumber="true"></Pager>
+                </Table>
+            }
+        }
+
     </div>
 </div>
-
-
 
 @code
 {
     string FilterCollapseCSS = "show";
     string FilterButtonCollapse = "oi-minus";
 
-    [Parameter]
-    public System.Data.DataTable Table { get; set; }
+    private Management[] Managements = new Management[0];
 
-    private Rule[] Rules = new Rule[10]
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"},
-        new Rule { ID = 1, Name = "Test", IP="10.10.10.9"}
-    };
+        /*
+        // Get Filter Queries
+        string QueryResultJson = await Connection.SendQuery("Get Filters Query"); // NEEDS TO BE IMPLEMENTED IN API
+        string[] FilterQueries = JsonReader.ToStringArray(QueryResultJson);
+        */
 
-    protected override async Task OnInitializedAsync()
-    {
-        Table = new System.Data.DataTable("a");
+        //if (firstRender)
+        //{
+        //    // TEST QUERIES
+        //    string QueryResultJson = "";
+        //    string Query = "{ \"query\": \"{ device { dev_id dev_name stm_dev_typ { dev_typ_name dev_typ_version } management { mgm_id mgm_name} rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) { rule_num rule_id rule_uid rule_froms { object { obj_name } } rule_tos { object { obj_name } } rule_services { service { svc_name svc_id } } rule_action rule_track } } } \", \" variables \" : {} }";
+
+        //    string QueryResultFilterManagements = "{ \"query\":\" { management { mgm_id mgm_name } } \", \"variables\" : { } }";
+
+        //    //string QueryResultFilterDevices = "{\"query\": \"{device {dev_iddev_namestm_dev_typ {dev_typ_namedev_typ_version} }\", \" variables \" : { }}";
+
+        //    string[] FilterQueries = new string[]
+        //    {
+        //        QueryResultFilterManagements,
+        //        //QueryResultFilterDevices
+        //    };
+
+        //    // Iterate through Filter Queries
+        //    for (int i = 0; i < FilterQueries.Length; i++)
+        //    {
+        //        // Get Filter
+        //        QueryResultJson = await Connection.SendQuery(FilterQueries[i]);
+        //        DataTable CurrentFilterDataTable = JsonReader.ToDataTable(QueryResultJson);
+        //        // Add "Selected" Column
+        //        CurrentFilterDataTable.Columns.Add("Selected", typeof(Boolean)).SetOrdinal(0);
+        //        // Add Filter for to be displayed
+        //        FilterDataTables.Add(CurrentFilterDataTable);
+        //    }
+        //}
     }
 
-    private async void UpdateHeading(MouseEventArgs e)
+    private async Task UpdateHeading(MouseEventArgs e)
     {
-        APIConnection Test = new APIConnection();
-        string QueryResult = ""; // await Test.TestQuery();
-        Table = JsonReader.ReadString(QueryResult).Tables[0];
+        APIConnection connection = new APIConnection();
+        //string Query = "{ \"query\": \"{ device { dev_id dev_name stm_dev_typ { dev_typ_name dev_typ_version } management { mgm_id mgm_name} rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) { rule_num rule_id rule_uid rule_froms { object { obj_name } } rule_tos { object { obj_name } } rule_services { service { svc_name svc_id } } rule_action rule_track } } } \", \" variables \" : {} }";
+        string RulesJson = await connection.SendQuery(Queries.Rules);
+        Managements = JsonReader.JsonToReport(RulesJson);
     }
 
     private void CollapseButtonClicked(MouseEventArgs e)
     {
         FilterCollapseCSS = (FilterCollapseCSS == "") ? "show" : "";
         FilterButtonCollapse = (FilterButtonCollapse == "oi-plus") ? "oi-minus" : "oi-plus";
-    }
-
-    class Rule
-    {
-        public string Name { get; set; }
-        public int ID { get; set; }
-        public string IP { get; set; }
     }
 }

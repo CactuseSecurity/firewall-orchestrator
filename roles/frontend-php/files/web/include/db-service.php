@@ -48,7 +48,7 @@ class ServiceList extends DbList{
 	function select_services($sql_code, $import_ids) {
 		$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$svc_table = $this->db_connection->iso_db_query($sql_code);
+			$svc_table = $this->db_connection->fworch_db_query($sql_code);
 			if (!$this->error->isError($svc_table)) {
 				$this->rows = $svc_table->rows;
 				$svc_list = array();
@@ -94,7 +94,7 @@ class ServiceChangedList extends DbList {
 				" ORDER BY changelog_service.log_svc_id";
 			$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 			if (!$this->error->isError($this->db_connection)) {
-				$changeservice_table = $this->db_connection->iso_db_query($sqlcmd);
+				$changeservice_table = $this->db_connection->fworch_db_query($sqlcmd);
 				if (!$this->error->isError($changeservice_table)) {
 					$this->rows = $changeservice_table->rows;
 					$this->changes = array ();
@@ -178,7 +178,7 @@ class ChangedService extends DbItem {
 	function select_oldservice($service_id, $import_id) {
 		if (is_null($service_id))
 			$this->error->raiseError("E-CHS1: service Id is null.");
-		$change_table_old = $this->db_connection->iso_db_query($this->getSelectStatement("old",$service_id));
+		$change_table_old = $this->db_connection->fworch_db_query($this->getSelectStatement("old",$service_id));
 		if ($this->error->isError($change_table_old)) {
 			$this->error->raiseError($change_table_old->getMessage());
 		}
@@ -192,7 +192,7 @@ class ChangedService extends DbItem {
 	function select_newservice($service_id, $import_id) {
 		if (is_null($service_id))
 			$this->error->raiseError("E-CHS2: Service Id is null");
-		$change_table_new = $this->db_connection->iso_db_query($this->getSelectStatement("new",$service_id));
+		$change_table_new = $this->db_connection->fworch_db_query($this->getSelectStatement("new",$service_id));
 		if ($this->error->isError($change_table_new)) {
 			$this->error->raiseError($change_table_new->getMessage());
 		}
@@ -281,7 +281,7 @@ class Service extends DbItem {
 		$sqlcmd = "SELECT svcgrp_member_id,service.svc_id,service.svc_name " .
 				"FROM svcgrp LEFT JOIN service ON svcgrp_member_id=service.svc_id " .
 				"WHERE svcgrp_id=$svc_id AND service.svc_create<=$import_id AND service.svc_last_seen>=$import_id";
-		$group_members = $this->db_connection->iso_db_query($sqlcmd);
+		$group_members = $this->db_connection->fworch_db_query($sqlcmd);
 		if ($this->error->isError($group_members)) {
 			$this->error->raiseError($group_members->getMessage());
 		}
@@ -381,7 +381,7 @@ class ServiceSingle extends DbList {
 					"WHERE svc_id=$svc_id";
 		$this->db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$data = $this->db_connection->iso_db_query($sqlcmd);
+			$data = $this->db_connection->fworch_db_query($sqlcmd);
 			if (!$this->error->isError($data)) {
 				$data = $data->data[0];
 			} else {
@@ -420,7 +420,7 @@ class ServiceCompare extends DbList {
 		$sqlcmd =	"SELECT * FROM service WHERE svc_id=$svc_id1 OR svc_id=$svc_id2 order by svc_id";
 		$this->db_connection = $this->initConnection($filter->getSessionUser(), $filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
-			$changes = $this->db_connection->iso_db_query($sqlcmd);
+			$changes = $this->db_connection->fworch_db_query($sqlcmd);
 			if ($this->error->isError($changes)) {
 				echo "error_case?!";
 				$this->changeobject = $data;
@@ -497,7 +497,7 @@ class ServiceGroupFlat extends DbList {  // used for filtering into groups (conf
 				"WHERE svcgrp_flat_id=$svc_id_of_group AND NOT svc_typ_name='group'" .
 				" AND svcgrp_flat.import_created<=$import_id AND svcgrp_flat.import_last_seen>=$import_id";
 				// beware of services with proto or port NULL values
-		$group_members = $this->db_connection->iso_db_query($sqlcmd);
+		$group_members = $this->db_connection->fworch_db_query($sqlcmd);
 		if ($this->error->isError($group_members)) $this->error->raiseError($group_members->getMessage());
 		$this->svc_names = array();
 		$this->svc_protos = array();

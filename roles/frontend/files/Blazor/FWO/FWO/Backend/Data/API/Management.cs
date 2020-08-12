@@ -1,20 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace FWO.Backend.Data.API
 {
     public class Management
     {
-        public readonly string Name;
+        [JsonPropertyName("mgm_id")]
+        public int Id { get; set; }
 
-        public readonly Firewall[] Firewalls;
+        [JsonPropertyName("mgm_name")]
+        public string Name { get; set; }
 
-        public Management(string Name, Firewall[] Firewalls)
-        {
-            this.Name = Name;
-            this.Firewalls = Firewalls;
-        }
+        [JsonPropertyName("devices")]
+        public Device[] Devices { get; set; }
     }
 }

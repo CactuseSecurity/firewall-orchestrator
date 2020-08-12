@@ -1,38 +1,28 @@
-# This is a basic workflow to help you get started with Actions
-
 name: super-linter
 
-# Controls when the action will run. Triggers the workflow on push or pull request
 on:
   push:
-    branches:
-      - '**'
-    paths-ignore:
-      - 'design/**'
-      - 'roles/frontend-php/**'
-      - 'roles/unused/**'
-      - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
+     branches: [ master ]
+     paths-ignore:
+       - 'design/**'
+       - 'roles/frontend-php/**'
+       - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
   pull_request:
-    branches:
-      - '**'
-    paths-ignore:
+     types: [ ready_for_review review_requested ]
+     branches: [ master ]
+     paths-ignore:
       - 'design/**'
       - 'roles/frontend-php/**'
-      - 'roles/unused/**' 
       - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
 
-    # Runs super-linter
     - name: Super-Linter
       uses: github/super-linter@v2.1.0

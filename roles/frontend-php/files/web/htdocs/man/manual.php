@@ -10,7 +10,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>ITSecOrg Manual</title>
+<title>fworch Manual</title>
 <script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
 <script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">
@@ -28,8 +28,8 @@
 ?>
 <form>
 <div id="inhalt">
-<b class="headlinemain">ITSecOrg Handbuch</b>
-<p>Das ITSecOrg-System (IT Security Organizer) stellt folgende Funktionalit&auml;ten zur Verf&uuml;gung:
+<b class="headlinemain">fworch Handbuch</b>
+<p>Das fworch-System (IT Security Organizer) stellt folgende Funktionalit&auml;ten zur Verf&uuml;gung:
 <ul>
 <?php
 	if ($allowedToDocumentChanges)

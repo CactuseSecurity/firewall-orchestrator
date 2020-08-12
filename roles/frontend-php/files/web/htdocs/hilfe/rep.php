@@ -8,7 +8,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Hilf zu ITSecOrg Einstellungen</title>
+<title>Hilf zu fworch Einstellungen</title>
 <meta name="robots" content="index,follow">
 <meta http-equiv="cache-control" content="no-cache">
 <meta name="revisit-after" content="2 days">
@@ -18,9 +18,9 @@
 
 <body>
 <br>&nbsp;<br>
-<b class="headlinemain">ITSecOrg Reporting</b>
+<b class="headlinemain">fworch Reporting</b>
 <br>&nbsp;<br>
-Mit Hilfe des Men&uuml;punkts &quot;Reporting&quot; k&ouml;nnen verschiedene Reports aus der ITSecOrg 
+Mit Hilfe des Men&uuml;punkts &quot;Reporting&quot; k&ouml;nnen verschiedene Reports aus der fworch 
 Konfigurationsdatenbank generiert werden.<br>&nbsp;<br>
 Die folgenden Reporttypen stehen zur Verf&uuml;gung:<br>&nbsp;<br>
 <table cellpadding="0" cellspacing="0" class="tab-border" style="margin:0px 10px;">
@@ -57,10 +57,10 @@ oder aber ein spezifisches Device, f&uuml;r das man die vorgenommenen &Auml;nder
 <ul>
 <li>html - Standard-Ausgabeformat
 <li>simple.html - Ausgabe f&uuml;r Druckausgabe ohne interaktive Elemente 
-<li>junos - erzeugt Konfigurations-Code fŸr SRX-Firewall-Systeme 
+<li>junos - erzeugt Konfigurations-Code fï¿½r SRX-Firewall-Systeme 
 <li>csv - Standardausgabe des Regelwerks im CSV-Format
-<li>ARS.csv - Ausgabe des Regelwerks in speziellem CSV-Format fŸr ARS-Import
-<li>ARS.noname.csv - Ausgabe des Regelwerks in speziellem CSV-Format fŸr ARS-Import ohne Objektnamen
+<li>ARS.csv - Ausgabe des Regelwerks in speziellem CSV-Format fï¿½r ARS-Import
+<li>ARS.noname.csv - Ausgabe des Regelwerks in speziellem CSV-Format fï¿½r ARS-Import ohne Objektnamen
 </ul>
 <br>
 <b class="headline">Ergebnis</b>
@@ -78,11 +78,11 @@ Zu jeder &Auml;nderung werden die folgenden Details aufgelistet:
 		echo '<tr><td class="celldev_wrap">&quot;Change Admin&quot;</td>';
 		echo '<td class="celldev_wrap">Enth&auml;lt den Namen des Administrators des Sicherheitssystems,' .
 			 ' der die &Auml;nderung vorgenommen hat, sofern dieser bekannt ist. Ob hier ein Name erscheint, '.
-		 	 ' h&auml;ngt davon ab, ob das ITSecOrg-Import-Modul den Namen in der Konfiguration des' .
-		 	 ' Sicherheitssystems finden konnte. Zus&auml;tzlich muss der Username zuvor in der ITSecOrg-Datenbank angelegt' .
+		 	 ' h&auml;ngt davon ab, ob das fworch-Import-Modul den Namen in der Konfiguration des' .
+		 	 ' Sicherheitssystems finden konnte. Zus&auml;tzlich muss der Username zuvor in der fworch-Datenbank angelegt' .
 		 	 ' worden sein.</td></tr>';
 		echo '<tr><td class="celldev_wrap">&quot;Doku Admin&quot;</td>';
-		echo '<td class="celldev_wrap">Enth&auml;lt den Namen des ITSecOrg-Administrators,' .
+		echo '<td class="celldev_wrap">Enth&auml;lt den Namen des fworch-Administrators,' .
 			 ' der die &Auml;nderung dokumentiert hat, sofern dieser bekannt ist. Der Name ist hier zu sehen, wenn '.
 		 	 ' die &Auml;nderung dokumentiert wurde.</td></tr>';
 	}

@@ -7,7 +7,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>ITSecOrg &Auml;nderung der Dokumentation</title>
+<title>fworch &Auml;nderung der Dokumentation</title>
 <meta name="robots" content="index,follow">
 <meta http-equiv="content-language" content="de">
 <link rel="stylesheet" type="text/css" href="/css/firewall.css">
@@ -15,7 +15,7 @@
 
 <body>
 <br>&nbsp;<br>
-<b class="headlinemain">ITSecOrg &Auml;nderung der Dokumentation</b>
+<b class="headlinemain">fworch &Auml;nderung der Dokumentation</b>
 <br>&nbsp;<br>
 Hier k&ouml;nnen bereits dokumentierte &Auml;nderungen korrigiert werden.
 </body></html>

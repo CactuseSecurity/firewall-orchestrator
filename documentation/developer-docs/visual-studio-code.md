@@ -18,18 +18,17 @@ Clone your own fork, eg.
 ## Add upstream cactus repo (needs to be done on command line)
 
 change into the workspace directory on command line and run
-~~~console
-git remote add upstream-cactus git@github.com:CactuseSecurity/firewall-orchestrator.git
-~~~
-Use the followin command to verify settings:
-~~~console
-tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator$ git remote -v
-origin	git@github.com:tpurschke/firewall-orchestrator.git (fetch)
-origin	git@github.com:tpurschke/firewall-orchestrator.git (push)
-upstream-cactus	git@github.com:CactuseSecurity/firewall-orchestrator.git (fetch)
-upstream-cactus	git@github.com:CactuseSecurity/firewall-orchestrator.git (push)
-tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator$ 
-~~~
+
+    git remote add upstream-cactus git@github.com:CactuseSecurity/firewall-orchestrator.git
+
+Use the following command to verify settings:
+
+    tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator$ git remote -v
+    origin git@github.com:tpurschke/firewall-orchestrator.git (fetch)
+    origin git@github.com:tpurschke/firewall-orchestrator.git (push)
+    upstream-cactus git@github.com:CactuseSecurity/firewall-orchestrator.git (fetch)
+    upstream-cactus git@github.com:CactuseSecurity/firewall-orchestrator.git (push)
+    tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator$ 
 
 ### sync fork
 

@@ -29,11 +29,11 @@
 <form>
 <div id="inhalt">
 <br>
-<b class="headlinemain">ITSecOrg Dokumentation offener &Auml;nderungen</b>
+<b class="headlinemain">fworch Dokumentation offener &Auml;nderungen</b>
 <br>&nbsp;<br>
-Eine der Kernfunktionalit&auml;ten von ITSecOrg ist die Dokumentation von an den Sicherheitssystemen vorgenommenen 
+Eine der Kernfunktionalit&auml;ten von fworch ist die Dokumentation von an den Sicherheitssystemen vorgenommenen 
 &Auml;nderungen.<br>
-Das Import-Modul von ITSecOrg analysiert regelm&auml;&szlig;ig die Konfiguration der eingebundenen Sicherheitssysteme und
+Das Import-Modul von fworch analysiert regelm&auml;&szlig;ig die Konfiguration der eingebundenen Sicherheitssysteme und
 tr&auml;gt diese in die Konfigurationsdatenbank ein.<br>
 Der Administrator erh&auml;lt in der Weboberfl&auml;che die M&ouml;glichkeit, Informationen nachzutragen,
 die nicht in der nativen Konfiguration des Sicherheitssystem vorhanden sind und somit nicht automatisiert dokumentiert
@@ -41,10 +41,10 @@ werden k&ouml;nnen.
 <ol>
 	<li> Der Sicherheitsadministrator f&uuml;hrt eine &Auml;nderung auf einem Firewall-System durch. 
 	<li>Diese &Auml;nderung wird in der Konfiguration des Sicherheitssystems abgespeichert.
-	<li>Erkennt das ITSecOrg-Import-Modul eine &Auml;nderung, wird die &Auml;nderung analysiert und in die 
-   ITSecOrg Datenbank geschrieben.
+	<li>Erkennt das fworch-Import-Modul eine &Auml;nderung, wird die &Auml;nderung analysiert und in die 
+   fworch Datenbank geschrieben.
 	<li>Der Administrator, der eine &Auml;nderung vorgenommen hat, sollte sich also ca. 10 Minuten nach dem Abspeichern
-	 der &Auml;nderung via Browser auf das Webfrontend des ITSecOrg-System verbinden.
+	 der &Auml;nderung via Browser auf das Webfrontend des fworch-System verbinden.
 	<li>Dort werden die gerade durchgef&uuml;hrten &Auml;nderungen im Men&uuml;punkt "Dokumentation" dokumentiert :
 </ol>
 <br>

@@ -1,5 +1,5 @@
 [Unit]
-Description=ITSecorg API
+Description=fworch API
 After=network.target remote-fs.target nss-lookup.target
 [Service]
 WorkingDirectory={{ api_home }}
@@ -7,8 +7,8 @@ ExecStartPre=/bin/sleep 10
 ExecStart={{ api_home }}/docker-run.sh
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=itsecorg-api
-User={{ iso_user }}
+SyslogIdentifier=fworch-api
+User={{ fworch_user }}
 Environment=
 [Install]
 WantedBy=multi-user.target

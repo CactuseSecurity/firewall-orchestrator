@@ -100,6 +100,13 @@
          owner: "{{ fworch_user }}"
          group: "{{ fworch_user }}"
 
+     - name: create dir for passwords
+       file:
+         path: "{{ fworch_home }}/etc/secrets"
+         state: directory
+         owner: "{{ fworch_user }}"
+         group: "{{ fworch_user }}"
+
      - name: copy iso.conf to target
        copy:
         src: iso.conf

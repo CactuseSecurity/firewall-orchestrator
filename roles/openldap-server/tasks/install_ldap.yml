@@ -27,10 +27,10 @@
 
   - name: Write random root password to file
     copy:
-      src: "{{ openldap_server_random_rootpw }}"
+      content: "{{ openldap_server_random_rootpw }}"
       dest: "{{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
       mode: '0600'
-    become: yes
+#    become: yes
 
   - name: Generate the root password for ldap
     shell: "slappasswd -s {{ openldap_server_random_rootpw }} "

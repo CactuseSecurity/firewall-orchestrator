@@ -69,7 +69,7 @@
     - name: copy php httpd config file to apache target
       template:
         src: "httpd.conf"
-        dest: "{{ ui_http_conf_dir }}/{{ product_name }}-php.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-php.conf"
         owner: root
         group: root
 

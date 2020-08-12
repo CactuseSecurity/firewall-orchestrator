@@ -32,9 +32,6 @@
     - name: Install dotnet-sdk-{{ dotnet_version }}
       package: "name=dotnet-sdk-{{ dotnet_version }} state=present"
 
-#    - name: Install dotnet runtime {{ dotnet_version }}
-#      package: "name=dotnet-runtime-{{ dotnet_version }} state=present"
-
     - name: copy blazor ui systemd service script
       template:
         src: fworch-blazor-ui.service.j2
@@ -46,8 +43,14 @@
     - name: make blazor ui run at host startup
       command: "systemctl enable {{ ui_service_name }}"
 
-    - name: start blazor ui
-      command: "systemctl start {{ ui_service_name }}"
-
   become: yes
   environment: "{{ proxy_env }}"
+
+- name: publish blazor ui
+  shell: "cd {{ ui_start_dir }} ; dotnet publish -c {{ dotnet_mode }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- name: start blazor ui
+  command: "systemctl start {{ ui_service_name }}"
+  become: yes

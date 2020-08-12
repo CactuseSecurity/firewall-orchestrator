@@ -43,8 +43,14 @@
     - name: make auth service run at host startup
       command: "systemctl enable {{ auth_service_name }}"
 
-    - name: start auth service
-      command: "systemctl start {{ auth_service_name }}"
-
   become: yes
   environment: "{{ proxy_env }}"
+
+- name: publish authserver
+  shell: "cd {{ auth_server_start_dir }} && dotnet publish -c {{ dotnet_mode }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- name: start auth service
+  command: "systemctl start {{ auth_service_name }}"
+  become: yes

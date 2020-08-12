@@ -31,6 +31,7 @@
     group: "{{ fworch_user }}"
   become: yes
 
+- name: install dot net
 - include: auth_install_dot_net.yml
 
 - name: build ldap tree

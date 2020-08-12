@@ -3,7 +3,7 @@ Description=FW Orch Blazor UI
 After=network.target remote-fs.target nss-lookup.target
 [Service]
 WorkingDirectory={{ ui_start_dir }}
-ExecStart=/usr/bin/dotnet run
+ExecStart=/usr/bin/dotnet run FWO.dll
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier={{ ui_syslog_id }}

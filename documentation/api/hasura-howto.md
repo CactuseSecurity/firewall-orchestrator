@@ -66,7 +66,7 @@
 use json instead of graphql!!!
 
     curl --request POST \
-        --url https://127.0.0.1:18443/api/v1/query \
+        --url http://127.0.0.1:8080/v1/query \
         --header 'content-type: application/json' \
         --header 'x-hasura-admin-secret: st8chelt1er' \
         --header 'x-hasura-role: admin' \
@@ -77,7 +77,32 @@ use json instead of graphql!!!
                 "comment": "an optional comment",
                 "definition": {
                     "queries": [
-                        {"name": "listNwObjects", "query": "query { object { obj_name } }"}
+                        {"name": "listNwObjects", "query": "query { object { obj_name } }"}                    ]
+                }
+            }
+        }'
+
+adding query with parameters:
+
+    curl --request POST \
+        --url http://127.0.0.1:8080/v1/query \
+        --header 'content-type: application/json' \
+        --header 'x-hasura-admin-secret: st8chelt1er' \
+        --header 'x-hasura-role: admin' \
+        --data '{
+            "type" : "create_query_collection",
+            "args": {
+                "name": "basicCollection",
+                "definition": {
+                    "queries": [
+                        {
+                        "name": "getImportId",
+                        "query": "query getImportId($management_id: Int!, $time: timestamp!) { import_control_aggregate(where: {mgm_id: {_eq:$management_id},stop_time: {_lte:$time } }) { aggregate { max { control_id } } } }"
+                        },
+                        {
+                        "name": "getImportId2",
+                        "query": "query getImportId2($management_id: Int!, $time: timestamp!) { import_control_aggregate(where: {mgm_id: {_eq:$management_id},stop_time: {_lte:$time } }) { aggregate { max { control_id } } } }"
+                        }
                     ]
                 }
             }
@@ -86,7 +111,7 @@ use json instead of graphql!!!
 #### Add query to existing collection
 
     curl --insecure --request POST \
-        --url https://127.0.0.1:18443/api/v1/query \
+        --url http://127.0.0.1:8080/v1/query \
         --header 'content-type: application/json' \
         --header 'x-hasura-admin-secret: st8chelt1er' \
         --header 'x-hasura-role: admin' \
@@ -99,6 +124,26 @@ use json instead of graphql!!!
             }
         }'
 
-
 Not clear how to access these collections though. Only purpose seems to be for handling allow-list.
 See docu hint: In production instances: Enabling the allow-list is highly recommended when running the GraphQL engine in production.
+
+<https://hasura.io/docs/1.0/graphql/manual/api-reference/schema-metadata-api/query-collections.html#id8>
+
+    curl --insecure --request POST \
+        --url http://127.0.0.1:8080/v1/query \
+        --header 'content-type: application/json' \
+        --header 'x-hasura-admin-secret: st8chelt1er' \
+        --header 'x-hasura-role: admin' \
+        --data '{
+            "type" : "add_collection_to_allowlist",
+            "args": {
+                "collection": "my_collection"
+            }
+        }'
+
+    {
+        "type" : "drop_collection_from_allowlist",
+        "args": {
+            "collection": "my_collection_1"
+        }
+    }

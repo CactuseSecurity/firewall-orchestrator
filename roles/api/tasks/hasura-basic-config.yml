@@ -1,0 +1,35 @@
+# api config (metadata)
+
+- name: download hasura cli installer
+  get_url:
+      url: https://github.com/hasura/graphql-engine/raw/master/cli/get.sh
+      dest: "{{ api_home }}"
+      mode: 0755
+  environment: "{{ proxy_env }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- name: execute hasura cli installer
+  shell: "{{ api_home }}/get.sh"
+  environment: "{{ proxy_env }}"
+  become: yes
+
+- name: initialize hasura cli directory
+  shell: "cd {{ api_home }} && {{ api_hasura_bin }} init --directory {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- name: copy hasura metadata to cli directory
+  copy:
+     src: hasura_metadata.yaml
+     dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.yaml"
+     backup: yes
+     mode: 0644
+     owner: "{{ fworch_user }}"
+  become: yes
+
+- name: import hasura metadata
+  shell: "cd {{ api_home }}/{{ product_name }} && {{ api_hasura_bin }} metadata apply --from-file"
+  become: yes
+  become_user: "{{ fworch_user }}"
+  when: "api_no_metadata is not defined"

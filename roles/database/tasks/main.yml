@@ -1,8 +1,8 @@
 - block:
     - name: install package postgresql and python3-psycopg2
       package:
-      name: "{{ item }}"
-      state: present
+        name: "{{ item }}"
+        state: present
       loop:
         - "{{ postgresql_package }}"
         - python3-psycopg2

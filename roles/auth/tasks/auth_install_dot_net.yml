@@ -48,7 +48,7 @@
 
 - name: publish authserver
   command: "dotnet publish -c {{ dotnet_mode }}"
-  args: chdir="cd {{ auth_server_start_dir }}"
+  args: chdir="{{ auth_server_start_dir }}"
   become: yes
   become_user: "{{ fworch_user }}"
 

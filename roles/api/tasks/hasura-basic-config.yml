@@ -16,7 +16,7 @@
   become: yes
 
 - name: initialize hasura cli directory
-  command: "{{ api_hasura_bin }} init --directory {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  command: "{{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
   args: 
     chdir: "{{ api_home }}"
   become: yes
@@ -27,8 +27,9 @@
      src: hasura_metadata.yaml
      dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.yaml"
      backup: yes
-     mode: 0644
+     mode: "0644"
      owner: "{{ fworch_user }}"
+     group: "{{ fworch_user }}"
   become: yes
 
 - name: import hasura metadata

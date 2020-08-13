@@ -73,7 +73,7 @@
      src: hasura-docker-api.service.j2
      dest: "/lib/systemd/system/hasura-docker-api.service"
      backup: yes
-     mode: 0644
+     mode: "0644"
      owner: "root"
   become: yes
 

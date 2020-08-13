@@ -3,12 +3,12 @@
     - name: Install webserver packages
       package: name={{ item }} state=present
       with_items:
-        - "{{ ui_web_server_name }}"
+        - "{{ web_server_name }}"
 
     - name: copy iso httpd config file to apache target
       template:
         src: "httpd.conf"
-        dest: "{{ ui_http_conf_dir }}/{{ product_name }}.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}.conf"
         owner: root
         group: root
         
@@ -28,7 +28,7 @@
 
     - name: restart apache
       service:
-       name: "{{ ui_web_server_name }}"
+       name: "{{ web_server_name }}"
        state: restarted     
 
   become: yes

@@ -1,0 +1,82 @@
+# installs docker and the hasura image in a container
+
+- block:  
+
+   - name: Install packages for python pip3 n virtualenv
+     package:
+        name: "{{ packages }}"
+     vars:
+        packages:
+          - python3-pip
+          - python3-virtualenv
+
+   # the docker-run script is still needed for systemd start file
+   - name: copy hasura docker-run script
+     template:
+        src: docker-run.sh.j2
+        dest: "{{ api_home }}/docker-run.sh"
+        backup: yes
+        mode: 0755
+        owner: "{{ fworch_user }}"
+  become: yes
+
+- name: install docker sdk for python via pip3
+  pip:
+    name: docker
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+#- name: drop hasura docker containers when clean_install is set
+#  docker_container:
+#    name: hasura_fw_orch
+#    state: absent
+#  when: clean_install is defined
+#  environment:
+#    ansible_python_interpreter: /usr/bin/python3
+#  become: yes
+#  become_user: "{{ fworch_user }}"
+
+#- name: drop hasura docker containers and images
+#  command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
+#  #when: clean_install is defined
+#  become: yes
+#  become_user: "{{ fworch_user }}"
+
+- name: start hasura container
+  docker_container:
+    name: "{{ api_container_name }}"
+    image: hasura/graphql-engine:{{ api_hasura_version }}
+    state: started
+    network_mode: host
+    recreate: yes
+    ports:
+      - "{{ api_hostname }}:{{ api_port }}:{{ api_port }}"
+    env:
+      HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
+      HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+      HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
+      HASURA_GRAPHQL_JWT_SECRET:       '
+                                        {
+                                          "type": "{{ api_hasura_jwt_alg|quote }}",
+                                          "key": "{{ api_hasura_jwt_secret|quote }}",
+                                          "claims_namespace_path": "$.hasura.claims"
+                                        }
+      '
+      HTTP_PROXY:                      "{{ http_proxy }}"
+      HTTPS_PROXY:                     "{{ https_proxy }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- name: copy hasura docker systemd service script
+  template:
+     src: hasura-docker-api.service.j2
+     dest: "/lib/systemd/system/hasura-docker-api.service"
+     backup: yes
+     mode: 0644
+     owner: "root"
+  become: yes
+
+- name: make hasura docker container run at host startup
+  command: "systemctl enable hasura-docker-api"
+  become: yes

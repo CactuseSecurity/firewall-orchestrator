@@ -15,6 +15,7 @@ user_id: 60320
 fworch_user: "{{ product_name }}"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
+fworch_dbadmin_name: dbadmin
 
 fworch_db_port: 5432
 fworch_db_host: 127.0.0.1
@@ -22,10 +23,12 @@ fworch_db_name: fworchdb
 
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "3.1"
+dotnet_mode: "Debug"
+# dotnet_mode: "Release"
+
+### to be moved:
 
 # users & passwords
-fworch_dbadmin_name: dbadmin
 dbadmin_pwd: "st8chel"
 fworch_pwd: "st8chel"
 admin_pwd: "fworch.1"
-

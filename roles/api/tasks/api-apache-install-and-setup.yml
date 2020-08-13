@@ -1,0 +1,62 @@
+
+- block:
+    - name: Install webserver packages
+      package: name={{ item }} state=present
+      with_items:
+        - "{{ web_server_name }}"
+
+    - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend
+
+    - name: copy iso httpd config file to apache target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-api.conf"
+        owner: root
+        group: root
+        
+    - name: enable apache modules proxy proxy_http ssl
+      command: "a2enmod proxy proxy_http ssl rewrite proxy_wstunnel"
+
+    - name: copy apache_create_server_cert.sh to apache target
+      template:
+        src: "apache_create_server_cert.sh"
+        dest: "{{ fworch_home }}"
+        mode: 0755
+        owner: root
+        group: root
+
+    - name: execute cert creation script
+      command: "{{ fworch_home }}/apache_create_server_cert.sh" 
+
+    - name: remove cert gen script
+      file: 
+        path: "{{ fworch_home }}/apache_create_server_cert.sh" 
+        state: absent
+
+    - name: copy cert to /etc/ssl/certs/ to make it acceptable
+      copy:
+        src: "/etc/apache2/ssl/server.crt"
+        dest: "/etc/ssl/certs/"
+        remote_src: yes
+  
+    - name: enable {{ product_name }} web site
+      shell: "a2ensite {{ product_name }}-api"
+
+    - name: increase apache timeout to 900 seconds
+      lineinfile:
+        path: /etc/apache2/apache2.conf
+        line: "Timeout 900"
+
+    - name: add port to apache
+      lineinfile:
+        path: "/etc/apache2/ports.conf"
+        line: "    Listen {{ api_web_port }}"
+        insertafter: "<IfModule ssl_module>"
+
+    - name: restart apache
+      service:
+       name: "{{ web_server_name }}"
+       state: restarted     
+
+  become: yes
+  environment: "{{ proxy_env }}"

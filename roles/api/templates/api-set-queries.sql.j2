@@ -1,0 +1,12 @@
+DELETE FROM hdb_catalog.hdb_allowlist WHERE collection_name='{{ item.collection_name }}Queries'; 
+DELETE FROM hdb_catalog.hdb_query_collection WHERE collection_name='{{ item.collection_name }}';
+
+create table query_temp(t_query text);
+\copy query_temp from {{ item.query_json_file }} csv quote e'\x01' delimiter e'\x02';
+
+INSERT INTO hdb_catalog.hdb_query_collection (collection_name, collection_defn, comment, is_system_defined) 
+    select '{{ item.collection_name }}Queries', t_query::jsonb, '{{ item.collection_comment }}', FALSE FROM query_temp;
+
+INSERT INTO hdb_catalog.hdb_allowlist (collection_name) VALUES ('{{ item.collection_name }}Queries');
+
+DROP TABLE query_temp;

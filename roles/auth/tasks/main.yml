@@ -8,11 +8,12 @@
   become: yes
 
 - name: add standard roles with ansible 2.8 and above
-  include_tasks: auth_standard_roles_with_postgresql_query.yml
+  import_tasks: auth_standard_roles_with_postgresql_query.yml
   when: ansible_version.full >= "2.8"
 
-- name: add standard roles
-  include_tasks: auth_standard_roles_with_command.yml
+# todo: remove, when ansible 2.8 is available for all supported platforms and use above module
+- name: add standard roles with command
+  import_tasks: auth_standard_roles_with_command.yml
   when: ansible_version.full < "2.8"
 
 - name: copy authentication sql file
@@ -37,7 +38,7 @@
   become: yes
 
 - name: install dot net
-  include_tasks: auth_install_dot_net.yml
+  import_tasks: auth_install_dot_net.yml
 
 - name: build ldap tree
-  include_tasks: create_ldap_tree.yml
+  import_tasks: create_ldap_tree.yml

@@ -1,25 +1,25 @@
 
-- block:
-  # the following works with ansible 2.8 and above:
-  - name: insert role superuser
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      login_user: "{{ fworch_dbadmin_name }}"
-      login_pasword: "{{ dbadmin_pwd }}"
-      query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='superuser') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('superuser, true, true); END IF; END $do$"
-    become: yes
-    become_user: postgres
+# - block:
+#   # the following works with ansible 2.8 and above:
+#   - name: insert role superuser
+#     postgresql_query:
+#       db: "{{ fworch_db_name }}"
+#       login_user: "{{ fworch_dbadmin_name }}"
+#       login_pasword: "{{ dbadmin_pwd }}"
+#       query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='superuser') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('superuser, true, true); END IF; END $do$"
+#     become: yes
+#     become_user: postgres
 
-  - name: insert role reporter
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      login_user: "{{ fworch_dbadmin_name }}"
-      login_pasword: "{{ dbadmin_pwd }}"
-      query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='reporter') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('reporter, false, false); END IF; END $do$"
-    become: yes
-    become_user: postgres
+#   - name: insert role reporter
+#     postgresql_query:
+#       db: "{{ fworch_db_name }}"
+#       login_user: "{{ fworch_dbadmin_name }}"
+#       login_pasword: "{{ dbadmin_pwd }}"
+#       query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='reporter') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('reporter, false, false); END IF; END $do$"
+#     become: yes
+#     become_user: postgres
 
-  when: ansible_version >= "2.8"
+#   when: ansible_version >= "2.8"
 
 - block:
   # todo: remove, when ansible 2.8 is available for all supported platforms
@@ -33,4 +33,4 @@
     become: yes
     become_user: postgres
 
-  when: ansible_version < "2.8"
+#  when: ansible_version < "2.8"

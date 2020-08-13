@@ -55,8 +55,21 @@ database_dir: /var/lib/pgsql/data
   
 - The role api executes the tasks
   1. create the directories
-```console
-api_home="{{ fworch_home }}/api"
-hasura_bin="/usr/local/bin/hasura"
+```yaml
+- name: hasura basic file setup 
+  import_tasks: hasura-files.yml
+
+- name: hasura install 
+  import_tasks: hasura-install.yml
+
+- name: hasura basic config
+  import_tasks: hasura-basic-config.yml
+
+- name: create query_collection and allow-list 
+  import_tasks: api-query-collection.yml
+
+- name: api create documentation
+  import_tasks: hasura-create-docu.yml
+  when: "api_docu is defined and api_docu == 'yes'"
 ```
   2. sets up hasura in {{ api_home }}

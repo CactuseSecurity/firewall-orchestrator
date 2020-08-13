@@ -51,7 +51,13 @@ namespace FWO_Auth
                             status = HttpStatusCode.OK;
                             string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
                             Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
-                            responseString = LdapConnection.ValidateUser(Parameters["Username"], Parameters["Password"]) ? "ok" : "wrong";
+
+                            // REMOVE LATER
+                            if (Parameters["Username"] == "" && Parameters["Password"] == "")
+                                responseString = "fake auth for test purpose";
+                            // REMOVE LATER   
+                            else
+                                responseString = LdapConnection.ValidateUser(Parameters["Username"], Parameters["Password"]) ? "jwt comes here" : "";
                         }
                         break;
 

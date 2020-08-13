@@ -1,18 +1,20 @@
 ﻿using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace FWO_Auth_Server
 {
     class LdapServerConnection
     {
-        private readonly string Domain;
+        private readonly string Address;
         private readonly int Port;
 
-        public LdapServerConnection(string Domain, int Port)
+        public LdapServerConnection(string Address, int Port)
         {
-            this.Domain = Domain;
+            this.Address = Address;
             this.Port = Port;
         }
 
@@ -20,14 +22,15 @@ namespace FWO_Auth_Server
         // dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
         public bool ValidateUser(string Username, string Password)
         {
-            string userDn = $"{Username}@{Domain}";
+            string userDn = $"uid={Username},ou=systemuser,ou=user,dc=fworch,dc=internal";
             try
             {
                 using (var connection = new LdapConnection { SecureSocketLayer = true })
                 {
-                    connection.UserDefinedServerCertValidationDelegate += Connection_UserDefinedServerCertValidationDelegate;
+                    connection.UserDefinedServerCertValidationDelegate +=
+                    (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;
 
-                    connection.Connect(Domain, Port);
+                    connection.Connect(Address, Port);
                     connection.Bind(userDn, Password);
                     if (connection.Bound)
                         return true;
@@ -35,14 +38,10 @@ namespace FWO_Auth_Server
             }
             catch (LdapException ex)
             {
+                Console.Write($"\n #### Message #### \n {ex.Message} \n #### Stack Trace #### \n {ex.StackTrace} \n");
                 // Log exception
             }
             return false;
-        }
-
-        private bool Connection_UserDefinedServerCertValidationDelegate(object sender, System.Security.Cryptography.X509Certificates.X509Certificate certificate, System.Security.Cryptography.X509Certificates.X509Chain chain, System.Net.Security.SslPolicyErrors sslPolicyErrors)
-        {
-            return true;
         }
 
         public IEnumerable<Role> GetRoles(string Username, string Password)

@@ -32,4 +32,4 @@
   become: yes
 
 - name: install dot net
-  include: auth_install_dot_net.yml
+  include_tasks: auth_install_dot_net.yml

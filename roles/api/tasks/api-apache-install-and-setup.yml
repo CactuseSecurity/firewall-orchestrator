@@ -21,7 +21,7 @@
         - proxy_http
         - ssl
         - rewrite
-        - proxy_wstunnel"
+        - proxy_wstunnel
 
     - name: copy apache_create_server_cert.sh to apache target
       template:

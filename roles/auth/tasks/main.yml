@@ -38,3 +38,6 @@
 
 - name: install dot net
   include_tasks: auth_install_dot_net.yml
+
+- name: build ldap tree
+  include_tasks: create_ldap_tree.yml

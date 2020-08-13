@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Test", "FWO-Test\FWO_Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Auth_Client", "..\..\FWO_Auth_Client\FWO_Auth_Client.csproj", "{13ADF6EC-B2EF-47F8-BD06-D81B8CCB0F7B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Filter", "..\..\FWO_Filter\FWO_Filter\FWO_Filter.csproj", "{3A8A2CF4-3786-4684-8A44-4E8542C547CC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{13ADF6EC-B2EF-47F8-BD06-D81B8CCB0F7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13ADF6EC-B2EF-47F8-BD06-D81B8CCB0F7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{13ADF6EC-B2EF-47F8-BD06-D81B8CCB0F7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A8A2CF4-3786-4684-8A44-4E8542C547CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A8A2CF4-3786-4684-8A44-4E8542C547CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A8A2CF4-3786-4684-8A44-4E8542C547CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A8A2CF4-3786-4684-8A44-4E8542C547CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

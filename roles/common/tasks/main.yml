@@ -99,6 +99,15 @@
          state: directory
          owner: "{{ fworch_user }}"
          group: "{{ fworch_user }}"
+         mode: '0755'
+
+     - name: create dir for passwords
+       file:
+         path: "{{ fworch_home }}/etc/secrets"
+         state: directory
+         owner: "{{ fworch_user }}"
+         group: "{{ fworch_user }}"
+         mode: '0700'
 
      - name: copy iso.conf to target
        copy:

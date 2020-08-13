@@ -1,6 +1,5 @@
 ﻿using FWO.Backend.Data.API;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Razor.Language;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Data;
@@ -147,7 +146,6 @@ namespace FWO
                     break;
             }
         }
-
         */
 
         public static DataTable ToDataTable(string JsonString)

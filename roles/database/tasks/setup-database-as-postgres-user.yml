@@ -6,8 +6,6 @@
       password: "{{ dbadmin_pwd }}"
       encrypted: yes
       role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE,INHERIT,LOGIN
-    #become: yes
-    #become_user: postgres
 
   - name: create postgres user "{{ fworch_user }}"
     postgresql_user: 
@@ -15,10 +13,7 @@
       password: "{{ fworch_pwd }}"
       encrypted: yes
       role_attr_flags: LOGIN
-    #become: yes
-    #become_user: postgres
  
-
 #     leave out tablespace creation for now as this cannot be done within a pgsql function (might use dblink later on) 
 #     - name: create tablespace {{ fworch_user }}
 #       shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_tablespace WHERE spcname = ''{{ table_space_name }}'') THEN CREATE TABLESPACE {{ table_space_name }} OWNER dbadmin LOCATION ''{{ table_space }}''; END IF; END \$do\$"'
@@ -44,6 +39,13 @@
   # todo: the following user is to be moved from postgres to ldap:
   - name: create admin user (default admin for web login)
     shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
+
+  # - name: create postgres user "admin"
+  #   postgresql_user: 
+  #     name: "admin"
+  #     password: "{{ admin_pwd }}"
+  #     encrypted: yes
+  #     role_attr_flags: LOGIN,isoadmins,secuadmins 
 
   - name: (re)defines functions and views (idempotent)
     shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init2-functions.sh"

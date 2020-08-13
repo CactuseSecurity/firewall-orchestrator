@@ -9,7 +9,7 @@
       src: "{{ item }}"
       dest: /usr/local/fworch/auth/ldif/{{ item | basename | regex_replace('\.j2$', '') }}
     with_fileglob:
-      - "ldif_files/*.j2"
+      - ldif_files/*.j2
 
   - name: Create organizational unit user
     command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_ou_user.ldif"

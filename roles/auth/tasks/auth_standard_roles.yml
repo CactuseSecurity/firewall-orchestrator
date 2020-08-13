@@ -1,36 +1,35 @@
 
-# - block:
-#   # the following works with ansible 2.8 and above:
-#   - name: insert role superuser
-#     postgresql_query:
-#       db: "{{ fworch_db_name }}"
-#       login_user: "{{ fworch_dbadmin_name }}"
-#       login_pasword: "{{ dbadmin_pwd }}"
-#       query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='superuser') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('superuser, true, true); END IF; END $do$"
-#     become: yes
-#     become_user: postgres
-
-#   - name: insert role reporter
-#     postgresql_query:
-#       db: "{{ fworch_db_name }}"
-#       login_user: "{{ fworch_dbadmin_name }}"
-#       login_pasword: "{{ dbadmin_pwd }}"
-#       query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='reporter') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('reporter, false, false); END IF; END $do$"
-#     become: yes
-#     become_user: postgres
-
-#   when: ansible_version >= "2.8"
-
 - block:
-  # todo: remove, when ansible 2.8 is available for all supported platforms
+  # the following works with ansible 2.8 and above:
   - name: insert role superuser
-    shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''superuser'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''superuser'', true, true);  END IF; END \$do\$"'
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      login_host: "{{ fworch_db_host }}"
+      login_user: "{{ fworch_dbadmin_name }}"
+      login_password: "{{ dbadmin_pwd }}"
+      query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='superuser') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('superuser', true, true); END IF; END $do$"
     become: yes
     become_user: postgres
 
   - name: insert role reporter
-    shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''reporter'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''reporter'', false, false);  END IF; END \$do\$"'
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      login_host: "{{ fworch_db_host }}"
+      login_user: "{{ fworch_dbadmin_name }}"
+      login_password: "{{ dbadmin_pwd }}"
+      query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='reporter') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('reporter', false, false); END IF; END $do$"
     become: yes
     become_user: postgres
 
-#  when: ansible_version < "2.8"
+  when: ansible_version.full >= "2.8"
+
+# todo: remove, when ansible 2.8 is available for all supported platforms and use above module
+- name: insert role superuser
+  shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''superuser'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''superuser'', true, true);  END IF; END \$do\$"'
+  become: yes
+  become_user: postgres
+
+- name: insert role reporter
+  shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''reporter'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''reporter'', false, false);  END IF; END \$do\$"'
+  become: yes
+  become_user: postgres

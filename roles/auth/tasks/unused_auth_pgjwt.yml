@@ -60,7 +60,8 @@
        
 - name: install pgjwt extension
   command: "make install"
-  args: chdir="{{ fworch_home }}/install/database/pgjwt"
+  args: 
+    chdir: "{{ fworch_home }}/install/database/pgjwt"
   become: yes
 
 # todo: decide if we also need updates for extensions (or simply drop and re-create?)
@@ -71,7 +72,8 @@
 
 - name: test pgjwt extension
   command: 'psql -d {{ fworch_db_name }} -c "\i test_pgjwt.sql"'
-  args: chdir="{{ fworch_home }}/install/database/pgjwt"
+  args:
+    chdir: "{{ fworch_home }}/install/database/pgjwt"
   become: yes
   become_user: postgres
   when: pgtap_control.stat.exists == True

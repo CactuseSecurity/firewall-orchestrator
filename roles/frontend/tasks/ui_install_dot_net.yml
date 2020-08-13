@@ -48,7 +48,8 @@
 
 - name: publish blazor ui
   command: "dotnet publish -c {{ dotnet_mode }}"
-  args: chdir="{{ ui_start_dir }}"
+  args:
+    chdir: "{{ ui_start_dir }}"
   become: yes
   become_user: "{{ fworch_user }}"
 

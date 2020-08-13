@@ -4,6 +4,13 @@
   register: is_ldap_present_flag
 
 - block:
+  - name: create ldif directory
+    file:
+      dest: "{{ auth_server_base_dir }}/ldif"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+
   - name: copy the ldif templates to system
     template:
       src: "{{ item }}"
@@ -22,11 +29,12 @@
 
   - name: Create common name user/systemuser/admin (GUI admin)
     command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_uid_admin.ldif"
+
+  - name: delete ldif files
+    file:
+      path: "{{ auth_server_base_dir }}/ldif"
+      state: absent
   when: is_ldap_present_flag.stdout == "0"
+  become: yes
 
   # todo: set password via ldappasswd to have a proper hash
-
-- name: delete ldif files
-  file:
-    path: "{{ auth_server_base_dir }}/ldif"
-    state: absent

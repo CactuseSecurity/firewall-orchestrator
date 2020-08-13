@@ -7,14 +7,6 @@
     group: "{{ fworch_user }}"
   become: yes
 
-- name: create ldif directory
-  file:
-    dest: "{{ auth_server_base_dir }}/ldif"
-    state: directory
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
-  become: yes
-
 - name: add standard roles
   include_tasks: auth_standard_roles.yml
 

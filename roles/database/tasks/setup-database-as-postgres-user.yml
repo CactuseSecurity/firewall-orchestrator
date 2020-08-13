@@ -6,6 +6,8 @@
       password: "{{ dbadmin_pwd }}"
       encrypted: yes
       role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE,INHERIT,LOGIN
+    become: yes
+    become_user: postgres
 
   - name: create postgres user "{{ fworch_user }}"
     postgresql_user: 
@@ -13,12 +15,9 @@
       password: "{{ fworch_pwd }}"
       encrypted: yes
       role_attr_flags: LOGIN
-
-  become: yes
-  become_user: postgres
+    become: yes
+    become_user: postgres
  
-# - name: create dbadmin and fworch user
-#   command: 'psql -c "\i {{ fworch_home/database/install/database/install-users.sql }}"' 
 
 #     leave out tablespace creation for now as this cannot be done within a pgsql function (might use dblink later on) 
 #     - name: create tablespace {{ fworch_user }}

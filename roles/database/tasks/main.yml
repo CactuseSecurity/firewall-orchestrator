@@ -4,11 +4,9 @@
     name: "{{ item }}"
     state: present
     loop:
-      - {{ postgresql_package }}
+      - "{{ postgresql_package }}"
       - python3-psycopg2
-
-  - name: get user name
-    set_fact: ansible_user="{{ lookup('env','USERNAME') }}"
+      - "{{ postgresql_test_package }}"
 
   - name: find out installed postgres version
     script: "get_pg_version.sh"
@@ -18,11 +16,6 @@
   - name: set fact pg_version
     set_fact:
       pg_version: "{{ pg_version_result.stdout }}"
-
-  - name: install test package for postgresql
-    package:
-    name: "{{ postgresql_test_package }}"
-    state: present
 
   #  - name: set fact postgresql_dev_package
   #    set_fact:

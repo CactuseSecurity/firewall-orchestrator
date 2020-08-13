@@ -1,42 +1,22 @@
-# - name: create dbadmin user (owner of database fworchdb and all tables)
-#   shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''dbadmin'') THEN CREATE ROLE dbadmin PASSWORD ''{{ dbadmin_pwd }}'' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN; END IF; END \$do\$"'
 
-# - name: create {{ fworch_user }} user
-#   shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ fworch_user }}'') THEN CREATE ROLE {{ fworch_user }} PASSWORD ''{{ fworch_pwd }}'' LOGIN; END IF; END \$do\$"'
+- block:
+  - name: create postgres user "{{ fworch_dbadmin_name }}"
+    postgresql_user: 
+      name: "{{ fworch_dbadmin_name }}"
+      password: "{{ dbadmin_pwd }}"
+      encrypted: yes
+      role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE,INHERIT,LOGIN
 
-# - name: create sql file for adding main users dbadmin & {{ fworch_user }}
-#   template:
-#     src: install-users.sql.j2
-#     dst: "{{ fworch_home/database/install/database/install-users.sql"
-#     user: "{{ fworch_user }}"
-#     group: "{{ fworch_user }}"
-#     mode: 0644
+  - name: create postgres user "{{ fworch_user }}"
+    postgresql_user: 
+      name: "{{ fworch_user }}"
+      password: "{{ fworch_pwd }}"
+      encrypted: yes
+      role_attr_flags: LOGIN
 
-- name: create postgres user "{{ fworch_dbadmin_name }}"
-  postgresql_user: 
-    name: "{{ fworch_dbadmin_name }}"
-    password: "{{ dbadmin_pwd }}"
-    role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE,INHERIT,LOGIN
   become: yes
   become_user: postgres
-
-- name: create postgres user "{{ fworch_user }}"
-  postgresql_user: 
-    name: "{{ fworch_user }}"
-    password: "{{ fworch_pwd }}"
-    role_attr_flags: LOGIN
-  become: yes
-  become_user: postgres
-
-- name: insert role reporter
-  postgresql_query: 
-    db: "{{ fworch_db_name }}"
-    login_user: "{{ fworch_dbadmin_name }}"
-    login_pasword: "{{ dbadmin_pwd }}"
-    query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='reporter') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('reporter, false, false);  END IF; END $do$"
-  become: yes
-  become_user: postgres
-
+ 
 # - name: create dbadmin and fworch user
 #   command: 'psql -c "\i {{ fworch_home/database/install/database/install-users.sql }}"' 
 

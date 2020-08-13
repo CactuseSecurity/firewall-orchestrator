@@ -1,9 +1,19 @@
-#- block:
-     - name: create dbadmin user (owner of database fworchdb and all tables)
-       command: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''dbadmin'') THEN CREATE ROLE dbadmin PASSWORD ''{{ dbadmin_pwd }}'' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN; END IF; END \$do\$"'
+# - name: create dbadmin user (owner of database fworchdb and all tables)
+#   shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''dbadmin'') THEN CREATE ROLE dbadmin PASSWORD ''{{ dbadmin_pwd }}'' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN; END IF; END \$do\$"'
 
-     - name: create {{ fworch_user }} user
-       command: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ fworch_user }}'') THEN CREATE ROLE {{ fworch_user }} PASSWORD ''{{ fworch_pwd }}'' LOGIN; END IF; END \$do\$"'
+# - name: create {{ fworch_user }} user
+#   shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ fworch_user }}'') THEN CREATE ROLE {{ fworch_user }} PASSWORD ''{{ fworch_pwd }}'' LOGIN; END IF; END \$do\$"'
+
+- name: create sql file for adding main users dbadmin & {{ fworch_user }}
+  template:
+    src: install-users.sql.j2
+    dst: "{{ fworch_home/database/install/database/install-users.sql"
+    user: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
+    mode: 0644
+
+- name: create dbadmin and fworch user
+  command: 'psql -c "\i {{ fworch_home/database/install/database/install-users.sql }}"' 
 
 #     leave out tablespace creation for now as this cannot be done within a pgsql function (might use dblink later on) 
 #     - name: create tablespace {{ fworch_user }}
@@ -16,23 +26,24 @@
 #     temp_tablespaces = 'temp_tbs'                   # a list of tablespace names, '' uses
 #     postgres=# select pg_reload_conf();
 
-    #  - name: check if database already exists
-    #    shell: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
-    #    register: db_exists
+#  - name: check if database already exists
+#    shell: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
+#    register: db_exists
 
 #     - debug:
 #         var: db_exists.stdout
 
-     - name: create new database - drop existing db before when clean_install is set
-       shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
-       when: clean_install is defined or db_exists.stdout=="0"
+- name: create new database - drop existing db before when clean_install is set
+  shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
+  when: clean_install is defined or db_exists.stdout=="0"
 
-     - name: create admin user (default admin for web login)
-       command: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
+# todo: the following user is to be moved from postgres to ldap:
+- name: create admin user (default admin for web login)
+  shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
 
-     - name: (re)defines functions and views (idempotent)
-       shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init2-functions.sh"
+- name: (re)defines functions and views (idempotent)
+  shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init2-functions.sh"
 
-     - name: add base data to the database (if db was just freshly created or clean_install is set)
-       shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init3-fill.sh"
-       when: clean_install is defined or db_exists.stdout=="0"
+- name: add base data to the database (if db was just freshly created or clean_install is set)
+  shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init3-fill.sh"
+  when: clean_install is defined or db_exists.stdout=="0"

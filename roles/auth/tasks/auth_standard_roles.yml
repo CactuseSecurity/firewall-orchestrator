@@ -1,11 +1,18 @@
 
-# todo: convert into single command using \i x.sql?
 - name: insert role superuser
-  command: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''superuser'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''superuser'', true, true);  END IF; END \$do\$"'
+  postgresql_query: 
+    db: "{{ fworch_db_name }}"
+    login_user: "{{ fworch_dbadmin_name }}"
+    login_pasword: "{{ dbadmin_pwd }}"
+    query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='superuser') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('superuser, true, true);  END IF; END $do$"
   become: yes
   become_user: postgres
 
 - name: insert role reporter
-  command: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''reporter'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''reporter'', false, false);  END IF; END \$do\$"'
+  postgresql_query: 
+    db: "{{ fworch_db_name }}"
+    login_user: "{{ fworch_dbadmin_name }}"
+    login_pasword: "{{ dbadmin_pwd }}"
+    query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='reporter') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('reporter, false, false);  END IF; END $do$"
   become: yes
   become_user: postgres

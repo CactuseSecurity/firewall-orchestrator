@@ -7,9 +7,9 @@
   - name: copy the ldif templates to system
     template:
       src: "{{ item }}"
-      dest: "{{ auth_server_base_dir }}/ldif/{{ item | basename | regex_replace('\.j2$', '') }}"
+      dest: "{{ auth_server_base_dir }}/ldif/{{ item | basename | regex_replace('\\.j2$', '') }}"
     with_fileglob:
-      - "ldif_files/*.j2"
+      - ../templates/ldif_files/*.j2
 
   - name: Create organizational unit user
     command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_ou_user.ldif"
@@ -28,5 +28,5 @@
 
 - name: delete ldif files
   file:
-    path: "{{ auth_server_base_dir }}/ldif
+    path: "{{ auth_server_base_dir }}/ldif"
     state: absent

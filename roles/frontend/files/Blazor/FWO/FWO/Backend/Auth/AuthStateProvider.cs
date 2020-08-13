@@ -26,12 +26,7 @@ namespace FWO.Auth
         {           
             string auth_type = ""; // default = not authenticated = empty
 
-            string JWT = await AuthClient.GetJWT(Username, Password);
-
-            if (JWT != "")
-            {
-                auth_type = JWT;
-            }       
+            auth_type = await AuthClient.GetJWT(Username, Password);     
 
             var identity = new ClaimsIdentity
             (

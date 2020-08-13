@@ -6,7 +6,7 @@ namespace FWO_Auth
     {
         static void Main(string[] args)
         {
-            HttpServer Server = new HttpServer();
+            AuthModule Server = new AuthModule();
             Console.ReadLine();
         }
     }

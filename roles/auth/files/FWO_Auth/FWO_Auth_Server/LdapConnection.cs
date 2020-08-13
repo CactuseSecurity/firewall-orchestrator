@@ -7,12 +7,12 @@ using System.Text;
 
 namespace FWO_Auth_Server
 {
-    class LdapServerConnection
+    class LdapConnection
     {
         private readonly string Address;
         private readonly int Port;
 
-        public LdapServerConnection(string Address, int Port)
+        public LdapConnection(string Address, int Port)
         {
             this.Address = Address;
             this.Port = Port;
@@ -20,18 +20,18 @@ namespace FWO_Auth_Server
 
         // tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
         // dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
-        public bool ValidateUser(string Username, string Password)
+        public bool ValidateUser(User user)
         {
-            string userDn = $"uid={Username},ou=systemuser,ou=user,dc=fworch,dc=internal";
+            string userDn = $"uid={user.Name},ou=systemuser,ou=user,dc=fworch,dc=internal";
             try
             {
-                using (var connection = new LdapConnection { SecureSocketLayer = true })
+                using (var connection = new Novell.Directory.Ldap.LdapConnection { SecureSocketLayer = true })
                 {
                     connection.UserDefinedServerCertValidationDelegate +=
                     (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;
 
                     connection.Connect(Address, Port);
-                    connection.Bind(userDn, Password);
+                    connection.Bind(userDn, user.Password);
                     if (connection.Bound)
                         return true;
                 }
@@ -44,8 +44,13 @@ namespace FWO_Auth_Server
             return false;
         }
 
-        public IEnumerable<Role> GetRoles(string Username, string Password)
+        public Role[] GetRoles(User user)
         {
+            // Fake role REMOVE LATER
+            if (user.Name == "" && user.Password == "")
+                return new Role[] { new Role { Name = "forti" } };
+            // Fake role REMOVE LATER
+
             return null;
         }
     }

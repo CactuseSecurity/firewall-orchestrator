@@ -1,7 +1,9 @@
 # format of the JWT
+see <https://tools.ietf.org/html/rfc7519>
 
+## example
     {
-      "sub": "1234567890",
+      "sub": "https://localhost/api/v1/graphql",
       "name": "Tim Purschke",
       "iat": 1516239022,
       "exp": 1516289022,
@@ -17,3 +19,14 @@
         }
       }
     }
+
+
+## desription
+
+- name: name of the logged in user
+- iat: issued at (not valid before) - in seconds since 1.1.1970
+- exp: expires at - in seconds since 1.1.1970
+- sub: ???
+- hasura.claims.x-hasura-user-id: username
+- hasura.claims.x-hasura-role: one role of the user
+- hasura.claims.x-hasura-default-role: the default role of the user

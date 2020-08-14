@@ -26,7 +26,7 @@ see <https://tools.ietf.org/html/rfc7519>
 - name: name of the logged in user
 - iat: issued at (not valid before) - in seconds since 1.1.1970
 - exp: expires at - in seconds since 1.1.1970
-- sub: ???
+- sub: subject or URI of the target (prinipal)
 - hasura.claims.x-hasura-user-id: username
 - hasura.claims.x-hasura-role: one role of the user
 - hasura.claims.x-hasura-default-role: the default role of the user

@@ -36,11 +36,14 @@
          - docker-ce-cli
          - containerd.io
        
-     - name: Append the group 'docker' for ansible_user to enable him/her to run docker
+     - name: Add the group 'docker' for {{ ansible_user }} and {{ fworch_user }} to allow running docker
        user:
            name: "{{ ansible_user }}"
            groups: docker 
            append: yes
+       loop:
+          -  "{{ ansible_user }}"
+          -  "{{ fworch_user }}"
 
      - name: create systemd dir for docker
        file:

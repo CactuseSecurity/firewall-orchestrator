@@ -1,7 +1,7 @@
-# format of the JWT
+# Format of the JWT
 see <https://tools.ietf.org/html/rfc7519>
 
-## example
+## Example
     {
       "sub": "https://localhost/api/v1/graphql",
       "name": "Tim Purschke",
@@ -21,7 +21,7 @@ see <https://tools.ietf.org/html/rfc7519>
     }
 
 
-## desription
+## Description
 
 - name: name of the logged in user
 - iat: issued at (not valid before) - in seconds since 1.1.1970

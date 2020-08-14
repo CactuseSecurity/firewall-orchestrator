@@ -48,7 +48,7 @@
     copy: 
       src: ldap
       dest: /etc/sysconfig/ldap 
-      mode: 0755
+      mode: "0755"
     when: openldap_server_enable_ssl and ansible_os_family == 'RedHat'
     notify: 
     - restart slapd
@@ -57,7 +57,7 @@
     copy: 
       src: slapd_fedora
       dest: /etc/sysconfig/slapd 
-      mode: 0755
+      mode: "0755"
     when: openldap_server_enable_ssl and ansible_distribution == "Fedora"
     notify: 
     - restart slapd
@@ -66,7 +66,7 @@
     copy: 
       src: slapd 
       dest: /etc/default/slapd 
-      mode: 0755
+      mode: "0755"
     when: openldap_server_enable_ssl and ansible_os_family == 'Debian'
     notify: 
     - restart slapd

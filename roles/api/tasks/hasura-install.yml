@@ -16,7 +16,7 @@
         src: docker-run.sh.j2
         dest: "{{ api_home }}/docker-run.sh"
         backup: yes
-        mode: 0755
+        mode: "0755"
         owner: "{{ fworch_user }}"
   become: yes
 

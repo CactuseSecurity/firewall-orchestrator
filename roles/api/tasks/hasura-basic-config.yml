@@ -4,7 +4,7 @@
   get_url:
       url: https://github.com/hasura/graphql-engine/raw/master/cli/get.sh
       dest: "{{ api_home }}"
-      mode: 0755
+      mode: "0755"
   environment: "{{ proxy_env }}"
   become: yes
   become_user: "{{ fworch_user }}"

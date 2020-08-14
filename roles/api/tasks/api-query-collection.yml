@@ -27,7 +27,7 @@
   template:
     src: "api-set-queries.sql.j2"
     dest: "{{ api_home }}/query-collections/reporting/api-set-queries-{{ item.collection_name }}.sql"
-    mode: 0644
+    mode: "0644"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
   become: yes
@@ -38,7 +38,7 @@
       lineinfile:
         path: "{{ fworch_home }}/.pgpass"
         create: yes
-        mode: 0600
+        mode: "0600"
         line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
 
     - name: removeline breaks and multiple consecutive spaces from json files

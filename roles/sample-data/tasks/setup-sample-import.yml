@@ -18,7 +18,7 @@
       file: 
          path: "{{ sample_config_user_home }}/.ssh/authorized_keys"
          owner: "{{ sample_config_user }}"
-         mode: 0600
+         mode: "0600"
 
     - name: fetch sample-data user pub key
       fetch:

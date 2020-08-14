@@ -16,7 +16,7 @@
      file:
         path: "{{ api_home }}"
         state: directory
-        mode: 0755
+        mode: "0755"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_user }}"
 
@@ -33,7 +33,7 @@
         path: "{{ fworch_home }}/etc/secrets/jwt_private.key"
         line: "{{ jwt_secret.stdout }}"
         create: yes
-        mode: 0600
+        mode: "0600"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_user }}"
 

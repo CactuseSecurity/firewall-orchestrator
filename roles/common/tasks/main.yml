@@ -25,7 +25,7 @@
          state: directory
          owner: syslog
          group: syslog
-         mode: 0775
+         mode: "0775"
        when: ansible_facts['distribution'] == "Ubuntu"
          
      - name: create log dir for {{ product_name }} on debian - owner root
@@ -34,7 +34,7 @@
          state: directory
          owner: root
          group: root
-         mode: 0775
+         mode: "0775"
        when: ansible_facts['distribution'] == "Debian"
          
      - name: edit rsyslog

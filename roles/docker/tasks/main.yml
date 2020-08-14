@@ -69,7 +69,7 @@
          state: directory
          owner: "{{ fworch_user }}"
          group: "{{ fworch_user }}"
-         mode: 0775
+         mode: "0775"
 
      - name: create local user docker config file .docker/config.json
        template:
@@ -77,5 +77,5 @@
          dest: "{{ fworch_home }}/.docker/config.json"
          owner: "{{ fworch_user }}"
          group: "{{ fworch_user }}"
-         mode: 0644
+         mode: "0644"
   become: yes

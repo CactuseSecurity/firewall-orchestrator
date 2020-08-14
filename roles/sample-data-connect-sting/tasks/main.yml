@@ -6,7 +6,7 @@
       lineinfile:
         path: "{{ fworch_home }}/.pgpass"
         create: yes
-        mode: 0600
+        mode: "0600"
         line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
 
 # todo: convert the following into a single \i file.sql command:

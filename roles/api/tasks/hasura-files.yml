@@ -20,9 +20,17 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_user }}"
 
+   - name: make sure secrets dir exists
+     file:
+        path: "{{ fworch_home }}/etc/secrets"
+        state: directory
+        mode: "0700"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_user }}"
+
    - name: write api_hasura_jwt_secret into file for reference
      lineinfile:
-        path: "{{ api_home }}/jwt_secret"
+        path: "{{ fworch_home }}/etc/secrets/jwt_private.key"
         line: "{{ jwt_secret.stdout }}"
         create: yes
         mode: 0600

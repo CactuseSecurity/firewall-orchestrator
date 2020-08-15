@@ -4,7 +4,7 @@
         state: directory
         owner: postgres
         group: postgres
-        mode: 0755
+        mode: "0755"
        
      - name: change db create command if using a specific tablespace location
        lineinfile: 

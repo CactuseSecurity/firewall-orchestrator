@@ -1,0 +1,27 @@
+
+# this only works with ansible 2.8 and above:
+# - name: assert ansible version
+#   assert:
+#     that:
+#       - "{{ ansible_version.string is version_compare('2.8', '>=') }}"
+#     msg: Ansible 2.8 or above is required
+
+- name: insert role superuser
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    login_host: "{{ fworch_db_host }}"
+    login_user: "{{ fworch_dbadmin_name }}"
+    login_password: "{{ dbadmin_pwd }}"
+    query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='superuser') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('superuser', true, true); END IF; END $do$"
+  become: yes
+  become_user: postgres
+
+- name: insert role reporter
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    login_host: "{{ fworch_db_host }}"
+    login_user: "{{ fworch_dbadmin_name }}"
+    login_password: "{{ dbadmin_pwd }}"
+    query: "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name='reporter') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values ('reporter', false, false); END IF; END $do$"
+  become: yes
+  become_user: postgres

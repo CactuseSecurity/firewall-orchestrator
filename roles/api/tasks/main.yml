@@ -23,8 +23,8 @@
 - name: hasura basic config
   import_tasks: hasura-basic-config.yml
 
-- name: create query_collections and add to allow-list 
-  import_tasks: api-query-collection.yml
+# - name: create query_collections and add to allow-list 
+#   import_tasks: api-query-collection.yml
 
 - name: api create documentation
   import_tasks: api-create-docu.yml

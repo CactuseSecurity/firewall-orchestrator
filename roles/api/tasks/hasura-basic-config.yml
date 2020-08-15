@@ -9,19 +9,18 @@
   become: yes
   become_user: "{{ fworch_user }}"
 
-# convert into script module?
 - name: execute hasura cli installer
   shell: "{{ api_home }}/get.sh"
   environment: "{{ proxy_env }}"
   become: yes
 
 - name: initialize hasura cli directory
-  shell: "cd {{ api_home }} && {{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
-  # command: "{{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
-  # args: 
-  #   chdir: "{{ api_home }}"
+  command: "{{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  args: 
+    chdir: "{{ api_home }}"
   become: yes
   become_user: "{{ fworch_user }}"
+  #shell: "cd {{ api_home }} && {{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
 
 - name: copy hasura metadata to cli directory
   copy:
@@ -34,10 +33,10 @@
   become: yes
 
 - name: import hasura metadata
-  shell: "cd {{ api_home }}/{{ product_name }} && {{ api_hasura_bin }} metadata apply --from-file"
-  # command: "{{ api_hasura_bin }} metadata apply --from-file"
-  # args:
-  #   chdir: "{{ api_home }}/{{ product_name }}"
+  command: "{{ api_hasura_bin }} metadata apply --from-file"
+  args:
+    chdir: "{{ api_home }}/{{ product_name }}"
   become: yes
   become_user: "{{ fworch_user }}"
   when: "api_no_metadata is not defined"
+  # shell: "cd {{ api_home }}/{{ product_name }} && {{ api_hasura_bin }} metadata apply --from-file"

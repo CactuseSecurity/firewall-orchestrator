@@ -1,23 +1,11 @@
 # installs docker and the hasura image in a container
 
-- block:  
-
-   - name: Install packages for python pip3 n virtualenv
-     package:
-        name: "{{ packages }}"
-     vars:
-        packages:
-          - python3-pip
-          - python3-virtualenv
-
-   # the docker-run script is still needed for systemd start file
-   - name: copy hasura docker-run script
-     template:
-        src: docker-run.sh.j2
-        dest: "{{ api_home }}/docker-run.sh"
-        backup: yes
-        mode: "0755"
-        owner: "{{ fworch_user }}"
+- name: Install packages for python pip3 n virtualenv
+  package:
+    name: "{{ item }}"
+  loop:
+    - python3-pip
+    - python3-virtualenv
   become: yes
 
 - name: install docker sdk for python via pip3

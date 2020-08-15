@@ -10,12 +10,16 @@
         - libpq-dev
 
     - name: find out installed postgres version
-      script: "get_pg_version.sh"
+      script: get_pg_version.sh
       register: pg_version_result
       changed_when: false
 
     - name: set fact pg_version
-      set_fact: pg_version="{{ pg_version_result.stdout }}"
+      set_fact: pg_version={{ pg_version_result.stdout | float }}
+
+    - name: pg_version to int when possible
+      set_fact: pg_version={{ pg_version | int }}
+      when: "{{ pg_version }} > 9"
 
     #  - name: set fact postgresql_dev_package
     #    set_fact:

@@ -37,7 +37,8 @@
   register: api_hasura_jwt_secret_dict
   become: yes
 
-- set_fact:
+- name: decode key
+  set_fact:
     api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode  }}"
 
 - name: start hasura container

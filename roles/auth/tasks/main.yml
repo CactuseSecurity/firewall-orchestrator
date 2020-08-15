@@ -24,7 +24,7 @@
     group: "{{ fworch_user }}"
   become: yes
 
-- name: create funtions needed during authentication
+- name: create functions needed during authentication
   command: 'psql -d {{ fworch_db_name }} -c "\i {{ fworch_home }}/auth/pre_auth_functions.sql"'
   become: yes
   become_user: postgres

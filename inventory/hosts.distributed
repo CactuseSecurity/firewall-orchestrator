@@ -1,0 +1,21 @@
+isofront ansible_host=10.1.1.81
+isoback ansible_host=10.1.1.83
+isoside ansible_host=10.1.1.82
+
+[frontends]
+isofront
+
+[backendserver]
+isoback
+
+[apiserver]
+isoback
+
+[importers]
+isoside
+
+[authserver]
+isoback
+
+[sampleserver]
+isoside

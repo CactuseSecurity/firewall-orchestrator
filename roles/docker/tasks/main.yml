@@ -38,7 +38,7 @@
        
      - name: Add the group 'docker' for {{ ansible_user }} and {{ fworch_user }} to allow running docker
        user:
-           name: "{{ ansible_user }}"
+           name: "{{ item }}"
            groups: docker 
            append: yes
        loop:

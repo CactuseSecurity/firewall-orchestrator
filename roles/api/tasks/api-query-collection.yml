@@ -1,4 +1,6 @@
 # create query collection for basic tasks fworch_basics via direct hasura DB access
+# NB: this crashes the API on reboot if there is a syntax error in any json file!
+#      might be better to give API access another try (https://hasura.io/docs/1.0/graphql/manual/api-reference/schema-metadata-api/index.html#metadata-apis)
 
 - set_fact:
     query_collection_dict:

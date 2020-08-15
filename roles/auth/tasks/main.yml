@@ -37,6 +37,9 @@
     group: "{{ fworch_user }}"
   become: yes
 
+- name: create jwt
+  include_tasks: create_jwt.yml
+
 - name: install dot net
   import_tasks: auth_install_dot_net.yml
 

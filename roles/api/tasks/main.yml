@@ -15,9 +15,7 @@
     mode: "0755"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
-
-- name: hasura jwt creation
-  import_tasks: hasura-jwt.yml
+  become: yes
 
 - name: hasura install 
   import_tasks: hasura-install.yml

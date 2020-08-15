@@ -39,7 +39,7 @@ set specific IP or hostname for database host, e.g.
 - change pg_hba.conf entries to allow acces via network
 - change postgresql.conf entries to make server listen on ip other than localhost
 
-## roles/auth/tasks/main.yml
+## roles/auth/tasks/main.yml - needs some work
 
 this does not work remotely (auth host <> db host), as there is no postgres user on a non-db machine:
 
@@ -58,6 +58,10 @@ this does not work remotely (auth host <> db host), as there is no postgres user
 
 either do this on the db machine directly or run it via postgresql_query (with ansible 2.8ff)
 
-## roles/frontend
+### more
+
+read variables from config to know what to listen on?
+
+## roles/frontend - needs some work
 
 read config to know where the auth server is listening!

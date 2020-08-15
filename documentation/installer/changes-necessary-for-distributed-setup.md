@@ -34,6 +34,10 @@ set specific IP or hostname for database host, e.g.
 
     fworch_db_host: 127.0.0.1
 
+## roles/database/tasks/main.yml
+
+- change pg_hba.conf entries to allow acces via network
+- change postgresql.conf entries to make server listen on ip other than localhost
 
 ## roles/auth/tasks/main.yml
 

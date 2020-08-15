@@ -65,3 +65,8 @@ read variables from config to know what to listen on?
 ## roles/frontend - needs some work
 
 read config to know where the auth server is listening!
+
+## roles/api - needs some work
+
+- "read jwt_secret_key from file" has to work both on ui, auth, api hosts
+- need to generate it once and than copy to "all" hosts in etc_secrets dir

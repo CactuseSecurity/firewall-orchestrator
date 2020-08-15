@@ -121,8 +121,8 @@
         line: '\1"{{ admin_pwd }}"'
         backup: yes
 
-    - name: remove all containers including api to make sure the database can be dropped
-      script: "remove_all_containers.sh"
+    # - name: remove all containers including api to make sure the database can be dropped
+    #   script: "remove_all_containers.sh"
 
   become: yes
 
@@ -131,6 +131,11 @@
   register: db_exists
   become: yes
   become_user: postgres 
+
+- name: remove all containers including api to make sure the database can be dropped
+  script: "remove_all_containers.sh"
+  become: yes
+  when: clean_install is defined and not db_exists.stdout=="0"
 
 - name: create new database - drop existing db before when clean_install is set
   import_tasks: setup-database-as-postgres-user.yml

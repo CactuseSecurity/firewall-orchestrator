@@ -31,6 +31,15 @@
 #  become: yes
 #  become_user: "{{ fworch_user }}"
 
+- name: read jwt_secret_key from file
+  slurp:
+    src: "{{ fworch_home }}/etc/secrets/jwt_private.key"
+  register: api_hasura_jwt_secret_dict
+  become: yes
+
+- set_fact:
+    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode  }}"
+
 - name: start hasura container
   docker_container:
     name: "{{ api_container_name }}"
@@ -48,7 +57,7 @@
       HASURA_GRAPHQL_JWT_SECRET:       '
                                         {
                                           "type": "{{ api_hasura_jwt_alg|quote }}",
-                                          "key": "{{ api_hasura_jwt_secret|quote }}",
+                                          "key": "{{ api_hasura_jwt_secret | quote }}",
                                           "claims_namespace_path": "$.hasura.claims"
                                         }
       '

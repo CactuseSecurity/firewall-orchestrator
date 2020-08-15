@@ -77,6 +77,6 @@
      owner: "root"
   become: yes
 
-- name: make hasura docker container run at host startup
+- name: make hasura docker container runs at host startup
   command: "systemctl enable hasura-docker-api"
   become: yes

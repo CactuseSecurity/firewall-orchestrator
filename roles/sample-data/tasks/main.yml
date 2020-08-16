@@ -2,7 +2,7 @@
 # postgresql-client
 
 - name: create import sample user and copy configs
-  import_tasks: setup-sample-import.yml
+  include_tasks: setup-sample-import.yml
 
 - name: install package postgresql-client for adding sample devices to db
   package:

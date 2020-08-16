@@ -4,28 +4,28 @@
 
 add all hosts involved, e.g.
 
-    isofront ansible_host=10.1.1.81
-    isoback ansible_host=10.1.1.83
-    isoside ansible_host=10.1.1.82
+    fworch-front ansible_host=10.1.1.81
+    fworch-back ansible_host=10.1.1.83
+    fworch-side ansible_host=10.1.1.82
 
     [frontends]
-    isofront
+    fworch-front
 
     [backendserver]
-    isoback
+    fworch-back
 
     [apiserver]
-    isoback
+    fworch-side
 
     [importers]
-    isoside
+    fworch-side
 
     [authserver]
-    isoback
+    fworch-back
     # does not work with other hosts at the moment
 
     [sampleserver]
-    isoside
+    fworch-side
 
 
 ## inventory/all

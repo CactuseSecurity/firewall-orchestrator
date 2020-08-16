@@ -39,7 +39,7 @@
 
 - name: decode key
   set_fact:
-    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode  }}"
+    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
 
 - name: start hasura container
   docker_container:

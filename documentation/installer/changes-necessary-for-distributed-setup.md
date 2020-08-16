@@ -32,7 +32,13 @@ add all hosts involved, e.g.
 
 set specific IP or hostname for database host, e.g.
 
+replace
+
     fworch_db_host: 127.0.0.1
+
+with
+
+    fworch_db_host: 10.1.1.83
 
 ## roles/database/tasks/main.yml
 

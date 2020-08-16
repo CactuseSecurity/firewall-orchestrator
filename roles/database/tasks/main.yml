@@ -75,7 +75,7 @@
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         backrefs: yes
         regexp: '^#?\s*(listen_addresses\s*=\s*)(.*)'
-        line: '\1''{{ ansible_host }},localhost'''
+        line: '\1''{{ fworch_db_host }},localhost'''
         backup: yes
 
     - name: reload postgres service

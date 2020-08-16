@@ -9,6 +9,9 @@
         - "{{ postgresql_test_package }}"
         - libpq-dev
 
+    # - name: set fact pg_version
+    #   set_fact: ansible_python_interpreter=/usr/bin/python3
+
     - name: find out installed postgres version
       script: get_pg_version.sh
       register: pg_version_result
@@ -17,12 +20,9 @@
     - name: set fact pg_version
       set_fact: pg_version={{ pg_version_result.stdout | float }}
 
-    - name: set fact pg_version
-      set_fact: ansible_python_interpreter=/usr/bin/python3
-
     - name: pg_version to int when possible
       set_fact: pg_version={{ pg_version | int }}
-      when: "pg_version gt 9"
+      when: pg_version|int >= 10
 
     #  - name: set fact postgresql_dev_package
     #    set_fact:

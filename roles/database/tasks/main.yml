@@ -22,7 +22,7 @@
 
     - name: pg_version to int when possible
       set_fact: pg_version={{ pg_version | int }}
-      when: "{{ pg_version }} > 9"
+      when: pg_version > 9
 
     #  - name: set fact postgresql_dev_package
     #    set_fact:

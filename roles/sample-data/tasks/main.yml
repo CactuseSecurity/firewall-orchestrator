@@ -1,7 +1,14 @@
 # this playbook sets up some sample devices with configs to play around with
+# postgresql-client
 
 - name: create import sample user and copy configs
-  import_tasks: setup-sample-import.yml
+  include_tasks: setup-sample-import.yml
+
+- name: install package postgresql-client for adding sample devices to db
+  package:
+    name: postgresql-client
+    state: present
+  become: yes
 
 - name: create sample devices in database
   import_tasks: create-devices.yml

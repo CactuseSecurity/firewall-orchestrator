@@ -9,13 +9,20 @@
         - "{{ postgresql_test_package }}"
         - libpq-dev
 
+    # - name: set fact pg_version
+    #   set_fact: ansible_python_interpreter=/usr/bin/python3
+
     - name: find out installed postgres version
-      script: "get_pg_version.sh"
+      script: get_pg_version.sh
       register: pg_version_result
       changed_when: false
 
     - name: set fact pg_version
-      set_fact: pg_version="{{ pg_version_result.stdout }}"
+      set_fact: pg_version={{ pg_version_result.stdout | float }}
+
+    - name: pg_version to int when possible
+      set_fact: pg_version={{ pg_version | int }}
+      when: pg_version|int >= 10
 
     #  - name: set fact postgresql_dev_package
     #    set_fact:
@@ -30,7 +37,7 @@
       blockinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         block: |
-          # listen_addresses = 'localhost,1.2.3.4'  # wenn IP des Servers die 1.2.3.4 ist
+          # listen_addresses = 'localhost,10.1.1.83'  
           # syslog 
           log_destination = 'syslog'
           syslog_facility = 'LOCAL6'
@@ -50,17 +57,17 @@
           # host    all         dbadmin             {{ ansible_host }}/32          md5
           host    all         {{ fworch_user }}            127.0.0.1/32           trust
           host    all         +dbbackupusers      127.0.0.1/32           trust
-          # bei lokalem importer:
+          # with only local import modules:
           host    all         +configimporters    127.0.0.1/32           trust
           host    all         confexporter        127.0.0.1/32           trust
           host    all         textreader          127.0.0.1/32           trust
-          # bei lokalem Webfrontend:
+          # with local web frontend:
           host    all         +secuadmins         127.0.0.1/32           md5
           host    all         +reporters          127.0.0.1/32           md5
-          # bei abgesetztem Webfrontend:
+          # with remote web frontend:
           # host    all         +secuadmins       <webserver-ip>/32          md5
           # host    all         +reporters        <webserver-ip>/32          md5
-          # bei remote-importer:
+          # with remote importer modules:
           # host    all         +configimporters   <importer-ip>/32          trust
       
     - name: edit postgresql.conf listener
@@ -68,7 +75,7 @@
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         backrefs: yes
         regexp: '^#?\s*(listen_addresses\s*=\s*)(.*)'
-        line: '\1''{{ ansible_host }},localhost'''
+        line: '\1''{{ fworch_db_host }},localhost'''
         backup: yes
 
     - name: reload postgres service
@@ -114,8 +121,8 @@
         line: '\1"{{ admin_pwd }}"'
         backup: yes
 
-    - name: remove all containers including api to make sure the database can be dropped
-      script: "remove_all_containers.sh"
+    # - name: remove all containers including api to make sure the database can be dropped
+    #   script: "remove_all_containers.sh"
 
   become: yes
 
@@ -124,6 +131,11 @@
   register: db_exists
   become: yes
   become_user: postgres 
+
+- name: remove all containers including api to make sure the database can be dropped
+  script: "remove_all_containers.sh"
+  become: yes
+  when: clean_install is defined and not db_exists.stdout=="0"
 
 - name: create new database - drop existing db before when clean_install is set
   import_tasks: setup-database-as-postgres-user.yml

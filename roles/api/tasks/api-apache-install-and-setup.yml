@@ -7,7 +7,7 @@
 
     - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend
 
-    - name: copy iso httpd config file to apache target
+    - name: copy iso httpd config file to api target
       template:
         src: "httpd.conf"
         dest: "{{ http_conf_dir }}/{{ product_name }}-api.conf"

@@ -17,18 +17,8 @@ namespace FWO
 {
     public class APIConnection
     {
-        const string APIHost = "demo.itsecorg.de";
-        const string APIPort = "443";
-        const string APIPath = "/api/v1/graphql";
-/*
-        for local API testing (in visual studio without running full ansible installer), either 
-            - create a local ssh tunneling to the http server on the virtual machine on an arbitrary port (here 8443) to connect to api like this:
-              const string APIPort = "8443";
-            - or use the demo system as api host like this: 
-              const string APIHost = "demo.itsecorg.de";
-*/
         // Server URL
-        private const string ServerURI = "https://" + APIHost + ":" + APIPort + APIPath;
+        private readonly string ServerURI;
 
         // Http/s Client
         private readonly HttpClient Client;
@@ -75,7 +65,7 @@ namespace FWO
         //    return null;
         //}
 
-        public APIConnection()
+        public APIConnection(string ServerURI)
         {
             // Allow all certificates // REMOVE IF SERVER GOT VALID CERTIFICATE
             HttpClientHandler Handler = new HttpClientHandler();

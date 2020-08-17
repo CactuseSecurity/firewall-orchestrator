@@ -33,8 +33,26 @@ namespace FWO
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
-            services.AddScoped<AuthClient>(auth => new AuthClient("http://localhost:8888/"));
-            services.AddSingleton<APIConnection>();
+
+            // TODO: Get ApiUri + AuthModuleUri from config file
+            string ApiUri = "https://localhost:443/api/v1/graphql";
+            string AuthUri = "http://localhost:8888/";
+
+#if DEBUG
+            /*
+            for local API testing (in visual studio without running full ansible installer), either 
+            - create a local ssh tunneling to the http server on the virtual machine on an arbitrary port (here 8443) to connect to api like this:
+              const string APIPort = "8443";
+            - or use the demo system as api host like this: 
+              const string APIHost = "demo.itsecorg.de";
+            */
+
+            //ApiUri = "https://localhost:8443/api/v1/graphql"; 
+            ApiUri = "https://demo.itsecorg.de:443/api/v1/graphql";
+            AuthUri = "http://localhost:8888/";
+#endif
+            services.AddScoped<APIConnection>(api => new APIConnection(ApiUri));
+            services.AddScoped<AuthClient>(auth => new AuthClient(AuthUri));
             services.AddBlazoredSessionStorage();
         }
 

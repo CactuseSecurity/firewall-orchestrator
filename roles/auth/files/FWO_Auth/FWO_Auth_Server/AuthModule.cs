@@ -18,9 +18,12 @@ namespace FWO_Auth
         private readonly TokenGenerator TokenGenerator;
 
         private const string privateKey = "J6k2eVCTXDp5b97u6gNH5GaaqHDxCmzz2wv3PRPFRsuW2UavK8LGPRauC4VSeaetKTMtVmVzAC8fh8Psvp8PFybEvpYnULHfRpM8TA2an7GFehrLLvawVJdSRqh2unCnWehhh2SJMMg5bktRRapA8EGSgQUV8TCafqdSEHNWnGXTjjsMEjUpaxcADDNZLSYPMyPSfp6qe5LMcd5S9bXH97KeeMGyZTS2U8gp3LGk2kH4J4F3fsytfpe9H9qKwgjb";
+        private const int daysValid = 7;
 
         public AuthModule()
         {
+            // TODO: Get Ldap Server URI + Http Listener URI from config file
+
             // Create Http Listener
             Listener = new HttpListener();
 
@@ -28,16 +31,16 @@ namespace FWO_Auth
             LdapConnection = new Ldap("localhost", 636);
 
             // Create Token Generator
-            TokenGenerator = new TokenGenerator(privateKey, 7);
+            TokenGenerator = new TokenGenerator(privateKey, daysValid);
 
             // Start Http Listener
-            StartListener();
+            StartListener("http://localhost:8888/");
         }
 
-        private async void StartListener()
+        private async void StartListener(string ListenerUri)
         {
             // Add prefixes to listen to 
-            Listener.Prefixes.Add("http://localhost:8888/jwt/");
+            Listener.Prefixes.Add(ListenerUri + "jwt/");
 
             // Start listener.
             Listener.Start();

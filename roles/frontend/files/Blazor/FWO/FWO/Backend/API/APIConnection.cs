@@ -84,6 +84,8 @@ namespace FWO
             content.Headers.Clear();
             // Add content header
             content.Headers.Add("content-type", "application/json");
+            // Add jwt header
+            // TODO: Add jwt 
             // Add auth header
             content.Headers.Add("x-hasura-admin-secret", "st8chelt1er");
 #if DEBUG

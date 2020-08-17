@@ -59,7 +59,7 @@
                                         {
                                           "type": "{{ api_hasura_jwt_alg|quote }}",
                                           "key": "{{ api_hasura_jwt_secret | quote }}",
-                                          "claims_namespace_path": "$.hasura.claims"
+                                          "claims_namespace_path": "$"
                                         }
       '
       HTTP_PROXY:                      "{{ http_proxy }}"

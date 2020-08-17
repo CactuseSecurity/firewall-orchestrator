@@ -22,7 +22,7 @@ namespace FWO_Auth_Server
         // dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
         public bool ValidateUser(User user)
         {
-            string userDn = $"uid={user.Name},ou=user,dc=fworch,dc=internal";
+            string userDn = $"uid={user.Name},ou=systemuser,ou=user,dc=fworch,dc=internal";
             try
             {
                 using (var connection = new LdapConnection { SecureSocketLayer = true })

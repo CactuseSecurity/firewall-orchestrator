@@ -4,7 +4,7 @@ After=network.target remote-fs.target nss-lookup.target
 [Service]
 WorkingDirectory={{ api_home }}
 ExecStartPre=/bin/sleep 10
-ExecStart={{ api_home }}/docker-run.sh
+ExecStart=/usr/bin/docker start {{ api_container_name }}
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=fworch-api

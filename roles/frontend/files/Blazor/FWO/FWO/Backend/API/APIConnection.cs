@@ -11,29 +11,62 @@ using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using System.Net;
+using FWO.Backend.Data.API;
 
 namespace FWO
 {
     public class APIConnection
     {
-        const string APIHost = "localhost";
-        const string APIPort = "443";
-        const string APIPath = "/api/v1/graphql";
-/*
-        for local API testing (in visual studio without running full ansible installer), either 
-            - create a local ssh tunneling to the http server on the virtual machine on an arbitrary port (here 8443) to connect to api like this:
-              const string APIPort = "8443";
-            - or use the demo system as api host like this: 
-              const string APIHost = "demo.itsecorg.de";
-*/
         // Server URL
-        private const string ServerURI = "https://" + APIHost + ":" + APIPort + APIPath;
+        private readonly string ServerURI;
 
         // Http/s Client
         private readonly HttpClient Client;
 
-        public APIConnection()
-        {         
+        //private readonly GraphQLHttpClient Client;
+
+        //public APIConnection()
+        //{
+        //    //Allow all certificates | REMOVE IF SERVER GOT VALID CERTIFICATE
+        //    HttpClientHandler Handler = new HttpClientHandler();
+        //    Handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
+
+        //    Client = new GraphQLHttpClient(new GraphQLHttpClientOptions()
+        //    {
+        //        EndPoint = new Uri(ServerURI),
+        //        HttpMessageHandler = Handler,
+        //    }, new SystemTextJsonSerializer());
+
+        //    //Client.HttpClient. // DefaultRequestHeaders.Add("content-type", "application/json");
+        //    //Client.HttpClient.DefaultRequestHeaders
+        //    //Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue( //.Add("Authorization", "st8chelt1er");
+        //}
+
+        //public async Task<T[]> SendQuery<T>(string Query, string Variables = "", string OperationName = "")
+        //{
+        //    GraphQLRequest request = new GraphQLRequest(Query, Variables, OperationName);
+        //    GraphQLResponse<T[]> response = await Client.SendQueryAsync<T[]>(request);  
+
+        //    if (response.Errors.Length > 0)
+        //    {
+        //        //Todo: Handle Errors
+
+        //        foreach (GraphQLError error in response.Errors)
+        //        {
+        //            Console.WriteLine(error.Message);
+        //        }
+        //    }
+
+        //    else
+        //    {
+        //        return response.Data;
+        //    }
+
+        //    return null;
+        //}
+
+        public APIConnection(string ServerURI)
+        {
             // Allow all certificates // REMOVE IF SERVER GOT VALID CERTIFICATE
             HttpClientHandler Handler = new HttpClientHandler();
             Handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
@@ -51,6 +84,8 @@ namespace FWO
             content.Headers.Clear();
             // Add content header
             content.Headers.Add("content-type", "application/json");
+            // Add jwt header
+            // TODO: Add jwt 
             // Add auth header
             content.Headers.Add("x-hasura-admin-secret", "st8chelt1er");
 #if DEBUG

@@ -13,7 +13,7 @@ namespace FWO_Test
         [TestInitialize]
         public void EtablishConnectionToServer()
         {
-            Connection = new APIConnection();
+            //Connection = new APIConnection();
         }
 
         [TestMethod]

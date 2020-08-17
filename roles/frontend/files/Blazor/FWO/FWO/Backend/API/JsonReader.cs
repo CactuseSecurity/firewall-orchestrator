@@ -1,6 +1,5 @@
 ﻿using FWO.Backend.Data.API;
 using Microsoft.AspNetCore.Authentication;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Data;
 using System.Text.Json;
@@ -147,15 +146,5 @@ namespace FWO
             }
         }
         */
-
-        public static DataTable ToDataTable(string JsonString)
-        {
-            return JObject.Parse(JsonString)["data"].ToObject<DataTable>();
-        }
-
-        public static string[] ToStringArray(string JsonString)
-        {
-            return JObject.Parse(JsonString)["data"].ToObject<string[]>();
-        }
     }
 }

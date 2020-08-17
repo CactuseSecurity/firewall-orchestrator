@@ -4,6 +4,18 @@
   register: is_ldap_present_flag
 
 - block:
+  - name: Decide on random inspector password
+    set_fact:
+      ldap_inspector_pw: "{{ openldap_server_rootpw }}"
+
+  - name: Write inspector password to file
+    copy:
+      content: "{{ ldap_inspector_pw }}"
+      dest: "{{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt"
+      mode: '0600'
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+
   - name: create ldif directory
     file:
       dest: "{{ auth_server_base_dir }}/ldif"
@@ -29,6 +41,12 @@
 
   - name: Create common name user/systemuser/admin (GUI admin)
     command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_uid_admin.ldif"
+
+  - name: Create common name user/systemuser/inspector (entitelt to search ldap)
+    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_uid_inspector.ldif"
+
+  - name: set inspector password in ldap
+    command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=inspector,ou=systemuser,ou=user,{{ auth_ldap_path }}'"
 
   - name: delete ldif files
     file:

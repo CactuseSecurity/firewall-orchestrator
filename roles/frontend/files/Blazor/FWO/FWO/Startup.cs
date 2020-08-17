@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
+using Blazored.SessionStorage;
 using FWO.Auth;
 using FWO_Auth_Client;
 using Microsoft.AspNetCore.Builder;
@@ -20,7 +21,7 @@ namespace FWO
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            Configuration = configuration;           
         }
 
         public IConfiguration Configuration { get; }
@@ -34,6 +35,7 @@ namespace FWO
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
             services.AddScoped<AuthClient>(auth => new AuthClient("http://localhost:8888/"));
             services.AddSingleton<APIConnection>();
+            services.AddBlazoredSessionStorage();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

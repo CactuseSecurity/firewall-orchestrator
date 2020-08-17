@@ -47,11 +47,12 @@ namespace FWO_Auth_Server
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-            claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
+            claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));          
 
             foreach (Role role in roles)
             { 
                 claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name));
+                claimsIdentity.AddClaim(new Claim("x-hasura-role", role.Name)); // Hasura Role
             }
 
             return Task.FromResult(claimsIdentity);

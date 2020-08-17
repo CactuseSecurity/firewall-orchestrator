@@ -7,12 +7,12 @@ using System.Text;
 
 namespace FWO_Auth_Server
 {
-    class LdapConnection
+    class Ldap
     {
         private readonly string Address;
         private readonly int Port;
 
-        public LdapConnection(string Address, int Port)
+        public Ldap(string Address, int Port)
         {
             this.Address = Address;
             this.Port = Port;
@@ -22,14 +22,13 @@ namespace FWO_Auth_Server
         // dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
         public bool ValidateUser(User user)
         {
-            string userDn = $"uid={user.Name},ou=systemuser,ou=user,dc=fworch,dc=internal";
+            string userDn = $"uid={user.Name},ou=user,dc=fworch,dc=internal";
             try
             {
-                using (var connection = new Novell.Directory.Ldap.LdapConnection { SecureSocketLayer = true })
+                using (var connection = new LdapConnection { SecureSocketLayer = true })
                 {
                     connection.UserDefinedServerCertValidationDelegate +=
                     (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;
-
                     connection.Connect(Address, Port);
                     connection.Bind(userDn, user.Password);
                     if (connection.Bound)

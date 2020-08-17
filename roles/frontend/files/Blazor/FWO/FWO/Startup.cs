@@ -34,8 +34,8 @@ namespace FWO
             services.AddServerSideBlazor();
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
-            // TODO: Get ApiUri + AuthModuleUri from config file
-            string ApiUri = "https://localhost:443/api/v1/graphql";
+            // Todo: Get ApiUri + AuthModuleUri from config file
+            string ApiUri = "https://localhost:9443/api/v1/graphql";
             string AuthUri = "http://localhost:8888/";
 
 #if DEBUG

@@ -1,6 +1,7 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -27,35 +28,45 @@ namespace FWO_Auth_Server
         public async Task<string> CreateJWTAsync(User user, UserData userData, Role[] roles)
         {
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = await CreateClaimsIdentities(user, userData, roles);
+            ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
+
+            tokenHandler.CreateJwtSecurityToken();
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
-            (               
+            (
                 issuer: issuer,
                 audience: audience,
                 subject: subject,
                 notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddDays(daysValid),
-                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha512Signature)               
+                expires: DateTime.UtcNow.AddDays(daysValid),              
+                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha512Signature)
              );
 
             return tokenHandler.WriteToken(token);
         }
 
-        private Task<ClaimsIdentity> CreateClaimsIdentities(User user, UserData userData, Role[] roles)
+        private ClaimsIdentity CreateClaimsIdentities(User user, UserData userData, Role[] roles)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-            claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));          
+            claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
+
+            // TODO: Remove later
+            // Fake managment claims REMOVE LATER 
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", "{1,7,17}"));
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
+            // Fake managment claims REMOVE LATER
 
             foreach (Role role in roles)
-            { 
+            {
                 claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name));
                 claimsIdentity.AddClaim(new Claim("x-hasura-role", role.Name)); // Hasura Role
+                // TODO: Create API Connection Lib
+                // TODO: Get Managment and Device Claims from API
             }
 
-            return Task.FromResult(claimsIdentity);
+            return claimsIdentity;
         }
     }
 }

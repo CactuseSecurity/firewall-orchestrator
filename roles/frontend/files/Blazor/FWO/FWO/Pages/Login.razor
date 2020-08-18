@@ -4,6 +4,7 @@
 @inject AuthClient AuthClient
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject AuthenticationStateProvider AuthService
+@inject APIConnection ApiConnection
 
 @if (render)
 {
@@ -43,6 +44,8 @@
 
         // Save it in session storage.
         await sessionStorage.SetItemAsync<string>("jwt", jwt);
+
+        ApiConnection.ChangeAuthHeader(jwt);
 
         // Try to auth with jwt (validates it, gets roles, ...).
         ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);

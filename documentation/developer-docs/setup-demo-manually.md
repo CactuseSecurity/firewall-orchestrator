@@ -1,6 +1,6 @@
 # How to setup a demo machine (e.g. demo.itsecorg.de)
 
-1. Allow direct access to internet in firewall (proxy does not reliably work yet
+1. Allow direct access to internet in firewall (proxy does not reliably work yet)
 
 2. Clone repo
 

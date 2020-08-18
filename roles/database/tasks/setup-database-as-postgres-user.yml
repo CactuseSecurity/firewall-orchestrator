@@ -1,0 +1,35 @@
+
+- block:
+  - name: create postgres user "{{ fworch_dbadmin_name }}"
+    postgresql_user: 
+      name: "{{ fworch_dbadmin_name }}"
+      password: "{{ dbadmin_pwd }}"
+      encrypted: yes
+      role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE,INHERIT,LOGIN
+
+  - name: create postgres user "{{ fworch_user }}"
+    postgresql_user: 
+      name: "{{ fworch_user }}"
+      password: "{{ fworch_pwd }}"
+      encrypted: yes
+      role_attr_flags: LOGIN
+
+# include add-tablespace.yml here
+
+  - name: create new database - drop existing db before when clean_install is set
+    shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
+    when: clean_install is defined or db_exists.stdout=="0"
+
+  # todo: the following user is to be moved from postgres to ldap:
+  - name: create admin user (default admin for web login)
+    shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
+
+  - name: (re)defines functions and views (idempotent)
+    shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init2-functions.sh"
+
+  - name: add base data to the database (if db was just freshly created or clean_install is set)
+    shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init3-fill.sh"
+    when: clean_install is defined or db_exists.stdout=="0"
+
+  become: yes
+  become_user: postgres

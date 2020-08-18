@@ -8,7 +8,7 @@ namespace Firewall_Orchestrator
     class DbConnection
     {
         // Server URL
-        private const string ServerURI = "https://demo.itsecorg.de/api/v1/graphql";
+        private const string APIServerURI = "https://localhost:9443/api/v1/graphql";
 
         // Http/s Client
         private readonly HttpClient Client;
@@ -55,7 +55,7 @@ namespace Firewall_Orchestrator
             stopwatch.Start();
 #endif
             // Http-Packet mit Query und Headern versenden und Antwort des Server empfangen
-            HttpResponseMessage response = await Client.PostAsync(ServerURI, content);
+            HttpResponseMessage response = await Client.PostAsync(APIServerURI, content);
 #if DEBUG
             // Zeitmessung Stop
             stopwatch.Stop();

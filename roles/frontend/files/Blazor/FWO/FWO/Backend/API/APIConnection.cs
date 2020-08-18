@@ -19,7 +19,7 @@ namespace FWO
     public class APIConnection
     {
         // Server URL
-        private readonly string ServerURI;
+        private readonly string APIServerURI;
 
         // Http/s Client
         //private readonly HttpClient Client;
@@ -28,10 +28,10 @@ namespace FWO
 
         public string Jwt { get; set; }
 
-        public APIConnection(string ServerURI)
+        public APIConnection(string APIServerURI)
         {
             // Save Server URI
-            this.ServerURI = ServerURI;
+            this.APIServerURI = APIServerURI;
 
             //Allow all certificates | REMOVE IF SERVER GOT VALID CERTIFICATE
             HttpClientHandler Handler = new HttpClientHandler();
@@ -39,7 +39,7 @@ namespace FWO
 
             Client = new GraphQLHttpClient(new GraphQLHttpClientOptions()
             {
-                EndPoint = new Uri(ServerURI),
+                EndPoint = new Uri(APIServerURI),
                 HttpMessageHandler = Handler,
             }, new SystemTextJsonSerializer());
 
@@ -76,13 +76,13 @@ namespace FWO
             return null;
         }
 
-//        public APIConnection(string ServerURI)
+//        public APIConnection(string APIServerURI)
 //        {
 //            // Allow all certificates // REMOVE IF SERVER GOT VALID CERTIFICATE
 //            HttpClientHandler Handler = new HttpClientHandler();
 //            Handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 
-//            // Save ServerURI
+//            // Save APIServerURI
 //            this.ServerURI = ServerURI;
 
 //            // New http/s client

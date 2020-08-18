@@ -54,5 +54,5 @@
   become_user: "{{ fworch_user }}"
 
 - name: start auth service
-  command: "systemctl start {{ auth_service_name }}"
+  command: "systemctl restart {{ auth_service_name }}"
   become: yes

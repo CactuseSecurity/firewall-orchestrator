@@ -18,7 +18,7 @@ namespace FWO
     public class APIConnection
     {
         // Server URL
-        private readonly string ServerURI;
+        private readonly string APIServerURI;
 
         // Http/s Client
         private readonly HttpClient Client;
@@ -33,7 +33,7 @@ namespace FWO
 
         //    Client = new GraphQLHttpClient(new GraphQLHttpClientOptions()
         //    {
-        //        EndPoint = new Uri(ServerURI),
+        //        EndPoint = new Uri(APIServerURI),
         //        HttpMessageHandler = Handler,
         //    }, new SystemTextJsonSerializer());
 
@@ -65,7 +65,7 @@ namespace FWO
         //    return null;
         //}
 
-        public APIConnection(string ServerURI)
+        public APIConnection(string APIServerURI)
         {
             // Allow all certificates // REMOVE IF SERVER GOT VALID CERTIFICATE
             HttpClientHandler Handler = new HttpClientHandler();
@@ -99,7 +99,7 @@ namespace FWO
             try
             {
                 // Send http-packet with query and header. Receive answer
-                response = await Client.PostAsync(ServerURI, content);
+                response = await Client.PostAsync(APIServerURI, content);
             }
             catch (Exception e)
             {

@@ -31,7 +31,7 @@ namespace FWO_Auth_Client
             string ParametersJson = JsonSerializer.Serialize(Parameters);
 
             StringContent content = new StringContent(ParametersJson);           
-            Console.WriteLine("Sending Request...");
+            Console.WriteLine("Sending GetJWT Request...");
             HttpResponseMessage response = await HttpClient.PostAsync(ServerUri + "jwt", content);
             return await response.Content.ReadAsStringAsync();
         }

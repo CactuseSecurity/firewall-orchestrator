@@ -45,9 +45,10 @@ namespace FWO.Backend.Auth
             Handler = new JwtSecurityTokenHandler();
             try 
             { 
-                Token = Handler.ReadJwtToken(TokenString);
+                if (TokenString != null)
+                    Token = Handler.ReadJwtToken(TokenString);
             } 
-            catch (Exception)
+            catch (Exception e)
             {
                 //TODO: Invalid Jwt Logging
             }
@@ -57,6 +58,9 @@ namespace FWO.Backend.Auth
         {
             try
             {
+                if (Token == null)
+                    return false;
+
                 var validationParameters = new TokenValidationParameters()
                 {
                     ValidIssuer = "FWO Auth Module",
@@ -66,7 +70,7 @@ namespace FWO.Backend.Auth
 
                 IPrincipal principal = Handler.ValidateToken(TokenString, validationParameters, out SecurityToken validatedToken);
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 //TODO: Invalid Jwt Logging
                 return false;

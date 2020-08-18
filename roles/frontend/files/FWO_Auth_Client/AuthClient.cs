@@ -12,11 +12,11 @@ namespace FWO_Auth_Client
     public class AuthClient
     {
         private readonly HttpClient HttpClient;
-        private readonly string ServerUri;
+        private readonly string AuthServerUri;
 
-        public AuthClient(string ServerUri)
+        public AuthClient(string AuthServerUri)
         {
-            this.ServerUri = ServerUri;
+            this.AuthServerUri = AuthServerUri;
             HttpClient = new HttpClient();
         }
 
@@ -32,7 +32,7 @@ namespace FWO_Auth_Client
 
             StringContent content = new StringContent(ParametersJson);           
             Console.WriteLine("Sending GetJWT Request...");
-            HttpResponseMessage response = await HttpClient.PostAsync(ServerUri + "jwt", content);
+            HttpResponseMessage response = await HttpClient.PostAsync(AuthServerUri + "jwt", content);
             return await response.Content.ReadAsStringAsync();
         }
 

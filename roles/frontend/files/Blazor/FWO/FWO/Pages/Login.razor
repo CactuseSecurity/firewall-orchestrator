@@ -6,7 +6,7 @@
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
 
-@if (render)
+@if (showLoginForm)
 {
     <div class="row m-4 justify-content-center">
         <div>
@@ -23,16 +23,22 @@
 @code
 {
     // dont immediately show login page because session storage is only available after render, so there might be a immediate redirect
-    private bool render = false;
+    private bool showLoginForm = false;
 
     private string Username = "";
     private string Password = "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // This might be a reconnect. Check if there is a jwt in session storage.
-        ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, await sessionStorage.GetItemAsync<string>("jwt"));
-        render = true; 
+        string jwt = await sessionStorage.GetItemAsync<string>("jwt");
+
+        if (jwt != null)
+        {
+            // This might be a reconnect. Check if there is a jwt in session storage.
+            ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
+        }
+
+        showLoginForm = true;
         if (firstRender)
             StateHasChanged();
     }

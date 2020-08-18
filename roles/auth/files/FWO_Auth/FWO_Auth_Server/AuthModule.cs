@@ -29,7 +29,8 @@ namespace FWO_Auth
             // relative path:  "../../../etc/secrets"
             try
             {
-                privateKey = File.ReadAllText("../../../../etc/secrets/jwt_private.key");
+                // privateKey = File.ReadAllText("../../../etc/secrets/jwt_private.key");
+                privateKey = File.ReadAllText("/usr/local/fworch/etc/secrets/jwt_private.key");
             }
             catch (Exception e)
             {
@@ -93,6 +94,7 @@ namespace FWO_Auth
                 {
                     status = HttpStatusCode.BadRequest;
 
+                    Console.WriteLine($"Error {e.Message}    Stacktrace  {e.StackTrace}");
                     // Todo: Log error
                 }
 
@@ -126,11 +128,28 @@ namespace FWO_Auth
 
                 // TODO: REMOVE LATER
                 if (User.Name == "" && User.Password == "")
-                    responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));
-                // REMOVE LATER                 
+                {
+                    Console.WriteLine("Logging in with fake user...");
+                    responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));                 
+                }
+                    
+                // REMOVE LATER                             
 
-                else if (LdapConnection.ValidateUser(User))
-                    responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));                   
+                else
+                {
+                    Console.WriteLine($"Try to validate as {User}...");
+
+                    if (LdapConnection.ValidateUser(User)) 
+                    {
+                        Console.WriteLine($"Successfully validated as {User}!");
+                        responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));
+                    }
+
+                    else
+                    {
+                        Console.WriteLine($"Invalid Credentials for User {User}!");
+                    }
+                }                   
             }
 
             return responseString;

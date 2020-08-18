@@ -40,7 +40,7 @@
       --header 'content-type: application/json' \
       --header 'x-hasura-admin-secret: st8chelt1er' \
       --header 'x-hasura-role: admin' \
-      --data '{"query":"query {\n  object {obj_name}\n}"}'
+      --data '{"query":"query { object {obj_name} }"}'
 
 ## Using the other APIs
 - Use Insomnia

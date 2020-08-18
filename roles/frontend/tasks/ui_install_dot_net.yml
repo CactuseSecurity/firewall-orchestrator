@@ -54,5 +54,5 @@
   become_user: "{{ fworch_user }}"
 
 - name: start blazor ui
-  command: "systemctl start {{ ui_service_name }}"
+  command: "systemctl restart {{ ui_service_name }}"
   become: yes

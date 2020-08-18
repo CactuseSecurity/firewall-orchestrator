@@ -40,7 +40,7 @@ namespace FWO_Auth_Server
                 subject: subject,
                 notBefore: DateTime.UtcNow,
                 expires: DateTime.UtcNow.AddDays(daysValid),
-                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha512Signature)
+                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha384)
              );
 
             string GeneratedToken = tokenHandler.WriteToken(token);

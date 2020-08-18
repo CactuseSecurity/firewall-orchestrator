@@ -39,7 +39,7 @@ namespace FWO_Auth_Server
                 audience: audience,
                 subject: subject,
                 notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddDays(daysValid),              
+                expires: DateTime.UtcNow.AddDays(daysValid),
                 signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha512Signature)
              );
 

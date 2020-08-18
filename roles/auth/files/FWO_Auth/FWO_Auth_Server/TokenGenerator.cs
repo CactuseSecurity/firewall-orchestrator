@@ -32,8 +32,6 @@ namespace FWO_Auth_Server
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
 
-            tokenHandler.CreateJwtSecurityToken();
-
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (

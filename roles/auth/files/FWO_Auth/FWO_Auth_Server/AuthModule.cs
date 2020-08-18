@@ -94,6 +94,7 @@ namespace FWO_Auth
                 {
                     status = HttpStatusCode.BadRequest;
 
+                    Console.WriteLine($"Error {e.Message}    Stacktrace  {e.StackTrace}");
                     // Todo: Log error
                 }
 

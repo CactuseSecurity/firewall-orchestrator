@@ -45,11 +45,11 @@ namespace FWO_Auth_Server
                 signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha512Signature)
              );
 
-             string GeneratedToken = tokenHandler.WriteToken(token);
+            string GeneratedToken = tokenHandler.WriteToken(token);
 
-             Console.WriteLine($"Generated JWT {GeneratedToken} for User {user}");
+            Console.WriteLine($"Generated JWT {GeneratedToken} for User {user}");
 
-            return tokenHandler.WriteToken(GeneratedToken);
+            return GeneratedToken;
         }
 
         private ClaimsIdentity CreateClaimsIdentities(User user, UserData userData, Role[] roles)

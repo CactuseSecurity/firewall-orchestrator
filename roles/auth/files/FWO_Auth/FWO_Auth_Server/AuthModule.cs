@@ -127,11 +127,28 @@ namespace FWO_Auth
 
                 // TODO: REMOVE LATER
                 if (User.Name == "" && User.Password == "")
-                    responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));
-                // REMOVE LATER                 
+                {
+                    Console.WriteLine("Logging in with fake user...");
+                    responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));                 
+                }
+                    
+                // REMOVE LATER                             
 
-                else if (LdapConnection.ValidateUser(User))
-                    responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));                   
+                else
+                {
+                    Console.WriteLine($"Try to validate as {User}...");
+
+                    if (LdapConnection.ValidateUser(User)) 
+                    {
+                        Console.WriteLine($"Successfully validated as {User}!");
+                        responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));
+                    }
+
+                    else
+                    {
+                        Console.WriteLine($"Invalid Credentials for User {User}!");
+                    }
+                }                   
             }
 
             return responseString;

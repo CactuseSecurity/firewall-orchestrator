@@ -27,6 +27,8 @@ namespace FWO_Auth_Server
 
         public async Task<string> CreateJWTAsync(User user, UserData userData, Role[] roles)
         {
+            Console.WriteLine($"Generating JWT for User {user}...");
+
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
 
@@ -43,7 +45,11 @@ namespace FWO_Auth_Server
                 signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha512Signature)
              );
 
-            return tokenHandler.WriteToken(token);
+             string GeneratedToken = tokenHandler.WriteToken(token);
+
+             Console.WriteLine($"Generated JWT {GeneratedToken} for User {user}");
+
+            return tokenHandler.WriteToken(GeneratedToken);
         }
 
         private ClaimsIdentity CreateClaimsIdentities(User user, UserData userData, Role[] roles)

@@ -6,7 +6,7 @@
 - block:
   - name: Decide on random inspector password
     set_fact:
-      ldap_inspector_pw: "{{ openldap_server_rootpw }}"
+      ldap_inspector_pw: "{{ random_generated_pw }}"
 
   - name: Write inspector password to file
     copy:

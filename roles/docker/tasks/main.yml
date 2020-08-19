@@ -3,10 +3,9 @@
      - set_fact: ansible_user="{{ lookup('env','USER') }}"
 
      - name: Install packages for docker download n installation
-       apt:
-         name: "{{ packages }}"
-       vars:
-         packages:
+       package:
+         name: "{{ item }}"
+       loop:
          - gnupg2
          - apt-transport-https
          - ca-certificates 

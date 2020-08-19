@@ -12,7 +12,7 @@
     package: 
       name: "{{ item }}"
       state: present 
-    with_items: "{{ openldap_server_pkgs }}"
+    loop: "{{ openldap_server_pkgs }}"
     # environment: env
     # when: ansible_os_family == 'Debian'
 

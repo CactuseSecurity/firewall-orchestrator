@@ -15,22 +15,6 @@
   become: yes
   become_user: "{{ fworch_user }}"
 
-#- name: drop hasura docker containers when clean_install is set
-#  docker_container:
-#    name: hasura_fw_orch
-#    state: absent
-#  when: clean_install is defined
-#  environment:
-#    ansible_python_interpreter: /usr/bin/python3
-#  become: yes
-#  become_user: "{{ fworch_user }}"
-
-#- name: drop hasura docker containers and images
-#  command: "docker kill {{ api_container_name }} && docker rm {{ api_container_name }}"
-#  #when: clean_install is defined
-#  become: yes
-#  become_user: "{{ fworch_user }}"
-
 - name: read jwt_secret_key from file
   slurp:
     src: "{{ fworch_home }}/etc/secrets/jwt_private.key"
@@ -39,7 +23,16 @@
 
 - name: decode key
   set_fact:
-    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
+    api_hasura_jwt_secret_decoded: "{{ api_hasura_jwt_secret_dict['content'] | b64decode | split('\\')[0] }}"
+
+- name: remove unwanted and unexplainable suffix backslash+n plus curly closing bracket from key
+  set_fact:
+    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_decoded.split('\\')[0] }}"
+
+- name: show key for debugging
+  debug:
+    var:
+      api_hasura_jwt_secret
 
 - name: start hasura container
   docker_container:

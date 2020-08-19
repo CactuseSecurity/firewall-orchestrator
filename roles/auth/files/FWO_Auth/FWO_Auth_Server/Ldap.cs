@@ -18,10 +18,11 @@ namespace FWO_Auth_Server
             this.Port = Port;
         }
 
-        // tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
-        // dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
+        // tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
+        // dn:uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
         public bool ValidateUser(User user)
         {
+            // TODO: we need to replace ou=systemuser with ou=tenant<x>,ou=operator and keep x variable - need to look in all existing tenants
             string userDn = $"uid={user.Name},ou=systemuser,ou=user,dc=fworch,dc=internal";
             try
             {

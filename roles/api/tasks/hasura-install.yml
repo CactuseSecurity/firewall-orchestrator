@@ -23,27 +23,20 @@
 
 - name: decode key
   set_fact:
-    api_hasura_jwt_secret_decoded: "{{ api_hasura_jwt_secret_dict['content'] | b64decode | split('\\')[0] }}"
+    api_hasura_jwt_secret_decoded: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
 
 - name: remove unwanted and unexplainable suffix backslash+n plus curly closing bracket from key
   set_fact:
-    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_decoded.split('\\')[0] }}"
+    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_decoded.split('\n')[0] }}"
 
 - name: show key for debugging
   debug:
     var:
       api_hasura_jwt_secret
 
-- name: start hasura container
-  docker_container:
-    name: "{{ api_container_name }}"
-    image: hasura/graphql-engine:{{ api_hasura_version }}
-    state: started
-    network_mode: host
-    recreate: yes
-    ports:
-      - "{{ api_hostname }}:{{ api_port }}:{{ api_port }}"
-    env:
+- name: set hasura env variable
+  set_fact:
+    hasura_env:
       HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
       HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
@@ -57,6 +50,23 @@
       '
       HTTP_PROXY:                      "{{ http_proxy }}"
       HTTPS_PROXY:                     "{{ https_proxy }}"
+
+- name: show hasura env for debugging
+  debug:
+    var:
+      hasura_env
+
+- name: start hasura container
+  docker_container:
+    name: "{{ api_container_name }}"
+    image: hasura/graphql-engine:{{ api_hasura_version }}
+    state: started
+    network_mode: host
+    recreate: yes
+    ports:
+      - "{{ api_hostname }}:{{ api_port }}:{{ api_port }}"
+    env:
+      "{{ hasura_env }}"
   become: yes
   become_user: "{{ fworch_user }}"
 

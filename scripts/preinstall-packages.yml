@@ -44,7 +44,10 @@
       package: 
         name: "{{ item }}"
         state: present 
-      loop: "{{ openldap_server_pkgs }}"
+      loop:
+        - slapd
+        - ldap-utils
+        - openssl
 
 ########## docker for api ##################
 

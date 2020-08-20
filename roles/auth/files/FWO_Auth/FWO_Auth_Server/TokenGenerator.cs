@@ -19,9 +19,9 @@ namespace FWO_Auth_Server
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public TokenGenerator(string privateKey, int daysValid)
+        public TokenGenerator(byte[] privateKey, int daysValid)
         {
-            this.privateKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey));
+            this.privateKey = new SymmetricSecurityKey(privateKey);
             this.daysValid = daysValid;
         }
 

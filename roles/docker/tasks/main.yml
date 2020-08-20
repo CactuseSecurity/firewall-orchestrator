@@ -27,10 +27,9 @@
        environment: "{{ proxy_env }}"
 
      - name: Install all packages for docker
-       apt:
-         name: "{{ packages }}"
-       vars:
-         packages:
+       package:
+         name: "{{ item }}"
+       loop:
          - docker-ce
          - docker-ce-cli
          - containerd.io

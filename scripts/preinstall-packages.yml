@@ -1,8 +1,6 @@
 ---
 
-- name: Network Getting Started First Playbook
-  connection: network_cli
-  gather_facts: false
+- name: Pre-Install packages to minimize installation time
   hosts: all
   become: yes
   tasks:

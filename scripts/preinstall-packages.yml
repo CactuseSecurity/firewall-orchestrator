@@ -75,31 +75,33 @@
 
 ########## dotnet ##################
 
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"
-      when: ansible_facts['distribution']|lower == 'ubuntu'
+    # - set_fact:
+    #     distribution_version: "{{ ansible_facts['distribution_version'] }}"
+    #   when: ansible_facts['distribution']|lower == 'ubuntu'
 
-    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] | regex_replace('\.\d$','') }}"
-      when: ansible_facts['distribution']|lower == 'debian'
+    - set_fact: 
+        distribution_version: "debian10"
+      # when: ansible_facts['distribution']|lower == 'debian'
 
-    - name: get package list from ms {{ dotnet_deb_name }}
+    - name: get package list from ms 
       get_url:
-        url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
-        dest: "{{ ui_dir }}/{{ dotnet_deb_name }}"
+        url: "https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb"
+        dest: "/tmp/packages-microsoft-prod.deb"
         mode: "0644"
 
     - name: install ms package list
-      command: "dpkg -i {{ ui_dir }}/{{ dotnet_deb_name }}"
+      command: "dpkg -i /tmp/packages-microsoft-prod.deb"
 
     - name: remove package list file
       file:
-        dest: "{{ ui_dir }}/{{ dotnet_deb_name }}"
+        dest: "/tmp/packages-microsoft-prod.deb"
         state: absent
 
     - name: apt update
       apt: update_cache=true
 
-    - name: Install dotnet-sdk-{{ dotnet_version }}
-      package: "name=dotnet-sdk-{{ dotnet_version }} state=present"
+    - name: Install dotnet-sdk-3.1
+      package: "name=dotnet-sdk-3.1 state=present"
      
      
 ########## importer ##################

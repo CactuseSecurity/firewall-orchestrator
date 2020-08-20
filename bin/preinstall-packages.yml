@@ -1,7 +1,10 @@
 ---
 
-hosts: all
-tasks:
+- name: Network Getting Started First Playbook
+  connection: network_cli
+  gather_facts: false
+  hosts: all
+  tasks:
 
   - block:
 
@@ -114,7 +117,7 @@ tasks:
 
 ########## postgres dev/test ##################
 
-    - set_facts:
+    - set_fact:
         postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
 
     - name: install pg_dev packages
@@ -139,3 +142,4 @@ tasks:
 
         
     become: yes
+    

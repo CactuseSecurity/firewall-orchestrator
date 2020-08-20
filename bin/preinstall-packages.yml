@@ -4,9 +4,8 @@
   connection: network_cli
   gather_facts: false
   hosts: all
+  become: yes
   tasks:
-
-  - block:
 
 ########## general packages ##################
 
@@ -139,7 +138,3 @@
         - libapache2-mod-php
         - php-pgsql
         - php-pear
-
-        
-    become: yes
-    

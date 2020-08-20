@@ -4,6 +4,18 @@
   register: is_ldap_present_flag
 
 - block:
+  - name: Decide on random inspector password
+    set_fact:
+      ldap_inspector_pw: "{{ random_generated_pw }}"
+
+  - name: Write inspector password to file
+    copy:
+      content: "{{ ldap_inspector_pw }}"
+      dest: "{{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt"
+      mode: '0600'
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+
   - name: create ldif directory
     file:
       dest: "{{ auth_server_base_dir }}/ldif"
@@ -18,17 +30,29 @@
     with_fileglob:
       - ../templates/ldif_files/*.j2
 
-  - name: Create organizational unit user
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_ou_user.ldif"
+  - name: Create tree level 1 (ou user, role)
+    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_1.ldif"
 
-  - name: Create organizational unit user/systemuser
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_ou_systemuser.ldif"
+  - name: Create tree level 2 (ou systemuser, operator)
+    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_2.ldif"
 
-  - name: Create organizational unit user/operator
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_ou_operator.ldif"
+  - name: Create tree level 3 with parent systemuser (cn admin, inspector)
+    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_systemuser.ldif"
 
-  - name: Create common name user/systemuser/admin (GUI admin)
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_uid_admin.ldif"
+  - name: Create tree level 3 with parent operator (ou tenant0, tenant1)
+    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_operator.ldif"
+
+  - name: set admin password in ldap
+    command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=admin,ou=systemuser,ou=user,{{ auth_ldap_path }}'"
+
+  - name: set inspector password in ldap
+    command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=inspector,ou=systemuser,ou=user,{{ auth_ldap_path }}'"
+
+  - name: Create tree level 4 with parent tenantx (cn admin)
+    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_4.ldif"
+
+  - name: set admin password in ldap
+    command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}'"
 
   - name: delete ldif files
     file:
@@ -36,5 +60,3 @@
       state: absent
   when: is_ldap_present_flag.stdout == "0"
   become: yes
-
-  # todo: set password via ldappasswd to have a proper hash

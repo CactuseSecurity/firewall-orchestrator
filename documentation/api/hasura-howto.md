@@ -33,6 +33,14 @@
         x-hasura-admin-secret --> st8chelt1er
         content-type --> application/json
         x-hasura-role-id --> ?
+### Example query
+
+    curl --insecure --request POST \
+      --url https://127.0.0.1:9443/api/v1/graphql \
+      --header 'content-type: application/json' \
+      --header 'x-hasura-admin-secret: st8chelt1er' \
+      --header 'x-hasura-role: admin' \
+      --data '{"query":"query { object {obj_name} }"}'
 
 ## Using the other APIs
 - Use Insomnia

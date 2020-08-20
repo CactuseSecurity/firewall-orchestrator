@@ -107,10 +107,11 @@
 
     private async Task UpdateHeading(MouseEventArgs e)
     {
-        APIConnection connection = new APIConnection();
         //string Query = "{ \"query\": \"{ device { dev_id dev_name stm_dev_typ { dev_typ_name dev_typ_version } management { mgm_id mgm_name} rules(where: {active: {_eq: true}, rule_disabled: {_eq: false}}, order_by: {rule_num: asc}) { rule_num rule_id rule_uid rule_froms { object { obj_name } } rule_tos { object { obj_name } } rule_services { service { svc_name svc_id } } rule_action rule_track } } } \", \" variables \" : {} }";
-        string RulesJson = await connection.SendQuery(Queries.Rules);
-        Managements = JsonReader.JsonToReport(RulesJson);
+        //string RulesJson = await Connection.SendQuery(Queries.Rules);
+        //Managements = JsonReader.JsonToReport(RulesJson);
+
+        Managements = await Connection.SendQuery<Management>(Queries.Rules);
     }
 
     private void CollapseButtonClicked(MouseEventArgs e)

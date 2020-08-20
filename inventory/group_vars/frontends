@@ -1,6 +1,6 @@
 
-web_server_name: "apache2" 
-http_conf_dir: /etc/{{ web_server_name }}/sites-available/
+# web_server_name: "apache2" 
+# http_conf_dir: /etc/{{ web_server_name }}/sites-available/
 ui_port: 5000
 ui_web_port: 443
 ui_app_name: "{{ product_name }}"

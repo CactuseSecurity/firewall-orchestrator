@@ -1,23 +1,12 @@
 # installs docker and the hasura image in a container
 
-- block:  
-
-   - name: Install packages for python pip3 n virtualenv
-     package:
-        name: "{{ packages }}"
-     vars:
-        packages:
-          - python3-pip
-          - python3-virtualenv
-
-   # the docker-run script is still needed for systemd start file
-   - name: copy hasura docker-run script
-     template:
-        src: docker-run.sh.j2
-        dest: "{{ api_home }}/docker-run.sh"
-        backup: yes
-        mode: 0755
-        owner: "{{ fworch_user }}"
+- name: Install packages for python pip3 n virtualenv
+  package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - python3-pip
+    - python3-virtualenv
   become: yes
 
 - name: install docker sdk for python via pip3
@@ -42,6 +31,16 @@
 #  become: yes
 #  become_user: "{{ fworch_user }}"
 
+- name: read jwt_secret_key from file
+  slurp:
+    src: "{{ fworch_home }}/etc/secrets/jwt_private.key"
+  register: api_hasura_jwt_secret_dict
+  become: yes
+
+- name: decode key
+  set_fact:
+    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
+
 - name: start hasura container
   docker_container:
     name: "{{ api_container_name }}"
@@ -59,8 +58,8 @@
       HASURA_GRAPHQL_JWT_SECRET:       '
                                         {
                                           "type": "{{ api_hasura_jwt_alg|quote }}",
-                                          "key": "{{ api_hasura_jwt_secret|quote }}",
-                                          "claims_namespace_path": "$.hasura.claims"
+                                          "key": "{{ api_hasura_jwt_secret | quote }}",
+                                          "claims_namespace_path": "$"
                                         }
       '
       HTTP_PROXY:                      "{{ http_proxy }}"
@@ -73,10 +72,10 @@
      src: hasura-docker-api.service.j2
      dest: "/lib/systemd/system/hasura-docker-api.service"
      backup: yes
-     mode: 0644
+     mode: "0644"
      owner: "root"
   become: yes
 
-- name: make hasura docker container run at host startup
+- name: make hasura docker container runs at host startup
   command: "systemctl enable hasura-docker-api"
   become: yes

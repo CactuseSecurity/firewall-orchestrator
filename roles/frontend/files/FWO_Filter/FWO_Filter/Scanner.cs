@@ -81,6 +81,17 @@ namespace FWO_Filter
                     Kind = TokenKind.And;
                     break;
 
+                case "=":
+                case "==":
+                case "eq":
+                    Kind = TokenKind.EQ;
+                    break;
+
+                case "!=":
+                case "neq":
+                    Kind = TokenKind.NEQ;
+                    break;
+
                 default:
                     Kind = TokenKind.Text;
                     break;

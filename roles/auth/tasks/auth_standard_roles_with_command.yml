@@ -1,4 +1,5 @@
 
+# todo: remove, when ansible 2.8 is available for all supported platforms and use above module
 - name: insert role superuser
   shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''superuser'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''superuser'', true, true);  END IF; END \$do\$"'
   become: yes
@@ -8,8 +9,3 @@
   shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''reporter'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''reporter'', false, false);  END IF; END \$do\$"'
   become: yes
   become_user: postgres
-
-# - name: make admin user a superuser
-#   shell: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_id=2) THEN insert into role_to_user (role_id, user_id) values (1, 3); END IF; END \$do\$"'
-#   become: yes
-#   become_user: postgres

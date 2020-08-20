@@ -8,7 +8,7 @@ ou:user-------------------------------------------------------------------------
 |                                                                                  |
 |                                                                                  anwender-----------------------------------------------------------------------------------------
 |                                                                                  |                                                                                               |
-ou:systemuser-------------------------------------                                 ou:mandant1-------------------------------------------------------------------------            ou:mandant2
+ou:systemuser-------------------------------------                                 ou:tenant1-------------------------------------------------------------------------            ou:tenant2
 |                       |                        |                                 |                      |                       |                   |
 |                                                                                  |                      |                       |                   |
 cn:admin                cn:dbadmin               cn:n.n                            cn:admin               cn:fritz                cn:testuser         cn:n.n
@@ -25,8 +25,8 @@ n.n.
 
 
 -->> testuser
-# testuser, mandant1, anwender, user, bla, internal
-dn: uid=testuser,ou=mandant1,ou=anwender,ou=user,dc=fworch.internal
+# testuser, tenant1, anwender, user, bla, internal
+dn: uid=testuser,ou=tenant1,ou=anwender,ou=user,dc=fworch.internal
 cn: Feuerstein, Fred
 uid: testuser
 userPassword:: <hash>

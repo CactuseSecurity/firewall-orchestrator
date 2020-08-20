@@ -1,0 +1,11 @@
+dn: ou=systemuser,ou=user,{{ auth_ldap_path }}
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: systemuser
+
+dn: ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: operator

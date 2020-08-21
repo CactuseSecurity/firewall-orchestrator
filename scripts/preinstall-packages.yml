@@ -37,6 +37,7 @@
         - "{{ postgresql_package }}"
         - libpq-dev
         - postgresql-client
+        - git
 
 ########## ldap ##################
 

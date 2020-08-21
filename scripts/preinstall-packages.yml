@@ -7,15 +7,6 @@
 
 ########## general packages ##################
 
-    - name: find out installed postgres version
-      script: "get_pg_version.sh"
-      register: pg_version_result
-      changed_when: false
-
-    - name: set fact pg_version
-      set_fact:
-         pg_version: "{{ pg_version_result.stdout }}"      
-
     - name: install general packages
       package:
          name: "{{ item }}"
@@ -129,6 +120,15 @@
         - libcgi-pm-perl
 
 ########## postgres dev/test ##################
+
+    - name: find out installed postgres version
+      script: "get_pg_version.sh"
+      register: pg_version_result
+      changed_when: false
+
+    - name: set fact pg_version
+      set_fact:
+         pg_version: "{{ pg_version_result.stdout }}"      
 
     - set_fact:
         postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"

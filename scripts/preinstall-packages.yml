@@ -20,6 +20,8 @@
       package:
          name: "{{ item }}"
       loop:
+        - git
+        - ansible
         - rsyslog
         - "{{ web_server_name }}"
         - gnupg2
@@ -78,12 +80,20 @@
     #   when: ansible_facts['distribution']|lower == 'ubuntu'
 
     - set_fact: 
-        distribution_version: "debian10"
-      # when: ansible_facts['distribution']|lower == 'debian'
+        distribution_version: "debian/10"
+        when: ansible_facts['distribution']|lower == 'debian'
+
+    - set_fact: 
+        distribution_version: "ubuntu/20.04"
+        when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
+
+    - set_fact: 
+        distribution_version: "ubuntu/18.04"
+        when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
 
     - name: get package list from ms 
       get_url:
-        url: "https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb"
+        url: "https://packages.microsoft.com/config/{{ distribution_version }}/packages-microsoft-prod.deb"
         dest: "/tmp/packages-microsoft-prod.deb"
         mode: "0644"
 

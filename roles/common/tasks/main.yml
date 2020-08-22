@@ -48,6 +48,8 @@
              local6.notice                  /var/log/{{ product_name }}/{{ product_name }}.log
              local6.=info                   /var/log/{{ product_name }}/{{ product_name }}.login
              local6.debug                   /var/log/{{ product_name }}/{{ product_name }}.debug
+             local4.*                       /var/log/{{ product_name }}/ldap.log
+
 
      - name: edit logrotate
        blockinfile:

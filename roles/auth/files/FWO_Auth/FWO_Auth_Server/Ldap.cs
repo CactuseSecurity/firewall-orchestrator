@@ -52,9 +52,9 @@ namespace FWO_Auth_Server
         {
             // Fake role REMOVE LATER
             if (user.Name == "" && user.Password == "")
-                return new Role[] { new Role { Name = "forti" } };
+                return new Role[] { new Role { Name = "forti" }, new Role { Name = "dummy" } };
             else if (user.Name == "admin")
-                return new Role[] { new Role { Name = "viewall" } };
+                return new Role[] { new Role { Name = "viewall"}, new Role { Name = "dummy" } };
             else
                 return new Role[0];
             // Fake role REMOVE LATER

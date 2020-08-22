@@ -77,16 +77,17 @@ namespace FWO_Auth_Server
 
             // adding allowed roles:
 
-            String rolestring = "{";
+            // String rolestring = "[";
             foreach (Role role in roles)
             {
-                rolestring += role.Name + ",";
+//                rolestring += role.Name + ",";
+                claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", role.Name));
             }
-            if (rolestring.Length>1)    // remove last comma
-                rolestring = rolestring.Substring(0, rolestring.Length-1);
-            rolestring += "}";
+            // if (rolestring.Length>1)    // remove last comma
+            //     rolestring = rolestring.Substring(0, rolestring.Length-1);
+            // rolestring += "]";
 
-            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", rolestring)); // all roles the user is allowed to have
+            // claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", rolestring)); // all roles the user is allowed to have
             return claimsIdentity;
         }
     }

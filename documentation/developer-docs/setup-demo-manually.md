@@ -14,7 +14,7 @@
 
         ansible-playbook -i inventory/ -e "clean_install=1 ui_php=1 ui_web_port=6443 ui_php_web_port=443" site.yml -K
 
-5. allow login witout pwd change for users
+5. allow login without pwd change for users
 
         sudo -u postgres psql -d fworchdb -c "update isoadmin set isoadmin_password_must_be_changed=false"
 

@@ -42,14 +42,13 @@
          path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
          create: yes
          block: |
-             # syslog for {{ product_name }}
-             # Log {{ product_name }} log messages to file
-             local6.warning                 /var/log/{{ product_name }}/{{ product_name }}.error
-             local6.notice                  /var/log/{{ product_name }}/{{ product_name }}.log
-             local6.=info                   /var/log/{{ product_name }}/{{ product_name }}.login
-             local6.debug                   /var/log/{{ product_name }}/{{ product_name }}.debug
-             local4.*                       /var/log/{{ product_name }}/ldap.log
-
+            # syslog for {{ product_name }}
+            # Log {{ product_name }} log messages to file
+            local6.warning                 /var/log/{{ product_name }}/{{ product_name }}.error
+            local6.notice                  /var/log/{{ product_name }}/{{ product_name }}.log
+            local6.=info                   /var/log/{{ product_name }}/{{ product_name }}.login
+            local6.debug                   /var/log/{{ product_name }}/{{ product_name }}.debug
+            local4.*                       /var/log/{{ product_name }}/ldap.log
 
      - name: edit logrotate
        blockinfile:

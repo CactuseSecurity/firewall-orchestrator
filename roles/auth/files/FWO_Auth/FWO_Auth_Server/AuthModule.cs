@@ -48,11 +48,11 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Create connection to Ldap Server
-#if Release
+//#if Release
             LdapConnection = new Ldap("localhost", 636);
-#else
-            LdapConnection = new Ldap("localhost", 6636);
-#endif
+// #else
+//             LdapConnection = new Ldap("localhost", 6636);
+// #endif
             // Create Token Generator
             TokenGenerator = new TokenGenerator(privateKey, daysValid);
 

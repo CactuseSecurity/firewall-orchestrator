@@ -1,7 +1,7 @@
 - block:
     - name: Install importer perl modules 
       package: name={{ item }} state=present
-      with_items:
+      loop:
         - libdbi-perl 
         - libdbd-pg-perl 
         - libdate-calc-perl 

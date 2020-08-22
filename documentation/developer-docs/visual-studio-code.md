@@ -10,6 +10,11 @@ Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
   - GitHub Pull Requests and Issues, see <https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-pull-request-github>
   - C#
   
+## Configure global git settings on client (first time git only)
+
+    git config --global user.name "John Doe"
+    git config --global user.email johndoe@example.com
+
 ## Clone project
 Clone your own fork, eg.
 

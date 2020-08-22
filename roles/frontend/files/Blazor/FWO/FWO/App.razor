@@ -9,14 +9,16 @@
                     <Login></Login>
                 </NotAuthorized>
                 <Authorizing>
-                    <h2>Authentication in progress</h2>
-                    <p>Only visible while authentication is in progress...</p>
+                    <div class="row m-4 justify-content-center">
+                        <h2>Authentication in progress...</h2>
+                    </div>
                 </Authorizing>
             </AuthorizeView>
         </Found>
         <NotFound>
-            <h2>Sorry</h2>
-            <p>Sorry, there's nothing at this address.</p>
+            <div class="row m-4 justify-content-center">
+                <h2>Sorry, there's nothing at this address.</h2>
+            </div>
         </NotFound>
     </Router>
 </CascadingAuthenticationState>

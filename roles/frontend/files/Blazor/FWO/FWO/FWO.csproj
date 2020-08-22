@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\FWO_Auth_Client\FWO_Auth_Client.csproj" />
+    <ProjectReference Include="..\..\..\FWO_Filter\FWO_Filter\FWO_Filter.csproj" />
   </ItemGroup>
 
   <ItemGroup>

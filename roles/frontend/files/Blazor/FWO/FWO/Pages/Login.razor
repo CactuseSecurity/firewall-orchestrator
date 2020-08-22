@@ -1,4 +1,5 @@
 ﻿@using FWO.Auth
+@using FWO.Backend.Auth
 @using FWO_Auth_Client
 
 @inject AuthClient AuthClient
@@ -45,6 +46,10 @@
 
     private async Task LoginSubmit()
     {
+        Jwt a = new Jwt("eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE2MTYyNDkwMjIsImlzcyI6IkZXTyBBdXRoIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.ToFrF22gVy32-ldThAJC38f62aXVWbJRhV0NslGsMraPVBy3V2P4KBiYKZIbssSR");
+        bool test = a.Valid();
+
+
         // There is no jwt in session storage. Get one from auth module.
         string jwt = await AuthClient.GetJWT(Username, Password);
 

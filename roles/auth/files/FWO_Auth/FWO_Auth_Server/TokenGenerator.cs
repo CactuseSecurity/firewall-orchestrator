@@ -25,7 +25,7 @@ namespace FWO_Auth_Server
             this.daysValid = daysValid;
         }
 
-        public async Task<string> CreateJWTAsync(User user, UserData userData, Role[] roles)
+        public string CreateJWT(User user, UserData userData, Role[] roles)
         {
             Console.WriteLine($"Generating JWT for User {user}...");
 

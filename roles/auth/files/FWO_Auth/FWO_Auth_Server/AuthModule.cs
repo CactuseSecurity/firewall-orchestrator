@@ -131,7 +131,7 @@ namespace FWO_Auth
                 if (User.Name == "" && User.Password == "")
                 {
                     Console.WriteLine("Logging in with fake user...");
-                    responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));                 
+                    responseString = await TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));                 
                 }
                     
                 // REMOVE LATER                             
@@ -143,7 +143,7 @@ namespace FWO_Auth
                     if (LdapConnection.ValidateUser(User)) 
                     {
                         Console.WriteLine($"Successfully validated as {User}!");
-                        responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));
+                        responseString = await TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));
                     }
 
                     else

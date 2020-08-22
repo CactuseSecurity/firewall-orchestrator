@@ -8,7 +8,7 @@
 
 3. Drop old database
 
-        sudo -u postgres psql -c "drop database isodb"
+        sudo -u postgres psql -c "drop database fworchdb"
 
 4. Install fworch
 

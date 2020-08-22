@@ -19,14 +19,15 @@ namespace FWO_Auth_Server
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public TokenGenerator(string privateKey, int daysValid)
+        public TokenGenerator(byte[] privateKey, int daysValid)
         {
-            this.privateKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey));
+            this.privateKey = new SymmetricSecurityKey(privateKey);
             Console.WriteLine($"Read private jwt generation key from file: {this.privateKey}");
+            
             this.daysValid = daysValid;
         }
 
-        public async Task<string> CreateJWTAsync(User user, UserData userData, Role[] roles)
+        public string CreateJWT(User user, UserData userData, Role[] roles)
         {
             Console.WriteLine($"Generating JWT for User {user}...");
 

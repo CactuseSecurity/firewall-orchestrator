@@ -4,7 +4,7 @@ using System.Text;
 
 namespace FWO_Filter
 {
-    class Compiler
+    public class Compiler
     {
         public static void Compile(string Input)
         {

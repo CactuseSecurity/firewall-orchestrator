@@ -12,7 +12,7 @@
     package: 
       name: "{{ item }}"
       state: present 
-    with_items: "{{ openldap_server_pkgs }}"
+    loop: "{{ openldap_server_pkgs }}"
     # environment: env
     # when: ansible_os_family == 'Debian'
 
@@ -23,7 +23,7 @@
 
   - name: Decide on random root password
     set_fact:
-      openldap_server_random_rootpw: "{{ openldap_server_rootpw }}"
+      openldap_server_random_rootpw: "{{ random_generated_pw }}"
 
   - name: Write random root password to file
     copy:

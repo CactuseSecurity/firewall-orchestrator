@@ -10,7 +10,7 @@
    - set_fact: api_home="{{ fworch_home }}/api"
 
    - name: generate jwt secret
-     shell: "< /dev/urandom tr -dc a-f0-9 | head -c${1:-64}"
+     shell: "< /dev/urandom tr -dc a-f0-9 | head -c${1:-512}"
      register: jwt_secret
 
    - set_fact: api_hasura_jwt_secret="{{ jwt_secret.stdout }}"

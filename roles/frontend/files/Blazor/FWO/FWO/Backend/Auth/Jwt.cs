@@ -13,7 +13,7 @@ namespace FWO.Backend.Auth
 {
     public class Jwt
     {
-        private readonly byte[] privateKey = Encoding.UTF8.GetBytes("d105c8a1d0091ed4d2e4dba3d7bcd5e6839c852a8eaf08052dfcd7a2935b190ebdc212fc859a9998b5655ea27686539d537ba4603f3631f1298780a0e034a8c77b7de9ae03be9cf961155c969e4c031e2997d5c02617739c52e9f32755e49fcecc98d1da5e7bdd570df5faac3ce0c40d54ec5e41075e6fc37a4471e2a081ae1fb2948bc63d4075345a1c599caecc272fd64348ad4f281e860bf1bf0c35b816fa6d63382d48da08ea0a33901695ef4ad82559db39e6768560a3cc18983a68d6dd0f001df7c45605e71c06c43d5da69c4390f607616b2046c1ca3db0800e9e4ee87bdae77800b8448f2fdc682f9a3cd32739a4c9af4f0126273281906b1da05f9e");
+        private readonly byte[] privateKey = Encoding.UTF8.GetBytes("d76d62deca81333fbb5ee8435063b72ee66887ecbc66163a0367d05325aea4b0");
 
         private readonly string TokenString;
         private readonly JwtSecurityTokenHandler Handler;

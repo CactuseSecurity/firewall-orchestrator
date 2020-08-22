@@ -48,8 +48,11 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Create connection to Ldap Server
+//#if Release
             LdapConnection = new Ldap("localhost", 636);
-
+// #else
+//             LdapConnection = new Ldap("localhost", 6636);
+// #endif
             // Create Token Generator
             TokenGenerator = new TokenGenerator(privateKey, daysValid);
 
@@ -137,17 +140,18 @@ namespace FWO_Auth
 
                 else
                 {
-                    Console.WriteLine($"Try to validate as {User}...");
+                    Console.WriteLine($"Try to validate as {User.Name}...");
 
                     if (LdapConnection.ValidateUser(User)) 
                     {
-                        Console.WriteLine($"Successfully validated as {User}!");
+                        Console.WriteLine($"Successfully validated as {User.Name}!");
                         responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));
+                        Console.WriteLine($"User {User.Name} was assigned the following roles: {responseString}");
                     }
 
                     else
                     {
-                        Console.WriteLine($"Invalid Credentials for User {User}!");
+                        Console.WriteLine($"Invalid Credentials for User {User.Name}!");
                     }
                 }                   
             }

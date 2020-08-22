@@ -30,7 +30,18 @@ namespace FWO_Auth
             try
             {
                 // privateKey = File.ReadAllText("../../../etc/secrets/jwt_private.key");
-                privateKey = File.ReadAllText("/usr/local/fworch/etc/secrets/jwt_private.key");
+                privateKey = File.ReadAllText("/usr/local/fworch/etc/secrets/jwt_private.key").TrimEnd();
+// #if DEBUG
+//                 Console.WriteLine($"AuthModule.cs:: after reading private jwt generation key from file, the key is '{privateKey}'");
+// #endif
+//                 privateKey = privateKey.TrimEnd();
+// #if DEBUG
+//                 Console.WriteLine($"AuthModule.cs:: after trimming private jwt generation key, the key is '{privateKey}'");
+// #endif
+//                 privateKey = privateKey.Substring(0,512);
+// #if DEBUG
+//                 Console.WriteLine($"AuthModule.cs:: after pruning private jwt generation key, the key is '{privateKey}'");
+// #endif
             }
             catch (Exception e)
             {
@@ -48,11 +59,8 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Create connection to Ldap Server
-//#if Release
             LdapConnection = new Ldap("localhost", 636);
-// #else
-//             LdapConnection = new Ldap("localhost", 6636);
-// #endif
+
             // Create Token Generator
             TokenGenerator = new TokenGenerator(privateKey, daysValid);
 

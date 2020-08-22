@@ -22,7 +22,9 @@ namespace FWO_Auth_Server
         public TokenGenerator(string privateKey, int daysValid)
         {
             this.privateKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey));
-            Console.WriteLine($"Read private jwt generation key from file: {this.privateKey}");
+#if DEBUG
+            Console.WriteLine($"Read private jwt generation key from file: '{this.privateKey.Key.ToString()}' with size {this.privateKey.KeySize}");
+#endif
             this.daysValid = daysValid;
         }
 

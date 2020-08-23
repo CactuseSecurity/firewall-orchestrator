@@ -62,7 +62,7 @@ namespace FWO_Auth
             StartListener("http://localhost:8888/");
         }
 
-        private async void StartListener(string ListenerUri)
+        private void StartListener(string ListenerUri)
         {
             // Add prefixes to listen to 
             Listener.Prefixes.Add(ListenerUri + "jwt/");
@@ -86,7 +86,7 @@ namespace FWO_Auth
                     switch (request.Url.LocalPath)
                     {
                         case "/jwt":
-                            responseString = await CreateJwt(request);
+                            responseString = CreateJwt(request);
                             break;
 
                         default:
@@ -120,7 +120,7 @@ namespace FWO_Auth
             }
         }
 
-        private async Task<string> CreateJwt(HttpListenerRequest request)
+        private string CreateJwt(HttpListenerRequest request)
         {
             string responseString = "";
 
@@ -135,7 +135,7 @@ namespace FWO_Auth
                 if (User.Name == "" && User.Password == "")
                 {
                     Console.WriteLine("Logging in with fake user...");
-                    responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));                 
+                    responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));                 
                 }
                     
                 // REMOVE LATER                             
@@ -146,8 +146,9 @@ namespace FWO_Auth
 
                     if (LdapConnection.ValidateUser(User)) 
                     {
-                        Console.WriteLine($"Successfully validated as {User.Name}!");
-                        responseString = await TokenGenerator.CreateJWTAsync(User, null, LdapConnection.GetRoles(User));
+                        Console.WriteLine($"Successfully validated as {User}!");
+
+                        responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));
                         Console.WriteLine($"User {User.Name} was assigned the following roles: {responseString}");
                     }
 

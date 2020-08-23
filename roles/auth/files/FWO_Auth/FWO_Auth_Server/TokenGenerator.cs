@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace FWO_Auth_Server
@@ -22,8 +23,7 @@ namespace FWO_Auth_Server
         public TokenGenerator(byte[] privateKey, int daysValid)
         {
             this.privateKey = new SymmetricSecurityKey(privateKey);
-            Console.WriteLine($"Read private jwt generation key from file: {this.privateKey}");
-            
+
             this.daysValid = daysValid;
         }
 
@@ -56,7 +56,7 @@ namespace FWO_Auth_Server
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-            claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
+            //claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
 
             // TODO: Remove later
             // Fake managment claims REMOVE LATER 
@@ -74,18 +74,17 @@ namespace FWO_Auth_Server
             if (roles[0] != null)
                 claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
 
-            // adding allowed roles:
+            // adding roles:
+            List<string> Roles = new List<string>();
 
-            String rolestring = "{";
             foreach (Role role in roles)
             {
-                rolestring += role.Name + ",";
+                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name)); // Frontend Roles
+                Roles.Add(role.Name); // Hasura Roles
             }
-            if (rolestring.Length>1)    // remove last comma
-                rolestring = rolestring.Substring(0, rolestring.Length-1);
-            rolestring += "}";
 
-            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", rolestring)); // all roles the user is allowed to have
+            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(Roles.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+
             return claimsIdentity;
         }
     }

@@ -50,10 +50,11 @@ namespace FWO
 
         public void ChangeAuthHeader(string Jwt)
         {
+            this.Jwt = Jwt;
             Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Jwt);
         }
 
-        public async Task<T[]> SendQuery<T>(string Query, string Variables = "", string OperationName = "")
+        public async Task<T[]> SendQuery<T>(string Query, string Variables = null, string OperationName = null)
         {
             GraphQLRequest request = new GraphQLRequest(Query, Variables, OperationName);
             GraphQLResponse<T[]> response = await Client.SendQueryAsync<T[]>(request);

@@ -13,7 +13,7 @@ namespace FWO.Backend.Auth
 {
     public class Jwt
     {
-        private readonly byte[] privateKey = Encoding.UTF8.GetBytes("d76d62deca81333fbb5ee8435063b72ee66887ecbc66163a0367d05325aea4b0");
+        private readonly byte[] privateKey = Encoding.UTF8.GetBytes("769d910a91f5ccce38cecf976d04c47bb8906160c359936e3c321ee0f3d496009190a4ddb81d79934d15291d2e0b0ecd5f43122acb4deea0d5f52d657a44d9aa50dc6145b969d0f6ed7ab9f161f80b7dfcb158104d3097f17b487190ac18d71f3b1fa92c2862f238360ae955ab626b278763c7ae889350624532ccc07fd7ada256af826fcf6f8df91f400aca67c267afb4dc6df689a2c20f280d85cb99d9cb44615d96ecdb4a215e69403b2f1c350112b6cb8333c87b59e98f16f2748bab1ca74ca808cf1c7bf320c4914c767e40e0bc4dffef05c6b28794a73d67ee09ef9b55be2ec0d2b5e0e5a548582ae095a36245c433371a560c7e4cf0011dfd657a708e");
 
         private readonly string TokenString;
         private readonly JwtSecurityTokenHandler Handler;
@@ -27,9 +27,10 @@ namespace FWO.Backend.Auth
             try
             {
                 // privateKey = File.ReadAllText("../../../../../../../etc/secrets/jwt_private.key");
-                privateKey = File.ReadAllBytes("/usr/local/fworch/etc/secrets/jwt_private.key");
+                string privateKeyString = File.ReadAllText("../../../etc/secrets/jwt_private.key").TrimEnd();
+                privateKey = Encoding.UTF8.GetBytes(privateKeyString);
                 Console.WriteLine($"Key is {privateKey.Length} Bytes long.");
-                Console.WriteLine($"Key is {Encoding.UTF8.GetString(privateKey)}");
+                Console.WriteLine($"Key is {privateKeyString}");
             }
             catch (Exception e)
             {

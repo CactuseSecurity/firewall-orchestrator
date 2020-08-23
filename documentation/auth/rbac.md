@@ -20,15 +20,18 @@ The following (basic) database roles are defined in ascending order of user righ
 - fw-admin - all users who can document open changes
 - administrator - all users who have full access rights to firewall orchestrator
 
-The above mentioned access rights are implemented on two levels 
+The above mentioned access rights are implemented on three levels 
 
 a) as grants within the database. E.g. a reporter does not have the right to change any of the following tables:
 
-        - rule
-        - object
-        - service
-        - ...
-b) on a per-device level allowing access only to specifice managements and devices and objects/roles defined there (see next section)
+- rule
+- object
+- service
+- ...
+
+b) in the api as "permissions without restrictions"
+
+c) in the api as "permissions with restrictions" on a per-device level allowing access only to specifice managements and devices and objects/roles defined there (see next section)
 
 
 ## Custom role based permissions
@@ -37,6 +40,18 @@ In addition there is the possiblity to restrict certain users to specific device
 This has to be defined in the following database tables:
 - role
 - role_to_device
+
+## Examples for various roles
+
+As all roles are additive (meaning a user gets all permissions from all roles he/she has), a reporter would have for example the following roles:
+- reporter, reporter-viewall
+- reporter, reporter-tenant1
+- reporter, reporter-tenant7, reporter-tenant12
+
+Just having the reporter role would mean a user can view basic tables like device types, service types, bot not see a single device rulebase.
+And just having reporter-tenant1 role, a user would not be able to see device types and reports would therefore not work.
+
+Reasoning: rights to basic tables need only be applied once for all reporters.
 
 ## LDAP - remote vs. local
 - When using only the local LDAP server, the user <--> role matching is implemented with LDAP groups managed via the web user interface.

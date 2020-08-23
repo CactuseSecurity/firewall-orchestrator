@@ -375,7 +375,7 @@ tables:
       - force_initial_import
       - hide_in_gui
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: device
     schema: public
@@ -943,7 +943,7 @@ tables:
       - hide_in_gui
       - importer_hostname
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: management
     schema: public
@@ -970,7 +970,7 @@ tables:
       - body_txt_eng
       - body_txt_ger
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: manual
     schema: public
@@ -1100,7 +1100,7 @@ tables:
       - obj_create
       - obj_last_seen
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: object
     schema: public
@@ -1127,7 +1127,7 @@ tables:
       - active
       - negated
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: objgrp
     schema: public
@@ -1154,7 +1154,7 @@ tables:
       - import_last_seen
       - negated
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: objgrp_flat
     schema: public
@@ -1188,7 +1188,7 @@ tables:
       - report_document
       - client_id
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: report
     schema: public
@@ -1435,7 +1435,7 @@ tables:
       - rule_last_seen
       - dev_id
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: rule
     schema: public
@@ -1467,7 +1467,7 @@ tables:
       - active
       - negated
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: rule_from
     schema: public
@@ -1517,7 +1517,7 @@ tables:
       - rs_last_seen
       - negated
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: rule_service
     schema: public
@@ -1544,7 +1544,7 @@ tables:
       - active
       - negated
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: rule_to
     schema: public
@@ -1657,7 +1657,7 @@ tables:
       - svc_create
       - svc_last_seen
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: service
     schema: public
@@ -1675,7 +1675,7 @@ tables:
       - action_id
       - action_name
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_action
     schema: public
@@ -1741,7 +1741,7 @@ tables:
       - color_rgb
       - color_comment
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_color
     schema: public
@@ -1775,7 +1775,7 @@ tables:
       - dev_typ_config_file_basic_objects
       - dev_typ_config_file_users
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_dev_typ
     schema: public
@@ -1794,7 +1794,7 @@ tables:
       - ip_proto_name
       - ip_proto_comment
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_ip_proto
     schema: public
@@ -1824,7 +1824,7 @@ tables:
       - obj_typ_name
       - obj_typ_comment
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_obj_typ
     schema: public
@@ -1852,7 +1852,7 @@ tables:
       - report_typ_comment_german
       - report_typ_comment_english
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_report_typ
     schema: public
@@ -1871,7 +1871,7 @@ tables:
       - svc_typ_name
       - svc_typ_comment
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_svc_typ
     schema: public
@@ -1889,7 +1889,7 @@ tables:
       - track_id
       - track_name
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_track
     schema: public
@@ -1907,7 +1907,7 @@ tables:
       - usr_typ_id
       - usr_typ_name
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: stm_usr_typ
     schema: public
@@ -1934,7 +1934,7 @@ tables:
       - active
       - negated
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: svcgrp
     schema: public
@@ -1961,7 +1961,7 @@ tables:
       - active
       - negated
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: svcgrp_flat
     schema: public
@@ -1992,7 +1992,7 @@ tables:
       - text_msg_ger
       - text_msg_eng
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: text_msg
     schema: public
@@ -2018,7 +2018,7 @@ tables:
       - import_last_seen
       - active
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: usergrp
     schema: public
@@ -2044,7 +2044,7 @@ tables:
       - import_created
       - import_last_seen
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: usergrp_flat
     schema: public
@@ -2147,7 +2147,7 @@ tables:
       - last_change_admin
       - client_id
       filter: {}
-    role: viewall
+    role: reporter-viewall
   table:
     name: usr
     schema: public

@@ -9,20 +9,27 @@
 ## Basic roles
 The following (basic) database roles are defined in ascending order of user rights:
 - anonymous - anonymous users can only access the login page and the roles tables to get more granular permissions
-- reporter - reporters have reporting rights (more granular rights may be assigned using specific roles that can only view certain managements or devices)
+- reporter - reporters have basic reporting rights (regarding e.g. basic tables, not object/rule tables)
+- reporter-<client> - granular rights may be assigned using specific roles that can only view certain managements and/or devices
+- reporter-viewall - reporter role for full read access to all devices
 - importer - users can import config changes into the database
 - dbbackup - users that are able to read data tables for backup purposes
-- auditor - users that can view all settings but cannot make any changes
+- auditor - users that can view all data & settings but cannot make any changes
 - workflow user - (for future use) all users who can request firewall changes
 - workflow admin - (for future use) all users who can create change request workflows
 - fw-admin - all users who can document open changes
 - administrator - all users who have full access rights to firewall orchestrator
 
-These above access rights are implemented as grants within the database. E.g. a reporter does not have the right to change any of the following tables:
-- rule
-- object
-- service
-- ...
+The above mentioned access rights are implemented on two levels 
+
+a) as grants within the database. E.g. a reporter does not have the right to change any of the following tables:
+
+        - rule
+        - object
+        - service
+        - ...
+b) on a per-device level allowing access only to specifice managements and devices and objects/roles defined there (see next section)
+
 
 ## Custom role based permissions
 In addition there is the possiblity to restrict certain users to specific devices or managements. These granular rights are enforced via API access control for all tables that contain references to either management or device tables.

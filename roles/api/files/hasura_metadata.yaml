@@ -135,13 +135,6 @@ tables:
     name: changelog_user
     schema: public
 - array_relationships:
-  - name: clientProjectsByPrjId
-    using:
-      foreign_key_constraint_on:
-        column: prj_id
-        table:
-          name: client_project
-          schema: public
   - name: client_networks
     using:
       foreign_key_constraint_on:
@@ -160,6 +153,13 @@ tables:
     using:
       foreign_key_constraint_on:
         column: client_id
+        table:
+          name: client_project
+          schema: public
+  - name: clientProjectsByPrjId
+    using:
+      foreign_key_constraint_on:
+        column: prj_id
         table:
           name: client_project
           schema: public
@@ -357,6 +357,25 @@ tables:
   - name: stm_dev_typ
     using:
       foreign_key_constraint_on: dev_typ_id
+  select_permissions:
+  - permission:
+      columns:
+      - dev_id
+      - mgm_id
+      - dev_name
+      - dev_rulebase
+      - dev_typ_id
+      - client_id
+      - dev_active
+      - dev_comment
+      - dev_create
+      - dev_update
+      - do_not_import
+      - clearing_import_ran
+      - force_initial_import
+      - hide_in_gui
+      filter: {}
+    role: viewall
   table:
     name: device
     schema: public
@@ -480,17 +499,17 @@ tables:
         table:
           name: object
           schema: public
-  - name: objgrpFlatsByImportLastSeen
-    using:
-      foreign_key_constraint_on:
-        column: import_last_seen
-        table:
-          name: objgrp_flat
-          schema: public
   - name: objgrp_flats
     using:
       foreign_key_constraint_on:
         column: import_created
+        table:
+          name: objgrp_flat
+          schema: public
+  - name: objgrpFlatsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
         table:
           name: objgrp_flat
           schema: public
@@ -522,31 +541,17 @@ tables:
         table:
           name: report
           schema: public
-  - name: ruleFromsByRfLastSeen
-    using:
-      foreign_key_constraint_on:
-        column: rf_last_seen
-        table:
-          name: rule_from
-          schema: public
-  - name: ruleServicesByRsLastSeen
-    using:
-      foreign_key_constraint_on:
-        column: rs_last_seen
-        table:
-          name: rule_service
-          schema: public
-  - name: ruleTosByRtLastSeen
-    using:
-      foreign_key_constraint_on:
-        column: rt_last_seen
-        table:
-          name: rule_to
-          schema: public
   - name: rule_froms
     using:
       foreign_key_constraint_on:
         column: rf_create
+        table:
+          name: rule_from
+          schema: public
+  - name: ruleFromsByRfLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rf_last_seen
         table:
           name: rule_from
           schema: public
@@ -556,20 +561,6 @@ tables:
         column: control_id
         table:
           name: rule_order
-          schema: public
-  - name: rule_services
-    using:
-      foreign_key_constraint_on:
-        column: rs_create
-        table:
-          name: rule_service
-          schema: public
-  - name: rule_tos
-    using:
-      foreign_key_constraint_on:
-        column: rt_create
-        table:
-          name: rule_to
           schema: public
   - name: rules
     using:
@@ -585,6 +576,34 @@ tables:
         table:
           name: rule
           schema: public
+  - name: rule_services
+    using:
+      foreign_key_constraint_on:
+        column: rs_create
+        table:
+          name: rule_service
+          schema: public
+  - name: ruleServicesByRsLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rs_last_seen
+        table:
+          name: rule_service
+          schema: public
+  - name: rule_tos
+    using:
+      foreign_key_constraint_on:
+        column: rt_create
+        table:
+          name: rule_to
+          schema: public
+  - name: ruleTosByRtLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: rt_last_seen
+        table:
+          name: rule_to
+          schema: public
   - name: services
     using:
       foreign_key_constraint_on:
@@ -599,17 +618,17 @@ tables:
         table:
           name: service
           schema: public
-  - name: svcgrpFlatsByImportLastSeen
-    using:
-      foreign_key_constraint_on:
-        column: import_last_seen
-        table:
-          name: svcgrp_flat
-          schema: public
   - name: svcgrp_flats
     using:
       foreign_key_constraint_on:
         column: import_created
+        table:
+          name: svcgrp_flat
+          schema: public
+  - name: svcgrpFlatsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
         table:
           name: svcgrp_flat
           schema: public
@@ -634,17 +653,17 @@ tables:
         table:
           name: temp_mgmid_importid_at_report_time
           schema: public
-  - name: usergrpFlatsByImportLastSeen
-    using:
-      foreign_key_constraint_on:
-        column: import_last_seen
-        table:
-          name: usergrp_flat
-          schema: public
   - name: usergrp_flats
     using:
       foreign_key_constraint_on:
         column: import_created
+        table:
+          name: usergrp_flat
+          schema: public
+  - name: usergrpFlatsByImportLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: import_last_seen
         table:
           name: usergrp_flat
           schema: public
@@ -715,38 +734,17 @@ tables:
     name: import_zone
     schema: public
 - array_relationships:
-  - name: changelogObjectsByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_object
-          schema: public
-  - name: changelogRulesByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_rule
-          schema: public
-  - name: changelogServicesByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_service
-          schema: public
-  - name: changelogUsersByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_user
-          schema: public
   - name: changelog_objects
     using:
       foreign_key_constraint_on:
         column: doku_admin
+        table:
+          name: changelog_object
+          schema: public
+  - name: changelogObjectsByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
         table:
           name: changelog_object
           schema: public
@@ -757,6 +755,13 @@ tables:
         table:
           name: changelog_rule
           schema: public
+  - name: changelogRulesByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_rule
+          schema: public
   - name: changelog_services
     using:
       foreign_key_constraint_on:
@@ -764,10 +769,24 @@ tables:
         table:
           name: changelog_service
           schema: public
+  - name: changelogServicesByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_service
+          schema: public
   - name: changelog_users
     using:
       foreign_key_constraint_on:
         column: doku_admin
+        table:
+          name: changelog_user
+          schema: public
+  - name: changelogUsersByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
         table:
           name: changelog_user
           schema: public
@@ -898,6 +917,33 @@ tables:
   - name: stm_dev_typ
     using:
       foreign_key_constraint_on: dev_typ_id
+  select_permissions:
+  - permission:
+      columns:
+      - mgm_id
+      - dev_typ_id
+      - mgm_name
+      - mgm_comment
+      - client_id
+      - mgm_create
+      - mgm_update
+      - ssh_public_key
+      - ssh_private_key
+      - ssh_hostname
+      - ssh_port
+      - ssh_user
+      - last_import_md5_complete_config
+      - last_import_md5_rules
+      - last_import_md5_objects
+      - last_import_md5_users
+      - do_not_import
+      - clearing_import_ran
+      - force_initial_import
+      - config_path
+      - hide_in_gui
+      - importer_hostname
+      filter: {}
+    role: viewall
   table:
     name: management
     schema: public
@@ -911,21 +957,35 @@ tables:
   table:
     name: management_client_map
     schema: public
-- table:
+- select_permissions:
+  - permission:
+      columns:
+      - id
+      - topic_l1_id
+      - topic_l2_id
+      - topic_l1_txt_eng
+      - topic_l1_txt_ger
+      - topic_l2_txt_eng
+      - topic_l2_txt_ger
+      - body_txt_eng
+      - body_txt_ger
+      filter: {}
+    role: viewall
+  table:
     name: manual
     schema: public
 - array_relationships:
-  - name: changelogObjectsByOldObjId
-    using:
-      foreign_key_constraint_on:
-        column: old_obj_id
-        table:
-          name: changelog_object
-          schema: public
   - name: changelog_objects
     using:
       foreign_key_constraint_on:
         column: new_obj_id
+        table:
+          name: changelog_object
+          schema: public
+  - name: changelogObjectsByOldObjId
+    using:
+      foreign_key_constraint_on:
+        column: old_obj_id
         table:
           name: changelog_object
           schema: public
@@ -936,17 +996,17 @@ tables:
         table:
           name: client_object
           schema: public
-  - name: objgrpFlatsByObjgrpFlatMemberId
-    using:
-      foreign_key_constraint_on:
-        column: objgrp_flat_member_id
-        table:
-          name: objgrp_flat
-          schema: public
   - name: objgrp_flats
     using:
       foreign_key_constraint_on:
         column: objgrp_flat_id
+        table:
+          name: objgrp_flat
+          schema: public
+  - name: objgrpFlatsByObjgrpFlatMemberId
+    using:
+      foreign_key_constraint_on:
+        column: objgrp_flat_member_id
         table:
           name: objgrp_flat
           schema: public
@@ -982,12 +1042,12 @@ tables:
   - name: device
     using:
       foreign_key_constraint_on: obj_nat_install
-  - name: importControlByObjLastSeen
-    using:
-      foreign_key_constraint_on: obj_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: obj_create
+  - name: importControlByObjLastSeen
+    using:
+      foreign_key_constraint_on: obj_last_seen
   - name: isoadmin
     using:
       foreign_key_constraint_on: last_change_admin
@@ -1006,38 +1066,95 @@ tables:
   - name: zone
     using:
       foreign_key_constraint_on: zone_id
+  select_permissions:
+  - permission:
+      columns:
+      - obj_id
+      - last_change_admin
+      - zone_id
+      - mgm_id
+      - obj_name
+      - obj_comment
+      - obj_uid
+      - obj_typ_id
+      - obj_location
+      - obj_member_names
+      - obj_member_refs
+      - initial_config
+      - obj_sw
+      - obj_ip
+      - obj_ip_end
+      - obj_nat
+      - nattyp_id
+      - obj_nat_ip
+      - obj_nat_ip_end
+      - obj_nat_install
+      - obj_color_id
+      - obj_sys_name
+      - obj_sys_location
+      - obj_sys_contact
+      - obj_sys_desc
+      - obj_sys_readcom
+      - obj_sys_writecom
+      - active
+      - obj_create
+      - obj_last_seen
+      filter: {}
+    role: viewall
   table:
     name: object
     schema: public
 - object_relationships:
-  - name: importControlByImportLastSeen
-    using:
-      foreign_key_constraint_on: import_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: import_created
+  - name: importControlByImportLastSeen
+    using:
+      foreign_key_constraint_on: import_last_seen
   - name: object
     using:
       foreign_key_constraint_on: objgrp_id
   - name: objectByObjgrpMemberId
     using:
       foreign_key_constraint_on: objgrp_member_id
+  select_permissions:
+  - permission:
+      columns:
+      - objgrp_id
+      - objgrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: viewall
   table:
     name: objgrp
     schema: public
 - object_relationships:
-  - name: importControlByImportLastSeen
-    using:
-      foreign_key_constraint_on: import_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: import_created
+  - name: importControlByImportLastSeen
+    using:
+      foreign_key_constraint_on: import_last_seen
   - name: object
     using:
       foreign_key_constraint_on: objgrp_flat_id
   - name: objectByObjgrpFlatMemberId
     using:
       foreign_key_constraint_on: objgrp_flat_member_id
+  select_permissions:
+  - permission:
+      columns:
+      - objgrp_flat_id
+      - objgrp_flat_member_id
+      - active
+      - import_created
+      - import_last_seen
+      - negated
+      filter: {}
+    role: viewall
   table:
     name: objgrp_flat
     schema: public
@@ -1048,15 +1165,30 @@ tables:
   - name: device
     using:
       foreign_key_constraint_on: dev_id
-  - name: importControlByStopImportId
-    using:
-      foreign_key_constraint_on: stop_import_id
   - name: import_control
     using:
       foreign_key_constraint_on: start_import_id
+  - name: importControlByStopImportId
+    using:
+      foreign_key_constraint_on: stop_import_id
   - name: stm_report_typ
     using:
       foreign_key_constraint_on: report_typ_id
+  select_permissions:
+  - permission:
+      columns:
+      - report_id
+      - report_typ_id
+      - start_import_id
+      - stop_import_id
+      - dev_id
+      - report_generation_time
+      - report_start_time
+      - report_end_time
+      - report_document
+      - client_id
+      filter: {}
+    role: viewall
   table:
     name: report
     schema: public
@@ -1182,17 +1314,17 @@ tables:
     name: role_to_device
     schema: public
 - array_relationships:
-  - name: changelogRulesByOldRuleId
-    using:
-      foreign_key_constraint_on:
-        column: old_rule_id
-        table:
-          name: changelog_rule
-          schema: public
   - name: changelog_rules
     using:
       foreign_key_constraint_on:
         column: new_rule_id
+        table:
+          name: changelog_rule
+          schema: public
+  - name: changelogRulesByOldRuleId
+    using:
+      foreign_key_constraint_on:
+        column: old_rule_id
         table:
           name: changelog_rule
           schema: public
@@ -1242,12 +1374,12 @@ tables:
   - name: device
     using:
       foreign_key_constraint_on: dev_id
-  - name: importControlByRuleLastSeen
-    using:
-      foreign_key_constraint_on: rule_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: rule_create
+  - name: importControlByRuleLastSeen
+    using:
+      foreign_key_constraint_on: rule_last_seen
   - name: isoadmin
     using:
       foreign_key_constraint_on: last_change_admin
@@ -1266,16 +1398,54 @@ tables:
   - name: zoneByRuleToZone
     using:
       foreign_key_constraint_on: rule_to_zone
+  select_permissions:
+  - permission:
+      columns:
+      - rule_id
+      - last_change_admin
+      - rule_name
+      - mgm_id
+      - active
+      - rule_num
+      - rule_num_numeric
+      - rule_ruleid
+      - rule_uid
+      - rule_disabled
+      - rule_src_neg
+      - rule_dst_neg
+      - rule_svc_neg
+      - action_id
+      - track_id
+      - rule_src
+      - rule_dst
+      - rule_svc
+      - rule_src_refs
+      - rule_dst_refs
+      - rule_svc_refs
+      - rule_from_zone
+      - rule_to_zone
+      - rule_action
+      - rule_track
+      - rule_installon
+      - rule_time
+      - rule_comment
+      - rule_head_text
+      - rule_implied
+      - rule_create
+      - rule_last_seen
+      - dev_id
+      filter: {}
+    role: viewall
   table:
     name: rule
     schema: public
 - object_relationships:
-  - name: importControlByRfLastSeen
-    using:
-      foreign_key_constraint_on: rf_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: rf_create
+  - name: importControlByRfLastSeen
+    using:
+      foreign_key_constraint_on: rf_last_seen
   - name: object
     using:
       foreign_key_constraint_on: obj_id
@@ -1285,6 +1455,19 @@ tables:
   - name: usr
     using:
       foreign_key_constraint_on: user_id
+  select_permissions:
+  - permission:
+      columns:
+      - rule_from_id
+      - rf_create
+      - rf_last_seen
+      - rule_id
+      - obj_id
+      - user_id
+      - active
+      - negated
+      filter: {}
+    role: viewall
   table:
     name: rule_from
     schema: public
@@ -1312,49 +1495,71 @@ tables:
     name: rule_review
     schema: public
 - object_relationships:
-  - name: importControlByRsLastSeen
-    using:
-      foreign_key_constraint_on: rs_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: rs_create
+  - name: importControlByRsLastSeen
+    using:
+      foreign_key_constraint_on: rs_last_seen
   - name: rule
     using:
       foreign_key_constraint_on: rule_id
   - name: service
     using:
       foreign_key_constraint_on: svc_id
+  select_permissions:
+  - permission:
+      columns:
+      - rule_id
+      - svc_id
+      - active
+      - rs_create
+      - rs_last_seen
+      - negated
+      filter: {}
+    role: viewall
   table:
     name: rule_service
     schema: public
 - object_relationships:
-  - name: importControlByRtLastSeen
-    using:
-      foreign_key_constraint_on: rt_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: rt_create
+  - name: importControlByRtLastSeen
+    using:
+      foreign_key_constraint_on: rt_last_seen
   - name: object
     using:
       foreign_key_constraint_on: obj_id
   - name: rule
     using:
       foreign_key_constraint_on: rule_id
+  select_permissions:
+  - permission:
+      columns:
+      - rule_id
+      - obj_id
+      - rt_create
+      - rt_last_seen
+      - active
+      - negated
+      filter: {}
+    role: viewall
   table:
     name: rule_to
     schema: public
 - array_relationships:
-  - name: changelogServicesByOldSvcId
-    using:
-      foreign_key_constraint_on:
-        column: old_svc_id
-        table:
-          name: changelog_service
-          schema: public
   - name: changelog_services
     using:
       foreign_key_constraint_on:
         column: new_svc_id
+        table:
+          name: changelog_service
+          schema: public
+  - name: changelogServicesByOldSvcId
+    using:
+      foreign_key_constraint_on:
+        column: old_svc_id
         table:
           name: changelog_service
           schema: public
@@ -1365,17 +1570,17 @@ tables:
         table:
           name: rule_service
           schema: public
-  - name: svcgrpFlatsBySvcgrpFlatMemberId
-    using:
-      foreign_key_constraint_on:
-        column: svcgrp_flat_member_id
-        table:
-          name: svcgrp_flat
-          schema: public
   - name: svcgrp_flats
     using:
       foreign_key_constraint_on:
         column: svcgrp_flat_id
+        table:
+          name: svcgrp_flat
+          schema: public
+  - name: svcgrpFlatsBySvcgrpFlatMemberId
+    using:
+      foreign_key_constraint_on:
+        column: svcgrp_flat_member_id
         table:
           name: svcgrp_flat
           schema: public
@@ -1394,12 +1599,12 @@ tables:
           name: svcgrp
           schema: public
   object_relationships:
-  - name: importControlBySvcLastSeen
-    using:
-      foreign_key_constraint_on: svc_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: svc_create
+  - name: importControlBySvcLastSeen
+    using:
+      foreign_key_constraint_on: svc_last_seen
   - name: isoadmin
     using:
       foreign_key_constraint_on: last_change_admin
@@ -1415,6 +1620,44 @@ tables:
   - name: stm_svc_typ
     using:
       foreign_key_constraint_on: svc_typ_id
+  select_permissions:
+  - permission:
+      columns:
+      - svc_id
+      - svc_uid
+      - svc_name
+      - svc_typ_id
+      - mgm_id
+      - svc_comment
+      - svc_prod_specific
+      - svc_member_names
+      - svc_member_refs
+      - svc_color_id
+      - ip_proto_id
+      - svc_port
+      - svc_port_end
+      - initial_config
+      - srv_keeponinstall
+      - svc_rpcnr
+      - svc_code
+      - svc_match
+      - svc_source_port
+      - svc_source_port_end
+      - svc_tcp_res
+      - svc_accept_rep
+      - svc_accept_rep_any
+      - svc_mfa
+      - svc_timeout_std
+      - svc_timeout
+      - svc_sync
+      - svc_sync_delay
+      - svc_sync_delay_start
+      - active
+      - last_change_admin
+      - svc_create
+      - svc_last_seen
+      filter: {}
+    role: viewall
   table:
     name: service
     schema: public
@@ -1426,6 +1669,13 @@ tables:
         table:
           name: rule
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - action_id
+      - action_name
+      filter: {}
+    role: viewall
   table:
     name: stm_action
     schema: public
@@ -1483,6 +1733,15 @@ tables:
         table:
           name: usr
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - color_id
+      - color_name
+      - color_rgb
+      - color_comment
+      filter: {}
+    role: viewall
   table:
     name: stm_color
     schema: public
@@ -1501,6 +1760,22 @@ tables:
         table:
           name: management
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - dev_typ_id
+      - dev_typ_manufacturer
+      - dev_typ_name
+      - dev_typ_version
+      - dev_typ_comment
+      - dev_typ_predef_svc
+      - dev_typ_predef_obj
+      - dev_typ_is_mgmt
+      - dev_typ_config_file_rules
+      - dev_typ_config_file_basic_objects
+      - dev_typ_config_file_users
+      filter: {}
+    role: viewall
   table:
     name: stm_dev_typ
     schema: public
@@ -1512,6 +1787,14 @@ tables:
         table:
           name: service
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - ip_proto_id
+      - ip_proto_name
+      - ip_proto_comment
+      filter: {}
+    role: viewall
   table:
     name: stm_ip_proto
     schema: public
@@ -1534,6 +1817,14 @@ tables:
         table:
           name: object
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - obj_typ_id
+      - obj_typ_name
+      - obj_typ_comment
+      filter: {}
+    role: viewall
   table:
     name: stm_obj_typ
     schema: public
@@ -1552,6 +1843,16 @@ tables:
         table:
           name: reporttyp_client_map
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - report_typ_id
+      - report_typ_name_german
+      - report_typ_name_english
+      - report_typ_comment_german
+      - report_typ_comment_english
+      filter: {}
+    role: viewall
   table:
     name: stm_report_typ
     schema: public
@@ -1563,6 +1864,14 @@ tables:
         table:
           name: service
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - svc_typ_id
+      - svc_typ_name
+      - svc_typ_comment
+      filter: {}
+    role: viewall
   table:
     name: stm_svc_typ
     schema: public
@@ -1574,6 +1883,13 @@ tables:
         table:
           name: rule
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - track_id
+      - track_name
+      filter: {}
+    role: viewall
   table:
     name: stm_track
     schema: public
@@ -1585,38 +1901,67 @@ tables:
         table:
           name: usr
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - usr_typ_id
+      - usr_typ_name
+      filter: {}
+    role: viewall
   table:
     name: stm_usr_typ
     schema: public
 - object_relationships:
-  - name: importControlByImportLastSeen
-    using:
-      foreign_key_constraint_on: import_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: import_created
+  - name: importControlByImportLastSeen
+    using:
+      foreign_key_constraint_on: import_last_seen
   - name: service
     using:
       foreign_key_constraint_on: svcgrp_id
   - name: serviceBySvcgrpMemberId
     using:
       foreign_key_constraint_on: svcgrp_member_id
+  select_permissions:
+  - permission:
+      columns:
+      - svcgrp_id
+      - svcgrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: viewall
   table:
     name: svcgrp
     schema: public
 - object_relationships:
-  - name: importControlByImportLastSeen
-    using:
-      foreign_key_constraint_on: import_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: import_created
+  - name: importControlByImportLastSeen
+    using:
+      foreign_key_constraint_on: import_last_seen
   - name: service
     using:
       foreign_key_constraint_on: svcgrp_flat_id
   - name: serviceBySvcgrpFlatMemberId
     using:
       foreign_key_constraint_on: svcgrp_flat_member_id
+  select_permissions:
+  - permission:
+      columns:
+      - svcgrp_flat_id
+      - svcgrp_flat_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: viewall
   table:
     name: svcgrp_flat
     schema: public
@@ -1640,53 +1985,81 @@ tables:
 - table:
     name: temp_table_for_client_filtered_rule_ids
     schema: public
-- table:
+- select_permissions:
+  - permission:
+      columns:
+      - text_msg_id
+      - text_msg_ger
+      - text_msg_eng
+      filter: {}
+    role: viewall
+  table:
     name: text_msg
     schema: public
 - object_relationships:
-  - name: importControlByImportLastSeen
-    using:
-      foreign_key_constraint_on: import_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: import_created
+  - name: importControlByImportLastSeen
+    using:
+      foreign_key_constraint_on: import_last_seen
   - name: usr
     using:
       foreign_key_constraint_on: usergrp_id
   - name: usrByUsergrpMemberId
     using:
       foreign_key_constraint_on: usergrp_member_id
+  select_permissions:
+  - permission:
+      columns:
+      - usergrp_id
+      - usergrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      filter: {}
+    role: viewall
   table:
     name: usergrp
     schema: public
 - object_relationships:
-  - name: importControlByImportLastSeen
-    using:
-      foreign_key_constraint_on: import_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: import_created
+  - name: importControlByImportLastSeen
+    using:
+      foreign_key_constraint_on: import_last_seen
   - name: usr
     using:
       foreign_key_constraint_on: usergrp_flat_id
   - name: usrByUsergrpFlatMemberId
     using:
       foreign_key_constraint_on: usergrp_flat_member_id
+  select_permissions:
+  - permission:
+      columns:
+      - active
+      - usergrp_flat_id
+      - usergrp_flat_member_id
+      - import_created
+      - import_last_seen
+      filter: {}
+    role: viewall
   table:
     name: usergrp_flat
     schema: public
 - array_relationships:
-  - name: changelogUsersByOldUserId
-    using:
-      foreign_key_constraint_on:
-        column: old_user_id
-        table:
-          name: changelog_user
-          schema: public
   - name: changelog_users
     using:
       foreign_key_constraint_on:
         column: new_user_id
+        table:
+          name: changelog_user
+          schema: public
+  - name: changelogUsersByOldUserId
+    using:
+      foreign_key_constraint_on:
+        column: old_user_id
         table:
           name: changelog_user
           schema: public
@@ -1704,17 +2077,17 @@ tables:
         table:
           name: rule_from
           schema: public
-  - name: usergrpFlatsByUsergrpFlatMemberId
-    using:
-      foreign_key_constraint_on:
-        column: usergrp_flat_member_id
-        table:
-          name: usergrp_flat
-          schema: public
   - name: usergrp_flats
     using:
       foreign_key_constraint_on:
         column: usergrp_flat_id
+        table:
+          name: usergrp_flat
+          schema: public
+  - name: usergrpFlatsByUsergrpFlatMemberId
+    using:
+      foreign_key_constraint_on:
+        column: usergrp_flat_member_id
         table:
           name: usergrp_flat
           schema: public
@@ -1748,6 +2121,33 @@ tables:
   - name: stm_usr_typ
     using:
       foreign_key_constraint_on: usr_typ_id
+  select_permissions:
+  - permission:
+      columns:
+      - user_id
+      - usr_typ_id
+      - user_color_id
+      - mgm_id
+      - user_name
+      - active
+      - user_member_names
+      - user_member_refs
+      - user_authmethod
+      - user_valid_from
+      - user_valid_until
+      - src_restrict
+      - dst_restrict
+      - time_restrict
+      - user_create
+      - user_last_seen
+      - user_comment
+      - user_uid
+      - user_firstname
+      - user_lastname
+      - last_change_admin
+      - client_id
+      filter: {}
+    role: viewall
   table:
     name: usr
     schema: public
@@ -1825,12 +2225,12 @@ tables:
           name: rule
           schema: public
   object_relationships:
-  - name: importControlByZoneLastSeen
-    using:
-      foreign_key_constraint_on: zone_last_seen
   - name: import_control
     using:
       foreign_key_constraint_on: zone_create
+  - name: importControlByZoneLastSeen
+    using:
+      foreign_key_constraint_on: zone_last_seen
   - name: management
     using:
       foreign_key_constraint_on: mgm_id

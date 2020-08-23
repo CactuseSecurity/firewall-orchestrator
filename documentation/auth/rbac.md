@@ -9,8 +9,8 @@
 ## Basic roles
 The following (basic) database roles are defined in ascending order of user rights:
 - anonymous - anonymous users can only access the login page and the roles tables to get more granular permissions
-- reporter - reporters have basic reporting rights (regarding e.g. basic tables, not object/rule tables)
-- reporter-\<tenant-x\> - granular rights may be assigned using specific roles that can only view certain managements and/or devices (e.g. belonging to tenant x)
+- reporter (db,api) - reporters have basic reporting rights (regarding e.g. basic tables, not object/rule tables)
+- reporter-\<tenant-x\> (ldap-only) - granular rights may be assigned using specific roles that can only view certain managements and/or devices (e.g. belonging to tenant x) - this role is not know to the api as it will be converted from the auth module to corresponding "visible-devices" and "visible-management" statements for the api attached to the reporter role
 - reporter-viewall - reporter role for full read access to all devices
 - importer - users can import config changes into the database
 - dbbackup - users that are able to read data tables for backup purposes

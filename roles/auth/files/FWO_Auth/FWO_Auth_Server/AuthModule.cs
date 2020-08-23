@@ -26,22 +26,16 @@ namespace FWO_Auth
 
             // Get private key from
             // absolute path: "fworch_home/etc/secrets/jwt_private.key"
+            // absolute path: "fworch_home/etc/secrets/jwt_private.key"
             // relative path:  "../../../etc/secrets"
+
             try
             {
                 // privateKey = File.ReadAllText("../../../etc/secrets/jwt_private.key");
+                // TODO: Read as relative path
                 privateKey = File.ReadAllText("/usr/local/fworch/etc/secrets/jwt_private.key").TrimEnd();
-// #if DEBUG
-//                 Console.WriteLine($"AuthModule.cs:: after reading private jwt generation key from file, the key is '{privateKey}'");
-// #endif
-//                 privateKey = privateKey.TrimEnd();
-// #if DEBUG
-//                 Console.WriteLine($"AuthModule.cs:: after trimming private jwt generation key, the key is '{privateKey}'");
-// #endif
-//                 privateKey = privateKey.Substring(0,512);
-// #if DEBUG
-//                 Console.WriteLine($"AuthModule.cs:: after pruning private jwt generation key, the key is '{privateKey}'");
-// #endif
+                Console.WriteLine($"Key is {privateKey.Length} Bytes long.");
+                Console.WriteLine($"Key is {privateKey}");
             }
             catch (Exception e)
             {

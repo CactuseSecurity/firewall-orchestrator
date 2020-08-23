@@ -24,13 +24,7 @@ namespace FWO_Filter
 
         private void Start()
         {
-            Bracket();
-
-            while (Position < Tokens.Count)
-            {               
-                Connector();
-                Bracket();
-            }        
+            Bracket();        
         }
 
         private void Bracket()
@@ -38,13 +32,19 @@ namespace FWO_Filter
             if (GetNextToken().Kind == TokenKind.BL)
             {
                 CheckToken(TokenKind.BL);
-                Expression();
+                Bracket();
                 CheckToken(TokenKind.BR);
             }
 
             else
             {
                 Expression();
+            }
+
+            while (Position < Tokens.Count && (GetNextToken().Kind == TokenKind.And || GetNextToken().Kind == TokenKind.Or))
+            {
+                Connector();
+                Bracket();
             }
         }
 

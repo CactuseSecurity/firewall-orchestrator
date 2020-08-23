@@ -91,7 +91,8 @@ tables with management reference (object, service):
             "_in": "X-Hasura-visible-managements"
         }
     },
-~~tables with device reference (?):
+~~~
+tables with device reference (?):
 ~~~json
     "filter": {
         "mgm_id": {

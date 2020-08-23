@@ -28,6 +28,8 @@ namespace FWO.Backend.Auth
             {
                 // privateKey = File.ReadAllText("../../../../../../../etc/secrets/jwt_private.key");
                 privateKey = File.ReadAllText("/usr/local/fworch/etc/secrets/jwt_private.key").TrimEnd();
+                Console.WriteLine($"Key is {privateKey.Length} chars long.");
+                Console.WriteLine($"Key is {privateKey}");
             }
             catch (Exception e)
             {

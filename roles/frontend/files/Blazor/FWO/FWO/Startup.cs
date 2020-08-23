@@ -46,7 +46,7 @@ namespace FWO
 
             string ApiUri = "https://localhost:9443/api/v1/graphql";
             //ApiUri = "https://localhost:8443/api/v1/graphql";
-            ApiUri = "https://demo.itsecorg.de:443/api/v1/graphql";
+            //ApiUri = "https://demo.itsecorg.de:443/api/v1/graphql";
             string AuthUri = "http://localhost:8888/";
 
             services.AddScoped<APIConnection>(api => new APIConnection(ApiUri));

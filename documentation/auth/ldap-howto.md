@@ -31,6 +31,21 @@ For cactus installation:
 
     ldappasswd -s <new passwd of user admin> -w <pwd of Manager> -D "cn=Manager,dc=fworch,dc=internal" -x "uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal"
 
+### adding a test user
+
+```
+ldapmodify -H ldaps://localhost -D cn=Manager,dc=fworch,dc=internal -w IuMGtWNzEHdvodr -x -f fgreporter.ldif 
+
+ldappasswd -s fworch.1 -w IuMGtWNzEHdvodr -D "cn=Manager,dc=fworch,dc=internal" -x "uid=fgreporter,ou=systemuser,ou=user,dc=fworch,dc=internal"
+
+cat fgreporter.ldif 
+dn: uid=fgreporter,ou=systemuser,ou=user,dc=fworch,dc=internal
+changetype: add
+objectClass: top
+objectclass: inetorgperson
+cn: fgreporter
+sn: fgreporter
+```
 
 ### searching ldap with ldapsearch
 
@@ -90,3 +105,5 @@ Not tested yet!
 ext. documentation, see <https://auth0.com/blog/using-ldap-with-c-sharp/>
 
 ## querying multiple ldap servers in a row
+
+

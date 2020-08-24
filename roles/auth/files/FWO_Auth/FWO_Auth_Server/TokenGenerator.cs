@@ -61,8 +61,8 @@ namespace FWO_Auth_Server
             // TODO: Remove later
             // Fake managment claims REMOVE LATER 
 
-            int[] fakeVisibleDevices = {1,7,17};
-            int[] fakeVisibleManagements = {1,4};
+            int[] fakeVisibleDevices = new int[] {1,7,17};
+            int[] fakeVisibleManagements = new int[] {1,4};
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", JsonSerializer.Serialize(fakeVisibleManagements), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", JsonSerializer.Serialize(fakeVisibleDevices), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
 

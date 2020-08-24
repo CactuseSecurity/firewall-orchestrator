@@ -1686,7 +1686,40 @@ tables:
   select_permissions:
   - permission:
       allow_aggregations: true
-      columns: []
+      columns:
+      - svc_id
+      - svc_uid
+      - svc_name
+      - svc_typ_id
+      - mgm_id
+      - svc_comment
+      - svc_prod_specific
+      - svc_member_names
+      - svc_member_refs
+      - svc_color_id
+      - ip_proto_id
+      - svc_port
+      - svc_port_end
+      - initial_config
+      - srv_keeponinstall
+      - svc_rpcnr
+      - svc_code
+      - svc_match
+      - svc_source_port
+      - svc_source_port_end
+      - svc_tcp_res
+      - svc_accept_rep
+      - svc_accept_rep_any
+      - svc_mfa
+      - svc_timeout_std
+      - svc_timeout
+      - svc_sync
+      - svc_sync_delay
+      - svc_sync_delay_start
+      - active
+      - last_change_admin
+      - svc_create
+      - svc_last_seen
       filter:
         mgm_id:
           _in:
@@ -1937,6 +1970,7 @@ tables:
           schema: public
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - svc_typ_id
       - svc_typ_name

@@ -90,6 +90,8 @@ namespace FWO_Auth_Server
 
             if (roles != null && roles.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
+            else 
+                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
 
             return claimsIdentity;
         }

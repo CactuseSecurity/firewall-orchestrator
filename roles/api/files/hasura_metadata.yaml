@@ -359,6 +359,7 @@ tables:
       foreign_key_constraint_on: dev_typ_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - dev_id
       - mgm_id
@@ -377,11 +378,9 @@ tables:
       filter:
         _and:
         - mgm_id:
-            _in:
-            - x-hasura-visible-managements
+            _in: x-hasura-visible-managements
         - dev_id:
-            _in:
-            - x-hasura-visible-devices
+            _in: x-hasura-visible-devices
     role: reporter
   - permission:
       columns:
@@ -961,8 +960,7 @@ tables:
       - mgm_update
       filter:
         mgm_id:
-          _in:
-          - X-Hasura-visible-managements
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -1116,11 +1114,40 @@ tables:
   select_permissions:
   - permission:
       allow_aggregations: true
-      columns: []
+      columns:
+      - obj_id
+      - last_change_admin
+      - zone_id
+      - mgm_id
+      - obj_name
+      - obj_comment
+      - obj_uid
+      - obj_typ_id
+      - obj_location
+      - obj_member_names
+      - obj_member_refs
+      - initial_config
+      - obj_sw
+      - obj_ip
+      - obj_ip_end
+      - obj_nat
+      - nattyp_id
+      - obj_nat_ip
+      - obj_nat_ip_end
+      - obj_nat_install
+      - obj_color_id
+      - obj_sys_name
+      - obj_sys_location
+      - obj_sys_contact
+      - obj_sys_desc
+      - obj_sys_readcom
+      - obj_sys_writecom
+      - active
+      - obj_create
+      - obj_last_seen
       filter:
         mgm_id:
-          _in:
-          - X-Hasura-visible-managements
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       columns:
@@ -1174,6 +1201,17 @@ tables:
       foreign_key_constraint_on: objgrp_member_id
   select_permissions:
   - permission:
+      allow_aggregations: true
+      columns:
+      - objgrp_id
+      - objgrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: reporter
+  - permission:
       columns:
       - objgrp_id
       - objgrp_member_id
@@ -1200,6 +1238,17 @@ tables:
     using:
       foreign_key_constraint_on: objgrp_flat_member_id
   select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - objgrp_flat_id
+      - objgrp_flat_member_id
+      - active
+      - import_created
+      - import_last_seen
+      - negated
+      filter: {}
+    role: reporter
   - permission:
       columns:
       - objgrp_flat_id
@@ -1456,11 +1505,43 @@ tables:
   select_permissions:
   - permission:
       allow_aggregations: true
-      columns: []
+      columns:
+      - rule_id
+      - last_change_admin
+      - rule_name
+      - mgm_id
+      - active
+      - rule_num
+      - rule_num_numeric
+      - rule_ruleid
+      - rule_uid
+      - rule_disabled
+      - rule_src_neg
+      - rule_dst_neg
+      - rule_svc_neg
+      - action_id
+      - track_id
+      - rule_src
+      - rule_dst
+      - rule_svc
+      - rule_src_refs
+      - rule_dst_refs
+      - rule_svc_refs
+      - rule_from_zone
+      - rule_to_zone
+      - rule_action
+      - rule_track
+      - rule_installon
+      - rule_time
+      - rule_comment
+      - rule_head_text
+      - rule_implied
+      - rule_create
+      - rule_last_seen
+      - dev_id
       filter:
         mgm_id:
-          _in:
-          - X-Hasura-visible-managements
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       columns:
@@ -1520,6 +1601,19 @@ tables:
       foreign_key_constraint_on: user_id
   select_permissions:
   - permission:
+      allow_aggregations: true
+      columns:
+      - rule_from_id
+      - rf_create
+      - rf_last_seen
+      - rule_id
+      - obj_id
+      - user_id
+      - active
+      - negated
+      filter: {}
+    role: reporter
+  - permission:
       columns:
       - rule_from_id
       - rf_create
@@ -1572,6 +1666,17 @@ tables:
       foreign_key_constraint_on: svc_id
   select_permissions:
   - permission:
+      allow_aggregations: true
+      columns:
+      - rule_id
+      - svc_id
+      - active
+      - rs_create
+      - rs_last_seen
+      - negated
+      filter: {}
+    role: reporter
+  - permission:
       columns:
       - rule_id
       - svc_id
@@ -1598,6 +1703,17 @@ tables:
     using:
       foreign_key_constraint_on: rule_id
   select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - rule_id
+      - obj_id
+      - rt_create
+      - rt_last_seen
+      - active
+      - negated
+      filter: {}
+    role: reporter
   - permission:
       columns:
       - rule_id
@@ -1722,8 +1838,7 @@ tables:
       - svc_last_seen
       filter:
         mgm_id:
-          _in:
-          - X-Hasura-visible-managements
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       columns:
@@ -1780,6 +1895,13 @@ tables:
       - action_name
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - action_id
+      - action_name
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_action
     schema: public
@@ -1812,6 +1934,21 @@ tables:
         table:
           name: changelog_user
           schema: public
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - change_type_id
+      - change_type_name
+      filter: {}
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - change_type_id
+      - change_type_name
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_change_type
     schema: public
@@ -1846,6 +1983,15 @@ tables:
       - color_comment
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - color_id
+      - color_name
+      - color_rgb
+      - color_comment
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_color
     schema: public
@@ -1880,6 +2026,22 @@ tables:
       - dev_typ_config_file_users
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - dev_typ_id
+      - dev_typ_manufacturer
+      - dev_typ_name
+      - dev_typ_version
+      - dev_typ_comment
+      - dev_typ_predef_svc
+      - dev_typ_predef_obj
+      - dev_typ_is_mgmt
+      - dev_typ_config_file_rules
+      - dev_typ_config_file_basic_objects
+      - dev_typ_config_file_users
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_dev_typ
     schema: public
@@ -1899,6 +2061,14 @@ tables:
       - ip_proto_comment
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - ip_proto_id
+      - ip_proto_name
+      - ip_proto_comment
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_ip_proto
     schema: public
@@ -1929,6 +2099,14 @@ tables:
       - obj_typ_comment
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - obj_typ_id
+      - obj_typ_name
+      - obj_typ_comment
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_obj_typ
     schema: public
@@ -1977,6 +2155,14 @@ tables:
       - svc_typ_comment
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - svc_typ_id
+      - svc_typ_name
+      - svc_typ_comment
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_svc_typ
     schema: public
@@ -1995,6 +2181,13 @@ tables:
       - track_name
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - track_id
+      - track_name
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_track
     schema: public
@@ -2013,6 +2206,13 @@ tables:
       - usr_typ_name
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - usr_typ_id
+      - usr_typ_name
+      filter: {}
+    role: reporter-viewall
   table:
     name: stm_usr_typ
     schema: public
@@ -2030,6 +2230,17 @@ tables:
     using:
       foreign_key_constraint_on: svcgrp_member_id
   select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - svcgrp_id
+      - svcgrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: reporter
   - permission:
       columns:
       - svcgrp_id
@@ -2057,6 +2268,17 @@ tables:
     using:
       foreign_key_constraint_on: svcgrp_flat_member_id
   select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - svcgrp_flat_id
+      - svcgrp_flat_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: reporter
   - permission:
       columns:
       - svcgrp_flat_id
@@ -2098,6 +2320,14 @@ tables:
       - text_msg_eng
       filter: {}
     role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - text_msg_id
+      - text_msg_ger
+      - text_msg_eng
+      filter: {}
+    role: reporter-viewall
   table:
     name: text_msg
     schema: public
@@ -2115,6 +2345,16 @@ tables:
     using:
       foreign_key_constraint_on: usergrp_member_id
   select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - usergrp_id
+      - usergrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      filter: {}
+    role: reporter
   - permission:
       columns:
       - usergrp_id
@@ -2141,6 +2381,16 @@ tables:
     using:
       foreign_key_constraint_on: usergrp_flat_member_id
   select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - active
+      - usergrp_flat_id
+      - usergrp_flat_member_id
+      - import_created
+      - import_last_seen
+      filter: {}
+    role: reporter
   - permission:
       columns:
       - active
@@ -2229,11 +2479,32 @@ tables:
   select_permissions:
   - permission:
       allow_aggregations: true
-      columns: []
+      columns:
+      - user_id
+      - usr_typ_id
+      - user_color_id
+      - mgm_id
+      - user_name
+      - active
+      - user_member_names
+      - user_member_refs
+      - user_authmethod
+      - user_valid_from
+      - user_valid_until
+      - src_restrict
+      - dst_restrict
+      - time_restrict
+      - user_create
+      - user_last_seen
+      - user_comment
+      - user_uid
+      - user_firstname
+      - user_lastname
+      - last_change_admin
+      - client_id
       filter:
         mgm_id:
-          _in:
-          - X-Hasura-visible-managements
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       columns:
@@ -2347,6 +2618,31 @@ tables:
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - zone_id
+      - zone_create
+      - zone_last_seen
+      - mgm_id
+      - zone_name
+      - active
+      filter:
+        mgm_id:
+          _in: x-hasura-visible-managements
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - active
+      - mgm_id
+      - zone_create
+      - zone_last_seen
+      - zone_id
+      - zone_name
+      filter: {}
+    role: reporter-viewall
   table:
     name: zone
     schema: public

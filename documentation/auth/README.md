@@ -108,6 +108,9 @@ tables with device reference (?):
 - choose a role and add "Row select permissions"
 
   {"dev_id":{"_in":"X-Hasura-Visible-Devices"}}
+  
+- export metadata (and add to git sources)
+
 ### via sql (you have to execute metadata reload afterwards: hasura metadata reload)
 
 ~~~sql

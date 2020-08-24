@@ -41,7 +41,7 @@ Use the following command to verify settings:
 
 ### Create proper configuration in visiual studio code
 ```console
-tim@acantha:~/dev/tpurschke-fwo/firewall-orchestrator$ cat /home/tim/dev/tpurschke-fwo/firewall-orchestrator/.vscode/launch.json 
+tim@acantha:~$ cat /home/tim/dev/tpurschke-fwo/firewall-orchestrator/.vscode/launch.json 
 {
    "version": "0.2.0",
    "configurations": [
@@ -85,7 +85,9 @@ tim@acantha:~/dev/tpurschke-fwo/firewall-orchestrator$ cat /home/tim/dev/tpursch
             "stopAtEntry": false
         }
     ]
-}tim@acantha:~/dev/tpurschke-fwo/firewall-orchestrator$ cat /home/tim/dev/tpurschke-fwo/firewall-orchestrator/.vscode/tasks.json 
+}
+
+tim@acantha:~$ cat /home/tim/dev/tpurschke-fwo/firewall-orchestrator/.vscode/tasks.json 
 {
     "version": "2.0.0",
     "tasks": [

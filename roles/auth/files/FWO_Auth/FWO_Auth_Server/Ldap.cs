@@ -23,7 +23,7 @@ namespace FWO_Auth_Server
         public bool ValidateUser(User user)
         {
             // TODO: we need to replace ou=systemuser with ou=tenant<x>,ou=operator and keep x variable - need to look in all existing tenants
-            string userDn = $"uid={user.Name},ou=systemuser,ou=user,dc=fworch,dc=internal";
+            string userDn = $"uid={user.Name},ou=operator,ou=user,dc=fworch,dc=internal";
 #if DEBUG
             Console.WriteLine($"FWO_Auth_Server::Ldap.cs: ValidateUser called for user {userDn}");
             Console.WriteLine($"FWO_Auth_Server::Ldap.cs: LdapServerPort={Port}");
@@ -55,6 +55,10 @@ namespace FWO_Auth_Server
                 return new Role[] { new Role { Name = "reporter" } };
             else if (user.Name == "admin")
                 return new Role[] { new Role { Name = "reporter-viewall" }, new Role { Name = "reporter" } };
+            else if (user.Name == "fgreporter")
+                return new Role[] { new Role { Name = "reporter" } };
+            else if (user.Name == "fgcheck")
+                return new Role[] { new Role { Name = "reporter" } };
             else
                 return new Role[0];
             // Fake role REMOVE LATER

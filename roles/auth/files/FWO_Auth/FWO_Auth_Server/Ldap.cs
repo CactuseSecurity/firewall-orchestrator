@@ -23,7 +23,7 @@ namespace FWO_Auth_Server
         public bool ValidateUser(User user)
         {
             // TODO: we need to replace ou=systemuser with ou=tenant<x>,ou=operator and keep x variable - need to look in all existing tenants
-            string userDn = $"uid={user.Name},ou=operator,ou=user,dc=fworch,dc=internal";
+            string userDn = $"uid={user.Name},ou=systemuser,ou=user,dc=fworch,dc=internal";
 #if DEBUG
             Console.WriteLine($"FWO_Auth_Server::Ldap.cs: ValidateUser called for user {userDn}");
             Console.WriteLine($"FWO_Auth_Server::Ldap.cs: LdapServerPort={Port}");
@@ -38,6 +38,7 @@ namespace FWO_Auth_Server
                     connection.Bind(userDn, user.Password);
                     if (connection.Bound)
                         return true;
+                    connection.Disconnect();
                 }
             }
             catch (LdapException ex)
@@ -51,16 +52,19 @@ namespace FWO_Auth_Server
         public Role[] GetRoles(User user)
         {
             // Fake role REMOVE LATER
-            if (user.Name == "" && user.Password == "")
-                return new Role[] { new Role { Name = "reporter" } };
-            else if (user.Name == "admin")
-                return new Role[] { new Role { Name = "reporter-viewall" }, new Role { Name = "reporter" } };
-            else if (user.Name == "fgreporter")
-                return new Role[] { new Role { Name = "reporter" } };
-            else if (user.Name == "fgcheck")
-                return new Role[] { new Role { Name = "reporter" } };
-            else
-                return new Role[0];
+            switch (user.Name)
+            {
+                case "":
+                case "fgreporter":
+                case "fgcheck":
+                    return new Role[] { new Role { Name = "reporter" } };
+
+                case "admin":
+                    return new Role[] { new Role { Name = "reporter-viewall" }, new Role { Name = "reporter" } };
+
+                default:
+                    return new Role[0];
+            }
             // Fake role REMOVE LATER
         }
     }

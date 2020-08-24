@@ -67,6 +67,12 @@ Use pgjwt to create jwt as follows (get secret from {{ fworch_home }}/api/jwt_se
 
 4) set permissions for tables in data
 
+NB: do not use the default syntax when clicking the permissions - these contain [] around the visible objects!!!!!!!
+
+Example: 
+
+    {"mgm_id":{"_in":["x-hasura-visible-managements"]}}
+
 tables with device & management reference:
 ~~~json
     "filter": {

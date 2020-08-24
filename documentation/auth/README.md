@@ -67,6 +67,12 @@ Use pgjwt to create jwt as follows (get secret from {{ fworch_home }}/api/jwt_se
 
 4) set permissions for tables in data
 
+NB: do not use the default syntax when clicking the permissions - these contain [] around the visible objects!!!!!!!
+
+Example: 
+
+    {"mgm_id":{"_in":["x-hasura-visible-managements"]}}
+
 tables with device & management reference:
 ~~~json
     "filter": {
@@ -91,7 +97,8 @@ tables with management reference (object, service):
             "_in": "X-Hasura-visible-managements"
         }
     },
-~~tables with device reference (?):
+~~~
+tables with device reference (?):
 ~~~json
     "filter": {
         "mgm_id": {
@@ -107,6 +114,9 @@ tables with management reference (object, service):
 - choose a role and add "Row select permissions"
 
   {"dev_id":{"_in":"X-Hasura-Visible-Devices"}}
+  
+- export metadata (and add to git sources)
+
 ### via sql (you have to execute metadata reload afterwards: hasura metadata reload)
 
 ~~~sql

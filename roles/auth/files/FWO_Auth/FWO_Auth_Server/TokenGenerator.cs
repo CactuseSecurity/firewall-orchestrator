@@ -20,9 +20,9 @@ namespace FWO_Auth_Server
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public TokenGenerator(byte[] privateKey, int daysValid)
+        public TokenGenerator(string privateKey, int daysValid)
         {
-            this.privateKey = new SymmetricSecurityKey(privateKey);
+            this.privateKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey));
 
             this.daysValid = daysValid;
         }
@@ -60,6 +60,12 @@ namespace FWO_Auth_Server
 
             // TODO: Remove later
             // Fake managment claims REMOVE LATER 
+
+            // int[] fakeVisibleDevices = new int[] {1,7,17};
+            // int[] fakeVisibleManagements = new int[] {1,4};
+            // claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", JsonSerializer.Serialize(fakeVisibleManagements), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+            // claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", JsonSerializer.Serialize(fakeVisibleDevices), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", "{1,7,17}"));
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
             // Fake managment claims REMOVE LATER
@@ -71,9 +77,6 @@ namespace FWO_Auth_Server
             //     // TODO: Get Managment and Device Claims from API
             // }
 
-            if (roles[0] != null)
-                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
-
             // adding roles:
             List<string> Roles = new List<string>();
 
@@ -84,6 +87,11 @@ namespace FWO_Auth_Server
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(Roles.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+
+            if (roles != null && roles.Length > 0)
+                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
+            else 
+                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
 
             return claimsIdentity;
         }

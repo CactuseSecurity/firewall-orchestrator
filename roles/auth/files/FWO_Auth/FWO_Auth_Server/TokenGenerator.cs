@@ -71,9 +71,6 @@ namespace FWO_Auth_Server
             //     // TODO: Get Managment and Device Claims from API
             // }
 
-            if (roles[0] != null)
-                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
-
             // adding roles:
             List<string> Roles = new List<string>();
 
@@ -84,6 +81,9 @@ namespace FWO_Auth_Server
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(Roles.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+
+            if (roles != null && roles.Length > 0)
+                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
 
             return claimsIdentity;
         }

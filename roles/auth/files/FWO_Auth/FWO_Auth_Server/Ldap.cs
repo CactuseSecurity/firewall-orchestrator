@@ -55,6 +55,8 @@ namespace FWO_Auth_Server
                 return new Role[] { new Role { Name = "reporter" } };
             else if (user.Name == "admin")
                 return new Role[] { new Role { Name = "reporter-viewall" }, new Role { Name = "reporter" } };
+            else if (user.Name == "fgreporter")
+                return new Role[] { new Role { Name = "reporter" } };
             else
                 return new Role[0];
             // Fake role REMOVE LATER

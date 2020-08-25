@@ -19,6 +19,13 @@
         name: "rsyslog"
         state: present
 
+     - name: change rsyslog config to receive logs TODO on backend only
+       blockinfile:
+        path: /etc/rsyslog.conf
+        block: |
+          module(load="im{{ syslog_proto }}")
+          input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
+
      - name: create log dir for {{ product_name }} on ubuntu - owner syslog
        file:
          path: "/var/log/{{ product_name }}/"

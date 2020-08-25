@@ -32,8 +32,9 @@ dotnet_mode: "Debug"
 # dotnet_mode: "Release"
 
 ### logging
-syslog_proto: udp
-syslog_host: localhost
+syslog_proto: tcp
+syslog_host: 127.0.0.1
+syslog_port: 514
 auth_server_syslog_id: "{{ product_name }}.auth-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd

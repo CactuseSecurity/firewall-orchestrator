@@ -64,7 +64,7 @@
     network_mode: host
     log_driver: syslog
     log_options:
-      syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:514"
+      syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:{{ syslog_port }}"
       syslog-facility: daemon
       tag: "{{ api_container_name }}"
     recreate: yes

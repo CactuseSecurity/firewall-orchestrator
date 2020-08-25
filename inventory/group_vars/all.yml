@@ -31,6 +31,10 @@ dotnet_version: "3.1"
 dotnet_mode: "Debug"
 # dotnet_mode: "Release"
 
+auth_server_syslog_id: "{{ product_name }}.auth-server"
+ui_syslog_id: "{{ product_name }}-ui"
+ldap_syslog_id: slapd
+
 ### to be moved:
 
 # users & passwords

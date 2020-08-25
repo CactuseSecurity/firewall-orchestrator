@@ -29,7 +29,7 @@ namespace FWO_Auth_Server
 
         public string CreateJWT(User user, UserData userData, Role[] roles)
         {
-            Console.WriteLine($"Generating JWT for User {user}...");
+            Console.WriteLine($"Generating JWT for user {user.Name} ...");
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);

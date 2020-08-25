@@ -52,6 +52,7 @@ namespace FWO
         {
             this.Jwt = Jwt;
             Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Jwt);
+            Console.WriteLine($"APIConnection::ChangeAuthHeader Jwt={Jwt}");
         }
 
         public async Task<T[]> SendQuery<T>(string Query, string Variables = null, string OperationName = null)

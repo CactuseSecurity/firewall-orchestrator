@@ -1,4 +1,4 @@
-# how to operate an installation
+# Firewall Orchestrator Operations howto
 
 ## logging
 

@@ -113,7 +113,7 @@
 
         //dynamic test = await Connection.SendQuery<dynamic>("");
 
-        Managements = await Connection.SendQuery<Management>(Queries.Rules);
+        Managements = await Connection.SendQuery<Management>(Queries.Managements);
     }
 
     private void CollapseButtonClicked(MouseEventArgs e)

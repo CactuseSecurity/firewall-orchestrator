@@ -7,6 +7,15 @@ namespace FWO.Backend.API
 {
     public static class Queries
     {
+public static readonly string Managements =
+@"
+query
+{
+  management {
+    mgm_name
+  }
+}
+";
 
 public static readonly string Rules = 
 @"

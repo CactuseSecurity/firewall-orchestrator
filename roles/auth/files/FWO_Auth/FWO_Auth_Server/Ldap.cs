@@ -34,8 +34,10 @@ namespace FWO_Auth_Server
                 {
                     connection.UserDefinedServerCertValidationDelegate +=
                     (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;
+                    
                     connection.Connect(Address, Port);
-                    connection.Bind(userDn, user.Password);
+                    connection.Bind(userDn, user.Password);                 
+
                     if (connection.Bound)
                         return true;
                     connection.Disconnect();

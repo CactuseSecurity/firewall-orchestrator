@@ -111,7 +111,7 @@
         //string RulesJson = await Connection.SendQuery(Queries.Rules);
         //Managements = JsonReader.JsonToReport(RulesJson);
 
-        dynamic test = await Connection.SendQuery<dynamic>("");
+        //dynamic test = await Connection.SendQuery<dynamic>("");
 
         Managements = await Connection.SendQuery<Management>(Queries.Rules);
     }

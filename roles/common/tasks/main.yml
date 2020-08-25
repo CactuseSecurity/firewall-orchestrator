@@ -19,6 +19,13 @@
         name: "rsyslog"
         state: present
 
+     - name: change rsyslog config to receive logs TODO on backend only
+       blockinfile:
+        path: /etc/rsyslog.conf
+        block: |
+          module(load="im{{ syslog_proto }}")
+          input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
+
      - name: create log dir for {{ product_name }} on ubuntu - owner syslog
        file:
          path: "/var/log/{{ product_name }}/"
@@ -52,6 +59,7 @@
             :programname, isequal, "{{ ui_syslog_id }}" /var/log/{{ product_name }}/ui.log
             :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log
             :programname, isequal, "{{ product_name }}-import" /var/log/{{ product_name }}/import.log
+            :programname, isequal, "{{ product_name }}-api" /var/log/{{ product_name }}/api.log
 
      - name: edit logrotate
        blockinfile:

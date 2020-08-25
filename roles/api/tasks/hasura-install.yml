@@ -62,6 +62,8 @@
     image: hasura/graphql-engine:{{ api_hasura_version }}
     state: started
     network_mode: host
+    log_driver: syslog
+    tag: "{{ api_container_name }}"
     recreate: yes
     ports:
       - "{{ api_hostname }}:{{ api_port }}:{{ api_port }}"

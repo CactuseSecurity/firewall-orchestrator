@@ -6,11 +6,11 @@
     },
     {
         "name": "getVisibleDevIds",
-        "query": "query getVisibleDevIds($role_id: Int!) { device(where: {role_to_devices: {role_id: {_eq: $role_id}}}) { dev_id } }"
+        "query": "query getVisibleDevIds($role_id: Int!) { device(where: {client_to_devices: {role_id: {_eq: $role_id}}}) { dev_id } }"
     },
     {
         "name": "getVisibleDevIdsFromRoleName",
-        "query": "query getVisibleDevIdsFromRoleName($role_name: String!) { device(where: {role_to_devices: {role_id: {_eq: getRoleId($role_name)}}}) { dev_id } }"
+        "query": "query getVisibleDevIdsFromRoleName($role_name: String!) { device(where: {client_to_devices: {role_id: {_eq: getRoleId($role_name)}}}) { dev_id } }"
     },
     {
         "name": "roleCanViewAllDevices",

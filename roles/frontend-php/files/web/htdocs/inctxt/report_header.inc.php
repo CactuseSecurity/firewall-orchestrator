@@ -8,7 +8,7 @@
 	else $man_sys = '';
 	if (isset($request['Device'])) 	$device 		= $request['Device'];
 	else $device = '';
-	if (isset($request['client_id'])) $client_id		= $request['client_id']; else $client_id = '';
+	if (isset($request['tenant_id'])) $tenant_id		= $request['tenant_id']; else $tenant_id = '';
 	if (isset($request['quellname'])) $src_name		= $request['quellname'] <> '' ? $request['quellname'] : "NULL";
 	else $src_name = 'NULL';
 	if (isset($request['quell_ip'])) $src_ip			= $request['quell_ip'] <> '' ? $request['quell_ip'] : "NULL";
@@ -91,12 +91,12 @@
 	echo "<tr><td><b>Device: </b></td><td><b>".$device."</b></td></tr>\n";
 	echo "<tr><td>Report Format: </td><td>".$report_format."</td></tr>\n";
 	echo $reporting_times;
-    if ($client_id<>"") {
-		require_once("db-client.php");
-		$client_conn = new DbConnection(new DbConfig($session["dbuser"],$session["dbpw"]));
+    if ($tenant_id<>"") {
+		require_once("db-tenant.php");
+		$tenant_conn = new DbConnection(new DbConfig($session["dbuser"],$session["dbpw"]));
 		$cname_filter	= new RuleChangesFilter($request, $session, 'document');
-		$client_list = new ClientList($cname_filter,$client_conn);
-    	echo "<tr><td>" . $language->get_text_msg('client', 'html') . ": </td><td>" . $client_list->getClientName($client_id) . "</td></tr>\n";
+		$tenant_list = new tenantList($cname_filter,$tenant_conn);
+    	echo "<tr><td>" . $language->get_text_msg('tenant', 'html') . ": </td><td>" . $tenant_list->gettenantName($tenant_id) . "</td></tr>\n";
     }
 	if ($src_name!="NULL") 		echo "<tr><td>quellname: </td><td>".$src_name."</td></tr>\n";
 	if ($src_ip!="NULL")		echo "<tr><td>quell_ip: </td><td>".$src_ip."</td></tr>\n";

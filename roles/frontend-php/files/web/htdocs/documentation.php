@@ -37,7 +37,7 @@
 <meta name="robots" content="index,follow">
 <meta http-equiv="cache-control" content="no-cache">
 <meta http-equiv="content-language" content="de">
-<script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
+<script type="text/javascript" src="<?php echo $stamm ?>js/browser.js"></script>
 <script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">
 <script language="javascript" type="text/javascript">
@@ -60,28 +60,28 @@
 		}
 
 		var non_empty_request_ids = '';
-		var non_empty_client_ids = '';
+		var non_empty_tenant_ids = '';
 		var non_empty_req_type_ids = '';
 		
 		for (var idx = 0; idx < max_requests; idx++) {
 			var req_id_field_name = 'request' + '$' + idx;
-			var client_id_field_name = 'client_id' + '$' + idx;
+			var tenant_id_field_name = 'tenant_id' + '$' + idx;
 			var req_type_id_field_name = 'request_type_id' + '$' + idx;
 
 			if (document.forms.docu_values[req_id_field_name].value && document.forms.docu_values[req_id_field_name].value != '')
 				non_empty_request_ids += idx;				
-			if (document.forms.docu_values[client_id_field_name].value && document.forms.docu_values[client_id_field_name].value != '')
-				non_empty_client_ids += idx;
+			if (document.forms.docu_values[tenant_id_field_name].value && document.forms.docu_values[tenant_id_field_name].value != '')
+				non_empty_tenant_ids += idx;
 			if (document.forms.docu_values[req_type_id_field_name].value && document.forms.docu_values[req_type_id_field_name].value != '')
 				non_empty_req_type_ids += idx;
 		}
-		// alert ("req_ids: " + non_empty_request_ids); alert ("req_type_ids: " + non_empty_req_type_ids);	alert ("cust_ids: " + non_empty_client_ids);
+		// alert ("req_ids: " + non_empty_request_ids); alert ("req_type_ids: " + non_empty_req_type_ids);	alert ("cust_ids: " + non_empty_tenant_ids);
 		if (non_empty_request_ids == '') {
 			alert ("<?php echo $language->get_text_msg ('missing_request_number', 'plain_text'); ?>");
 			return false;
 		}
-		if (display_approver && non_empty_request_ids!=non_empty_client_ids) {
-			alert ("<?php echo $language->get_text_msg ('missing_client_for_request', 'plain_text'); ?>");
+		if (display_approver && non_empty_request_ids!=non_empty_tenant_ids) {
+			alert ("<?php echo $language->get_text_msg ('missing_tenant_for_request', 'plain_text'); ?>");
 			return false;
 		}
 		if (display_request_type && non_empty_request_ids!=non_empty_req_type_ids) {
@@ -115,7 +115,7 @@
 	echo "<body onLoad=\"changeColor1('" . $color_page . "'); doMgmt('" . $language->get_text_msg('all_systems', 'html') . "','NULL')\">";
 
 	require_once ("db-div.php");
-	require_once ("db-client.php");
+	require_once ("db-tenant.php");
 	require_once ("db-gui-config.php");
 	require_once ("display_changes.php");
 
@@ -131,7 +131,7 @@
 			echo '<input type="hidden" name="doc_type" value="' . $page . '"/>';
 			echo '<input type="hidden" name="change_selection" value=""/>';
 			$db_connection	= new DbConnection(new DbConfig($_SESSION["dbuser"],$_SESSION["dbpw"]));
-			$clist			= new ClientList($filter,$db_connection);  // filter schon in navi_vert_document.inc.php gesetzt
+			$clist			= new tenantList($filter,$db_connection);  // filter schon in navi_vert_document.inc.php gesetzt
 			$rtlist			= new RequestTypeList($filter,$db_connection);  
 			$isoadmin		= new IsoAdmin($filter,$db_connection);
 			$isoadmin_id	= $isoadmin->getId();
@@ -151,13 +151,13 @@
 // Genehmigung
 					if ($display_approver) {
 						$auftragsdaten .=  $changeTable->displayRowSimple($format) . 
-							$changeTable->displayColumnNoBorder($language->get_text_msg ('client', 'html'), $format);	
+							$changeTable->displayColumnNoBorder($language->get_text_msg ('tenant', 'html'), $format);	
 						for ($i = 0; $i < $no_of_requests_to_display; ++ $i)
 							$auftragsdaten .= $changeTable->displayColumnNoBorder
-								($clist->get_client_menue_string($i, (($i==0)?$default_client:0),$filter_is_mandatory=false,$session["dbuser"]),$format);
+								($clist->get_tenant_menue_string($i, (($i==0)?$default_tenant:0),$filter_is_mandatory=false,$session["dbuser"]),$format);
 					} else { // same in hidden notation
 						for ($i = 0; $i < $no_of_requests_to_display; ++ $i)
-							$auftragsdaten .= '<input type="hidden" name="client_id$' . $i . '" value="NULL"/>';
+							$auftragsdaten .= '<input type="hidden" name="tenant_id$' . $i . '" value="NULL"/>';
 					}
 // Auftragstyp
 					if ($display_request_type) {

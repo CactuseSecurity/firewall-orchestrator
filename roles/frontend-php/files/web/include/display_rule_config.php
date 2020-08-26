@@ -8,7 +8,7 @@
  */
  
 require_once ("db-rule.php");
-require_once ("db-client.php");
+require_once ("db-tenant.php");
 require_once ("db-nwobject.php");
 require_once ("display-table.php");
 
@@ -91,8 +91,8 @@ class RuleConfigTable extends DisplayTable{
 						}
 					}
 					if ( $rule->isRuleHeader() or $rule->is_zone_header()) { // display header text only if it exists
-						if (is_null($filter->getClientId()) or $rule->is_zone_header() or // only show zone headers, when using client-filter
-							(!is_null($filter->client_id) and $filter->getClientId()==0)) {  // show headers for standard client
+						if (is_null($filter->gettenantId()) or $rule->is_zone_header() or // only show zone headers, when using tenant-filter
+							(!is_null($filter->tenant_id) and $filter->gettenantId()==0)) {  // show headers for standard tenant
 							if ($this->isHtmlFormat($report_format)) $ruleTable .= $this->displayRuleHeaderHtml($rule);
 							else {
 								if (isset($rule_zones))
@@ -147,7 +147,7 @@ class RuleConfigTable extends DisplayTable{
 		switch ($orig_action) {
 			case 'accept': case 'access': case 'permit': 
 				$action = 'permit'; break;
-			case 'client encrypt': case 'client auth': case 'auth': case 'encrypt': case 'user auth': case 'session auth': case 'actionlocalredirect':
+			case 'tenant encrypt': case 'tenant auth': case 'auth': case 'encrypt': case 'user auth': case 'session auth': case 'actionlocalredirect':
 			case 'permit webauth': case 'redirect': case 'map': case 'permit auth': case 'tunnel l2tp': case 'tunnel vpn-group': case 'tunnel vpn':  
 				$action = 'permit';
 				$rule_comments .= "original action of the following rule was $orig_action, converted to $action, ";
@@ -191,7 +191,7 @@ class RuleConfigTable extends DisplayTable{
 		switch ($orig_action) {
 			case 'accept': case 'access': case 'permit': 
 				$action = 'Erlauben'; break;
-			case 'client encrypt': case 'client auth': case 'auth': case 'encrypt': case 'user auth': case 'session auth': case 'actionlocalredirect':
+			case 'tenant encrypt': case 'tenant auth': case 'auth': case 'encrypt': case 'user auth': case 'session auth': case 'actionlocalredirect':
 			case 'permit webauth': case 'redirect': case 'map': case 'permit auth': case 'tunnel l2tp': case 'tunnel vpn-group': case 'tunnel vpn':  
 				$action = 'Erlauben';
 				$rule_comments .= "original action of the following rule was $orig_action, converted to $action, ";
@@ -217,20 +217,20 @@ class RuleConfigTable extends DisplayTable{
 			$id_field .= '"';
 		}
 
-//		do client filtering within groups (CSV report format only)
+//		do tenant filtering within groups (CSV report format only)
 		if (($report_format === 'csv' or $report_format === 'ARS.csv' or $report_format == 'ARS.noname.csv') and 
-			isset($filter->client_filter_expr) and stripos($filter->client_filter_expr, 'TRUE') === false) { // then flatten and client-filter groups
-				// NB: client_filter_expr contains 'false' (user not able to see any clients) is not in the filter: this should not occur
-//			$log = new LogConnection(); $log->log_debug("client_filter_expr: " . $filter->client_filter_expr);
+			isset($filter->tenant_filter_expr) and stripos($filter->tenant_filter_expr, 'TRUE') === false) { // then flatten and tenant-filter groups
+				// NB: tenant_filter_expr contains 'false' (user not able to see any tenants) is not in the filter: this should not occur
+//			$log = new LogConnection(); $log->log_debug("tenant_filter_expr: " . $filter->tenant_filter_expr);
 			$rule_src_ar = $this->getIpArray($source, ',', '<br>', $report_format);
 			$rule_dst_ar = $this->getIpArray($destination, ',', '<br>', $report_format);
-			$client_network_table	= new ClientNetList($filter,$db_conn,'true');
-			$client_network_ar = $client_network_table->client_net_ar;
-	 		if (!$this->IpOverlapsAr($rule_dst_ar, $client_network_ar)) {
-				$source = $this->clientFilter($source, $client_network_ar, ',', '<br>', $report_format);
+			$tenant_network_table	= new tenantNetList($filter,$db_conn,'true');
+			$tenant_network_ar = $tenant_network_table->tenant_net_ar;
+	 		if (!$this->IpOverlapsAr($rule_dst_ar, $tenant_network_ar)) {
+				$source = $this->tenantFilter($source, $tenant_network_ar, ',', '<br>', $report_format);
 			}
-			if (!$this->IpOverlapsAr($rule_src_ar, $client_network_ar)) {
-				$destination = $this->clientFilter($destination, $client_network_ar, ',', '<br>', $report_format);
+			if (!$this->IpOverlapsAr($rule_src_ar, $tenant_network_ar)) {
+				$destination = $this->tenantFilter($destination, $tenant_network_ar, ',', '<br>', $report_format);
 			}
 		}
 		
@@ -312,7 +312,7 @@ class RuleConfigTable extends DisplayTable{
 		list($obj_names, $obj_ips) = explode("$field_separator", $nw_objs);
 		return explode ("$element_separator", $obj_ips);
 	}
-	function clientFilter($nw_objs, $client_net_ar, $field_separator, $element_separator, $report_format) {
+	function tenantFilter($nw_objs, $tenant_net_ar, $field_separator, $element_separator, $report_format) {
 		list($obj_names, $obj_ips) = explode("$field_separator", $nw_objs);
 		$obj_name_ar = explode ("$element_separator", $obj_names);
 		$obj_ip_ar = explode ("$element_separator", $obj_ips);
@@ -323,7 +323,7 @@ class RuleConfigTable extends DisplayTable{
 		for ($i=0; $i<count($obj_ip_ar); $i++) {
 			$obj_ip = $obj_ip_ar[$i];
 			$obj_name = $obj_name_ar[$i];
-			if ($this->IpOverlapsAr(array($obj_ip), $client_net_ar)) {
+			if ($this->IpOverlapsAr(array($obj_ip), $tenant_net_ar)) {
 				$obj_ip_ar2[] = $obj_ip;
 				$obj_name_ar2[] = $obj_name;
 			}
@@ -445,7 +445,7 @@ class RuleConfigTable extends DisplayTable{
 //		}
 	}
 	function filter($filter,$rule) {	// returns false if rule shall not be displayed, otherwise true
-		if ($filter->client_filter_is_set() and $rule->isRuleHeader())
+		if ($filter->tenant_filter_is_set() and $rule->isRuleHeader())
 			return false;
 		if ($filter->report_type == 'rulesearch' and !$rule->is_pass_rule()) 
 			return false;
@@ -476,18 +476,18 @@ class RuleConfigTable extends DisplayTable{
 				$isService = true;
 		}
 		if(!$this->error->isError($rule_sources = $rule->getRuleSource())) {
-			if ($filter->client_filter_is_set() and count($rule_sources)==0) $isSource = false; // source or destination is empty --> filtered by client filter 
+			if ($filter->tenant_filter_is_set() and count($rule_sources)==0) $isSource = false; // source or destination is empty --> filtered by tenant filter 
 			else {
 				$name_filter = $filter->getFilter($filter->src_name);
 				$ip_filter = $filter->getIpFilter($filter->src_ip);
-				if ($name_filter OR $ip_filter OR $filter->client_filter_is_set()) {
+				if ($name_filter OR $ip_filter OR $filter->tenant_filter_is_set()) {
 					if ($rule->isRuleHeader())
 						return false;
 					else {
 						if (count($rule_sources)==0 || // empty source or any-match
 							($ip_filter && !$filter->showAnyRules() && $rule_sources[0]->getObjectIp() == '0.0.0.0/0'
 								|| $ip_filter && !$filter->showNegRules() && $rule->isRuleSourceNegated()
-						    	|| $filter->client_filter_is_set() && !$filter->showAnyRules() && $rule_sources[0]->getObjectIp() == '0.0.0.0/0'
+						    	|| $filter->tenant_filter_is_set() && !$filter->showAnyRules() && $rule_sources[0]->getObjectIp() == '0.0.0.0/0'
 							)) // just checking first obj!
 							$isSource = false;
 						else {
@@ -508,18 +508,18 @@ class RuleConfigTable extends DisplayTable{
 			}
 		}
 		if(!$this->error->isError($rule_destinations = $rule->getRuleDestination())) {
-			if ($filter->client_filter_is_set() and count($rule_destinations)==0) $isDestination = false;
+			if ($filter->tenant_filter_is_set() and count($rule_destinations)==0) $isDestination = false;
 				else {
 				$name_filter = $filter->getFilter($filter->dst_name);
 				$ip_filter = $filter->getIpFilter($filter->dst_ip);
-				if ($name_filter OR $ip_filter OR $filter->client_filter_is_set()) {
+				if ($name_filter OR $ip_filter OR $filter->tenant_filter_is_set()) {
 					if ($rule->isRuleHeader())
 						return false;
 					else {
 						if (count($rule_destinations)==0 || // empty destination or any-match, just checking first obj! unscharf bei userauth regeln
 							($ip_filter && !$filter->showAnyRules() && $rule_destinations[0]->getObjectIp() == '0.0.0.0/0'
 							 || $ip_filter && !$filter->showNegRules() && $rule->isRuleDestinationNegated()
-							 || $filter->client_filter_is_set() && !$filter->showAnyRules() && $rule_destinations[0]->getObjectIp() == '0.0.0.0/0'
+							 || $filter->tenant_filter_is_set() && !$filter->showAnyRules() && $rule_destinations[0]->getObjectIp() == '0.0.0.0/0'
 						))
 							$isDestination = false;
 						else {

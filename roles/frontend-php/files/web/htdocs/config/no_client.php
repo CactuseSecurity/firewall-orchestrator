@@ -1,6 +1,6 @@
 <?php
-// $Id: no_client.php,v 1.1.2.3 2012-04-30 17:21:12 tim Exp $
-// $Source: /home/cvs/iso/package/web/htdocs/config/Attic/no_client.php,v $
+// $Id: no_tenant.php,v 1.1.2.3 2012-04-30 17:21:12 tim Exp $
+// $Source: /home/cvs/iso/package/web/htdocs/config/Attic/no_tenant.php,v $
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -21,6 +21,6 @@
 	$request = $cleaner->clean_structure($_REQUEST);
 	$session = $cleaner->clean_structure($_SESSION);
 	$language = new Multilanguage($session["dbuser"]);
-	echo $language->get_text_msg('no_client_selected', 'html');
+	echo $language->get_text_msg('no_tenant_selected', 'html');
 ?>
 </body></html>

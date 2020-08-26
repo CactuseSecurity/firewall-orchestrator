@@ -198,9 +198,9 @@ ALTER TABLE changelog_user
 
         
 ALTER TABLE device
-   DROP CONSTRAINT device_client_id_fkey,
-   ADD CONSTRAINT device_client_id_fkey FOREIGN KEY (client_id)
-        REFERENCES public.client (client_id) MATCH SIMPLE
+   DROP CONSTRAINT device_tenant_id_fkey,
+   ADD CONSTRAINT device_tenant_id_fkey FOREIGN KEY (tenant_id)
+        REFERENCES public.tenant (tenant_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT device_dev_typ_id_fkey,
@@ -262,9 +262,9 @@ ALTER TABLE object
         ON DELETE CASCADE;        
 
 ALTER TABLE usr
-    DROP CONSTRAINT usr_client_id_fkey,
-    ADD CONSTRAINT usr_client_id_fkey FOREIGN KEY (client_id)
-        REFERENCES public.client (client_id) MATCH SIMPLE
+    DROP CONSTRAINT usr_tenant_id_fkey,
+    ADD CONSTRAINT usr_tenant_id_fkey FOREIGN KEY (tenant_id)
+        REFERENCES public.tenant (tenant_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT usr_last_change_admin_fkey,
@@ -629,9 +629,9 @@ ALTER TABLE temp_filtered_rule_ids
         ON DELETE CASCADE;
 
 ALTER TABLE report        
-    DROP CONSTRAINT report_client_id_fkey,
-    ADD CONSTRAINT report_client_id_fkey FOREIGN KEY (client_id)
-        REFERENCES public.client (client_id) MATCH SIMPLE
+    DROP CONSTRAINT report_tenant_id_fkey,
+    ADD CONSTRAINT report_tenant_id_fkey FOREIGN KEY (tenant_id)
+        REFERENCES public.tenant (tenant_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT report_dev_id_fkey,

@@ -13,42 +13,42 @@ require_once ("multi-language.php");
 //require_once ("operating-system.php"); // only for log debugging
 
 
-class DisplayClientNet {
+class DisplaytenantNet {
 
-	var $client_net_list;
+	var $tenant_net_list;
 
-	function __construct($client_net_list) {
-		$this->client_net_list = $client_net_list;
+	function __construct($tenant_net_list) {
+		$this->tenant_net_list = $tenant_net_list;
 	}
 
-	function show_client_network_menue() {
-		$client_net_list = $this->client_net_list;
-		$anz = $client_net_list->rows;
-		$old_client = NULL;
+	function show_tenant_network_menue() {
+		$tenant_net_list = $this->tenant_net_list;
+		$anz = $tenant_net_list->rows;
+		$old_tenant = NULL;
 		$old_net = NULL;
 		$menu = '<ul>';
 
 		for ($zi=0; $zi<$anz; $zi++) {
-			$client_name = $client_net_list->data[$zi]['client_name'];
-			$client_id = $client_net_list->data[$zi]['client_id'];
-			$client_net_ip = $client_net_list->data[$zi]['client_net_ip'];
-			$client_net_id = $client_net_list->data[$zi]['client_net_id'];
-			$client_id = $client_net_list->data[$zi]['client_id'];
-			if ($old_client == NULL or $old_client != $client_id) {
-				if (!($old_client == NULL)) {  // nicht erstes Element
+			$tenant_name = $tenant_net_list->data[$zi]['tenant_name'];
+			$tenant_id = $tenant_net_list->data[$zi]['tenant_id'];
+			$tenant_net_ip = $tenant_net_list->data[$zi]['tenant_net_ip'];
+			$tenant_net_id = $tenant_net_list->data[$zi]['tenant_net_id'];
+			$tenant_id = $tenant_net_list->data[$zi]['tenant_id'];
+			if ($old_tenant == NULL or $old_tenant != $tenant_id) {
+				if (!($old_tenant == NULL)) {  // nicht erstes Element
 					if (!($old_net == NULL)) $menu .= "</ul>";	//vorheriges netz war gesetzt
 					$menu .= "</li>";
 				}
-				$menu .= "<li><a href=\"javascript:changeClient('$client_name', $client_id);\" class=\"baum\">$client_name</a>"; 
-				if (isset($client_net_id) and !($client_net_id == '')) $menu .= '<ul>';
+				$menu .= "<li><a href=\"javascript:changetenant('$tenant_name', $tenant_id);\" class=\"baum\">$tenant_name</a>"; 
+				if (isset($tenant_net_id) and !($tenant_net_id == '')) $menu .= '<ul>';
 			}
-			if (isset($client_net_id) and !($client_net_id == ''))   // Netze zu Client ausgeben
-				$menu .= "<li><a href=\"javascript:changeClientNet('$client_name', '$client_id', '$client_net_ip', $client_net_id);\" class=\"baum\">$client_net_ip</a></li>"; 
-			$old_client = $client_id;
-			if (isset($client_net_id)) $old_net = $client_net_id;
+			if (isset($tenant_net_id) and !($tenant_net_id == ''))   // Netze zu tenant ausgeben
+				$menu .= "<li><a href=\"javascript:changetenantNet('$tenant_name', '$tenant_id', '$tenant_net_ip', $tenant_net_id);\" class=\"baum\">$tenant_net_ip</a></li>"; 
+			$old_tenant = $tenant_id;
+			if (isset($tenant_net_id)) $old_net = $tenant_net_id;
 			else $old_net = NULL;
 		} 
-		if (isset($client_net_id) and !($client_net_id == '')) 
+		if (isset($tenant_net_id) and !($tenant_net_id == '')) 
 			$menu .= '</ul>';
 		$menu .= '</li></ul>';
 		echo $menu;

@@ -79,8 +79,8 @@ insert into stm_action (action_id,action_name) VALUES (1,'accept'); -- cp, forti
 insert into stm_action (action_id,action_name) VALUES (2,'drop'); -- cp
 insert into stm_action (action_id,action_name) VALUES (3,'deny'); -- netscreen, fortinet
 insert into stm_action (action_id,action_name) VALUES (4,'access'); -- netscreen
-insert into stm_action (action_id,action_name) VALUES (5,'client encrypt'); -- cp
-insert into stm_action (action_id,action_name) VALUES (6,'client auth'); -- cp
+insert into stm_action (action_id,action_name) VALUES (5,'tenant encrypt'); -- cp
+insert into stm_action (action_id,action_name) VALUES (6,'tenant auth'); -- cp
 insert into stm_action (action_id,action_name) VALUES (7,'reject'); -- cp
 insert into stm_action (action_id,action_name) VALUES (8,'encrypt'); -- cp
 insert into stm_action (action_id,action_name) VALUES (9,'user auth'); -- cp
@@ -460,7 +460,7 @@ junos-bootpc;17;68;;;junos-predefined-service;simple;
 junos-bootps;17;67;;;junos-predefined-service;simple;
 junos-chargen;17;19;;;junos-predefined-service;simple;
 junos-cvspserver;6;2401;;;junos-predefined-service;simple;
-junos-dhcp-client;17;68;;;junos-predefined-service;simple;
+junos-dhcp-tenant;17;68;;;junos-predefined-service;simple;
 junos-dhcp-relay;17;67;;;junos-predefined-service;simple;
 junos-dhcp-server;17;67;;;junos-predefined-service;simple;
 junos-discard;17;9;;;junos-predefined-service;simple;
@@ -608,10 +608,10 @@ where dev_typ_id=8;
 --
 
 SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
+SET tenant_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
-SET client_min_messages = warning;
+SET tenant_min_messages = warning;
 
 SET search_path = public, pg_catalog;
 
@@ -657,7 +657,7 @@ INSERT INTO text_msg VALUES ('comment', 'Kommentar', 'Comment');
 INSERT INTO text_msg VALUES ('request_data', 'Auftragsdaten', 'Request data');
 INSERT INTO text_msg VALUES ('missing_request_number', 'Bitte mindestens eine Auftragsnummer eingeben.', 'Please enter at least one request number.');
 INSERT INTO text_msg VALUES ('missing_request_type', 'Die eingetragenen Auftragsdaten passen nicht. Bitte zu jeder eingetragenen Auftragsnummer einen Auftragstyp auswählen.', 'Mismatch in request data. Please enter a request type for each request number.');
-INSERT INTO text_msg VALUES ('missing_client_for_request', 'Die eingetragenen Auftragsdaten passen nicht. Bitte zu jeder eingetragenen Auftragsnummer einen Mandanten auswählen.', 'Mismatch in request data. Please enter a client name for each request number.');
+INSERT INTO text_msg VALUES ('missing_tenant_for_request', 'Die eingetragenen Auftragsdaten passen nicht. Bitte zu jeder eingetragenen Auftragsnummer einen Mandanten auswählen.', 'Mismatch in request data. Please enter a tenant name for each request number.');
 INSERT INTO text_msg VALUES ('missing_comment', 'Bitte Kommentarfeld ausfüllen.', 'Please fill-in comment field.');
 INSERT INTO text_msg VALUES ('exceeded_max_request_number', 'Die Anzahl der Auftragsfelder übersteigt die maximale Anzahl von 9. Bitte in der fworch-Konfiguration (gui.conf) anpassen.', 'Please set  request number to not more than 9 in gui.conf. ');
 INSERT INTO text_msg VALUES ('no_change_selected', 'Bitte mindestens eine Änderung auswählen.', 'Please select at least one change.');
@@ -679,14 +679,14 @@ INSERT INTO text_msg VALUES ('anonymous', 'anonym', 'anonymous');
 INSERT INTO text_msg VALUES ('management_filter', 'Management-Filter', 'Management filter');
 INSERT INTO text_msg VALUES ('systems', 'Systeme', 'systems');
 INSERT INTO text_msg VALUES ('systems_capital', 'Systeme', 'Systems');
-INSERT INTO text_msg VALUES ('no_client_selected', 'Bitte wählen Sie einen Mandanten aus.', 'Please select a client.');
+INSERT INTO text_msg VALUES ('no_tenant_selected', 'Bitte wählen Sie einen Mandanten aus.', 'Please select a tenant.');
 INSERT INTO text_msg VALUES ('please_select', 'Bitte wählen Sie ...', 'Please select ...');
 INSERT INTO text_msg VALUES ('no_device_selected', 'Bitte wählen Sie ein Device aus.', 'Please select a device.');
 INSERT INTO text_msg VALUES ('select_on_left', 'Bitte links auswählen.', 'Please select on left hand side.');
 INSERT INTO text_msg VALUES ('settings', 'Einstellungen', 'Settings');
 INSERT INTO text_msg VALUES ('settings_description', 'Änderungen der Einstellungen von fworch.', 'Change the settings of fworch.');
 INSERT INTO text_msg VALUES ('user_id', 'Benutzer-ID', 'User ID');
-INSERT INTO text_msg VALUES ('client', 'Mandant', 'Client');
+INSERT INTO text_msg VALUES ('tenant', 'Mandant', 'tenant');
 INSERT INTO text_msg VALUES ('change_documentation', 'Dokumentation ändern', 'Change Documentation');
 INSERT INTO text_msg VALUES ('config_time', 'Konfigurationsstand', 'Configuration state');
 INSERT INTO text_msg VALUES ('report_time', 'Zeitpunkt', 'Time of report');
@@ -706,7 +706,7 @@ INSERT INTO text_msg VALUES ('remove_filter', 'Filter entfernen', 'Remove filter
 INSERT INTO text_msg VALUES ('generate_report', 'Report erstellen', 'Generate report');
 INSERT INTO text_msg VALUES ('change_password', 'Passwort ändern', 'Change password');
 INSERT INTO text_msg VALUES ('change_devices', 'Systeme ändern', 'Change devices');
-INSERT INTO text_msg VALUES ('change_clients', 'Mandanten ändern', 'Change clients');
+INSERT INTO text_msg VALUES ('change_tenants', 'Mandanten ändern', 'Change tenants');
 INSERT INTO text_msg VALUES ('set_password', 'Passwort setzen', 'Set password');
 INSERT INTO text_msg VALUES ('old_password', 'Altes Passwort', 'Old password');
 INSERT INTO text_msg VALUES ('-- new_password', 'Neues Passwort', 'New password');
@@ -728,15 +728,15 @@ INSERT INTO text_msg VALUES ('management_created', 'Management angelegt am', 'Ma
 INSERT INTO text_msg VALUES ('management_last_changed', 'Management zuletzt geändert am', 'Management last changed at');
 INSERT INTO text_msg VALUES ('save', 'Speichern', 'Save');
 INSERT INTO text_msg VALUES ('cancel', 'Abbrechen', 'Cancel');
-INSERT INTO text_msg VALUES ('client_settings', 'Einstellungen Mandanten', 'Client settings');
-INSERT INTO text_msg VALUES ('existing_client_information', 'Existierende Mandanteninformation', 'Existing client information');
-INSERT INTO text_msg VALUES ('new_client', 'Neuer Mandant', 'New client');
+INSERT INTO text_msg VALUES ('tenant_settings', 'Einstellungen Mandanten', 'tenant settings');
+INSERT INTO text_msg VALUES ('existing_tenant_information', 'Existierende Mandanteninformation', 'Existing tenant information');
+INSERT INTO text_msg VALUES ('new_tenant', 'Neuer Mandant', 'New tenant');
 INSERT INTO text_msg VALUES ('new_ip_network', 'Neues IP-Netzwerk', 'New IP network');
-INSERT INTO text_msg VALUES ('create_new_clients_or_networks', 'Neuen Mandanten oder Netzwerk anlegen', 'Create new client or network');
-INSERT INTO text_msg VALUES ('client_id', 'Mandanten-ID', 'Client ID');
-INSERT INTO text_msg VALUES ('client_name', 'Mandantenname', 'Client name');
+INSERT INTO text_msg VALUES ('create_new_tenants_or_networks', 'Neuen Mandanten oder Netzwerk anlegen', 'Create new tenant or network');
+INSERT INTO text_msg VALUES ('tenant_id', 'Mandanten-ID', 'tenant ID');
+INSERT INTO text_msg VALUES ('tenant_name', 'Mandantenname', 'tenant name');
 INSERT INTO text_msg VALUES ('delete', 'Löschen', 'Delete');
-INSERT INTO text_msg VALUES ('client_network', 'Mandanten IP-Netzwerk', 'Client IP network');
+INSERT INTO text_msg VALUES ('tenant_network', 'Mandanten IP-Netzwerk', 'tenant IP network');
 INSERT INTO text_msg VALUES ('report_headline_changes', 'Änderungsreport Sicherheitskonfiguration', 'Security Configuration Change Report');
 INSERT INTO text_msg VALUES ('report_headline_usage', 'Verwendungsstatistik der Elemente der Sicherheitskonfiguration', 'Statistics Report: Usage of Security Configuration Elements');
 INSERT INTO text_msg VALUES ('report_headline_rulesearch', 'Globale Liste von Regeln, die Filterkriterien erfüllen', 'Rulesearch Report');

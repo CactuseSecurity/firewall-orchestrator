@@ -135,164 +135,150 @@ tables:
     name: changelog_user
     schema: public
 - array_relationships:
-  - name: client_networks
+  - name: tenant_networks
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
-          name: client_network
+          name: tenant_network
           schema: public
-  - name: client_objects
+  - name: tenant_objects
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
-          name: client_object
+          name: tenant_object
           schema: public
-  - name: client_projects
+  - name: tenant_projects
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
-          name: client_project
+          name: tenant_project
           schema: public
-  - name: clientProjectsByPrjId
+  - name: tenantProjectsByPrjId
     using:
       foreign_key_constraint_on:
         column: prj_id
         table:
-          name: client_project
+          name: tenant_project
           schema: public
-  - name: client_usernames
+  - name: tenant_usernames
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
-          name: client_username
+          name: tenant_username
           schema: public
-  - name: client_users
+  - name: tenant_users
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
-          name: client_user
-          schema: public
-  - name: device_client_maps
-    using:
-      foreign_key_constraint_on:
-        column: client_id
-        table:
-          name: device_client_map
+          name: tenant_user
           schema: public
   - name: devices
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
           name: device
           schema: public
   - name: isoadmins
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
           name: isoadmin
           schema: public
   - name: management
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
           name: management
-          schema: public
-  - name: management_client_maps
-    using:
-      foreign_key_constraint_on:
-        column: client_id
-        table:
-          name: management_client_map
           schema: public
   - name: reports
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
           name: report
           schema: public
-  - name: reporttyp_client_maps
+  - name: reporttyp_tenant_maps
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
-          name: reporttyp_client_map
+          name: reporttyp_tenant_map
           schema: public
   - name: requests
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
           name: request
           schema: public
   - name: rule_reviews
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
           name: rule_review
           schema: public
   - name: usrs
     using:
       foreign_key_constraint_on:
-        column: client_id
+        column: tenant_id
         table:
           name: usr
           schema: public
   table:
-    name: client
+    name: tenant
     schema: public
 - object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   table:
-    name: client_network
+    name: tenant_network
     schema: public
 - object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: object
     using:
       foreign_key_constraint_on: obj_id
   table:
-    name: client_object
+    name: tenant_object
     schema: public
 - object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
-  - name: clientByPrjId
+      foreign_key_constraint_on: tenant_id
+  - name: tenantByPrjId
     using:
       foreign_key_constraint_on: prj_id
   table:
-    name: client_project
+    name: tenant_project
     schema: public
 - object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: usr
     using:
       foreign_key_constraint_on: user_id
   table:
-    name: client_user
+    name: tenant_user
     schema: public
 - object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   table:
-    name: client_username
+    name: tenant_username
     schema: public
 - table:
     name: config
@@ -304,13 +290,6 @@ tables:
         column: dev_id
         table:
           name: changelog_rule
-          schema: public
-  - name: device_client_maps
-    using:
-      foreign_key_constraint_on:
-        column: dev_id
-        table:
-          name: device_client_map
           schema: public
   - name: objects
     using:
@@ -326,12 +305,12 @@ tables:
         table:
           name: report
           schema: public
-  - name: role_to_devices
+  - name: tenant_to_devices
     using:
       foreign_key_constraint_on:
         column: device_id
         table:
-          name: role_to_device
+          name: tenant_to_device
           schema: public
   - name: rule_orders
     using:
@@ -348,9 +327,9 @@ tables:
           name: rule
           schema: public
   object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -366,7 +345,7 @@ tables:
       - dev_name
       - dev_rulebase
       - dev_typ_id
-      - client_id
+      - tenant_id
       - dev_active
       - dev_comment
       - dev_create
@@ -389,7 +368,7 @@ tables:
       - dev_name
       - dev_rulebase
       - dev_typ_id
-      - client_id
+      - tenant_id
       - dev_active
       - dev_comment
       - dev_create
@@ -402,16 +381,6 @@ tables:
     role: reporter-viewall
   table:
     name: device
-    schema: public
-- object_relationships:
-  - name: client
-    using:
-      foreign_key_constraint_on: client_id
-  - name: device
-    using:
-      foreign_key_constraint_on: dev_id
-  table:
-    name: device_client_map
     schema: public
 - array_relationships:
   - name: error_logs
@@ -843,9 +812,9 @@ tables:
           name: usr
           schema: public
   object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   table:
     name: isoadmin
     schema: public
@@ -884,13 +853,6 @@ tables:
         column: mgm_id
         table:
           name: device
-          schema: public
-  - name: management_client_maps
-    using:
-      foreign_key_constraint_on:
-        column: mgm_id
-        table:
-          name: management_client_map
           schema: public
   - name: objects
     using:
@@ -935,9 +897,9 @@ tables:
           name: zone
           schema: public
   object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: stm_dev_typ
     using:
       foreign_key_constraint_on: dev_typ_id
@@ -946,7 +908,7 @@ tables:
       allow_aggregations: true
       columns:
       - clearing_import_ran
-      - client_id
+      - tenant_id
       - config_path
       - dev_typ_id
       - do_not_import
@@ -969,7 +931,7 @@ tables:
       - dev_typ_id
       - mgm_name
       - mgm_comment
-      - client_id
+      - tenant_id
       - mgm_create
       - mgm_update
       - ssh_public_key
@@ -991,16 +953,6 @@ tables:
     role: reporter-viewall
   table:
     name: management
-    schema: public
-- object_relationships:
-  - name: client
-    using:
-      foreign_key_constraint_on: client_id
-  - name: management
-    using:
-      foreign_key_constraint_on: mgm_id
-  table:
-    name: management_client_map
     schema: public
 - select_permissions:
   - permission:
@@ -1034,12 +986,12 @@ tables:
         table:
           name: changelog_object
           schema: public
-  - name: client_objects
+  - name: tenant_objects
     using:
       foreign_key_constraint_on:
         column: obj_id
         table:
-          name: client_object
+          name: tenant_object
           schema: public
   - name: objgrp_flats
     using:
@@ -1263,9 +1215,9 @@ tables:
     name: objgrp_flat
     schema: public
 - object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: device
     using:
       foreign_key_constraint_on: dev_id
@@ -1290,21 +1242,21 @@ tables:
       - report_start_time
       - report_end_time
       - report_document
-      - client_id
+      - tenant_id
       filter: {}
     role: reporter-viewall
   table:
     name: report
     schema: public
 - object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: stm_report_typ
     using:
       foreign_key_constraint_on: report_typ_id
   table:
-    name: reporttyp_client_map
+    name: reporttyp_tenant_map
     schema: public
 - array_relationships:
   - name: request_object_changes
@@ -1336,9 +1288,9 @@ tables:
           name: request_user_change
           schema: public
   object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: request_type
     using:
       foreign_key_constraint_on: request_type_id
@@ -1397,12 +1349,12 @@ tables:
     name: request_user_change
     schema: public
 - array_relationships:
-  - name: role_to_devices
+  - name: tenant_to_devices
     using:
       foreign_key_constraint_on:
         column: role_id
         table:
-          name: role_to_device
+          name: tenant_to_device
           schema: public
   table:
     name: role
@@ -1415,7 +1367,7 @@ tables:
     using:
       foreign_key_constraint_on: role_id
   table:
-    name: role_to_device
+    name: tenant_to_device
     schema: public
 - array_relationships:
   - name: changelog_rules
@@ -1642,9 +1594,9 @@ tables:
     name: rule_order
     schema: public
 - object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: rule
     using:
       foreign_key_constraint_on: rule_id
@@ -2118,12 +2070,12 @@ tables:
         table:
           name: report
           schema: public
-  - name: reporttyp_client_maps
+  - name: reporttyp_tenant_maps
     using:
       foreign_key_constraint_on:
         column: report_typ_id
         table:
-          name: reporttyp_client_map
+          name: reporttyp_tenant_map
           schema: public
   select_permissions:
   - permission:
@@ -2310,7 +2262,7 @@ tables:
     name: temp_mgmid_importid_at_report_time
     schema: public
 - table:
-    name: temp_table_for_client_filtered_rule_ids
+    name: temp_table_for_tenant_filtered_rule_ids
     schema: public
 - select_permissions:
   - permission:
@@ -2418,12 +2370,12 @@ tables:
         table:
           name: changelog_user
           schema: public
-  - name: client_users
+  - name: tenant_users
     using:
       foreign_key_constraint_on:
         column: user_id
         table:
-          name: client_user
+          name: tenant_user
           schema: public
   - name: rule_froms
     using:
@@ -2461,9 +2413,9 @@ tables:
           name: usergrp
           schema: public
   object_relationships:
-  - name: client
+  - name: tenant
     using:
-      foreign_key_constraint_on: client_id
+      foreign_key_constraint_on: tenant_id
   - name: isoadmin
     using:
       foreign_key_constraint_on: last_change_admin
@@ -2501,7 +2453,7 @@ tables:
       - user_firstname
       - user_lastname
       - last_change_admin
-      - client_id
+      - tenant_id
       filter:
         mgm_id:
           _in: X-Hasura-visible-managements
@@ -2529,7 +2481,7 @@ tables:
       - user_firstname
       - user_lastname
       - last_change_admin
-      - client_id
+      - tenant_id
       filter: {}
     role: reporter-viewall
   table:

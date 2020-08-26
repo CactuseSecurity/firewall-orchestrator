@@ -1,22 +1,22 @@
 - block:
   # todo: use a single file for the following with \i file.sql
-  - name: insert role forti
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''forti'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''forti'', false, false); END IF; END $do$"'
+  - name: insert tenant forti
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''forti'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''forti'', false, false); END IF; END $do$"'
 
-  - name: add devices for role forti
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN role USING (role_id) WHERE role_name=''forti'') THEN INSERT INTO tenant_to_device (role_id, device_id) select role_id, 1 from role where role_name=''forti''; END IF; END $do$"'
+  - name: add devices for tenant forti
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''forti'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant_id, 1 from tenant where tenant_name=''forti''; END IF; END $do$"'
 
-  - name: insert role check
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''check'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''check'', false, false); END IF; END $do$"'
+  - name: insert tenant check
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''check'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''check'', false, false); END IF; END $do$"'
 
-  - name: add devices for role check
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN role USING (role_id) WHERE role_name=''check'') THEN INSERT INTO tenant_to_device (role_id, device_id) select role_id, 2 from role where role_name=''check''; END IF; END $do$"'
+  - name: add devices for tenant check
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''check'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant_id, 2 from tenant where tenant_name=''check''; END IF; END $do$"'
 
-  - name: insert role viewall
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT role_id FROM role WHERE role_name=''viewall'') THEN insert into role (role_name, role_can_view_all_devices, role_is_superadmin) values (''viewall'', false, false); END IF; END $do$"'
+  - name: insert tenant viewall
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''viewall'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''viewall'', false, false); END IF; END $do$"'
 
-  - name: add devices for role viewall
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN role USING (role_id) WHERE role_name=''viewall'') THEN INSERT INTO tenant_to_device (role_id, device_id) select role.role_id, device.dev_id FROM role, device WHERE role_name=''viewall''; END IF; END $do$"'
+  - name: add devices for tenant viewall
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''viewall'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name=''viewall''; END IF; END $do$"'
 
   become: yes
   become_user: postgres

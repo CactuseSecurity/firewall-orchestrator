@@ -1,20 +1,20 @@
 
 { "queries": [
     {
-        "name": "getRoleName",
-        "query": "query getRoleId($role_name: String!) { role(where: {role_name: {_eq: $role_name}}) { role_id } }"
+        "name": "getTenantId",
+        "query": "query getTenantId($tenant_name: String!) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }"
     },
     {
         "name": "getVisibleDevIds",
-        "query": "query getVisibleDevIds($role_id: Int!) { device(where: {client_to_devices: {role_id: {_eq: $role_id}}}) { dev_id } }"
+        "query": "query getVisibleDevIds($tenant_id: Int!) { device(where: {tenant_to_devices: {tenant_id: {_eq: $tenant_id}}}) { dev_id } }"
     },
     {
-        "name": "getVisibleDevIdsFromRoleName",
-        "query": "query getVisibleDevIdsFromRoleName($role_name: String!) { device(where: {client_to_devices: {role_id: {_eq: getRoleId($role_name)}}}) { dev_id } }"
+        "name": "getVisibleDevIdsFromTenantName",
+        "query": "query getVisibleDevIdsFromTenantName($tenant_name: String!) { device(where: {client_to_devices: {tenant_id: {_eq: getTenantId($tenant_name)}}}) { dev_id } }"
     },
     {
-        "name": "roleCanViewAllDevices",
-        "query": "query roleCanViewAllDevices($role_id: Int!) { role(where:{role_id: {_eq: $role_id}}) { role_can_view_all_devices } }"
+        "name": "tenantCanViewAllDevices",
+        "query": "query tenantCanViewAllDevices($tenant_id: Int!) { tenant(where:{tenant_id: {_eq: $tenant_id}}) { tenant_can_view_all_devices } }"
     }
 ]
 }

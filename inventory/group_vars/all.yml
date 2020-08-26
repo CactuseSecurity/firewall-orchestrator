@@ -24,6 +24,7 @@ fworch_db_port: 5432
 fworch_db_host: 127.0.0.1
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
+api_service_name: hasura-docker-api
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"

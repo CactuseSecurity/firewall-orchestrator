@@ -1,7 +1,3 @@
-<?php
-// $Id: no_tenant.php,v 1.1.2.3 2012-04-30 17:21:12 tim Exp $
-// $Source: /home/cvs/iso/package/web/htdocs/config/Attic/no_tenant.php,v $
-?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>

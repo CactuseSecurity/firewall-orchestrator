@@ -79,8 +79,8 @@ insert into stm_action (action_id,action_name) VALUES (1,'accept'); -- cp, forti
 insert into stm_action (action_id,action_name) VALUES (2,'drop'); -- cp
 insert into stm_action (action_id,action_name) VALUES (3,'deny'); -- netscreen, fortinet
 insert into stm_action (action_id,action_name) VALUES (4,'access'); -- netscreen
-insert into stm_action (action_id,action_name) VALUES (5,'tenant encrypt'); -- cp
-insert into stm_action (action_id,action_name) VALUES (6,'tenant auth'); -- cp
+insert into stm_action (action_id,action_name) VALUES (5,'client encrypt'); -- cp
+insert into stm_action (action_id,action_name) VALUES (6,'client auth'); -- cp
 insert into stm_action (action_id,action_name) VALUES (7,'reject'); -- cp
 insert into stm_action (action_id,action_name) VALUES (8,'encrypt'); -- cp
 insert into stm_action (action_id,action_name) VALUES (9,'user auth'); -- cp
@@ -460,7 +460,7 @@ junos-bootpc;17;68;;;junos-predefined-service;simple;
 junos-bootps;17;67;;;junos-predefined-service;simple;
 junos-chargen;17;19;;;junos-predefined-service;simple;
 junos-cvspserver;6;2401;;;junos-predefined-service;simple;
-junos-dhcp-tenant;17;68;;;junos-predefined-service;simple;
+junos-dhcp-client;17;68;;;junos-predefined-service;simple;
 junos-dhcp-relay;17;67;;;junos-predefined-service;simple;
 junos-dhcp-server;17;67;;;junos-predefined-service;simple;
 junos-discard;17;9;;;junos-predefined-service;simple;
@@ -608,10 +608,10 @@ where dev_typ_id=8;
 --
 
 SET statement_timeout = 0;
-SET tenant_encoding = 'UTF8';
+SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
-SET tenant_min_messages = warning;
+SET client_min_messages = warning;
 
 SET search_path = public, pg_catalog;
 

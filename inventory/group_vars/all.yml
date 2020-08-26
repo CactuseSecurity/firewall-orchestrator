@@ -24,7 +24,10 @@ fworch_db_port: 5432
 fworch_db_host: 127.0.0.1
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
+
+### database (remove) & api
 api_service_name: hasura-docker-api
+api_container_name: "{{ product_name }}-api"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
@@ -39,6 +42,7 @@ syslog_port: 514
 auth_server_syslog_id: "{{ product_name }}.auth-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
+api_log_level: info
 
 ### apache: both package and dir name (needed both on ui and api hosts):
 web_server_name: apache2

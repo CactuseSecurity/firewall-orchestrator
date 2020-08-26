@@ -137,10 +137,20 @@
 #   become: yes
 #   when: clean_install is defined and not db_exists.stdout=="0"
 
-- name: stop hasura api to make sure the database can be dropped
-  service:
-    name: "{{ api_service_name }}"
-    state: stopped
+# - name: stop hasura api to make sure the database can be dropped
+#   service:
+#     name: "{{ api_service_name }}"
+#     state: stopped
+#   become: yes
+#   when: clean_install is defined
+
+- name: stop api container
+  command: "docker stop {{ api_container_name }}"
+  become: yes
+  when: clean_install is defined
+
+- name: remove api container
+  command: "docker rm {{ api_container_name }}"
   become: yes
   when: clean_install is defined
 

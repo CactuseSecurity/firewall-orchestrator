@@ -134,152 +134,6 @@ tables:
   table:
     name: changelog_user
     schema: public
-- array_relationships:
-  - name: tenant_networks
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: tenant_network
-          schema: public
-  - name: tenant_objects
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: tenant_object
-          schema: public
-  - name: tenant_projects
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: tenant_project
-          schema: public
-  - name: tenantProjectsByPrjId
-    using:
-      foreign_key_constraint_on:
-        column: prj_id
-        table:
-          name: tenant_project
-          schema: public
-  - name: tenant_usernames
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: tenant_username
-          schema: public
-  - name: tenant_users
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: tenant_user
-          schema: public
-  - name: devices
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: device
-          schema: public
-  - name: isoadmins
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: isoadmin
-          schema: public
-  - name: management
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: management
-          schema: public
-  - name: reports
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: report
-          schema: public
-  - name: reporttyp_tenant_maps
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: reporttyp_tenant_map
-          schema: public
-  - name: requests
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: request
-          schema: public
-  - name: rule_reviews
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: rule_review
-          schema: public
-  - name: usrs
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: usr
-          schema: public
-  table:
-    name: tenant
-    schema: public
-- object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  table:
-    name: tenant_network
-    schema: public
-- object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  - name: object
-    using:
-      foreign_key_constraint_on: obj_id
-  table:
-    name: tenant_object
-    schema: public
-- object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  - name: tenantByPrjId
-    using:
-      foreign_key_constraint_on: prj_id
-  table:
-    name: tenant_project
-    schema: public
-- object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  - name: usr
-    using:
-      foreign_key_constraint_on: user_id
-  table:
-    name: tenant_user
-    schema: public
-- object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  table:
-    name: tenant_username
-    schema: public
 - table:
     name: config
     schema: public
@@ -305,13 +159,6 @@ tables:
         table:
           name: report
           schema: public
-  - name: tenant_to_devices
-    using:
-      foreign_key_constraint_on:
-        column: device_id
-        table:
-          name: tenant_to_device
-          schema: public
   - name: rule_orders
     using:
       foreign_key_constraint_on:
@@ -326,16 +173,23 @@ tables:
         table:
           name: rule
           schema: public
-  object_relationships:
-  - name: tenant
+  - name: tenant_to_devices
     using:
-      foreign_key_constraint_on: tenant_id
+      foreign_key_constraint_on:
+        column: device_id
+        table:
+          name: tenant_to_device
+          schema: public
+  object_relationships:
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
   - name: stm_dev_typ
     using:
       foreign_key_constraint_on: dev_typ_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
   select_permissions:
   - permission:
       allow_aggregations: true
@@ -897,12 +751,12 @@ tables:
           name: zone
           schema: public
   object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
   - name: stm_dev_typ
     using:
       foreign_key_constraint_on: dev_typ_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
   select_permissions:
   - permission:
       allow_aggregations: true
@@ -986,13 +840,6 @@ tables:
         table:
           name: changelog_object
           schema: public
-  - name: tenant_objects
-    using:
-      foreign_key_constraint_on:
-        column: obj_id
-        table:
-          name: tenant_object
-          schema: public
   - name: objgrp_flats
     using:
       foreign_key_constraint_on:
@@ -1034,6 +881,13 @@ tables:
         column: obj_id
         table:
           name: rule_to
+          schema: public
+  - name: tenant_objects
+    using:
+      foreign_key_constraint_on:
+        column: obj_id
+        table:
+          name: tenant_object
           schema: public
   object_relationships:
   - name: device
@@ -1215,9 +1069,6 @@ tables:
     name: objgrp_flat
     schema: public
 - object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
   - name: device
     using:
       foreign_key_constraint_on: dev_id
@@ -1230,6 +1081,9 @@ tables:
   - name: stm_report_typ
     using:
       foreign_key_constraint_on: report_typ_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
   select_permissions:
   - permission:
       columns:
@@ -1249,12 +1103,12 @@ tables:
     name: report
     schema: public
 - object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
   - name: stm_report_typ
     using:
       foreign_key_constraint_on: report_typ_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
   table:
     name: reporttyp_tenant_map
     schema: public
@@ -1288,12 +1142,12 @@ tables:
           name: request_user_change
           schema: public
   object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
   - name: request_type
     using:
       foreign_key_constraint_on: request_type_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
   table:
     name: request
     schema: public
@@ -1347,27 +1201,6 @@ tables:
       foreign_key_constraint_on: request_id
   table:
     name: request_user_change
-    schema: public
-- array_relationships:
-  - name: tenant_to_devices
-    using:
-      foreign_key_constraint_on:
-        column: role_id
-        table:
-          name: tenant_to_device
-          schema: public
-  table:
-    name: role
-    schema: public
-- object_relationships:
-  - name: device
-    using:
-      foreign_key_constraint_on: device_id
-  - name: role
-    using:
-      foreign_key_constraint_on: role_id
-  table:
-    name: tenant_to_device
     schema: public
 - array_relationships:
   - name: changelog_rules
@@ -1594,12 +1427,12 @@ tables:
     name: rule_order
     schema: public
 - object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
   - name: rule
     using:
       foreign_key_constraint_on: rule_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
   table:
     name: rule_review
     schema: public
@@ -2264,6 +2097,155 @@ tables:
 - table:
     name: temp_table_for_tenant_filtered_rule_ids
     schema: public
+- array_relationships:
+  - name: devices
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: device
+          schema: public
+  - name: isoadmins
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: isoadmin
+          schema: public
+  - name: management
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: management
+          schema: public
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: report
+          schema: public
+  - name: reporttyp_tenant_maps
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: reporttyp_tenant_map
+          schema: public
+  - name: requests
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: request
+          schema: public
+  - name: rule_reviews
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: rule_review
+          schema: public
+  - name: tenant_objects
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: tenant_object
+          schema: public
+  - name: tenant_projects
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: tenant_project
+          schema: public
+  - name: tenantProjectsByPrjId
+    using:
+      foreign_key_constraint_on:
+        column: prj_id
+        table:
+          name: tenant_project
+          schema: public
+  - name: tenant_to_devices
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: tenant_to_device
+          schema: public
+  - name: tenant_usernames
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: tenant_username
+          schema: public
+  - name: tenant_users
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: tenant_user
+          schema: public
+  - name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: usr
+          schema: public
+  table:
+    name: tenant
+    schema: public
+- object_relationships:
+  - name: object
+    using:
+      foreign_key_constraint_on: obj_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  table:
+    name: tenant_object
+    schema: public
+- object_relationships:
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  - name: tenantByPrjId
+    using:
+      foreign_key_constraint_on: prj_id
+  table:
+    name: tenant_project
+    schema: public
+- object_relationships:
+  - name: device
+    using:
+      foreign_key_constraint_on: device_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  table:
+    name: tenant_to_device
+    schema: public
+- object_relationships:
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  - name: usr
+    using:
+      foreign_key_constraint_on: user_id
+  table:
+    name: tenant_user
+    schema: public
+- object_relationships:
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  table:
+    name: tenant_username
+    schema: public
 - select_permissions:
   - permission:
       columns:
@@ -2370,19 +2352,19 @@ tables:
         table:
           name: changelog_user
           schema: public
-  - name: tenant_users
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: tenant_user
-          schema: public
   - name: rule_froms
     using:
       foreign_key_constraint_on:
         column: user_id
         table:
           name: rule_from
+          schema: public
+  - name: tenant_users
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: tenant_user
           schema: public
   - name: usergrp_flats
     using:
@@ -2413,9 +2395,6 @@ tables:
           name: usergrp
           schema: public
   object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
   - name: isoadmin
     using:
       foreign_key_constraint_on: last_change_admin
@@ -2428,6 +2407,9 @@ tables:
   - name: stm_usr_typ
     using:
       foreign_key_constraint_on: usr_typ_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
   select_permissions:
   - permission:
       allow_aggregations: true

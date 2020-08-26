@@ -12,9 +12,8 @@ namespace FWO_Filter
         int Position;
         List<Token> Tokens;
 
-        public Parser(int Position, List<Token> Tokens)
+        public Parser(List<Token> Tokens)
         {
-            this.Position = Position;
             this.Tokens = Tokens;
         }
 
@@ -36,15 +35,17 @@ namespace FWO_Filter
 
         private void Bracket()
         {
-            Expression();
+            if (GetNextToken().Kind == TokenKind.BL)
+            {
+                CheckToken(TokenKind.BL);
+                Expression();
+                CheckToken(TokenKind.BR);
+            }
 
-            // OR
-
-            CheckToken(TokenKind.BL);
-
-            Expression();
-
-            CheckToken(TokenKind.BR);
+            else
+            {
+                Expression();
+            }
         }
 
         private void Connector()
@@ -54,13 +55,17 @@ namespace FWO_Filter
 
         private void Expression()
         {
-            Text();
+            if (GetNextToken().Kind == TokenKind.Text)
+            {
+                CheckToken(TokenKind.Text);
+            }
 
-            // OR
-
-            Filter();
-            Operator();
-            Text();
+            else
+            {
+                Filter();
+                Operator();
+                Text();
+            }
         }
 
         private void Operator()
@@ -95,6 +100,19 @@ namespace FWO_Filter
             }
 
             throw new SyntaxErrorException(); // Wrong token
+        }
+
+        private Token GetNextToken()
+        {
+            if (Position >= Tokens.Count)
+            {
+                throw new SyntaxErrorException(); // No token but one was expected
+            }
+
+            else
+            {
+                return Tokens[Position];
+            }
         }
     }
 }

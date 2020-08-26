@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using FWO.Backend.Auth;
 using FWO_Auth_Client;
 using Microsoft.AspNetCore.Components.Authorization;
 
@@ -10,42 +11,34 @@ namespace FWO.Auth
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            //var identity = new ClaimsIdentity(new[]
-            //{
-            //    new Claim(ClaimTypes.Name, "mrfibuli"),
-            //}, "Fake authentication type");
-
             var identity = new ClaimsIdentity();
-
             var user = new ClaimsPrincipal(identity);
-
-            return Task.FromResult(new AuthenticationState(user));            
+            return Task.FromResult(new AuthenticationState(user));
         }
 
-        public async void AuthenticateUser(string Username, string Password, AuthClient AuthClient)
-        {           
-            string auth_type = ""; // default = not authenticated = empty
+        public void AuthenticateUser(string Username, string Password, string JwtString)
+        {
+            Jwt jwt = new Jwt(JwtString);
 
-            string JWT = await AuthClient.GetJWT(Username, Password);
-
-            if (JWT != "")
+            if (jwt.Valid())
             {
-                auth_type = JWT;
-            }       
+                ClaimsIdentity identity = new ClaimsIdentity
+                (
+                    claims: jwt.GetClaims(),
+                    authenticationType: "usrname:" + Username
+                );
 
-            var identity = new ClaimsIdentity
-            (
-                new Claim[] { new Claim(ClaimTypes.Name, Username) }, 
-                auth_type
-            );
-            // the above could have also be written as:
-            // Claim[] claims = new Claim[1];
-            // claims[0] = new Claim(ClaimTypes.Name, Username);
-            // ClaimsIdentity identity2 = new ClaimsIdentity(claims, "Fake");
-  
-            var user = new ClaimsPrincipal(identity);
+                ClaimsPrincipal user = new ClaimsPrincipal(identity);
 
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            }
+
+            else
+            {
+                ClaimsIdentity identity = new ClaimsIdentity();
+                ClaimsPrincipal user = new ClaimsPrincipal(identity);
+                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            }
         }
     }
 }

@@ -1,3 +1,53 @@
+/*
+CREATE TYPE role_type AS (
+    id      int,
+    name    VARCHAR
+);
+
+
+Create table "device_data_table"
+(
+    "id"      int,
+    "name"    VARCHAR
+);
+CREATE TYPE device_type AS (
+    id      int,
+    name    VARCHAR
+);
+
+CREATE OR REPLACE FUNCTION public.get_role_visible_device_types(
+	integer)
+    RETURNS SETOF device_data_table 
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    STABLE 
+    ROWS 1000
+    
+AS $BODY$
+DECLARE
+	i_role_id ALIAS FOR $1;
+	i_dev_id integer;
+    v_dev_name VARCHAR;
+	b_can_view_all_devices boolean;
+BEGIN
+    SELECT INTO b_can_view_all_devices role_can_view_all_devices FROM role WHERE role_id=i_user_id;
+    IF b_can_view_all_devices THEN
+        FOR i_dev_id, v_dev_name IN SELECT dev_id, dev_name FROM device
+        LOOP
+            RETURN NEXT ROW (i_dev_id, i_dev_name);
+        END LOOP;
+    ELSE
+        FOR i_dev_id, v_dev_name IN SELECT device_id, dev_name FROM role JOIN role_to_device USING (role_id) LEFT JOIN device ON (role_to_device.dev_id=device.dev_id) WHERE role_id=i_role_id
+        LOOP
+            RETURN NEXT ROW (i_dev_id, i_dev_name);
+        END LOOP;
+    END IF;
+    RETURN;
+END;
+$BODY$;
+
+*/
 
 CREATE OR REPLACE FUNCTION public.get_role_visible_devices(
 	integer)
@@ -5,7 +55,7 @@ CREATE OR REPLACE FUNCTION public.get_role_visible_devices(
     LANGUAGE 'plpgsql'
 
     COST 100
-    VOLATILE 
+    STABLE 
     ROWS 1000
     
 AS $BODY$

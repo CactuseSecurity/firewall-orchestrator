@@ -14,6 +14,10 @@ api_container_name: "{{ product_name }}-api"
 api_hasura_version: "v1.3.1"
 api_project_name: api
 api_server_admin: "root@{{ api_hostname }}"
+api_log_level: info
+# debug > info > warn > error
+api_HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, websocket-log"
+# api_HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, websocket-log, query-log"
 
 # to move:
 api_hasura_admin_secret: "st8chelt1er"

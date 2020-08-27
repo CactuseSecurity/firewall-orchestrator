@@ -5,7 +5,7 @@
 	echo '<li><a href="/config/change_pw.php">' . $language->get_text_msg('change_password', 'html') . '</a></li>';
 	if ($allowedToConfigureDevices) { echo '<li><a href="/config/config_system.php">' . $language->get_text_msg('change_devices', 'html') . '</a></li>'; }
 //	if ($allowedToConfigureUsers) { echo '<li><a href="/config/config_user.php">Benutzerdaten</a></li>'; }
-	if ($allowedToConfigureClients) echo '<li><a href="/config/config_client.php">' . $language->get_text_msg('change_clients', 'html') . '</a></li>';
+	if ($allowedToConfiguretenants) echo '<li><a href="/config/config_tenant.php">' . $language->get_text_msg('change_tenants', 'html') . '</a></li>';
 	if ($allowedToViewImportStatus) { echo '<li><a href="/config/import_status.php">Import-Status</a></li>'; }
 	echo '</ul></div>';
 ?>

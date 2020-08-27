@@ -21,7 +21,7 @@
  </tr></table>";
 ?>
 
-<script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
+<script type="text/javascript" src="<?php echo $stamm ?>js/browser.js"></script>
 <script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">
 <script language="javascript" type="text/javascript">
@@ -90,8 +90,8 @@
 		
 		$db_connection = new DbConnection(new DbConfig($session["dbuser"],$session["dbpw"]));
 		
-		if (isset($request['client_id$0'])) $request_filter = $request['client_id$0'];
-		//	if (isset($request_filter)) $additional_filter .= " AND client_id=$request_filter";
+		if (isset($request['tenant_id$0'])) $request_filter = $request['tenant_id$0'];
+		//	if (isset($request_filter)) $additional_filter .= " AND tenant_id=$request_filter";
 		if ($page=='doc') $changes = new ChangeList($ruleFilter,$additional_filter,'view_undocumented_changes');
 		else $changes = new ChangeList($ruleFilter,$additional_filter,'view_reportable_changes');
 		$change_number = $changes->get_displayed_change_number();

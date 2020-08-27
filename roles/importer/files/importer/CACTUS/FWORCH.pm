@@ -819,7 +819,7 @@ sub get_device_ids_for_mgm {
 
 ############################################################
 # get_client_filter(client_id)
-# zu einem Client einen Filter generieren
+# zu einem Tenant einen Filter generieren
 # Ergebnis ist ein String: zB. "ip<<'1.0.0.0/8' AND ip<<'2.0.0.0/16'"
 # Sonderfall: wenn client_id=0 (nicht existent): RETURN "TRUE" --> kein Filter
 # parameter1: client_id
@@ -872,7 +872,7 @@ sub get_rulebase_names {
     return $rulebases;
 }
 
-# falls LDAP vorhanden: Benutzer im LDAP nachschlagen und die Client-Zuordnung machen
+# falls LDAP vorhanden: Benutzer im LDAP nachschlagen und die Tenant-Zuordnung machen
 sub read_user_client_classification_from_ldap {
     my $fehler = shift;
     my $current_import_id = shift;

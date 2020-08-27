@@ -34,7 +34,7 @@ class DisplayChangeTable extends DisplayTable {
 	function displayChanges($filter,$management_filter,$change_docu_allowed) {
 		$changeTable = "";
 		$filter->emptyFilteredRowIds();
-		$this->clients = $filter->getClients();
+		$this->tenants = $filter->gettenants();
 		$change_number = 0;
 		$rowsFiltered= 0;
 		if ($change_docu_allowed)

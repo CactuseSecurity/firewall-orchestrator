@@ -9,11 +9,11 @@
 	$request = $cleaner->clean_structure($_REQUEST);
 	$session = $cleaner->clean_structure($_SESSION);
 	$stamm="";
-//	$session['ClientFilter'] = ' (TRUE) ';
-//	$_SESSION['ClientFilter'] = ' (TRUE) ';
-//	if (isset($request['client_id']) and !($request['client_id'] == '')) {
-//		$session['ClientFilter'] = " (client_id=" . $request['client_id'] . ") ";
-//		$_SESSION['ClientFilter'] = $session['ClientFilter'];
+//	$session['tenantFilter'] = ' (TRUE) ';
+//	$_SESSION['tenantFilter'] = ' (TRUE) ';
+//	if (isset($request['tenant_id']) and !($request['tenant_id'] == '')) {
+//		$session['tenantFilter'] = " (tenant_id=" . $request['tenant_id'] . ") ";
+//		$_SESSION['tenantFilter'] = $session['tenantFilter'];
 //	} 
 //	echo "request:<br>\n"; print_r($request);
 //	echo "session:<br>\n"; print_r($session);
@@ -124,7 +124,7 @@ if ($dev_id <> "") {
 			require_once ("db-nwobject.php");
 			require_once ("display-table.php");
 			
-			$dup_ruleFilter		= new RuleConfigurationFilter($request,$session);  // only used for filtering device / client
+			$dup_ruleFilter		= new RuleConfigurationFilter($request,$session);  // only used for filtering device / tenant
 			$dup_nwobj_list		= new DupNetworkObjectList($dup_ruleFilter);
 //			$filtered_rule_ids	= $acc_rule_list->getFilteredRuleIds();	$acc_ruleFilter->setFilteredRuleIds($filtered_rule_ids);
 			$dup_objectTable = new NwObjectConfigTable($headers = array("Name","Zone","Typ","IP","Member","UID","Kommentar"), $dup_nwobj_list);

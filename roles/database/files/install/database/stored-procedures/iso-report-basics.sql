@@ -46,15 +46,15 @@ BEGIN
 	IF v_table='user' THEN v_tbl := 'usr'; END IF;
 	IF v_table='rule' THEN v_tbl := 'rule'; END IF;
 	v_id_name := 'log_' || v_tbl || '_id';
-	v_sql_statement := 'SELECT request_number, client_name, request_type_name FROM request_' ||
-		v_table || '_change LEFT JOIN request USING (request_id) LEFT JOIN client USING (client_id) ' ||
+	v_sql_statement := 'SELECT request_number, tenant_name, request_type_name FROM request_' ||
+		v_table || '_change LEFT JOIN request USING (request_id) LEFT JOIN tenant USING (tenant_id) ' ||
 		 ' LEFT JOIN request_type using (request_type_id) ' ||
 		' WHERE ' || v_id_name || '=' || CAST(i_id AS VARCHAR);
 	FOR r_request IN EXECUTE v_sql_statement
 	LOOP
 		IF v_result<>'' THEN v_result := v_result || '<br>'; END IF;
-		IF NOT r_request.client_name IS NULL THEN
-			v_result := v_result || r_request.client_name || ': ';
+		IF NOT r_request.tenant_name IS NULL THEN
+			v_result := v_result || r_request.tenant_name || ': ';
 		END IF;
 		IF NOT r_request.request_type_name IS NULL THEN
 			v_result := v_result || r_request.request_type_name || '-';
@@ -257,16 +257,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
--- FUNCTION:    get_client_list(name-of-refcursor)
--- Zweck:       liefert Cursor mit allen Clients zurueck (Name u. ID)
+-- FUNCTION:    get_tenant_list(name-of-refcursor)
+-- Zweck:       liefert Cursor mit allen tenants zurueck (Name u. ID)
 -- Parameter1:  Name des zurueckzuliefernden Pointers
--- Parameter2:  Client-Id fuer spaetere Anzeige direkt fuer Client
--- RETURNS:     Cursor mit Tabelle (client_id,client_name)
+-- Parameter2:  tenant-Id fuer spaetere Anzeige direkt fuer tenant
+-- RETURNS:     Cursor mit Tabelle (tenant_id,tenant_name)
 --
-CREATE OR REPLACE FUNCTION get_client_list(REFCURSOR) RETURNS REFCURSOR AS $$
+CREATE OR REPLACE FUNCTION get_tenant_list(REFCURSOR) RETURNS REFCURSOR AS $$
 DECLARE
 BEGIN
-	OPEN $1 FOR SELECT client_id,client_name FROM client ORDER BY client_name;
+	OPEN $1 FOR SELECT tenant_id,tenant_name FROM tenant ORDER BY tenant_name;
     RETURN $1;
 END;
 $$ LANGUAGE plpgsql;
@@ -487,7 +487,7 @@ $$ LANGUAGE plpgsql;
 -- Zweck:		liefert alle obj_ids die in der Gruppe (auch rekursiv) enthalten sind, zurueck
 -- Zweck:		wenn keine Gruppe, dann nur das object selbst
 -- Parameter1:	obj_id
--- RETURNS:		wahr, wenn das Komplement von object zum Client mit client_id gehoert
+-- RETURNS:		wahr, wenn das Komplement von object zum tenant mit tenant_id gehoert
 --
 CREATE OR REPLACE FUNCTION explode_objgrp (BIGINT) RETURNS SETOF BIGINT AS $$
 DECLARE

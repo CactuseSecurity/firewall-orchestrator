@@ -80,17 +80,17 @@ class UserChangedList extends DbList {
 		$first_import_id = $this->filter->getFirstImport();
 		$last_import_id = $this->filter->getLastImport();
 		if (!is_null($first_import_id) && !is_null($last_import_id)) {
-			$sqlcmd = "SELECT changelog_user.*,import_control.start_time AS change_time,request.request_number,client.client_name " .
+			$sqlcmd = "SELECT changelog_user.*,import_control.start_time AS change_time,request.request_number,tenant.tenant_name " .
 				" FROM changelog_user ".
 				" LEFT JOIN import_control ON changelog_user.control_id=import_control.control_id ".
 				" LEFT JOIN request_user_change ON changelog_user.log_usr_id=request_user_change.log_usr_id ".
 				" LEFT JOIN request on request_user_change.request_id=request.request_id " .
-				" LEFT JOIN client on client.client_id=request.client_id " .
+				" LEFT JOIN tenant on tenant.tenant_id=request.tenant_id " .
 				" WHERE changelog_user.mgm_id = ".$this->filter->getManagementId().
 				" AND changelog_user.change_type_id = 3 " .   // Ausblenden von Initialen Aenderungen
 				" AND changelog_user.control_id >= ".$this->filter->getFirstImport().
 				" AND changelog_user.control_id <= ".$this->filter->getLastImport()." AND successful_import ".
-				(!is_null($this->filter->getClientId()) ? (" AND request.client_id = ".$this->filter->getClientId()." ") : "").
+				(!is_null($this->filter->gettenantId()) ? (" AND request.tenant_id = ".$this->filter->gettenantId()." ") : "").
 				" ORDER BY changelog_user.log_usr_id";
 			$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 			if (!$this->error->isError($this->db_connection)) {
@@ -128,7 +128,7 @@ class ChangedUser extends DbItem {
 	var $control_id;
 	var $change_comment;
 	var $change_time;
-	var $client_request_str;
+	var $tenant_request_str;
 	var $filter;
 	
 	function __construct($changeuser_table_data, $filter, $conn) {
@@ -141,11 +141,11 @@ class ChangedUser extends DbItem {
 		$this->abs_change_id = $this->getValue($changeuser_table_data, "abs_change_id", $db_change_keys);
 		$this->change_comment = $this->getValue($changeuser_table_data, "changelog_user_comment", $db_change_keys);
 		$this->change_time = $this->getValue($changeuser_table_data, "change_time", $db_change_keys);
-        if (!is_null($this->getValue($changeuser_table_data, "client_name", $db_change_keys))) {
-            $this->client_request_str = $this->getValue($changeuser_table_data, "client_name", $db_change_keys) .
+        if (!is_null($this->getValue($changeuser_table_data, "tenant_name", $db_change_keys))) {
+            $this->tenant_request_str = $this->getValue($changeuser_table_data, "tenant_name", $db_change_keys) .
                 ": " . $this->getValue($changeuser_table_data, "request_number", $db_change_keys);
         } else {
-            $this->client_request_str = "&nbsp;";
+            $this->tenant_request_str = "&nbsp;";
         }
 		$this->control_id = $this->getValue($changeuser_table_data, "control_id", $db_change_keys);
 		$this->old_user = $this->select_olduser($this->log_usr_id, $filter->getFirstImport());
@@ -197,7 +197,7 @@ class ChangedUser extends DbItem {
 	function getChangeAction() { return $this->change_action; }
 	function getChangeComment() { return $this->change_comment; }
 	function getChangeTime() { return $this->change_time; }
-	function getClientRequestString() { return $this->client_request_str; }
+	function gettenantRequestString() { return $this->tenant_request_str; }
 	function getAbsChangeId() { return $this->abs_change_id; }
 	function getControlId() { return $this->control_id; }
 	function getOldUser() { return $this->old_user; }

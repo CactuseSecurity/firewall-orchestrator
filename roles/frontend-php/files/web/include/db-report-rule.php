@@ -58,7 +58,7 @@
 			return $newarray;
 		}
 		protected function IsRuleFilteredOut($rule) {
-			// e.g. client filtering leads to rule being incomplete --> remove rule completely
+			// e.g. tenant filtering leads to rule being incomplete --> remove rule completely
 			return (count($rule["rule_src"])==0 and count($rule["rule_dst"])==0);
 		}
 	
@@ -68,14 +68,14 @@
 			$data .= "dev_id: " . $this->getDevId() . "<br>";
 			$data .= "dev_name: " . $this->getDevName() . "<br>";
 			$data .= "Mgm-Name: " . $this->getMgmName() . "<br>";
-			$data .= "client_id: " . $this->getClientId() . "<br>";
+			$data .= "tenant_id: " . $this->gettenantId() . "<br>";
 			return $data;
 		}
 		public function getDevId() {
 			return $this->report["device_id"];
 		}
-		public function getClientId() {
-			return $this->report["client_id"];
+		public function gettenantId() {
+			return $this->report["tenant_id"];
 		}
 		public function getDevName() {
 			return $this->report["Device"];

@@ -1,4 +1,19 @@
 #!/usr/bin/python3
+
+# synopsis:
+
+# tim@deb10-test:~$ python3 read_layer.py -u itsecorg -p 443 192.168.100.110 "password"
+# the following layers exist on management server:
+# package: Cactus_New
+#     layer: cactus_Security_neu
+#     layer: cactus_Application
+# package: TestPolicy1
+#     layer: Testlayer no. 123
+#     layer: cactus_Security
+#     layer: TestPolicy1 Security
+# tim@deb10-test:~$ 
+
+
 import requests, json, argparse
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')

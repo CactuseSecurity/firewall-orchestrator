@@ -11,21 +11,22 @@
 ## Roles
 
 The following roles are defined in ascending order of permissions:
-- anonymous - anonymous users can only access the login page and the roles tables to get more granular permissions
+- anonymous - anonymous users can only access the login page and health statistics
 - reporter - reporters have access to basic tables (stm_...) and limited rights for object and rule tables depending on the visible devices for the tenant the user belongs to.
 - reporter-viewall - reporter role for full read access to all devices
 - importer - users can import config changes into the database
 - dbbackup - users that are able to read data tables for backup purposes
-- auditor - users that can view all data & settings but cannot make any changes
-- workflow-user - (for future use) all users who can request firewall changes
-- workflow-admin - (for future use) all users who can create change request workflows
-- fw-admin - all users who can document open changes
-- administrator - all users who have full access rights to firewall orchestrator
+- auditor - users that can view all data & settings (in the UI) but cannot make any changes
+- workflow-user - (for future use) users who can request firewall changes
+- workflow-admin - (for future use) users who can create change request workflows
+- fw-admin - users who can document open changes
+- admi - users with full access rights to firewall orchestrator (this is also the pre-defined hasura role 'admin')
 
-The above mentioned access rights are implemented on three levels 
+The above mentioned access rights are implemented on the following levels 
 1. as grants within the database. E.g. a reporter does not have the right to change any of the tables rule, object, service.
 2. in the api as "permissions without restrictions"
 3. in the api as "permissions with restrictions" on a tenant-level allowing access only to specifice managements and devices and objects/roles defined there (see next section)
+4. in the UI controlling access to certain (admin-only) menus.
 
 Just having the reporter role would mean a user can view basic tables like device types, service types in full but can only view those devices that are assigned via the tenant_to_device relation.
 
@@ -33,8 +34,6 @@ Just having the reporter role would mean a user can view basic tables like devic
 In addition there is the possiblity to restrict certain users to specific devices or managements. These granular rights are enforced via API access control for all tables that contain references to either management or device tables.
 
 The default tenant "tenant0" is always defined and has access rights to all devices.
-
-This has to be defined in the database table "tenant_to_device".
 
 These tenant-based permissions are assigned during login as follows:
 - The tenant(s) a user belongs to are read from an ldap directory.

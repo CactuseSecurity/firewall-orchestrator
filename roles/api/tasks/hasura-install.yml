@@ -52,7 +52,7 @@
   debug:
     var:
       hasura_env
-  when: debug is true
+  when: debug_level > 1
 
 - name: start hasura container
   docker_container:

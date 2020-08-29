@@ -80,7 +80,10 @@ namespace FWO_Auth_Server
 
                                 if (connection.Bound)
                                 {
+#if DEBUG
                                     Console.WriteLine($"Success!");
+#endif
+                                    // TODO: return DN to make role search easier and "correcter"?
                                     return true;
                                 }
 

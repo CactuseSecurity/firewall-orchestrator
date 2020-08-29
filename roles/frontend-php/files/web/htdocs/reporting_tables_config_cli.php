@@ -8,12 +8,12 @@
 	$cleaner = new DbInput();  // for clean-function
 	setlocale(LC_CTYPE, "de_DE.UTF-8");
 	
-	$longopts = array("dev_id:","reportformat:","mgm_filter:","client::","stamm:","reportdate:");
+	$longopts = array("dev_id:","reportformat:","mgm_filter:","tenant::","stamm:","reportdate:");
 	$opt = $cleaner->clean_structure(getopt("d:r:m:c::s::r:", $longopts));
 	$dev_id			= $opt['dev_id'];
 	$report_format	= $opt['reportformat'];
 	$mgm_filter		= $opt['mgm_filter'];
-	$client_id		= $opt['client'];
+	$tenant_id		= $opt['tenant'];
 	$stamm			= $opt['stamm'];
 	$report_date	= convert_report_date_to_postgres($opt['reportdate']);
 
@@ -46,12 +46,12 @@
 	$_REQUEST['Device'] = $dev_name;
 	$_REQUEST['ManSystem'] = getMgmNameFromDevId ($dev_id, 'fworch', '');
 	$_SESSION['ManagementFilter'] = $mgm_filter;
-	if (isset($client_id) and !($client_id == '')) $_SESSION['ClientFilter'] = " (client_id=$client_id) ";
+	if (isset($tenant_id) and !($tenant_id == '')) $_SESSION['tenantFilter'] = " (tenant_id=$tenant_id) ";
 	$_REQUEST['devId'] = $dev_id;
 	$_REQUEST['zeitpunkteins'] = $report_date;	
 	$_REQUEST['inactive'] = "0";
 	$_REQUEST['notused'] = "1";
-	$_REQUEST['client_id'] = $client_id;
+	$_REQUEST['tenant_id'] = $tenant_id;
 	$request = $cleaner->clean_structure($_REQUEST);
 	$session = $cleaner->clean_structure($_SESSION);
 
@@ -107,7 +107,7 @@
 			case 'json':
 				echo "{\n\"device_id\":" . $dev_id . "\n" .
 					'"report_time":' . $report_date . "\n" .
-					'"client_id":' . $client_id . "\n";
+					'"tenant_id":' . $tenant_id . "\n";
 				// rules:
 				$tmp = $ruleTable->ruleList->rule_list;
 				unset($tmp->db_connection);	unset($tmp->import_ids); unset($tmp->filter); unset($tmp->error);

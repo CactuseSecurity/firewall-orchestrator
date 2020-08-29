@@ -434,7 +434,7 @@ class AuditReport extends RuleBasedReport {
 		$new_order["Management-System"] = $report["Management-System"];
 		$new_order["Device"] = $report["Device"];
 		$new_order["device_id"] = $report["device_id"];
-		$new_order["client_id"] = $report["client_id"];
+		$new_order["tenant_id"] = $report["tenant_id"];
 		$new_order["report_start_time"] = $report["report_start_time"];
 		$new_order["report_stop_time"] = $report["report_stop_time"];
 		$new_order["rules"] = $this->array_sort($report["rules"],"rule_audit_num");

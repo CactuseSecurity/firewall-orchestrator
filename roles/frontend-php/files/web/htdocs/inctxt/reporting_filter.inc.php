@@ -2,9 +2,9 @@
 // $Id: reporting_filter.inc.php,v 1.1.2.8 2012-10-21 15:56:21 tim Exp $
 // $Source: /home/cvs/iso/package/web/htdocs/inctxt/Attic/reporting_filter.inc.php,v $
 	require_once("db-div.php");
-	require_once("db-client.php");
+	require_once("db-tenant.php");
 	$rflist = new ReportFormatList();
-	$clist = new ClientList($filter,$db_connection);
+	$clist = new tenantList($filter,$db_connection);
 	$iplist = new IpProtoList($filter,$db_connection);
 	$dbuser = $_SESSION['dbuser'];
 ?>
@@ -58,9 +58,9 @@
 		<td width="350" valign="top">
 			<?php
 				echo '<table width="350" cellspacing="0" cellpadding="0" class="tabfilter"><tr>';
-			   	echo '<td class="celltitle"><span class="texttitle">' . $language->get_text_msg('client', 'html') . '</span></td></tr>';
+			   	echo '<td class="celltitle"><span class="texttitle">' . $language->get_text_msg('tenant', 'html') . '</span></td></tr>';
 				echo '<tr><td class="ptfilter line_l_r">';
-				echo $clist->get_simple_client_menue_string($clist->filter_is_mandatory($client_filter), $dbuser);
+				echo $clist->get_simple_tenant_menue_string($clist->filter_is_mandatory($tenant_filter), $dbuser);
 				echo '</td></tr></table>';
 				//	include($stamm."inctxt/auftragsfilter.inc.php");
 			?>

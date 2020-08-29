@@ -7,14 +7,14 @@
     group: "{{ fworch_user }}"
   become: yes
 
-- name: add standard roles with ansible 2.8 and above
-  include_tasks: auth_standard_roles_with_postgresql_query.yml
-  when: ansible_version.full >= "2.8"
+# - name: add standard roles with ansible 2.8 and above
+#   include_tasks: auth_standard_roles_with_postgresql_query.yml
+#   when: ansible_version.full >= "2.8"
 
-# todo: remove, when ansible 2.8 is available for all supported platforms and use above module
-- name: add standard roles with command
-  include_tasks: auth_standard_roles_with_command.yml
-  when: ansible_version.full < "2.8"
+# # todo: remove, when ansible 2.8 is available for all supported platforms and use above module
+# - name: add standard roles with command
+#   include_tasks: auth_standard_roles_with_command.yml
+#   when: ansible_version.full < "2.8"
 
 - name: copy authentication sql file
   copy:

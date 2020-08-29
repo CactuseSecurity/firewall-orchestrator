@@ -67,27 +67,31 @@ namespace FWO_Auth_Server
 
                     connection.Bind("", ""); // Unbind not authenticated anymore
 
-                    foreach (var currentUser in possibleUsers)
+                    if (possibleUsers.Count != 0)
                     {
-#if DEBUG
-                        Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
-#endif
-                        try
+                        foreach (var currentUser in possibleUsers)
                         {
-                            connection.Bind(currentUser.Dn, user.Password);
-
-                            if (connection.Bound)
-                            {
-                                Console.WriteLine($"Success!");
-                                return true;                               
-                            }
-                                
-                        }
-                        catch (LdapException ex) { } // Incorrect Ldap DN or credentials
 #if DEBUG
-                        Console.WriteLine($"Failure!");
+                            Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
 #endif
+                            try
+                            {
+                                connection.Bind(currentUser.Dn, user.Password);
+
+                                if (connection.Bound)
+                                {
+                                    Console.WriteLine($"Success!");
+                                    return true;
+                                }
+
+                            }
+                            catch (LdapException ex) { } // Incorrect Ldap DN or credentials
+#if DEBUG
+                            Console.WriteLine($"Failure!");
+#endif
+                        }
                     }
+
 
                  // REMOVE IF NEW LDAP VERSION 
                     connection.Bind(userSearchBase, user.Password);                 

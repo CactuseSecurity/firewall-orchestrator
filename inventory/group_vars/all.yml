@@ -32,7 +32,8 @@ api_container_name: "{{ product_name }}-api"
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "3.1"
-dotnet_mode: "Debug"
+dotnet_mode: "Release"
+debug: false
 # dotnet_mode: "Release"
 
 ### logging

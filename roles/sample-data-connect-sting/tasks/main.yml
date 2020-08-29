@@ -16,6 +16,9 @@
     - name: insert sting-gw
       command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=3) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (3,3,''sting-gateway'',''cactus_Security_neu'',9); END IF; END $do$"'
 
+    - name: insert layered test gw
+      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=4) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (4,3,''layered-test-gw'',''FirstLayer shared with inline layer'',9); END IF; END $do$"'
+
     - name: clean up .pgpass file
       file:
         path: "{{ fworch_home }}/.pgpass"

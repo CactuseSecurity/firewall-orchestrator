@@ -16,7 +16,7 @@
 	require_once("db-change.php");
 	require_once("db-input.php");
 	require_once("db-div.php");
-	require_once("db-client.php");
+	require_once("db-tenant.php");
 	
 	define ('DEBUGGING', 0);		// either 0 (turned off) or 1 (on)
 	function output_debug($txt) {
@@ -35,7 +35,7 @@
 		
 	$filter	= new RuleChangesFilter($glob_request, $session, 'change_documentation');
 	$db_connection = new DbConnection(new DbConfig($session["dbuser"],$session["dbpw"]));
-	$clist	= new ClientList($filter,$db_connection);
+	$clist	= new tenantList($filter,$db_connection);
 	$rtlist	= new RequestTypeList($filter,$db_connection);
 	
 	$felder = $glob_request;  ksort($felder);  reset($felder);
@@ -62,7 +62,7 @@
 						}
 					}
 					break;
-				case 'client_id':		$client_id[$idx]		= $feldwertclean; break;
+				case 'tenant_id':		$tenant_id[$idx]		= $feldwertclean; break;
 				case 'request_type_id':	$request_type_id[$idx]	= $feldwertclean; break;
 				case 'request':			$auftrag[$idx]			= $feldwertclean; break;
 				case 'comment':			$comment				= $feldwertclean; break;
@@ -79,13 +79,13 @@
 	
 	if ($anzahl_changelogs>0 && $anzahl_requests>0) { // wenn keine Aenderung ausgewaehlt oder kein Auftrag eingegeben--> nix machen
 		// taking $auftrag as master (as this is the only mandatory field) --> deleting all other values in all arrays
-		for ($i=0; $i<$anzahl_requests; ++$i) if (!isset($auftrag[$i])) unset ($request_type_id[$i], $client_id[$i]);
+		for ($i=0; $i<$anzahl_requests; ++$i) if (!isset($auftrag[$i])) unset ($request_type_id[$i], $tenant_id[$i]);
 		
 		$change_element = new ChangedElement(array(),$filter,NULL); // only used for function "set_changelog_sql_values"
-		$client_id			= array_merge($client_id); // ev. Luecken entfernen
+		$tenant_id			= array_merge($tenant_id); // ev. Luecken entfernen
 		$request_type_id	= array_merge($request_type_id); // ev. Luecken entfernen
 		$auftrag 			= array_merge($auftrag);
-		reset($changelog); reset($auftrag); reset($client_id); reset($request_type_id);
+		reset($changelog); reset($auftrag); reset($tenant_id); reset($request_type_id);
 
 		$LineBreakStr = "' || E'\\n' || '"; 
 		$sql_code = '';
@@ -106,13 +106,13 @@
 		 				$comment_header .= "$rt_name-"; // Bindestrich zwischen Auftragstyp und dem Wort "Auftrag" (z.B. ARS-Auftrag) 	
 					}
 					$comment_header .= "Auftrag";
-					if (isset($client_id[$i]) and $client_id[$i]!='NULL') {
-						$client_name = $clist->getClientName($client_id[$i]);
-		 				$comment_header .= " Mandant: $client_name"; 	
+					if (isset($tenant_id[$i]) and $tenant_id[$i]!='NULL') {
+						$tenant_name = $clist->gettenantName($tenant_id[$i]);
+		 				$comment_header .= " Mandant: $tenant_name"; 	
 					}
 					$comment_header .= ", Auftragsnummer: " . $auftrag[$i] . $LineBreakStr;
-					$sql_code .= "INSERT INTO request (request_number,client_id,request_type_id) VALUES ('" . $auftrag[$i] . "'," .
-						$client_id[$i] . "," . $request_type_id[$i] . "); ";
+					$sql_code .= "INSERT INTO request (request_number,tenant_id,request_type_id) VALUES ('" . $auftrag[$i] . "'," .
+						$tenant_id[$i] . "," . $request_type_id[$i] . "); ";
 					while (list($changelog_id, $table_name) = each($changelog)) {
 						list($log_id_name, $request_change_table, , ) =	$change_element->set_changelog_sql_values($table_name); 
 						$sql_code .= ("INSERT INTO $request_change_table " .
@@ -120,7 +120,7 @@
 					}
 					// build change_request string for changelog_xxx
 					if ($change_request_str<>'') $change_request_str .= '<br>';
-					if ($client_id[$i]!='NULL') $change_request_str .= "$client_name: ";
+					if ($tenant_id[$i]!='NULL') $change_request_str .= "$tenant_name: ";
 					if ($request_type_id[$i]!='NULL') $change_request_str .= "$rt_name-";
 					$change_request_str .= $auftrag[$i];
 				}
@@ -187,24 +187,24 @@
 			// die neuen requests einfuegen
 			$new_comment = $LineBreakStr . $LineBreakStr . date("d.m.Y H:i") . $LineBreakStr . "Administrator: $doku_admin" . $LineBreakStr;
 			$change_request_str = '';
-			for ($i=0; $i<count($client_id); ++$i) {
+			for ($i=0; $i<count($tenant_id); ++$i) {
 				$new_comment .= "Neuer ";
 				if ($request_type_id[$i]!='NULL') {
 					$rt_name = $rtlist->getRequestTypeName($request_type_id[$i]);
 	 				$new_comment .= "$rt_name-"; // Bindestrich zwischen Auftragstyp und dem Wort "Auftrag" (z.B. ARS-Auftrag) 	
 				}
 				$new_comment .= "Auftrag";
-				if ($client_id[$i]!='NULL') {
-					$client_name = $clist->getClientName($client_id[$i]);
-	 				$new_comment .= " Mandant: $client_name"; 	
+				if ($tenant_id[$i]!='NULL') {
+					$tenant_name = $clist->gettenantName($tenant_id[$i]);
+	 				$new_comment .= " Mandant: $tenant_name"; 	
 				} 	
 				$new_comment .= ", Auftragsnummer: " . $auftrag[$i] . $LineBreakStr;
 				if ($change_request_str<>'') $change_request_str .= '<br>';
-				if ($client_id[$i]!='NULL') $change_request_str .= "$client_name: ";
+				if ($tenant_id[$i]!='NULL') $change_request_str .= "$tenant_name: ";
 				if ($request_type_id[$i]!='NULL') $change_request_str .= "$rt_name-";
 				$change_request_str .= $auftrag[$i];
 
-				$sql_code .= "INSERT INTO request (request_number,client_id,request_type_id) VALUES ('" . $auftrag[$i] . "'," . $client_id[$i] . "," . $request_type_id[$i] . "); ";
+				$sql_code .= "INSERT INTO request (request_number,tenant_id,request_type_id) VALUES ('" . $auftrag[$i] . "'," . $tenant_id[$i] . "," . $request_type_id[$i] . "); ";
 				reset($changelog); // pointer auf Anfang des Feldes zuruecksetzen
 				while (list($changelog_id, $table_name) = each($changelog)) {
 					list($log_id_name, $request_change_table, , ) =	$change_element->set_changelog_sql_values($table_name); 

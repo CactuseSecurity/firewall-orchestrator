@@ -207,10 +207,10 @@ class DisplayTable {
 	function display_user_comment_only($no_of_rules, $rule_comment) {
 		return '<td class="celldev_wrap">' . '<textarea name="user_eingabe" cols="20" rows="2" class="diff_nosize" readonly>' . $rule_comment . '</textarea>' . '</td>';
 	}
-	function display_change_comments_readonly($stamm, $abs_change_id, $comment, $client_request_str, $change_type, $no_of_rules) {
+	function display_change_comments_readonly($stamm, $abs_change_id, $comment, $tenant_request_str, $change_type, $no_of_rules) {
 		$icon = "icon_min.gif";
-		if (!isset ($client_request_str)) {
-			$client_request_str = "&nbsp;";
+		if (!isset ($tenant_request_str)) {
+			$tenant_request_str = "&nbsp;";
 		}
 		if (!isset ($comment)) {
 			$comment = "&nbsp;";
@@ -227,7 +227,7 @@ class DisplayTable {
 		return '<td class="celldev" style="text-align:center;font-weight:bold;">' . ($no_of_rules +1) . '</td>' .
 		'<td class="celldev" style="text-align:center;"><img src="' . $stamm . 'img/' . $icon . '"></td>' .
 		'<td class="celldev_wrap">' . '<textarea name="user_eingabe" cols="20" rows="2" class="diff_nosize" readonly>' . $comment . '</textarea>' . '</td>' .
-		'<td class="celldev">' . $client_request_str . '</td>';
+		'<td class="celldev">' . $tenant_request_str . '</td>';
 	}
 	function display_change_comment($stamm, $absId, $change_type) {
 		$commentString = '<td class="celldev" style="text-align:center;font-weight:bold;">' . $absId . '</td>' . '<td class="celldev" style="text-align:center;">';

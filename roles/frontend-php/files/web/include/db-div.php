@@ -62,10 +62,10 @@ class RequestTypeList {
 		$this->error = new PEAR();
 		if ($this->error->isError($db_connection))
 			$this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$client_sql_code = "SELECT * FROM request_type ";
-		$client_sql_code .= " ORDER BY request_type_name";
-//		echo "client_sql_code: $client_sql_code<br>";
-		$this->request_type_list = $db_connection->fworch_db_query ($client_sql_code);
+		$tenant_sql_code = "SELECT * FROM request_type ";
+		$tenant_sql_code .= " ORDER BY request_type_name";
+//		echo "tenant_sql_code: $tenant_sql_code<br>";
+		$this->request_type_list = $db_connection->fworch_db_query ($tenant_sql_code);
 		if ($this->error->isError($this->request_type_list)) $this->error->raiseError($this->request_type_list->getMessage());
 	}
 	function getRequestTypes() {
@@ -87,8 +87,8 @@ class RequestTypeList {
 		}
 		return "ERROR: request_type_id $request_type_id not found";
 	}
-	//   $client_nr : fortlaufende Nummer des Menues (nur f�r Post-�bergabe)
-						         // $selected_client_name : Name des Clients der vorausgew�hlt ist (0 f�r keinen)
+	//   $tenant_nr : fortlaufende Nummer des Menues (nur f�r Post-�bergabe)
+						         // $selected_tenant_name : Name des tenants der vorausgew�hlt ist (0 f�r keinen)
 							                                 // menue_width: Breite
 					                                     						//  spacing
 	function get_request_type_menue_string_base
@@ -177,8 +177,8 @@ class RequestList {
 			$this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
 		$request_id_list = $db_connection->fworch_db_query ($sql_code);
 		if ($this->error->isError($request_id_list)) $this->error->raiseError($request_id_list->getMessage());
-		$sql_code = "SELECT request_id,request_number,client_name,client_id,$comment_field AS comment FROM request " . 
-					"LEFT JOIN client USING(client_id) " . 
+		$sql_code = "SELECT request_id,request_number,tenant_name,tenant_id,$comment_field AS comment FROM request " . 
+					"LEFT JOIN tenant USING(tenant_id) " . 
 					"LEFT JOIN $request_change_table USING (request_id) " .
 					"LEFT JOIN $changelog_table USING ($log_id_name) WHERE $log_id_name=$local_change_id AND request_id IN (" ;
 		for ($i=0; $i<$request_id_list->rows; $i++) $sql_code .= $request_id_list->data[$i]['request_id'] . ',';
@@ -187,11 +187,11 @@ class RequestList {
 		$this->requests = $db_connection->fworch_db_query ($sql_code,$loglevel);
 		if ($this->error->isError($this->requests)) $this->error->raiseError($this->requests->getMessage());
 	}
-	function getRequestClientName($number) {
-		return $this->requests->data[$number]['client_name'];
+	function getRequesttenantName($number) {
+		return $this->requests->data[$number]['tenant_name'];
 	}
-	function getRequestClientId($number) {
-		return $this->requests->data[$number]['client_id'];
+	function getRequesttenantId($number) {
+		return $this->requests->data[$number]['tenant_id'];
 	}
 	function getRequestNumber($number) {
 		return $this->requests->data[$number]['request_number'];
@@ -252,7 +252,7 @@ class SystemList {
 		else 
 			$sql_code .= "NOT device.hide_in_gui AND NOT management.hide_in_gui "; 
 		if ($filter->isMgmFilterSet()) $sql_code .= " AND " . $filter->getMgmFilter();
-//		if (isset($filter->client_filter_expr)) $sql_code .=  " AND " . $filter->client_filter_expr; 
+//		if (isset($filter->tenant_filter_expr)) $sql_code .=  " AND " . $filter->tenant_filter_expr; 
 		$sql_code .= " ORDER BY dev_typ_manufacturer,mgm_name,dev_name"; 
 		$this->system_list =$db->db_connection->fworch_db_query($sql_code);
 //		echo "found " . $this->system_list->rows . " systems with sql code:  $sql_code<br"; 
@@ -279,7 +279,7 @@ class DeviceList {
 			"SELECT device.*,stm_dev_typ.dev_typ_manufacturer,stm_dev_typ.dev_typ_version,stm_dev_typ.dev_typ_name " . 
 			"FROM device LEFT JOIN management using (mgm_id) LEFT JOIN stm_dev_typ using (dev_typ_id)"; 
 		if (isset($management_filter)) $sql_code .= " AND $management_filter ";
-//		if (isset($filter->client_filter_expr)) $client_sql_code .=  " AND " . $filter->client_filter_expr; 
+//		if (isset($filter->tenant_filter_expr)) $tenant_sql_code .=  " AND " . $filter->tenant_filter_expr; 
 		$sql_code .= " ORDER BY dev_typ_manufacturer,mgm_name"; 
 		$this->device_list =$db->db_connection->fworch_db_query($sql_code);
 		
@@ -315,7 +315,7 @@ class ManagementList {
 			"SELECT management.*,stm_dev_typ.dev_typ_manufacturer,stm_dev_typ.dev_typ_version,stm_dev_typ.dev_typ_name " . 
 			"FROM management LEFT JOIN stm_dev_typ using (dev_typ_id) WHERE NOT management.hide_in_gui "; 
 		if (isset($management_filter)) $sql_code .= " AND $management_filter ";
-//		if (isset($filter->client_filter_expr)) $sql_code .=  " AND " . $filter->client_filter_expr; 
+//		if (isset($filter->tenant_filter_expr)) $sql_code .=  " AND " . $filter->tenant_filter_expr; 
 		$sql_code .= " ORDER BY dev_typ_manufacturer,mgm_name"; 
 		$this->management_list =$db->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($this->management_list)) $this->error->raiseError($this->management_list->getMessage());

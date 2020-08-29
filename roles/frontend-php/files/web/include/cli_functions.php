@@ -80,7 +80,7 @@ require_once ("db-base.php");
 		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">' ."\n". '<html><head><title>fworch Report</title>' . "\n".
 			'<meta name="robots" content="index,follow"><meta http-equiv="cache-control" content="no-cache">' ."\n". '<meta name="revisit-after" content="2 days"><meta http-equiv="content-language" content="de">' . "\n" .
 			'<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">';
-		echo  "\n" . '<script type="text/javascript" src="' . $stamm . 'js/client.js"></script>' .
+		echo  "\n" . '<script type="text/javascript" src="' . $stamm . 'js/browser.js"></script>' .
 			 "\n" . '<script type="text/javascript" src="' . $stamm . 'js/script.js"></script>' . "\n";
 		echo '<style type="text/css">';
 		include ($stamm . 'css/firewall_print.css');	// style info is directly included in report instead of linked

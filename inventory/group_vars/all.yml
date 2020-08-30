@@ -32,7 +32,8 @@ api_container_name: "{{ product_name }}-api"
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "3.1"
-dotnet_mode: "Debug"
+dotnet_mode: "Release"
+debug_level: "1"
 # dotnet_mode: "Release"
 
 ### logging
@@ -48,7 +49,14 @@ api_log_level: info
 web_server_name: apache2
 http_conf_dir: /etc/{{ web_server_name }}/sites-available/
 
-### to be moved: passwords
+
+################# to be removed ###################
+
+### importer test data
+
+sting_fworch_user: itsecorg
+
+### to be moved to safe: passwords
 dbadmin_pwd: "st8chel"
 fworch_pwd: "st8chel"
 admin_pwd: "fworch.1"

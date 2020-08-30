@@ -672,6 +672,21 @@ tables:
   table:
     name: isoadmin
     schema: public
+- select_permissions:
+  - permission:
+      columns:
+      - ldap_connection_id
+      - ldap_server
+      - ldap_port
+      - ldap_tls
+      - ldap_searchpath_for_users
+      - ldap_tenant_level
+      - ldap_search_user
+      filter: {}
+    role: auth-server
+  table:
+    name: ldap_connection
+    schema: public
 - array_relationships:
   - name: changelog_objects
     using:
@@ -2147,6 +2162,13 @@ tables:
         table:
           name: rule_review
           schema: public
+  - name: tenant_networks
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: tenant_network
+          schema: public
   - name: tenant_objects
     using:
       foreign_key_constraint_on:
@@ -2198,6 +2220,13 @@ tables:
           schema: public
   table:
     name: tenant
+    schema: public
+- object_relationships:
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  table:
+    name: tenant_network
     schema: public
 - object_relationships:
   - name: object

@@ -144,9 +144,16 @@
 #   become: yes
 #   when: clean_install is defined
 
+- name: Check that docker bin is installed
+  stat:
+    path: /usr/bin/docker
+  register: docker_is_installed
+
 - name: check if api container is running
   command: "docker ps -q --filter name={{ api_container_name }}"
+  become: yes
   register: docker_ps_out
+  when: docker_is_installed.stat.exists == True
 
 - name: stop api container
   command: "docker stop {{ api_container_name }}"
@@ -155,6 +162,7 @@
 
 - name: check if api container exists
   command: "docker ps --all -q --filter name={{ api_container_name }}"
+  become: yes
   register: docker_ps_out
 
 - name: remove api container

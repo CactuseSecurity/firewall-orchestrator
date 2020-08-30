@@ -163,7 +163,9 @@
   when: clean_install is defined and not docker_ps_out.stdout == ""
 
 - name: restart postgresql to get rid of unwanted connections when dropping db
-  command: "service restart postgresql"
+  service:
+    name: postgresql
+    state: restarted
   become: yes
   when: clean_install is defined
 

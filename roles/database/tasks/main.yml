@@ -144,13 +144,26 @@
 #   become: yes
 #   when: clean_install is defined
 
+- name: check if api container is running
+  command: "docker ps -q --filter name={{ api_container_name }}"
+  register: docker_ps_out
+
 - name: stop api container
   command: "docker stop {{ api_container_name }}"
   become: yes
-  when: clean_install is defined
+  when: clean_install is defined and not docker_ps_out.stdout == ""
+
+- name: check if api container exists
+  command: "docker ps --all -q --filter name={{ api_container_name }}"
+  register: docker_ps_out
 
 - name: remove api container
   command: "docker rm {{ api_container_name }}"
+  become: yes
+  when: clean_install is defined and not docker_ps_out.stdout == ""
+
+- name: restart postgresql to get rid of unwanted connections when dropping db
+  command: "service restart postgresql"
   become: yes
   when: clean_install is defined
 

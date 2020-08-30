@@ -32,31 +32,31 @@
       - ../templates/ldif_files/*.j2
 
   - name: Create tree level 1 (ou user, role)
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_1.ldif"
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_1.ldif"
 
   - name: Create tree level 2 (ou systemuser, operator)
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_2.ldif"
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_2.ldif"
 
   - name: Create tree level 3 with parent systemuser (cn admin, {{ auth_ldap_internal_readonly_user }}, fgreporter)
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_systemuser.ldif"
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_systemuser.ldif"
 
   - name: Create tree level 3 with parent operator (ou tenant0, tenant1)
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_operator.ldif"
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_operator.ldif"
 
   - name: set admin password in ldap
-    command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=admin,ou=systemuser,ou=user,{{ auth_ldap_path }}'"
+    command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=admin,ou=systemuser,ou=user,{{ auth_ldap_path }}'"
 
   - name: set fgreporter password in ldap
-    command: "ldappasswd -s {{ ldap_fgreporter_pwd }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=fgreporter,ou=systemuser,ou=user,{{ auth_ldap_path }}'"
+    command: "ldappasswd -s {{ ldap_fgreporter_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=fgreporter,ou=systemuser,ou=user,{{ auth_ldap_path }}'"
 
   - name: set {{ auth_ldap_internal_readonly_user }} password in ldap
-    command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid={{ auth_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ auth_ldap_path }}'"
+    command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid={{ auth_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ auth_ldap_path }}'"
 
   - name: Create tree level 4 with parent tenantx (cn admin)
-    command: "ldapmodify -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_4.ldif"
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_4.ldif"
 
   - name: set admin password in ldap
-    command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_server_internal }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}'"
+    command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}'"
 
   - name: delete ldif files
     file:

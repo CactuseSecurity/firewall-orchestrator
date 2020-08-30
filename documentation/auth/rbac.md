@@ -12,6 +12,7 @@
 
 The following roles are defined in ascending order of permissions:
 - anonymous - anonymous users can only access the login page and health statistics
+- auth-server - allows the auth server to read necessary tables (ldap_connection)
 - reporter - reporters have access to basic tables (stm_...) and limited rights for object and rule tables depending on the visible devices for the tenant the user belongs to.
 - reporter-viewall - reporter role for full read access to all devices
 - importer - users can import config changes into the database
@@ -20,7 +21,7 @@ The following roles are defined in ascending order of permissions:
 - workflow-user - (for future use) users who can request firewall changes
 - workflow-admin - (for future use) users who can create change request workflows
 - fw-admin - users who can document open changes
-- admi - users with full access rights to firewall orchestrator (this is also the pre-defined hasura role 'admin')
+- admin - users with full access rights to firewall orchestrator (this is also the pre-defined hasura role 'admin')
 
 The above mentioned access rights are implemented on the following levels 
 1. as grants within the database. E.g. a reporter does not have the right to change any of the tables rule, object, service.

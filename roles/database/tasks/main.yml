@@ -164,6 +164,7 @@
   command: "docker ps --all -q --filter name={{ api_container_name }}"
   become: yes
   register: docker_ps_out
+  when: (docker_is_installed.stat.exists == True) and (clean_install is defined)
 
 - name: remove api container
   command: "docker rm {{ api_container_name }}"

@@ -16,7 +16,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.
 Set debug parameter to "true" for extended debugging info during installation.
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "debug=true" site.yml -K
+cd firewall-orchestrator; ansible-playbook -i inventory/ site.yml -e "debug_level='2'" -K
 ```
 
 ### Parameter "ui_php" to additionally install old php UI

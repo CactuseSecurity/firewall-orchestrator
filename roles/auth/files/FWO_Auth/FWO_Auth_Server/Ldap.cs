@@ -44,12 +44,10 @@ namespace FWO_Auth_Server
             return connection;
         }
 
-        // tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
-        // dn:uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
         public bool ValidateUser(User user)
         {
             // TODO: we need to replace ou=systemuser with ou=tenant<x>,ou=operator and keep x variable - need to look in all existing tenants
-            string userSearchBase = $"ou=operator,ou=user,dc=fworch,dc=internal";//$"uid={user.Name},ou=systemuser,ou=user,dc=fworch,dc=internal";
+            string userSearchBase = $"ou=operator,ou=user,dc=fworch,dc=internal"; // TODO: read path from config
 
             Console.WriteLine($"Validating User: \"{user.Name}\" ...");
 
@@ -60,7 +58,7 @@ namespace FWO_Auth_Server
 
                 using (LdapConnection connection = Connect())
                 {
-                    connection.Bind($"uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal", "fworch.1"); // Todo: Use correct user (inspector) for search operation
+                    connection.Bind($"uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal", "fworch.1"); // TODO: read path from config
 
                     // Todo: Insert correct values
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(userSearchBase, LdapConnection.ScopeSub, $"(&(objectClass=inetOrgPerson)(uid:dn:={user.Name}))", null, typesOnly: false);
@@ -80,9 +78,7 @@ namespace FWO_Auth_Server
 
                                 if (connection.Bound)
                                 {
-#if DEBUG
-                                    Console.WriteLine($"Success!");
-#endif
+                                    Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
                                     // TODO: return DN to make role search easier and "correcter"?
                                     return true;
                                 }

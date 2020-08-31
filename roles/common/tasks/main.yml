@@ -1,8 +1,15 @@
 - block: 
-    #  - name: remove complete {{ fworch_home }} dir 
-    #    file:
-    #       state: absent
-    #       path: "{{ fworch_home }}"
+     - name: remove complete {{ fworch_home }} dir except for etc
+       file:
+          state: absent
+          path: "{{ fworch_home }}/{{ item }}"
+       loop:
+         - api
+         - auth
+         - bin
+         - importer  
+         - install  
+         - ui
 
      - name: update operating system packages .deb based
        apt:

@@ -53,5 +53,10 @@ query ($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $r
   }
 }
 ";
+public static readonly string getTeantId = @"
+   query getTenantId($tenant_name: String) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
+";
+// variables: {"tenant_name": "forti"}
+
     }
 }

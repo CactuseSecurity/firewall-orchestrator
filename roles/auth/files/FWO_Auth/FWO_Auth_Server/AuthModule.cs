@@ -54,13 +54,13 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Create connection to Ldap Server
-            LdapConnection = new Ldap("localhost", 636);
+            LdapConnection = new Ldap("localhost", 636); // todo: read ldap listener address from config
 
             // Create Token Generator
             TokenGenerator = new TokenGenerator(privateKey, daysValid);
 
             // Start Http Listener
-            StartListener("http://localhost:8888/");
+            StartListener("http://localhost:8888/"); // todo: read auth server listener address from config
         }
 
         private void StartListener(string ListenerUri)
@@ -146,15 +146,36 @@ namespace FWO_Auth
                     Console.WriteLine($"Try to validate as {User.Name}...");
                     String UserDN = LdapConnection.ValidateUser(User);
                     if (UserDN!="") 
-                    {
+                    {   // user was successfully auhtenticated via LDAP
                         Console.WriteLine($"Successfully validated as {User} with DN {UserDN}");
-                        User.UserDN = UserDN;
-                        UserData tenantInformation = new UserData();
-                        tenantInformation.tenant = UserDN;
-                        // get visible devices from API: 
+                        // User.UserDN = UserDN;
+
+                        Tenant tenant = new Tenant();
+                        tenant.tenantName = UserDN; //only part of it (first ou)
+
+                        // need to make APICalls available as common library
+
+                        // need to resolve tenant_name from DN to tenant_id first 
+                        // query get_tenant_id($tenant_name: String) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
+                        // variables: {"tenant_name": "forti"}
+                        tenant.tenantId = 0; // todo: replace with APICall() result
+
+                        // get visible devices with the following queries:
+
+                        // query get_visible_mgm_per_tenant($tenant_id:Int!){  get_visible_managements_per_tenant(args: {arg_1: $tenant_id})  id } }
+                        String variables = $"\"tenant_id\":{tenant.tenantId}";
+                        // tenant.VisibleDevices = APICall(query,variables);
+
+                        // query get_visible_devices_per_tenant($tenant_id:Int!){ get_visible_devices_per_tenant(args: {arg_1: $tenant_id}) { id }}
+                        // variables: {"tenant_id":3}
+                        // tenant.VisibleDevices = APICall();
+            
                         // tenantInformation.VisibleDevices = {};
                         // tenantInformation.VisibleManagements = [];
-                        responseString = TokenGenerator.CreateJWT(User, tenantInformation, LdapConnection.GetRoles(User));
+
+                        UserData userData = new UserData();
+                        userData.tenant = tenant;
+                        responseString = TokenGenerator.CreateJWT(User, userData, LdapConnection.GetRoles(User));
                     }
 
                     else

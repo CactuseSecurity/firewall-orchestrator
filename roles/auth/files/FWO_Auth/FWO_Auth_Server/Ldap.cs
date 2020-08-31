@@ -37,9 +37,10 @@ namespace FWO_Auth_Server
                 connection.Connect(Address, Port);
             }
 
-            catch (Exception e)
+            catch (Exception exConn)
             {
                 // TODO: Ldap Server not reachable
+                Console.Write($"\n Error while trying to reach LDAP server #### Message #### \n {exConn.Message} \n #### Stack Trace #### \n {exConn.StackTrace} \n");
             }
 
             return connection;

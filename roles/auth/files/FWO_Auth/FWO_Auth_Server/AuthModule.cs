@@ -144,13 +144,17 @@ namespace FWO_Auth
                 else
                 {
                     Console.WriteLine($"Try to validate as {User.Name}...");
-
-                    if (LdapConnection.ValidateUser(User)) 
+                    String UserDN = LdapConnection.ValidateUser(User);
+                    if (UserDN!="") 
                     {
-                        Console.WriteLine($"Successfully validated as {User}!");
-
-                        responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));
-                        Console.WriteLine($"User {User.Name} was assigned the following roles: {responseString}");
+                        Console.WriteLine($"Successfully validated as {User} with DN {UserDN}");
+                        User.UserDN = UserDN;
+                        UserData tenantInformation = new UserData();
+                        tenantInformation.tenant = UserDN;
+                        // get visible devices from API: 
+                        // tenantInformation.VisibleDevices = {};
+                        // tenantInformation.VisibleManagements = [];
+                        responseString = TokenGenerator.CreateJWT(User, tenantInformation, LdapConnection.GetRoles(User));
                     }
 
                     else

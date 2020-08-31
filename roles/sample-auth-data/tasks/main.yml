@@ -4,7 +4,7 @@
   include_tasks: auth_test_data.yml
 
 - name: Check if ldap sample-auth-data already exists
-  shell: "ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt ou=forti -x | grep 'ou=forti,{{ auth_ldap_std_user_path }}' | wc -l"
+  shell: "ldapsearch -D uid=inspector,ou=systemuser,ou=user,{{ auth_ldap_path }} -y {{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt ou=forti -x | grep 'ou=forti,{{ auth_ldap_std_user_path }}' | wc -l"
   register: is_sample_auth_present_flag
 
 - block:

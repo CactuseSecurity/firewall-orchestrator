@@ -35,6 +35,8 @@ Use the following command to verify settings:
     upstream-cactus git@github.com:CactuseSecurity/firewall-orchestrator.git (push)
     tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator$ 
 
+if vs code does not show the upstream repo in pull-from, just give it some time to show up?!
+
 ### sync fork
 
 ## Select, prepare and run project

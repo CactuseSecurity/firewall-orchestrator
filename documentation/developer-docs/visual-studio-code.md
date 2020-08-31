@@ -43,6 +43,7 @@ if vs code does not show the upstream repo in pull-from, just give it some time 
 
 ### Add a solution to make Intellisense and Omnisharp work
 
+- if in a .cs file no references for objects are shown, just start editing (changing) it and the references will appear
 - Go to File - Preferences - Settings
 - search for omnisharp (in extension c# configuration) and enter the name of the missing / not working solution (project) into the "Omnisharp: Default Launch Solution" form, e.g. FWO.sln or FWO_Auth.sln
 

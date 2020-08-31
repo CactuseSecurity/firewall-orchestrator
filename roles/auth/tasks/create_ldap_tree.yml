@@ -1,6 +1,6 @@
 
 - name: Check if ldap tree already exists
-  shell: "ldapsearch ou=user -x | grep 'ou=user,{{ auth_ldap_path }}' | wc -l"
+  shell: "ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt ou=user -x | grep 'ou=user,{{ auth_ldap_path }}' | wc -l"
   register: is_ldap_present_flag
 
 - block:

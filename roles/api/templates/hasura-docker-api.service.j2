@@ -1,5 +1,5 @@
 [Unit]
-Description=fworch API
+Description={{ product_name }} API
 After=network.target remote-fs.target nss-lookup.target
 [Service]
 WorkingDirectory={{ api_home }}
@@ -7,7 +7,7 @@ ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/docker start {{ api_container_name }}
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=fworch-api
+SyslogIdentifier={{ product_name }}-api
 User={{ fworch_user }}
 Environment=
 [Install]

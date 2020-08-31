@@ -25,7 +25,7 @@ class AccRuleList extends RuleList {
  		$sqlcmd = "INSERT INTO temp_filtered_rule_ids SELECT $report_id AS report_id, get_rule_ids AS rule_id FROM get_rule_ids(".
 			(is_null($this->filter->getDeviceId()) ? 'NULL' : $this->filter->getDeviceId()).
 			",'".$this->filter->getReportTime()."', ".
-			(is_null($this->filter->getClientId()) ? 'NULL' : $this->filter->getClientId()) . ", '" . $this->filter->getMgmFilter4ReportConfig() . "')";
+			(is_null($this->filter->gettenantId()) ? 'NULL' : $this->filter->gettenantId()) . ", '" . $this->filter->getMgmFilter4ReportConfig() . "')";
 		$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 		if (!$this->error->isError($this->db_connection)) {
 			$db_rule_ids = $this->db_connection->fworch_db_query($sqlcmd);
@@ -84,7 +84,7 @@ class AccNetworkObjectList extends DbList {
 		$import_id = $filter->getRelevantImportId();		// TODO: unscharf bei Report �ber alle Systeme 
 		$rule_filter = "SELECT * FROM get_obj_ids_of_filtered_ruleset(" .
 				$filter->getFilteredRuleIds() . "," .
-				(is_null($filter->getClientId()) ? 'NULL' : $filter->getClientId()) . ", '" .
+				(is_null($filter->gettenantId()) ? 'NULL' : $filter->gettenantId()) . ", '" .
 				$filter->getReportTime() . "')";
 		$sql_code = "SELECT obj_id AS id FROM object WHERE obj_id IN ($rule_filter) UNION " .
 			"SELECT objgrp_flat_member_id as id FROM objgrp_flat WHERE objgrp_flat_id IN ($rule_filter) " .

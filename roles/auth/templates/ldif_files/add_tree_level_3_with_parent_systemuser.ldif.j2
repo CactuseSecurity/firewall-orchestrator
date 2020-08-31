@@ -5,9 +5,16 @@ objectclass: inetorgperson
 cn: admin
 sn: admin
 
-dn: uid=inspector,ou=systemuser,ou=user,{{ auth_ldap_path }}
+dn: uid={{ auth_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ auth_ldap_path }}
 changetype: add
 objectClass: top
 objectclass: inetorgperson
-cn: inspector
-sn: inspector
+cn: {{ auth_ldap_internal_readonly_user }}
+sn: {{ auth_ldap_internal_readonly_user }}
+
+dn: uid=fgreporter,ou=systemuser,ou=user,dc=fworch,dc=internal
+changetype: add
+objectClass: top
+objectclass: inetorgperson
+cn: fgreporter
+sn: fgreporter

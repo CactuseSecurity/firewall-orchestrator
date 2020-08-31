@@ -23,7 +23,7 @@ Create table "device"
 	"dev_name" Varchar,
 	"dev_rulebase" Varchar,
 	"dev_typ_id" Integer NOT NULL,
-	"client_id" Integer,
+	"tenant_id" Integer,
 	"dev_active" Boolean NOT NULL Default true,
 	"dev_comment" Text,
 	"dev_create" Timestamp NOT NULL Default now(),
@@ -35,41 +35,59 @@ Create table "device"
  primary key ("dev_id")
 );
 
-Create table "client_project"
+Create table "tenant_project"
 (
-	"client_id" Integer NOT NULL,
+	"tenant_id" Integer NOT NULL,
 	"prj_id" Integer NOT NULL,
- primary key ("client_id","prj_id")
+ primary key ("tenant_id","prj_id")
 );
 
-Create table "client"
+Create table "tenant"
 (
-	"client_id" SERIAL,
-	"client_name" Varchar NOT NULL,
-	"client_projekt" Varchar,
-	"client_comment" Text,
-	"client_report" Boolean Default true,
-	"client_create" Timestamp NOT NULL Default now(),
- primary key ("client_id")
+	"tenant_id" SERIAL,
+	"tenant_name" Varchar NOT NULL,
+	"tenant_projekt" Varchar,
+	"tenant_comment" Text,
+	"tenant_report" Boolean Default true,
+	"tenant_can_view_all_devices" Boolean NOT NULL Default false,
+	"tenant_is_superadmin" Boolean NOT NULL default false,	
+	"tenant_create" Timestamp NOT NULL Default now(),
+ primary key ("tenant_id")
 );
 
-Create table "client_object"
+-- Create table "role"
+-- (
+-- 	"role_id" SERIAL,
+-- 	"role_name" Varchar NOT NULL,
+-- 	"role_can_view_all_devices" Boolean NOT NULL Default false,
+-- 	"role_is_superadmin" Boolean NOT NULL default false,	
+--  primary key ("role_id")
+-- );
+
+Create table "tenant_to_device"
 (
-	"client_id" Integer NOT NULL,
+	"tenant_id" Integer NOT NULL,
+	"device_id" Integer NOT NULL,
+ primary key ("tenant_id", "device_id")
+);
+
+Create table "tenant_object"
+(
+	"tenant_id" Integer NOT NULL,
 	"obj_id" Integer NOT NULL,
- primary key ("client_id","obj_id")
+ primary key ("tenant_id","obj_id")
 );
 
-Create table "client_network"
+Create table "tenant_network"
 (
-	"client_net_id" BIGSERIAL,
-	"client_id" Integer NOT NULL,
-	"client_net_name" Varchar,
-	"client_net_comment" Text,
-	"client_net_ip" Cidr,
-	"client_net_ip_end" Cidr,
-	"client_net_create" Timestamp NOT NULL Default now(),
- primary key ("client_net_id")
+	"tenant_net_id" BIGSERIAL,
+	"tenant_id" Integer NOT NULL,
+	"tenant_net_name" Varchar,
+	"tenant_net_comment" Text,
+	"tenant_net_ip" Cidr,
+	"tenant_net_ip_end" Cidr,
+	"tenant_net_create" Timestamp NOT NULL Default now(),
+ primary key ("tenant_net_id")
 );
 
 Create table "management"
@@ -78,7 +96,7 @@ Create table "management"
 	"dev_typ_id" Integer NOT NULL,
 	"mgm_name" Varchar NOT NULL,
 	"mgm_comment" Text,
-	"client_id" Integer,
+	"tenant_id" Integer,
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"ssh_public_key" Text NOT NULL Default 'leer',
@@ -199,12 +217,12 @@ Create table "rule_from"
 Create table "rule_review"
 (
 	"rule_id" Integer NOT NULL,
-	"client_id" Integer NOT NULL,
+	"tenant_id" Integer NOT NULL,
 	"rr_comment" Text,
 	"rr_visible" Boolean NOT NULL Default true,
 	"rr_create" Timestamp NOT NULL Default now(),
 	"rr_update" Timestamp NOT NULL Default now(),
- primary key ("rule_id","client_id")
+ primary key ("rule_id","tenant_id")
 );
 
 Create table "rule_service"
@@ -383,7 +401,7 @@ Create table "usr"
 	"user_firstname" Varchar,
 	"user_lastname" Varchar,
 	"last_change_admin" Integer,
-	"client_id" Integer
+	"tenant_id" Integer
 );
 
 Create table "usergrp"
@@ -564,7 +582,7 @@ Create table "isoadmin"
 	"isoadmin_start_date" Date Default now(),
 	"isoadmin_end_date" Date,
 	"isoadmin_email" Varchar,
-	"client_id" Integer,
+	"tenant_id" Integer,
 	"isoadmin_password_must_be_changed" Boolean NOT NULL Default TRUE,
 	"isoadmin_last_login" Timestamp with time zone,
 	"isoadmin_last_password_change" Timestamp with time zone,
@@ -719,11 +737,11 @@ Create table "stm_report_typ"
  primary key ("report_typ_id")
 );
 
-Create table "client_user"
+Create table "tenant_user"
 (
 	"user_id" BIGSERIAL,
-	"client_id" BIGSERIAL,
- primary key ("user_id","client_id")
+	"tenant_id" BIGSERIAL,
+ primary key ("user_id","tenant_id")
 );
 
 Create table "request"
@@ -734,7 +752,7 @@ Create table "request"
 	"request_received" Timestamp,
 	"request_submitter" Varchar,
 	"request_approver" Varchar,
-	"client_id" Integer,
+	"tenant_id" Integer,
 	"request_type_id" Integer,
  primary key ("request_id")
 );
@@ -798,21 +816,21 @@ Create table "manual"
  primary key ("id")
 );
 
-Create table "temp_table_for_client_filtered_rule_ids"
+Create table "temp_table_for_tenant_filtered_rule_ids"
 (
 	"rule_id" Integer NOT NULL,
 	"report_id" Integer NOT NULL,
  primary key ("rule_id","report_id")
 );
 
-Create table "client_username"
+Create table "tenant_username"
 (
-	"client_username_id" BIGSERIAL,
-	"client_id" Integer,
-	"client_username_pattern" Varchar,
-	"client_username_comment" Text,
-	"client_username_create" Timestamp NOT NULL Default now(),
- primary key ("client_username_id")
+	"tenant_username_id" BIGSERIAL,
+	"tenant_id" Integer,
+	"tenant_username_pattern" Varchar,
+	"tenant_username_comment" Text,
+	"tenant_username_create" Timestamp NOT NULL Default now(),
+ primary key ("tenant_username_id")
 );
 
 Create table "request_type"
@@ -851,25 +869,11 @@ Create table "import_changelog"
  primary key ("import_changelog_id")
 );
 
-Create table "device_client_map"
+Create table "reporttyp_tenant_map"
 (
-	"client_id" Integer NOT NULL,
-	"dev_id" Integer NOT NULL,
- primary key ("client_id","dev_id")
-);
-
-Create table "management_client_map"
-(
-	"client_id" Integer NOT NULL,
-	"mgm_id" Integer NOT NULL,
- primary key ("client_id","mgm_id")
-);
-
-Create table "reporttyp_client_map"
-(
-	"client_id" Integer NOT NULL,
+	"tenant_id" Integer NOT NULL,
 	"report_typ_id" Integer NOT NULL,
- primary key ("client_id","report_typ_id")
+ primary key ("tenant_id","report_typ_id")
 );
 
 Create table "report"
@@ -883,33 +887,20 @@ Create table "report"
 	"report_start_time" Timestamp,
 	"report_end_time" Timestamp,
 	"report_document" Text NOT NULL,
-	"client_id" Integer,
+	"tenant_id" Integer,
  primary key ("report_id")
 );
 
-Create table "role"
+Create table "ldap_connection"
 (
-	"role_id" SERIAL,
-	"role_name" Varchar NOT NULL,
-	"role_can_view_all_devices" Boolean NOT NULL Default false,
-	"role_is_superadmin" Boolean NOT NULL default false,	
- primary key ("role_id")
-);
-
-/*
-Create table "role_to_user"
-(
-	"role_id" Integer NOT NULL,
-	"user_id" Integer NOT NULL,
- primary key ("role_id", "user_id")
-);
-*/
-
-Create table "role_to_device"
-(
-	"role_id" Integer NOT NULL,
-	"device_id" Integer NOT NULL,
- primary key ("role_id", "device_id")
+	"ldap_connection_id" BIGSERIAL,
+	"ldap_server" Varchar NOT NULL,
+	"ldap_port" Integer NOT NULL Default 636,
+	"ldap_tls" Boolean NOT NULL Default TRUE,
+	"ldap_searchpath_for_users" Varchar NOT NULL,
+	"ldap_tenant_level" Integer NOT NULL Default 1,
+	"ldap_search_user" Varchar NOT NULL,
+	primary key ("ldap_connection_id")
 );
 
 /* Create Tab 'Others' for Selected Tables */
@@ -934,9 +925,9 @@ Alter Table "import_changelog" add Constraint "Alter_Key14" UNIQUE ("import_chan
 
 /* Create Indexes */
 Create unique index "firewall_akey" on "device" using btree ("mgm_id","dev_id");
-Create index "kunden_akey" on "client" using btree ("client_name");
-Create unique index "kundennetze_akey" on "client_network" using btree ("client_net_id","client_id");
-Create unique index "management_akey" on "management" using btree ("mgm_name","client_id");
+Create index "kunden_akey" on "tenant" using btree ("tenant_name");
+Create unique index "kundennetze_akey" on "tenant_network" using btree ("tenant_net_id","tenant_id");
+Create unique index "management_akey" on "management" using btree ("mgm_name","tenant_id");
 Create index "rule_index" on "rule" using btree ("mgm_id","rule_id","rule_uid","dev_id");
 Create unique index "rule_from_unique_index" on "rule_from" using btree ("rule_id","obj_id","user_id");
 Create unique index "stm_color_akey" on "stm_color" using btree ("color_name");
@@ -958,42 +949,38 @@ Create index "IX_Relationship128" on "changelog_rule" ("dev_id");
 Alter table "changelog_rule" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_Relationship186" on "rule" ("dev_id");
 Alter table "rule" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
-Create index "IX_Relationship192" on "device_client_map" ("dev_id");
-Alter table "device_client_map" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
+Create index "IX_Relationship192" on "device_tenant_map" ("dev_id");
+Alter table "device_tenant_map" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_Relationship205" on "report" ("dev_id");
 Alter table "report" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
-Create index "IX_relationship7" on "device" ("client_id");
-Alter table "device" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_relationship1" on "client_project" ("client_id");
-Alter table "client_project" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_relationship2" on "client_project" ("prj_id");
-Alter table "client_project" add  foreign key ("prj_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_relationship15" on "client_object" ("client_id");
-Alter table "client_object" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_relationship3" on "client_network" ("client_id");
-Alter table "client_network" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_relationship4" on "management" ("client_id");
-Alter table "management" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_relationship32" on "rule_review" ("client_id");
-Alter table "rule_review" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship135" on "client_user" ("client_id");
-Alter table "client_user" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship148" on "request" ("client_id");
-Alter table "request" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship165" on "usr" ("client_id");
-Alter table "usr" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship180" on "client_username" ("client_id");
-Alter table "client_username" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship188" on "isoadmin" ("client_id");
-Alter table "isoadmin" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship189" on "device_client_map" ("client_id");
-Alter table "device_client_map" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship190" on "management_client_map" ("client_id");
-Alter table "management_client_map" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship193" on "reporttyp_client_map" ("client_id");
-Alter table "reporttyp_client_map" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
-Create index "IX_Relationship206" on "report" ("client_id");
-Alter table "report" add  foreign key ("client_id") references "client" ("client_id") on update restrict on delete restrict;
+Create index "IX_relationship7" on "device" ("tenant_id");
+Alter table "device" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_relationship1" on "tenant_project" ("tenant_id");
+Alter table "tenant_project" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_relationship2" on "tenant_project" ("prj_id");
+Alter table "tenant_project" add  foreign key ("prj_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_relationship15" on "tenant_object" ("tenant_id");
+Alter table "tenant_object" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_relationship3" on "tenant_network" ("tenant_id");
+Alter table "tenant_network" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_relationship4" on "management" ("tenant_id");
+Alter table "management" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_relationship32" on "rule_review" ("tenant_id");
+Alter table "rule_review" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_Relationship135" on "tenant_user" ("tenant_id");
+Alter table "tenant_user" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_Relationship148" on "request" ("tenant_id");
+Alter table "request" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_Relationship165" on "usr" ("tenant_id");
+Alter table "usr" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_Relationship180" on "tenant_username" ("tenant_id");
+Alter table "tenant_username" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_Relationship188" on "isoadmin" ("tenant_id");
+Alter table "isoadmin" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_Relationship193" on "reporttyp_tenant_map" ("tenant_id");
+Alter table "reporttyp_tenant_map" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
+Create index "IX_Relationship206" on "report" ("tenant_id");
+Alter table "report" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
 Create index "IX_relationship5" on "device" ("mgm_id");
 Alter table "device" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete restrict;
 Create index "IX_relationship8" on "object" ("mgm_id");
@@ -1016,10 +1003,8 @@ Create index "IX_Relationship131" on "changelog_service" ("mgm_id");
 Alter table "changelog_service" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete restrict;
 Create index "IX_Relationship184" on "temp_mgmid_importid_at_report_time" ("mgm_id");
 Alter table "temp_mgmid_importid_at_report_time" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete restrict;
-Create index "IX_Relationship191" on "management_client_map" ("mgm_id");
-Alter table "management_client_map" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete restrict;
-Create index "IX_relationship16" on "client_object" ("obj_id");
-Alter table "client_object" add  foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete restrict;
+Create index "IX_relationship16" on "tenant_object" ("obj_id");
+Alter table "tenant_object" add  foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete restrict;
 Create index "IX_relationship13" on "objgrp" ("objgrp_id");
 Alter table "objgrp" add  foreign key ("objgrp_id") references "object" ("obj_id") on update restrict on delete restrict;
 Create index "IX_relationship14" on "objgrp" ("objgrp_member_id");
@@ -1104,8 +1089,8 @@ Create index "IX_Relationship80" on "changelog_user" ("old_user_id");
 Alter table "changelog_user" add  foreign key ("old_user_id") references "usr" ("user_id") on update restrict on delete restrict;
 Create index "IX_Relationship95" on "rule_from" ("user_id");
 Alter table "rule_from" add  foreign key ("user_id") references "usr" ("user_id") on update restrict on delete restrict;
-Create index "IX_Relationship134" on "client_user" ("user_id");
-Alter table "client_user" add  foreign key ("user_id") references "usr" ("user_id") on update restrict on delete restrict;
+Create index "IX_Relationship134" on "tenant_user" ("user_id");
+Alter table "tenant_user" add  foreign key ("user_id") references "usr" ("user_id") on update restrict on delete restrict;
 Create index "IX_Relationship149" on "usergrp_flat" ("usergrp_flat_id");
 Alter table "usergrp_flat" add  foreign key ("usergrp_flat_id") references "usr" ("user_id") on update restrict on delete restrict;
 Create index "IX_Relationship150" on "usergrp_flat" ("usergrp_flat_member_id");
@@ -1226,8 +1211,8 @@ Create index "IX_Relationship142" on "request_rule_change" ("log_rule_id");
 Alter table "request_rule_change" add  foreign key ("log_rule_id") references "changelog_rule" ("log_rule_id") on update restrict on delete restrict;
 Create index "IX_Relationship93" on "usr" ("usr_typ_id");
 Alter table "usr" add  foreign key ("usr_typ_id") references "stm_usr_typ" ("usr_typ_id") on update restrict on delete restrict;
-Create index "IX_Relationship194" on "reporttyp_client_map" ("report_typ_id");
-Alter table "reporttyp_client_map" add  foreign key ("report_typ_id") references "stm_report_typ" ("report_typ_id") on update restrict on delete restrict;
+Create index "IX_Relationship194" on "reporttyp_tenant_map" ("report_typ_id");
+Alter table "reporttyp_tenant_map" add  foreign key ("report_typ_id") references "stm_report_typ" ("report_typ_id") on update restrict on delete restrict;
 Create index "IX_Relationship201" on "report" ("report_typ_id");
 Alter table "report" add  foreign key ("report_typ_id") references "stm_report_typ" ("report_typ_id") on update restrict on delete restrict;
 Create index "IX_Relationship137" on "request_object_change" ("request_id");
@@ -1249,12 +1234,8 @@ Alter table "changelog_rule" add  foreign key ("change_type_id") references "stm
 Create index "IX_Relationship181" on "request" ("request_type_id");
 Alter table "request" add  foreign key ("request_type_id") references "request_type" ("request_type_id") on update restrict on delete restrict;
 
-/*
-Alter table "role_to_user" add  foreign key ("role_id") references "role" ("role_id") on update restrict on delete cascade;
-Alter table "role_to_user" add  foreign key ("user_id") references "isoadmin" ("isoadmin_id") on update restrict on delete cascade;
-*/
-Alter table "role_to_device" add  foreign key ("role_id") references "role" ("role_id") on update restrict on delete cascade;
-Alter table "role_to_device" add  foreign key ("device_id") references "device" ("dev_id") on update restrict on delete cascade;
+Alter table "tenant_to_device" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
+Alter table "tenant_to_device" add  foreign key ("device_id") references "device" ("dev_id") on update restrict on delete cascade;
 
 /* Create Groups */
 Create group "secuadmins";
@@ -1341,7 +1322,7 @@ Grant update,insert on "usergrp_flat" to group "configimporters";
 Grant update,insert on "rule_order" to group "configimporters";
 Grant update,insert on "objgrp_flat" to group "configimporters";
 Grant update,insert on "svcgrp_flat" to group "configimporters";
-Grant update,insert on "client_user" to group "configimporters";
+Grant update,insert on "tenant_user" to group "configimporters";
 Grant insert on "changelog_object" to group "configimporters";
 Grant insert on "changelog_service" to group "configimporters";
 Grant insert on "changelog_user" to group "configimporters";
@@ -1355,8 +1336,8 @@ Grant ALL on "request_object_change" to group "secuadmins";
 Grant ALL on "request_service_change" to group "secuadmins";
 Grant ALL on "request_rule_change" to group "secuadmins";
 Grant ALL on "request_user_change" to group "secuadmins";
-Grant ALL on "temp_table_for_client_filtered_rule_ids" to group "secuadmins";
-Grant ALL on "client_username" to group "secuadmins";
+Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "secuadmins";
+Grant ALL on "tenant_username" to group "secuadmins";
 Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
 Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
 
@@ -1370,7 +1351,7 @@ Grant insert on "report" to group "secuadmins";
 
 -- reporters:
 
-Grant ALL on "temp_table_for_client_filtered_rule_ids" to group "reporters";
+Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "reporters";
 Grant ALL on "temp_filtered_rule_ids" to group "reporters";
 Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
 

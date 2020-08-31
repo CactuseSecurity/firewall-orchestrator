@@ -52,14 +52,14 @@ class NetworkObjectList extends DbList {
 			if ($filter->showRuleObjectsOnly()) {
 				$rule_filter = "SELECT * FROM get_obj_ids_of_filtered_ruleset_flat(" .
 				$filter->getFilteredRuleIds() . "," .
-				 (is_null($filter->getClientId()) ? 'NULL' : $filter->getClientId()) . ", '" .
+				 (is_null($filter->gettenantId()) ? 'NULL' : $filter->gettenantId()) . ", '" .
 				$filter->getReportTime() . "') ";
 			} else {
 				if (!$filter->showRuleObjectsOnly() && !is_null($filter->getManagementId())) {
 					$rule_filter = "SELECT * FROM get_obj_ids_of_filtered_management(" .
 					$filter->getManagementId() . "," .
 					$filter->getRelevantImportId() . "," .
-					 (is_null($filter->getClientId()) ? 'NULL' : $filter->getClientId()) . ")";
+					 (is_null($filter->gettenantId()) ? 'NULL' : $filter->gettenantId()) . ")";
 				} else { // filter over all management systems displaying all nwobjects (not only those in rulebase)
 					$grp_flat_rule_filter	= "";
 					$object_rule_filter		= "INNER JOIN temp_mgmid_importid_at_report_time ON (temp_mgmid_importid_at_report_time.mgm_id=object.mgm_id " .
@@ -117,10 +117,10 @@ class NetworkObjectList extends DbList {
 			$obj_list_query .= ") ";
 //			$log = new LogConnection(); $log->log_debug("NetworkObjectList::select_nwobjects: obj_list_query = $obj_list_query");
 			for ($zi = 0; $zi < $this->rows; ++ $zi) {
-//				if ($obj_list[$zi]->getName() == 'lan_grp_clients_ber_fs83') {
-//					echo "DEBUG: members of lan_grp_clients_ber_fs83: " . implode($obj_list[$zi]->getMembers()) . '<br>';
-//					echo "DEBUG: uid of lan_grp_clients_ber_fs83: " . $obj_list[$zi]->getUid() . '<br>';
-//					echo "DEBUG: obj_id of lan_grp_clients_ber_fs83: " . $obj_list[$zi]->getId() . '<br>';
+//				if ($obj_list[$zi]->getName() == 'lan_grp_tenants_ber_fs83') {
+//					echo "DEBUG: members of lan_grp_tenants_ber_fs83: " . implode($obj_list[$zi]->getMembers()) . '<br>';
+//					echo "DEBUG: uid of lan_grp_tenants_ber_fs83: " . $obj_list[$zi]->getUid() . '<br>';
+//					echo "DEBUG: obj_id of lan_grp_tenants_ber_fs83: " . $obj_list[$zi]->getId() . '<br>';
 //				}
 				if ($obj_list[$zi]->getType() == 'group')
 					$obj_list[$zi]->members = $obj_list[$zi]->resolve_group($this->filter, $import_ids, $obj_list_query);
@@ -144,17 +144,17 @@ class NetworkObjectChangedList extends DbList {
 		$first_import_id = $this->filter->getFirstImport();
 		$last_import_id = $this->filter->getLastImport();
 		if (!is_null($first_import_id) && !is_null($last_import_id)) {
-			$sqlcmd = "SELECT changelog_object.*,import_control.start_time AS change_time,request.request_number,client.client_name " .
+			$sqlcmd = "SELECT changelog_object.*,import_control.start_time AS change_time,request.request_number,tenant.tenant_name " .
 			" FROM changelog_object " .
 			" LEFT JOIN import_control ON changelog_object.control_id=import_control.control_id " .
 			" LEFT JOIN request_object_change ON changelog_object.log_obj_id=request_object_change.log_obj_id " .
 			" LEFT JOIN request on request_object_change.request_id=request.request_id " .
-			" LEFT JOIN client on client.client_id=request.client_id " .
+			" LEFT JOIN tenant on tenant.tenant_id=request.tenant_id " .
 			" WHERE changelog_object.mgm_id = " . $this->filter->getManagementId() .
 			" AND changelog_object.change_type_id = 3 " . // Ausblenden von Initialen Aenderungen
 			" AND changelog_object.control_id >= " . $this->filter->getFirstImport() .
 			" AND changelog_object.control_id <= " . $this->filter->getLastImport() . "  AND successful_import " .
-			 (!is_null($this->filter->getClientId()) ? (" AND request.client_id = " . $this->filter->getClientId() . " ") : "") .
+			 (!is_null($this->filter->gettenantId()) ? (" AND request.tenant_id = " . $this->filter->gettenantId() . " ") : "") .
 			" ORDER BY changelog_object.log_obj_id";
 			$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 			if (!$this->error->isError($this->db_connection)) {
@@ -191,7 +191,7 @@ class ChangedNetworkObject extends DbItem {
 	var $control_id;
 	var $change_comment;
 	var $change_time;
-	var $client_request_str;
+	var $tenant_request_str;
 	var $filter;
 
 	function __construct($changeobject_table_data, $filter, $conn) {
@@ -204,11 +204,11 @@ class ChangedNetworkObject extends DbItem {
 		$this->abs_change_id = $this->getValue($changeobject_table_data, "abs_change_id", $db_change_keys);
 		$this->change_comment = $this->getValue($changeobject_table_data, "changelog_obj_comment", $db_change_keys);
 		$this->change_time = $this->getValue($changeobject_table_data, "change_time", $db_change_keys);
-		if (!is_null($this->getValue($changeobject_table_data, "client_name", $db_change_keys))) {
-			$this->client_request_str = $this->getValue($changeobject_table_data, "client_name", $db_change_keys) .
+		if (!is_null($this->getValue($changeobject_table_data, "tenant_name", $db_change_keys))) {
+			$this->tenant_request_str = $this->getValue($changeobject_table_data, "tenant_name", $db_change_keys) .
 			": " . $this->getValue($changeobject_table_data, "request_number", $db_change_keys);
 		} else {
-			$this->client_request_str = "&nbsp;";
+			$this->tenant_request_str = "&nbsp;";
 		}
 		$this->control_id = $this->getValue($changeobject_table_data, "control_id", $db_change_keys);
 		$this->old_object = $this->select_oldobject($this->log_obj_id, $filter->getFirstImport());
@@ -271,8 +271,8 @@ class ChangedNetworkObject extends DbItem {
 	function getChangeComment() {
 		return $this->change_comment;
 	}
-	function getClientRequestString() {
-		return $this->client_request_str;
+	function gettenantRequestString() {
+		return $this->tenant_request_str;
 	}
 	function getAbsChangeId() {
 		return $this->abs_change_id;

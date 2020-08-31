@@ -28,7 +28,7 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<title>fworch Reporting</title>
 	<meta http-equiv="content-language" content="de">
-	<script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
+	<script type="text/javascript" src="<?php echo $stamm ?>js/browser.js"></script>
 	<script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 	<link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">
 	<script language="javascript" type="text/javascript">

@@ -46,13 +46,13 @@ usergroup testminimum members: demo1
 # group privileges
 usergroup demo privileges:              view-reports document-changes view-change-admin-names change-documentation
 usergroup testminimum privileges:       view-reports
-usergroup isoadmins privileges:         view-all-objects-filter view-reports document-changes admin-users admin-devices admin-clients change-documentation view-import-status
+usergroup isoadmins privileges:         view-all-objects-filter view-reports document-changes admin-users admin-devices admin-tenants change-documentation view-import-status
 
-# client visibility (separator is here ',' not space!)
-# usergroup demo visible-clients:                       'Client 1', 'Client 2'
-usergroup demo visible-clients:                         ALL
-usergroup testminimum visible-clients:                  ALL
-usergroup isoadmins visible-clients:                    ALL
+# tenant visibility (separator is here ',' not space!)
+# usergroup demo visible-tenants:                       'tenant 1', 'tenant 2'
+usergroup demo visible-tenants:                         ALL
+usergroup testminimum visible-tenants:                  ALL
+usergroup isoadmins visible-tenants:                    ALL
 
 # device and management systems visible in the GUI
 usergroup demo visible-managements:                     ALL
@@ -70,9 +70,9 @@ usergroup testminimum visible-reports:                  config
 usergroup isoadmins visible-reports:                    ALL
 
 # parameters for document changes
-docu-changes default-client demo: Revi
-docu-changes default-client demo-minimum: Revi
-docu-changes default-client isoadmins: Gold
+docu-changes default-tenant demo: Revi
+docu-changes default-tenant demo-minimum: Revi
+docu-changes default-tenant isoadmins: Gold
 docu-changes default-request-type isoadmins: ARS
 docu-changes number-of-requests 1
 docu-changes display-approver 0

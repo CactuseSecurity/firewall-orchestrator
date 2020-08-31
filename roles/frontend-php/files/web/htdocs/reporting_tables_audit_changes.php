@@ -38,7 +38,7 @@
 	$dev_id			= $args['devid'];
 	$report_format	= $args['reportformat'];
 	$mgm_filter		= $args['mgmfilter'];
-	$client_id		= $args['client_id'];
+	$tenant_id		= $args['tenant_id'];
 	$stamm			= $args['stamm'];
 	
 	$report_date	= convert_report_date_to_postgres($args['reportdate']);
@@ -60,16 +60,16 @@
 	$_REQUEST['Device'] = $dev_name;
 	$_REQUEST['ManSystem'] = getMgmNameFromDevId ($dev_id, 'fworch', '');
 	$_SESSION['ManagementFilter'] = $mgm_filter;
-	if (isset($client_id) and !($client_id == '')) $_SESSION['ClientFilter'] = " (client_id=$client_id) ";
+	if (isset($tenant_id) and !($tenant_id == '')) $_SESSION['tenantFilter'] = " (tenant_id=$tenant_id) ";
 	$_REQUEST['devId'] = $dev_id;
 	$_REQUEST['zeitpunkteins'] = $report_date;	
 	$_REQUEST['zeitpunktzwei'] = $report_date2;	
 	$_REQUEST['inactive'] = "0";
 	$_REQUEST['notused'] = "1";
-	$_REQUEST['client_id'] = $client_id;
+	$_REQUEST['tenant_id'] = $tenant_id;
 	$request = $cleaner->clean_structure($_REQUEST);
 	$session = $cleaner->clean_structure($_SESSION);
-	if (!isset($client_id) or $client_id=='') { $client_id = 'null'; }  // very important, just do not know why yet!!!
+	if (!isset($tenant_id) or $tenant_id=='') { $tenant_id = 'null'; }  // very important, just do not know why yet!!!
 ?>	
 <!doctype html>
 <html>
@@ -471,7 +471,7 @@ function create_json_config_report($request, $session, $dev_id, $report_format, 
 	$rule_list->deleteTempReport($ruleFilter->getReportId());
 }
 
-	$log->log_debug("Starting reporting_tables_audit_changes.php (dev_id=$dev_id, dev_name=$dev_name, client_id=$client_id, date1=$report_date, date2=$report_date2; report_typ=$report_type)");
+	$log->log_debug("Starting reporting_tables_audit_changes.php (dev_id=$dev_id, dev_name=$dev_name, tenant_id=$tenant_id, date1=$report_date, date2=$report_date2; report_typ=$report_type)");
 	$attributes = JSON_PRETTY_PRINT;
 	$connection_string = "mongodb://localhost:27017/";
 	$collection = "fworch.reports";
@@ -479,34 +479,34 @@ function create_json_config_report($request, $session, $dev_id, $report_format, 
 	$db_type = "postgres";
 	
 	$rep_storage_checker = new ReportStorage(null, null);
-	if ($rep_storage_checker->reportExists($db_type, $connection_string, "config", $dev_id, $report_date, null, $client_id, $collection, $session)) {
+	if ($rep_storage_checker->reportExists($db_type, $connection_string, "config", $dev_id, $report_date, null, $tenant_id, $collection, $session)) {
 //		load report from database
-		$json_rep = $rep_storage_checker->readReport($db_type, $connection_string, 'config', $dev_id, $report_date, null, $client_id, $collection, $session);
+		$json_rep = $rep_storage_checker->readReport($db_type, $connection_string, 'config', $dev_id, $report_date, null, $tenant_id, $collection, $session);
 		$rep1 = new AuditReport($json_rep);
 	} else {	// create 1st config report
 		$report_header = '"Management-System":"' . $_REQUEST['ManSystem'] . "\",\n" . '"Device":"' . $dev_name . "\",\n" .
-			"\"device_id\":" . $dev_id . ",\n" . '"report_time":' ."\"$report_date\",\n".'"client_id":' . $client_id . ",\n";
+			"\"device_id\":" . $dev_id . ",\n" . '"report_time":' ."\"$report_date\",\n".'"tenant_id":' . $tenant_id . ",\n";
 		$log->log_debug("reporting_tables_audit_changes::before first create_json_config_report");
 		$r1 = "{" . $report_header . create_json_config_report($request, $session, $dev_id, $report_format, $attributes) . "}";
 		$log->log_debug("reporting_tables_audit_changes::before first AuditReport()");
 		$rep1 = new AuditReport($r1);
 		$log->log_debug("reporting_tables_audit_changes::before first dumpReport()");
-		$rep1->dumpReport($db_type, $connection_string, "config", $dev_id, $report_date, null, $client_id, $collection, $session);
+		$rep1->dumpReport($db_type, $connection_string, "config", $dev_id, $report_date, null, $tenant_id, $collection, $session);
 	}
-	if ($rep_storage_checker->reportExists($db_type, $connection_string, "config", $dev_id, $report_date2, null, $client_id, $collection, $session)) {
+	if ($rep_storage_checker->reportExists($db_type, $connection_string, "config", $dev_id, $report_date2, null, $tenant_id, $collection, $session)) {
 //		load 2nd report from database
 		$rep2 = new AuditReport($rep_storage_checker->readReport($db_type, $connection_string, "config", $dev_id, 
-				$report_date2, null, $client_id, $collection, $session));
+				$report_date2, null, $tenant_id, $collection, $session));
 	} else {	// create 2nd config report
 		$_REQUEST['zeitpunkteins'] = $report_date2;	
 		$request = $cleaner->clean_structure($_REQUEST);
 		$report_header = '"Management-System":"' . $_REQUEST['ManSystem'] . "\",\n" . '"Device":"' . $dev_name . "\",\n" . 
-			"\"device_id\":" . $dev_id . ",\n" . '"report_time":' ."\"$report_date2\",\n".'"client_id":' . $client_id . ",\n";
+			"\"device_id\":" . $dev_id . ",\n" . '"report_time":' ."\"$report_date2\",\n".'"tenant_id":' . $tenant_id . ",\n";
 		$log->log_debug("reporting_tables_audit_changes::before second create_json_config_report");
 		$r2 = "{" .$report_header . create_json_config_report($request, $session, $dev_id, $report_format, $attributes) . "}";
 		$log->log_debug("reporting_tables_audit_changes::before second AuditReport()");
 		$rep2 = new AuditReport($r2);
-		$rep2->dumpReport($db_type, $connection_string, "config", $dev_id, $report_date2, null, $client_id, $collection, $session);
+		$rep2->dumpReport($db_type, $connection_string, "config", $dev_id, $report_date2, null, $tenant_id, $collection, $session);
 	}	
 	$log->log_debug("reporting_tables_audit_changes::before compareRulesets()");
 	$rep3 = $rep1->compareRulesets($rep2);
@@ -571,8 +571,8 @@ function create_json_config_report($request, $session, $dev_id, $report_format, 
 <?php 
 	//	dumping to database
 	$log->log_debug("reporting_tables_audit_changes::before dumpReport()");
-	if (!($rep_storage_checker->reportExists($db_type, $connection_string, "audit", $dev_id, $report_date1, $report_date2, $client_id, $collection, $session))) {
-		$rep3->dumpReport($db_type, $connection_string, "audit", $dev_id, $report_date1, $report_date2, $client_id, $collection, $session);
+	if (!($rep_storage_checker->reportExists($db_type, $connection_string, "audit", $dev_id, $report_date1, $report_date2, $tenant_id, $collection, $session))) {
+		$rep3->dumpReport($db_type, $connection_string, "audit", $dev_id, $report_date1, $report_date2, $tenant_id, $collection, $session);
 	}
 	$endtime = explode(" ", microtime()); $etime = $endtime[0] + $endtime[1];
 	$log->log_debug("report generation for device $dev_name (id=$dev_id, format: $report_format) took " . sprintf('%.2f', $etime - $stime) . " seconds.");

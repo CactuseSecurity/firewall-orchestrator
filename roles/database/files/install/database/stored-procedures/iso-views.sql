@@ -349,7 +349,7 @@ CREATE OR REPLACE VIEW 	view_undocumented_change_counter AS
 CREATE OR REPLACE VIEW 	view_documented_change_counter AS
 	SELECT * FROM view_change_counter WHERE documented;
 
--- einheitliche View auf source und destination aller regeln - Verwendung in ChangeList bei client-Filterung
+-- einheitliche View auf source und destination aller regeln - Verwendung in ChangeList bei tenant-Filterung
 CREATE OR REPLACE VIEW view_rule_source_or_destination AS
          SELECT rule.rule_id, rule.rule_dst_neg AS rule_neg, objgrp_flat.objgrp_flat_member_id AS obj_id
            FROM rule
@@ -453,43 +453,43 @@ CREATE OR REPLACE VIEW view_import_status_table AS
 	ORDER BY import_is_active DESC, status_sorter, management_name;
 
 ---------------------------------------------------------------------------------------------
--- client views
+-- tenant views
 ---------------------------------------------------------------------------------------------
 
 /*
--- get all rules of a client
-CREATE OR REPLACE VIEW view_client_rules AS 
-	select x.rule_id, x.rule_create, x.rule_last_seen, x.client_id, x.mgm_id from (
-		SELECT rule.rule_id, rule.rule_create, rule.rule_last_seen, client_network.client_id, rule.mgm_id, rule_order.dev_id
+-- get all rules of a tenant
+CREATE OR REPLACE VIEW view_tenant_rules AS 
+	select x.rule_id, x.rule_create, x.rule_last_seen, x.tenant_id, x.mgm_id from (
+		SELECT rule.rule_id, rule.rule_create, rule.rule_last_seen, tenant_network.tenant_id, rule.mgm_id, rule_order.dev_id
 			FROM rule
 				LEFT JOIN rule_order ON (rule.rule_id=rule_order.rule_id)
 				LEFT JOIN rule_to ON (rule.rule_id=rule_to.rule_id)
 				LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat_id)
 				LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
-				LEFT JOIN client_network ON
+				LEFT JOIN tenant_network ON
 					(
-						(NOT rule_dst_neg AND (obj_ip<<client_net_ip OR obj_ip>>client_net_ip OR obj_ip=client_net_ip))
-						 OR (rule_dst_neg AND (NOT obj_ip<<client_net_ip AND NOT obj_ip>>client_net_ip AND NOT obj_ip=client_net_ip))
+						(NOT rule_dst_neg AND (obj_ip<<tenant_net_ip OR obj_ip>>tenant_net_ip OR obj_ip=tenant_net_ip))
+						 OR (rule_dst_neg AND (NOT obj_ip<<tenant_net_ip AND NOT obj_ip>>tenant_net_ip AND NOT obj_ip=tenant_net_ip))
 					)
 				WHERE rule_head_text IS NULL
 			UNION
-		SELECT rule.rule_id, rule.rule_create, rule.rule_last_seen, client_network.client_id, rule.mgm_id, rule_order.dev_id
+		SELECT rule.rule_id, rule.rule_create, rule.rule_last_seen, tenant_network.tenant_id, rule.mgm_id, rule_order.dev_id
 			FROM rule
 				LEFT JOIN rule_order ON (rule.rule_id=rule_order.rule_id)
 				LEFT JOIN rule_from ON (rule.rule_id=rule_from.rule_id)
 				LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat.objgrp_flat_id)
 				LEFT JOIN object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
-				LEFT JOIN client_network ON
+				LEFT JOIN tenant_network ON
 					(
-						(NOT rule_src_neg AND (obj_ip<<client_net_ip OR obj_ip>>client_net_ip OR obj_ip=client_net_ip))
-						 OR (rule_src_neg AND (NOT obj_ip<<client_net_ip AND NOT obj_ip>>client_net_ip AND NOT obj_ip=client_net_ip))
+						(NOT rule_src_neg AND (obj_ip<<tenant_net_ip OR obj_ip>>tenant_net_ip OR obj_ip=tenant_net_ip))
+						 OR (rule_src_neg AND (NOT obj_ip<<tenant_net_ip AND NOT obj_ip>>tenant_net_ip AND NOT obj_ip=tenant_net_ip))
 					)
 				WHERE rule_head_text IS NULL
-	) AS x; 	-- GROUP BY rule_id,client_id,mgm_id,rule_create, rule_last_seen
+	) AS x; 	-- GROUP BY rule_id,tenant_id,mgm_id,rule_create, rule_last_seen
 	
--- examples for client filtering:	
--- select rule_id from view_client_rules where client_network.client_id=1 and rule.mgm_id=4
--- select rule_id,rule_create from view_client_rules where mgm_id=4 group by rule_id,rule_create
+-- examples for tenant filtering:	
+-- select rule_id from view_tenant_rules where tenant_network.tenant_id=1 and rule.mgm_id=4
+-- select rule_id,rule_create from view_tenant_rules where mgm_id=4 group by rule_id,rule_create
 */
 
 ---------------------------------------------------------------------------------------------
@@ -518,7 +518,7 @@ GRANT SELECT ON TABLE view_undocumented_changes TO GROUP secuadmins;
 -- views used for reporters, too
 GRANT SELECT ON TABLE view_reportable_changes TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_changes TO GROUP secuadmins, reporters;
--- GRANT SELECT ON TABLE view_client_rules TO GROUP secuadmins, reporters;
+-- GRANT SELECT ON TABLE view_tenant_rules TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_changes_by_changed_element_id TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_device_names TO GROUP secuadmins, reporters;
 GRANT SELECT ON TABLE view_rule_source_or_destination TO GROUP secuadmins, reporters;

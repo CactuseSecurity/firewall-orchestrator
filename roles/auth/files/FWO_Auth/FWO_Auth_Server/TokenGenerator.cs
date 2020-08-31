@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace FWO_Auth_Server
@@ -22,12 +23,13 @@ namespace FWO_Auth_Server
         public TokenGenerator(string privateKey, int daysValid)
         {
             this.privateKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey));
+
             this.daysValid = daysValid;
         }
 
-        public async Task<string> CreateJWTAsync(User user, UserData userData, Role[] roles)
+        public string CreateJWT(User user, UserData userData, Role[] roles)
         {
-            Console.WriteLine($"Generating JWT for User {user}...");
+            Console.WriteLine($"Generating JWT for user {user.Name} ...");
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
@@ -54,21 +56,42 @@ namespace FWO_Auth_Server
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-            claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
+            //claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
 
             // TODO: Remove later
             // Fake managment claims REMOVE LATER 
+
+            // int[] fakeVisibleDevices = new int[] {1,7,17};
+            // int[] fakeVisibleManagements = new int[] {1,4};
+            // claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", JsonSerializer.Serialize(fakeVisibleManagements), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+            // claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", JsonSerializer.Serialize(fakeVisibleDevices), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", "{1,7,17}"));
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
             // Fake managment claims REMOVE LATER
 
+            // foreach (Role role in roles)
+            // {
+            //     // claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name));
+            //     // TODO: Create API Connection Lib
+            //     // TODO: Get Managment and Device Claims from API
+            // }
+
+            // adding roles:
+            List<string> Roles = new List<string>();
+
             foreach (Role role in roles)
             {
-                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name));
-                claimsIdentity.AddClaim(new Claim("x-hasura-role", role.Name)); // Hasura Role
-                // TODO: Create API Connection Lib
-                // TODO: Get Managment and Device Claims from API
+                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name)); // Frontend Roles
+                Roles.Add(role.Name); // Hasura Roles
             }
+
+            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(Roles.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+
+            if (roles != null && roles.Length > 0)
+                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
+            else 
+                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
 
             return claimsIdentity;
         }

@@ -25,7 +25,7 @@ namespace FWO.Auth
                 ClaimsIdentity identity = new ClaimsIdentity
                 (
                     claims: jwt.GetClaims(),
-                    authenticationType: "usrname:" + Username
+                    authenticationType: "username: " + Username
                 );
 
                 ClaimsPrincipal user = new ClaimsPrincipal(identity);
@@ -35,10 +35,16 @@ namespace FWO.Auth
 
             else
             {
-                ClaimsIdentity identity = new ClaimsIdentity();
-                ClaimsPrincipal user = new ClaimsPrincipal(identity);
-                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
-            }
+                Deauthenticate();
+            }           
+        }
+
+        public void Deauthenticate()
+        {           
+            ClaimsIdentity identity = new ClaimsIdentity();
+            ClaimsPrincipal user = new ClaimsPrincipal(identity);
+
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
         }
     }
 }

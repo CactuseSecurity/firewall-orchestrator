@@ -1,4 +1,4 @@
-﻿@using FWO.Auth
+@using FWO.Auth
 @using FWO_Auth_Client
 
 @inject AuthClient AuthClient
@@ -12,8 +12,8 @@
         <div>
             <h2 class="text-center"> Login </h2>
             <div class="shadow-sm card p-2">
-                <input type="text" style="width: 200px" class="m-2 form-control" id="UsernameInput" placeholder="Enter Username" @bind="Username">
-                <input type="password" style="width: 200px" class="m-2 form-control" id="PasswordInput" placeholder="Enter Password" @bind="Password">
+                <input type="text" style="width: 200px" class="m-2 form-control" id="UsernameInput" placeholder="Enter Username" @bind="Username" @onkeypress="PotentialSubmit">
+                <input type="password" style="width: 200px" class="m-2 form-control" id="PasswordInput" placeholder="Enter Password" @bind="Password" @onkeypress="PotentialSubmit">
                 <button class="btn btn-primary m-2" @onclick="LoginSubmit">Login</button>
             </div>
         </div>
@@ -41,6 +41,14 @@
         showLoginForm = true;
         if (firstRender)
             StateHasChanged();
+    }
+
+    private async Task PotentialSubmit(KeyboardEventArgs e)
+    {
+        /*
+        if (e.Key == "Enter")
+            await LoginSubmit();
+        */
     }
 
     private async Task LoginSubmit()

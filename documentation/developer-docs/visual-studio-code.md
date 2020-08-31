@@ -39,7 +39,12 @@ Use the following command to verify settings:
 
 ## Select, prepare and run project
 
-### Create proper configuration in visiual studio code
+### Add a solution to make Intellisense and Omnisharp work
+
+- Go to File - Preferences - Settings
+- search for omnisharp (in extension c# configuration) and enter the name of the missing / not working solution (project) into the "Omnisharp: Default Launch Solution" form, e.g. FWO.sln or FWO_Auth.sln
+
+### Create proper configuration in visual studio code
 ```console
 tim@acantha:~$ cat /home/tim/dev/tpurschke-fwo/firewall-orchestrator/.vscode/launch.json 
 {

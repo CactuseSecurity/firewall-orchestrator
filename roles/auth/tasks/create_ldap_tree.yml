@@ -1,6 +1,7 @@
 
 - name: Check if ldap tree already exists
-  shell: "ldapsearch -D uid=inspector,ou=systemuser,ou=user,{{ auth_ldap_path }} -y {{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt ou=user -x | grep 'ou=user,{{ auth_ldap_path }}' | wc -l"
+  stat:
+    path: {{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt
   register: is_ldap_present_flag
 
 - block:
@@ -62,5 +63,5 @@
     file:
       path: "{{ auth_server_base_dir }}/ldif"
       state: absent
-  when: is_ldap_present_flag.stdout == "0"
+  when: is_ldap_present_flag.exists
   become: yes

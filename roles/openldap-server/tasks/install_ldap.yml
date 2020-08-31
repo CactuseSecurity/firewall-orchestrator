@@ -21,17 +21,24 @@
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: absent
 
-  - name: Decide on random root password
+  - name: Check if manager password exist
+    stat:
+      path: { { fworch_home } }/etc/secrets/ldap_manager_pw.txt
+    register: is_manger_pw_present_flag
+
+  - name: Decide on random manager password
     set_fact:
       openldap_server_random_rootpw: "{{ random_generated_pw }}"
+    when: is_manger_pw_present_flag.exists
 
-  - name: Write random root password to file
+  - name: Write random manager password to file
     copy:
       content: "{{ openldap_server_random_rootpw }}"
       dest: "{{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
       mode: '0600'
       owner: "{{ fworch_user }}"
       group: "{{ fworch_user }}"
+    when: is_manger_pw_present_flag.exists
 
   - name: Generate the root password for ldap
     shell: "slappasswd -s {{ openldap_server_random_rootpw }} "

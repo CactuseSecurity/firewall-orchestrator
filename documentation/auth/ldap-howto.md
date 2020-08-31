@@ -29,17 +29,17 @@ For default installation:
 
 For cactus installation:
 
-    ldappasswd -s <new passwd of user admin> -w <pwd of Manager> -D "cn=Manager,{{ auth_ldap_path }}" -x "uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal"
+    ldappasswd -s <new passwd of user admin> -w <pwd of Manager> -D "cn=Manager,dc=fworch,dc=internal" -x "uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal"
 
 ### adding a test user
 
 ```
-ldapmodify -H ldaps://localhost -D cn=Manager,{{ auth_ldap_path }} -w IuMGtWNzEHdvodr -x -f fgreporter.ldif 
+ldapmodify -H ldaps://localhost -D cn=Manager,dc=fworch,dc=internal -w IuMGtWNzEHdvodr -x -f fgreporter.ldif 
 
-ldappasswd -s fworch.1 -w IuMGtWNzEHdvodr -D "cn=Manager,{{ auth_ldap_path }}" -x "uid=fgreporter,ou=systemuser,ou=user,dc=fworch,dc=internal"
+ldappasswd -s fworch.1 -w IuMGtWNzEHdvodr -D "cn=Manager,dc=fworch,dc=internal" -x "uid=fgreporter,ou=systemuser,ou=user,dc=fworch,dc=internal"
 
 cat fgreporter.ldif 
-dn: uid=fgreporter,ou=systemuser,ou=user,{{ auth_ldap_path }}
+dn: uid=fgreporter,ou=systemuser,ou=user,dc=fworch,dc=internal
 changetype: add
 objectClass: top
 objectclass: inetorgperson
@@ -76,13 +76,13 @@ sn: fgreporter
 ### check password
 wrong password:
 
-    tim@ubu1804:~$ ldapwhoami -x -w fworch.2  -D uid=admin,ou=systemuser,ou=user,{{ auth_ldap_path }}  -H ldaps://localhost/
+    tim@ubu1804:~$ ldapwhoami -x -w fworch.2  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
     ldap_bind: Invalid credentials (49)
 
 correct password:
 
-    tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=systemuser,ou=user,{{ auth_ldap_path }}  -H ldaps://localhost/
-    dn:uid=admin,ou=systemuser,ou=user,{{ auth_ldap_path }}
+    tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
+    dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
 
 ### delete entries with ldapmodify
 

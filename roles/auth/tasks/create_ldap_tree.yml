@@ -64,5 +64,5 @@
     file:
       path: "{{ auth_server_base_dir }}/ldif"
       state: absent
-  when: is_ldap_present_flag is defined
+  when: not is_ldap_present_flag.stat.exists
   become: yes

@@ -29,7 +29,7 @@
   - name: Decide on random manager password
     set_fact:
       openldap_server_random_rootpw: "{{ random_generated_pw }}"
-    when: is_manger_pw_present_flag is defined
+    when: not is_manger_pw_present_flag.stat.exists
 
   - name: Write random manager password to file
     copy:
@@ -38,7 +38,7 @@
       mode: '0600'
       owner: "{{ fworch_user }}"
       group: "{{ fworch_user }}"
-    when: is_manger_pw_present_flag is defined
+    when: not is_manger_pw_present_flag.stat.exists
 
   - name: Generate the root password for ldap
     shell: "slappasswd -s {{ openldap_server_random_rootpw }} "

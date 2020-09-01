@@ -29,11 +29,6 @@
   set_fact:
     api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_decoded.split('\n')[0] }}"
 
-- name: show key for debugging
-  debug:
-    var:
-      api_hasura_jwt_secret
-
 - name: set hasura env variable
   set_fact:
     hasura_env:
@@ -57,6 +52,7 @@
   debug:
     var:
       hasura_env
+  when: debug_level > '1'
 
 - name: start hasura container
   docker_container:

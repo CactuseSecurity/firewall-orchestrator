@@ -8,5 +8,6 @@ namespace FWO_Auth_Server
     {
         public string Name { get; set; }
         public string Password { get; set; }
+        public string UserDN { get; set; }
     }
 }

@@ -1,5 +1,6 @@
-﻿using Novell.Directory.Ldap;
+using Novell.Directory.Ldap;
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
@@ -37,33 +38,28 @@ namespace FWO_Auth_Server
                 connection.Connect(Address, Port);
             }
 
-            catch (Exception e)
+            catch (Exception exConn)
             {
                 // TODO: Ldap Server not reachable
+                Console.Write($"\n Error while trying to reach LDAP server #### Message #### \n {exConn.Message} \n #### Stack Trace #### \n {exConn.StackTrace} \n");
             }
 
             return connection;
         }
 
-        // tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
-        // dn:uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
-        public bool ValidateUser(User user)
+        public String ValidateUser(User user)
         {
-            // TODO: we need to replace ou=systemuser with ou=tenant<x>,ou=operator and keep x variable - need to look in all existing tenants
-            string userSearchBase = $"ou=operator,ou=user,dc=fworch,dc=internal";//$"uid={user.Name},ou=systemuser,ou=user,dc=fworch,dc=internal";
+            string userSearchBase = $"ou=operator,ou=user,dc=fworch,dc=internal"; // TODO: read path from config
 
             Console.WriteLine($"Validating User: \"{user.Name}\" ...");
-
-            // REMOVE IF NEW LDAP VERSION 
             try
             {
-                // REMOVE IF NEW LDAP VERSION
-
                 using (LdapConnection connection = Connect())
                 {
-                    //connection.Bind($"uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal", "fworch.1"); // Todo: Use correct user (inspector) for search operation
+                    String InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists
 
-                    // Todo: Insert correct values
+                    connection.Bind($"uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal", InspectorPassword);
+
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(userSearchBase, LdapConnection.ScopeSub, $"(&(objectClass=inetOrgPerson)(uid:dn:={user.Name}))", null, typesOnly: false);
 
                     //connection.Bind("", ""); // Unbind not authenticated anymore
@@ -74,48 +70,34 @@ namespace FWO_Auth_Server
 #if DEBUG
                         Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
 #endif
-                        try
-                        {
-                            connection.Bind(currentUser.Dn, user.Password);
-
-                            if (connection.Bound)
+                            try
                             {
-                                Console.WriteLine($"Success!");
-                                return true;
+                                connection.Bind(currentUser.Dn, user.Password);
+                                if (connection.Bound)
+                                {
+                                    Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
+                                    return currentUser.Dn;
+                                }
                             }
-
-                        }
-                        catch (LdapException ex) { } // Incorrect Ldap DN or credentials
+                            catch (LdapException exInner) {
 #if DEBUG
-                        Console.WriteLine($"Failure!");
+                                Console.WriteLine($"Found user with same uid but different pwd distinguished name: \"{ currentUser.Dn}\" ...");
+                                Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {exInner.Message} \n #### Stack Trace #### \n {exInner.StackTrace} \n");
 #endif
+                            } // Incorrect password - do nothing, assuming another user with the same username
+                        }
                     }
-
-                    // REMOVE IF NEW LDAP VERSION 
-                    connection.Bind(userSearchBase, user.Password);
-
-                    if (connection.Bound)
-                        return true;
-                    // REMOVE IF NEW LDAP VERSION  
-
-                    connection.Disconnect();
                 }
-
-                // REMOVE IF NEW LDAP VERSION 
             }
             catch (LdapException ex)
             {
-                Console.Write($"\n #### Message #### \n {ex.Message} \n #### Stack Trace #### \n {ex.StackTrace} \n");
+                Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {ex.Message} \n #### Stack Trace #### \n {ex.StackTrace} \n");
                 // Log exception
             }
-            // REMOVE IF NEW LDAP VERSION 
 
-            // Wrong Username / Password
             Console.WriteLine($"User \"{user.Name}\" could not be validated!");
 
-            // Todo: Log Wrong Username / Password
-
-            return false;
+            return "";
         }
 
         public Role[] GetRoles(User user)

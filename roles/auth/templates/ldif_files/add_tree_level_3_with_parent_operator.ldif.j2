@@ -9,3 +9,9 @@ changetype: add
 objectClass: top
 objectClass: organizationalUnit
 ou: tenant1
+
+dn: ou=tenant2,ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: tenant2

@@ -891,6 +891,18 @@ Create table "report"
  primary key ("report_id")
 );
 
+Create table "ldap_connection"
+(
+	"ldap_connection_id" BIGSERIAL,
+	"ldap_server" Varchar NOT NULL,
+	"ldap_port" Integer NOT NULL Default 636,
+	"ldap_tls" Boolean NOT NULL Default TRUE,
+	"ldap_searchpath_for_users" Varchar NOT NULL,
+	"ldap_tenant_level" Integer NOT NULL Default 1,
+	"ldap_search_user" Varchar NOT NULL,
+	primary key ("ldap_connection_id")
+);
+
 /* Create Tab 'Others' for Selected Tables */
 
 

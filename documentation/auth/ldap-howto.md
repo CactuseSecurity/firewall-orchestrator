@@ -95,6 +95,34 @@ With delete.ldif
     dn: uid=user1,dc=example,dc=com
     changetype: delete
 
+### add role
+
+Add role with
+
+    ldapadd -x -W -D cn=Manager,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_manager_pw.txt -f testgroup.ldif
+
+With testgroup.ldif
+
+    dn: cn=testrole,ou=role,dc=fworch,dc=internal
+    objectClass: top
+    objectClass: posixGroup
+    #gidNumber: 678
+
+### Add user to role
+
+Add user fritz to role testrole with
+
+    ldapmodify -x -W -D cn=Manager,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_manager_pw.txt -f add_user.ldif
+    
+With add_user.ldif
+
+    dn: cn=testrole,ou=role,dc=fworch,dc=internal
+    changetype: modify
+    add: memberuid
+    memberuid: fritz
+    
+Here fritz is not required to exist somewhere n the ldap tree. Idea: Hashing a memberuid from users dn
+
 ### communicate with multiple ldap servers
 Not tested yet!
 

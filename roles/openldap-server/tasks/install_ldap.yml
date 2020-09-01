@@ -41,7 +41,7 @@
     when: not is_manger_pw_present_flag.stat.exists
 
   - name: Generate the root password for ldap
-    shell: "slappasswd -s {{ openldap_server_random_rootpw }} "
+    shell: "slappasswd -T {{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
     register: root_password
 
   # - name: Copy the slapd.conf configuration file for Redhat

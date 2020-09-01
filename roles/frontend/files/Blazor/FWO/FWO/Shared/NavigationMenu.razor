@@ -10,7 +10,7 @@
         <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="@NavMenuLeftCssClass" @onclick="ToggleNavMenu">
+    <div class="@NavMenuLeftClass" @onclick="ToggleNavMenu">
         <ul class="nav navbar-nav">
             @foreach (NavItem navItem in navItemsLeft)
             {
@@ -23,7 +23,7 @@
         </ul>
     </div>
 
-    <div class="@NavMenuRightCssClass" @onclick="ToggleNavMenu">
+    <div class="@NavMenuRightClass" @onclick="ToggleNavMenu">
         <ul class="nav navbar-nav">
             @foreach (NavItem navItem in navItemsRight)
             {
@@ -48,23 +48,23 @@
     bool collapseNavMenu = true;
 
     string baseMenuLeftClass = "navbar-collapse d-sm-inline-flex";
-    string NavMenuLeftCssClass => baseMenuLeftClass + (collapseNavMenu ? " collapse" : "");
+    string NavMenuLeftClass => baseMenuLeftClass + (collapseNavMenu ? " collapse" : "");
 
     string baseMenuRightClass = "navbar-collapse d-sm-inline-flex flex-row-reverse";
-    string NavMenuRightCssClass => baseMenuRightClass + (collapseNavMenu ? " collapse" : "");
+    string NavMenuRightClass => baseMenuRightClass + (collapseNavMenu ? " collapse" : "");
 
     protected override void OnInitialized()
     {
         navItemsLeft = new NavItem[]
         {
-                new NavItem("Reporting", "/report", "oi oi-spreadsheet"),
-                new NavItem("Documentation", "#", "oi oi-book"),
-                new NavItem("Request", "#", "oi oi-comment-square"),
+            new NavItem("Reporting", "/report", "oi oi-spreadsheet"),
+            new NavItem("Documentation", "#", "oi oi-book"),
+            new NavItem("Request", "#", "oi oi-comment-square"),
         };
 
         navItemsRight = new NavItem[]
         {
-            new NavItem("Help", "#", "oi oi-info"),
+            new NavItem("Help", "/help", "oi oi-info"),
             new NavItem("Settings", "#", "oi oi-cog"),
             new NavItem("My Profile", "#", "oi oi-person"),
             new NavItem("Logout", "/logout", "oi oi-account-logout"),

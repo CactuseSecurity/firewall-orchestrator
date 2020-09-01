@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -180,7 +180,7 @@ namespace FWO_Auth
 
                     else
                     {
-                        Console.WriteLine($"Invalid Credentials for User {User.Name}!");
+                        responseString = "InvalidCredentials";
                     }
                 }                   
             }

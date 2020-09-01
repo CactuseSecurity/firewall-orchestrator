@@ -3,6 +3,7 @@
   stat:
     path: "{{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt"
   register: is_ldap_present_flag
+  become: yes
 
 - block:
   - name: Decide on random {{ auth_ldap_internal_readonly_user }} password

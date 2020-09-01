@@ -8,11 +8,9 @@ Create table "device_type"
 CREATE OR REPLACE FUNCTION public.get_visible_devices_per_tenant(integer)
     RETURNS SETOF device_type 
     LANGUAGE 'plpgsql'
-
     COST 100
     STABLE 
     ROWS 1000
-    
 AS $BODY$
 DECLARE
 	i_tenant_id ALIAS FOR $1;
@@ -39,6 +37,9 @@ $BODY$;
 CREATE OR REPLACE FUNCTION public.get_visible_managements_per_tenant(integer)
     RETURNS SETOF device_type 
     LANGUAGE 'plpgsql'
+    COST 100
+    STABLE 
+    ROWS 1000
 AS $BODY$
 DECLARE
 	i_tenant_id ALIAS FOR $1;

@@ -6,8 +6,6 @@ namespace FWO_Auth_Server
 {
     public class UserData
     {
-        public string tenant { get; set; }
-        public int[] VisibleDevices { get; set; }
-        public int[] VisibleManagements { get; set; }
+        public Tenant tenant { get; set; }
     }
 }

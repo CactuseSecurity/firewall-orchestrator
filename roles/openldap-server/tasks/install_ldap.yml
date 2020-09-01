@@ -38,7 +38,7 @@
       mode: '0600'
       owner: "{{ fworch_user }}"
       group: "{{ fworch_user }}"
-    when: is_manger_pw_present_flag.exists
+    when: is_manger_pw_present_flag is defined
 
   - name: Generate the root password for ldap
     shell: "slappasswd -s {{ openldap_server_random_rootpw }} "

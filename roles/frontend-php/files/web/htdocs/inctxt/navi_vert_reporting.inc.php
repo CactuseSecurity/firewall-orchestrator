@@ -15,7 +15,7 @@
 	$system_list	= new SystemList($filter, $db->db_connection, $management_filter, $leave_out_mgm_without_dev = true,
 						$show_hidden_systems = false);	
 //	echo "<p>DEBUG: system_list_anzahl = " . $system_list->rows . "<p>";
-//	echo "<p>DEBUG: client_filter_expr = " . $filter->client_filter_expr . "<p>";
+//	echo "<p>DEBUG: tenant_filter_expr = " . $filter->tenant_filter_expr . "<p>";
 	$reportlist		= new ReportList($filter, $db->db_connection);
 	
 	echo '<form name="navirep">';

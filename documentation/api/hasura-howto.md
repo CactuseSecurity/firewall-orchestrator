@@ -20,9 +20,13 @@
 ## debugging hasura using docker ps
     docker logs c37388157052
 
-## How to convert hasura metadata file from json to yaml
+## How to convert hasura metadata file from json to yaml (for re-import)
 
     python -c 'import sys, yaml, json; yaml.safe_dump(json.load(sys.stdin), sys.stdout, default_flow_style=False)' < file.json > file.yaml
+
+## How to convert a yaml file to json
+
+    python -c 'import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' < meta.yaml >meta.json
 
 ## Sending graphql queries
 
@@ -33,6 +37,14 @@
         x-hasura-admin-secret --> st8chelt1er
         content-type --> application/json
         x-hasura-role-id --> ?
+### Example query
+
+    curl --insecure --request POST \
+      --url https://127.0.0.1:9443/api/v1/graphql \
+      --header 'content-type: application/json' \
+      --header 'x-hasura-admin-secret: st8chelt1er' \
+      --header 'x-hasura-role: admin' \
+      --data '{"query":"query { object {obj_name} }"}'
 
 ## Using the other APIs
 - Use Insomnia

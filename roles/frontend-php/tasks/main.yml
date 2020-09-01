@@ -1,7 +1,7 @@
 - block:
     - name: Install webserver packages
       package: name={{ item }} state=present
-      with_items:
+      loop:
         - apache2
         - php
         - libapache2-mod-php
@@ -57,8 +57,8 @@
         owner: "{{ product_name }}"
         group: "{{ product_name }}"
 
-    - name: enable apache mod_ssl
-      shell: "a2enmod ssl"
+    - name: enable apache module ssl
+      apache2_module: state=present name=ssl
 
     - name: add port to apache
       lineinfile:
@@ -82,7 +82,7 @@
     #   script: "apache_create_server_cert.sh" 
 
     - name: enable {{ product_name }} web site
-      shell: "a2ensite {{ product_name }}-php"
+      command: "a2ensite {{ product_name }}-php"
 
     - name: add session directory - /var/{{ product_name }}/session
       file:

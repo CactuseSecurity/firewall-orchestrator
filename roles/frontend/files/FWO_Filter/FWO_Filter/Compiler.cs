@@ -1,14 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace FWO_Filter
 {
-    class Compilter
+    public class Compiler
     {
         public static void Compile(string Input)
         {
-            Parser.Parse(Scanner.Scan(Input));
+            Parser parser = new Parser(Scanner.Scan(Input));
+            parser.Parse();
         }
     }
 }

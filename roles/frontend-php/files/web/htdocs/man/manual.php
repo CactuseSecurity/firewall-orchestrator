@@ -11,7 +11,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>fworch Manual</title>
-<script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
+<script type="text/javascript" src="<?php echo $stamm ?>js/browser.js"></script>
 <script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">
 <script language="javascript" type="text/javascript">
@@ -68,7 +68,7 @@ F&uuml;r die folgenden Produkte sind Import-Module vorhanden:
 <ul>
 	<li>Managementsystem: System, das die Sicherheitskonfiguration enth&auml;lt (Config-Holder); bei Netscreen das Firewall-System selbst, nicht das NSM
 	<li>Device: Filtersysteme, das die Sicherheitskonfiguration umsetzt (Enforcement Point, z.B. Firewallmodul)
-	<li>Mandant: Firma oder Abteilung, deren IT abgesichert wird (Client / Kunde)
+	<li>Mandant: Firma oder Abteilung, deren IT abgesichert wird (tenant / Kunde)
 </ul>
 </p>
 </div>

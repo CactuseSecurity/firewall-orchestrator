@@ -1,75 +1,86 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace FWO_Auth_Server
 {
     class TokenGenerator
     {
-        public static async Task Main(string[] args)
+        private readonly SymmetricSecurityKey privateKey;
+        private readonly int daysValid;
+
+        private const string issuer = "FWO Auth Module";
+        private const string audience = "FWO";
+
+        public TokenGenerator(string privateKey, int daysValid)
         {
-            User user = new User { Id = 1, Name = "Name", Password = "Password" };
-            UserData userData = new UserData { SomeOtherData = 123 };
-            string issuer = "FWO Auth Module";
-            string audience = "FWO";
-            int daysValid = 7;
+            this.privateKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey));
 
-            string privateKeyString = "J6k2eVCTXDp5b97u6gNH5GaaqHDxCmzz2wv3PRPFRsuW2UavK8LGPRauC4VSeaetKTMtVmVzAC8fh8Psvp8PFybEvpYnULHfRpM8TA2an7GFehrLLvawVJdSRqh2unCnWehhh2SJMMg5bktRRapA8EGSgQUV8TCafqdSEHNWnGXTjjsMEjUpaxcADDNZLSYPMyPSfp6qe5LMcd5S9bXH97KeeMGyZTS2U8gp3LGk2kH4J4F3fsytfpe9H9qKwgjb";
-            SymmetricSecurityKey privateKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKeyString));     
-
-            string Jwt = await CreateJWTAsync(user, userData, issuer, audience, privateKey, daysValid);
-
-            await Console.Out.WriteLineAsync(Jwt);
-            await Console.In.ReadLineAsync();
+            this.daysValid = daysValid;
         }
 
-        public static async Task<string> CreateJWTAsync(User user, UserData userData, string issuer, string audience,
-                                                        SymmetricSecurityKey privateKey, int daysValid)
+        public string CreateJWT(User user, UserData userData, Role[] roles)
         {
+            Console.WriteLine($"Generating JWT for user {user.Name} ...");
+
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = await CreateClaimsIdentities(user, userData);
+            ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
-            (               
+            (
                 issuer: issuer,
                 audience: audience,
                 subject: subject,
                 notBefore: DateTime.UtcNow,
                 expires: DateTime.UtcNow.AddDays(daysValid),
-                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha256Signature)
+                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha384)
              );
 
-            return tokenHandler.WriteToken(token);
+            string GeneratedToken = tokenHandler.WriteToken(token);
+
+            Console.WriteLine($"Generated JWT {GeneratedToken} for User {user}");
+
+            return GeneratedToken;
         }
 
-        public static Task<ClaimsIdentity> CreateClaimsIdentities(User user, UserData userData)
+        private ClaimsIdentity CreateClaimsIdentities(User user, UserData userData, Role[] roles)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-            claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
+            //claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
 
-            // Check if correct (LDAP)
+            // TODO: Remove later
+            // Fake managment claims REMOVE LATER 
 
-            // Check if correct (LDAP)
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", "{1,7,17}"));
+            claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
 
-            // Get Roles / User Data
-            var roles = Enumerable.Empty<Role>();
-            claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
-            // Get Roles / User Data
+            // adding roles:
+            List<string> Roles = new List<string>();
 
-            foreach (var role in roles)
-            { 
-                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name));
+            foreach (Role role in roles)
+            {
+                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name)); // Frontend Roles
+                Roles.Add(role.Name); // Hasura Roles
             }
 
-            return Task.FromResult(claimsIdentity);
+            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(Roles.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+
+            if (roles != null && roles.Length > 0)
+                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
+            else 
+                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
+
+            return claimsIdentity;
         }
     }
 }

@@ -3,8 +3,20 @@
 - name: install apache2
   import_tasks: api-apache-install-and-setup.yml
 
-- name: hasura basic file setup 
-  import_tasks: hasura-files.yml
+- name: remove api home
+  file:
+    path: "{{ api_home }}"
+    state: absent
+  become: yes
+
+- name: create api home
+  file:
+    path: "{{ api_home }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
+  become: yes
 
 - name: hasura install 
   import_tasks: hasura-install.yml
@@ -12,8 +24,8 @@
 - name: hasura basic config
   import_tasks: hasura-basic-config.yml
 
-- name: create query_collections and add to allow-list 
-  import_tasks: api-query-collection.yml
+# - name: create query_collections and add to allow-list 
+#   import_tasks: api-query-collection.yml
 
 - name: api create documentation
   import_tasks: api-create-docu.yml

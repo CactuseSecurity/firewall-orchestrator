@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,11 +12,13 @@ namespace FWO_Filter
             Token Token;
             List<Token> Tokens = new List<Token>();
 
+            Position = SkipWhitespaces(Input, Position);
+
             while (Position < Input.Length)
             {
-                Position = SkipWhitespaces(Input, Position);
                 (Position, Token) = ReadToken(Input, Position);
                 Tokens.Add(Token);
+                Position = SkipWhitespaces(Input, Position);
             }
 
             return Tokens;
@@ -24,10 +26,8 @@ namespace FWO_Filter
 
         private static int SkipWhitespaces(string Input, int Position)
         {
-            while (Input[Position] == ' ' || Input[Position] == '\t')
-            {
+            while (Position < Input.Length && (Input[Position] == ' ' || Input[Position] == '\t' || Input[Position] == '\n'))
                 Position++;
-            }
 
             return Position;
         }
@@ -39,7 +39,7 @@ namespace FWO_Filter
 
             string Text = "";
 
-            while (Position < Input.Length && Input[Position] != ' ' && Input[Position] != '\t')
+            while (Position < Input.Length && (Input[Position] != ' ' && Input[Position] != '\t' && Input[Position] != '\n'))
             {
                 Text += Input[Position];
                 Position++;
@@ -79,6 +79,17 @@ namespace FWO_Filter
                 case "&":
                 case "&&":
                     Kind = TokenKind.And;
+                    break;
+
+                case "=":
+                case "==":
+                case "eq":
+                    Kind = TokenKind.EQ;
+                    break;
+
+                case "!=":
+                case "neq":
+                    Kind = TokenKind.NEQ;
                     break;
 
                 default:

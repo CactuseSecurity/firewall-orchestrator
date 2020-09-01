@@ -11,7 +11,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Manual - Concepts</title>
-<script type="text/javascript" src="<?php echo $stamm ?>js/client.js"></script>
+<script type="text/javascript" src="<?php echo $stamm ?>js/browser.js"></script>
 <script type="text/javascript" src="<?php echo $stamm ?>js/script.js"></script>
 <link rel="stylesheet" type="text/css" href="<?php echo $stamm ?>css/firewall.css">
 <script language="javascript" type="text/javascript">
@@ -31,7 +31,7 @@
 <br>
 <b class="headlinemain">fworch Konzepte</b>
 <br>&nbsp;<br>
-<A name="clients"></A>
+<A name="tenants"></A>
 <h3>Mandantentrennung</h3>
 In fworch werden die folgenden Kriterien f&uuml;r die Trennung der Sicherheitskonfigurationen nach Mandanten verwendet:
 <br>
@@ -58,7 +58,7 @@ Realisiert wird diese Maxime durch folgende Definitionen:
 Beispiel der Anwendung eines Filters f&uuml;r Mandant 1 auf ein Regelwerk:
 <br>
 <br>
-<img src="<?php echo $stamm ?>img/client_filter.jpg">
+<img src="<?php echo $stamm ?>img/tenant_filter.jpg">
 <br>
 <br>
 Es sei herausgestellt, dass in den letzten beiden Regeln ein spezielles &quot;Any&quot;-Objekt vorkommt.

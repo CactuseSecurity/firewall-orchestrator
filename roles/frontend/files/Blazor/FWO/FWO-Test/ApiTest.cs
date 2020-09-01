@@ -13,7 +13,7 @@ namespace FWO_Test
         [TestInitialize]
         public void EtablishConnectionToServer()
         {
-            Connection = new APIConnection();
+            //Connection = new APIConnection();
         }
 
         [TestMethod]
@@ -46,7 +46,7 @@ query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [Str
 }
             } "", "" variables "" : {} }";
 
-            await Connection.SendQuery(Query);
+            //await Connection.SendQuery(Query);
 
             throw new NotImplementedException();
 

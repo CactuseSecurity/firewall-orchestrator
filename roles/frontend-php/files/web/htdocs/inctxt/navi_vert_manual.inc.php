@@ -11,7 +11,7 @@
 	if ($allowedToDocumentChanges) {
 		echo '<li>Konzepte';
 		echo '<ul>';
-			echo '<li><a href="' . $man_path . 'man_concepts.php#clients">Mandanten</a></li>';
+			echo '<li><a href="' . $man_path . 'man_concepts.php#tenants">Mandanten</a></li>';
 			echo '<li><a href="' . $man_path . 'man_concepts.php#roles">Rollenkonzept</a></li>';
 			echo '<li><a href="' . $man_path . 'man_concepts.php#revision">Revisionssicherheit</a></li>';
 		echo '</ul></li>';

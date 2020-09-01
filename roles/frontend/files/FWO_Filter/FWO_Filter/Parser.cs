@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualBasic.CompilerServices;
+using Microsoft.VisualBasic.CompilerServices;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -12,9 +12,8 @@ namespace FWO_Filter
         int Position;
         List<Token> Tokens;
 
-        public Parser(int Position, List<Token> Tokens)
+        public Parser(List<Token> Tokens)
         {
-            this.Position = Position;
             this.Tokens = Tokens;
         }
 
@@ -25,26 +24,28 @@ namespace FWO_Filter
 
         private void Start()
         {
-            Bracket();
-
-            while (Position < Tokens.Count)
-            {               
-                Connector();
-                Bracket();
-            }        
+            Bracket();        
         }
 
         private void Bracket()
         {
-            Expression();
+            if (GetNextToken().Kind == TokenKind.BL)
+            {
+                CheckToken(TokenKind.BL);
+                Bracket();
+                CheckToken(TokenKind.BR);
+            }
 
-            // OR
+            else
+            {
+                Expression();
+            }
 
-            CheckToken(TokenKind.BL);
-
-            Expression();
-
-            CheckToken(TokenKind.BR);
+            while (Position < Tokens.Count && (GetNextToken().Kind == TokenKind.And || GetNextToken().Kind == TokenKind.Or))
+            {
+                Connector();
+                Bracket();
+            }
         }
 
         private void Connector()
@@ -54,13 +55,17 @@ namespace FWO_Filter
 
         private void Expression()
         {
-            Text();
+            if (GetNextToken().Kind == TokenKind.Text)
+            {
+                CheckToken(TokenKind.Text);
+            }
 
-            // OR
-
-            Filter();
-            Operator();
-            Text();
+            else
+            {
+                Filter();
+                Operator();
+                Text();
+            }
         }
 
         private void Operator()
@@ -80,21 +85,31 @@ namespace FWO_Filter
 
         private void CheckToken(params TokenKind[] Matches)
         {
-            if (Position >= Tokens.Count)
-            {
-                throw new SyntaxErrorException(); // No token but one was expected
-            }
+            Token TokenToCheck = GetNextToken();
 
             for (int i = 0; i < Matches.Length; i++)
             {
-                if (Tokens[Position].Kind == Matches[i])
+                if (TokenToCheck.Kind == Matches[i])
                 {
                     Position++;
                     return;
                 }                   
             }
 
-            throw new SyntaxErrorException(); // Wrong token
+            throw new SyntaxErrorException("Unexpected token " + TokenToCheck.ToString()); // Wrong token
+        }
+
+        private Token GetNextToken()
+        {
+            if (Position >= Tokens.Count)
+            {
+                throw new SyntaxErrorException("No token but one was expected"); // No token but one was expected
+            }
+
+            else
+            {
+                return Tokens[Position];
+            }
         }
     }
 }

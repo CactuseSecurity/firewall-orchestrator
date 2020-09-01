@@ -1,25 +1,28 @@
 - block:
-     - name: install package postgresql
-       package:
-        name: "{{ postgresql_package }}"
+    - name: install package postgresql and python3-psycopg2
+      package:
+        name: "{{ item }}"
         state: present
+      loop:
+        - "{{ postgresql_package }}"
+        - python3-psycopg2
+        - "{{ postgresql_test_package }}"
+        - libpq-dev
 
-     - name: get user name
-       set_fact: ansible_user="{{ lookup('env','USERNAME') }}"
+    # - name: set fact pg_version
+    #   set_fact: ansible_python_interpreter=/usr/bin/python3
 
-     - name: find out installed postgres version
-       script: "get_pg_version.sh"
-       register: pg_version_result
-       changed_when: false
+    - name: find out installed postgres version
+      script: get_pg_version.sh
+      register: pg_version_result
+      changed_when: false
 
-     - name: set fact pg_version
-       set_fact:
-          pg_version: "{{ pg_version_result.stdout }}"
+    - name: set fact pg_version
+      set_fact: pg_version={{ pg_version_result.stdout | float }}
 
-     - name: install test package for postgresql
-       package:
-        name: "{{ postgresql_test_package }}"
-        state: present
+    - name: pg_version to int when possible
+      set_fact: pg_version={{ pg_version | int }}
+      when: pg_version|int >= 10
 
     #  - name: set fact postgresql_dev_package
     #    set_fact:
@@ -30,11 +33,11 @@
     #     name: "{{ postgresql_dev_package }}"
     #     state: present
 
-     - name: edit postgresql.conf
-       blockinfile:
+    - name: edit postgresql.conf
+      blockinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         block: |
-          # listen_addresses = 'localhost,1.2.3.4'  # wenn IP des Servers die 1.2.3.4 ist
+          # listen_addresses = 'localhost,10.1.1.83'  
           # syslog 
           log_destination = 'syslog'
           syslog_facility = 'LOCAL6'
@@ -42,9 +45,9 @@
           client_min_messages = log
           log_min_messages = info
         backup: yes
-        
-     - name: edit pg_hba.conf
-       blockinfile:
+      
+    - name: edit pg_hba.conf
+      blockinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
         backup: yes
         insertbefore: '# IPv4 local connections:'
@@ -54,87 +57,127 @@
           # host    all         dbadmin             {{ ansible_host }}/32          md5
           host    all         {{ fworch_user }}            127.0.0.1/32           trust
           host    all         +dbbackupusers      127.0.0.1/32           trust
-          # bei lokalem importer:
+          # with only local import modules:
           host    all         +configimporters    127.0.0.1/32           trust
           host    all         confexporter        127.0.0.1/32           trust
           host    all         textreader          127.0.0.1/32           trust
-          # bei lokalem Webfrontend:
+          # with local web frontend:
           host    all         +secuadmins         127.0.0.1/32           md5
           host    all         +reporters          127.0.0.1/32           md5
-          # bei abgesetztem Webfrontend:
+          # with remote web frontend:
           # host    all         +secuadmins       <webserver-ip>/32          md5
           # host    all         +reporters        <webserver-ip>/32          md5
-          # bei remote-importer:
+          # with remote importer modules:
           # host    all         +configimporters   <importer-ip>/32          trust
-        
-     - name: edit postgresql.conf listener
-       lineinfile:
+      
+    - name: edit postgresql.conf listener
+      lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         backrefs: yes
         regexp: '^#?\s*(listen_addresses\s*=\s*)(.*)'
-        line: '\1''{{ ansible_host }},localhost'''
+        line: '\1''{{ fworch_db_host }},localhost'''
         backup: yes
 
-     - name: reload postgres service
-       service:
-         name: "{{ postgresql_package }}"
-         state: restarted
+    - name: reload postgres service
+      service:
+        name: "{{ postgresql_package }}"
+        state: restarted
 
-     - name: copy iso files to backend target
-       copy:
-        src: "install"
-        dest: "{{ fworch_home }}"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_user }}"
-        
-     - name: make db install scripts executable
-       file:
+    - name: copy iso files to backend target
+      copy: src="install" dest="{{ fworch_home }}" owner="{{ fworch_user }}" group="{{ fworch_user }}"
+      
+    - name: make db install scripts executable
+      file:
         path: "{{ fworch_home }}/install/database/db-install-scripts"
         mode: "u+x,g+x,o+x"
         recurse: yes
-  
-     - name: include task install db to extra tablespace if defined
-       include_tasks: tablespace_as_root_prereq.yml      
-       when: table_space is defined
 
-     # TODO: replace the following 3 tasks with template/ansible instead of shell
-     - name: setting itscorg db password
-       lineinfile: 
+    - name: include task install db to extra tablespace if defined
+      include_tasks: tablespace_as_root_prereq.yml      
+      when: table_space is defined
+
+    # TODO: replace the following 3 tasks with template/ansible instead of shell
+    - name: setting itscorg db password
+      lineinfile: 
         path: "{{ fworch_home }}/install/database/db-install-scripts/iso-set-vars.sh"
         backrefs: yes
         regexp: '^\s*(FWORCHDBPW\s*=)'
         line: '\1"{{ fworch_pwd }}"'
         backup: yes
-       
-     - name: setting dbadmin password
-       lineinfile: 
+      
+    - name: setting dbadmin password
+      lineinfile: 
         path: "{{ fworch_home }}/install/database/db-install-scripts/iso-set-vars.sh"
         backrefs: yes
         regexp: '^\s*(DBADMINPW\s*=)'
         line: '\1"{{ dbadmin_pwd }}"'
         backup: yes        
-       
-     - name: setting admin webuser password
-       lineinfile: 
+      
+    - name: setting admin webuser password
+      lineinfile: 
         path: "{{ fworch_home }}/install/database/db-install-scripts/iso-set-vars.sh"
         backrefs: yes
         regexp: '^\s*(ADMINPW\s*=)'
         line: '\1"{{ admin_pwd }}"'
         backup: yes
 
-     - name: remove all containers including api to make sure the database can be dropped
-       script: "remove_all_containers.sh"
+    # - name: remove all containers including api to make sure the database can be dropped
+    #   script: "remove_all_containers.sh"
 
   become: yes
 
-- block:
-     - name: check if database already exists
-       shell: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
-       register: db_exists
-
-     - name: create new database - drop existing db before when clean_install is set
-       import_tasks: iso-setup-database-as-postgres-user.yml
-       when: clean_install is defined or db_exists.stdout=="0"
+- name: check if database already exists
+  command: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
+  register: db_exists
   become: yes
   become_user: postgres 
-# now in non-root context:            
+
+# - name: remove all containers including api to make sure the database can be dropped
+#   script: "remove_all_containers.sh"
+#   become: yes
+#   when: clean_install is defined and not db_exists.stdout=="0"
+
+# - name: stop hasura api to make sure the database can be dropped
+#   service:
+#     name: "{{ api_service_name }}"
+#     state: stopped
+#   become: yes
+#   when: clean_install is defined
+
+- name: Check that docker bin is installed
+  stat:
+    path: /usr/bin/docker
+  register: docker_is_installed
+
+- name: check if api container is running
+  command: "docker ps -q --filter name={{ api_container_name }}"
+  become: yes
+  register: docker_ps_out
+  when: docker_is_installed.stat.exists == True
+
+- name: stop api container
+  command: "docker stop {{ api_container_name }}"
+  become: yes
+  when: clean_install is defined and not docker_ps_out.stdout == ""
+
+- name: check if api container exists
+  command: "docker ps --all -q --filter name={{ api_container_name }}"
+  become: yes
+  register: docker_ps_out
+  when: (docker_is_installed.stat.exists == True) and (clean_install is defined)
+
+- name: remove api container
+  command: "docker rm {{ api_container_name }}"
+  become: yes
+  when: clean_install is defined and not docker_ps_out.stdout == ""
+
+- name: restart postgresql to get rid of unwanted connections when dropping db
+  service:
+    name: postgresql
+    state: restarted
+  become: yes
+  when: clean_install is defined
+
+- name: create new database - drop existing db before when clean_install is set
+  import_tasks: setup-database-as-postgres-user.yml
+  when: clean_install is defined or db_exists.stdout=="0"

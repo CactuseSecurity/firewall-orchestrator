@@ -70,22 +70,22 @@ namespace FWO_Auth_Server
 #if DEBUG
                         Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
 #endif
-                            try
+                        try
+                        {
+                            connection.Bind(currentUser.Dn, user.Password);
+                            if (connection.Bound)
                             {
-                                connection.Bind(currentUser.Dn, user.Password);
-                                if (connection.Bound)
-                                {
-                                    Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
-                                    return currentUser.Dn;
-                                }
+                                Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
+                                return currentUser.Dn;
                             }
-                            catch (LdapException exInner) {
-#if DEBUG
-                                Console.WriteLine($"Found user with same uid but different pwd distinguished name: \"{ currentUser.Dn}\" ...");
-                                Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {exInner.Message} \n #### Stack Trace #### \n {exInner.StackTrace} \n");
-#endif
-                            } // Incorrect password - do nothing, assuming another user with the same username
                         }
+                        catch (LdapException exInner) {
+#if DEBUG
+                            Console.WriteLine($"Found user with same uid but different pwd distinguished name: \"{ currentUser.Dn}\" ...");
+                            Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {exInner.Message} \n #### Stack Trace #### \n {exInner.StackTrace} \n");
+#endif
+                        } // Incorrect password - do nothing, assuming another user with the same username
+                        
                     }
                 }
             }

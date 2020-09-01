@@ -23,13 +23,13 @@
 
   - name: Check if manager password exist
     stat:
-      path: { { fworch_home } }/etc/secrets/ldap_manager_pw.txt
+      path: "{{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
     register: is_manger_pw_present_flag
 
   - name: Decide on random manager password
     set_fact:
       openldap_server_random_rootpw: "{{ random_generated_pw }}"
-    when: is_manger_pw_present_flag.exists
+    when: is_manger_pw_present_flag is defined
 
   - name: Write random manager password to file
     copy:

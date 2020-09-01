@@ -143,19 +143,15 @@ namespace FWO_Auth
 
                 else
                 {
-                    Console.WriteLine($"Try to validate as {User.Name}...");
-
                     if (LdapConnection.ValidateUser(User)) 
                     {
-                        Console.WriteLine($"Successfully validated as {User}!");
-
                         responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));
                         Console.WriteLine($"User {User.Name} was assigned the following roles: {responseString}");
                     }
 
                     else
                     {
-                        Console.WriteLine($"Invalid Credentials for User {User.Name}!");
+                        responseString = "InvalidCredentials";
                     }
                 }                   
             }

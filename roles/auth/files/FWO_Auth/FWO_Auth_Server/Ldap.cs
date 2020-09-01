@@ -1,6 +1,7 @@
 ﻿using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -56,54 +57,51 @@ namespace FWO_Auth_Server
             // REMOVE IF NEW LDAP VERSION 
             try
             {
-            // REMOVE IF NEW LDAP VERSION
+                // REMOVE IF NEW LDAP VERSION
 
                 using (LdapConnection connection = Connect())
                 {
-                    connection.Bind($"uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal", "fworch.1"); // Todo: Use correct user (inspector) for search operation
+                    //connection.Bind($"uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal", "fworch.1"); // Todo: Use correct user (inspector) for search operation
 
                     // Todo: Insert correct values
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(userSearchBase, LdapConnection.ScopeSub, $"(&(objectClass=inetOrgPerson)(uid:dn:={user.Name}))", null, typesOnly: false);
 
-                    connection.Bind("", ""); // Unbind not authenticated anymore
+                    //connection.Bind("", ""); // Unbind not authenticated anymore
 
-                    if (possibleUsers.Count != 0)
+                    while (possibleUsers.HasMore())
                     {
-                        foreach (var currentUser in possibleUsers)
+                        LdapEntry currentUser = possibleUsers.Next();
+#if DEBUG
+                        Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
+#endif
+                        try
                         {
-#if DEBUG
-                            Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
-#endif
-                            try
+                            connection.Bind(currentUser.Dn, user.Password);
+
+                            if (connection.Bound)
                             {
-                                connection.Bind(currentUser.Dn, user.Password);
-
-                                if (connection.Bound)
-                                {
-                                    Console.WriteLine($"Success!");
-                                    return true;
-                                }
-
+                                Console.WriteLine($"Success!");
+                                return true;
                             }
-                            catch (LdapException ex) { } // Incorrect Ldap DN or credentials
-#if DEBUG
-                            Console.WriteLine($"Failure!");
-#endif
+
                         }
+                        catch (LdapException ex) { } // Incorrect Ldap DN or credentials
+#if DEBUG
+                        Console.WriteLine($"Failure!");
+#endif
                     }
 
-
-                 // REMOVE IF NEW LDAP VERSION 
-                    connection.Bind(userSearchBase, user.Password);                 
+                    // REMOVE IF NEW LDAP VERSION 
+                    connection.Bind(userSearchBase, user.Password);
 
                     if (connection.Bound)
                         return true;
-                 // REMOVE IF NEW LDAP VERSION  
+                    // REMOVE IF NEW LDAP VERSION  
 
                     connection.Disconnect();
                 }
 
-            // REMOVE IF NEW LDAP VERSION 
+                // REMOVE IF NEW LDAP VERSION 
             }
             catch (LdapException ex)
             {
@@ -116,7 +114,7 @@ namespace FWO_Auth_Server
             Console.WriteLine($"User \"{user.Name}\" could not be validated!");
 
             // Todo: Log Wrong Username / Password
-            
+
             return false;
         }
 

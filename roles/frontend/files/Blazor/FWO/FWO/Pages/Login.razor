@@ -12,9 +12,9 @@
         <div>
             <h2 class="text-center"> Login </h2>
             <div class="shadow-sm card p-2">
-                <input type="text" style="width: 200px" class="m-2 form-control" id="UsernameInput" placeholder="Enter Username" @bind="Username" @onkeypress="PotentialSubmit">
-                <input type="password" style="width: 200px" class="m-2 form-control" id="PasswordInput" placeholder="Enter Password" @bind="Password" @onkeypress="PotentialSubmit">
-                <button class="btn btn-primary m-2" @onclick="LoginSubmit">Login</button>
+                <input type="text" class="m-2 form-control @InputClass" style="width: 200px;" id="UsernameInput" placeholder="Username" @bind="Username" @bind:event="oninput" @onkeypress="PotentialSubmit">
+                <input type="password" class="m-2 form-control @InputClass" style="width: 200px;" id="PasswordInput" placeholder="Password" @bind="Password" @bind:event="oninput" @onkeypress="PotentialSubmit">
+                <button class="btn btn-primary m-2" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button>
             </div>
         </div>
     </div>
@@ -27,6 +27,8 @@
 
     private string Username = "";
     private string Password = "";
+
+    private string InputClass = "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -45,10 +47,10 @@
 
     private async Task PotentialSubmit(KeyboardEventArgs e)
     {
-        /*
+        InputClass = "";
+
         if (e.Key == "Enter")
             await LoginSubmit();
-        */
     }
 
     private async Task LoginSubmit()
@@ -56,12 +58,21 @@
         // There is no jwt in session storage. Get one from auth module.
         string jwt = await AuthClient.GetJWT(Username, Password);
 
-        // Save it in session storage.
-        await sessionStorage.SetItemAsync<string>("jwt", jwt);
+        if (jwt == "InvalidCredentials")
+        {
+            InputClass = "is-invalid";
+            StateHasChanged();
+        }
 
-        ApiConnection.ChangeAuthHeader(jwt);
+        else
+        {
+            // Save it in session storage.
+            await sessionStorage.SetItemAsync<string>("jwt", jwt);
 
-        // Try to auth with jwt (validates it, gets roles, ...).
-        ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
+            ApiConnection.ChangeAuthHeader(jwt);
+
+            // Try to auth with jwt (validates it, gets roles, ...).
+            ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
+        }
     }
 }

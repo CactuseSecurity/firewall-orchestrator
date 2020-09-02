@@ -1,7 +1,8 @@
-﻿using Novell.Directory.Ldap;
+using Novell.Directory.Ldap;
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -61,41 +62,41 @@ namespace FWO_Auth_Server
 
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(userSearchBase, LdapConnection.ScopeSub, $"(&(objectClass=inetOrgPerson)(uid:dn:={user.Name}))", null, typesOnly: false);
 
-                    connection.Bind("", ""); // Unbind not authenticated anymore
+                    //connection.Bind("", ""); // Unbind not authenticated anymore
 
-                    if (possibleUsers.Count != 0)
+                    while (possibleUsers.HasMore())
                     {
-                        foreach (var currentUser in possibleUsers)
+                        LdapEntry currentUser = possibleUsers.Next();
+#if DEBUG
+                        Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
+#endif
+                        try
                         {
-#if DEBUG
-                            Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
-#endif
-                            try
+                            connection.Bind(currentUser.Dn, user.Password);
+                            if (connection.Bound)
                             {
-                                connection.Bind(currentUser.Dn, user.Password);
-                                if (connection.Bound)
-                                {
-                                    Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
-                                    return currentUser.Dn;
-                                }
+                                Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
+                                return currentUser.Dn;
                             }
-                            catch (LdapException exInner) {
-#if DEBUG
-                                Console.WriteLine($"Found user with same uid but different pwd distinguished name: \"{ currentUser.Dn}\" ...");
-                                Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {exInner.Message} \n #### Stack Trace #### \n {exInner.StackTrace} \n");
-#endif
-                            } // Incorrect password - do nothing, assuming another user with the same username
                         }
+                        catch (LdapException exInner) {
+#if DEBUG
+                            Console.WriteLine($"Found user with same uid but different pwd distinguished name: \"{ currentUser.Dn}\" ...");
+                            Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {exInner.Message} \n #### Stack Trace #### \n {exInner.StackTrace} \n");
+#endif
+                        } // Incorrect password - do nothing, assuming another user with the same username
+                        
                     }
                 }
-
             }
             catch (LdapException ex)
             {
                 Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {ex.Message} \n #### Stack Trace #### \n {ex.StackTrace} \n");
                 // Log exception
             }
+
             Console.WriteLine($"User \"{user.Name}\" could not be validated!");
+
             return "";
         }
 

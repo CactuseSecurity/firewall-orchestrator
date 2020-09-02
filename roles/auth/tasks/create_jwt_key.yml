@@ -15,10 +15,16 @@
 
    - set_fact: api_hasura_jwt_secret="{{ jwt_secret.stdout }}"
   
+  #  - name: remove potential old jwt secret file
+  #    file:
+  #       path: "{{ fworch_home }}/etc/secrets/jwt_private.key"
+  #       state: absent
+
    - name: write api_hasura_jwt_secret into file for reference
      lineinfile:
         path: "{{ fworch_home }}/etc/secrets/jwt_private.key"
         line: "{{ jwt_secret.stdout }}"
+        regexp: ".*"    # match every line and replace it (only one line expected)
         create: yes
         mode: "0600"
         owner: "{{ fworch_user }}"

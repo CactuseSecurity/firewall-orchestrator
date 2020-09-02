@@ -105,10 +105,14 @@ With testgroup.ldif
 
     dn: cn=testrole,ou=role,dc=fworch,dc=internal
     objectClass: top
-    objectClass: posixGroup
-    #gidNumber: 678
+    objectClass: groupofuniquenames
+    cn: testrole
+    uniqueMember:    #This is mandatory
+    description: This is a test role
+    
+There exists a concept "memberOf" which lists the roles of an uid. https://github.com/osixia/docker-openldap/issues/304 There are concerns about the security of this feature (its produced by Microsoft)
 
-### Add user to role
+### add user to role
 
 Add user fritz to role testrole with
 
@@ -118,10 +122,10 @@ With add_user.ldif
 
     dn: cn=testrole,ou=role,dc=fworch,dc=internal
     changetype: modify
-    add: memberuid
-    memberuid: fritz
+    add: uniquemember
+    uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
     
-Here fritz is not required to exist somewhere n the ldap tree. Idea: Hashing a memberuid from users dn
+Here fritz is not required to exist somewhere in the ldap tree.
 
 ### communicate with multiple ldap servers
 Not tested yet!

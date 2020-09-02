@@ -106,7 +106,7 @@ With testgroup.ldif
     dn: cn=testrole,ou=role,dc=fworch,dc=internal
     objectClass: top
     objectClass: posixGroup
-    #gidNumber: 678
+    gidNumber: 678      #the gidNumber is mandatory
 
 ### Add user to role
 

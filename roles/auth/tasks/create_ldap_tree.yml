@@ -60,6 +60,12 @@
   - name: set admin password in ldap
     command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}'"
 
+  - name: Create roles
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_roles.ldif"
+
+  - name: Pass example roles
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_roles.ldif"
+
   - name: delete ldif files
     file:
       path: "{{ auth_server_base_dir }}/ldif"

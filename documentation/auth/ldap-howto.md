@@ -109,6 +109,8 @@ With testgroup.ldif
     cn: testrole
     uniqueMember:    #This is mandatory
     description: This is a test role
+    
+There exists a concept "memberOf" which lists the roles of an uid. https://github.com/osixia/docker-openldap/issues/304 There are concerns about the security of this feature (its produced by Microsoft)
 
 ### add user to role
 

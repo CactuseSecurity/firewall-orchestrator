@@ -97,7 +97,7 @@ With delete.ldif
 
 ### add role
 
-Warning: this is not yet tested. Add role with
+Add role with
 
     ldapadd -x -W -D cn=Manager,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_manager_pw.txt -f testgroup.ldif
 
@@ -107,9 +107,10 @@ With testgroup.ldif
     objectClass: top
     objectClass: groupofuniquenames
     cn: testrole
+    uniqueMember:    #This is mandatory
     description: This is a test role
 
-### Add user to role
+### add user to role
 
 Add user fritz to role testrole with
 
@@ -122,7 +123,7 @@ With add_user.ldif
     add: uniquemember
     uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
     
-Here fritz is not required to exist somewhere n the ldap tree. Idea: Hashing a memberuid from users dn
+Here fritz is not required to exist somewhere in the ldap tree.
 
 ### communicate with multiple ldap servers
 Not tested yet!

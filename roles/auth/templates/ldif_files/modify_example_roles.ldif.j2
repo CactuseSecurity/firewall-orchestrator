@@ -1,0 +1,44 @@
+dn: cn=anonymous,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+
+dn: cn=auth-server,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+
+dn: cn=anonymous,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=fritz,ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal
+
+dn: cn=auth-server,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=fritz,ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal
+
+dn: cn=anonymous,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=helga,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+
+dn: cn=reporter,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+
+dn: cn=reporter-viewall,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+
+dn: cn=importer,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+
+dn: cn=admin,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal

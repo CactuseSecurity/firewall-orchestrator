@@ -1,0 +1,7 @@
+
+{
+    "privateJWTKeyFile": "../../../../../etc/secrets/jwt_private.key",
+    "AuthServerIp": "127.0.0.1",
+    "AuthServerPort": "8888",
+    "AuthLdapUri": "ldaps://127.0.0.1",
+}

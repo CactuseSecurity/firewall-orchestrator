@@ -23,17 +23,12 @@ namespace FWO_Auth
 
         private readonly Config config;
         private readonly String privateJWTKeyFile;
-        private readonly String configFile = "/home/tim/dev/tpurschke-fwo/firewall-orchestrator/etc/fworch.yaml";
+        private readonly String configFile = "../../../../../etc/fworch.yaml";
         private readonly String AuthServerIp;
         private readonly String AuthServerPort;
-
         public AuthModule()
         {
-            // TODO: Get Ldap Server URI + Http Listener URI from config file
-
-            // Get private key from
-            // absolute path: "fworch_home/etc/secrets/jwt_private.key"
-            // relative path:  "../../../etc/secrets"
+            // TODO: Get Ldap Server URI from API
 
             try // reading config file
             { 

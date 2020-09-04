@@ -71,7 +71,8 @@ namespace FWO_Auth
             TokenGenerator = new TokenGenerator(privateJWTKey, daysValid);
 
             // Start Http Listener
-            StartListener("http://" + AuthServerIp + ":" + AuthServerPort + "/"); // todo: move to https 
+            String ListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";
+            StartListener(ListenerUri); // todo: move to https
         }
 
         private void StartListener(string ListenerUri)
@@ -81,7 +82,7 @@ namespace FWO_Auth
 
             // Start listener.
             Listener.Start();
-            Console.WriteLine("Listening...");
+            Console.WriteLine($"Auth Server starting on {ListenerUri}.");
 
             while (true)
             {

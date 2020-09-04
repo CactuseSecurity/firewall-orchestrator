@@ -33,7 +33,7 @@ type SecManager {
   id: ID
   name: String!
   ipAddress: IpAddress!
-  sshPrivateKey: String!
+  sshprivateJWTKey: String!
   importerHostname: String!
   importerSShUser: String!
   created: Time
@@ -175,7 +175,7 @@ type Query  {
 type Mutation  {
     addSecManager(  name: String!
                     ipAddress: IpAddress!
-                    sshPrivateKey: String!
+                    sshprivateJWTKey: String!
                     importerHostname: String!
                     importerSShUser: String!
                     created: Time

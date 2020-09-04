@@ -1,0 +1,5 @@
+
+privateJWTKeyFile: "../../../../../etc/secrets/jwt_private.key"
+AuthServerIP: "127.0.0.1"
+AuthServerPort: "8888"
+

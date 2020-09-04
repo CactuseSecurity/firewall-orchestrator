@@ -1,5 +1,13 @@
 
-privateJWTKeyFile: "../../../../../etc/secrets/jwt_private.key"
-AuthServerIp: "127.0.0.1"
-AuthServerPort: "8888"
+# general settings
+fworch_home: "/usr/local/fworch"
+dotnet_mode: "Release"
 
+# api
+api_uri: "https://localhost:9443/api/v1/graphql"
+api_hasura_jwt_alg: "HS384"
+
+# auth
+auth_JWT_key_file: "../../../../../etc/secrets/jwt_private.key"
+auth_hostname: "127.0.0.1"
+auth_server_port: "8888"

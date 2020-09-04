@@ -23,9 +23,10 @@ namespace FWO_Auth
 
         private readonly Config config;
         private readonly String privateJWTKeyFile;
-        private readonly String configFile = "../../../../../etc/fworch.yaml";
+        private readonly String configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
         private readonly String AuthServerIp;
         private readonly String AuthServerPort;
+
         public AuthModule()
         {
             // TODO: Get Ldap Server URI from API
@@ -33,13 +34,13 @@ namespace FWO_Auth
             try // reading config file
             { 
                 config = new Config(configFile);
-                privateJWTKeyFile = config.GetConfigValue("privateJWTKeyFile");
-                AuthServerIp = config.GetConfigValue("AuthServerIp");
-                AuthServerPort = config.GetConfigValue("AuthServerPort");
+                privateJWTKeyFile = config.GetConfigValue("auth_JWT_key_file");
+                AuthServerIp = config.GetConfigValue("auth_hostname");
+                AuthServerPort = config.GetConfigValue("auth_server_port");
             }
             catch (Exception eConfigFileRead)
             {
-                Console.Out.Write($"Error while trying to read config from file {configFile}\n");
+                Console.WriteLine($"Error while trying to read config from file {configFile}\n");
                 System.Environment.Exit(1); // exit with error
             }
 
@@ -63,14 +64,14 @@ namespace FWO_Auth
 
             // Create connection to Ldap Server
             LdapConnection = new Ldap("localhost", 636); 
-            // LdapConnection = new Ldap(ReadLdapConnectionsFromAPI()); // todo: read ldap listener address from API call
+            // LdapConnection = new Ldap(ReadLdapConnectionsFromAPI()); // todo: read ldap listener address via API call
             // prereq: api connection available in auth module
 
             // Create Token Generator
             TokenGenerator = new TokenGenerator(privateJWTKey, daysValid);
 
             // Start Http Listener
-            StartListener("http://localhost:8888/"); // todo: read auth server listener address from config
+            StartListener("http://" + AuthServerIp + ":" + AuthServerPort + "/"); // todo: move to https 
         }
 
         private void StartListener(string ListenerUri)
@@ -111,7 +112,6 @@ namespace FWO_Auth
                     status = HttpStatusCode.BadRequest;
 
                     Console.WriteLine($"Error {e.Message}    Stacktrace  {e.StackTrace}");
-                    // Todo: Log error
                 }
 
                 // Get response object.
@@ -147,8 +147,7 @@ namespace FWO_Auth
                 {
                     Console.WriteLine("Logging in with fake user...");
                     responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));                 
-                }
-                    
+                }                    
                 // REMOVE LATER                             
 
                 else

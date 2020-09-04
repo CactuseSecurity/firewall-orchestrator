@@ -6,7 +6,6 @@ auth_ldap_superuser_name: "cn=Manager,{{ auth_ldap_path }}"
 auth_ldap_user_inital_pwd: "fworch.1"
 auth_ldap_std_user_path: "ou=operator,ou=user,{{ auth_ldap_path }}"
 auth_ldap_internal_readonly_user: "inspector"
-auth_web_listener_port: 8888
 auth_path_rel: FWO_Auth
 auth_server_base_dir: "{{ fworch_home }}/auth"
 auth_server_start_dir: "{{ auth_server_base_dir }}/FWO_Auth/FWO_Auth_Server"

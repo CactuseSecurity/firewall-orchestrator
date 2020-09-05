@@ -143,14 +143,13 @@ namespace FWO_Auth
 
                 User User = new User { Name = Parameters["Username"], Password = Parameters["Password"] };
 
-                // TODO: REMOVE LATER
-                if (User.Name == "" && User.Password == "")
+                if (User.Name == "")
                 {
-                    Console.WriteLine("Logging in with fake user...");
-                    responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));                 
+                    Console.WriteLine("Logging in with anonymous user...");
+                    // responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));
+                    Role[] AnonymousRoles = {new Role("anonymous")};
+                    responseString = TokenGenerator.CreateJWT(User, null, AnonymousRoles);
                 }                    
-                // REMOVE LATER                             
-
                 else
                 {
                     Console.WriteLine($"Try to validate as {User.Name}...");

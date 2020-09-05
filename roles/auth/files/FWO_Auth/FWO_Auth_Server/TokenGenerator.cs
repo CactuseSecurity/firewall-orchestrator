@@ -47,7 +47,7 @@ namespace FWO_Auth_Server
 
             string GeneratedToken = tokenHandler.WriteToken(token);
 
-            Console.WriteLine($"Generated JWT {GeneratedToken} for User {user}");
+            Console.WriteLine($"Generated JWT {GeneratedToken} for User {user.Name}");
 
             return GeneratedToken;
         }

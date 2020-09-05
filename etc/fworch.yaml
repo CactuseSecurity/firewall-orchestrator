@@ -9,5 +9,5 @@ api_hasura_jwt_alg: "HS384"
 
 # auth
 auth_JWT_key_file: "../../../../../etc/secrets/jwt_private.key"
-auth_hostname: "127.0.0.1"
+auth_hostname: "localhost"
 auth_server_port: "8888"

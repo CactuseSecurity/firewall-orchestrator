@@ -1,5 +1,11 @@
 - block: 
 
+  - name: create temp symlink necessary for rel path to conf file in csharp debugging
+    file:
+      src: "{{ fworch_home }}/etc"
+      dest: "/usr/etc"
+      state: link
+
   # settings used within c# source code only
   - name: edit central conf file
     blockinfile:

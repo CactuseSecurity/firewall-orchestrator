@@ -51,7 +51,7 @@ namespace FWO.Backend.Auth
             } 
             catch (Exception e)
             {
-                //TODO: Invalid Jwt Logging
+                Console.Out.WriteAsync($"Auth:: error while reading JWT: \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
             }
         }
 
@@ -73,7 +73,7 @@ namespace FWO.Backend.Auth
             }
             catch (Exception e)
             {
-                //TODO: Invalid Jwt Logging
+                Console.Out.WriteAsync($"Auth:: found invalid JWT: \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
                 return false;
             }       
 

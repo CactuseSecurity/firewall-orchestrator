@@ -95,7 +95,7 @@ namespace FWO_Auth_Server
                 // Log exception
             }
 
-            Console.WriteLine($"User \"{user.Name}\" could not be validated!");
+            Console.WriteLine($"User \"{user.Name}\": invalid login credentials!");
 
             return "";
         }

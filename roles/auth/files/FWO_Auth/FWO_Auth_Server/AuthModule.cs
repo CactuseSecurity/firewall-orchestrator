@@ -147,8 +147,8 @@ namespace FWO_Auth
                 {
                     Console.WriteLine("Logging in with anonymous user...");
                     // responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));
-                    Role[] AnonymousRoles = {new Role("anonymous")};
-                    responseString = TokenGenerator.CreateJWT(User, null, AnonymousRoles);
+                    //Role[] AnonymousRoles = {new Role("anonymous")};
+                    responseString = TokenGenerator.CreateJWT(User, null, new Role[] { new Role { Name = "anonymous" } });
                 }                    
                 else
                 {

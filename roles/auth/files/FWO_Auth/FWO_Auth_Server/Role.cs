@@ -8,9 +8,9 @@ namespace FWO_Auth_Server
     {
         public string Name { get; set; }
 
-        public Role (String Name)
-        {
-            this.Name = Name;
-        }
+    //     public Role (String Name)
+    //     {
+    //         this.Name = Name;
+    //     }
     }
 }

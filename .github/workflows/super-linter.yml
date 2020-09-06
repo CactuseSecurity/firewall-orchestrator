@@ -35,5 +35,5 @@ jobs:
     - name: Super-Linter
       uses: github/super-linter@v2.1.0
       env:
-        PERL5LIB: roles/importer/files/importer:/usr/local/share/perl/5.26.1
+        PERL5LIB: roles/importer/files/importer:/usr/local/share/perl/5.26.1:/usr/local/lib/x86_64-linux-gnu/perl/5.26.1/
 

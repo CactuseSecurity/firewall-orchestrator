@@ -14,11 +14,6 @@
      register: jwt_secret
 
    - set_fact: api_hasura_jwt_secret="{{ jwt_secret.stdout }}"
-  
-  #  - name: remove potential old jwt secret file
-  #    file:
-  #       path: "{{ fworch_home }}/etc/secrets/jwt_private.key"
-  #       state: absent
 
    - name: write api_hasura_jwt_secret into file for reference
      lineinfile:

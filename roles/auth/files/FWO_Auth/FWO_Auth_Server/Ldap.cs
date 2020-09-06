@@ -95,7 +95,7 @@ namespace FWO_Auth_Server
                 // Log exception
             }
 
-            Console.WriteLine($"User \"{user.Name}\" could not be validated!");
+            Console.WriteLine($"User \"{user.Name}\": invalid login credentials!");
 
             return "";
         }
@@ -108,10 +108,10 @@ namespace FWO_Auth_Server
                 case "":
                 case "fgreporter":
                 case "fgcheck":
-                    return new Role[] { new Role { Name = "reporter" } };
+                    return new Role[] { new Role("reporter") };
 
                 case "admin":
-                    return new Role[] { new Role { Name = "reporter-viewall" }, new Role { Name = "reporter" } };
+                    return new Role[] { new Role("reporter-viewall"), new Role("reporter") };
 
                 default:
                     return new Role[0];

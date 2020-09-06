@@ -1,13 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.2.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.7.1" />
+    <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.2.0"/>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.7.1"/>
+    <PackageReference Include="YamlDotNet" Version="8.1.2"/>
   </ItemGroup>
-
 </Project>

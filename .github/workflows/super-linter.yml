@@ -27,5 +27,5 @@ jobs:
     - name: Super-Linter
       uses: github/super-linter@v2.1.0
       env:
-        PERL5LIB: /usr/local/fworch/importer
+        PERL5LIB: /usr/local/fworch/importer:roles/importer/files/importer
 

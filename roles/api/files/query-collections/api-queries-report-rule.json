@@ -44,6 +44,23 @@
                     }
                 }
             }"
-        }
+        },
+        "name": "listRuleChanges",
+            "query": "query listRuleChanges($startId:Int, $stopId:Int){
+            changelog_rule(
+              where: {
+                _and: [
+                    {control_id: {_lt: $stopId}},
+                  {control_id: {_gt: $startId}}
+                ]
+              }) {
+                change_request_info
+                change_time
+                changelog_rule_comment
+                new_rule_id
+                old_rule_id
+                unique_name
+              }
+          }"
     ]
 }

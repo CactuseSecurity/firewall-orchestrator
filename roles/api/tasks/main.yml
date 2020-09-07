@@ -1,8 +1,5 @@
 # this playbook sets up the api
 
-- name: install apache2
-  import_tasks: api-apache-install-and-setup.yml
-
 - name: remove api home
   file:
     path: "{{ api_home }}"
@@ -18,12 +15,16 @@
     group: "{{ fworch_user }}"
   become: yes
 
+- name: install apache2
+  import_tasks: api-apache-install-and-setup.yml
+
 - name: hasura install 
   import_tasks: hasura-install.yml
 
 - name: hasura basic config
   import_tasks: hasura-basic-config.yml
 
+# currently on hold until decision is clear whether to use dynamic queries for filtering
 # - name: create query_collections and add to allow-list 
 #   import_tasks: api-query-collection.yml
 

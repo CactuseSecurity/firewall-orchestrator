@@ -41,18 +41,35 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_user }}"
 
-    - name: copy importer rc script
-      copy:
-        src: "import-main-rc"
-        dest: "/etc/init.d/{{ product_name }}-importer"
-        mode: "0755"
-        owner: root
-        group: root
+    # - name: copy importer rc script
+    #   copy:
+    #     src: "import-main-rc"
+    #     dest: "/etc/init.d/{{ product_name }}-importer"
+    #     mode: "0755"
+    #     owner: root
+    #     group: root
 
-    - name: create links in rcx.d dirs
-      command: "/usr/sbin/update-rc.d {{ product_name }}-importer defaults"
+    # - name: create links in rcx.d dirs
+    #   command: "/usr/sbin/update-rc.d {{ product_name }}-importer defaults"
 
-    - name: start {{ product_name }} importer 
-      command: "/etc/init.d/{{ product_name }}-importer start"
+    # - name: start {{ product_name }} importer 
+    #   command: "/etc/init.d/{{ product_name }}-importer start"
+
+    - name: copy importer systemd service script
+      template:
+        src: "{{ product_name }}-importer.service.j2"
+        dest: "/lib/systemd/system/{{ product_name }}-importer.service"
+        backup: yes
+        mode: "0644"
+        owner: "root"
+      become: yes
+
+    - name: make importer run at host startup
+      command: "systemctl enable {{ product_name }}-importer"
+      become: yes
+
+    - name: start importer
+      command: "systemctl start {{ product_name }}-importer"
+      become: yes
+
   become: yes
-      

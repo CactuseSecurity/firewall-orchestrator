@@ -1,0 +1,14 @@
+[Unit]
+Description={{ product_name }} importer
+After=network.target remote-fs.target nss-lookup.target
+[Service]
+WorkingDirectory={{ importer_home }}
+ExecStartPre=/bin/sleep 10
+ExecStart=./fworch-importer-main.pl
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier={{ product_name }}-importer
+User={{ fworch_user }}
+Environment=
+[Install]
+WantedBy=multi-user.target

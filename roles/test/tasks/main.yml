@@ -1,0 +1,26 @@
+# this playbook sets up some sample devices with configs to play around with
+# postgresql-client
+
+- name: create import sample user and copy configs
+  include_tasks: setup-sample-import.yml
+
+- name: install packages necessary for testing
+  package:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ test_packages }}"
+  become: yes
+
+- name: api testing
+  import_tasks: test-api.yml
+
+- name: remove all test data
+  import_tasks: test-data-cleanup.yml
+  when: test == 'with_cleanup'
+
+- name: remove packages only necessary for testing
+  package:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ test_packages }}"
+  become: yes

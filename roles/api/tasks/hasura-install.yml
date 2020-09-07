@@ -68,7 +68,7 @@
       tag: "{{ api_container_name }}"
     recreate: yes
     ports:
-      - "{{ api_hostname }}:{{ api_port }}:{{ api_port }}"
+      - "{{ api_ip_address }}:{{ api_port }}:{{ api_port }}"
     env:
       "{{ hasura_env }}"
   become: yes

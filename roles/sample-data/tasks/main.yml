@@ -16,6 +16,6 @@
 - name: establish cron job to simulate hourly changes to configs
   import_tasks: setup-config-changes.yml
 
-- name: restart importing sample configs
-  command: "/etc/init.d/{{ product_name }}-importer restart"
-  become: yes
+# - name: restart importing sample configs
+#   command: "/etc/init.d/{{ product_name }}-importer restart"
+#   become: yes

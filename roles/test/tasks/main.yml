@@ -14,9 +14,9 @@
 # - name: api testing
 #   import_tasks: test-api.yml
 
-- name: remove all test data
-  import_tasks: test-data-cleanup.yml
-  when: test == 'with_cleanup'
+# - name: remove all test data
+#   import_tasks: test-data-cleanup.yml
+#   when: test == 'with_cleanup'
 
 - name: remove packages only necessary for testing
   package:

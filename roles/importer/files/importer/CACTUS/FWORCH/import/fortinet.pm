@@ -420,7 +420,7 @@ sub copy_config_from_mgm_to_iso {
 		$cmd = "$ssh_bin -o StrictHostKeyChecking=no -i $workdir/${CACTUS::FWORCH::ssh_id_basename} $ssh_user\@$ssh_hostname show full-configuration > $cfg_dir/$obj_file_base";	# fortigate
 		# adding "-o StrictHostKeyChecking=no" to allow for failover of fortinet machines:
 	}
-	print_debug("copy_config_from_mgm_to_iso cmd=$cmd", $debuglevel, 4);
+	#print_debug("copy_config_from_mgm_to_iso cmd=$cmd", $debuglevel, 4);
 	if (system ($cmd)) { $fehler_count++; }
 	return ($fehler_count, "$cfg_dir/$obj_file_base" );
 }

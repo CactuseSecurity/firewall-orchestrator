@@ -10,6 +10,11 @@
     state: present
   become: yes
 
+- name: add localhost hostkey to known_hosts - remove before adding to stay idempotent
+  shell: "ssh-keygen -R localhost; ssh-keyscan localhost >> ~/.ssh/known_hosts"
+  become: yes
+  become_user: "{{ fworch_user }}"
+
 - name: create sample devices in database
   import_tasks: create-devices.yml
 

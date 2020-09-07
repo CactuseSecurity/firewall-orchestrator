@@ -11,8 +11,8 @@
   loop: "{{ test_packages }}"
   become: yes
 
-- name: api testing
-  import_tasks: test-api.yml
+# - name: api testing
+#   import_tasks: test-api.yml
 
 - name: remove all test data
   import_tasks: test-data-cleanup.yml

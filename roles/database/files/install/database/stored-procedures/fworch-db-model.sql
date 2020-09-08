@@ -900,6 +900,7 @@ Create table "ldap_connection"
 	"ldap_searchpath_for_users" Varchar NOT NULL,
 	"ldap_tenant_level" Integer NOT NULL Default 1,
 	"ldap_search_user" Varchar NOT NULL,
+	"ldap_search_user_pwd" Varchar NOT NULL,
 	primary key ("ldap_connection_id")
 );
 

@@ -65,22 +65,22 @@ namespace FWO_Auth_Server
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
 
             // adding roles:
-            List<string> Roles = new List<string>();
+            List<string> localRolesList = new List<string>();
 
             foreach (Role role in roles)
             {
                 claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name)); // Frontend Roles
-                Roles.Add(role.Name); // Hasura Roles
+                localRolesList.Add(role.Name); // Hasura Roles
             }
 
-            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(Roles.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(localRolesList.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
 
             if (roles != null && roles.Length > 0) 
             {
-                if (roles.Contains("reporter-viewall"))
+                if (localRolesList.Contains("reporter-viewall"))
                     claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter-viewall"));
                 else {
-                    if (roles.Contains("reporter"))
+                    if (localRolesList.Contains("reporter"))
                         claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
                     else
                         claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)

@@ -76,7 +76,16 @@ namespace FWO_Auth_Server
             claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(Roles.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
 
             if (roles != null && roles.Length > 0) 
-                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
+            {
+                if (roles.Contains("reporter-viewall"))
+                    claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter-viewall"));
+                else {
+                    if (roles.Contains("reporter"))
+                        claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
+                    else
+                        claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
+                }
+            }
             else 
                 claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
 

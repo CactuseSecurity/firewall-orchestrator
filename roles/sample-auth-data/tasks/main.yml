@@ -3,10 +3,6 @@
 - name: add auth test data to database
   include_tasks: auth_test_data.yml
 
-- name: Check if ldap sample-auth-data already exists
-  shell: "ldapsearch -D uid=inspector,ou=systemuser,ou=user,{{ auth_ldap_path }} -y {{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt ou=forti -x | grep 'ou=forti,{{ auth_ldap_std_user_path }}' | wc -l"
-  register: is_sample_auth_present_flag
-
 - block:
   - name: copy ldif template for roles
     template:
@@ -32,6 +28,6 @@
 
   - name: set user viewallreporter password in ldap
     command: "ldappasswd -s {{ auth_ldap_user_inital_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=viewallreporter,ou=viewall,{{ auth_ldap_std_user_path }}'"
-  when: is_sample_auth_present_flag.stdout == "0"
+  when: not is_ldap_present_flag.stat.exists
 
   # todo: remove ldif files

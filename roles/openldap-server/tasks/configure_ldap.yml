@@ -87,5 +87,6 @@
     shell: "ldapadd -x -D \"cn=Manager,dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }}\" -w {{ openldap_server_random_rootpw }} -f {{ result.dest|default(result.path) }} && touch {{ openldap_server_app_path }}/rootdn_created"
     args:
       creates: "{{ openldap_server_app_path }}/rootdn_created"
+    when: not is_manger_pw_present_flag.stat.exists
   
   become: yes

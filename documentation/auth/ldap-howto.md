@@ -49,6 +49,8 @@ sn: fgreporter
 
 ### searching ldap with ldapsearch
 
+The old way is
+
     tim@ubu1804:~$ ldapsearch uid=user1 -x
     # extended LDIF
     #
@@ -72,6 +74,10 @@ sn: fgreporter
 
     # numResponses: 2
     # numEntries: 1
+    
+The search above won't work anymore. LDAP is now exlusive to the users "manager" and "inspector" (read only). The new way
+
+    fworch@FWO:~$ ldapsearch -x -W -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=admin
 
 ### check password
 wrong password:
@@ -105,10 +111,14 @@ With testgroup.ldif
 
     dn: cn=testrole,ou=role,dc=fworch,dc=internal
     objectClass: top
-    objectClass: posixGroup
-    #gidNumber: 678
+    objectClass: groupofuniquenames
+    cn: testrole
+    uniqueMember:    #This is mandatory
+    description: This is a test role
+    
+There exists a concept "memberOf" which lists the roles of an uid. https://github.com/osixia/docker-openldap/issues/304 There are concerns about the security of this feature (its produced by Microsoft)
 
-### Add user to role
+### add user to role
 
 Add user fritz to role testrole with
 
@@ -118,10 +128,10 @@ With add_user.ldif
 
     dn: cn=testrole,ou=role,dc=fworch,dc=internal
     changetype: modify
-    add: memberuid
-    memberuid: fritz
+    add: uniquemember
+    uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
     
-Here fritz is not required to exist somewhere n the ldap tree. Idea: Hashing a memberuid from users dn
+Here fritz is not required to exist somewhere in the ldap tree.
 
 ### communicate with multiple ldap servers
 Not tested yet!

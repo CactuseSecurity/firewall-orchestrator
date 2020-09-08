@@ -44,11 +44,11 @@ namespace FWO
             const string APIHost = "demo.itsecorg.de";
             */
 
-            string ApiUri = "https://localhost:9443/api/v1/graphql";
+            string ApiUri = "https://localhost:9443/api/v1/graphql"; // todo: read from config
 #if DEBUG
             //ApiUri = "https://demo.itsecorg.de:443/api/v1/graphql";
 #endif
-            string AuthUri = "http://localhost:8888/";
+            string AuthUri = "http://localhost:8888/"; // todo: read from config
 
             services.AddScoped<APIConnection>(api => new APIConnection(ApiUri));
             services.AddScoped<AuthClient>(auth => new AuthClient(AuthUri));

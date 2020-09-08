@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FWO_Auth_Server;
+//using FWO_Auth_Server.Config;
 
 namespace FWO_Auth
 {
@@ -17,36 +18,44 @@ namespace FWO_Auth
         private readonly Ldap LdapConnection;
         private readonly TokenGenerator TokenGenerator;
 
-        private readonly string privateKey = "8f4ce02dabb2a4ffdb2137802b82d1283f297d959604451fd7b7287aa307dd298668cd68a432434d85f9bcff207311a833dd5b522870baf457c565c7a716e7eaf6be9a32bd9cd5420a0ebaa9bace623b54c262dcdf35debdb5388490008b9bc61facfd237c1c7058f5287881a37492f523992a2a120a497771954daf27666de2461a63117c8347fe760464e3a58b3a5151af56a0375c8b34921101c91425b65097fc69049f85589a58bb5e5570139c98d3edb179a400b3d142a30e32d1c8e9bbdb90d799fb81b4fa6fb7751acfb3529c7af022590cbb845a8390b906f725f079967b269cff8d2e6c8dbcc561b37c4bdd1928c662b79f42fe56fe108a0cf21e08";
-        //private readonly string privateKey = "769d910a91f5ccce38cecf976d04c47bb8906160c359936e3c321ee0f3d496009190a4ddb81d79934d15291d2e0b0ecd5f43122acb4deea0d5f52d657a44d9aa50dc6145b969d0f6ed7ab9f161f80b7dfcb158104d3097f17b487190ac18d71f3b1fa92c2862f238360ae955ab626b278763c7ae889350624532ccc07fd7ada256af826fcf6f8df91f400aca67c267afb4dc6df689a2c20f280d85cb99d9cb44615d96ecdb4a215e69403b2f1c350112b6cb8333c87b59e98f16f2748bab1ca74ca808cf1c7bf320c4914c767e40e0bc4dffef05c6b28794a73d67ee09ef9b55be2ec0d2b5e0e5a548582ae095a36245c433371a560c7e4cf0011dfd657a708e";
+        private readonly string privateJWTKey = "8f4ce02dabb2a4ffdb2137802b82d1283f297d959604451fd7b7287aa307dd298668cd68a432434d85f9bcff207311a833dd5b522870baf457c565c7a716e7eaf6be9a32bd9cd5420a0ebaa9bace623b54c262dcdf35debdb5388490008b9bc61facfd237c1c7058f5287881a37492f523992a2a120a497771954daf27666de2461a63117c8347fe760464e3a58b3a5151af56a0375c8b34921101c91425b65097fc69049f85589a58bb5e5570139c98d3edb179a400b3d142a30e32d1c8e9bbdb90d799fb81b4fa6fb7751acfb3529c7af022590cbb845a8390b906f725f079967b269cff8d2e6c8dbcc561b37c4bdd1928c662b79f42fe56fe108a0cf21e08";
         private readonly int daysValid = 7;
+
+        private readonly Config config;
+        private readonly String privateJWTKeyFile;
+        private readonly String configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
+        private readonly String AuthServerIp;
+        private readonly String AuthServerPort;
 
         public AuthModule()
         {
-            // TODO: Get Ldap Server URI + Http Listener URI from config file
+            // TODO: Get Ldap Server URI from API
 
-            // Get private key from
-            // absolute path: "fworch_home/etc/secrets/jwt_private.key"
-            // absolute path: "fworch_home/etc/secrets/jwt_private.key"
-            // relative path:  "../../../etc/secrets"
-
-            try
+            try // reading config file
+            { 
+                config = new Config(configFile);
+                privateJWTKeyFile = config.GetConfigValue("auth_JWT_key_file");
+                AuthServerIp = config.GetConfigValue("auth_hostname");
+                AuthServerPort = config.GetConfigValue("auth_server_port");
+            }
+            catch (Exception eConfigFileRead)
             {
-                // privateKey = File.ReadAllText("../../../etc/secrets/jwt_private.key");
+                Console.WriteLine($"Error while trying to read config from file {configFile}\n");
+                System.Environment.Exit(1); // exit with error
+            }
+
+            try // to read private JWT generation file from file, if failing, use fallback key
+            {
                 // TODO: Read as relative path
-                privateKey = File.ReadAllText("/usr/local/fworch/etc/secrets/jwt_private.key").TrimEnd();
-                Console.WriteLine($"Key is {privateKey.Length} Bytes long.");
-                Console.WriteLine($"Key is {privateKey}");
+                privateJWTKey = File.ReadAllText(privateJWTKeyFile).TrimEnd();
+                Console.WriteLine($"Key is {privateJWTKey.Length} Bytes long.");
             }
             catch (Exception e)
             {
                 ConsoleColor StandardConsoleColor = Console.ForegroundColor;
-
                 Console.ForegroundColor = ConsoleColor.Red;
-
                 Console.Out.WriteAsync($"Error while trying to read private key : \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
                 Console.Out.WriteAsync($"Using fallback key! \n");
-
                 Console.ForegroundColor = StandardConsoleColor;
             }
 
@@ -54,13 +63,16 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Create connection to Ldap Server
-            LdapConnection = new Ldap("localhost", 636); // todo: read ldap listener address from config
+            LdapConnection = new Ldap("localhost", 636); 
+            // LdapConnection = new Ldap(ReadLdapConnectionsFromAPI()); // todo: read ldap listener address via API call
+            // prereq: api connection available in auth module
 
             // Create Token Generator
-            TokenGenerator = new TokenGenerator(privateKey, daysValid);
+            TokenGenerator = new TokenGenerator(privateJWTKey, daysValid);
 
             // Start Http Listener
-            StartListener("http://localhost:8888/"); // todo: read auth server listener address from config
+            String ListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";
+            StartListener(ListenerUri); // todo: move to https
         }
 
         private void StartListener(string ListenerUri)
@@ -70,7 +82,7 @@ namespace FWO_Auth
 
             // Start listener.
             Listener.Start();
-            Console.WriteLine("Listening...");
+            Console.WriteLine($"Auth Server starting on {ListenerUri}.");
 
             while (true)
             {
@@ -101,7 +113,6 @@ namespace FWO_Auth
                     status = HttpStatusCode.BadRequest;
 
                     Console.WriteLine($"Error {e.Message}    Stacktrace  {e.StackTrace}");
-                    // Todo: Log error
                 }
 
                 // Get response object.
@@ -132,15 +143,12 @@ namespace FWO_Auth
 
                 User User = new User { Name = Parameters["Username"], Password = Parameters["Password"] };
 
-                // TODO: REMOVE LATER
-                if (User.Name == "" && User.Password == "")
+                if (User.Name == "")
                 {
-                    Console.WriteLine("Logging in with fake user...");
-                    responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));                 
-                }
-                    
-                // REMOVE LATER                             
-
+                    Console.WriteLine("Logging in with anonymous user...");
+                    // responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));
+                    responseString = TokenGenerator.CreateJWT(User, null, new Role[] { new Role("anonymous") });
+                }                    
                 else
                 {
                     Console.WriteLine($"Try to validate as {User.Name}...");
@@ -175,7 +183,7 @@ namespace FWO_Auth
 
                         UserData userData = new UserData();
                         userData.tenant = tenant;
-                        responseString = TokenGenerator.CreateJWT(User, userData, LdapConnection.GetRoles(User));
+                        responseString = TokenGenerator.CreateJWT(User, userData, LdapConnection.GetRoles(UserDN));
                     }
 
                     else

@@ -7,6 +7,7 @@
   file:
     path: "{{ api_home }}"
     state: absent
+  become: yes
 
 - name: create api home
   file:

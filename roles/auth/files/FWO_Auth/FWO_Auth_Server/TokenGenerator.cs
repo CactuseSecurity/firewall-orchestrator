@@ -14,15 +14,15 @@ namespace FWO_Auth_Server
 {
     class TokenGenerator
     {
-        private readonly SymmetricSecurityKey privateKey;
+        private readonly SymmetricSecurityKey privateJWTKey;
         private readonly int daysValid;
 
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public TokenGenerator(string privateKey, int daysValid)
+        public TokenGenerator(string privateJWTKey, int daysValid)
         {
-            this.privateKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey));
+            this.privateJWTKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateJWTKey));
 
             this.daysValid = daysValid;
         }
@@ -42,12 +42,12 @@ namespace FWO_Auth_Server
                 subject: subject,
                 notBefore: DateTime.UtcNow,
                 expires: DateTime.UtcNow.AddDays(daysValid),
-                signingCredentials: new SigningCredentials(privateKey, SecurityAlgorithms.HmacSha384)
+                signingCredentials: new SigningCredentials(privateJWTKey, SecurityAlgorithms.HmacSha384)
              );
 
             string GeneratedToken = tokenHandler.WriteToken(token);
 
-            Console.WriteLine($"Generated JWT {GeneratedToken} for User {user}");
+            Console.WriteLine($"Generated JWT {GeneratedToken} for User {user.Name}");
 
             return GeneratedToken;
         }

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-curl -k -H 'Accept: application/json; indent=4' https://127.0.0.1:443/api/managements/
-curl -k -H 'Accept: application/json; indent=4' https://127.0.0.1:443/api/devices/
+curl -k -H 'Accept: application/json; indent=4' https://localhost:443/api/managements/
+curl -k -H 'Accept: application/json; indent=4' https://localhost:443/api/devices/
 
 curl -k 'https://localhost/api/graphql/' -H "Content-Type:application/json" -d '{ "query": "query { devices { devName devId } }" }'
 {"data":{"devices":[{"devName":"fortigate-test","devId":"1"},{"devName":"checkpoint-demo","devId":"2"}]}}

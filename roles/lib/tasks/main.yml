@@ -8,10 +8,17 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_user }}"
 
+    - name: create lib files  dir to compensate ansible structure
+      file:
+        dest: "{{ lib_dir }}/files"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_user }}"
+
     - name: copy dotnet lib files to lib target
       copy:
         src: "{{ item }}"
-        dest: "{{ ui_dir }}"
+        dest: ""{{ lib_dir }}/files"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_user }}"
       loop:

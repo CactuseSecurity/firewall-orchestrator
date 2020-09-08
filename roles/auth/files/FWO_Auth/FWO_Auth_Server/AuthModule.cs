@@ -183,7 +183,7 @@ namespace FWO_Auth
 
                         UserData userData = new UserData();
                         userData.tenant = tenant;
-                        responseString = TokenGenerator.CreateJWT(User, userData, LdapConnection.GetRoles(User));
+                        responseString = TokenGenerator.CreateJWT(User, userData, LdapConnection.GetRoles(UserDN));
                     }
 
                     else

@@ -37,6 +37,7 @@ auth_web_listener_port: 8888
 api_service_name: hasura-docker-api
 api_container_name: "{{ product_name }}-api"
 api_ip_address: "127.0.0.1"
+api_hostname: "127.0.0.1"
 api_web_port: 9443
 api_hasura_jwt_alg: "HS384"
 

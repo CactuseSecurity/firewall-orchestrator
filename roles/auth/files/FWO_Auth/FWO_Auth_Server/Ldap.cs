@@ -1,4 +1,4 @@
-using Novell.Directory.Ldap;
+﻿using Novell.Directory.Ldap;
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -118,5 +118,43 @@ namespace FWO_Auth_Server
             }
             // Fake role REMOVE LATER
         }
+        public Role[] GetRoles(string userDn)
+        {
+            List<Role> roleList= new List<Role>();
+            using (LdapConnection connection = Connect())
+            {
+                String InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists
+                connection.Bind($"uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal", InspectorPassword);
+
+                string roleSearchBase = $"ou=role,dc=fworch,dc=internal"; // TODO: read path from config
+                int searchScope = LdapConnection.ScopeOne;
+                string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(roleSearchBase,searchScope,searchFilter,null,false);
+ 
+                foreach (LdapEntry entry in searchResults)
+                {
+                    LdapAttribute membersAttribute = entry.GetAttribute("uniqueMember");
+                    string[] stringValueArray = membersAttribute.StringValueArray;
+                    System.Collections.IEnumerator ienum = stringValueArray.GetEnumerator();
+                    while (ienum.MoveNext())
+                    {
+                        string attribute=ienum.Current.ToString();
+                        if (attribute == userDn)
+                        {
+                            string RoleName = entry.GetAttribute("cn").StringValue;
+                            roleList.Add(new Role {Name = RoleName});
+                        }
+                    }
+                }
+            }
+            Role[] roles = roleList.ToArray();
+#if DEBUG
+            for (int i = 0; i < roles.Length; i++)
+            {
+                Console.WriteLine($"RoleListElement: { roles[i].Name}");
+            }  
+#endif
+            return roles;
+        }
     }
 }

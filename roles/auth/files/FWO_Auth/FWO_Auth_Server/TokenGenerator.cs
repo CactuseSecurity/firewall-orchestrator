@@ -75,19 +75,24 @@ namespace FWO_Auth_Server
 
             claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(localRolesList.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
 
+            // deciding on default-role
+            String defaultRole = "";
             if (roles != null && roles.Length > 0) 
             {
                 if (localRolesList.Contains("reporter-viewall"))
-                    claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter-viewall"));
+                    defaultRole = "reporter-viewall";
                 else {
                     if (localRolesList.Contains("reporter"))
-                        claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
+                        defaultRole = "reporter";
                     else
-                        claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
+                        defaultRole = roles[0].Name; // pick first role at random (todo: might need to be changed)
                 }
             }
             else 
-                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
+                defaultRole =  "reporter";
+
+            claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
+            Console.WriteLine($"User {user.Name} was assigned default-role {defaultRole}");
 
             return claimsIdentity;
         }

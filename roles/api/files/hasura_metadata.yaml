@@ -713,12 +713,13 @@ tables:
   - permission:
       columns:
       - ldap_connection_id
-      - ldap_server
       - ldap_port
-      - ldap_tls
-      - ldap_searchpath_for_users
-      - ldap_tenant_level
       - ldap_search_user
+      - ldap_search_user_pwd
+      - ldap_searchpath_for_users
+      - ldap_server
+      - ldap_tenant_level
+      - ldap_tls
       filter: {}
     role: auth-server
   table:

@@ -25,7 +25,7 @@ namespace FWO_Auth
 
         private readonly Config config;
         private readonly String privateJWTKeyFile;
-        private readonly String configFile = "../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
+        private readonly String configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
         private readonly String AuthServerIp;
         private readonly String AuthServerPort;
 

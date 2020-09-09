@@ -4,8 +4,8 @@
 ui_port: 5000
 ui_web_port: 443
 ui_app_name: "{{ product_name }}"
-ui_dir: "{{ fworch_home }}/ui"
-ui_start_dir: "{{ ui_dir }}/Blazor/FWO/FWO"
+ui_dir: "{{ fworch_home }}/ui/blazor"
+ui_start_dir: "{{ ui_dir }}/FWO_UI"
 
 # correct name for demo installation:
 ui_server_name: demo.itsecorg.de

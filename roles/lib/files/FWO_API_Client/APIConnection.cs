@@ -1,20 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
-using Microsoft.AspNetCore.Mvc.Formatters;
-using System.Net;
-using FWO.Backend.Data.API;
-using FWO.Backend.Auth;
-using GraphQL.Client.Abstractions;
-using System.Text.Json.Serialization;
 
 namespace FWO
 {
@@ -25,7 +15,7 @@ namespace FWO
 
         private readonly GraphQLHttpClient Client;
 
-        public string Jwt { get; set; }
+        private string Jwt;
 
         public APIConnection(string APIServerURI)
         {
@@ -51,32 +41,39 @@ namespace FWO
 
         public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string Query, string Variables = null, string OperationName = null)
         {
-            GraphQLRequest request = new GraphQLRequest(Query, Variables, OperationName);          
-            GraphQLResponse<dynamic> response = await Client.SendQueryAsync<dynamic>(request);            
-
-            if (response.Errors != null)
+            try
             {
-                //Todo: Handle Errors
+                GraphQLRequest request = new GraphQLRequest(Query, Variables, OperationName);
+                GraphQLResponse<dynamic> response = await Client.SendQueryAsync<dynamic>(request);
 
-                foreach (GraphQLError error in response.Errors)
+                if (response.Errors != null)
                 {
-                    Console.WriteLine(error.Message);
+                    foreach (GraphQLError error in response.Errors)
+                    {
+                        // TODO: handle graphql errors
+                        Console.WriteLine(error.Message);
+                    }
+                    
+                    throw new Exception("");
                 }
 
-                // TODO: handle graphql errors
-                throw new Exception("");
+                else
+                {
+                    string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
+
+                    JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
+                    responseObjectEnumerator.MoveNext();
+
+                    QueryResponseType[] result = JsonSerializer.Deserialize<QueryResponseType[]>(responseObjectEnumerator.Current.Value.GetRawText());
+
+                    return result;
+                }
             }
 
-            else
+            catch (Exception e)
             {
-                string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
-
-                JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
-                responseObjectEnumerator.MoveNext();
-
-                QueryResponseType[] result = JsonSerializer.Deserialize<QueryResponseType[]>(responseObjectEnumerator.Current.Value.GetRawText());
-
-                return result;
+                // TODO: handle unexpected errors
+                throw e;
             }
         }
     }

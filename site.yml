@@ -13,6 +13,7 @@
 - hosts: authserver
   roles:
     - openldap-server
+    - lib
     - auth
 
 - hosts: apiserver
@@ -23,6 +24,7 @@
 
 - hosts: frontends
   roles:
+    - lib
     - frontend
     - { role: frontend-php, when: "ui_php is defined"}
 

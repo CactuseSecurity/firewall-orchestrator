@@ -47,7 +47,7 @@ namespace FWO_Auth_Server
             return connection;
         }
 
-        public String ValidateUser(User user)
+        public string ValidateUser(User user)
         {
             string userSearchBase = $"ou=operator,ou=user,dc=fworch,dc=internal"; // TODO: read path from config
 
@@ -56,7 +56,7 @@ namespace FWO_Auth_Server
             {
                 using (LdapConnection connection = Connect())
                 {
-                    String InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists
+                    string InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists
 
                     connection.Bind($"uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal", InspectorPassword);
 
@@ -79,13 +79,14 @@ namespace FWO_Auth_Server
                                 return currentUser.Dn;
                             }
                         }
-                        catch (LdapException exInner) {
+
+                        catch (LdapException exInner)
+                        {
 #if DEBUG
                             Console.WriteLine($"Found user with same uid but different pwd distinguished name: \"{ currentUser.Dn}\" ...");
                             Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {exInner.Message} \n #### Stack Trace #### \n {exInner.StackTrace} \n");
 #endif
                         } // Incorrect password - do nothing, assuming another user with the same username
-                        
                     }
                 }
             }

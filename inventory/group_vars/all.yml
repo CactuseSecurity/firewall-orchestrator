@@ -43,6 +43,7 @@ dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "3.1"
 dotnet_mode: "Release"
 debug_level: "1"
+lib_dir: "{{ fworch_home }}/lib/files"
 
 ### logging
 syslog_proto: tcp

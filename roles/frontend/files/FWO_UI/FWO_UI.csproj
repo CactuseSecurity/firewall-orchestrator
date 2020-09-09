@@ -3,12 +3,9 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UserSecretsId>b00a1363-7266-443e-b3eb-d4e4d2743dfe</UserSecretsId>
+    <RootNamespace>FWO</RootNamespace>
+    <AssemblyName>FWO_UI</AssemblyName>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Content Include="Alternativ Bootstrap Design\bootstrap.min.css" />
-    <Content Include="Alternativ Bootstrap Design\bootstrap.min.css.map" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Blazored.SessionStorage" Version="1.0.12" />
@@ -25,8 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\FWO_Auth_Client\FWO_Auth_Client.csproj" />
-    <ProjectReference Include="..\..\..\FWO_Filter\FWO_Filter\FWO_Filter.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO_API_Client.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO_Auth_Client\FWO_Auth_Client.csproj" />
+    <ProjectReference Include="..\FWO_Filter_UI\FWO_Filter_UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,11 +1,10 @@
 ﻿using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using FWO.Backend.Auth;
-using FWO_Auth_Client;
+using FWO.Auth.Client;
 using Microsoft.AspNetCore.Components.Authorization;
 
-namespace FWO.Auth
+namespace FWO.UI.Auth
 {
     public class AuthStateProvider : AuthenticationStateProvider
     {

@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO_Auth_Client
+namespace FWO.Auth.Client
 {
     public class AuthClient
     {

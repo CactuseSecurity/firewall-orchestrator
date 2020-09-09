@@ -18,6 +18,8 @@ proxy_env:
         http_proxy: "{{ http_proxy }}"
         https_proxy: "{{ https_proxy }}"
         validate_certs: false
+test_packages:
+  - postgresql-client
 
 ### database
 fworch_db_port: 5432
@@ -34,6 +36,7 @@ auth_web_listener_port: 8888
 ### database & api
 api_service_name: hasura-docker-api
 api_container_name: "{{ product_name }}-api"
+api_ip_address: "127.0.0.1"
 api_hostname: "127.0.0.1"
 api_web_port: 9443
 api_hasura_jwt_alg: "HS384"
@@ -64,7 +67,7 @@ http_conf_dir: /etc/{{ web_server_name }}/sites-available/
 
 sting_fworch_user: itsecorg
 
-### to be moved to safe: passwords
+### to be moved to vault: passwords
 dbadmin_pwd: "st8chel"
 fworch_pwd: "st8chel"
 admin_pwd: "fworch.1"

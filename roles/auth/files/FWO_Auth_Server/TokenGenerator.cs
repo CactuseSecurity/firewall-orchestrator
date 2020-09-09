@@ -65,20 +65,34 @@ namespace FWO_Auth_Server
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
 
             // adding roles:
-            List<string> Roles = new List<string>();
+            List<string> localRolesList = new List<string>();
 
             foreach (Role role in roles)
             {
                 claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name)); // Frontend Roles
-                Roles.Add(role.Name); // Hasura Roles
+                localRolesList.Add(role.Name); // Hasura Roles
             }
 
-            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(Roles.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(localRolesList.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
 
-            if (roles != null && roles.Length > 0)
-                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", roles[0].Name)); // Hasura default Role, pick first one at random (todo: needs to be changed)
+            // deciding on default-role
+            String defaultRole = "";
+            if (roles != null && roles.Length > 0) 
+            {
+                if (localRolesList.Contains("reporter-viewall"))
+                    defaultRole = "reporter-viewall";
+                else {
+                    if (localRolesList.Contains("reporter"))
+                        defaultRole = "reporter";
+                    else
+                        defaultRole = roles[0].Name; // pick first role at random (todo: might need to be changed)
+                }
+            }
             else 
-                claimsIdentity.AddClaim(new Claim("x-hasura-default-role", "reporter"));
+                defaultRole =  "reporter";
+
+            claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
+            Console.WriteLine($"User {user.Name} was assigned default-role {defaultRole}");
 
             return claimsIdentity;
         }

@@ -56,7 +56,7 @@ if vs code does not show the upstream repo in pull-from, just give it some time 
 
 ### add local project reference
 
-   tim@acantha:~/dev/tpur-fwo/firewall-orchestrator/roles/auth/files/FWO_Auth_Server$ dotnet add reference ../../../lib/files/FWO_API_Client/FWO_API_Client.csproj
+    tim@acantha:~/dev/tpur-fwo/firewall-orchestrator/roles/auth/files/FWO_Auth_Server$ dotnet add reference ../../../lib/files/FWO_API_Client/FWO_API_Client.csproj
    
    
 or alternatively add the following to csproj file:

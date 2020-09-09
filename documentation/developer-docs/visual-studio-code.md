@@ -54,6 +54,18 @@ if vs code does not show the upstream repo in pull-from, just give it some time 
 
     tim@acantha:~/dev/tpur-fwo/firewall-orchestrator/roles/lib/files/FWO_Auth_Client$ dotnet add package System.IdentityModel.Tokens.Jwt
 
+### add local project reference
+
+   tim@acantha:~/dev/tpur-fwo/firewall-orchestrator/roles/auth/files/FWO_Auth_Server$ dotnet add reference ../../../lib/files/FWO_API_Client/FWO_API_Client.csproj
+   
+   
+or alternatively add the following to csproj file:
+
+    <ItemGroup>
+        <ProjectReference Include="../../../lib/files/FWO_API_Client/FWO_API_Client.csproj">
+    </ItemGroup>
+
+   
 ### Create proper configuration in visual studio code
 ```console
 tim@acantha:~$ cat /home/tim/dev/tpurschke-fwo/firewall-orchestrator/.vscode/launch.json 

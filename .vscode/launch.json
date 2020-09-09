@@ -10,7 +10,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_FWO",
-            "program": "${workspaceFolder}/roles/frontend/files/FWO_UI/bin/Debug/netcoreapp3.1/FWO.dll",
+            "program": "${workspaceFolder}/roles/frontend/files/FWO_UI/bin/Debug/netcoreapp3.1/FWO_UI.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/frontend/files/FWO_UI",
             "stopAtEntry": false,

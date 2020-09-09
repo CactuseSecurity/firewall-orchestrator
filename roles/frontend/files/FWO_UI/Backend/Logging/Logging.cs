@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 namespace FWO.Backend.Logging
 {
-    public abstract class Logging
+    public class Logging
     {
-        // TODO: Logging
+
     }
 }

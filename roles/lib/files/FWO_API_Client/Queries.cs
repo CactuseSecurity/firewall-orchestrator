@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace FWO.Backend.API
+namespace FWO.Api
 {
     public static class Queries
     {

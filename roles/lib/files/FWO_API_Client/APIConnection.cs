@@ -6,7 +6,7 @@ using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 
-namespace FWO
+namespace FWO.Api
 {
     public class APIConnection
     {

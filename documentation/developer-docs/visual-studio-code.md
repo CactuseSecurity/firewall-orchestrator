@@ -62,7 +62,7 @@ if vs code does not show the upstream repo in pull-from, just give it some time 
 or alternatively add the following to csproj file:
 
     <ItemGroup>
-        <ProjectReference Include="../../../lib/files/FWO_API_Client/FWO_API_Client.csproj">
+        <ProjectReference Include="../../../lib/files/FWO_API_Client/FWO_API_Client.csproj"/>
     </ItemGroup>
 
    

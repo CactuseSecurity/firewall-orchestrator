@@ -41,3 +41,7 @@
   roles:
     - { role: sample-auth-data, when: "without_sample_data is not defined" }
   # todo: add meta dependency on role sample-data
+
+- hosts: all
+  roles:
+    - { role: test, when: "test is defined" }

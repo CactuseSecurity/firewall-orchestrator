@@ -23,8 +23,7 @@ namespace FWO_Auth
 
         private readonly Config config;
         private readonly String privateJWTKeyFile;
-        // private readonly String configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
-        private readonly String configFile = "/usr/local/fworch/etc/fworch.yaml";
+        private readonly String configFile = "../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
         private readonly String AuthServerIp;
         private readonly String AuthServerPort;
 
@@ -64,10 +63,16 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Create connection to Ldap Server
-            LdapConnection = new Ldap("localhost", 636); 
-            // LdapConnection = new Ldap(ReadLdapConnectionsFromAPI()); // todo: read ldap listener address via API call
-            // prereq: api connection available in auth module
+            LdapConnection = new Ldap("localhost", 636);
 
+            /*
+                // create JWT for auth-server
+                TokenGenerator = new TokenGenerator(privateJWTKey, daysValid);
+                // make Api-Call with JWT, query: query getLdapConnections { ldap_connection { ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users } }
+                // prereq: api connection available in auth module
+                LdapConnection = new Ldap(ReadLdapConnectionsFromAPI());
+
+            */
             // Create Token Generator
             TokenGenerator = new TokenGenerator(privateJWTKey, daysValid);
 

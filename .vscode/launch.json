@@ -4,14 +4,15 @@
    // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
    "version": "0.2.0",
    "configurations": [
+       
         {
             "name": "Blazor (web)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_FWO",
-            "program": "${workspaceFolder}/roles/frontend/files/Blazor/FWO/FWO/bin/Debug/netcoreapp3.1/FWO.dll",
+            "program": "${workspaceFolder}/roles/frontend/files/FWO_UI/bin/Debug/netcoreapp3.1/FWO_UI.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/roles/frontend/files/Blazor/FWO/FWO",
+            "cwd": "${workspaceFolder}/roles/frontend/files/FWO_UI",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",
@@ -36,9 +37,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/roles/auth/files/FWO_Auth/FWO_Auth_Server/bin/Debug/netcoreapp3.1/FWO_Auth_Server.dll",
+            "program": "${workspaceFolder}/roles/auth/files/FWO_Auth_Server/bin/Debug/netcoreapp3.1/FWO_Auth_Server.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/roles/auth/files/FWO_Auth/FWO_Auth_Server",
+            "cwd": "${workspaceFolder}/roles/auth/files/FWO_Auth_Server",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false

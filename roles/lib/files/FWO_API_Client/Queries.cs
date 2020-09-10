@@ -59,5 +59,21 @@ public static readonly string getTeantId = @"
 ";
 // variables: {"tenant_name": "forti"}
 
+public static readonly string LdapConnections = @"
+   query getLdapConnections
+   {
+     ldap_connection
+      { 
+        ldap_server 
+        ldap_port 
+        ldap_search_user 
+        ldap_tls 
+        ldap_tenant_level 
+        ldap_connection_id 
+        ldap_search_user_pwd 
+        ldap_searchpath_for_users 
+      } 
+    }
+";
     }
 }

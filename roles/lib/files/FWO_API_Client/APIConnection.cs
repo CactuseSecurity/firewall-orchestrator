@@ -73,6 +73,7 @@ namespace FWO.Api
             catch (Exception e)
             {
                 // TODO: handle unexpected errors
+                Console.WriteLine(e.Message);
                 throw e;
             }
         }

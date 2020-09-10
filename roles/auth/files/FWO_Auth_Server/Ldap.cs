@@ -29,9 +29,8 @@ namespace FWO_Auth_Server
             try
             {
                 connection = new LdapConnection { SecureSocketLayer = true };
-
                 connection.UserDefinedServerCertValidationDelegate +=
-                (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;
+                    (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation
 
                 connection.Connect(Address, Port);
             }

@@ -17,7 +17,7 @@ namespace FWO_Auth
     public class AuthModule
     {
         private readonly HttpListener Listener;
-        private List<Ldap> LdapConnection = new List<Ldap>();
+        private Ldap[] LdapConnection;
         private readonly TokenGenerator TokenGenerator;
         private readonly string privateJWTKey = "8f4ce02dabb2a4ffdb2137802b82d1283f297d959604451fd7b7287aa307dd298668cd68a432434d85f9bcff207311a833dd5b522870baf457c565c7a716e7eaf6be9a32bd9cd5420a0ebaa9bace623b54c262dcdf35debdb5388490008b9bc61facfd237c1c7058f5287881a37492f523992a2a120a497771954daf27666de2461a63117c8347fe760464e3a58b3a5151af56a0375c8b34921101c91425b65097fc69049f85589a58bb5e5570139c98d3edb179a400b3d142a30e32d1c8e9bbdb90d799fb81b4fa6fb7751acfb3529c7af022590cbb845a8390b906f725f079967b269cff8d2e6c8dbcc561b37c4bdd1928c662b79f42fe56fe108a0cf21e08";
         private readonly int daysValid = 7;
@@ -69,15 +69,10 @@ namespace FWO_Auth
             ApiConn.ChangeAuthHeader(TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") }));
             
             // fetch all LdapConnections via API
-            Task<LdapConnectionApi[]> ldapTask = Task.Run(()=> ApiConn.SendQuery<LdapConnectionApi>(Queries.LdapConnections));
+            Task<Ldap[]> ldapTask = Task.Run(()=> ApiConn.SendQuery<Ldap>(Queries.LdapConnections));
             ldapTask.Wait();
-            LdapConnectionApi[] ldapConnections = ldapTask.Result;
-
-            // Create connections to ldap servers
-            foreach (LdapConnectionApi conn in ldapConnections)
-            {
-                LdapConnection.Add(new Ldap(conn.Server, conn.Port)); // todo: add all necessary parameters from LdapConnectionApi, make different ldapconnection classes inherit from each other
-            }
+            //Ldap[] ldapConnections = ldapTask.Result;
+            this.LdapConnection = ldapTask.Result;
 
             // Start Http Listener, todo: move to https
             String AuthServerListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";

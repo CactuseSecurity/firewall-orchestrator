@@ -6,19 +6,45 @@ using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json.Serialization;
+
 
 namespace FWO_Auth_Server
 {
     class Ldap
+    // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users
     {
-        private readonly string Address;
-        private readonly int Port;
+        [JsonPropertyName("ldap_server")]
+        public string Address { get; set; }
+
+        [JsonPropertyName("ldap_port")]
+        public int Port { get; set; }
+
+        [JsonPropertyName("ldap_search_user")]
+        public string SearchUser { get; set; }
+
+        [JsonPropertyName("ldap_tls")]
+        public bool Tls { get; set; }
+
+        [JsonPropertyName("ldap_tenant_level")]
+        public int TenantLevel { get; set; }
+
+        [JsonPropertyName("ldap_search_user_pwd")]
+        public string SearchUserPwd { get; set; }
+
+        [JsonPropertyName("ldap_searchpath_for_users")]
+        public string UserSearchPath { get; set; }
+
+        public Ldap()
+        {
+            Console.WriteLine($"Connecting to LDAP server on LdapServerAdress={Address} with LdapServerPort={Port}, SearchUser={SearchUser}, UserSearchPath={UserSearchPath}");
+            Connect();
+        }
 
         public Ldap(string Address, int Port)
         {
             this.Address = Address;
             this.Port = Port;
-            Console.WriteLine($"Connecting to LDAP server on LdapServerAdress={Address} with LdapServerPort={Port}");
             Connect();
         }
 

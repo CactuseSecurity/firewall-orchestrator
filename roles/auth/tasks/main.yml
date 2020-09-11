@@ -10,6 +10,7 @@
 - name: set default value for ldif_changetype
   set_fact:
     ldif_changetype: add
+    openldap_server_random_rootpw: root_password.stdout   # Manager pwd from openldap installation
 
 - name: check if there already is an ldap connection in DB
   shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN RAISE DEBUG 'LDAP Connection already present'; END IF; END \$do\$"

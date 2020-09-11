@@ -1,14 +1,14 @@
 
-- name: Check if ldap tree already exists
-  stat:
-    path: "{{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt"
-  register: is_ldap_present_flag
-  become: yes
+# - name: Check if ldap tree already exists
+#   stat:
+#     path: "{{ fworch_home }}/etc/secrets/ldap_inspector_pw.txt"
+#   register: is_ldap_present_flag
+#   become: yes
 
 - block:
-  - name: Decide on random {{ auth_ldap_internal_readonly_user }} password
-    set_fact:
-      ldap_inspector_pw: "{{ random_generated_pw }}"
+  # - name: Decide on random {{ auth_ldap_internal_readonly_user }} password
+  #   set_fact:
+  #     ldap_inspector_pw: "{{ random_generated_pw }}"
 
   - name: Write {{ auth_ldap_internal_readonly_user }} password to file
     copy:
@@ -63,5 +63,5 @@
     file:
       path: "{{ auth_server_base_dir }}/ldif"
       state: absent
-  when: not is_ldap_present_flag.stat.exists
+  #when: not is_ldap_present_flag.stat.exists
   become: yes

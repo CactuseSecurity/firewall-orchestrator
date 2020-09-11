@@ -9,7 +9,6 @@
   - name: Decide on random {{ auth_ldap_internal_readonly_user }} password
     set_fact:
       ldap_inspector_pw: "{{ random_generated_pw }}"
-      ldap_fgreporter_pwd: "{{ admin_pwd }}"
 
   - name: Write {{ auth_ldap_internal_readonly_user }} password to file
     copy:
@@ -39,14 +38,11 @@
   - name: Create tree level 2 (ou systemuser, operator)
     command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_2.ldif"
 
-  - name: Create tree level 3 with parent systemuser (cn admin, {{ auth_ldap_internal_readonly_user }}, fgreporter)
+  - name: Create tree level 3 with parent systemuser (cn admin, {{ auth_ldap_internal_readonly_user }})
     command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_systemuser.ldif"
 
   - name: Create tree level 3 with parent operator (ou tenant0, tenant1, tenant2)
     command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_operator.ldif"
-
-  - name: Set fgreporter password in ldap
-    command: "ldappasswd -s {{ ldap_fgreporter_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=fgreporter,ou=systemuser,ou=user,{{ auth_ldap_path }}'"
 
   - name: Set {{ auth_ldap_internal_readonly_user }} password in ldap
     command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid={{ auth_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ auth_ldap_path }}'"

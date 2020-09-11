@@ -4,10 +4,3 @@ objectClass: top
 objectclass: inetorgperson
 cn: {{ auth_ldap_internal_readonly_user }}
 sn: {{ auth_ldap_internal_readonly_user }}
-
-dn: uid=fgreporter,ou=systemuser,ou=user,{{ auth_ldap_path }}
-changetype: add
-objectClass: top
-objectclass: inetorgperson
-cn: fgreporter
-sn: fgreporter

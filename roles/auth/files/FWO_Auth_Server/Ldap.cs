@@ -103,11 +103,6 @@ namespace FWO_Auth_Server
             // Fake role REMOVE LATER
             switch (user.Name)
             {
-                case "":
-                case "fgreporter":
-                case "fgcheck":
-                    return new Role[] { new Role("reporter") };
-
                 case "admin":
                     return new Role[] { new Role("reporter-viewall"), new Role("reporter") };
 

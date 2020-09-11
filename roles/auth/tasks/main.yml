@@ -7,26 +7,6 @@
     group: "{{ fworch_user }}"
   become: yes
 
-- name: set default value for ldif_changetype
-  set_fact:
-    ldif_changetype: add
-    openldap_server_random_rootpw: root_password.stdout   # Manager pwd from openldap installation
-
-- name: check if there already is an ldap connection in DB
-  shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN RAISE DEBUG 'LDAP Connection already present'; END IF; END \$do\$"
-  become: yes
-  become_user: postgres
-  register: ldap_conn_present
-
-- name: change value for ldif_changetype to modify if ldap conn alread exists
-  set_fact:
-    ldif_changetype: modify
-  when: ldap_conn_present.stdout == 'LDAP Connection already present'
-
-- name: Set new random {{ auth_ldap_internal_readonly_user }} password every time
-  set_fact:
-    ldap_inspector_pw: "{{ random_generated_pw }}"
-
 # - name: add standard roles with ansible 2.8 and above
 #   include_tasks: auth_standard_roles_with_postgresql_query.yml
 #   when: ansible_version.full >= "2.8"
@@ -57,8 +37,8 @@
     group: "{{ fworch_user }}"
   become: yes
 
-- name: create jwt key
-  include_tasks: create_jwt_key.yml
+- name: create auth secrets (jwt key, ldap)
+  include_tasks: create_auth_secrets.yml
 
 - name: install dot net
   import_tasks: auth_install_dot_net.yml

@@ -7,15 +7,6 @@
     group: "{{ fworch_user }}"
   become: yes
 
-# - name: add standard roles with ansible 2.8 and above
-#   include_tasks: auth_standard_roles_with_postgresql_query.yml
-#   when: ansible_version.full >= "2.8"
-
-# # todo: remove, when ansible 2.8 is available for all supported platforms and use above module
-# - name: add standard roles with command
-#   include_tasks: auth_standard_roles_with_command.yml
-#   when: ansible_version.full < "2.8"
-
 - name: copy authentication sql file
   copy:
     src: pre_auth_functions.sql
@@ -40,15 +31,26 @@
 - name: create auth secrets (jwt key, ldap)
   include_tasks: create_auth_secrets.yml
 
+- name: check if there already is an ldap connection in DB
+  command: psql -qtAX -d {{ fworch_db_name | quote }} -c "SELECT COUNT(*) FROM ldap_connection"
+  become: yes
+  become_user: postgres
+  register: ldap_conn_present
+
+- name: change value for ldif_changetype to modify if ldap conn alread exists
+  set_fact:
+    auth_change_local_ldap: "no"
+  when: ldap_conn_present.stdout == "1"
+
 - name: build ldap tree
   import_tasks: create_ldap_tree.yml
-  when: change_local_ldap == 'yes'
+  when: auth_change_local_ldap == "yes"
 
 - name: add local ldap connection
   command: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ auth_ldap_server_internal | quote }}', 636, '{{ auth_ldap_std_user_path | quote }}', 1, '{{ auth_ldap_internal_readonly_user | quote }},ou=systemuser,ou=user,{{ auth_ldap_path }}', '{{ ldap_inspector_pw }}'); END IF; END \$do\$"
   become: yes
   become_user: postgres
-  when: change_local_ldap == 'yes'
+  when: auth_change_local_ldap == "yes"
 
 - name: install dot net
   import_tasks: auth_install_dot_net.yml

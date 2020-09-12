@@ -74,6 +74,10 @@ namespace FWO_Auth
             //Ldap[] ldapConnections = ldapTask.Result;
             this.LdapConnection = ldapTask.Result;
 
+            foreach (Ldap connection in LdapConnection)
+            {
+                Console.WriteLine($"Authmodule::Creator: found ldap connection to server {connection.Address}:{connection.Port}");
+            }
             // Start Http Listener, todo: move to https
             String AuthServerListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";
             StartListener(AuthServerListenerUri);
@@ -142,6 +146,7 @@ namespace FWO_Auth
                 // try all configured ldap servers for authentication:
                 foreach (Ldap ldapConn in LdapConnection) 
                 {
+                    ldapConn.Connect();
                     String UserDN = ldapConn.ValidateUser(User);
                     if (UserDN!="") 
                     {   // user was successfully auhtenticated via LDAP

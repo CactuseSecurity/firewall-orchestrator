@@ -108,19 +108,6 @@ namespace FWO_Auth_Server
             return "";
         }
 
-        public Role[] GetRoles(User user)
-        {
-            // Fake role REMOVE LATER
-            switch (user.Name)
-            {
-                case "admin":
-                    return new Role[] { new Role("reporter-viewall"), new Role("reporter") };
-
-                default:
-                    return new Role[0];
-            }
-            // Fake role REMOVE LATER
-        }
         public Role[] GetRoles(string userDn)
         {
             List<Role> roleList= new List<Role>();
@@ -151,10 +138,9 @@ namespace FWO_Auth_Server
             }
             Role[] roles = roleList.ToArray();
 #if DEBUG
+            Console.WriteLine($"Found the following roles for user {userDn}:");
             for (int i = 0; i < roles.Length; i++)
-            {
                 Console.WriteLine($"RoleListElement: { roles[i].Name}");
-            }  
 #endif
             return roles;
         }

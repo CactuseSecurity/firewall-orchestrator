@@ -32,6 +32,7 @@ fworch_dbadmin_name: dbadmin
 auth_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
 auth_hostname: "localhost"
 auth_web_listener_port: 8888
+ldif_changetype: add
 
 ### database & api
 api_service_name: hasura-docker-api

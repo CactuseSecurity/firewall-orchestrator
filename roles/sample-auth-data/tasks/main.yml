@@ -22,6 +22,6 @@
 
   - name: set user viewallreporter password in ldap
     command: "ldappasswd -s {{ auth_ldap_user_inital_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=viewallreporter,ou=viewall,{{ auth_ldap_std_user_path }}'"
-  when: change_local_ldap == 'yes'
+  when: auth_change_local_ldap == 'yes'
 
   # todo: remove ldif files

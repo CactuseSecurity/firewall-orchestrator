@@ -10,4 +10,4 @@ auth_path_rel: FWO_Auth_Server
 auth_server_base_dir: "{{ fworch_home }}/auth/files"
 auth_server_start_dir: "{{ auth_server_base_dir }}/FWO_Auth_Server"
 auth_service_name: "{{ product_name }}-auth"
-auth_change_local_ldap: yes
+auth_change_local_ldap: "yes"

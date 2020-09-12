@@ -37,23 +37,25 @@
   become_user: postgres
   register: ldap_conn_present
 
-- name: change value for ldif_changetype to modify if ldap conn alread exists
+- name: change value for auth_change_local_ldap if ldap conn already exists to prevent re-creation errors
   set_fact:
     auth_change_local_ldap: "no"
   when: ldap_conn_present.stdout == "1"
 
 - debug:
      var: ldap_conn_present
+     var: auth_change_local_ldap
 
 # todo: better to have each ldap operation itempotent in itself instead of these global tests
 - name: build ldap tree
-  import_tasks: create_ldap_tree.yml
+  include_tasks: create_ldap_tree.yml
   when: auth_change_local_ldap == "yes"
 
 - name: add local ldap connection
   command: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ auth_ldap_server_internal | quote }}', 636, '{{ auth_ldap_std_user_path | quote }}', 1, '{{ auth_ldap_internal_readonly_user | quote }},ou=systemuser,ou=user,{{ auth_ldap_path }}', '{{ ldap_inspector_pw }}'); END IF; END \$do\$"
   become: yes
   become_user: postgres
+  when: auth_change_local_ldap == "yes"
 
 - name: install dot net
   import_tasks: auth_install_dot_net.yml

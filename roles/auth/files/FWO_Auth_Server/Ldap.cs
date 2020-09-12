@@ -79,13 +79,10 @@ namespace FWO_Auth_Server
             {
                 using (LdapConnection connection = Connect())
                 {
-                    string InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists
-
-                    connection.Bind($"uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal", InspectorPassword);
-
+                    // string InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists
+                    // connection.Bind($"uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal", SearchUserPwd);
+                    connection.Bind(SearchUser, SearchUserPwd);
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(userSearchBase, LdapConnection.ScopeSub, $"(&(objectClass=inetOrgPerson)(uid:dn:={user.Name}))", null, typesOnly: false);
-
-                    //connection.Bind("", ""); // Unbind not authenticated anymore
 
                     while (possibleUsers.HasMore())
                     {

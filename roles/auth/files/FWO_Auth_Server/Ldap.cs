@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 
 namespace FWO_Auth_Server
 {
-    class Ldap
+    public class Ldap
     // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users
     {
         [JsonPropertyName("ldap_server")]
@@ -37,14 +37,7 @@ namespace FWO_Auth_Server
 
         public Ldap()
         {
-            Console.WriteLine($"Connecting to LDAP server on LdapServerAdress={Address} with LdapServerPort={Port}, SearchUser={SearchUser}, UserSearchPath={UserSearchPath}");
-            Connect();
-        }
-
-        public Ldap(string Address, int Port)
-        {
-            this.Address = Address;
-            this.Port = Port;
+//            Console.WriteLine($"Connecting to LDAP server on LdapServerAdress={Address} with LdapServerPort={Port}, SearchUser={SearchUser}, UserSearchPath={UserSearchPath}");
             Connect();
         }
 
@@ -72,17 +65,13 @@ namespace FWO_Auth_Server
 
         public string ValidateUser(User user)
         {
-            string userSearchBase = $"ou=operator,ou=user,dc=fworch,dc=internal"; // TODO: read path from config
-
             Console.WriteLine($"Validating User: \"{user.Name}\" ...");
             try
             {
                 using (LdapConnection connection = Connect())
                 {
-                    // string InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists
-                    // connection.Bind($"uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal", SearchUserPwd);
                     connection.Bind(SearchUser, SearchUserPwd);
-                    LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(userSearchBase, LdapConnection.ScopeSub, $"(&(objectClass=inetOrgPerson)(uid:dn:={user.Name}))", null, typesOnly: false);
+                    LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(UserSearchPath, LdapConnection.ScopeSub, $"(&(objectClass=inetOrgPerson)(uid:dn:={user.Name}))", null, typesOnly: false);
 
                     while (possibleUsers.HasMore())
                     {
@@ -99,7 +88,6 @@ namespace FWO_Auth_Server
                                 return currentUser.Dn;
                             }
                         }
-
                         catch (LdapException exInner)
                         {
 #if DEBUG
@@ -139,10 +127,9 @@ namespace FWO_Auth_Server
             List<Role> roleList= new List<Role>();
             using (LdapConnection connection = Connect())
             {
-                String InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists
-                connection.Bind($"uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal", InspectorPassword);
+                connection.Bind(SearchUser,SearchUserPwd);
 
-                string roleSearchBase = $"ou=role,dc=fworch,dc=internal"; // TODO: read path from config
+                string roleSearchBase = UserSearchPath;
                 int searchScope = LdapConnection.ScopeOne;
                 string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
                 LdapSearchResults searchResults = (LdapSearchResults)connection.Search(roleSearchBase,searchScope,searchFilter,null,false);

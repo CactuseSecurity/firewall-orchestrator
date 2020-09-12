@@ -17,9 +17,9 @@ namespace FWO_Auth
     public class AuthModule
     {
         private readonly HttpListener Listener;
-        private Ldap[] LdapConnection;
+        public Ldap[] LdapConnection;
         private readonly TokenGenerator TokenGenerator;
-        private readonly string privateJWTKey = "8f4ce02dabb2a4ffdb2137802b82d1283f297d959604451fd7b7287aa307dd298668cd68a432434d85f9bcff207311a833dd5b522870baf457c565c7a716e7eaf6be9a32bd9cd5420a0ebaa9bace623b54c262dcdf35debdb5388490008b9bc61facfd237c1c7058f5287881a37492f523992a2a120a497771954daf27666de2461a63117c8347fe760464e3a58b3a5151af56a0375c8b34921101c91425b65097fc69049f85589a58bb5e5570139c98d3edb179a400b3d142a30e32d1c8e9bbdb90d799fb81b4fa6fb7751acfb3529c7af022590cbb845a8390b906f725f079967b269cff8d2e6c8dbcc561b37c4bdd1928c662b79f42fe56fe108a0cf21e08";
+        private readonly string privateJWTKey = "b2c6843feafd1d52eb689a5233a12588957c7682b581d6e06113adc8da70e7cebc08f6f5a7dd515796cd1f6b87912cc0093b80165ff8c7df77fb0ef6124d5ac0b607a2cf8515352d4fe509df42c687da87b08262571e3650e71e2ecc09db4ad7b154dd4630b8482ec12ae72715de99887cef338fdd46b2994336ca72ede588c77ddf9b2aaa25d9b1c4b3c4038795b4355d24370d7e4bac6e8a724ef959ccbe38b9cbc0ee99ebc705d8f450b601a9465f83dd643c926b17858be55d312abfbbf0ae9916a1de0fe9ab6e3a1489e66f9f1f4d844db412de40c2f3266eb175bae32e013d166c520b56050b1489c2780eb820ce8b3fb69a9b754e17ba426f0116a3b7";
         private readonly int daysValid = 7;
         private readonly string configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
         private readonly Config config;

@@ -52,11 +52,10 @@ These tenant-based permissions are assigned during login as follows:
 #### When creating a new user locally
 The user does not get any role assignments to avoid any unwanted access rights.
 
-#### When adding a new user or user group from a remote LDAP server
+#### When adding a new user or tenant from a remote LDAP server
 
-The user or user group does not get any role assignments to avoid any unwanted access rights.
-
-The user is created in the local LDAP server as well but does not get any password to make sure, the credential checking is done remotely every time the user logs in (TODO: needs to be checked if this works!).
+Initially the user or tenant group does not get any role assignments to avoid any unwanted access rights.
+An admin needs to manually assign role(s) to the user.
 
 ## Default users
 - The default password of all users is "fworch.1" and needs to be changed when logging in for the first time.

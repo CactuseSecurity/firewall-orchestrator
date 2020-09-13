@@ -115,12 +115,11 @@ namespace FWO_Auth_Server
             {
                 connection.Bind(SearchUser,SearchUserPwd);
 
-                string roleSearchBase = UserSearchPath;
                 int searchScope = LdapConnection.ScopeOne;
                 string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(roleSearchBase,searchScope,searchFilter,null,false);
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath,searchScope,searchFilter,null,false);
 #if DEBUG
-                Console.WriteLine($"Ldap::GetRoles:searchResults: {searchResults}");
+                Console.WriteLine($"Ldap::GetRoles:searchResults: {searchResults.ToString()}"); // todo: needs to be debugged, somehow@abarz722
 #endif
                 foreach (LdapEntry entry in searchResults)
                 {

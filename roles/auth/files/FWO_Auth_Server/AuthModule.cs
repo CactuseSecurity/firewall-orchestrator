@@ -19,7 +19,7 @@ namespace FWO_Auth
         private readonly HttpListener Listener;
         public Ldap[] LdapConnection;
         private readonly TokenGenerator TokenGenerator;
-        private readonly string privateJWTKey = "b2c6843feafd1d52eb689a5233a12588957c7682b581d6e06113adc8da70e7cebc08f6f5a7dd515796cd1f6b87912cc0093b80165ff8c7df77fb0ef6124d5ac0b607a2cf8515352d4fe509df42c687da87b08262571e3650e71e2ecc09db4ad7b154dd4630b8482ec12ae72715de99887cef338fdd46b2994336ca72ede588c77ddf9b2aaa25d9b1c4b3c4038795b4355d24370d7e4bac6e8a724ef959ccbe38b9cbc0ee99ebc705d8f450b601a9465f83dd643c926b17858be55d312abfbbf0ae9916a1de0fe9ab6e3a1489e66f9f1f4d844db412de40c2f3266eb175bae32e013d166c520b56050b1489c2780eb820ce8b3fb69a9b754e17ba426f0116a3b7";
+        private readonly string privateJWTKey = "bde957bc743e5dd9e0b0a8a1a5cd53c5d12a3e1fa99e0af7883e0326fd595539103bc1c0b740845b73af30cd2bebd2ed7d3b53d1aa7e0385609499e67091175d3655a5d95ed5b4e813aed08eea6133c3db1c2b8be9d3df0e5d32793bb8e308485b8d58c6cb68f60e0130457a957b929b02eedadc4b39acf0c0bd544dd534ffc9dbf5422d739a0b016475ca91ff5e45b874e728c0110ffd5188922ef547c4e2564209b5927f58a7cc19f9eb579432063c91d64cda9f58550c76fb22dac71541a40c347b9b8406b83fe68dbcabaff7bb7e8314f5d69e24653688b3cef43d76513c030334f2903d39be0b072a5ecaf99b483c2cc29003fcd8a16b957273beb32a1f";
         private readonly int daysValid = 7;
         private readonly string configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
         private readonly Config config;
@@ -47,7 +47,7 @@ namespace FWO_Auth
             try  // move to database and access via Api?
             {
                 privateJWTKey = File.ReadAllText(privateJWTKeyFile).TrimEnd();
-                Console.WriteLine($"JWT Key fread from file is {privateJWTKey.Length} Bytes long.");
+                Console.WriteLine($"JWT Key read from file is {privateJWTKey.Length} Bytes long: {privateJWTKey}");
             }
             catch (Exception e)
             {

@@ -17,23 +17,23 @@ namespace FWO_Auth
     public class AuthModule
     {
         private readonly HttpListener Listener;
-        private List<Ldap> LdapConnection = new List<Ldap>();
+        public Ldap[] LdapConnection;
         private readonly TokenGenerator TokenGenerator;
-        private readonly string privateJWTKey = "8f4ce02dabb2a4ffdb2137802b82d1283f297d959604451fd7b7287aa307dd298668cd68a432434d85f9bcff207311a833dd5b522870baf457c565c7a716e7eaf6be9a32bd9cd5420a0ebaa9bace623b54c262dcdf35debdb5388490008b9bc61facfd237c1c7058f5287881a37492f523992a2a120a497771954daf27666de2461a63117c8347fe760464e3a58b3a5151af56a0375c8b34921101c91425b65097fc69049f85589a58bb5e5570139c98d3edb179a400b3d142a30e32d1c8e9bbdb90d799fb81b4fa6fb7751acfb3529c7af022590cbb845a8390b906f725f079967b269cff8d2e6c8dbcc561b37c4bdd1928c662b79f42fe56fe108a0cf21e08";
+        private readonly string privateJWTKey = "bde957bc743e5dd9e0b0a8a1a5cd53c5d12a3e1fa99e0af7883e0326fd595539103bc1c0b740845b73af30cd2bebd2ed7d3b53d1aa7e0385609499e67091175d3655a5d95ed5b4e813aed08eea6133c3db1c2b8be9d3df0e5d32793bb8e308485b8d58c6cb68f60e0130457a957b929b02eedadc4b39acf0c0bd544dd534ffc9dbf5422d739a0b016475ca91ff5e45b874e728c0110ffd5188922ef547c4e2564209b5927f58a7cc19f9eb579432063c91d64cda9f58550c76fb22dac71541a40c347b9b8406b83fe68dbcabaff7bb7e8314f5d69e24653688b3cef43d76513c030334f2903d39be0b072a5ecaf99b483c2cc29003fcd8a16b957273beb32a1f";
         private readonly int daysValid = 7;
-        private string ApiUri = "https://localhost:9443/api/v1/graphql";
-
+        private readonly string configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
         private readonly Config config;
-        private readonly String privateJWTKeyFile;
-        private readonly String configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
-        private readonly String AuthServerIp;
-        private readonly String AuthServerPort;
+        private readonly string privateJWTKeyFile;
+        private readonly string AuthServerIp;
+        private readonly string AuthServerPort;
+        private readonly string ApiUri;
 
         public AuthModule()
         {
             try // reading config file
             { 
                 config = new Config(configFile);
+                ApiUri =  config.GetConfigValue("api_uri");
                 privateJWTKeyFile = config.GetConfigValue("auth_JWT_key_file");
                 AuthServerIp = config.GetConfigValue("auth_hostname");
                 AuthServerPort = config.GetConfigValue("auth_server_port");
@@ -44,11 +44,10 @@ namespace FWO_Auth
                 System.Environment.Exit(1); // exit with error
             }
 
-            try // to read private JWT generation file from file, if failing, use fallback key
+            try  // move to database and access via Api?
             {
-                // TODO: Read as relative path
                 privateJWTKey = File.ReadAllText(privateJWTKeyFile).TrimEnd();
-                Console.WriteLine($"Key is {privateJWTKey.Length} Bytes long.");
+                Console.WriteLine($"JWT Key read from file is {privateJWTKey.Length} bytes long: {privateJWTKey}");
             }
             catch (Exception e)
             {
@@ -65,41 +64,37 @@ namespace FWO_Auth
             // Create Token Generator
             TokenGenerator = new TokenGenerator(privateJWTKey, daysValid);
 
-            // create JWT for auth-server API calls (relevant part is the role auth-server)
-            string AuthServerJwt = 
-                TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") });
-            // TODO: get APIConnection working here (using)
+            // create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header 
             APIConnection ApiConn = new APIConnection(ApiUri);
-            ApiConn.ChangeAuthHeader(AuthServerJwt);
-
-           
-            Task<LdapConnectionApi[]> ldapTask = Task.Run(()=> ApiConn.SendQuery<LdapConnectionApi>(Queries.LdapConnections));
+            ApiConn.ChangeAuthHeader(TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") }));
+            
+            // fetch all LdapConnections via API
+            Task<Ldap[]> ldapTask = Task.Run(()=> ApiConn.SendQuery<Ldap>(Queries.LdapConnections));
             ldapTask.Wait();
-            LdapConnectionApi[] ldapConnections = ldapTask.Result;
+            //Ldap[] ldapConnections = ldapTask.Result;
+            this.LdapConnection = ldapTask.Result;
 
-            // Create connection to Ldap Server
-            foreach (LdapConnectionApi conn in ldapConnections)
+            foreach (Ldap connection in LdapConnection)
             {
-                LdapConnection.Add(new Ldap(conn.Server, conn.Port)); // "localhost", 636);
+                Console.WriteLine($"Authmodule::Creator: found ldap connection to server {connection.Address}:{connection.Port}");
             }
-
-            // Start Http Listener
-            String ListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";
-            StartListener(ListenerUri); // todo: move to https
+            // Start Http Listener, todo: move to https
+            String AuthServerListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";
+            StartListener(AuthServerListenerUri);
         }
 
-        private void StartListener(string ListenerUri)
+        private void StartListener(string AuthServerListenerUri)
         {
             // Add prefixes to listen to 
-            Listener.Prefixes.Add(ListenerUri + "jwt/");
+            Listener.Prefixes.Add(AuthServerListenerUri + "jwt/");
 
             // Start listener.
             Listener.Start();
-            Console.WriteLine($"Auth Server starting on {ListenerUri}.");
+            Console.WriteLine($"Auth Server starting on {AuthServerListenerUri}.");
 
+            // GetContext method block while waiting for a request.
             while (true)
             {
-                // Note: The GetContext method blocks while waiting for a request.
                 HttpListenerContext context = Listener.GetContext();
                 HttpListenerRequest request = context.Request;
                 HttpStatusCode status = HttpStatusCode.OK;
@@ -142,14 +137,16 @@ namespace FWO_Auth
             if (User.Name == "")
             {
                 Console.WriteLine("Logging in with anonymous user...");
-                // responseString = TokenGenerator.CreateJWT(User, null, LdapConnection.GetRoles(User));
                 responseString = TokenGenerator.CreateJWT(User, null, new Role[] { new Role("anonymous") });
             }                    
             else
             {
                 Console.WriteLine($"Try to validate as {User.Name}...");
+
+                // try all configured ldap servers for authentication:
                 foreach (Ldap ldapConn in LdapConnection) 
                 {
+                    ldapConn.Connect();
                     String UserDN = ldapConn.ValidateUser(User);
                     if (UserDN!="") 
                     {   // user was successfully auhtenticated via LDAP

@@ -51,7 +51,7 @@ namespace FWO.Auth.Client
             } 
             catch (Exception e)
             {
-                Console.Out.WriteAsync($"Auth:: error while reading JWT: \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
+                Console.Out.WriteAsync($"Auth_Client:: error while reading JWT: \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
             }
         }
 

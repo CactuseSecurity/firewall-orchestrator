@@ -1,5 +1,5 @@
 dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectclass: inetorgperson
 cn: admin
@@ -8,7 +8,7 @@ sn: admin
 # These are test users with plain text passwords
 
 dn: uid=fritz,ou=tenant1,ou=operator,ou=user,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectclass: inetorgperson
 cn: fritz
@@ -17,7 +17,7 @@ sn: Gelb
 userPassword: fritz1
 
 dn: uid=helga,ou=tenant1,ou=operator,ou=user,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectclass: inetorgperson
 cn: helga
@@ -26,7 +26,7 @@ sn: Gelb
 userPassword: helga1
 
 dn: uid=fritz,ou=tenant2,ou=operator,ou=user,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectclass: inetorgperson
 cn: fritz
@@ -35,7 +35,7 @@ sn: Gelb
 userPassword: fritz2
 
 dn: uid=helga,ou=tenant2,ou=operator,ou=user,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectclass: inetorgperson
 cn: helga

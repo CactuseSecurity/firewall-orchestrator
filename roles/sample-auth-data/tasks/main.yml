@@ -20,14 +20,9 @@
   - name: Create test users in ldap
     command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ fworch_home }}/auth/add_uid_test_users.ldif"
 
-  - name: set user fgreporter password in ldap
-    command: "ldappasswd -s {{ auth_ldap_user_inital_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=fgreporter,ou=forti,{{ auth_ldap_std_user_path }}'"
-
-  - name: set user checkreporter password in ldap
-    command: "ldappasswd -s {{ auth_ldap_user_inital_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=checkreporter,ou=check,{{ auth_ldap_std_user_path }}'"
-
   - name: set user viewallreporter password in ldap
     command: "ldappasswd -s {{ auth_ldap_user_inital_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=viewallreporter,ou=viewall,{{ auth_ldap_std_user_path }}'"
-  when: not is_ldap_present_flag.stat.exists
+  when: auth_change_local_ldap == 'yes'
 
   # todo: remove ldif files
+  

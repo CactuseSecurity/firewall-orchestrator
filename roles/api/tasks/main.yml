@@ -18,6 +18,25 @@
 - name: install apache2
   import_tasks: api-apache-install-and-setup.yml
 
+- name: generate jwt secret
+  shell: "< /dev/urandom tr -dc a-f0-9 | head -c${1:-512}"
+  register: secret512
+
+- set_fact: api_hasura_jwt_secret="{{ secret512.stdout }}"
+
+- name: write api_hasura_jwt_secret into file for reference
+  lineinfile:
+    path: "{{ fworch_home }}/etc/secrets/jwt_private.key"
+    line: "{{ api_hasura_jwt_secret }}"
+    regexp: ".*"    # match every line and replace it (only one line expected)
+    create: yes
+    mode: "0600"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
+    backup: yes
+  become: yes
+  # todo: this only works if both api and auth server are on the same machine
+
 - name: hasura install 
   import_tasks: hasura-install.yml
 

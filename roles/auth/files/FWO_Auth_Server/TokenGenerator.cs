@@ -88,8 +88,15 @@ namespace FWO_Auth_Server
                         defaultRole = roles[0].Name; // pick first role at random (todo: might need to be changed)
                 }
             }
-            else 
-                defaultRole =  "reporter";
+            else
+            {
+                Console.WriteLine($"ERROR: User {user.Name} does not have any assigned roles");    
+                // if ((from role in roles where role.Name == "reporter" select role.Name).Count() > 0)
+                //     //roles.Where(role => role.Name == "reporter"))
+                // {
+                //     defaultRole =  "reporter";
+                // }
+            }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
             Console.WriteLine($"User {user.Name} was assigned default-role {defaultRole}");

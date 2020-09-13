@@ -40,7 +40,7 @@ namespace FWO_Auth_Server
 //            Console.WriteLine($"Connecting to LDAP server on LdapServerAdress={Address} with LdapServerPort={Port}, SearchUser={SearchUser}, UserSearchPath={UserSearchPath}");
         }
 
-        public LdapConnection Connect()
+        private LdapConnection Connect()
         {
             LdapConnection connection = null;
 
@@ -114,13 +114,10 @@ namespace FWO_Auth_Server
             using (LdapConnection connection = Connect())
             {
                 connection.Bind(SearchUser,SearchUserPwd);
-
+                string roleSearchBase = $"ou=role,dc=fworch,dc=internal"; // todo: roles need to be searched in internal ldap only
                 int searchScope = LdapConnection.ScopeOne;
                 string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath,searchScope,searchFilter,null,false);
-#if DEBUG
-                Console.WriteLine($"Ldap::GetRoles:searchResults: {searchResults.ToString()}"); // todo: needs to be debugged, somehow @abarz722
-#endif
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(roleSearchBase,searchScope,searchFilter,null,false);
                 foreach (LdapEntry entry in searchResults)
                 {
                     LdapAttribute membersAttribute = entry.GetAttribute("uniqueMember");

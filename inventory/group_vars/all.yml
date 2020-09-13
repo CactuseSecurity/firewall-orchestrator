@@ -40,6 +40,7 @@ api_container_name: "{{ product_name }}-api"
 api_ip_address: "127.0.0.1"
 api_web_port: 9443
 api_hasura_jwt_alg: "HS384"
+api_hasura_jwt_secret: "fake-jwt-secret-for-github-install"
 api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
 
 ### dotnet

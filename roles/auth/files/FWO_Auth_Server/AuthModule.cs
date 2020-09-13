@@ -47,7 +47,7 @@ namespace FWO_Auth
             try  // move to database and access via Api?
             {
                 privateJWTKey = File.ReadAllText(privateJWTKeyFile).TrimEnd();
-                Console.WriteLine($"JWT Key read from file is {privateJWTKey.Length} Bytes long: {privateJWTKey}");
+                Console.WriteLine($"JWT Key read from file is {privateJWTKey.Length} bytes long: {privateJWTKey}");
             }
             catch (Exception e)
             {

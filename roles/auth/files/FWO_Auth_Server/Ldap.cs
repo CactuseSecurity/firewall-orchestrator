@@ -119,15 +119,23 @@ namespace FWO_Auth_Server
                 int searchScope = LdapConnection.ScopeOne;
                 string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
                 LdapSearchResults searchResults = (LdapSearchResults)connection.Search(roleSearchBase,searchScope,searchFilter,null,false);
- 
+#if DEBUG
+                Console.WriteLine($"Ldap::GetRoles:searchResults: {searchResults}");
+#endif
                 foreach (LdapEntry entry in searchResults)
                 {
                     LdapAttribute membersAttribute = entry.GetAttribute("uniqueMember");
                     string[] stringValueArray = membersAttribute.StringValueArray;
                     System.Collections.IEnumerator ienum = stringValueArray.GetEnumerator();
+#if DEBUG
+                    Console.WriteLine($"Ldap::GetRoles:dealing with ldap entry {entry.GetAttribute("cn").StringValue}");
+#endif
                     while (ienum.MoveNext())
                     {
                         string attribute=ienum.Current.ToString();
+#if DEBUG
+                        Console.WriteLine($"Ldap::GetRoles:ldap.ienum.current: {ienum.Current.ToString()}:");
+#endif
                         if (attribute == userDn)
                         {
                             string RoleName = entry.GetAttribute("cn").StringValue;
@@ -138,7 +146,7 @@ namespace FWO_Auth_Server
             }
             Role[] roles = roleList.ToArray();
 #if DEBUG
-            Console.WriteLine($"Found the following roles for user {userDn}:");
+            Console.WriteLine($"Ldap::GetRoles:Found the following roles for user {userDn}:");
             for (int i = 0; i < roles.Length; i++)
                 Console.WriteLine($"RoleListElement: { roles[i].Name}");
 #endif

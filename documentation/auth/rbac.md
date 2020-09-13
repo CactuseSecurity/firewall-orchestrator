@@ -2,11 +2,11 @@
 
 ## Architecture and basic funtionality
 - All users including password and roles a user belong to (role-mapping) are defined within ldap directories.
-- All roles and their permissions are defined within the database.
-- The user-tenant mapping is implemented in the LDAP hierarchy.
-- The user-role mapping is defined in the LDAP hierarchy under role.
+- All roles and their permissions are defined within the API.
+- The user-tenant mapping is implemented in the LDAP hierarchy (either locally or on the external ldap).
+- The user-role mapping is defined in the local LDAP hierarchy under role, adding users to a role with the "uniqueMember" attribute.
 - The ldap directory can either be locally installed (based on open-ldap) or an external (eg. ActiveDirectory) ldap directory.
-- Roles are non-additive (meaning a user can only have permissions belonging to a single role at a given time). But the user can switch roles during a workflow.
+- Roles are non-additive (meaning a user can only have permissions belonging to a single role at a given time). But the user can switch roles during a workflow without changing the JWT by sending an addtional HTTP header x-hasura-role.
 
 ## Roles
 
@@ -41,11 +41,9 @@ These tenant-based permissions are assigned during login as follows:
 - The devices a tenant has access to are read from the database table tenent_to_device.
 - This information is written to a JWT (visible_devices, visible_managements) and signed by the Auth-Module.
 
-
 ## LDAP - remote vs. local
 - When using only the local LDAP server, the user <--> role matching is implemented with LDAP groups managed via the web user interface.
-- When using a remote LDAP server, the user <--> role matching can be either
-- In both cases the roles need to be added to the role table.
+- When using a remote LDAP server, the user <--> role matching is done on the local ldap.
 
 ### Adding users
 

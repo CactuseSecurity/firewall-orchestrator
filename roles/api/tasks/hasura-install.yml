@@ -17,7 +17,8 @@
 
 - name: read jwt_secret_key from file
   slurp:
-    src: "{{ fworch_home }}/etc/secrets/jwt_private.key"
+    src: "{{ jwt_private_key_file }}"
+    # src: "{{ fworch_home }}/etc/secrets/jwt_private.key"
   register: api_hasura_jwt_secret_dict
   become: yes
 

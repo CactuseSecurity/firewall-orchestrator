@@ -40,7 +40,7 @@ namespace FWO_Auth_Server
 //            Console.WriteLine($"Connecting to LDAP server on LdapServerAdress={Address} with LdapServerPort={Port}, SearchUser={SearchUser}, UserSearchPath={UserSearchPath}");
         }
 
-        private LdapConnection Connect()
+        public LdapConnection Connect()
         {
             LdapConnection connection = null;
 

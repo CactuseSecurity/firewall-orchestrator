@@ -21,6 +21,7 @@
 - name: install python3-openssl for openssl key generation
   package:
     name: python3-openssl
+  become: yes
 
 - name: Generate JWT private key 
   openssl_privatekey:

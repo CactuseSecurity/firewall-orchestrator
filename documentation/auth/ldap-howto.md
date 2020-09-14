@@ -8,7 +8,13 @@ see ansible installation under <https://github.com/CactuseSecurity/firewall-orch
 
 - see structure of ldap tree here <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/auth/ldap_structure.png>
 - every entry in ldap has a distinguished name (dn) which is unique
-- the dn is composed of the tree path to the object
+- the dn is composed of the tree path to the entry
+- to access ldap you have to bind as an user (entry in ldap)
+- this is done by including the option -D
+- most user/entries you bind with have passwords, you pass these as text with -x or link to the file where they are stored with -y
+- if you don't choose a bind option, you bind as anonymous
+- ldap is currently rwe by user manager and read only by inspector (their dn's are in the examples later)
+- if you want to change this modify this config file <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/roles/openldap-server/templates/slapd.conf_ubuntu.j2>
 
 ## ldap client access
 

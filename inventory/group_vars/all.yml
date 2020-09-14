@@ -30,8 +30,8 @@ fworch_dbadmin_name: dbadmin
 
 ### auth server 
 #auth_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
-auth_jwt_private_key_file: "{{ fworch_home }}/etc/secret/jwt_private_key.pem"
-auth_jwt_public_key_file: "{{ fworch_home }}/etc/secret/jwt_public_key.pem"
+jwt_private_key_file: "{{ fworch_home }}/etc/secrets/jwt_private_key.pem"
+jwt_public_key_file: "{{ fworch_home }}/etc/secrets/jwt_public_key.pem"
 
 auth_hostname: "localhost"
 auth_web_listener_port: 8888

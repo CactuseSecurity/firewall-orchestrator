@@ -18,11 +18,15 @@
 - name: install apache2
   import_tasks: api-apache-install-and-setup.yml
 
+- name: install python3-openssl for openssl key generation
+  package:
+    name: python3-openssl
+
 - name: Generate JWT private key 
   openssl_privatekey:
     path: "{{ jwt_private_key_file }}"
-    size: 4096
-    cipher: aes256
+    size: 2048
+    #cipher: aes256
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
     mode: "0600"

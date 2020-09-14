@@ -15,20 +15,24 @@
   become: yes
   become_user: "{{ fworch_user }}"
 
-- name: read jwt_secret_key from file
+- name: read jwt public key from file
   slurp:
-    src: "{{ jwt_private_key_file }}"
+    src: "{{ jwt_public_key_file }}"
     # src: "{{ fworch_home }}/etc/secrets/jwt_private.key"
   register: api_hasura_jwt_secret_dict
   become: yes
 
+# - name: decode key
+#   set_fact:
+#     api_hasura_jwt_secret_decoded: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
+
 - name: decode key
   set_fact:
-    api_hasura_jwt_secret_decoded: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
+    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
 
-- name: remove unwanted and unexplainable suffix backslash+n plus curly closing bracket from key
-  set_fact:
-    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_decoded.split('\n')[0] }}"
+# - name: remove unwanted and unexplainable suffix backslash+n plus curly closing bracket from key
+#   set_fact:
+#     api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_decoded.split('\n')[0] }}"
 
 - name: set hasura env variable
   set_fact:

@@ -717,7 +717,7 @@ tables:
       - ldap_search_user
       - ldap_search_user_pwd
       - ldap_searchpath_for_users
-      - ldap_search_path_for_roles
+      - ldap_searchpath_for_roles
       - ldap_server
       - ldap_tenant_level
       - ldap_tls

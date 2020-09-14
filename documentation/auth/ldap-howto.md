@@ -7,14 +7,38 @@ see ansible installation under <https://github.com/CactuseSecurity/firewall-orch
 ## general information
 
 - see structure of ldap tree here <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/auth/ldap_structure.png>
+- if you want to work and test with ldap become user fworch
+
+    sudo su fworch
+
 - every entry in ldap has a distinguished name (dn) which is unique
 - the dn is composed of the tree path to the entry
 - to access ldap you have to bind as an user (entry in ldap)
 - this is done by including the option -D
 - most user/entries you bind with have passwords, you pass these as text with -x or link to the file where they are stored with -y
 - if you don't choose a bind option, you bind as anonymous
-- ldap is currently rwe by user manager and read only by inspector (their dn's are in the examples later)
+- ldap is currently rwe by user manager and read only by inspector (their dn's are in the examples later) and rwe access denied to everyone else
 - if you want to change this modify this config file <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/roles/openldap-server/templates/slapd.conf_ubuntu.j2>
+
+## some specific questions
+
+- Is it possible to gain all information below a tree node?
+-- Yes, this answer uses C# and the library Novell
+-- Good documentation https://www.novell.com/documentation/developer/ldapcsharp/?page=/documentation/developer/ldapcsharp/cnet/data/bovtz77.html
+-- 1. You have to bind the LDAP server (documentation link Chapter 3.1)
+-- 2. Search with a search base (documentation link Chapter 3.2)
+-- Example:
+--- string searchBase = "ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal";
+--- LdapSearchQueue queue=ldapConn.Search (searchBase,...)
+--- This only searches in and below tenent2 (can be adjusted and finetuned with Search Scope)
+-- If you want to use Linux command line use ldapsearch -b "searchbase" ...
+- List all users with identical login name
+-- On command Line: ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=fritz -x
+-- If you want to search only in tenant 1 add "-b ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal" to query
+-- Note that you have to switch user to fworch with "sudo su fworch"
+- What about slapd config file in openldap-server in files and templates?
+-- The template slapd.conf_ubuntu.j2 is used in the current version
+-- The file slapd is used in handlers/main.yml @tpurschke Is this still needed
 
 ## ldap client access
 

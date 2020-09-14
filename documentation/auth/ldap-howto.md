@@ -22,23 +22,19 @@ see ansible installation under <https://github.com/CactuseSecurity/firewall-orch
 
 ## some specific questions
 
-- Is it possible to gain all information below a tree node?
--- Yes, this answer uses C# and the library Novell
--- Good documentation https://www.novell.com/documentation/developer/ldapcsharp/?page=/documentation/developer/ldapcsharp/cnet/data/bovtz77.html
--- 1. You have to bind the LDAP server (documentation link Chapter 3.1)
--- 2. Search with a search base (documentation link Chapter 3.2)
--- Example:
---- string searchBase = "ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal";
---- LdapSearchQueue queue=ldapConn.Search (searchBase,...)
---- This only searches in and below tenent2 (can be adjusted and finetuned with Search Scope)
--- If you want to use Linux command line use ldapsearch -b "searchbase" ...
-- List all users with identical login name
--- On command Line: ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=fritz -x
--- If you want to search only in tenant 1 add "-b ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal" to query
--- Note that you have to switch user to fworch with "sudo su fworch"
-- What about slapd config file in openldap-server in files and templates?
--- The template slapd.conf_ubuntu.j2 is used in the current version
--- The file slapd is used in handlers/main.yml @tpurschke Is this still needed
+Is it possible to gain all information below a tree node?
+- Yes, this answer uses C# and the library Novell
+- Good documentation https://www.novell.com/documentation/developer/ldapcsharp/?page=/documentation/developer/ldapcsharp/cnet/data/bovtz77.html
+- 1. You have to bind the LDAP server (documentation link Chapter 3.1)
+- 2. Search with a search base (documentation link Chapter 3.2)
+- Example:
+- string searchBase = "ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal";
+- LdapSearchQueue queue=ldapConn.Search (searchBase,...)
+- This only searches in and below tenent2 (can be adjusted and finetuned with Search Scope)
+- If you want to use Linux command line use ldapsearch -b "searchbase" ...
+List all users with identical login name
+- On command Line: ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=fritz -x
+- If you want to search only in tenant 1 add "-b ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal" to query
 
 ## ldap client access
 

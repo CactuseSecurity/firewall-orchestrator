@@ -31,12 +31,12 @@ namespace FWO_Auth_Server
             try
             {
                 // reading the content of a private key PEM file, PKCS8 encoded 
-                // string privateKeyPem = File.ReadAllText(privateJWTKey);
-
+                string privateKeyPem;
+                string[] privateKeyPemParts;
                 // keeping only the payload of the key 
-                // privateKeyPem = privateKeyPem.Replace("-----BEGIN PRIVATE KEY-----", "");
-                // privateKeyPem = privateKeyPem.Split("-----END PRIVATE KEY-----", "");
-
+                privateKeyPem = privateJWTKey.Replace("-----BEGIN PRIVATE KEY-----", "");
+                privateKeyPemParts = privateKeyPem.Split("-----");
+                privateKeyPem = privateKeyPemParts[0];
                 byte[] privateKeyRaw = Convert.FromBase64String(privateJWTKey);
 
                 // creating the RSA key 

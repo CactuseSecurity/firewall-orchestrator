@@ -4,6 +4,12 @@
 
 see ansible installation under <https://github.com/CactuseSecurity/firewall-orchestrator/tree/master/roles/openldap-server>
 
+## general information
+
+see structure of ldap tree here <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/auth/ldap_structure.png>
+every entry in ldap has a distinguished name (dn) which is unique
+the dn is composed of the tree path to the object
+
 ## ldap client access
 
 ### adding information with ldapadd

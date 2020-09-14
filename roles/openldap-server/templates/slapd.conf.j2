@@ -20,7 +20,7 @@ access to attrs=shadowLastChange
                 by * read
 
 database        bdb
-suffix          "dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }}"
+suffix          "{{ auth_ldap_path }}"
 rootdn          "{{ auth_ldap_superuser_name }}"
 rootpw          {{ root_password.stdout }}
 #This directory has to be created and would contain the ldap database.

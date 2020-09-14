@@ -36,6 +36,7 @@ List all users with identical login name
 - On command Line: ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=fritz -x
 - If you want to search only in tenant 1 add "-b ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal" to query
 
+
 ## ldap client access
 
 ### adding information with ldapadd
@@ -174,6 +175,7 @@ Not tested yet!
 
 ext. documentation, see <https://auth0.com/blog/using-ldap-with-c-sharp/>
 
-## querying multiple ldap servers in a row
 
+## ldap and c#
 
+- Good documentation <https://www.novell.com/documentation/developer/ldapcsharp/?page=/documentation/developer/ldapcsharp/cnet/data/bovtz77.html>

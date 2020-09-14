@@ -22,33 +22,10 @@ namespace FWO_Auth_Server
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public TokenGenerator(string privateJWTKey, int hoursValid)
+        public TokenGenerator(RsaSecurityKey rsaSecurityKey, int hoursValid)
         {
-            // this.privateJwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateJWTKey));
-            // //this.publicJwtKey = new AsymmetricSignatureProvider(this.privateJWTKey, "rsa256");
             this.hoursValid = hoursValid;
-
-            try
-            {
-                // reading the content of a private key PEM file, PKCS8 encoded 
-                string privateKeyPem;
-                string[] privateKeyPemParts;
-                // keeping only the payload of the key 
-                privateKeyPem = privateJWTKey.Replace("-----BEGIN PRIVATE KEY-----", "");
-                privateKeyPemParts = privateKeyPem.Split("-----");
-                privateKeyPem = privateKeyPemParts[0];
-                byte[] privateKeyRaw = Convert.FromBase64String(privateJWTKey);
-
-                // creating the RSA key 
-                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
-                provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(privateKeyRaw), out _);
-                this.rsaSecurityKey = new RsaSecurityKey(provider);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
-            }
+            this.rsaSecurityKey = rsaSecurityKey;
         }
 
         public string CreateJWT(User user, UserData userData, Role[] roles)
@@ -69,7 +46,7 @@ namespace FWO_Auth_Server
                 audience: audience,
                 subject: subject,
                 notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddMinutes(hoursValid),
+                expires: DateTime.UtcNow.AddHours(hoursValid),
                 signingCredentials: new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.RsaSha256)
              );
 

@@ -5,7 +5,7 @@ if [ ! -f $SSLDIR/server.key ]; then
         KEY=$SSLDIR/server.key
         CERT=$SSLDIR/server.crt
         CommonName=$(hostname)
-        subjectAltName={{ api_hostname }}
+        subjectAltName={{ api_ip_address }}
         organizationalUnitName=Test
         TOPLEVEL=DE
         ORG='Cactus eSecurity'

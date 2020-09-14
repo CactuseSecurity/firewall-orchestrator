@@ -49,6 +49,8 @@ sn: fgreporter
 
 ### searching ldap with ldapsearch
 
+The old way is
+
     tim@ubu1804:~$ ldapsearch uid=user1 -x
     # extended LDIF
     #
@@ -72,6 +74,10 @@ sn: fgreporter
 
     # numResponses: 2
     # numEntries: 1
+    
+The search above won't work anymore. LDAP is now exlusive to the users "manager" and "inspector" (read only). The new way
+
+    fworch@FWO:~$ ldapsearch -x -W -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=admin
 
 ### check password
 wrong password:

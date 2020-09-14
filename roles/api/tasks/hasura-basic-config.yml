@@ -1,22 +1,24 @@
 # api config (metadata)
 
-- name: download hasura cli installer
-  get_url:
-      url: https://github.com/hasura/graphql-engine/raw/master/cli/get.sh
-      dest: "{{ api_home }}"
-      mode: "0755"
-  environment: "{{ proxy_env }}"
+- name: create /usr/local/bin
+  file:
+    path: /usr/local/bin
+    state: directory
+    mode: "0755"
   become: yes
-  become_user: "{{ fworch_user }}"
 
-- name: execute hasura cli installer
-  shell: "{{ api_home }}/get.sh"
+- name: download hasura cli binary
+  get_url:
+    url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-amd64"
+    dest: "{{ api_hasura_cli_bin }}"
+    mode: "0755"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
   become: yes
 
 - name: initialize hasura cli directory
-  # shell: "cd {{ api_home }} && {{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
-  command: "{{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  command: "{{ api_hasura_cli_bin }} init {{ product_name }} --endpoint http://{{ api_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
   args: 
     chdir: "{{ api_home }}"
   become: yes
@@ -33,8 +35,7 @@
   become: yes
 
 - name: import hasura metadata
-  # shell: "cd {{ api_home }}/{{ product_name }} && {{ api_hasura_bin }} metadata apply --from-file"
-  command: "{{ api_hasura_bin }} metadata apply --from-file"
+  command: "{{ api_hasura_cli_bin }} metadata apply --from-file"
   args:
     chdir: "{{ api_home }}/{{ product_name }}"
   become: yes

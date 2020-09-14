@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UserSecretsId>b00a1363-7266-443e-b3eb-d4e4d2743dfe</UserSecretsId>
+    <RootNamespace>FWO</RootNamespace>
+    <AssemblyName>FWO_UI</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazored.SessionStorage" Version="1.0.12" />
+    <PackageReference Include="BlazorTable" Version="1.12.1" />
+    <PackageReference Include="GraphQL.Client" Version="3.1.6" />
+    <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="3.1.6" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.7.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\images\FWO_Logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO_API_Client.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO_Auth_Client\FWO_Auth_Client.csproj" />
+    <ProjectReference Include="..\FWO_Filter_UI\FWO_Filter_UI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\images\FWO_Logo.png">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  
+</Project>

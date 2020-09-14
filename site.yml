@@ -10,19 +10,21 @@
   roles:
     - database
 
-- hosts: authserver
-  roles:
-    - openldap-server
-    - auth
-
 - hosts: apiserver
   roles:
     - { role: docker, when: "run_on_github is not defined" }
     - { role: api, when: "run_on_github is not defined" }
    # todo: make api (and docker) work with github actions
 
+- hosts: authserver
+  roles:
+    - openldap-server
+    - lib
+    - auth
+
 - hosts: frontends
   roles:
+    - lib
     - frontend
     - { role: frontend-php, when: "ui_php is defined"}
 
@@ -39,3 +41,7 @@
   roles:
     - { role: sample-auth-data, when: "without_sample_data is not defined" }
   # todo: add meta dependency on role sample-data
+
+- hosts: all
+  roles:
+    - { role: test, when: "test is defined" }

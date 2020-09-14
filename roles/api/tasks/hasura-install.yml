@@ -38,6 +38,7 @@
       HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
       HASURA_GRAPHQL_LOG_LEVEL:        "{{ api_log_level }}"
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: '{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}'
+      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
       HASURA_GRAPHQL_JWT_SECRET:       '
                                         {
                                           "type": "{{ api_hasura_jwt_alg|quote }}",
@@ -67,7 +68,7 @@
       tag: "{{ api_container_name }}"
     recreate: yes
     ports:
-      - "{{ api_hostname }}:{{ api_port }}:{{ api_port }}"
+      - "{{ api_ip_address }}:{{ api_port }}:{{ api_port }}"
     env:
       "{{ hasura_env }}"
   become: yes

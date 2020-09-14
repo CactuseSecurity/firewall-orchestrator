@@ -15,6 +15,10 @@
     {
         "name": "tenantCanViewAllDevices",
         "query": "query tenantCanViewAllDevices($tenant_id: Int!) { tenant(where:{tenant_id: {_eq: $tenant_id}}) { tenant_can_view_all_devices } }"
+    },
+    {
+        "name": "getLdapConnections",
+        "query": "query getLdapConnections { ldap_connection { ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users } }"
     }
 ]
 }

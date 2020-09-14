@@ -26,10 +26,10 @@
   openssl_privatekey:
     path: "{{ jwt_private_key_file }}"
     size: 2048
-    #cipher: aes256
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
     mode: "0600"
+    backup: yes
   become: yes
     
 - name: Generate JWT public key in PEM format

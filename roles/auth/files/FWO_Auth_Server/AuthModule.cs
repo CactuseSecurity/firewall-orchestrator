@@ -20,7 +20,7 @@ namespace FWO_Auth
         public Ldap[] LdapConnection;
         private readonly TokenGenerator TokenGenerator;
         private readonly string privateJWTKey = "bde957bc743e5dd9e0b0a8a1a5cd53c5d12a3e1fa99e0af7883e0326fd595539103bc1c0b740845b73af30cd2bebd2ed7d3b53d1aa7e0385609499e67091175d3655a5d95ed5b4e813aed08eea6133c3db1c2b8be9d3df0e5d32793bb8e308485b8d58c6cb68f60e0130457a957b929b02eedadc4b39acf0c0bd544dd534ffc9dbf5422d739a0b016475ca91ff5e45b874e728c0110ffd5188922ef547c4e2564209b5927f58a7cc19f9eb579432063c91d64cda9f58550c76fb22dac71541a40c347b9b8406b83fe68dbcabaff7bb7e8314f5d69e24653688b3cef43d76513c030334f2903d39be0b072a5ecaf99b483c2cc29003fcd8a16b957273beb32a1f";
-        private readonly int daysValid = 7;
+        private readonly int hoursValid = 2;
         private readonly string configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
         private readonly Config config;
         private readonly string privateJWTKeyFile;
@@ -62,7 +62,7 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Create Token Generator
-            TokenGenerator = new TokenGenerator(privateJWTKey, daysValid);
+            TokenGenerator = new TokenGenerator(privateJWTKey, hoursValid);
 
             // create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header 
             APIConnection ApiConn = new APIConnection(ApiUri);

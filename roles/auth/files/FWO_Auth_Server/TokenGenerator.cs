@@ -7,24 +7,48 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using System.IO;
+using System.Security.Cryptography;
 
 namespace FWO_Auth_Server
 {
     class TokenGenerator
     {
-        private readonly SymmetricSecurityKey privateJWTKey;
-        private readonly int daysValid;
-
+        // private readonly SymmetricSecurityKey privateJwtKey;
+        // private readonly AsymmetricSignatureProvider publicJwtKey;
+        private readonly RsaSecurityKey rsaSecurityKey;
+        private readonly int hoursValid;
+        private readonly string signingAlgorithm = SecurityAlgorithms.RsaSha256;
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public TokenGenerator(string privateJWTKey, int daysValid)
+        public TokenGenerator(string privateJWTKey, int hoursValid)
         {
-            this.privateJWTKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateJWTKey));
+            // this.privateJwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateJWTKey));
+            // //this.publicJwtKey = new AsymmetricSignatureProvider(this.privateJWTKey, "rsa256");
+            this.hoursValid = hoursValid;
 
-            this.daysValid = daysValid;
+            try
+            {
+                // reading the content of a private key PEM file, PKCS8 encoded 
+                // string privateKeyPem = File.ReadAllText(privateJWTKey);
+
+                // keeping only the payload of the key 
+                // privateKeyPem = privateKeyPem.Replace("-----BEGIN PRIVATE KEY-----", "");
+                // privateKeyPem = privateKeyPem.Split("-----END PRIVATE KEY-----", "");
+
+                byte[] privateKeyRaw = Convert.FromBase64String(privateJWTKey);
+
+                // creating the RSA key 
+                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
+                provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(privateKeyRaw), out _);
+                this.rsaSecurityKey = new RsaSecurityKey(provider);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
+            }
         }
 
         public string CreateJWT(User user, UserData userData, Role[] roles)
@@ -35,14 +59,18 @@ namespace FWO_Auth_Server
             ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
 
             // Create JWToken
+
+#if DEBUG
+            Console.WriteLine($"Auth::TokenGenerator:signingAlgorithm={signingAlgorithm}");
+#endif
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
                 issuer: issuer,
                 audience: audience,
                 subject: subject,
                 notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddDays(daysValid),
-                signingCredentials: new SigningCredentials(privateJWTKey, SecurityAlgorithms.HmacSha384)
+                expires: DateTime.UtcNow.AddMinutes(hoursValid),
+                signingCredentials: new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.RsaSha256)
              );
 
             string GeneratedToken = tokenHandler.WriteToken(token);

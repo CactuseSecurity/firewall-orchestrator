@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Text;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace FWO.Auth.Client
@@ -55,6 +56,7 @@ namespace FWO.Auth.Client
 
         public bool Valid()
         {
+            RsaSecurityKey pubKey = ExtractPublicKey(publicJWTKey);
             try
             {
                 if (Token == null)
@@ -64,7 +66,8 @@ namespace FWO.Auth.Client
                 {
                     ValidIssuer = "FWO Auth Module",
                     ValidAudience = "FWO",
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(publicJWTKey)) // The public key of the auth server
+                    IssuerSigningKey = pubKey // The public key of the auth server
+                    // IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(publicJWTKey)) // The public key of the auth server
                 };
 
                 IPrincipal principal = Handler.ValidateToken(TokenString, validationParameters, out SecurityToken validatedToken);
@@ -76,6 +79,34 @@ namespace FWO.Auth.Client
             }       
 
             return true;
+        }
+
+        private RsaSecurityKey ExtractPublicKey(string RawKey)
+        {
+            string publicKeyPem;
+            RsaSecurityKey rsaKey = null;
+            try
+            {
+                // removing everything but the base64 encoded key string from private key PEM 
+                publicKeyPem = RawKey.Replace("-----BEGIN PUBLIC KEY-----", "");
+                publicKeyPem = publicKeyPem.Split("-----")[0];
+                publicKeyPem = publicKeyPem.Replace("\n", "");
+#if DEBUG
+                Console.WriteLine($"Auth::TokenGenerator:publicKeyPem={publicKeyPem}");
+#endif
+                byte[] publicKeyRaw = Convert.FromBase64String(publicKeyPem);
+
+                // creating the RSA key 
+                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
+                provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(publicKeyRaw), out _);
+                rsaKey =  new RsaSecurityKey(provider);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
+            }
+            return rsaKey;
         }
 
         public Claim[] GetClaims()

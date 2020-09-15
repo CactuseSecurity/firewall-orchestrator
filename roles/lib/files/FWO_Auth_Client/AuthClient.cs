@@ -6,6 +6,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
 
 namespace FWO.Auth.Client
 {
@@ -74,6 +77,46 @@ namespace FWO.Auth.Client
             }
 
             JsonString.Append(" }");
+        }
+        public static RsaSecurityKey ExtractKeyFromPem(string RawKey, bool isPrivateKey)
+        {
+            string keyText = ExtractKeyFromPemAsString(RawKey, isPrivateKey);
+            RsaSecurityKey rsaKey = null;
+           
+            try
+            {
+                byte[] keyBytes = Convert.FromBase64String(keyText);
+               // creating the RSA key 
+                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
+                provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                rsaKey =  new RsaSecurityKey(provider);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
+            }
+            return rsaKey;
+        }
+        public static string ExtractKeyFromPemAsString(string RawKey, bool isPrivateKey)
+        {
+            string keyText = null;
+            string keyType = "PUBLIC";
+            try
+            {
+                if (isPrivateKey)
+                    keyType =  "PRIVATE";
+                // removing everything but the base64 encoded key string from private key PEM 
+                keyText = RawKey.Replace($"-----BEGIN {keyType} KEY-----", ""); // remove first line 
+                keyText = keyText.Split("-----")[0];    // only keep first part up to dividing ----
+                keyText = keyText.Replace("\n", "");    // remove line breaks
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
+            }
+            return keyText;
         }
     }
 }

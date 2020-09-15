@@ -8,9 +8,10 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FWO_Auth_Server;
+using FWO.Auth.Client;
 using FWO.Api;
-
-//using FWO_Auth_Server.Config;
+using System.Security.Cryptography;
+using Microsoft.IdentityModel.Tokens;
 
 namespace FWO_Auth
 {
@@ -19,8 +20,44 @@ namespace FWO_Auth
         private readonly HttpListener Listener;
         public Ldap[] LdapConnection;
         private readonly TokenGenerator TokenGenerator;
-        private readonly string privateJWTKey = "bde957bc743e5dd9e0b0a8a1a5cd53c5d12a3e1fa99e0af7883e0326fd595539103bc1c0b740845b73af30cd2bebd2ed7d3b53d1aa7e0385609499e67091175d3655a5d95ed5b4e813aed08eea6133c3db1c2b8be9d3df0e5d32793bb8e308485b8d58c6cb68f60e0130457a957b929b02eedadc4b39acf0c0bd544dd534ffc9dbf5422d739a0b016475ca91ff5e45b874e728c0110ffd5188922ef547c4e2564209b5927f58a7cc19f9eb579432063c91d64cda9f58550c76fb22dac71541a40c347b9b8406b83fe68dbcabaff7bb7e8314f5d69e24653688b3cef43d76513c030334f2903d39be0b072a5ecaf99b483c2cc29003fcd8a16b957273beb32a1f";
-        private readonly int daysValid = 7;
+        private readonly string privateJWTKey = @"-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCtxiI6Ef+3OJVF
+4vkMyqkc4gmCdcTnIRLus2Zrbvm3qkKY6MuBcfIX4Qfn2vvGr4fECComB+64XMON
+xduOWn4olmij97kYS/FURZKhH5ghPP/zdrsNlV79CkFIL3wAtxO+/oYnb7Ujep8S
+bxBJ5/On2IZ6f4/z/MRb0LX7QsA6ip16b6zs1KcWC8/d3lOnJ24gjXyMOCeWfThP
+q1LLmwgISZ5YWoDFtQ59S8ZCuZJv9bFG2f4+OwtmX+FJlkeDgedG71MOKKuQpIF8
+ifOy1FQjItY/U/uoqjvCgybf/jDs7FibYC2wmS+X9Zb+M5/C2jDWxkz7CvACUJHI
+1o/ZlLd7AgMBAAECggEBAJ0KQ4ArJ+cSkYP43I080JuzgliNyYX+k7d4FQTd43qh
+uVGqf87ZhKkjyhs0APjLRGxZ3I1F+exOmMMUnZgGG6DeXG5hvrpAVzWLMjm97aOM
+FtqU3/IknRUcIWb00qFq0cN3DRGymAYaGIt2J0hDACUdPlqR0SvzsBgxg2QwLLw5
+bqcH423zEJpllEpBA2WvCYtAdpkvnAIFZvAGHS6tX4kp3VqxvmkClX9cDiHOPrzi
+bdNirifD/tfGUiY8y/2Dnt74d2hAaFLfI4tDxDMdPnB0rbXhTS2RGkP2fOyJy/m1
+pLNIdnpW5V6iVcDGNU/U1fgodR68BrkUMwEMxwq+S7ECgYEA4G5otlX8BsJ1T0ag
+kPJ9t2+4/LVI9fX7iJ1cwiNrjLHhyd6PkpvB/aIzNrgubUQW62N3ASZTFSVjOvlg
+dPr3V7Ue7XkpSxt5YNp6Y4t8uFoIj4JQUZ3XEi1rx6FeYZEO3lIRheZ6KRRze5uJ
+Atc7PpXymkLoMIO+34eJFlLzIx8CgYEAxjeYTGqBLmPC+iNcKoBeTJ3+L3y5c8mh
++H9ObiBCk8zVgUZ43CdD6Qmzx/4foq5b9L5/NRn4uL8pghSQuNbqyyxcZgdIhuv3
+5XLar1K95XeInB8CCwZumzJzRYn+4A3feQ4GQ7Rh0RubZm9q87BIL/tYr1wkErJC
+6CIPoz9+3CUCgYATPgQmVfr0zWlncaPEqbXTq3WN3TEzPXLihLN2Rbkr5/h26Wkf
+5dDdITII6AO7BJJ+fhmu9I09C+aVINp/TSE12Oac7711nhZrEnBZ5pS77aQ8Qa0H
+QmQ1P8W06QYBkYFX2Gt+MoOY0BMSrwQxRSjkNdEGHuRvfGw6GBHN4zDLewKBgCYR
+AzSZt5lbG1TCea7H3FRGe0xPXaY48NwyRrOril2sFsyu5gMRn18ft+EOkrDBX3OP
+Kgreo/+G5sfOf0SgMZM3P79wYqNWqdLszcah00pAPIIPCmtnntI7TBvstn/86g/r
+e5SBDdAEx0FS4G1QS2y7jnqO7XaRuXuvHuWxCgHpAoGARykEL8IyW4JRCYLCVHD2
+YqysBd77qWhv+bJ8g4I9/hkXXebs/KjXCpISjPqSg/g6I4Efsq3boejB6pkl1/UP
+OB5x6nN1lxmzXZ6WtEY+hpdQmkCBCxL0McTtTEQdWfwSy96bnatheTSlL3D7pYib
+D1/dZg1p+wIB01vFZQ8RiQU=
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArcYiOhH/tziVReL5DMqp
+HOIJgnXE5yES7rNma275t6pCmOjLgXHyF+EH59r7xq+HxAgqJgfuuFzDjcXbjlp+
+KJZoo/e5GEvxVEWSoR+YITz/83a7DZVe/QpBSC98ALcTvv6GJ2+1I3qfEm8QSefz
+p9iGen+P8/zEW9C1+0LAOoqdem+s7NSnFgvP3d5TpyduII18jDgnln04T6tSy5sI
+CEmeWFqAxbUOfUvGQrmSb/WxRtn+PjsLZl/hSZZHg4HnRu9TDiirkKSBfInzstRU
+IyLWP1P7qKo7woMm3/4w7OxYm2AtsJkvl/WW/jOfwtow1sZM+wrwAlCRyNaP2ZS3
+ewIDAQAB
+-----END PUBLIC KEY-----
+";
+        private readonly int hoursValid = 2;
         private readonly string configFile = "../../../../../etc/fworch.yaml";  // todo: replace with abs path in release?
         private readonly Config config;
         private readonly string privateJWTKeyFile;
@@ -46,6 +83,7 @@ namespace FWO_Auth
 
             try  // move to database and access via Api?
             {
+                // privateJWTKey = new StreamReader(privateJWTKeyFile);
                 privateJWTKey = File.ReadAllText(privateJWTKeyFile).TrimEnd();
                 Console.WriteLine($"JWT Key read from file is {privateJWTKey.Length} bytes long: {privateJWTKey}");
             }
@@ -62,7 +100,8 @@ namespace FWO_Auth
             Listener = new HttpListener();
 
             // Create Token Generator
-            TokenGenerator = new TokenGenerator(privateJWTKey, daysValid);
+            bool isPrivateKey = true;
+            TokenGenerator = new TokenGenerator(AuthClient.ExtractKeyFromPem(privateJWTKey, isPrivateKey), hoursValid);
 
             // create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header 
             APIConnection ApiConn = new APIConnection(ApiUri);

@@ -71,7 +71,8 @@ public static readonly string LdapConnections = @"
         ldap_tenant_level 
         ldap_connection_id 
         ldap_search_user_pwd 
-        ldap_searchpath_for_users 
+        ldap_searchpath_for_users
+        ldap_searchpath_for_roles
       } 
     }
 ";

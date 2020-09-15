@@ -12,7 +12,7 @@ using System.Text.Json.Serialization;
 namespace FWO_Auth_Server
 {
     public class Ldap
-    // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users
+    // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles
     {
         [JsonPropertyName("ldap_server")]
         public string Address { get; set; }
@@ -34,6 +34,10 @@ namespace FWO_Auth_Server
 
         [JsonPropertyName("ldap_searchpath_for_users")]
         public string UserSearchPath { get; set; }
+
+        [JsonPropertyName("ldap_searchpath_for_roles")]
+        public string RoleSearchPath { get; set; }
+
 
         public Ldap()
         {
@@ -113,32 +117,35 @@ namespace FWO_Auth_Server
             List<Role> roleList= new List<Role>();
             using (LdapConnection connection = Connect())
             {
-                connection.Bind(SearchUser,SearchUserPwd);
-                string roleSearchBase = $"ou=role,dc=fworch,dc=internal"; // todo: roles need to be searched in internal ldap only
-                int searchScope = LdapConnection.ScopeOne;
-                string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(roleSearchBase,searchScope,searchFilter,null,false);
-                foreach (LdapEntry entry in searchResults)
+                if (!(RoleSearchPath is null))
                 {
-                    LdapAttribute membersAttribute = entry.GetAttribute("uniqueMember");
-                    string[] stringValueArray = membersAttribute.StringValueArray;
-                    System.Collections.IEnumerator ienum = stringValueArray.GetEnumerator();
-#if DEBUG
-                    Console.WriteLine($"Ldap::GetRoles:dealing with ldap entry {entry.GetAttribute("cn").StringValue}");
-#endif
-                    while (ienum.MoveNext())
+                    connection.Bind(SearchUser,SearchUserPwd);
+                    // string roleSearchBase = $"ou=role,dc=fworch,dc=internal"; // todo: roles need to be searched in internal ldap only
+                    int searchScope = LdapConnection.ScopeOne;
+                    string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
+                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath,searchScope,searchFilter,null,false);
+                    foreach (LdapEntry entry in searchResults)
                     {
-                        string attribute=ienum.Current.ToString();
+                        LdapAttribute membersAttribute = entry.GetAttribute("uniqueMember");
+                        string[] stringValueArray = membersAttribute.StringValueArray;
+                        System.Collections.IEnumerator ienum = stringValueArray.GetEnumerator();
 #if DEBUG
-                        Console.WriteLine($"Ldap::GetRoles:ldap.ienum.current: {ienum.Current.ToString()}:");
+                        Console.WriteLine($"Ldap::GetRoles:dealing with ldap entry {entry.GetAttribute("cn").StringValue}");
 #endif
-                        if (attribute == userDn)
+                        while (ienum.MoveNext())
                         {
-                            string RoleName = entry.GetAttribute("cn").StringValue;
-                            roleList.Add(new Role {Name = RoleName});
+                            string attribute=ienum.Current.ToString();
+#if DEBUG
+                            Console.WriteLine($"Ldap::GetRoles:ldap.ienum.current: {ienum.Current.ToString()}:");
+#endif
+                            if (attribute == userDn)
+                            {
+                                string RoleName = entry.GetAttribute("cn").StringValue;
+                                roleList.Add(new Role {Name = RoleName});
+                            }
                         }
-                    }
-                }
+                    }
+                }
             }
             Role[] roles = roleList.ToArray();
 #if DEBUG

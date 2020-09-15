@@ -7,24 +7,25 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using System.IO;
+using System.Security.Cryptography;
 
 namespace FWO_Auth_Server
 {
     class TokenGenerator
     {
-        private readonly SymmetricSecurityKey privateJWTKey;
-        private readonly int daysValid;
-
+        // private readonly SymmetricSecurityKey privateJwtKey;
+        // private readonly AsymmetricSignatureProvider publicJwtKey;
+        private readonly RsaSecurityKey rsaSecurityKey;
+        private readonly int hoursValid;
+        private readonly string signingAlgorithm = SecurityAlgorithms.RsaSha256;
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public TokenGenerator(string privateJWTKey, int daysValid)
+        public TokenGenerator(RsaSecurityKey rsaSecurityKey, int hoursValid)
         {
-            this.privateJWTKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateJWTKey));
-
-            this.daysValid = daysValid;
+            this.hoursValid = hoursValid;
+            this.rsaSecurityKey = rsaSecurityKey;
         }
 
         public string CreateJWT(User user, UserData userData, Role[] roles)
@@ -35,14 +36,18 @@ namespace FWO_Auth_Server
             ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
 
             // Create JWToken
+
+#if DEBUG
+            Console.WriteLine($"Auth::TokenGenerator:signingAlgorithm={signingAlgorithm}");
+#endif
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
                 issuer: issuer,
                 audience: audience,
                 subject: subject,
                 notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddDays(daysValid),
-                signingCredentials: new SigningCredentials(privateJWTKey, SecurityAlgorithms.HmacSha384)
+                expires: DateTime.UtcNow.AddHours(hoursValid),
+                signingCredentials: new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.RsaSha256)
              );
 
             string GeneratedToken = tokenHandler.WriteToken(token);

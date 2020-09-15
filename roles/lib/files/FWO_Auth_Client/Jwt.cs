@@ -52,61 +52,60 @@ namespace FWO.Auth.Client
             {
                 Console.Out.WriteAsync($"Auth_Client:: error while reading JWT: \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
             }
+        } 
+
+        static private byte[] FromBase64Url(string base64Url)
+        {
+            string padded = base64Url.Length % 4 == 0
+                ? base64Url : base64Url + "====".Substring(base64Url.Length % 4);
+            string base64 = padded.Replace("_", "/")
+                                .Replace("-", "+");
+            return Convert.FromBase64String(base64);
         }
 
         public bool Valid()
         {
-            RsaSecurityKey pubKey = ExtractPublicKey(publicJWTKey);
+            bool isPrivateKey = false;
+            string pubKey = AuthClient.ExtractKeyFromPemAsString(publicJWTKey, isPrivateKey);
             try
             {
                 if (Token == null)
                     return false;
 
-                var validationParameters = new TokenValidationParameters()
-                {
-                    ValidIssuer = "FWO Auth Module",
-                    ValidAudience = "FWO",
-                    IssuerSigningKey = pubKey // The public key of the auth server
-                    // IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(publicJWTKey)) // The public key of the auth server
-                };
+                // var validationParameters = new TokenValidationParameters()
+                // {
+                //     ValidIssuer = "FWO Auth Module",
+                //     ValidAudience = "FWO",
+                //     IssuerSigningKey = pubKey // The public key of the auth server
+                //     // IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(publicJWTKey)) // The public key of the auth server
+                // };
 
-                IPrincipal principal = Handler.ValidateToken(TokenString, validationParameters, out SecurityToken validatedToken);
+                //         IPrincipal principal = Handler.ValidateToken(TokenString, validationParameters, out SecurityToken validatedToken);
+
+                string[] tokenParts = this.TokenString.Split('.');
+                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
+                // rsa.ImportParameters( new RSAParameters() { pubKey.Parameters } );
+                rsa.ImportParameters( new RSAParameters() { 
+                    Modulus = FromBase64Url(pubKey),
+                    Exponent = FromBase64Url("AQAB")
+                    });
+
+                SHA256 sha256 = SHA256.Create();
+                byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(tokenParts[0] + '.' + tokenParts[1]));
+
+                RSAPKCS1SignatureDeformatter rsaDeformatter = new RSAPKCS1SignatureDeformatter(rsa);
+                rsaDeformatter.SetHashAlgorithm("SHA256");
+                if (rsaDeformatter.VerifySignature(hash, FromBase64Url(tokenParts[2])))
+                    return true;
+                else
+                    return false;
+
             }
             catch (Exception e)
             {
                 Console.Out.WriteAsync($"Auth:: found invalid JWT: \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
                 return false;
             }       
-
-            return true;
-        }
-
-        private RsaSecurityKey ExtractPublicKey(string RawKey)
-        {
-            string publicKeyPem;
-            RsaSecurityKey rsaKey = null;
-            try
-            {
-                // removing everything but the base64 encoded key string from private key PEM 
-                publicKeyPem = RawKey.Replace("-----BEGIN PUBLIC KEY-----", "");
-                publicKeyPem = publicKeyPem.Split("-----")[0];
-                publicKeyPem = publicKeyPem.Replace("\n", "");
-#if DEBUG
-                Console.WriteLine($"Auth::TokenGenerator:publicKeyPem={publicKeyPem}");
-#endif
-                byte[] publicKeyRaw = Convert.FromBase64String(publicKeyPem);
-
-                // creating the RSA key 
-                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
-                provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(publicKeyRaw), out _);
-                rsaKey =  new RsaSecurityKey(provider);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
-            }
-            return rsaKey;
         }
 
         public Claim[] GetClaims()

@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FWO_Auth_Server;
+using FWO.Auth.Client;
 using FWO.Api;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
@@ -99,7 +100,8 @@ ewIDAQAB
             Listener = new HttpListener();
 
             // Create Token Generator
-            TokenGenerator = new TokenGenerator(ExtractPrivateKey(privateJWTKey), hoursValid);
+            bool isPrivateKey = true;
+            TokenGenerator = new TokenGenerator(AuthClient.ExtractKeyFromPem(privateJWTKey, isPrivateKey), hoursValid);
 
             // create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header 
             APIConnection ApiConn = new APIConnection(ApiUri);
@@ -167,34 +169,6 @@ ewIDAQAB
             }
         }
 
-        private RsaSecurityKey ExtractPrivateKey(string RawKey)
-        {
-            string privateKeyPem;
-            RsaSecurityKey rsaKey = null;
-            try
-            {
-                // removing everything but the base64 encoded key string from private key PEM 
-                privateKeyPem = RawKey.Replace("-----BEGIN PRIVATE KEY-----", "");
-                privateKeyPem = privateKeyPem.Split("-----")[0];
-                privateKeyPem = privateKeyPem.Replace("\n", "");
-#if DEBUG
-                Console.WriteLine($"Auth::TokenGenerator:privateKeyPem={privateKeyPem}");
-#endif
-                byte[] privateKeyRaw = Convert.FromBase64String(privateKeyPem);
-
-                // creating the RSA key 
-                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
-                provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(privateKeyRaw), out _);
-                rsaKey =  new RsaSecurityKey(provider);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
-            }
-            return rsaKey;
-        }
-        
         private string CreateJwt(User User)
         {
             string responseString = "";

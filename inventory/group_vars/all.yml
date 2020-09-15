@@ -55,8 +55,3 @@ http_conf_dir: /etc/{{ web_server_name }}/sites-available/
 ### importer test data
 
 sting_fworch_user: itsecorg
-
-### to be moved to safe: passwords
-dbadmin_pwd: "st8chel"
-fworch_pwd: "st8chel"
-admin_pwd: "fworch.1"

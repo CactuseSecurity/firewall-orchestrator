@@ -33,7 +33,7 @@
     template:
       src: modify_example_roles.ldif.j2
       dest: "{{ fworch_home }}/auth/modify_example_roles.ldif"
-      become: yes
+    become: yes
 
   - name: Pass example roles
     command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ auth_server_base_dir }}/ldif/modify_example_roles.ldif"

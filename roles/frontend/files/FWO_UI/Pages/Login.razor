@@ -6,6 +6,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
+@inject IJSRuntime js
 
 @if (showLoginForm)
 {
@@ -43,7 +44,10 @@
 
         showLoginForm = true;
         if (firstRender)
+        {
             StateHasChanged();
+            await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
+        }
     }
 
     private async Task PotentialSubmit(KeyboardEventArgs e)

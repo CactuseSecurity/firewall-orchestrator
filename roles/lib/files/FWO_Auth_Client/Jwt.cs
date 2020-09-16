@@ -73,7 +73,7 @@ namespace FWO.Auth.Client
                 return false;
             bool isPrivateKey = false;
             // byte[] hash;
-            // int bytesRead = 0;
+            int bytesRead = 0;
             bool verified = false;
             string pubKey = AuthClient.ExtractKeyFromPemAsString(publicJWTKey, isPrivateKey);
             RsaSecurityKey pubKeyRsa = AuthClient.ExtractKeyFromPem(publicJWTKey, false);
@@ -83,31 +83,33 @@ namespace FWO.Auth.Client
 #endif
             try
             {
-                // https://stackoverflow.com/questions/34403823/verifying-jwt-signed-with-the-rs256-algorithm-using-public-key-in-c-sharp (#29)
-                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
-                rsa.ImportParameters(
-                    new RSAParameters()
-                    {
-                        Modulus = FromBase64Url(pubKey),
-                        Exponent = FromBase64Url("AQAB") // "e"
-                    });
+                // ===================================================================================
+                // // https://stackoverflow.com/questions/34403823/verifying-jwt-signed-with-the-rs256-algorithm-using-public-key-in-c-sharp (#29)
+                // RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
+                // rsa.ImportParameters(
+                //     new RSAParameters()
+                //     {
+                //         Modulus = FromBase64Url(pubKey),
+                //         Exponent = FromBase64Url("AQAB") // "e"
+                //     });
 
-                TokenValidationParameters validationParameters = new TokenValidationParameters
-                {
-                    RequireExpirationTime = true,
-                    RequireSignedTokens = true,
-                    ValidateAudience = false,
-                    ValidateIssuer = false,
-                    ValidateLifetime = true,
-                    IssuerSigningKey = new RsaSecurityKey(rsa)
-                };
+                // TokenValidationParameters validationParameters = new TokenValidationParameters
+                // {
+                //     RequireExpirationTime = true,
+                //     RequireSignedTokens = true,
+                //     ValidateAudience = false,
+                //     ValidateIssuer = false,
+                //     ValidateLifetime = true,
+                //     IssuerSigningKey = new RsaSecurityKey(rsa)
+                // };
 
-                SecurityToken validatedSecurityToken = null;
-                JwtSecurityTokenHandler handler = new JwtSecurityTokenHandler();
-                handler.ValidateToken(TokenString, validationParameters, out validatedSecurityToken);
-                JwtSecurityToken validatedJwt = validatedSecurityToken as JwtSecurityToken;
+                // SecurityToken validatedSecurityToken = null;
+                // JwtSecurityTokenHandler handler = new JwtSecurityTokenHandler();
+                // handler.ValidateToken(TokenString, validationParameters, out validatedSecurityToken);
+                // JwtSecurityToken validatedJwt = validatedSecurityToken as JwtSecurityToken;
 
-                // read public key from string
+                // ===================================================================================
+                // // read public key from string
                 // Console.WriteLine($"FWO::Auth.Client.Jwt: creating cert ...");
                 // X509Certificate2 certificate = new X509Certificate2(jwt_generator_private_key_file);
 
@@ -121,27 +123,39 @@ namespace FWO.Auth.Client
                 //     );
                 // }
 
-                // //Create a new instance of RSA.
-                // using (RSA rsa = RSA.Create())
-                // {
-                //     //The hash to sign.
+                // ===================================================================================
+                //Create a new instance of RSA.
+                using (RSA rsa = RSA.Create())
+                {
+                    //The hash to sign.
  
-                //     // using (SHA256 sha256 = SHA256.Create())
-                //     // {
-                //     //     hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(tokenParts[0] + '.' + tokenParts[1]));
-                //     // }
+                    // using (SHA256 sha256 = SHA256.Create())
+                    // {
+                    //     hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(tokenParts[0] + '.' + tokenParts[1]));
+                    // }
 
-                //     RSACryptoServiceProvider RsaVerifier = new RSACryptoServiceProvider();
+                    rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicJWTKey), out bytesRead);
 
-                //     // convert publicJWTKey from string to ReadOnlySpan<byte>
-                //     // convert token part 1+2 from string to byte[]
-                //     RsaVerifier.ImportRSAPublicKey(Convert.FromBase64String(publicJWTKey), out bytesRead);
-                //     verified = RsaVerifier.VerifyData(
-                //         Convert.FromBase64String(tokenParts[0] + '.' +  tokenParts[1]),
-                //         "SHA256",
-                //         Convert.FromBase64String(tokenParts[2])
-                //     );
-                // }
+                    verified = rsa.VerifyData(
+                        Convert.FromBase64String(tokenParts[0] + '.' +  tokenParts[1]),
+                        Convert.FromBase64String(tokenParts[2]),
+                        HashAlgorithmName.SHA256,
+                        RSASignaturePadding.Pss
+                    );
+                    RSACryptoServiceProvider RsaVerifier = new RSACryptoServiceProvider();
+
+                    // convert publicJWTKey from string to ReadOnlySpan<byte>
+                    // convert token part 1+2 from string to byte[]
+                    // RsaVerifier.ImportRSAPublicKey(Convert.FromBase64String(publicJWTKey), out bytesRead);
+
+                    // https://github.com/dotnet/runtime/issues/31091
+                    //RsaVerifier.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicJWTKey), out bytesRead);
+                    // verified = RsaVerifier.VerifyData(
+                    //     Convert.FromBase64String(tokenParts[0] + '.' +  tokenParts[1]),
+                    //     "SHA256",
+                    //     Convert.FromBase64String(tokenParts[2])
+                    // );
+                }
             }
             catch (CryptographicException e)
             {
@@ -170,7 +184,7 @@ namespace FWO.Auth.Client
             }
             finally {
                 Console.WriteLine("Finally ...");
-                verified = true;
+                // verified = true;
             }
  
 #if DEBUG

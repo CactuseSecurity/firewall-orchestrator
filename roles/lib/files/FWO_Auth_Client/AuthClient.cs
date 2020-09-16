@@ -88,8 +88,12 @@ namespace FWO.Auth.Client
                 byte[] keyBytes = Convert.FromBase64String(keyText);
                // creating the RSA key 
                 RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
-                provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
-                rsaKey =  new RsaSecurityKey(provider);
+                if (isPrivateKey)
+                    provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                else
+                    provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
+
+                rsaKey = new RsaSecurityKey(provider);
             }
             catch (Exception e)
             {

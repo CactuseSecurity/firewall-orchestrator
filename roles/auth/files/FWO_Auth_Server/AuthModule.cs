@@ -18,7 +18,7 @@ namespace FWO_Auth
     public class AuthModule
     {
         private readonly HttpListener Listener;
-        public Ldap[] LdapConnection;
+        public Ldap[] connectedLdaps;
         private readonly TokenGenerator TokenGenerator;
         private readonly string privateJWTKey = @"-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCtxiI6Ef+3OJVF
@@ -107,15 +107,15 @@ ewIDAQAB
             APIConnection ApiConn = new APIConnection(ApiUri);
             ApiConn.ChangeAuthHeader(TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") }));
             
-            // fetch all LdapConnections via API
+            // fetch all connectedLdaps via API
             Task<Ldap[]> ldapTask = Task.Run(()=> ApiConn.SendQuery<Ldap>(Queries.LdapConnections));
             ldapTask.Wait();
-            //Ldap[] ldapConnections = ldapTask.Result;
-            this.LdapConnection = ldapTask.Result;
+            //Ldap[] connectedLdaps = ldapTask.Result;
+            this.connectedLdaps = ldapTask.Result;
 
-            foreach (Ldap connection in LdapConnection)
+            foreach (Ldap connectedLdap in connectedLdaps)
             {
-                Console.WriteLine($"Authmodule::Creator: found ldap connection to server {connection.Address}:{connection.Port}");
+                Console.WriteLine($"Authmodule::Creator: found ldap connection to server {connectedLdap.Address}:{connectedLdap.Port}");
             }
             // Start Http Listener, todo: move to https
             String AuthServerListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";
@@ -182,47 +182,64 @@ ewIDAQAB
             {
                 Console.WriteLine($"Try to validate as {User.Name}...");
 
-                // try all configured ldap servers for authentication:
-                foreach (Ldap ldapConn in LdapConnection) 
+                // first look for the (first) ldap server with role information
+                Ldap roleLdap = null;
+                foreach (Ldap connLdap in connectedLdaps) 
                 {
-                    ldapConn.Connect();
-                    String UserDN = ldapConn.ValidateUser(User);
-                    if (UserDN!="") 
-                    {   // user was successfully auhtenticated via LDAP
-                        Console.WriteLine($"Successfully validated as {User} with DN {UserDN}");
-                        // User.UserDN = UserDN;
-
-                        Tenant tenant = new Tenant();
-                        tenant.tenantName = UserDN; //only part of it (first ou)
-
-                        // need to make APICalls available as common library
-
-                        // need to resolve tenant_name from DN to tenant_id first 
-                        // query get_tenant_id($tenant_name: String) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
-                        // variables: {"tenant_name": "forti"}
-                        tenant.tenantId = 0; // todo: replace with APICall() result
-
-                        // get visible devices with the following queries:
-
-                        // query get_visible_mgm_per_tenant($tenant_id:Int!){  get_visible_managements_per_tenant(args: {arg_1: $tenant_id})  id } }
-                        String variables = $"\"tenant_id\":{tenant.tenantId}";
-                        // tenant.VisibleDevices = APICall(query,variables);
-
-                        // query get_visible_devices_per_tenant($tenant_id:Int!){ get_visible_devices_per_tenant(args: {arg_1: $tenant_id}) { id }}
-                        // variables: {"tenant_id":3}
-                        // tenant.VisibleDevices = APICall();
-            
-                        // tenantInformation.VisibleDevices = {};
-                        // tenantInformation.VisibleManagements = [];
-
-                        UserData userData = new UserData();
-                        userData.tenant = tenant;
-                        responseString = TokenGenerator.CreateJWT(User, userData, ldapConn.GetRoles(UserDN));
-                    }
-
-                    else
+                    if (connLdap.RoleSearchPath != "")
                     {
-                        responseString = "InvalidCredentials";
+                        roleLdap = connLdap;
+                        break;
+                    }
+                }
+
+                if (roleLdap == null)
+                {
+                    // TODO: go ahead with anonymous or throw exception?
+                    Console.WriteLine("No roles can be determined. Logging in with anonymous user...");
+                    responseString = TokenGenerator.CreateJWT(User, null, new Role[] { new Role("anonymous") });
+                }
+                else
+                {
+                    // try all configured ldap servers for authentication:
+                    responseString = "InvalidCredentials";
+                    foreach (Ldap connLdap in connectedLdaps) 
+                    {
+                        connLdap.Connect();
+                        String UserDN = connLdap.ValidateUser(User);
+                        if (UserDN!="") 
+                        {   // user was successfully auhtenticated via LDAP
+                            Console.WriteLine($"Successfully validated as {User} with DN {UserDN}");
+                            // User.UserDN = UserDN;
+
+                            Tenant tenant = new Tenant();
+                            tenant.tenantName = UserDN; //only part of it (first ou)
+
+                            // need to make APICalls available as common library
+
+                            // need to resolve tenant_name from DN to tenant_id first 
+                            // query get_tenant_id($tenant_name: String) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
+                            // variables: {"tenant_name": "forti"}
+                            tenant.tenantId = 0; // todo: replace with APICall() result
+
+                            // get visible devices with the following queries:
+
+                            // query get_visible_mgm_per_tenant($tenant_id:Int!){  get_visible_managements_per_tenant(args: {arg_1: $tenant_id})  id } }
+                            String variables = $"\"tenant_id\":{tenant.tenantId}";
+                            // tenant.VisibleDevices = APICall(query,variables);
+
+                            // query get_visible_devices_per_tenant($tenant_id:Int!){ get_visible_devices_per_tenant(args: {arg_1: $tenant_id}) { id }}
+                            // variables: {"tenant_id":3}
+                            // tenant.VisibleDevices = APICall();
+                
+                            // tenantInformation.VisibleDevices = {};
+                            // tenantInformation.VisibleManagements = [];
+
+                            UserData userData = new UserData();
+                            userData.tenant = tenant;
+                            responseString = TokenGenerator.CreateJWT(User, userData, roleLdap.GetRoles(UserDN));
+                            break;
+                        }
                     }
                 }
             }  

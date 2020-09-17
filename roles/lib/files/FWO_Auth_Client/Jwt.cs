@@ -35,8 +35,8 @@ namespace FWO.Auth.Client
             // and import it into RSACryptoObject
             try
             {
-                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
-                rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(AuthClient.ExtractKeyFromPemAsString(publicJWTKey, false)), out _);
+                this.rsa = new RSACryptoServiceProvider();
+                this.rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(AuthClient.ExtractKeyFromPemAsString(publicJWTKey, false)), out _);
             }
             catch (Exception e)
             {

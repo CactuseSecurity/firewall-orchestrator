@@ -39,45 +39,6 @@ namespace FWO.Auth.Client
             return await response.Content.ReadAsStringAsync();
         }
 
-        private void ParameterToJson((string, object)[] Parameters)
-        {
-            StringBuilder JsonString = new StringBuilder();
-
-            JsonString.Append("{ ");
-
-            for (int i = 0; i < Parameters.Length; i++)
-            {
-                // "ParameterName":
-                JsonString.Append("\"" + Parameters[i].Item1 + "\":");
-
-                switch (Parameters[i].Item2)
-                {
-                    case string Value:
-                        // "Value"
-                        JsonString.Append("\"" + Value + "\"");
-                        break;
-
-                    case int Value:
-                        JsonString.Append(Value);
-                        break;
-
-                    case bool Value:
-                        JsonString.Append(Value);
-                        break;
-
-                    case null:
-                        JsonString.Append("null");
-                        break;
-                    
-                    default:
-                        break;
-                }
-
-                JsonString.Append(" ");
-            }
-
-            JsonString.Append(" }");
-        }
         public static RsaSecurityKey ExtractKeyFromPem(string RawKey, bool isPrivateKey)
         {
             string keyText = ExtractKeyFromPemAsString(RawKey, isPrivateKey);
@@ -89,7 +50,7 @@ namespace FWO.Auth.Client
                // creating the RSA key 
                 RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
                 if (isPrivateKey)
-                    provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                    provider.ImportRSAPrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
                 else
                     provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
 
@@ -102,16 +63,19 @@ namespace FWO.Auth.Client
             }
             return rsaKey;
         }
-        public static string ExtractKeyFromPemAsString(string RawKey, bool isPrivateKey)
+        public static string ExtractKeyFromPemAsString(string rawKey, bool isPrivateKey)
         {
             string keyText = null;
             string keyType = "PUBLIC";
+
+            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
+
             try
             {
                 if (isPrivateKey)
-                    keyType =  "PRIVATE";
+                    keyType =  "RSA PRIVATE";
                 // removing everything but the base64 encoded key string from private key PEM 
-                keyText = RawKey.Replace($"-----BEGIN {keyType} KEY-----", ""); // remove first line 
+                keyText = rawKey.Replace($"-----BEGIN {keyType} KEY-----", ""); // remove first line 
                 keyText = keyText.Split("-----")[0];    // only keep first part up to dividing ----
                 keyText = keyText.Replace("\n", "");    // remove line breaks
             }
@@ -120,6 +84,7 @@ namespace FWO.Auth.Client
                 Console.WriteLine(e.ToString());
                 Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
             }
+            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString keyText={keyText}, type={keyType}");
             return keyText;
         }
     }

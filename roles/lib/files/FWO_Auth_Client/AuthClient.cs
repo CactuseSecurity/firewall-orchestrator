@@ -77,11 +77,17 @@ namespace FWO.Auth.Client
             {
                 // removing armor of PEM file (first and last line)
                 List<string> lines = new List<string>(rawKey.Split('\n'));
-                var firstline = lines.Take(1);
+                var firstline = lines.First();
                 if (firstline.Contains("RSA"))
+                {
                     isRsaKey = true;
+                    // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = true");
+                }
                 else
+                {
                     isRsaKey = false;
+                    // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = false");
+                }
                 keyText = String.Join('\n', lines.GetRange(1,lines.Count-2).ToArray());
                 keyText = keyText.Replace("\n", "");    // remove line breaks
             }

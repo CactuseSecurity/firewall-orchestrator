@@ -11,13 +11,15 @@ namespace FWO.Auth.Client
     public class Jwt
     {
         private string jwt_generator_public_key_file = "../../../etc/secrets/jwt_public_key.pem";
-        private readonly string publicJWTKey;
+        private readonly string publicJWTKey; // in PEM-Format with armor
+        private readonly byte[] nakedPublicKeyBytes; // without armor in binary format
         private readonly string TokenString;
         private readonly JwtSecurityTokenHandler Handler;
         private readonly JwtSecurityToken Token;
+        private readonly RSACryptoServiceProvider rsa;
 
         public Jwt(string TokenString)
-        {   // Get private key from file
+        {   // Get public key from file
             try
             {
                 publicJWTKey = File.ReadAllText(jwt_generator_public_key_file).TrimEnd();
@@ -30,7 +32,21 @@ namespace FWO.Auth.Client
                 Console.Out.WriteAsync($"Using fallback key! \n");
                 Console.ForegroundColor = StandardConsoleColor;
             }
-
+            // and import it into RSACryptoObject
+            try
+            {
+                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
+                rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(AuthClient.ExtractKeyFromPemAsString(publicJWTKey, false)), out _);
+            }
+            catch (Exception e)
+            {
+                ConsoleColor StandardConsoleColor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Out.WriteAsync($"Error while trying to import public key into RSACryptoServiceProvider : \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
+                Console.Out.WriteAsync($"Using fallback key! \n");
+                Console.ForegroundColor = StandardConsoleColor;
+            }
+            // store Jwt token string and import it into JwtToken object
             this.TokenString = TokenString;
             Handler = new JwtSecurityTokenHandler();
             try 
@@ -44,12 +60,6 @@ namespace FWO.Auth.Client
             }
         } 
 
-        static private byte[] FromBase64Url(string base64Url)
-        {
-            string padded = base64Url.Length % 4 == 0 ? base64Url : base64Url + "====".Substring(base64Url.Length % 4);
-            return Convert.FromBase64String(padded.Replace("_", "/").Replace("-", "+"));
-        }
-
         public bool Valid()
         {
             if (Token == null)
@@ -62,9 +72,6 @@ namespace FWO.Auth.Client
             
             try
             { // source: https://stackoverflow.com/questions/34403823/verifying-jwt-signed-with-the-rs256-algorithm-using-public-key-in-c-sharp (#29)                
-                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
-                rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(AuthClient.ExtractKeyFromPemAsString(publicJWTKey, isPrivateKey)), out _);
-
                 TokenValidationParameters validationParameters = new TokenValidationParameters
                 {
                     RequireExpirationTime = true,
@@ -72,18 +79,18 @@ namespace FWO.Auth.Client
                     ValidateAudience = false,
                     ValidateIssuer = false,
                     ValidateLifetime = true,
-                    IssuerSigningKey = new RsaSecurityKey(rsa)
+                    IssuerSigningKey = new RsaSecurityKey(this.rsa)
                 };
                 SecurityToken validatedSecurityToken = null;
                 JwtSecurityTokenHandler handler = new JwtSecurityTokenHandler();
                 handler.ValidateToken(TokenString, validationParameters, out validatedSecurityToken);
                 JwtSecurityToken validatedJwt = validatedSecurityToken as JwtSecurityToken;
             }
-            catch (SecurityTokenInvalidSignatureException SignFault) {
+            catch (SecurityTokenInvalidSignatureException) {
                 Console.WriteLine($"FWO::Auth.Client.Jwt: JWT signature could not be verified.");
                 verified = false;
             }
-            catch (SecurityTokenExpiredException Expiry) {
+            catch (SecurityTokenExpiredException) {
                 Console.WriteLine($"FWO::Auth.Client.Jwt: JWT expired.");
                 verified = false;
             }

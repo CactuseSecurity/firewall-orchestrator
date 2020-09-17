@@ -75,7 +75,7 @@ ewIDAQAB
                 AuthServerIp = config.GetConfigValue("auth_hostname");
                 AuthServerPort = config.GetConfigValue("auth_server_port");
             }
-            catch (Exception eConfigFileRead)
+            catch (Exception)
             {
                 Console.WriteLine($"Error while trying to read config from file {configFile}\n");
                 System.Environment.Exit(1); // exit with error

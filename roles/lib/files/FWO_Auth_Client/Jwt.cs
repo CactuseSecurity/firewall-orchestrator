@@ -64,11 +64,10 @@ namespace FWO.Auth.Client
         {
             if (Token == null)
                 return false;
-            string[] tokenParts = this.TokenString.Split('.');
+            string[] tokenParts = this.TokenString.Split('.');  // 
             if (tokenParts[2] == null || tokenParts[2] == String.Empty)
                 return false;
-            bool isPrivateKey = false;
-            bool verified = true;
+            bool verified = true; // default ok, then set to false if any exception occurs during validation 
             
             try
             { // source: https://stackoverflow.com/questions/34403823/verifying-jwt-signed-with-the-rs256-algorithm-using-public-key-in-c-sharp (#29)                
@@ -99,8 +98,7 @@ namespace FWO.Auth.Client
                 verified = false;
             }
 #if DEBUG
-            if (verified) 
-                Console.WriteLine($"FWO::Auth.Client.Jwt: JWT signature validated.");
+            if (verified) Console.WriteLine($"FWO::Auth.Client.Jwt: JWT signature validated.");
 #endif
             return verified;
         }            
@@ -115,7 +113,6 @@ namespace FWO.Auth.Client
             {
                 //This should never happen
             }
-
             return new Claim[0];
         }
     }

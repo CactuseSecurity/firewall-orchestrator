@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Net.Http;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 
@@ -50,7 +46,10 @@ namespace FWO.Auth.Client
                // creating the RSA key 
                 RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
                 if (isPrivateKey)
-                    provider.ImportRSAPrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+// debian 10:
+                    provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+// ubuntu 20.04:
+//                    provider.ImportRSAPrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
                 else
                     provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
 
@@ -66,17 +65,12 @@ namespace FWO.Auth.Client
         public static string ExtractKeyFromPemAsString(string rawKey, bool isPrivateKey)
         {
             string keyText = null;
-            string keyType = "PUBLIC";
-
             Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
-
             try
             {
-                if (isPrivateKey)
-                    keyType =  "RSA PRIVATE";
                 // removing everything but the base64 encoded key string from private key PEM 
-                keyText = rawKey.Replace($"-----BEGIN {keyType} KEY-----", ""); // remove first line 
-                keyText = keyText.Split("-----")[0];    // only keep first part up to dividing ----
+                List<string> lines = new List<string>(rawKey.Split('\n'));
+                keyText = String.Join('\n', lines.GetRange(1,lines.Count-2).ToArray());
                 keyText = keyText.Replace("\n", "");    // remove line breaks
             }
             catch (Exception e)
@@ -84,7 +78,7 @@ namespace FWO.Auth.Client
                 Console.WriteLine(e.ToString());
                 Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
             }
-            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString keyText={keyText}, type={keyType}");
+            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString keyText={keyText}");
             return keyText;
         }
     }

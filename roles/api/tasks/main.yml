@@ -20,7 +20,10 @@
 
 - name: install python3-openssl for openssl key generation
   package:
-    name: python3-openssl
+    name: "{{ item }}"
+  loop:
+    - python3-cryptography
+    - python3-openssl
   become: yes
 
 # we already need the (public) key during api install

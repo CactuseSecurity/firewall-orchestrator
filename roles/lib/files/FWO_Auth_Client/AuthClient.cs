@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
+using System.Linq;
 
 namespace FWO.Auth.Client
 {
@@ -37,7 +38,8 @@ namespace FWO.Auth.Client
 
         public static RsaSecurityKey ExtractKeyFromPem(string RawKey, bool isPrivateKey)
         {
-            string keyText = ExtractKeyFromPemAsString(RawKey, isPrivateKey);
+            bool isRsaKey = true;
+            string keyText = ExtractKeyFromPemAsString(RawKey, isPrivateKey,  out isRsaKey);
             RsaSecurityKey rsaKey = null;
            
             try
@@ -46,13 +48,17 @@ namespace FWO.Auth.Client
                // creating the RSA key 
                 RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
                 if (isPrivateKey)
-// debian 10:
-                    provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
-// ubuntu 20.04:
-//                    provider.ImportRSAPrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
-                else
+                {   
+                    if (isRsaKey)
+                    {   // ubuntu 20.04:
+                        provider.ImportRSAPrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                    } else
+                    {   // debian 10:
+                        provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                    }
+                }
+                else   // public key
                     provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
-
                 rsaKey = new RsaSecurityKey(provider);
             }
             catch (Exception e)
@@ -62,14 +68,20 @@ namespace FWO.Auth.Client
             }
             return rsaKey;
         }
-        public static string ExtractKeyFromPemAsString(string rawKey, bool isPrivateKey)
+        public static string ExtractKeyFromPemAsString(string rawKey, bool isPrivateKey, out bool isRsaKey)
         {
             string keyText = null;
+            isRsaKey = true;
             Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
             try
             {
-                // removing everything but the base64 encoded key string from private key PEM 
+                // removing armor of PEM file (first and last line)
                 List<string> lines = new List<string>(rawKey.Split('\n'));
+                var firstline = lines.Take(1);
+                if (firstline.Contains("RSA"))
+                    isRsaKey = true;
+                else
+                    isRsaKey = false;
                 keyText = String.Join('\n', lines.GetRange(1,lines.Count-2).ToArray());
                 keyText = keyText.Replace("\n", "");    // remove line breaks
             }
@@ -83,3 +95,4 @@ namespace FWO.Auth.Client
         }
     }
 }
+

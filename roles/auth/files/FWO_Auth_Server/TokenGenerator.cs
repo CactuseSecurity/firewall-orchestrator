@@ -1,14 +1,9 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
-using System.IO;
-using System.Security.Cryptography;
 
 namespace FWO_Auth_Server
 {
@@ -18,7 +13,6 @@ namespace FWO_Auth_Server
         // private readonly AsymmetricSignatureProvider publicJwtKey;
         private readonly RsaSecurityKey rsaSecurityKey;
         private readonly int hoursValid;
-        private readonly string signingAlgorithm = SecurityAlgorithms.RsaSha256;
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 

@@ -26,49 +26,6 @@
     - python3-openssl
   become: yes
 
-# we already need the (public) key during api install
-# todo: move to separate script creating secrets both before api and auth install
-# private key needed on the auth server, public key on ui & api
-
-# creates a .pem keyfile including both private and public key in base64
-- name: Generate JWT private key 
-  openssl_privatekey:
-    path: "{{ jwt_private_key_file }}"
-    size: 2048
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
-    mode: "0600"
-    backup: yes
-  become: yes
-    
-- name: Generate JWT public key in PEM format
-  openssl_publickey:
-    path: "{{ jwt_public_key_file }}"
-    privatekey_path: "{{ jwt_private_key_file }}"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
-    mode: "0644"
-  become: yes
-
-# - name: generate jwt secret
-#   shell: "< /dev/urandom tr -dc a-f0-9 | head -c${1:-512}"
-#   register: secret512
-
-# - set_fact: api_hasura_jwt_secret="{{ secret512.stdout }}"
-
-# - name: write api_hasura_jwt_secret into file for reference
-#   lineinfile:
-#     path: "{{ fworch_home }}/etc/secrets/jwt_private.key"
-#     line: "{{ api_hasura_jwt_secret }}"
-#     regexp: ".*"    # match every line and replace it (only one line expected)
-#     create: yes
-#     mode: "0600"
-#     owner: "{{ fworch_user }}"
-#     group: "{{ fworch_user }}"
-#     backup: yes
-#   become: yes
-#   # todo: this only works if both api and auth server are on the same machine
-
 - name: hasura install 
   import_tasks: hasura-install.yml
 

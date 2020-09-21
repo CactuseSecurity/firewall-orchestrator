@@ -205,6 +205,7 @@ ewIDAQAB
                     responseString = "InvalidCredentials";
                     foreach (Ldap connLdap in connectedLdaps) 
                     {
+                        Console.WriteLine($"CreateJwt - trying to authenticate {User} against LDAP {connLdap.Address}:{connLdap.Port} ...");
                         connLdap.Connect();
                         String UserDN = connLdap.ValidateUser(User);
                         if (UserDN!="") 

@@ -126,7 +126,6 @@ namespace FWO_Auth_Server
                 if (!(RoleSearchPath is null))
                 {
                     connection.Bind(SearchUser,SearchUserPwd);
-                    // string roleSearchBase = $"ou=role,dc=fworch,dc=internal"; // todo: roles need to be searched in internal ldap only
                     int searchScope = LdapConnection.ScopeOne;
                     string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
                     LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath,searchScope,searchFilter,null,false);

@@ -80,7 +80,13 @@ namespace FWO_Auth_Server
                 using (LdapConnection connection = Connect())
                 {
                     connection.Bind(SearchUser, SearchUserPwd);
-                    LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(UserSearchPath, LdapConnection.ScopeSub, $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", null, typesOnly: false);
+                    LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(
+                        UserSearchPath,             // top-level path under which to search for user
+                        LdapConnection.ScopeSub,    // search all levels beneath
+                        $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
+                        null, 
+                        typesOnly: false
+                    );
 
                     while (possibleUsers.HasMore())
                     {

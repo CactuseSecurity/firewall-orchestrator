@@ -18,14 +18,6 @@
 - name: install apache2
   import_tasks: api-apache-install-and-setup.yml
 
-- name: install python3-openssl for openssl key generation
-  package:
-    name: "{{ item }}"
-  loop:
-    - python3-cryptography
-    - python3-openssl
-  become: yes
-
 - name: hasura install 
   import_tasks: hasura-install.yml
 

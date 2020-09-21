@@ -15,6 +15,14 @@
     group: "{{ fworch_user }}"
   become: yes
 
+- name: install python3-openssl for openssl key generation
+  package:
+    name: "{{ item }}"
+  loop:
+    - python3-cryptography
+    - python3-openssl
+  become: yes
+
 - name: create auth secrets (jwt key, ldap)
   include_tasks: create_auth_secrets.yml
 

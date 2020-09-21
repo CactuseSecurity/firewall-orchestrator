@@ -12,7 +12,8 @@ using System.Text.Json.Serialization;
 namespace FWO_Auth_Server
 {
     public class Ldap
-    // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles
+    // the following parameters are retrieved from the query and set in this class:
+    //     ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles
     {
         [JsonPropertyName("ldap_server")]
         public string Address { get; set; }
@@ -48,9 +49,14 @@ namespace FWO_Auth_Server
         {
             LdapConnection connection = null;
 
+
             try
             {
-                connection = new LdapConnection { SecureSocketLayer = true };
+                if (Tls)
+                    connection = new LdapConnection { SecureSocketLayer = true };
+                else 
+                    connection = new LdapConnection { SecureSocketLayer = false };
+
                 connection.UserDefinedServerCertValidationDelegate +=
                     (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation
 

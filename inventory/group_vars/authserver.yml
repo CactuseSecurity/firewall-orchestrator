@@ -18,7 +18,7 @@ auth_change_local_ldap: "yes"
 ########## test data only ##############
 
 test_ldap_external_server: 192.168.100.8
-test_ldap_external_user_search_path: "CN=Users,DC=int,DC=cactus,DC=de"
+test_ldap_external_user_search_path: "DC=int,DC=cactus,DC=de"
 test_ldap_external_user_fq_name: "ad-readonly@int.cactus.de"
 test_ldap_external_user_pwd: "fworch.123!"
 test_ldap_external_tls: false

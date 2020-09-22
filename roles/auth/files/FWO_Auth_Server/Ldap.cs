@@ -48,17 +48,17 @@ namespace FWO_Auth_Server
         public LdapConnection Connect()
         {
             LdapConnection connection = null;
-
-
+            int timeOutInMsecs = 200;
+            
             try
             {
-                if (Tls)
-                    connection = new LdapConnection { SecureSocketLayer = true, ConnectionTimeout= 200 };
+                if (Tls) {
+                    connection = new LdapConnection { SecureSocketLayer = true, ConnectionTimeout = timeOutInMsecs };
+                    connection.UserDefinedServerCertValidationDelegate +=
+                        (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true; // todo: allow cert validation
+                }
                 else 
-                    connection = new LdapConnection { SecureSocketLayer = false, ConnectionTimeout= 200 };
-
-                connection.UserDefinedServerCertValidationDelegate +=
-                    (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation
+                    connection = new LdapConnection { SecureSocketLayer = false, ConnectionTimeout = timeOutInMsecs };
 
                 connection.Connect(Address, Port);
             }

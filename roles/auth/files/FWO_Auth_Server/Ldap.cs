@@ -12,7 +12,8 @@ using System.Text.Json.Serialization;
 namespace FWO_Auth_Server
 {
     public class Ldap
-    // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles
+    // the following parameters are retrieved from the query and set in this class:
+    //     ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles
     {
         [JsonPropertyName("ldap_server")]
         public string Address { get; set; }
@@ -48,9 +49,14 @@ namespace FWO_Auth_Server
         {
             LdapConnection connection = null;
 
+
             try
             {
-                connection = new LdapConnection { SecureSocketLayer = true };
+                if (Tls)
+                    connection = new LdapConnection { SecureSocketLayer = true, ConnectionTimeout= 200 };
+                else 
+                    connection = new LdapConnection { SecureSocketLayer = false, ConnectionTimeout= 200 };
+
                 connection.UserDefinedServerCertValidationDelegate +=
                     (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation
 
@@ -74,7 +80,13 @@ namespace FWO_Auth_Server
                 using (LdapConnection connection = Connect())
                 {
                     connection.Bind(SearchUser, SearchUserPwd);
-                    LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(UserSearchPath, LdapConnection.ScopeSub, $"(&(objectClass=inetOrgPerson)(uid:dn:={user.Name}))", null, typesOnly: false);
+                    LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(
+                        UserSearchPath,             // top-level path under which to search for user
+                        LdapConnection.ScopeSub,    // search all levels beneath
+                        $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
+                        null, 
+                        typesOnly: false
+                    );
 
                     while (possibleUsers.HasMore())
                     {
@@ -120,7 +132,6 @@ namespace FWO_Auth_Server
                 if (!(RoleSearchPath is null))
                 {
                     connection.Bind(SearchUser,SearchUserPwd);
-                    // string roleSearchBase = $"ou=role,dc=fworch,dc=internal"; // todo: roles need to be searched in internal ldap only
                     int searchScope = LdapConnection.ScopeOne;
                     string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
                     LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath,searchScope,searchFilter,null,false);

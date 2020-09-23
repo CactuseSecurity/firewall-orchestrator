@@ -52,7 +52,5 @@
     chdir: "{{ auth_server_start_dir }}"
   become: yes
   become_user: "{{ fworch_user }}"
-
-- name: start auth service
-  command: "systemctl restart {{ auth_service_name }}"
-  become: yes
+  # this will fail to start the server as the api is not ready yet
+  # we will restart the authserver later 

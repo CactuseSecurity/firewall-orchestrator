@@ -4,6 +4,39 @@
 
 see ansible installation under <https://github.com/CactuseSecurity/firewall-orchestrator/tree/master/roles/openldap-server>
 
+## general information
+
+- see structure of ldap tree here <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/auth/ldap_structure.png>
+- if you want to work and test with ldap become user fworch
+
+    sudo su fworch
+
+- every entry in ldap has a distinguished name (dn) which is unique
+- the dn is composed of the tree path to the entry
+- to access ldap you have to bind as an user (entry in ldap)
+- this is done by including the option -D
+- most user/entries you bind with have passwords, you pass these as text with -x or link to the file where they are stored with -y
+- if you don't choose a bind option, you bind as anonymous
+- ldap is currently rwe by user manager and read only by inspector (their dn's are in the examples later) and rwe access denied to everyone else
+- if you want to change this modify this config file <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/roles/openldap-server/templates/slapd.conf_ubuntu.j2>
+
+## some specific questions
+
+Is it possible to gain all information below a tree node?
+- Yes, this answer uses C# and the library Novell
+- Good documentation https://www.novell.com/documentation/developer/ldapcsharp/?page=/documentation/developer/ldapcsharp/cnet/data/bovtz77.html
+- 1. You have to bind the LDAP server (documentation link Chapter 3.1)
+- 2. Search with a search base (documentation link Chapter 3.2)
+- Example:
+- string searchBase = "ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal";
+- LdapSearchQueue queue=ldapConn.Search (searchBase,...)
+- This only searches in and below tenent2 (can be adjusted and finetuned with Search Scope)
+- If you want to use Linux command line use ldapsearch -b "searchbase" ...
+List all users with identical login name
+- On command Line: ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=fritz -x
+- If you want to search only in tenant 1 add "-b ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal" to query
+
+
 ## ldap client access
 
 ### adding information with ldapadd
@@ -137,11 +170,60 @@ Here fritz is not required to exist somewhere in the ldap tree.
 Not tested yet!
 
     ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
+### querying AD
+currently works via ldap not ldaps.
+Example:
+```console
+tim@deb10-test:/var/log/fworch$ ldapsearch -x -D "ad-readonly@int.cactus.de" -H ldap://192.168.100.8 -W -b "DC=Users,DC=int,DC=cactus,DC=de" "(sAMAccountName=tim)"
+dn: CN=Tim Purschke,CN=Users,DC=int,DC=cactus,DC=de
+cn: Tim Purschke
+distinguishedName: CN=Tim Purschke,CN=Users,DC=int,DC=cactus,DC=de
+displayName: Tim Purschke
+uSNChanged: 4413227
+name: Tim Purschke
+objectGUID:: 8rakK4DX40ahetu1vNDebA==
+userAccountControl: 512
+objectSid:: AQUAAAAAAAUVAAAA2YTAfH0kWZgXgpVqUAQAAA==
+sAMAccountName: tim
+userPrincipalName: tim@int.cactus.de
+```
+
+#### TLS-Fehler stringray
+
+Auf dem System ist keine Standard-Serverreferenz vorhanden. Serveranwendungen, die Standard-Systemreferenzen verwenden, werden keine SSL-Verbindungen akzeptieren. Als Beispiel einer solchen Anwendung dient der Verzeichnisserver. Dies hat keine Auswirkung auf Anwendungen wie der Internet Information Server, die die eigenen Referenzen verwalten, .
+
+#### test with stingray.int.cactus.de
+
+source: <https://tylersguides.com/guides/search-active-directory-ldapsearch/>
+
+```code
+tim@ubu18test:~/firewall-orchestrator$ openssl s_client -connect 192.168.100.8:636 -showcerts </dev/null
+CONNECTED(00000005)
+write:errno=104
+---
+no peer certificate available
+---
+No client certificate CA names sent
+---
+SSL handshake has read 0 bytes and written 315 bytes
+Verification: OK
+---
+New, (NONE), Cipher is (NONE)
+Secure Renegotiation IS NOT supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 0 (ok)
+---
+ldapsearch -x -D "tim@cactus.de" -H ldaps://192.168.100.8 -W -b "dc=cactus" "(sAMAccountName=user)" 
+```
 
 ## authentication against ldap from .net (C#)
 
 ext. documentation, see <https://auth0.com/blog/using-ldap-with-c-sharp/>
 
-## querying multiple ldap servers in a row
 
+## ldap and c#
 
+- Good documentation <https://www.novell.com/documentation/developer/ldapcsharp/?page=/documentation/developer/ldapcsharp/cnet/data/bovtz77.html>

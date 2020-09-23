@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Net.Http;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
+using System.Linq;
 
 namespace FWO.Auth.Client
 {
@@ -36,44 +36,69 @@ namespace FWO.Auth.Client
             return await response.Content.ReadAsStringAsync();
         }
 
-        private void ParameterToJson((string, object)[] Parameters)
+        public static RsaSecurityKey ExtractKeyFromPem(string RawKey, bool isPrivateKey)
         {
-            StringBuilder JsonString = new StringBuilder();
-
-            JsonString.Append("{ ");
-
-            for (int i = 0; i < Parameters.Length; i++)
+            bool isRsaKey = true;
+            string keyText = ExtractKeyFromPemAsString(RawKey, isPrivateKey,  out isRsaKey);
+            RsaSecurityKey rsaKey = null;
+           
+            try
             {
-                // "ParameterName":
-                JsonString.Append("\"" + Parameters[i].Item1 + "\":");
-
-                switch (Parameters[i].Item2)
-                {
-                    case string Value:
-                        // "Value"
-                        JsonString.Append("\"" + Value + "\"");
-                        break;
-
-                    case int Value:
-                        JsonString.Append(Value);
-                        break;
-
-                    case bool Value:
-                        JsonString.Append(Value);
-                        break;
-
-                    case null:
-                        JsonString.Append("null");
-                        break;
-                    
-                    default:
-                        break;
+                byte[] keyBytes = Convert.FromBase64String(keyText);
+               // creating the RSA key 
+                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
+                if (isPrivateKey)
+                {   
+                    if (isRsaKey)
+                    {   // ubuntu 20.04:
+                        provider.ImportRSAPrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                    } else
+                    {   // debian 10:
+                        provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
+                    }
                 }
-
-                JsonString.Append(" ");
+                else   // public key
+                    provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
+                rsaKey = new RsaSecurityKey(provider);
             }
-
-            JsonString.Append(" }");
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
+            }
+            return rsaKey;
+        }
+        public static string ExtractKeyFromPemAsString(string rawKey, bool isPrivateKey, out bool isRsaKey)
+        {
+            string keyText = null;
+            isRsaKey = true;
+            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
+            try
+            {
+                // removing armor of PEM file (first and last line)
+                List<string> lines = new List<string>(rawKey.Split('\n'));
+                var firstline = lines.First();
+                if (firstline.Contains("RSA"))
+                {
+                    isRsaKey = true;
+                    // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = true");
+                }
+                else
+                {
+                    isRsaKey = false;
+                    // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = false");
+                }
+                keyText = String.Join('\n', lines.GetRange(1,lines.Count-2).ToArray());
+                keyText = keyText.Replace("\n", "");    // remove line breaks
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
+            }
+            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString keyText={keyText}");
+            return keyText;
         }
     }
 }
+

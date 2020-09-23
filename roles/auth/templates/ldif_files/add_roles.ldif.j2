@@ -1,5 +1,5 @@
 dn: cn=anonymous,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: anonymous
@@ -7,7 +7,7 @@ uniqueMember:
 description: anonymous users can only access the login page and health statistics
 
 dn: cn=auth-server,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: auth-server
@@ -15,7 +15,7 @@ uniqueMember:
 description: allows the auth server to read necessary tables (ldap_connection)
 
 dn: cn=reporter,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: reporter
@@ -23,7 +23,7 @@ uniqueMember:
 description: reporters have access to basic tables (stm_...) and limited rights for object and rule tables depending on the visible devices for the tenant the user belongs to
 
 dn: cn=reporter-viewall,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: reporter-viewall
@@ -31,7 +31,7 @@ uniqueMember:
 description: reporter role for full read access to all devices
 
 dn: cn=importer,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: importer
@@ -39,7 +39,7 @@ uniqueMember:
 description: users can import config changes into the database
 
 dn: cn=dbbackup,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: dbbackup
@@ -47,7 +47,7 @@ uniqueMember:
 description: users that are able to read data tables for backup purposes
 
 dn: cn=auditor,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: auditor
@@ -55,7 +55,7 @@ uniqueMember:
 description: users that can view all data & settings (in the UI) but cannot make any changes
 
 dn: cn=workflow-user,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: workflow-user
@@ -63,7 +63,7 @@ uniqueMember:
 description: (for future use) users who can request firewall changes
 
 dn: cn=workflow-admin,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: workflow-admin
@@ -71,7 +71,7 @@ uniqueMember:
 description: (for future use) users who can create change request workflows
 
 dn: cn=fw-admin,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: fw-admin
@@ -79,7 +79,7 @@ uniqueMember:
 description: users who can document open changes
 
 dn: cn=admin,ou=role,{{ auth_ldap_path }}
-changetype: add
+changetype: {{ ldif_changetype }}
 objectClass: top
 objectClass: groupofuniquenames
 cn: admin

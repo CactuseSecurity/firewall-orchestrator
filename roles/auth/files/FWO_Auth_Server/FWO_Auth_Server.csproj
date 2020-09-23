@@ -11,4 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO_API_Client.csproj" />
   </ItemGroup>
+  <ItemGroup>
+      <ProjectReference Include="../../../lib/files/FWO_API_Client/FWO_API_Client.csproj"/>
+      <ProjectReference Include="../../../lib/files/FWO_Auth_Client/FWO_Auth_Client.csproj" />
+  </ItemGroup>
 </Project>

@@ -2,11 +2,11 @@
 
 ## Architecture and basic funtionality
 - All users including password and roles a user belong to (role-mapping) are defined within ldap directories.
-- All roles and their permissions are defined within the database.
-- The user-tenant mapping is implemented in the LDAP hierarchy.
-- The user-role mapping is defined in the LDAP hierarchy under role.
+- All roles and their permissions are defined within the API.
+- The user-tenant mapping is implemented in the LDAP hierarchy (either locally or on the external ldap).
+- The user-role mapping is defined in the local LDAP hierarchy under role, adding users to a role with the "uniqueMember" attribute.
 - The ldap directory can either be locally installed (based on open-ldap) or an external (eg. ActiveDirectory) ldap directory.
-- Roles are non-additive (meaning a user can only have permissions belonging to a single role at a given time). But the user can switch roles during a workflow.
+- Roles are non-additive (meaning a user can only have permissions belonging to a single role at a given time). But the user can switch roles during a workflow without changing the JWT by sending an addtional HTTP header x-hasura-role.
 
 ## Roles
 
@@ -41,22 +41,19 @@ These tenant-based permissions are assigned during login as follows:
 - The devices a tenant has access to are read from the database table tenent_to_device.
 - This information is written to a JWT (visible_devices, visible_managements) and signed by the Auth-Module.
 
-
 ## LDAP - remote vs. local
 - When using only the local LDAP server, the user <--> role matching is implemented with LDAP groups managed via the web user interface.
-- When using a remote LDAP server, the user <--> role matching can be either
-- In both cases the roles need to be added to the role table.
+- When using a remote LDAP server, the user <--> role matching is done on the local ldap.
 
 ### Adding users
 
 #### When creating a new user locally
 The user does not get any role assignments to avoid any unwanted access rights.
 
-#### When adding a new user or user group from a remote LDAP server
+#### When adding a new user or tenant from a remote LDAP server
 
-The user or user group does not get any role assignments to avoid any unwanted access rights.
-
-The user is created in the local LDAP server as well but does not get any password to make sure, the credential checking is done remotely every time the user logs in (TODO: needs to be checked if this works!).
+Initially the user or tenant group does not get any role assignments to avoid any unwanted access rights.
+An admin needs to manually assign role(s) to the user.
 
 ## Default users
 - The default password of all users is "fworch.1" and needs to be changed when logging in for the first time.

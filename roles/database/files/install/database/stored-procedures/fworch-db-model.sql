@@ -898,6 +898,7 @@ Create table "ldap_connection"
 	"ldap_port" Integer NOT NULL Default 636,
 	"ldap_tls" Boolean NOT NULL Default TRUE,
 	"ldap_searchpath_for_users" Varchar NOT NULL,
+	"ldap_searchpath_for_roles" Varchar,
 	"ldap_tenant_level" Integer NOT NULL Default 1,
 	"ldap_search_user" Varchar NOT NULL,
 	"ldap_search_user_pwd" Varchar NOT NULL,

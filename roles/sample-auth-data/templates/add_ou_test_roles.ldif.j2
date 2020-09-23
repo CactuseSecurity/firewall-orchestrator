@@ -1,16 +1,3 @@
-# tenant forti - users are only able to see fortigate firewalls
-dn: ou=forti,{{ auth_ldap_std_user_path }}
-changetype: add
-objectClass: top
-objectClass: organizationalUnit
-ou: forti
-
-# tenant check - users are only able to see check point firewalls
-dn: ou=check,{{ auth_ldap_std_user_path }}
-changetype: add
-objectClass: top
-objectClass: organizationalUnit
-ou: check
 
 # tenant viewall - users can see all firewalls
 dn: ou=viewall,{{ auth_ldap_std_user_path }}

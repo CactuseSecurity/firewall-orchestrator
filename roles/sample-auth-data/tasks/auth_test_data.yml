@@ -1,22 +1,33 @@
 - block:
-  # todo: use a single file for the following with \i file.sql
-  - name: insert tenant forti
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''forti'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''forti'', false, false); END IF; END $do$"'
-
-  - name: add devices for tenant forti
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''forti'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant_id, 1 from tenant where tenant_name=''forti''; END IF; END $do$"'
-
-  - name: insert tenant check
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''check'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''check'', false, false); END IF; END $do$"'
-
-  - name: add devices for tenant check
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''check'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant_id, 2 from tenant where tenant_name=''check''; END IF; END $do$"'
-
   - name: insert tenant viewall
     command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''viewall'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''viewall'', false, false); END IF; END $do$"'
 
   - name: add devices for tenant viewall
     command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''viewall'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name=''viewall''; END IF; END $do$"'
+
+  - name: insert tenant tenant0
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''tenant0'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''tenant0'', true, true); END IF; END $do$"'
+
+  - name: add all devices for tenant tenant0
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''tenant0'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name=''tenant0''; END IF; END $do$"'
+
+  - name: insert tenant tenant1
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''tenant1'') THEN insert into tenant (tenant_id, tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (5, ''tenant1'', false, false); END IF; END $do$"'
+
+  - name: add devices for tenant tenant1
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''tenant1'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) VALUES (5,1); END IF; END $do$"'
+
+  - name: insert tenant tenant2
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''tenant2'') THEN insert into tenant (tenant_id, tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (6, ''tenant2'', false, false); END IF; END $do$"'
+
+  - name: add devices for tenant tenant2
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''tenant2'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) VALUES (6,2); END IF; END $do$"'
+
+  - name: add external ldap test connection
+    shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection WHERE ldap_server='{{ test_ldap_external_server | quote }}') THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_tls) VALUES ('{{ test_ldap_external_server | quote }}', {{ test_ldap_external_port | quote }}, '{{ test_ldap_external_user_search_path | quote }}', 1, '{{ test_ldap_external_user_fq_name | quote }}', '{{ test_ldap_external_user_pwd }}', {{ test_ldap_external_tls }}); END IF; END \$do\$"
+    become: yes
+    become_user: postgres
+    when: auth_change_local_ldap == "yes"
 
   become: yes
   become_user: postgres

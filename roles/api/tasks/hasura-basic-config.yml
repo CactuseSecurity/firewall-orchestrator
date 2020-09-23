@@ -15,8 +15,8 @@
   become: yes
 
 - name: initialize hasura cli directory
-  # shell: "cd {{ api_home }} && {{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
-  command: "{{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_hostname }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  # shell: "cd {{ api_home }} && {{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
+  command: "{{ api_hasura_bin }} init {{ product_name }} --endpoint http://{{ api_ip_address }}:{{ api_port }} --admin-secret {{ api_hasura_admin_secret }}"
   args: 
     chdir: "{{ api_home }}"
   become: yes

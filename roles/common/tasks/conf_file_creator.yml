@@ -17,7 +17,7 @@
         dotnet_mode: "{{ dotnet_mode }}"
         
         # api
-        api_uri: "https://{{ api_hostname }}:{{ api_web_port }}/api/v1/graphql"
+        api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         
         # auth

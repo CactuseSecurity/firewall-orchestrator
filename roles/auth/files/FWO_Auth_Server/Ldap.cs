@@ -18,9 +18,7 @@ namespace FWO_Auth_Server
         {
             this.Address = Address;
             this.Port = Port;
-
-            Console.WriteLine($"New Ldap created: LdapServerAdress={Address} LdapServerPort={Port}");
-
+            Console.WriteLine($"Connecting to LDAP server on LdapServerAdress={Address} with LdapServerPort={Port}");
             Connect();
         }
 

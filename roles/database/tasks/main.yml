@@ -178,6 +178,6 @@
   become: yes
   when: clean_install is defined
 
-- name: create new database - drop existing db before when clean_install is set
+- name: create new database
   import_tasks: setup-database-as-postgres-user.yml
   when: clean_install is defined or db_exists.stdout=="0"

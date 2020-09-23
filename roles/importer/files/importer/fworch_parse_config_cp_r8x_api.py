@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import logging
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
 parser.add_argument('-f', '--config_file', required=True, help='name of config file to parse (json format)')
@@ -10,12 +11,24 @@ parser.add_argument('-r', '--rulebase', default='', help='name of rulebase to im
 parser.add_argument('-n', '--network_objects', action="store_true", help='import network objects')
 parser.add_argument('-s', '--service_objects', action="store_true", help='import service objects')
 parser.add_argument('-u', '--users', action="store_true", help='import users')
+parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 1(DEBUG Console) 2(DEBUG File)i 2(DEBUG Console&File); default=0')
 args = parser.parse_args()
 
 csv_delimiter = '%'
 list_delimiter = '|'
 line_delimiter = "\n"
 found_rulebase = False
+
+# logging config
+debug_level = int(args.debug)
+# todo: save the initial value, reset initial value at the end
+if debug_level == 1:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+elif debug_level == 2:
+    logging.basicConfig(filename='/var/tmp/fworch_get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+elif debug_level == 3:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='/var/tmp/fworch_get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 # ###################### rule handling ###############################################
@@ -343,7 +356,7 @@ def collect_nw_objs_from_rule(rule):
     global nw_objects
     if 'rule-number' in rule:  # standard rule
         for obj in rule["source"]:
-            if (obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'CpmiHostCkp' or obj['type'] == 'CpmiAnyObject'):
+            if (obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'CpmiHostCkp' or obj['type'] == 'CpmiAnyObject' or obj['type'] == 'checkpoint-host'):
                 comment = 'Any network object read from rulebase' if obj['type'] == 'CpmiAnyObject' else obj['comments']
                 ip_addr = get_ip_of_obj(obj)
                 current_element = {'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
@@ -353,7 +366,7 @@ def collect_nw_objs_from_rule(rule):
                 if nw_objects.count(current_element) == 0:
                     nw_objects.append(current_element)
         for obj in rule["destination"]:
-            if (obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'CpmiHostCkp' or obj['type'] == 'CpmiAnyObject'):
+            if (obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'CpmiHostCkp' or obj['type'] == 'CpmiAnyObject' or obj['type'] == 'checkpoint-host'):
                 comment = 'Any network object read from rulebase' if obj['type'] == 'CpmiAnyObject' else obj['comments']
                 ip_addr = get_ip_of_obj(obj)
                 current_element = {'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
@@ -558,6 +571,8 @@ def get_any_obj_uid(rulebase):
 with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
+logging.debug ("fworch_parse_config_cp_r8x_api - args"+ "\nf:" +args.config_file +"\ni: "+ args.import_id +"\nm: "+ args.management_name +"\nr: "+ args.rulebase +"\nn: "+ str(args.network_objects) +"\ns: "+ str(args.service_objects) +"\nu: "+ str(args.users) +"\nd: "+ str(args.debug))
+
 # any_obj_uid = get_any_obj_uid()
 # any_obj_uid = 'dummy any obj uid (not found in rulebase)'
 any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
@@ -575,9 +590,11 @@ for rulebase in config['rulebases']:
 for obj in nw_objects:
     if obj['obj_name'] == 'Any':
         any_obj_uid = obj['obj_uid']
+        logging.debug ("fworch_parse_config_cp_r8x_api - nw Any uid in rulebase:" + any_obj_uid)
 for obj in svc_objects:
     if obj['svc_name'] == 'Any':
         any_obj_uid = obj['svc_uid']
+        logging.debug ("fworch_parse_config_cp_r8x_api - svc Any uid in rulebase:" + any_obj_uid)
 
 if args.rulebase != '':
     for rulebase in config['rulebases']:

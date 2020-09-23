@@ -76,7 +76,7 @@ namespace FWO_Auth_Server
         {
             Console.WriteLine($"Validating User: \"{user.Name}\" ...");
             try
-            {
+            {               
                 using (LdapConnection connection = Connect())
                 {
                     connection.Bind(SearchUser, SearchUserPwd);

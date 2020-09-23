@@ -15,8 +15,7 @@
 ## tools
 
 - graphql query tool insomnia
-- ubuntu: sudo snap install insomnia oder:
-- <https://insomnia.rest/download/core/?&ref=>
+- ubuntu: sudo snap install insomnia or <https://insomnia.rest/download/core/>
 
 ## sample graphql queries for api testing
 

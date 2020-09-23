@@ -2,10 +2,7 @@
 # postgresql-client
 
 - name: test api health
-  command: curl --request GET --insecure \
-    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz \
-    --header 'content-type: application/json' \
-    --data '{"query":""}'
+  shell: "curl --request GET --insecure --url https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz --header 'content-type: application/json' --data '{\"query\":\"\"}'"
   register: api_health
 
 - name: show health result
@@ -15,7 +12,7 @@
 - name: fail on api health issues
   fail:
     msg: api health check failed
-  when: api_health.stdout is not "OK"
+  when: api_health.stdout != "OK"
 
 # - name: test anonymous api access
 #   command:

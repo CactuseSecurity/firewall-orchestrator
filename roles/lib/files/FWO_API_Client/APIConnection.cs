@@ -15,7 +15,15 @@ namespace FWO.Api
 
         private readonly GraphQLHttpClient Client;
 
-        private string Jwt;
+        public string Jwt
+        {
+            set
+            {
+                Jwt = value; // Save jwt for debug purpose
+                Client.HttpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", value); // Change jwt in auth header
+            }
+        }
 
         public APIConnection(string APIServerURI)
         {
@@ -31,12 +39,6 @@ namespace FWO.Api
                 EndPoint = new Uri(APIServerURI),
                 HttpMessageHandler = Handler,
             }, new SystemTextJsonSerializer());
-        }
-
-        public void ChangeAuthHeader(string Jwt)
-        {
-            this.Jwt = Jwt;
-            Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Jwt);
         }
 
         public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string Query, string Variables = null, string OperationName = null)

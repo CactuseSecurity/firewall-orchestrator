@@ -53,7 +53,7 @@ namespace FWO_Auth_Server
 
             Console.WriteLine($"Validating User: \"{user.Name}\" ...");
             try
-            {
+            {               
                 using (LdapConnection connection = Connect())
                 {
                     string InspectorPassword = File.ReadAllText("/usr/local/fworch/etc/secrets/ldap_inspector_pw.txt").TrimEnd(); // or check if -y paramter for password file exists

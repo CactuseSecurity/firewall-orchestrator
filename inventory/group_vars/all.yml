@@ -20,6 +20,7 @@ proxy_env:
         validate_certs: false
 test_packages:
   - postgresql-client
+  - curl
 
 ### database
 fworch_db_port: 5432

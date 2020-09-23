@@ -1,0 +1,37 @@
+# this playbook sets up some sample devices with configs to play around with
+# postgresql-client
+
+- name: test api health
+  command: curl --request GET --insecure \
+    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz \
+    --header 'content-type: application/json' \
+    --data '{"query":""}'
+  register: api_health
+
+- name: show health result
+  debug:
+    var: api_health
+
+- name: fail on api health issues
+  fail:
+    msg: api health check failed
+  when: api_health.stdout is not "OK"
+
+# - name: test anonymous api access
+#   command:
+
+# - name: test api
+#   command: curl --request GET --insecure \
+#   --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/version \
+#   --header 'content-type: application/json' \
+#   --data '{"query":""}'
+
+# - name: get jwt restricted reporter
+#   command:
+#   register: jwt
+
+# - name: get rules for device the user is not authorized for
+#   command:
+
+# - name: get rules for device the user is authorized for
+#   command:

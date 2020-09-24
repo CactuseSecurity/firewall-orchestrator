@@ -201,12 +201,12 @@ class UserConfig extends Config {
 	var $groups;
 	var $privileges;
 	var $visible_reports;
-	var $visible_clients;
-	var $fixed_client_filter;
+	var $visible_tenants;
+	var $fixed_tenant_filter;
 	var $fixed_request_type_filter;
 	var $visible_managements;
 	var $visible_devices;
-	var $default_client;
+	var $default_tenant;
 	var $default_request_type;
 	
 	function __construct($user) {
@@ -214,9 +214,9 @@ class UserConfig extends Config {
 		$lines = $this->GetConfigLines();
 		$log = new LogConnection();
 		$this->groups = array();
-		$this->default_client = 'NULL';
+		$this->default_tenant = 'NULL';
 		$this->default_request_type = 'NULL';
-		$this->fixed_client_filter = 'NULL';
+		$this->fixed_tenant_filter = 'NULL';
 		$this->fixed_request_type_filter = 'NULL';
 		foreach ($lines as $line) {
 			if (!strpos($line,$user)===false and !strpos($line, 'members:')===false) {  // found a line containing group definition for current user
@@ -228,7 +228,7 @@ class UserConfig extends Config {
 		reset($lines);
 		reset($this->groups);
 		$this->privileges = array();
-		$this->visible_clients = array();
+		$this->visible_tenants = array();
 		$this->visible_managements = array();
 		$this->visible_devices = array();
 		$this->visible_reports = array();
@@ -241,13 +241,13 @@ class UserConfig extends Config {
 						foreach ($priv_ar as $priv) {
 							if (array_search($priv,$this->privileges)===false) $this->privileges[] = $priv;
 						}
-					} else if (!strpos($line, 'visible-clients:')===false) {
-						list(,$visible_clients) = explode('visible-clients:', $line);
-						$client_ar = explode(',', trim($visible_clients));
-						foreach ($client_ar as $client) {
-							$client2 = $this->remove_quotes(trim($client));
-							if (array_search($client2,$this->visible_clients)===false)
-								$this->visible_clients[] = $client2;
+					} else if (!strpos($line, 'visible-tenants:')===false) {
+						list(,$visible_tenants) = explode('visible-tenants:', $line);
+						$tenant_ar = explode(',', trim($visible_tenants));
+						foreach ($tenant_ar as $tenant) {
+							$tenant2 = $this->remove_quotes(trim($tenant));
+							if (array_search($tenant2,$this->visible_tenants)===false)
+								$this->visible_tenants[] = $tenant2;
 						}
 					} else if (!strpos($line, 'visible-managements:')===false) {
 						list(,$visible_mgms) = explode('visible-managements:', $line);
@@ -272,9 +272,9 @@ class UserConfig extends Config {
 							if (array_search($report,$this->visible_reports)===false)
 								$this->visible_reports[] = $report;
 						}
-					} else if (!strpos($line, 'fixed-client-filter:')===false) {
-						list(,$fixed_client_filter) = explode('fixed-client-filter:', $line);
-						$this->fixed_client_filter = trim($fixed_client_filter);
+					} else if (!strpos($line, 'fixed-tenant-filter:')===false) {
+						list(,$fixed_tenant_filter) = explode('fixed-tenant-filter:', $line);
+						$this->fixed_tenant_filter = trim($fixed_tenant_filter);
 					} else if (!strpos($line, 'fixed-request-type-filter:')===false) {
 						list(,$fixed_request_type_filter) = explode('fixed-request-type-filter:', $line);
 						$this->fixed_request_type_filter = trim($fixed_request_type_filter);
@@ -283,18 +283,18 @@ class UserConfig extends Config {
 				}
 			}
 		}	
-		// set $default_client & $default_request_type		
+		// set $default_tenant & $default_request_type		
 		reset($lines);
 		$group = $this->groups[0];  // choosing first group found in the gui.conf file as primary group of this user
 //		$log->log_debug("first group for user found: $group");
 		if (isset($group)) {
 			foreach ($lines as $line) {
-				if (!strpos($line, 'default-client')===false and !strpos($line, $group)===false) { 
-					list(,$default_client) = explode(':', $line);
-					$default_client = trim($default_client);
-					$default_client = $this->remove_quotes($default_client);
-					$this->default_client = $default_client;
-//					$log->log_debug("found default client for group $group: $default_client");
+				if (!strpos($line, 'default-tenant')===false and !strpos($line, $group)===false) { 
+					list(,$default_tenant) = explode(':', $line);
+					$default_tenant = trim($default_tenant);
+					$default_tenant = $this->remove_quotes($default_tenant);
+					$this->default_tenant = $default_tenant;
+//					$log->log_debug("found default tenant for group $group: $default_tenant");
 				}
 				if (!strpos($line, 'default-request-type')===false and !strpos($line, $group)===false) { 
 					list(,$default_request_type) = explode(':', $line);
@@ -350,8 +350,8 @@ class UserConfig extends Config {
 			return false;
 		else return true;
 	}
-	function allowedToConfigureClients() {
-		if (array_search('admin-clients',$this->privileges)===false)
+	function allowedToConfiguretenants() {
+		if (array_search('admin-tenants',$this->privileges)===false)
 			return false;
 		else return true;
 	}
@@ -365,8 +365,8 @@ class UserConfig extends Config {
 			return false;
 		else return true;
 	}
-	function getDefaultClient() {
-		return $this->default_client;
+	function getDefaulttenant() {
+		return $this->default_tenant;
 	}
 	function getDefaultRequestType() {
 		return $this->default_request_type;
@@ -395,13 +395,13 @@ class UserConfig extends Config {
 		$log->log_debug("getReportFilter()=" . implode(',', $rep_filter));
 		return implode(',', $rep_filter);
 	}
-	function getVisibleClientFilter() {
-		$client_filter = ' ( FALSE ';
-		if (array_search('ALL', $this->visible_clients)===false) { 
-			foreach ($this->visible_clients as $client) { $client_filter .= " OR client_name='$client' "; }
-		} else $client_filter = ' (TRUE';
-		$client_filter .= ') ';
-		return $client_filter;
+	function getVisibletenantFilter() {
+		$tenant_filter = ' ( FALSE ';
+		if (array_search('ALL', $this->visible_tenants)===false) { 
+			foreach ($this->visible_tenants as $tenant) { $tenant_filter .= " OR tenant_name='$tenant' "; }
+		} else $tenant_filter = ' (TRUE';
+		$tenant_filter .= ') ';
+		return $tenant_filter;
 	}
 	function getManagementFilter() {		
 		return $this->getManagementFilter_base('');

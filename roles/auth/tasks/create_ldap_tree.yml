@@ -1,0 +1,50 @@
+
+- block:
+
+  - name: create ldif directory
+    file:
+      dest: "{{ auth_server_base_dir }}/ldif"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+
+  - name: copy the ldif templates to system
+    template:
+      src: "{{ item }}"
+      dest: "{{ auth_server_base_dir }}/ldif/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    with_fileglob:
+      - ../templates/ldif_files/*.j2
+
+  - name: Create tree level 1 (ou user, role)
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_1.ldif"
+
+  - name: Create tree level 2 (ou systemuser, operator)
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_2.ldif"
+
+  - name: Create tree level 3 with parent systemuser (cn admin, {{ auth_ldap_internal_readonly_user }})
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_systemuser.ldif"
+
+  - name: Create tree level 3 with parent operator (ou tenant0, tenant1, tenant2)
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_3_with_parent_operator.ldif"
+
+  - name: Set {{ auth_ldap_internal_readonly_user }} password in ldap
+    command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid={{ auth_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ auth_ldap_path }}'"
+
+  - name: Create tree level 4 with parent tenantx (cn admin)
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_4.ldif"
+
+  - name: Set admin password in ldap
+    command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}'"
+
+  - name: Add roles
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_roles.ldif"
+
+  - name: Pass example roles
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/modify_example_roles.ldif"
+
+  - name: delete ldif files
+    file:
+      path: "{{ auth_server_base_dir }}/ldif"
+      state: absent
+  #when: not is_ldap_present_flag.stat.exists
+  become: yes

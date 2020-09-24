@@ -1,0 +1,74 @@
+
+{ "queries": 
+    [
+        {
+            "name": "listRules",
+            "query": "query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [cidr!], $limit: Int, $offset: Int) {
+                management(where: {mgm_id: {_in: $management_id}}) {
+                    mgm_id
+                    mgm_name
+                    devices(where: {dev_id: {_in: $device_id}}) {
+                        dev_id
+                        dev_name
+                        rules(limit: $limit, offset: $offset, where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}, rule_froms: {object: {obj_ip: {_in: $rule_src_ip}}}}, order_by: {rule_num_numeric: asc}) {
+                            rule_num_numeric
+                            rule_disabled
+                            rule_src_neg
+                            rule_src
+                            rule_froms {
+                                object {
+                                    obj_ip
+                                }
+                            }
+                            rule_dst_neg
+                            rule_dst
+                            rule_tos {
+                                object {
+                                    obj_ip
+                                }
+                            }
+                            rule_svc_neg
+                            rule_svc
+                            rule_services {
+                                service {
+                                    svc_name
+                                    svc_port
+                                    stm_svc_typ {
+                                    svc_typ_name
+                                    }
+                                }
+                            }
+                            rule_action
+                            rule_track
+                        }
+                    }
+                }
+            }"
+        },
+        "name": "listRuleChanges",
+            "query": "query listRuleChanges($startId: Int, $stopId: Int) {
+                changelog_rule(where: {_and: [{control_id: {_lt: $stopId}}, {control_id: {_gt: $startId}}, {security_relevant:{_eq:true}}]}) {
+                  change_request_info
+                  change_time
+                  changelog_rule_comment
+                  new_rule_id
+                  old_rule_id
+                  unique_name
+                  rule {
+                    rule_id
+                    rule_src
+                    rule_dst
+                    rule_svc
+                    rule_action
+                  }
+                  ruleByOldRuleId {
+                    rule_id
+                    rule_src
+                    rule_dst
+                    rule_svc
+                    rule_action
+                  }
+                }
+              }"
+    ]
+}

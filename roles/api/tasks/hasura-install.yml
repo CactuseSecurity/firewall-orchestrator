@@ -1,0 +1,84 @@
+# installs docker and the hasura image in a container
+
+- name: Install packages for python pip3 n virtualenv
+  package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - python3-pip
+    - python3-virtualenv
+  become: yes
+
+- name: install docker sdk for python via pip3
+  pip:
+    name: docker
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- name: read jwt public key from file as JWT secret
+  slurp:
+    src: "{{ jwt_public_key_file }}"
+  register: api_hasura_jwt_secret_dict
+  become: yes
+
+- name: decode key
+  set_fact:
+    api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
+
+- name: set hasura env variable
+  set_fact:
+    hasura_env:
+      HASURA_GRAPHQL_DATABASE_URL:     "postgres://{{ api_user }}:{{ api_user_password }}@{{ fworch_db_host }}:{{ fworch_db_port }}/{{ fworch_db_name }}"
+      HASURA_GRAPHQL_ENABLE_CONSOLE:   "true"
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+      HASURA_GRAPHQL_ADMIN_SECRET:     "{{ api_hasura_admin_secret }}"
+      HASURA_GRAPHQL_LOG_LEVEL:        "{{ api_log_level }}"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: '{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}'
+      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
+      HASURA_GRAPHQL_JWT_SECRET:       '
+                                        {
+                                          "type": "{{ api_hasura_jwt_alg|quote }}",
+                                          "key": "{{ api_hasura_jwt_secret }}",
+                                          "claims_namespace_path": "$"
+                                        }
+      '
+      HTTP_PROXY:                      "{{ http_proxy }}"
+      HTTPS_PROXY:                     "{{ https_proxy }}"
+
+- name: show hasura env for debugging
+  debug:
+    var:
+      hasura_env
+  when: debug_level > '1'
+
+- name: start hasura container
+  docker_container:
+    name: "{{ api_container_name }}"
+    image: hasura/graphql-engine:{{ api_hasura_version }}
+    state: started
+    network_mode: host
+    log_driver: syslog
+    log_options:
+      syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:{{ syslog_port }}"
+      syslog-facility: daemon
+      tag: "{{ api_container_name }}"
+    recreate: yes
+    ports:
+      - "{{ api_ip_address }}:{{ api_port }}:{{ api_port }}"
+    env:
+      "{{ hasura_env }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- name: copy hasura docker systemd service script
+  template:
+     src: hasura-docker-api.service.j2
+     dest: "/lib/systemd/system/hasura-docker-api.service"
+     backup: yes
+     mode: "0644"
+     owner: "root"
+  become: yes
+
+- name: make hasura docker container runs at host startup
+  command: "systemctl enable hasura-docker-api"
+  become: yes

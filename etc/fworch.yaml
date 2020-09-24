@@ -1,0 +1,16 @@
+
+# general settings
+fworch_home: "/usr/local/fworch"
+dotnet_mode: "Release"
+
+# api
+api_uri: "https://localhost:9443/api/v1/graphql"
+# api_hasura_jwt_alg: "HS384"
+api_hasura_jwt_alg: "RS256"
+
+# auth
+auth_JWT_key_file: "../../../../../etc/secrets/jwt_private.key"
+auth_hostname: "localhost"
+auth_server_port: "8888"
+#auth_server_uri: "http://{{ auth_hostname }}:{{ auth_server_port }}/"
+auth_server_uri: "http://localhost:8888/"

@@ -23,7 +23,7 @@ Edit architecture diagram at https://xfer.cactus.de/index.php/f/18376
     tcp6       0      0 :::80                   :::*                    LISTEN      0          145701     33813/apache2       
     tcp6       0      0 :::22                   :::*                    LISTEN      0          21958      689/sshd: /usr/sbin 
     tcp6       0      0 :::443                  :::*                    LISTEN      0          145709     33813/apache2       
-    tcp6       0      0 :::8443                 :::*                    LISTEN      0          145705     33813/apache2       
+    tcp6       0      0 :::9443                 :::*                    LISTEN      0          145705     33813/apache2       
     tcp6       0      0 :::636                  :::*                    LISTEN      0          60656      9200/slapd          
     udp        0      0 127.0.0.53:53           0.0.0.0:*                           101        19726      631/systemd-resolve 
     udp        0      0 10.0.2.15:68            0.0.0.0:*                           100        1688204    629/systemd-network 

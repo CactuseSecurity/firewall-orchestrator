@@ -12,7 +12,7 @@
     package: 
       name: "{{ item }}"
       state: present 
-    with_items: "{{ openldap_server_pkgs }}"
+    loop: "{{ openldap_server_pkgs }}"
     # environment: env
     # when: ansible_os_family == 'Debian'
 
@@ -21,16 +21,27 @@
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: absent
 
-  - name: Decide on random root password
-    set_fact:
-      openldap_server_random_rootpw: "{{ openldap_server_rootpw }}"
+  - name: Check if manager password exist
+    stat:
+      path: "{{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
+    register: is_manger_pw_present_flag
 
-# WARNING: THIS PRINTS THE MANAGER PASSWORD DURING INSTALLATION, ONLY FOR TESTING, HAS TO BE REMOVED LATER
-  - debug:
-      msg: "{{ openldap_server_random_rootpw }}"
+  - name: Decide on random manager password
+    set_fact:
+      openldap_server_random_rootpw: "{{ random_generated_pw }}"
+    when: not is_manger_pw_present_flag.stat.exists
+
+  - name: Write random manager password to file
+    copy:
+      content: "{{ openldap_server_random_rootpw }}"
+      dest: "{{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
+      mode: '0600'
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+    when: not is_manger_pw_present_flag.stat.exists
 
   - name: Generate the root password for ldap
-    shell: "slappasswd -s {{ openldap_server_random_rootpw }} "
+    shell: "slappasswd -T {{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
     register: root_password
 
   # - name: Copy the slapd.conf configuration file for Redhat

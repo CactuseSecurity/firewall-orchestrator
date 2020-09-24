@@ -6,24 +6,26 @@ pidfile         /var/run/slapd/slapd.pid
 
 argsfile        /var/run/slapd/slapd.args
 
-loglevel        none
+loglevel        stats
 
 modulepath      /usr/lib/ldap
 moduleload      back_bdb.la
 
 
-access to *
-                by self write
-                by dn.base="cn=Manager,dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }}" write
-                by * read
 access to attrs=userPassword
                 by self write
                 by anonymous auth
                 by dn.base="cn=Manager,dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }}" write
+                by dn.base="uid=inspector,ou=systemuser,ou=user,dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }}" read
                 by * none
 access to attrs=shadowLastChange
                 by self write
                 by * read
+access to *
+                by self write
+                by dn.base="cn=Manager,dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }}" write
+                by dn.base="uid=inspector,ou=systemuser,ou=user,dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }}" read
+                by * none
 
 database        bdb
 suffix          "dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }}"

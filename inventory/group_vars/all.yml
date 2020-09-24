@@ -1,0 +1,79 @@
+
+### general settings
+ansible_python_interpreter: /usr/bin/python3
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+product_name: fworch
+
+### operating system settings
+user_id: 60320
+fworch_user: "{{ product_name }}"
+fworch_parent_dir: "/usr/local"
+fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
+fworch_conf_file: "{{ fworch_home }}/etc/fworch.yaml"
+http_proxy: ""
+#http_proxy: http://admsrv.int.cactus:3128
+https_proxy: "{{ http_proxy }}"
+proxy_exceptions: ""
+proxy_env:
+        http_proxy: "{{ http_proxy }}"
+        https_proxy: "{{ https_proxy }}"
+        validate_certs: false
+test_packages:
+  - postgresql-client
+
+### database
+fworch_db_port: 5432
+# fworch_db_host: 10.1.1.83
+fworch_db_host: localhost
+fworch_db_name: fworchdb
+fworch_dbadmin_name: dbadmin
+
+### auth server 
+#auth_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
+jwt_private_key_file: "{{ fworch_home }}/etc/secrets/jwt_private_key.pem"
+jwt_public_key_file: "{{ fworch_home }}/etc/secrets/jwt_public_key.pem"
+
+auth_hostname: "localhost"
+auth_web_listener_port: 8888
+ldif_changetype: add
+
+### database & api
+api_service_name: hasura-docker-api
+api_container_name: "{{ product_name }}-api"
+api_ip_address: "127.0.0.1"
+api_web_port: 9443
+#api_hasura_jwt_alg: "HS384"
+api_hasura_jwt_alg: "RS256"
+api_hasura_jwt_secret: "fake-jwt-secret-for-github-install"
+api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+
+### dotnet
+dotnet_deb_name: "packages-microsoft-prod.deb"
+dotnet_version: "3.1"
+dotnet_mode: "Release"
+debug_level: "1"
+lib_dir: "{{ fworch_home }}/lib/files"
+
+### logging
+syslog_proto: tcp
+syslog_host: localhost
+syslog_port: 514
+auth_server_syslog_id: "{{ product_name }}.auth-server"
+ui_syslog_id: "{{ product_name }}-ui"
+ldap_syslog_id: slapd
+api_log_level: info
+
+### apache: both package and dir name (needed both on ui and api hosts):
+web_server_name: apache2
+http_conf_dir: /etc/{{ web_server_name }}/sites-available/
+
+################# to be removed ###################
+
+### importer test data
+
+sting_fworch_user: itsecorg
+
+### to be moved to vault: passwords
+dbadmin_pwd: "st8chel"
+fworch_pwd: "st8chel"
+admin_pwd: "fworch.1"

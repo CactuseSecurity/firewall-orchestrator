@@ -1,7 +1,19 @@
 # this playbook sets up some sample devices with configs to play around with
+# postgresql-client
 
 - name: create import sample user and copy configs
-  import_tasks: setup-sample-import.yml
+  include_tasks: setup-sample-import.yml
+
+- name: install package postgresql-client for adding sample devices to db
+  package:
+    name: postgresql-client
+    state: present
+  become: yes
+
+- name: add localhost hostkey to known_hosts - remove before adding to stay idempotent
+  shell: "ssh-keygen -R localhost; ssh-keyscan localhost >> ~/.ssh/known_hosts"
+  become: yes
+  become_user: "{{ fworch_user }}"
 
 - name: create sample devices in database
   import_tasks: create-devices.yml
@@ -9,6 +21,6 @@
 - name: establish cron job to simulate hourly changes to configs
   import_tasks: setup-config-changes.yml
 
-- name: restart importing sample configs
-  shell: "/etc/init.d/{{ product_name }}-importer restart"
-  become: yes
+# - name: restart importing sample configs
+#   command: "/etc/init.d/{{ product_name }}-importer restart"
+#   become: yes

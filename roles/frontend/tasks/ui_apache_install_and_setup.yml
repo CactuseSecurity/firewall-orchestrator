@@ -3,23 +3,29 @@
     - name: Install webserver packages
       package: name={{ item }} state=present
       with_items:
-        - "{{ ui_web_server_name }}"
+        - "{{ web_server_name }}"
 
-    - name: copy iso httpd config file to apache target
+    - name: copy iso httpd config file to ui target
       template:
         src: "httpd.conf"
-        dest: "{{ ui_http_conf_dir }}/{{ product_name }}.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}.conf"
         owner: root
         group: root
         
     - name: enable apache modules proxy proxy_http ssl
-      command: "a2enmod proxy proxy_http ssl rewrite proxy_wstunnel"
+      apache2_module: state=present name={{ item }}
+      loop:
+        - proxy
+        - proxy_http
+        - ssl
+        - rewrite
+        - proxy_wstunnel
 
     - name: copy cert creation script to apache target
       script: "apache_create_server_cert.sh" 
 
     - name: enable {{ product_name }} web site
-      shell: "a2ensite {{ product_name }}"
+      command: "a2ensite {{ product_name }}"
 
     - name: increase apache timeout to 900 seconds
       lineinfile:
@@ -28,7 +34,7 @@
 
     - name: restart apache
       service:
-       name: "{{ ui_web_server_name }}"
+       name: "{{ web_server_name }}"
        state: restarted     
 
   become: yes

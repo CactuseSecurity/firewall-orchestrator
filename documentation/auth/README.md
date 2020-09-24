@@ -67,6 +67,12 @@ Use pgjwt to create jwt as follows (get secret from {{ fworch_home }}/api/jwt_se
 
 4) set permissions for tables in data
 
+NB: do not use the default syntax when clicking the permissions - these contain [] around the visible objects!!!!!!!
+
+Example: 
+
+    {"mgm_id":{"_in":["x-hasura-visible-managements"]}}
+
 tables with device & management reference:
 ~~~json
     "filter": {
@@ -91,7 +97,8 @@ tables with management reference (object, service):
             "_in": "X-Hasura-visible-managements"
         }
     },
-~~tables with device reference (?):
+~~~
+tables with device reference (?):
 ~~~json
     "filter": {
         "mgm_id": {
@@ -107,6 +114,9 @@ tables with management reference (object, service):
 - choose a role and add "Row select permissions"
 
   {"dev_id":{"_in":"X-Hasura-Visible-Devices"}}
+  
+- export metadata (and add to git sources)
+
 ### via sql (you have to execute metadata reload afterwards: hasura metadata reload)
 
 ~~~sql
@@ -293,3 +303,11 @@ public       | management | reporters | select    | {
 - define all parameters directly (no auth, no jwt) like so:
   - unset x-hasura-admin-secret
   - set Authorization to "Bearer <JWT>"
+
+### Testing auth frontend
+
+```code
+tim@deb10-test:/var/log/fworch$ curl --request POST --url http://127.0.0.1:8888/jwt --data '{"Username":"admin", "Password": "fworch.1"}'
+eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImFkbWluIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsxLDcsMTd9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoiezEsNH0iLCJyb2xlIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNTk5MzAzMDY0LCJleHAiOjE1OTk5MDc4NjQsImlhdCI6MTU5OTMwMzA2NCwiaXNzIjoiRldPIEF1dGggTW9kdWxlIiwiYXVkIjoiRldPIn0.tN9oEcE5n_ClKEfpxjxXM73-u5LuT2Hh50sHvfRUkdnJ0HSpMC0adk1pmAqbxwHv
+tim@deb10-test:/var/log/fworch$ 
+```

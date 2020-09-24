@@ -13,7 +13,7 @@
 		echo '<meta http-equiv="cache-control" content="no-cache">';
 		echo '<meta http-equiv="content-language" content="de">';
 		echo '<link rel="stylesheet" type="text/css" href="' . $stamm . 'css/firewall.css">';
-		echo '<script type="text/javascript" src="' . $stamm . 'js/client.js"></script>';
+		echo '<script type="text/javascript" src="' . $stamm . 'js/browser.js"></script>';
 		echo '<script type="text/javascript" src="' . $stamm . 'js/script.js"></script>';
 		echo '</head>';
 		echo '<body>';

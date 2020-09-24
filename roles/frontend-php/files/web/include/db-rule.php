@@ -164,7 +164,7 @@ class Rule extends DbItem {
 				" LEFT JOIN rule_from ON (object.obj_id=rule_from.obj_id) " .
 				" LEFT JOIN usr ON (usr.user_id=rule_from.user_id) ".
 				" WHERE rule_from.rule_id=$rule_id AND $relevant_import_filter object.obj_id IN (SELECT * FROM get_rule_src($rule_id, " .
-				(is_null($filter->getClientId()) ? 'NULL' : $filter->getClientId()) .
+				(is_null($filter->gettenantId()) ? 'NULL' : $filter->gettenantId()) .
 				", '". $filter->getReportTime() . "'))  ORDER BY obj_name, user_name";
 				$rule_src_table = $this->db_connection->fworch_db_query($sql_code);
 
@@ -175,7 +175,7 @@ class Rule extends DbItem {
 				$foreign_user_pattern = $filter->get_foreign_username_pattern();
 				for ($zi = 0; $zi < $obj_anz; ++ $zi) {
 					$user_name = $rule_src_table->data[$zi]["user_name"];
-					if ($this->is_user_to_be_hidden($rule_src_table->data[$zi]['user_name'], $foreign_user_pattern)) {  // hide user_name for client filtering
+					if ($this->is_user_to_be_hidden($rule_src_table->data[$zi]['user_name'], $foreign_user_pattern)) {  // hide user_name for tenant filtering
 						$rule_src_table->data[$zi]["user_name"] = '[ANONYMISIERT]';
 						$rule_src_table->data[$zi]["user_id"] = '[ANONYMISIERT]';
 					}
@@ -188,7 +188,7 @@ class Rule extends DbItem {
 		$sql_code = "SELECT obj_id,obj_name,obj_uid,obj_ip,zone_id,stm_obj_typ.obj_typ_name AS obj_type ".
 				"FROM object LEFT JOIN stm_obj_typ USING (obj_typ_id) ".
 				"WHERE obj_id IN (SELECT * FROM get_rule_dst(".
-				$rule_id.", " . (is_null($filter->getClientId()) ? 'NULL' : $filter->getClientId()).
+				$rule_id.", " . (is_null($filter->gettenantId()) ? 'NULL' : $filter->gettenantId()).
 				", '". $filter->getReportTime() . "'))  ORDER BY obj_name";
 				$rule_dst_table = $rule_src_table = $this->db_connection->fworch_db_query($sql_code);
 				if ($this->error->isError($rule_dst_table)) {
@@ -248,7 +248,7 @@ class RuleList extends DbList {
 		$this->db_connection = $this->initConnection($this->filter->getSessionUser(), $this->filter->getSessionSecret());
 
  		$sqlcmd = "INSERT INTO temp_filtered_rule_ids SELECT $report_id AS report_id, " .
- 		    "get_rule_ids_no_client_filter AS rule_id FROM get_rule_ids_no_client_filter(".
+ 		    "get_rule_ids_no_tenant_filter AS rule_id FROM get_rule_ids_no_tenant_filter(".
 			(is_null($this->filter->getDeviceId()) ? 'NULL' : $this->filter->getDeviceId()). ",'".$this->filter->getReportTime()."', '" .
  			 $this->filter->getMgmFilter4ReportConfig() . "')";
 		if (!$this->error->isError($this->db_connection)) {
@@ -329,10 +329,10 @@ class RuleFindList extends RuleList {
 				$this->error->raiseError("E-RL2: Filter criteria is null.");
 		}
 		$report_id = $filter->getReportId();
- 		$sqlcmd = "INSERT INTO temp_filtered_rule_ids SELECT $report_id AS report_id, get_rule_ids_no_client_filter AS rule_id FROM get_rule_ids_no_client_filter(".
+ 		$sqlcmd = "INSERT INTO temp_filtered_rule_ids SELECT $report_id AS report_id, get_rule_ids_no_tenant_filter AS rule_id FROM get_rule_ids_no_tenant_filter(".
 			(is_null($filter->getDeviceId()) ? 'NULL' : $filter->getDeviceId()).
 			",'".$filter->getReportTime()."', ".
-//			(is_null($filter->getClientId()) ? 'NULL' : $filter->getClientId()). ", " .
+//			(is_null($filter->gettenantId()) ? 'NULL' : $filter->gettenantId()). ", " .
 			(is_null($filter->src_ip) ? 'NULL' : "'" . $filter->src_ip . "'") . ", " .
 			(is_null($filter->dst_ip) ? 'NULL' : "'" . $filter->dst_ip . "'") . 
 			", ". 'NULL' . "," . 'NULL' . "," . 'NULL' . ", '" . $this->filter->getMgmFilter4ReportRulesearch() . "')";

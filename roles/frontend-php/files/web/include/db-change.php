@@ -42,22 +42,22 @@ class ChangeList extends DbList {
 			if (isset($this->filter->report_date1)) $sqlcmd .= " AND change_time>=CAST('" . $this->filter->report_date1 . "' AS TIMESTAMP) "; 
 			if (isset($this->filter->report_date2)) $sqlcmd .= " AND change_time<=CAST('" . $this->filter->report_date2 . "' AS TIMESTAMP) ";
 
-			if (isset($this->filter->client_id)) {
-				$client_id = $this->filter->client_id;
+			if (isset($this->filter->tenant_id)) {
+				$tenant_id = $this->filter->tenant_id;
 				$start_time = 'NULL'; $stop_time = 'NULL'; $mgm_filter = 'NULL'; $dev_filter = 'NULL';
 				$sqlcmd .= " AND abs_change_id IN (SELECT abs_change_id FROM $change_table " .
 					"LEFT JOIN rule ON (change_element='rule' AND old_id=rule_id or new_id=rule_id) " .
 					"LEFT JOIN view_rule_source_or_destination USING (rule_id) " .
 					"LEFT JOIN object USING (obj_id) " .
-					"LEFT JOIN client_network ON NOT rule_neg AND " .
-					"(obj_ip::inet << client_network.client_net_ip::inet OR " .
-					"obj_ip::inet >> client_network.client_net_ip::inet OR " .
-					"obj_ip::inet = client_network.client_net_ip::inet ".
+					"LEFT JOIN tenant_network ON NOT rule_neg AND " .
+					"(obj_ip::inet << tenant_network.tenant_net_ip::inet OR " .
+					"obj_ip::inet >> tenant_network.tenant_net_ip::inet OR " .
+					"obj_ip::inet = tenant_network.tenant_net_ip::inet ".
 					") OR " .
 					"rule_neg AND NOT " .
-					"obj_ip::inet << client_network.client_net_ip::inet AND NOT " .
-					"obj_ip::inet >> client_network.client_net_ip::inet AND NOT " .
-					"obj_ip::inet = client_network.client_net_ip::inet WHERE client_id=$client_id ";
+					"obj_ip::inet << tenant_network.tenant_net_ip::inet AND NOT " .
+					"obj_ip::inet >> tenant_network.tenant_net_ip::inet AND NOT " .
+					"obj_ip::inet = tenant_network.tenant_net_ip::inet WHERE tenant_id=$tenant_id ";
 					if (isset($this->filter->report_date1)) $sqlcmd .= "AND change_time>=CAST('" . $this->filter->report_date1 . "' AS TIMESTAMP) "; 
 					if (isset($this->filter->report_date2)) $sqlcmd .= "AND change_time<=CAST('" . $this->filter->report_date2 . "' AS TIMESTAMP) ";
 					if (isset($mgm_id) && !$mgm_id==='NULL') $mgm_filter =  " AND mgm_id=$mgm_id "; else $mgm_filter = "";
@@ -150,7 +150,7 @@ class ChangedElement extends DbItem {
 	var $control_id;
 	var $change_comment;
 	var $change_time;
-	var $client_request_str;
+	var $tenant_request_str;
 	var $mgm_name;
 	var $dev_name;
 	var $dev_id;

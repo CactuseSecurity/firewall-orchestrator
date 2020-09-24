@@ -13,8 +13,8 @@ require_once ("db-gui-config.php");
 class DisplayFilter {
 	var $mgm_id;
 	var $dev_id;
-	var $client_id;
-	var $client_filter_expr;
+	var $tenant_id;
+	var $tenant_filter_expr;
 	var $foreign_usernames_pattern;
 	var $src_name;
 	var $src_ip;
@@ -43,7 +43,7 @@ class DisplayFilter {
 	var $mgm_filter;
 	var $report_id;				// random number used for generating temporary data in temp_xxx tables
 	var $error;
-	var $client_net_ar;  // used only in display_rule_config::
+	var $tenant_net_ar;  // used only in display_rule_config::
 
 	function __construct() {
 		$this->error = new PEAR();
@@ -119,18 +119,18 @@ class DisplayFilter {
 		return $this->foreign_usernames_pattern;
 	}
 	function read_foreign_username_pattern() {
-		$client_id = $this->getClientId();
-		$client_id = trim($client_id);
-		if ($client_id=='' or $client_id == 'NULL') return '';
+		$tenant_id = $this->gettenantId();
+		$tenant_id = trim($tenant_id);
+		if ($tenant_id=='' or $tenant_id == 'NULL') return '';
 
-		$sql_code = "SELECT client_username_pattern FROM client_username WHERE NOT client_id=$client_id";
+		$sql_code = "SELECT tenant_username_pattern FROM tenant_username WHERE NOT tenant_id=$tenant_id";
 		$foreign_user_pattern = $this->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($foreign_user_pattern)) $this->error->raiseError($foreign_user_pattern->getMessage());
 
 		$foreign_user_pattern_array = array();
 		$user_pattern_anz = $foreign_user_pattern->rows;
 		for ($zi = 0; $zi < $user_pattern_anz; ++ $zi) {
-			$foreign_user_pattern_array[] =   $foreign_user_pattern->data[$zi]["client_username_pattern"];
+			$foreign_user_pattern_array[] =   $foreign_user_pattern->data[$zi]["tenant_username_pattern"];
 		}
 		return implode('|', $foreign_user_pattern_array);
 	}
@@ -138,7 +138,7 @@ class DisplayFilter {
 		// filters in session
 		$this->dbuser = $this->getValue($session, "dbuser", $sessionKeys);
 		$this->dbpw = $this->getValue($session, "dbpw", $sessionKeys);
-		$this->client_filter_expr = $this->getValue($session, "ClientFilter", $sessionKeys);
+		$this->tenant_filter_expr = $this->getValue($session, "tenantFilter", $sessionKeys);
 		$this->loglevel = $this->getValue($session, "loglevel", $sessionKeys);
 		$DbConnData = new DbConfig($this->dbuser, $this->dbpw);
 		$this->db_connection = new DbConnection($DbConnData);
@@ -146,7 +146,7 @@ class DisplayFilter {
 		// global filters
 		$this->stamm = $this->getValue($request, "stamm", $requestKeys);
 		$this->dev_id = $this->getValue($request, "devId", $requestKeys);
-		$this->client_id = $this->getValue($request, "client_id", $requestKeys);
+		$this->tenant_id = $this->getValue($request, "tenant_id", $requestKeys);
 		$this->mgm_id = $this->get_mgm_id_of_dev_id($this->dev_id);
 		$this->foreign_usernames_pattern = $this->read_foreign_username_pattern();
 
@@ -185,8 +185,8 @@ class DisplayFilter {
 		else
 			$this->action = ''; // if no filter set - show rules of any action
 	}
-	function setClientNetArray($NetArray) {
-		$this->client_net_ar = $NetArray;
+	function settenantNetArray($NetArray) {
+		$this->tenant_net_ar = $NetArray;
 	}
 	function getValue($data, $key, $keys) {
 		$value = NULL;
@@ -250,8 +250,8 @@ class DisplayFilter {
 	function getDeviceId() {
 		return $this->dev_id;
 	}
-	function getClientId() {
-		return $this->client_id;
+	function gettenantId() {
+		return $this->tenant_id;
 	}
 	function getManagementId() {
 		return $this->mgm_id;
@@ -409,9 +409,9 @@ class DisplayFilter {
 			return false;
 	}
 	function filter_is_set() {
-		return ($this->non_client_filter_is_set() or $this->client_filter_is_set()); 	
+		return ($this->non_tenant_filter_is_set() or $this->tenant_filter_is_set()); 	
 	}
-	function non_client_filter_is_set() {
+	function non_tenant_filter_is_set() {
 		return (
 			$this->filter_value_set($this->src_name) or
 			$this->filter_value_set($this->src_ip) or
@@ -428,8 +428,8 @@ class DisplayFilter {
 			$this->filter_value_set($this->rule_comment)	
 		);
 	}
-	function client_filter_is_set() {
-		return ( $this->filter_value_set($this->client_id) and !(($this->getClientId())==0));
+	function tenant_filter_is_set() {
+		return ( $this->filter_value_set($this->tenant_id) and !(($this->gettenantId())==0));
 	}
 	function is_valid_ip($cidr_in) {
 		list ($ip, $mask) = explode('/', $cidr_in);
@@ -589,7 +589,7 @@ class RuleChangesFilter extends DisplayFilter {
 	var $first_control_id;
 	var $last_control_id;
 	var $relevantImportId;
-	var $client_list;
+	var $tenant_list;
 	var $ip_proto_list;
 	var $show_other_admins_changes;
 	var $show_only_selfdoc;
@@ -625,7 +625,7 @@ class RuleChangesFilter extends DisplayFilter {
 		if (isset($this->dev_id))
 			list ($this->first_control_id, $this->last_control_id) = 
 				$this->get_changed_control_ids($this->dev_id, $this->report_date1, $this->report_date2);
-		$this->client_list = $this->get_client_list($session["ClientFilter"]);
+		$this->tenant_list = $this->get_tenant_list($session["tenantFilter"]);
 	}
 	function get_start_date() {
 		return ($this->report_date1);
@@ -663,8 +663,8 @@ class RuleChangesFilter extends DisplayFilter {
 	function getRelevantImportId() {
 		return $this->relevantImportId;
 	}
-	function getClients() {
-		return $this->client_list;
+	function gettenants() {
+		return $this->tenant_list;
 	}
 	function get_changed_control_ids($devid, $time1, $time2) {
 		$sqlcmd1 = "select get_next_import_id as import_id from get_next_import_id($devid,'".$time1."')";
@@ -683,20 +683,20 @@ class RuleChangesFilter extends DisplayFilter {
 		}
 		return array ($id1, $id2);
 	}
-	function get_client_list($client_filter) {
+	function get_tenant_list($tenant_filter) {
 		if ($this->error->isError($this->db_connection)) {
 			$this->error->raiseError("F-RCF: Connection not initialized. ".$this->db_connection->getMessage());
 		}
-		if (isset ($client_filter))
-			$sql_code = "SELECT * FROM client WHERE $client_filter ORDER BY client_name";
+		if (isset ($tenant_filter))
+			$sql_code = "SELECT * FROM tenant WHERE $tenant_filter ORDER BY tenant_name";
 		else
-			$sql_code = "SELECT * FROM client ORDER BY client_name";
-		$clients = $this->db_connection->fworch_db_query($sql_code);
+			$sql_code = "SELECT * FROM tenant ORDER BY tenant_name";
+		$tenants = $this->db_connection->fworch_db_query($sql_code);
 
-		if ($this->error->isError($clients)) {
-			$this->error->raiseError($clients->getMessage());
+		if ($this->error->isError($tenants)) {
+			$this->error->raiseError($tenants->getMessage());
 		}
-		return $clients;
+		return $tenants;
 	}
 }
 ?>

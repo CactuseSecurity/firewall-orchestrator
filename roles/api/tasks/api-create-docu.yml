@@ -1,0 +1,15 @@
+- block:
+  - name: create api documentation using 2fd/graphdoc - install npm
+    package:
+      name: npm
+
+  - name: create api documentation using 2fd/graphdoc - install graphdoc
+    command: "npm install -g @2fd/graphdoc"
+
+  environment: "{{ proxy_env }}"
+  become: yes
+
+- name: create api documentation using 2fd/graphdoc
+  shell: "export NODE_OPTIONS='--max-old-space-size=4096' && graphdoc -x 'x-hasura-admin-secret: {{ api_hasura_admin_secret }}' --force -e http://{{ api_ip_address }}:{{ api_port }}/v1/graphql -o {{ ui_start_dir }}/wwwroot/api_schema"
+  become: yes
+  become_user: "{{ fworch_user }}"

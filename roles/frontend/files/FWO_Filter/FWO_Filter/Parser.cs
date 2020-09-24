@@ -17,12 +17,12 @@ namespace FWO_Filter
             this.Tokens = Tokens;
         }
 
-        public void Parse()
+        public AstNode Parse()
         {
             Start();
         }
 
-        private void Start()
+        private AstNode Start()
         {
             Bracket();
 
@@ -33,7 +33,7 @@ namespace FWO_Filter
             }        
         }
 
-        private void Bracket()
+        private AstNode Bracket()
         {
             if (GetNextToken().Kind == TokenKind.BL)
             {
@@ -48,12 +48,12 @@ namespace FWO_Filter
             }
         }
 
-        private void Connector()
+        private AstNode Connector()
         {
             CheckToken(TokenKind.And, TokenKind.Or);
         }
 
-        private void Expression()
+        private AstNode Expression()
         {
             if (GetNextToken().Kind == TokenKind.Text)
             {
@@ -68,22 +68,22 @@ namespace FWO_Filter
             }
         }
 
-        private void Operator()
+        private AstNode Operator()
         {
             CheckToken(TokenKind.EQ, TokenKind.NEQ);
         }
 
-        private void Text()
+        private AstNode Text()
         {
             CheckToken(TokenKind.Text);
         }
 
-        private void Filter()
+        private AstNode Filter()
         {
             CheckToken(TokenKind.Destination, TokenKind.Source);
         }
 
-        private void CheckToken(params TokenKind[] Matches)
+        private bool CheckToken(params TokenKind[] Matches)
         {
             if (Position >= Tokens.Count)
             {
@@ -95,7 +95,7 @@ namespace FWO_Filter
                 if (Tokens[Position].Kind == Matches[i])
                 {
                     Position++;
-                    return;
+                    return true;
                 }                   
             }
 

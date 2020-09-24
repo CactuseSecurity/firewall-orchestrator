@@ -17,7 +17,8 @@ namespace FWO_Auth
 
         public HttpServer()
         {
-            LdapConnection = new LdapServerConnection("localhost", 636);
+            LdapConnection = new LdapServerConnection("localhost", 20224);
+            LdapConnection.ValidateUser("", "");
             Start();
         }
 

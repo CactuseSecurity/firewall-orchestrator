@@ -20,7 +20,7 @@ namespace FWO_Auth_Server
         // dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
         public bool ValidateUser(string Username, string Password)
         {
-            string userDn = $"{Username}@{Domain}";
+            string userDn = $"uid={Username},ou=systemuser,ou=user,dc=fworch,dc=internal";
             try
             {
                 using (var connection = new LdapConnection { SecureSocketLayer = true })
@@ -35,7 +35,7 @@ namespace FWO_Auth_Server
             }
             catch (LdapException ex)
             {
-                // Log exception
+                //Log exceptions
             }
             return false;
         }

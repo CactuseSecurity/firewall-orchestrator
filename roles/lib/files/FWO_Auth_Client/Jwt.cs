@@ -10,7 +10,7 @@ namespace FWO.Auth.Client
 {
     public class Jwt
     {
-        private string jwt_generator_public_key_file = "../../../etc/secrets/jwt_public_key.pem";
+        private readonly string jwt_generator_public_key_file = "../../../etc/secrets/jwt_public_key.pem";
         private readonly string publicJWTKey; // in PEM-Format with armor
         private readonly string TokenString;
         private readonly JwtSecurityTokenHandler Handler;

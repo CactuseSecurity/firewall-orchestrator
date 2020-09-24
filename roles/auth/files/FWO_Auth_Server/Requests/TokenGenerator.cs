@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using FWO_Logging;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -24,7 +25,7 @@ namespace FWO_Auth_Server
 
         public string CreateJWT(User user, UserData userData, Role[] roles)
         {
-            Console.WriteLine($"Generating JWT for user {user.Name} ...");
+            Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);

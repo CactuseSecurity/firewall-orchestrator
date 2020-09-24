@@ -12,6 +12,7 @@ using FWO.Auth.Client;
 using FWO.Api;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
+using FWO_Logging;
 
 namespace FWO_Auth
 {
@@ -68,9 +69,9 @@ ewIDAQAB
         public AuthModule()
         {
             try // reading config file
-            { 
+            {
                 config = new Config(configFile);
-                ApiUri =  config.GetConfigValue("api_uri");
+                ApiUri = config.GetConfigValue("api_uri");
                 privateJWTKeyFile = config.GetConfigValue("auth_JWT_key_file");
                 AuthServerIp = config.GetConfigValue("auth_hostname");
                 AuthServerPort = config.GetConfigValue("auth_server_port");
@@ -105,159 +106,102 @@ ewIDAQAB
 
             // create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header 
             APIConnection ApiConn = new APIConnection(ApiUri);
-            ApiConn.ChangeAuthHeader(TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") }));
-            
+            ApiConn.Jwt = TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") });
+
             // fetch all connectedLdaps via API
-            Task<Ldap[]> ldapTask = Task.Run(()=> ApiConn.SendQuery<Ldap>(Queries.LdapConnections));
+            Task<Ldap[]> ldapTask = Task.Run(() => ApiConn.SendQuery<Ldap>(Queries.LdapConnections));
             ldapTask.Wait();
+
             //Ldap[] connectedLdaps = ldapTask.Result;
             this.connectedLdaps = ldapTask.Result;
 
             foreach (Ldap connectedLdap in connectedLdaps)
             {
-                Console.WriteLine($"Authmodule::Creator: found ldap connection to server {connectedLdap.Address}:{connectedLdap.Port}");
+                Log.WriteInfo("Found ldap connection to server", $"{connectedLdap.Address}:{connectedLdap.Port}");
             }
+
             // Start Http Listener, todo: move to https
-            String AuthServerListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";
+            string AuthServerListenerUri = "http://" + AuthServerIp + ":" + AuthServerPort + "/";
             StartListener(AuthServerListenerUri);
         }
 
         private void StartListener(string AuthServerListenerUri)
         {
             // Add prefixes to listen to 
-            Listener.Prefixes.Add(AuthServerListenerUri + "jwt/");
+            Listener.Prefixes.Add(AuthServerListenerUri + "AuthenticateUser/");
 
             // Start listener.
             Listener.Start();
-            Console.WriteLine($"Auth Server starting on {AuthServerListenerUri}.");
+            Log.WriteInfo("Listener started", "Auth server http listener started.");
 
             // GetContext method block while waiting for a request.
             while (true)
             {
+                // Blocking wait for Http Request
                 HttpListenerContext context = Listener.GetContext();
+
+                // Get Request
                 HttpListenerRequest request = context.Request;
+
+                // Initialize Status and Response              
                 HttpStatusCode status = HttpStatusCode.OK;
                 string responseString = "";
+
+                Log.WriteInfo("Request received", $"New http request received: \"{request.Url.LocalPath}\".");
+
                 try
                 {
                     switch (request.Url.LocalPath)
                     {
-                        case "/jwt":
-                            responseString = CreateJwt(request);
+                        case "/AuthenticateUser":
+
+                            if (request.HttpMethod == HttpMethod.Post.Method)
+                            {
+                                // Read parameters
+                                Dictionary<string, string> Parameters = GetRequestParameters(request);
+                                User user = new User { Name = Parameters["Username"], Password = Parameters["Password"] };
+
+                                // Try to authenticate user
+                                responseString = AuthenticateUser(user);
+                            }
+
                             break;
 
                         default:
+                            Log.WriteError("Internal Error", "We listend to a request we could not handle. How could this happen?", LogStackTrace: true);
                             status = HttpStatusCode.InternalServerError;
                             break;
                     }
                 }
-                catch (Exception e)
+                catch (Exception exception)
                 {
                     status = HttpStatusCode.BadRequest;
-                    Console.WriteLine($"Error {e.Message}    Stacktrace  {e.StackTrace}");
+
+                    Log.WriteError("Request error", $"Unexpected error while handling request \"{request.Url.LocalPath}\".", exception);
                 }
 
                 // Get response object.
                 HttpListenerResponse response = context.Response;
                 // Get response stream from response object
                 Stream output = response.OutputStream;
-                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);              
+                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
                 response.StatusCode = (int)status;
-                response.ContentLength64 = buffer.Length;  
+                response.ContentLength64 = buffer.Length;
                 output.Write(buffer, 0, buffer.Length);
                 output.Close();
             }
         }
 
-        private string CreateJwt(User User)
+        private Dictionary<string, string> GetRequestParameters(HttpListenerRequest request)
         {
-            string responseString = "";
+            Log.WriteDebug("Request Parameters", "Trying to read request parameters...");
 
-            if (User.Name == "")
-            {
-                Console.WriteLine("Logging in with anonymous user...");
-                responseString = TokenGenerator.CreateJWT(User, null, new Role[] { new Role("anonymous") });
-            }                    
-            else
-            {
-                Console.WriteLine($"Try to validate as {User.Name}...");
+            string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
+            Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
 
-                // first look for the (first) ldap server with role information
-                Ldap roleLdap = null;
-                foreach (Ldap connLdap in connectedLdaps) 
-                {
-                    if (connLdap.RoleSearchPath != "")
-                    {
-                        roleLdap = connLdap;
-                        break;
-                    }
-                }
+            Log.WriteDebug("Request Parameters", "Request Parameters successfully read.");
 
-                if (roleLdap == null)
-                {
-                    // TODO: go ahead with anonymous or throw exception?
-                    Console.WriteLine("No roles can be determined. Logging in with anonymous user...");
-                    responseString = TokenGenerator.CreateJWT(User, null, new Role[] { new Role("anonymous") });
-                }
-                else
-                {
-                    // try all configured ldap servers for authentication:
-                    responseString = "InvalidCredentials";
-                    foreach (Ldap connLdap in connectedLdaps) 
-                    {
-                        Console.WriteLine($"CreateJwt - trying to authenticate {User} against LDAP {connLdap.Address}:{connLdap.Port} ...");
-                        connLdap.Connect();
-                        String UserDN = connLdap.ValidateUser(User);
-                        if (UserDN!="") 
-                        {   
-                            // user was successfully authenticated via LDAP
-                            Console.WriteLine($"Successfully validated as {User} with DN {UserDN}");
-                            // User.UserDN = UserDN;
-
-                            Tenant tenant = new Tenant();
-                            tenant.tenantName = UserDN; //only part of it (first ou)
-
-                            // need to make APICalls available as common library
-
-                            // need to resolve tenant_name from DN to tenant_id first 
-                            // query get_tenant_id($tenant_name: String) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
-                            // variables: {"tenant_name": "forti"}
-                            tenant.tenantId = 0; // todo: replace with APICall() result
-
-                            // get visible devices with the following queries:
-
-                            // query get_visible_mgm_per_tenant($tenant_id:Int!){  get_visible_managements_per_tenant(args: {arg_1: $tenant_id})  id } }
-                            String variables = $"\"tenant_id\":{tenant.tenantId}";
-                            // tenant.VisibleDevices = APICall(query,variables);
-
-                            // query get_visible_devices_per_tenant($tenant_id:Int!){ get_visible_devices_per_tenant(args: {arg_1: $tenant_id}) { id }}
-                            // variables: {"tenant_id":3}
-                            // tenant.VisibleDevices = APICall();
-                
-                            // tenantInformation.VisibleDevices = {};
-                            // tenantInformation.VisibleManagements = [];
-
-                            UserData userData = new UserData();
-                            userData.tenant = tenant;
-                            responseString = TokenGenerator.CreateJWT(User, userData, roleLdap.GetRoles(UserDN));
-                            break;
-                        }
-                    }
-                }
-            }  
-            return responseString;
-        }
-
-        private string CreateJwt(HttpListenerRequest request)
-        {
-            if (request.HttpMethod == HttpMethod.Post.Method)
-            {
-                string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
-                Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
-                User User = new User { Name = Parameters["Username"], Password = Parameters["Password"] };
-                return CreateJwt(User);
-            }
-            return $"invalid http method {request.HttpMethod} <> POST";
+            return Parameters;
         }
     }
 }

@@ -1,10 +1,18 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace FWO_Logging
 {
     public class Log
     {
+        public static void WriteDebug(string Title, string Text)
+        {
+#if DEBUG
+            WriteLog("Debug", Title, Text, ConsoleColor.White);
+#endif
+        }
+
         public static void WriteInfo(string Title, string Text)
         {
             WriteLog("Info", Title, Text, ConsoleColor.Cyan);
@@ -23,14 +31,27 @@ namespace FWO_Logging
                 : "") +
                 (Error != null ?
                 "\n ---\n" +
-                $"Exception thrown: \n { Error.GetType().Name} \n" +
+                $"Exception thrown: \n {Error.GetType().Name} \n" +
                 $"Message: \n {Error.Message.TrimStart()} \n" +
                 $"Stack Trace: \n {Error.StackTrace.TrimStart()}"
                 : "");
 
 
             WriteLog("Error", Title, DisplayText, ConsoleColor.Red);
+        }
 
+        public static void WriteError(string Title, string Text, bool LogStackTrace)
+        {
+            string DisplayText =
+                (Text != null ?
+                $"{Text}"
+                : "") +
+                (LogStackTrace ?
+                "\n ---\n" +
+                $"Stack Trace: \n {Environment.StackTrace}"
+                : "");
+
+            WriteLog("Error", Title, DisplayText, ConsoleColor.Red);
         }
 
         private static void WriteLog(string LogType, string Title, string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)

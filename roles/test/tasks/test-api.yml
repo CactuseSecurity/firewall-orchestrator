@@ -2,26 +2,97 @@
 # postgresql-client
 
 - name: test api health
-  shell: "curl --request GET --insecure --url https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz --header 'content-type: application/json' --data '{\"query\":\"\"}'"
+  command: |
+    curl --request GET --insecure 
+    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz 
+    --header 'content-type: application/json' 
+    --data '{"query":""}'
   register: api_health
+  changed_when: false
+  failed_when: false
 
-- name: show health result
-  debug:
-    var: api_health
+- name: api health test
+  assert:
+    that: api_health.stdout is match('OK')
+    fail_msg: "api health test failed"
+    success_msg: "api health test passed"
+  failed_when: false
 
-- name: fail on api health issues
-  fail:
-    msg: api health check failed
-  when: api_health.stdout != "OK"
+- name: test api version
+  command: |
+    curl --request GET --insecure
+    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/version
+    --header 'content-type: application/json'
+    --data '{"query":""}'
+  register: api_version
+  changed_when: false
+  failed_when: false
 
-# - name: test anonymous api access
-#   command:
+- name: api version test
+  assert:
+    that: api_version.stdout is search('version')
+    fail_msg: "api version test failed"
+    success_msg: "api version test passed"
+  failed_when: false
 
-# - name: test api
-#   command: curl --request GET --insecure \
-#   --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/version \
-#   --header 'content-type: application/json' \
-#   --data '{"query":""}'
+- name: api meta tests
+  assert:
+    that: 
+      - api_health.stdout is match('OK')
+      - api_version.stdout is search('version')
+    fail_msg: "api meta tests failed"
+    success_msg: "api meta tests passed"
+  failed_when: false
+
+# - name: fail on api version error
+#   fail:
+#     msg: api version incorrect
+#   when: api_ver != "'{\"version\":\"v" + api_hasura_version + "\"}'\n"
+
+- name: test anonymous api access
+  command: |
+    curl --insecure --request POST
+    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    --header 'content-type: application/json'
+    --header 'x-hasura-role: anonymous'
+    --data '{"query":"query { object {obj_name} }"}'
+  register: api_query_anonymous
+  changed_when: false
+
+# - name: show api anonymous query
+#   debug:
+#     var: api_query_anonymous
+# "stdout": "{\"errors\":[{\"extensions\":{\"path\":\"$\",\"code\":\"invalid-headers\"},\"message\":\"Missing Authorization header in JWT authentication
+
+- name: api anonymous query test
+  assert:
+    that: api_query_anonymous.stdout is search('Missing Authorization header')
+    fail_msg: "api anonymous query test failed"
+    success_msg: "api anonymous query test passed"
+  failed_when: false
+
+- name: test hasura-admin api access
+  command: |
+    curl --insecure --request POST
+    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    --header 'content-type: application/json'
+    --header 'x-hasura-role: admin'
+    --header 'x-hasura-admin-secret: {{ api_hasura_admin_secret }}'
+    --data '{"query":"query { object {obj_name} }"}'
+  register: api_query_admin    
+  changed_when: false
+
+# - name: show api admin query
+#   debug:
+#     var: api_query_admin
+#     # "stdout": "{\"data\":{\"object\":[{\"obj_name\":\
+
+- name: api admin query test
+  assert:
+    that: api_query_admin.stdout is search('obj_name')
+    fail_msg: "api admin query test failed"
+    success_msg: "api admin query test passed"
+  failed_when: false
 
 # - name: get jwt restricted reporter
 #   command:

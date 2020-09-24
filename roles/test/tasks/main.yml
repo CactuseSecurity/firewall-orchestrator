@@ -11,6 +11,9 @@
   loop: "{{ test_packages }}"
   become: yes
 
+- name: auth testing
+  import_tasks: test-auth.yml
+
 - name: api testing
   import_tasks: test-api.yml
 

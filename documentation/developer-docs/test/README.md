@@ -1,13 +1,19 @@
 # Testing
 
-Test structure: <https://martinfowler.com/articles/practical-test-pyramid.html#TheTestPyramid>
+## Intro
 
-Also see <https://docs.ansible.com/ansible/latest/dev_guide/testing_units.html> and <https://pypi.org/project/placebo/>.
+Universal test structure: <https://martinfowler.com/articles/practical-test-pyramid.html#TheTestPyramid>
 
+Ansible testing:
+- <https://docs.ansible.com/ansible/latest/reference_appendices/test_strategies.html>
+- <https://docs.ansible.com/ansible/latest/dev_guide/testing_units.html>
+- <https://docs.ansible.com/ansible/latest/dev_guide/testing_units_modules.html#testing-units-modules>
+- <https://pypi.org/project/placebo/>
+
+## Documentation
 Tests are performed in the test role. These are either executed at the end of the install process or separately using the following command:
 
     ansible-playbook -i inventory test.yml -K
-
 
 To ensure that all tests are run, an error does not interrupt the playbook.
 Instead you can use the following command to only display errors:
@@ -28,6 +34,3 @@ Instead you can use the following command to only display errors:
 
     tim@ubu18test:~/firewall-orchestrator$
 
-## Unit tests
-
-See <https://docs.ansible.com/ansible/latest/dev_guide/testing_units_modules.html#testing-units-modules>.

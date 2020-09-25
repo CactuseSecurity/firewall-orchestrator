@@ -2,7 +2,7 @@
 
 Test structure: <https://martinfowler.com/articles/practical-test-pyramid.html#TheTestPyramid>
 
-Also see <https://docs.ansible.com/ansible/latest/dev_guide/testing_units.html>.
+Also see <https://docs.ansible.com/ansible/latest/dev_guide/testing_units.html> and <https://pypi.org/project/placebo/>.
 
 Tests are performed in the test role. These are either executed at the end of the install process or separately using the following command:
 

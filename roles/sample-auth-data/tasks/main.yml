@@ -34,4 +34,8 @@
 
   when: not is_ldap_present_flag.stat.exists
 
+- name: restart auth server in case any changes to ldap_connections were made
+  command: "systemctl restart {{ auth_service_name }}"
+  become: yes
+
   # todo: remove ldif files

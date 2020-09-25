@@ -6,6 +6,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
+@inject IJSRuntime js
 
 @if (showLoginForm)
 {
@@ -43,7 +44,10 @@
 
         showLoginForm = true;
         if (firstRender)
+        {
             StateHasChanged();
+            await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
+        }
     }
 
     private async Task PotentialSubmit(KeyboardEventArgs e)
@@ -70,7 +74,7 @@
             // Save it in session storage.
             await sessionStorage.SetItemAsync<string>("jwt", jwt);
 
-            ApiConnection.ChangeAuthHeader(jwt);
+            ApiConnection.Jwt = jwt;
 
             // Try to auth with jwt (validates it, gets roles, ...).
             ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);

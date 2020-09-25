@@ -15,6 +15,14 @@
     group: "{{ fworch_user }}"
   become: yes
 
+- name: install python3-openssl for openssl key generation
+  package:
+    name: "{{ item }}"
+  loop:
+    - python3-cryptography
+    - python3-openssl
+  become: yes
+
 - name: create auth secrets (jwt key, ldap)
   include_tasks: create_auth_secrets.yml
 
@@ -27,7 +35,7 @@
 - name: change value for auth_change_local_ldap if ldap conn already exists to prevent re-creation errors
   set_fact:
     auth_change_local_ldap: "no"
-  when: ldap_conn_present.stdout == "1"
+  when: ldap_conn_present.stdout >= "1"
 
 - debug:
      var: ldap_conn_present

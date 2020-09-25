@@ -170,6 +170,54 @@ Here fritz is not required to exist somewhere in the ldap tree.
 Not tested yet!
 
     ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
+### querying AD
+currently works via ldap not ldaps.
+Example:
+```console
+tim@deb10-test:/var/log/fworch$ ldapsearch -x -D "ad-readonly@int.cactus.de" -H ldap://192.168.100.8 -W -b "DC=Users,DC=int,DC=cactus,DC=de" "(sAMAccountName=tim)"
+dn: CN=Tim Purschke,CN=Users,DC=int,DC=cactus,DC=de
+cn: Tim Purschke
+distinguishedName: CN=Tim Purschke,CN=Users,DC=int,DC=cactus,DC=de
+displayName: Tim Purschke
+uSNChanged: 4413227
+name: Tim Purschke
+objectGUID:: 8rakK4DX40ahetu1vNDebA==
+userAccountControl: 512
+objectSid:: AQUAAAAAAAUVAAAA2YTAfH0kWZgXgpVqUAQAAA==
+sAMAccountName: tim
+userPrincipalName: tim@int.cactus.de
+```
+
+#### TLS-Fehler stringray
+
+Auf dem System ist keine Standard-Serverreferenz vorhanden. Serveranwendungen, die Standard-Systemreferenzen verwenden, werden keine SSL-Verbindungen akzeptieren. Als Beispiel einer solchen Anwendung dient der Verzeichnisserver. Dies hat keine Auswirkung auf Anwendungen wie der Internet Information Server, die die eigenen Referenzen verwalten, .
+
+#### test with stingray.int.cactus.de
+
+source: <https://tylersguides.com/guides/search-active-directory-ldapsearch/>
+
+```code
+tim@ubu18test:~/firewall-orchestrator$ openssl s_client -connect 192.168.100.8:636 -showcerts </dev/null
+CONNECTED(00000005)
+write:errno=104
+---
+no peer certificate available
+---
+No client certificate CA names sent
+---
+SSL handshake has read 0 bytes and written 315 bytes
+Verification: OK
+---
+New, (NONE), Cipher is (NONE)
+Secure Renegotiation IS NOT supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 0 (ok)
+---
+ldapsearch -x -D "tim@cactus.de" -H ldaps://192.168.100.8 -W -b "dc=cactus" "(sAMAccountName=user)" 
+```
 
 ## authentication against ldap from .net (C#)
 

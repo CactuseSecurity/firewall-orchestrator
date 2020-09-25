@@ -1,14 +1,9 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
-using System.IO;
-using System.Security.Cryptography;
 
 namespace FWO_Auth_Server
 {
@@ -18,7 +13,6 @@ namespace FWO_Auth_Server
         // private readonly AsymmetricSignatureProvider publicJwtKey;
         private readonly RsaSecurityKey rsaSecurityKey;
         private readonly int hoursValid;
-        private readonly string signingAlgorithm = SecurityAlgorithms.RsaSha256;
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
@@ -36,10 +30,6 @@ namespace FWO_Auth_Server
             ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
 
             // Create JWToken
-
-#if DEBUG
-            Console.WriteLine($"Auth::TokenGenerator:signingAlgorithm={signingAlgorithm}");
-#endif
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
                 issuer: issuer,
@@ -51,9 +41,7 @@ namespace FWO_Auth_Server
              );
 
             string GeneratedToken = tokenHandler.WriteToken(token);
-
             Console.WriteLine($"Generated JWT {GeneratedToken} for User {user.Name}");
-
             return GeneratedToken;
         }
 
@@ -96,11 +84,6 @@ namespace FWO_Auth_Server
             else
             {
                 Console.WriteLine($"ERROR: User {user.Name} does not have any assigned roles");    
-                // if ((from role in roles where role.Name == "reporter" select role.Name).Count() > 0)
-                //     //roles.Where(role => role.Name == "reporter"))
-                // {
-                //     defaultRole =  "reporter";
-                // }
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));

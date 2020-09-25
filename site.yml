@@ -10,17 +10,24 @@
   roles:
     - database
 
+- hosts: authserver
+  roles:
+    - openldap-server
+    - lib
+    - auth
+
 - hosts: apiserver
   roles:
     - { role: docker, when: "run_on_github is not defined" }
     - { role: api, when: "run_on_github is not defined" }
    # todo: make api (and docker) work with github actions
 
+# restart authserver now that the API is ready
 - hosts: authserver
-  roles:
-    - openldap-server
-    - lib
-    - auth
+  tasks:
+    - name: start auth service
+      command: "systemctl restart {{ auth_service_name }}"
+      become: yes
 
 - hosts: frontends
   roles:

@@ -215,19 +215,19 @@ ewIDAQAB
                             // User.UserDN = UserDN;
 
                             Tenant tenant = new Tenant();
-                            tenant.tenantName = UserDN; //only part of it (first ou)
+                            tenant.Name = UserDN; //only part of it (first ou)
 
                             // need to make APICalls available as common library
 
                             // need to resolve tenant_name from DN to tenant_id first 
                             // query get_tenant_id($tenant_name: String) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
                             // variables: {"tenant_name": "forti"}
-                            tenant.tenantId = 0; // todo: replace with APICall() result
+                            tenant.Id = 0; // todo: replace with APICall() result
 
                             // get visible devices with the following queries:
 
                             // query get_visible_mgm_per_tenant($tenant_id:Int!){  get_visible_managements_per_tenant(args: {arg_1: $tenant_id})  id } }
-                            String variables = $"\"tenant_id\":{tenant.tenantId}";
+                            String variables = $"\"tenant_id\":{tenant.Id}";
                             // tenant.VisibleDevices = APICall(query,variables);
 
                             // query get_visible_devices_per_tenant($tenant_id:Int!){ get_visible_devices_per_tenant(args: {arg_1: $tenant_id}) { id }}

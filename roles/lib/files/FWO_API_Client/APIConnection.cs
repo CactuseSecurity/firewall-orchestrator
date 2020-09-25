@@ -40,6 +40,11 @@ namespace FWO.Api
                 HttpMessageHandler = Handler,
             }, new SystemTextJsonSerializer());
         }
+        public void ChangeAuthHeader(string Jwt)
+        {
+            this.Jwt = Jwt;
+            Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Jwt);
+        }
 
         public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string Query, string Variables = null, string OperationName = null)
         {

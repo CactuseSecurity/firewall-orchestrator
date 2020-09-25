@@ -51,4 +51,6 @@
 
 - hosts: all
   roles:
-    - { role: test, when: "test is defined" }
+    - test
+  tags:
+    - test

@@ -1,15 +1,12 @@
 # this playbook contains auth server tests
 
-- set_fact:
-  - test_user="fritz"
-  - test_pwd="fritz1"
-
+# curl --request POST --url http://127.0.0.1:8888/jwt --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
 - name: auth test get jwt
   command: |
-    curl --request GET --insecure 
-    --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/jwt 
-    --header 'content-type: application/json' 
-    --data '{ { "Username", {{ Username }} }, { "Password", {{ Password }} } }'
+    curl --request POST --insecure 
+      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/jwt 
+      --header 'content-type: application/json' 
+      --data '"{\"Username\":\"fritz\",\"Password\":\"fritz1\"}"'
   register: sample_jwt
   changed_when: false
 

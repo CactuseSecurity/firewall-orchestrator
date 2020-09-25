@@ -1,0 +1,14 @@
+
+- name: copy test files to frontend target
+  copy:
+    src: FWO_Test
+    dest: "{{ ui_dir }}"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
+  become: yes
+
+- name: publish ui test
+  command: dotnet run
+  args: chdir={{ ui_test_tart_dir }}
+  become: yes
+  become_user: "{{ fworch_user }}"

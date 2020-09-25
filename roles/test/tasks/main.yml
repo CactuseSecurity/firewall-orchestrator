@@ -11,11 +11,17 @@
   loop: "{{ test_packages }}"
   become: yes
 
+- name: database testing
+  import_tasks: test-database.yml
+
 - name: auth testing
   import_tasks: test-auth.yml
 
 - name: api testing
   import_tasks: test-api.yml
+
+- name: ui testing
+  import_tasks: test-ui.yml
 
 # - name: remove all test data
 #   import_tasks: test-data-cleanup.yml

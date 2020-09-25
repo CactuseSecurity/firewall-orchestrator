@@ -31,6 +31,7 @@ namespace FWO.Auth.Client
                 Console.Out.WriteAsync($"Using fallback key! \n");
                 Console.ForegroundColor = StandardConsoleColor;
             }
+
             // and import it into RSACryptoObject
             try
             {
@@ -48,12 +49,12 @@ namespace FWO.Auth.Client
             }
             // store Jwt token string and import it into JwtToken object
             this.TokenString = TokenString;
+
             Handler = new JwtSecurityTokenHandler();
-            try 
-            { 
-                if (TokenString != null)
-                    Token = Handler.ReadJwtToken(TokenString);
-            } 
+            try
+            {
+                Token = Handler.ReadJwtToken(TokenString);
+            }
             catch (Exception e)
             {
                 Console.Out.WriteAsync($"Auth_Client:: error while adding (not validating) JWT: \n Message \n ### \n {e.Message} \n ### \n StackTrace \n ### \n {e.StackTrace} \n ### \n");
@@ -80,6 +81,7 @@ namespace FWO.Auth.Client
                     ValidateLifetime = true,
                     IssuerSigningKey = new RsaSecurityKey(this.rsa)
                 };
+
                 SecurityToken validatedSecurityToken = null;
                 JwtSecurityTokenHandler handler = new JwtSecurityTokenHandler();
                 handler.ValidateToken(TokenString, validationParameters, out validatedSecurityToken);

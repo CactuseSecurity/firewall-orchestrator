@@ -209,7 +209,8 @@ ewIDAQAB
                         connLdap.Connect();
                         String UserDN = connLdap.ValidateUser(User);
                         if (UserDN!="") 
-                        {   // user was successfully auhtenticated via LDAP
+                        {   
+                            // user was successfully authenticated via LDAP
                             Console.WriteLine($"Successfully validated as {User} with DN {UserDN}");
                             // User.UserDN = UserDN;
 

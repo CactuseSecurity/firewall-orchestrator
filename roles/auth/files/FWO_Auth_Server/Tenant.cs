@@ -6,8 +6,8 @@ namespace FWO_Auth_Server
 {
     public class Tenant
     {
-        public string tenantName { get; set; }
-        public int tenantId { get; set; }
+        public string TenantName { get; set; }
+        public int TenantId { get; set; }
         public int[] VisibleDevices { get; set; }
         public int[] VisibleManagements { get; set; }
     }

@@ -42,7 +42,7 @@ namespace FWO.Api
         }
         public void ChangeAuthHeader(string Jwt)
         {
-            this.Jwt = Jwt;
+            // this.Jwt = Jwt;
             Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Jwt);
         }
 

@@ -1,10 +1,10 @@
 # Testing
 
-Structure: <https://martinfowler.com/articles/practical-test-pyramid.html#TheTestPyramid>
+Test structure: <https://martinfowler.com/articles/practical-test-pyramid.html#TheTestPyramid>
 
-Tests are performed in the test role
+Also see <https://docs.ansible.com/ansible/latest/dev_guide/testing_units.html>.
 
-These are either executed at the end of the install process or separately using the following command:
+Tests are performed in the test role. These are either executed at the end of the install process or separately using the following command:
 
     ansible-playbook -i inventory test.yml -K
 
@@ -27,3 +27,7 @@ Instead you can use the following command to only display errors:
     }
 
     tim@ubu18test:~/firewall-orchestrator$
+
+## Unit tests
+
+See <https://docs.ansible.com/ansible/latest/dev_guide/testing_units_modules.html#testing-units-modules>.

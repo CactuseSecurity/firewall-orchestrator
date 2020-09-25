@@ -9,6 +9,6 @@
 
 - name: publish ui test
   command: dotnet run
-  args: chdir={{ ui_test_tart_dir }}
+  args: chdir={{ ui_test_start_dir }}
   become: yes
   become_user: "{{ fworch_user }}"

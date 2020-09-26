@@ -1,48 +1,67 @@
 ﻿using FWO_Logging;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 
 namespace FWO_Auth_Server.Requests
 {
-    static class Authentication
+    class AuthenticationRequestHandler : RequestHandler
     {
-        public static Role[] GetUserRoles(this IEnumerable<Ldap> Ldaps, string UserDn)
+        private readonly TokenGenerator tokenGenerator;
+
+        public AuthenticationRequestHandler(List<Ldap> Ldaps, TokenGenerator tokenGenerator)
         {
+            this.Ldaps = Ldaps;
+            this.tokenGenerator = tokenGenerator;
+        }
+
+        public Role[] GetUserRoles(User user)
+        {
+            string UserDn = user.Dn;
+
             List<Role> UserRoles = new List<Role>();
 
             // Anonymous case
-            if (UserDn == "anonymous") 
+            if (UserDn == "anonymous")
             {
-                Log.WriteWarning("Anonymous/empty user", $"No roles for user \"{UserDn}\" could be found. Using anonymous role.");
-
+                Log.WriteWarning("Anonymous/empty user", $"Using anonymous role.");
                 UserRoles.Add(new Role("anonymous"));
             }
-
             else
             {
                 foreach (Ldap currentLdap in Ldaps)
                 {
+                    // if current Ldap has roles stored
                     if (currentLdap.RoleSearchPath != "")
                     {
-                        return currentLdap.GetRoles(UserDn);
+                        // Get roles from current Ldap
+                        UserRoles.AddRange(currentLdap.GetRoles(UserDn));
                     }
                 }
+            }
+
+            // If no roles found
+            if (UserRoles.Count == 0)
+            {
+                // Use anonymous role
+                Log.WriteWarning("Missing roles", $"No roles for user \"{UserDn}\" could be found. Using anonymous role.");
+                UserRoles.Add(new Role("anonymous"));
             }
 
             return UserRoles.ToArray();
         }
 
-        public static string ValidateUserCredentials(this IEnumerable<Ldap> Ldaps, User user)
+        public User ValidateUserCredentials(User user)
         {
             Log.WriteDebug("User validation", $"Trying to validate {user.Name}...");
 
             // Anonymous case
-            if (user.Name == "") 
+            if (user.Name == "")
             {
                 Log.WriteWarning("Anonymous/empty user", "No username was provided. Using anonymous username.");
-
-                return "anonymous";
+                user.Dn = "anonymous";
+                return user;
             }
 
             else
@@ -53,23 +72,23 @@ namespace FWO_Auth_Server.Requests
 
                     string UserDn = currentLdap.ValidateUser(user);
 
-                    if (UserDn != "") 
+                    if (UserDn != "")
                     {
                         // User was successfully authenticated via LDAP
                         Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {UserDn}");
-
-                        return UserDn;
+                        user.Dn = UserDn;
+                        return user;
                     }
                 }
             }
 
             // Invalid User Credentials
-            return "";
+            throw new Exception("Invalid credentials.");
         }
 
-        public static string GetUserTenant(this IEnumerable<Ldap> Ldaps, string UserDn)
+        public string GetUserTenant(User user)
         {
-
+            /*
             Tenant tenant = new Tenant();
             tenant.Name = UserDn; //only part of it (first ou)
 
@@ -96,33 +115,51 @@ namespace FWO_Auth_Server.Requests
             UserData userData = new UserData();
             userData.tenant = tenant;
             responseString = TokenGenerator.CreateJWT(User, userData, roleLdap.GetRoles(UserDN));
-            break;
+            */
+            return null;            
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="user"></param>
-        /// <returns>
-        /// <para>If user credentials are valid : Jwt.</para>
-        /// <para>If error: Error message.</para>
-        /// <para>If user credentials are invalid: "".</para>
-        /// </returns>
-        private static string AuthenticateUser(this IEnumerable<Ldap> Ldaps, User user, TokenGenerator tokenGenerator)
+        /// <param name="tokenGenerator"></param>
+        /// <returns>jwt if credentials are valid</returns>
+        private string AuthenticateUser(User user)
         {
-            string Jwt = "InvalidCredentials";
+            // Validate user credentials and get ldap distinguish name
+            user = ValidateUserCredentials(user);
 
-            Log.WriteDebug("User validation", $"Trying to validate {user.Name}...");
+            // User has valid credentials / is anonymous user. Otherwise exception would have been thrown
 
-            string userDn = Ldaps.ValidateUserCredentials(user);
-            Role[] roles = Ldaps.GetUserRoles(userDn);
-            Ldaps.GetUserTenant(userDn);
+            // Get roles of user
+            Role[] roles = GetUserRoles(user);
 
-            Jwt = tokenGenerator.CreateJWT(user, null, roles);
+            // Get tenant of user
+            GetUserTenant(user);
 
-            Log.WriteDebug("User validation", $"Succesfully validated.");
+            // Create JWT for validated user with roles and tenant
+            return tokenGenerator.CreateJWT(user, null, roles);
+        }
 
-            return Jwt;
+        protected override string HandleRequest(HttpListenerRequest request)
+        {
+            // Read parameters from request
+            Dictionary<string, object> Parameters = GetRequestParameters(request);
+            User user;
+
+            try
+            {
+                // Try to read username and password parameters
+                user = new User() { Name = (string)Parameters["Username"], Password = (string)Parameters["Password"] };
+            }
+            catch (Exception)
+            {
+                throw new Exception("Parameter username/password was not found or bad formatted.");
+            }
+
+            // Authenticate user
+            return AuthenticateUser(user);
         }
     }
 }

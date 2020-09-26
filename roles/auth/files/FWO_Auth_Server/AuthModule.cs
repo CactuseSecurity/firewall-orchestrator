@@ -108,12 +108,8 @@ ewIDAQAB
             APIConnection ApiConn = new APIConnection(ApiUri);
             ApiConn.Jwt = TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") });
 
-            // fetch all connectedLdaps via API
-            Task<Ldap[]> ldapTask = Task.Run(() => ApiConn.SendQuery<Ldap>(Queries.LdapConnections));
-            ldapTask.Wait();
-
-            //Ldap[] connectedLdaps = ldapTask.Result;
-            this.connectedLdaps = ldapTask.Result;
+            // fetch all connectedLdaps via API. Blocking wait via result.
+            connectedLdaps = ApiConn.SendQuery<Ldap>(Queries.LdapConnections).Result;
 
             foreach (Ldap connectedLdap in connectedLdaps)
             {
@@ -130,44 +126,43 @@ ewIDAQAB
             // Add prefixes to listen to 
             Listener.Prefixes.Add(AuthServerListenerUri + "AuthenticateUser/");
 
-            // Start listener.
+            // Start listener
             Listener.Start();
             Log.WriteInfo("Listener started", "Auth server http listener started.");
 
-            // GetContext method block while waiting for a request.
+            // Handle an infinite amount of requests
             while (true)
             {
-                // Blocking wait for Http Request
+                // Blocking wait for request
                 HttpListenerContext context = Listener.GetContext();
 
-                // Get Request
+                // Get request
                 HttpListenerRequest request = context.Request;
 
-                // Initialize Status and Response              
+                // Initialize status and response              
                 HttpStatusCode status = HttpStatusCode.OK;
                 string responseString = "";
 
-                Log.WriteInfo("Request received", $"New http request received: \"{request.Url.LocalPath}\".");
+                // Get name of request without "/" as first character
+                string requestName = request.Url.LocalPath.Remove(0, 1);
 
+                // Log that a request was received
+                Log.WriteInfo("Request received", $"New request received: \"{requestName}\".");
+
+                // Try to handle request
                 try
                 {
-                    switch (request.Url.LocalPath)
+                    // Find correct way to handle request.
+                    switch (requestName)
                     {
-                        case "/AuthenticateUser":
-
-                            if (request.HttpMethod == HttpMethod.Post.Method)
-                            {
-                                // Read parameters
-                                Dictionary<string, string> Parameters = GetRequestParameters(request);
-                                User user = new User { Name = Parameters["Username"], Password = Parameters["Password"] };
-
+                        // Authenticate user request. Returns jwt if user credentials are valid.
+                        case "AuthenticateUser":
                                 // Try to authenticate user
-                                responseString = AuthenticateUser(user);
-                            }
-
+                                responseString = AuthenticateUser(context);
                             break;
 
-                        default:
+                        // Listened to a request but could not handle it. In theory impossible. FATAL ERROR
+                        default:                          
                             Log.WriteError("Internal Error", "We listend to a request we could not handle. How could this happen?", LogStackTrace: true);
                             status = HttpStatusCode.InternalServerError;
                             break;
@@ -177,7 +172,16 @@ ewIDAQAB
                 {
                     status = HttpStatusCode.BadRequest;
 
-                    Log.WriteError("Request error", $"Unexpected error while handling request \"{request.Url.LocalPath}\".", exception);
+                    Log.WriteError($"Request \"{requestName}\"",
+                        $"An error occured while handling request \"{requestName}\" from \"{context.User.Identity.Name}\". \nSending error to requester.",
+                        exception);
+
+                    Dictionary<string, Exception> errorWraper = new Dictionary<string, Exception>
+                    {
+                        { "error", exception }
+                    };
+
+                    responseString = JsonSerializer.Serialize(errorWraper);
                 }
 
                 // Get response object.
@@ -190,18 +194,6 @@ ewIDAQAB
                 output.Write(buffer, 0, buffer.Length);
                 output.Close();
             }
-        }
-
-        private Dictionary<string, string> GetRequestParameters(HttpListenerRequest request)
-        {
-            Log.WriteDebug("Request Parameters", "Trying to read request parameters...");
-
-            string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
-            Dictionary<string, string> Parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(ParametersJson);
-
-            Log.WriteDebug("Request Parameters", "Request Parameters successfully read.");
-
-            return Parameters;
         }
     }
 }

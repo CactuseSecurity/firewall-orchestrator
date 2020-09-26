@@ -9,42 +9,40 @@ namespace FWO.Config
 {
     public class ConfigConnection
     {
-        // Paths to config files
-        private readonly string JwtPrivateKeyPath;
-        private readonly string LdapInspectorPasswordPath;
+        /// <summary>
+        /// Path to config files
+        /// </summary>
+        private const string ConfigPath = ""; //TODO: Add path to config (absolute)
 
-        private Dictionary<string, string> Data { get; set; }
+        private readonly string JwtPrivateKeyPath;
+
+        private Dictionary<string, string> ConfigData { get; set; }
 
         public string this[string ConfigKey]
         {
-            get 
-            { 
-                return Data[ConfigKey];
+            get
+            {
+                return ConfigData[ConfigKey];
             }
 
-            set 
-            { 
-                Data[ConfigKey] = value;
+            set
+            {
+                ConfigData[ConfigKey] = value;
             }
         }
 
         public ConfigConnection()
         {
-            Task.Run(() =>
-            {
-                
-            });
-        }
+            // Read config as yaml from file
+            string yamlConfig = File.ReadAllText(ConfigPath).TrimEnd();
 
-        public ConfigConnection(string FileName)
-        {
-            // var stream = Yaml.StreamFrom(FileName);
-            string yamlString = File.ReadAllText(FileName).TrimEnd();
+            // Create yaml deserializer
             IDeserializer YamlDeserializer = new DeserializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .Build();
 
-            Data = YamlDeserializer.Deserialize<Dictionary<string, string>>(yamlString);           
+            // Deserialize yaml config to dictionary
+            ConfigData = YamlDeserializer.Deserialize<Dictionary<string, string>>(yamlConfig);
         }
     }
 }

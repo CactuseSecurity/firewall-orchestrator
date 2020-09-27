@@ -12,5 +12,19 @@
 
 - name: auth get jwt test output
   debug:
-    msg: "ERROR unexpected jwt test result (not equal 'OK'): {{ sample_jwt.stdout }}"
+    msg: "ERROR unexpected jwt test result (not equal 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImZyaXR6IiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsxLDcsMTd9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoiezEsNH0iLCJyb2xlIjpbImFub255bW91cyIsImF1dGgtc2VydmVyIiwicmVwb3J0ZXIiLCJyZXBvcnRlci12aWV3YWxsIiwiaW1wb3J0ZXIiXSwieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJhbm9ueW1vdXMiLCJhdXRoLXNlcnZlciIsInJlcG9ydGVyIiwicmVwb3J0ZXItdmlld2FsbCIsImltcG9ydGVyIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6InJlcG9ydGVyLXZpZXdhbGwiLCJuYmYiOjE2MDEyMjM2OTksImV4cCI6MTYwMTIzMDg5OSwiaWF0IjoxNjAxMjIzNjk5LCJpc3MiOiJGV08gQXV0aCBNb2R1bGUiLCJhdWQiOiJGV08ifQ.3NOKgvDOII7OVgVHZpHZ-LSDjMXYkYceGXGWdyVO7nM_hSuHHSczG2uhoeAASbN8TzJtTXrQMs-o_zHNcQGFm1Xt6URW-0DEkPtuXaLqZH6y_0F5hFCT-pcZAlTmtBRXibp4p4gIfZgtPCDc7Kd4Xuiqn19kiO_QkgmtMICyhMtF2PcCvdrOgxXapr7RtGjFtsU4K6K46af_e5cbc3go5-en3aToTb-5jzabsUuBlvO5xUStxpz5mcpebRBI03BoSEdNyKmAJKuCUdJ8ibEJ94g_4Ljsdyw8C4b7bZ7fNDgO8buDszGOaoiDmELWBaWMzAV78ARXLjRZBeyI1mthPw'): {{ sample_jwt.stdout }}"
+  when: sample_jwt.stdout is not match('OK')
+
+- name: auth test get jwt
+  command: |
+    curl --request POST --insecure 
+      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/jwt 
+      --header 'content-type: application/json' 
+      --data '"{\"Username\":\"fritz\",\"Password\":\"wrong-pwd\"}"'
+  register: sample_jwt
+  changed_when: false
+
+- name: auth get jwt test output
+  debug:
+    msg: "ERROR unexpected jwt test result (not equal 'InvalidCredentials'): {{ sample_jwt.stdout }}"
   when: sample_jwt.stdout is not match('OK')

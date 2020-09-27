@@ -36,6 +36,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
+            "enableStepFiltering": false,
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/roles/auth/files/FWO_Auth_Server/bin/Debug/netcoreapp3.1/FWO_Auth_Server.dll",
             "args": [],

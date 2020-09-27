@@ -20,6 +20,7 @@ proxy_env:
         validate_certs: false
 test_packages:
   - postgresql-client
+  - curl
 
 ### database
 fworch_db_port: 5432
@@ -67,6 +68,11 @@ api_log_level: info
 web_server_name: apache2
 http_conf_dir: /etc/{{ web_server_name }}/sites-available/
 
+################# testing #########################
+
+test_dir: "{{ fworch_home }}/test"
+ui_test_start_dir: "{{ fworch_home }}/test/ui/FWO_Test"
+
 ################# to be removed ###################
 
 ### importer test data
@@ -77,3 +83,4 @@ sting_fworch_user: itsecorg
 dbadmin_pwd: "st8chel"
 fworch_pwd: "st8chel"
 admin_pwd: "fworch.1"
+

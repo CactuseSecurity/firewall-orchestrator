@@ -1,0 +1,16 @@
+# this playbook contains auth server tests
+
+# curl --request POST --url http://127.0.0.1:8888/jwt --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
+- name: auth test get jwt
+  command: |
+    curl --request POST --insecure 
+      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/jwt 
+      --header 'content-type: application/json' 
+      --data '"{\"Username\":\"fritz\",\"Password\":\"fritz1\"}"'
+  register: sample_jwt
+  changed_when: false
+
+- name: auth get jwt test output
+  debug:
+    msg: "ERROR unexpected jwt test result (not equal 'OK'): {{ sample_jwt.stdout }}"
+  when: sample_jwt.stdout is not match('OK')

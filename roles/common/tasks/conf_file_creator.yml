@@ -3,7 +3,7 @@
   - name: create symlink /usr/local/fworch/etc to /etc/fworch
     file:
       src: "{{ fworch_home }}/etc"
-      dest: "/etc/{{ prod_name }}"
+      dest: "/etc/{{ product_name }}"
       state: link
 
   # - name: create temp symlink necessary for rel path to conf file in csharp debugging

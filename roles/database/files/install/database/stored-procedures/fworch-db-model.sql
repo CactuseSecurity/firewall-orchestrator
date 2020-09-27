@@ -802,20 +802,6 @@ Create table "stm_change_type"
  primary key ("change_type_id")
 );
 
-Create table "manual"
-(
-	"id" Varchar(6) NOT NULL UNIQUE,
-	"topic_l1_id" Varchar,
-	"topic_l2_id" Varchar,
-	"topic_l1_txt_eng" Varchar,
-	"topic_l1_txt_ger" Varchar,
-	"topic_l2_txt_eng" Varchar,
-	"topic_l2_txt_ger" Varchar,
-	"body_txt_eng" Text,
-	"body_txt_ger" Text,
- primary key ("id")
-);
-
 Create table "temp_table_for_tenant_filtered_rule_ids"
 (
 	"rule_id" Integer NOT NULL,
@@ -902,6 +888,8 @@ Create table "ldap_connection"
 	"ldap_tenant_level" Integer NOT NULL Default 1,
 	"ldap_search_user" Varchar NOT NULL,
 	"ldap_search_user_pwd" Varchar NOT NULL,
+	"ldap_write_user" Varchar,
+	"ldap_write_user_pwd" Varchar,
 	primary key ("ldap_connection_id")
 );
 

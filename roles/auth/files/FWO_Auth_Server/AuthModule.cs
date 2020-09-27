@@ -70,7 +70,11 @@ namespace FWO_Auth
             // create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header 
             APIConnection ApiConn = new APIConnection(ApiUri);
             // ApiConn.ChangeAuthHeader(TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") }));
-            ApiConn.Jwt = TokenGenerator.CreateJWT(new User { Name = "auth-server", Password = "" }, new UserData(), new Role[] { new Role("auth-server") });
+            User user = new User { Name = "auth-server", Password = "" };
+            UserData UserData = new UserData();
+            Role[] Roles = new Role[] { new Role("auth-server") };
+            string LocalJwt = TokenGenerator.CreateJWT(user,UserData,Roles);
+            ApiConn.Jwt = LocalJwt;
             // fetch all connectedLdaps via API
             Task<Ldap[]> ldapTask = Task.Run(()=> ApiConn.SendQuery<Ldap>(Queries.LdapConnections));
             ldapTask.Wait();

@@ -15,13 +15,15 @@ namespace FWO.Api
 
         private readonly GraphQLHttpClient Client;
 
+
+        private string jwt;
         public string Jwt
         {
             set
             {
-                Jwt = value; // Save jwt for debug purpose
+                jwt = value; // Save jwt for debug purpose
                 Client.HttpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", value); // Change jwt in auth header
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", value); // Change jwt in auth header
             }
         }
 

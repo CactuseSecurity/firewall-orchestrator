@@ -10,9 +10,18 @@
   register: sample_jwt
   changed_when: false
 
-- set_fact: jwt_header="{{ sample_jwt.stdout.split('.')[0]|b64decode }}"
+- set_fact: jwt_header="{{ sample_jwt.stdout.split('.')[0] }}"
 
-- set_fact: jwt_type="{{ jwt_header.typ }}"
+## adding potentially missing base64 = padding to header:
+- set_fact: jwt_header="{{ jwt_header }}=" cacheable=yes
+  when: "jwt_header|length % 4 > 0"
+  loop:
+    - 1
+    - 2
+    - 3
+
+- set_fact: jwt_type="{{ jwt_header|b64decode }}"
+- set_fact: jwt_type="{{ jwt_type.typ }}"
 
 - name: auth get jwt test valid creds output
   debug:

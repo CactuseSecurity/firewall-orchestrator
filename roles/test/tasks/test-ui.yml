@@ -2,7 +2,7 @@
 - name: copy test files to frontend target
   copy:
     src: FWO_Test
-    dest: "{{ ui_dir }}"
+    dest: "{{ test_dir }}/ui"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
   become: yes

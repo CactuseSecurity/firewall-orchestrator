@@ -7,7 +7,7 @@
 
 create a new vault password-vault.yml with
 
-  ansible-vault create password-vault.yml
+    ansible-vault create password-vault.yml
   
 you have to provide a password to encrypt the vault
 
@@ -15,15 +15,15 @@ you have to provide a password to encrypt the vault
 
 edit the vault password-vault.yml with
 
-  ansible-vault edit password-vault.yml
+    ansible-vault edit password-vault.yml
   
 ## reference
 
 to reference the content of the vault in the entire playbook use
 
-  - hosts: all
-    vars_files:
-      - password-vault.yml
-    roles:
-      - common
+    - hosts: all
+      vars_files:
+        - password-vault.yml
+      roles:
+        - common
       

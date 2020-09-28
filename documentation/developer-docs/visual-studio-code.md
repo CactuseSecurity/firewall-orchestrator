@@ -62,6 +62,20 @@ auth_hostname: "127.0.0.1"
 auth_server_port: "8888"
 ```
 
+### port forwarding per ssh
+
+    9443:localhost:9443
+    636:localhost:636
+
+
+central server (to be built): fworcht.cactus.de
+
+
+### local listeners on client
+
+5001 - blazor
+8888 - auth-server
+
 
 ## Select, prepare and run project
 

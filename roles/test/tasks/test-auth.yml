@@ -1,16 +1,61 @@
 # this playbook contains auth server tests
 
 # curl --request POST --url http://127.0.0.1:8888/jwt --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
-- name: auth test get jwt
+- name: auth test get jwt valid creds
   command: |
     curl --request POST --insecure 
       --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/jwt 
       --header 'content-type: application/json' 
-      --data '"{\"Username\":\"fritz\",\"Password\":\"fritz1\"}"'
+      --data '{"Username":"fritz","Password":"fritz1"}'
   register: sample_jwt
   changed_when: false
 
-- name: auth get jwt test output
+- set_fact: jwt_header="{{ sample_jwt.stdout.split('.')[0] }}"
+
+## adding potentially missing base64 = padding to header:
+- set_fact: jwt_header="{{ jwt_header }}=" cacheable=yes
+  when: "jwt_header|length % 4 > 0"
+  loop:
+    - 1
+    - 2
+    - 3
+
+- set_fact: jwt_type="{{ jwt_header|b64decode }}"
+- set_fact: jwt_type="{{ jwt_type.typ }}"
+
+- name: auth get jwt test valid creds output
   debug:
-    msg: "ERROR unexpected jwt test result (not equal 'OK'): {{ sample_jwt.stdout }}"
-  when: sample_jwt.stdout is not match('OK')
+    msg: "ERROR unexpected jwt test result (jwt_type does not match 'JWT'): {{ jwt_type }}"
+  when: "jwt_type is not match('JWT')"
+
+- set_fact: jwt_encoded_payload="{{ sample_jwt.stdout.split('.')[1] }}"
+
+## adding potentially missing base64 = padding to payload:
+- set_fact: jwt_encoded_payload="{{ jwt_encoded_payload }}=" cacheable=yes
+  when: "jwt_encoded_payload|length % 4 > 0"
+  loop:
+    - 1
+    - 2
+    - 3
+
+- set_fact: jwt_payload="{{ jwt_encoded_payload|b64decode }}"
+- set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
+
+- name: auth get jwt test valid creds output
+  debug:
+    msg: "ERROR unexpected jwt test result (username does not match 'fritz'): {{ jwt_unique_user_name }}"
+  when: "jwt_unique_user_name is not match('fritz')"
+
+- name: auth test get jwt wrong creds
+  command: |
+    curl --request POST --insecure 
+      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/jwt 
+      --header 'content-type: application/json' 
+      --data '{"Username":"fritz","Password":"wrong-pwd"}'
+  register: sample_jwt
+  changed_when: false
+
+- name: auth get jwt test wrong creds output
+  debug:
+    msg: "ERROR unexpected jwt test result (not equal 'InvalidCredentials'): {{ sample_jwt.stdout }}"
+  when: sample_jwt.stdout is not match('InvalidCredentials')

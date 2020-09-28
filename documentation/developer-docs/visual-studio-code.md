@@ -20,7 +20,7 @@ Clone your own fork, eg.
 
     git clone 
 
-## Add upstream cactus repo (needs to be done on command line)
+## Add upstream cactus repo (from vscode 1.49 can now also be done in vscode)
 
 change into the workspace directory on command line and run
 
@@ -38,6 +38,29 @@ Use the following command to verify settings:
 if vs code does not show the upstream repo in pull-from, just give it some time to show up?!
 
 ### sync fork
+
+## add local config on development client
+
+    /etc/fworch/   (in Windows c:\etc\fworch\)
+        fworch.yaml
+        secrets/
+          jwt_private_key.pem
+          jwt_public_key.pem
+          
+```yaml
+fworch_home: "/usr/local/fworch"
+dotnet_mode: "Release"
+
+# api
+api_uri: "https://127.0.0.1:9443/api/v1/graphql"
+api_hasura_jwt_alg: "RS256"
+
+# auth
+auth_JWT_key_file: "/usr/local/fworch/etc/secrets/jwt_private_key.pem"
+auth_hostname: "127.0.0.1"
+auth_server_port: "8888"
+```
+
 
 ## Select, prepare and run project
 

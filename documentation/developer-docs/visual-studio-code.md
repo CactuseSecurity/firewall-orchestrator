@@ -46,7 +46,8 @@ if vs code does not show the upstream repo in pull-from, just give it some time 
         secrets/
           jwt_private_key.pem
           jwt_public_key.pem
-          
+
+### /etc/fworch/fworch.yaml
 ```yaml
 fworch_home: "/usr/local/fworch"
 dotnet_mode: "Release"

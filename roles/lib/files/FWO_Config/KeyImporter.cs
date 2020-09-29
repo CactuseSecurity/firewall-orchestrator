@@ -62,8 +62,7 @@ namespace FWO.Config
                     isRsaKey = false;
                     // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = false");
                 }
-                keyText = string.Join('\n', lines.GetRange(1, lines.Count - 2).ToArray());
-                keyText = keyText.Replace("\n", "");    // remove line breaks
+                keyText = string.Join("", lines.GetRange(1, lines.Count - 2).ToArray());
             }
             catch (Exception e)
             {

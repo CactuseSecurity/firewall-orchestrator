@@ -98,6 +98,9 @@ namespace FWO.Config
 
                 try
                 {
+                    string rawPrivateKey = File.ReadAllText(jwtPrivateKeyPath);
+                    string rawPublicKey = File.ReadAllText(jwtPublicKeyPath);
+
                     // Try to read jwt private key
                     jwtPrivateKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPrivateKeyPath), isPrivateKey: true);
 

@@ -18,7 +18,7 @@ Set debug parameter to "true" for extended debugging info during installation.
 ```console
 cd firewall-orchestrator; ansible-playbook -i inventory/ site.yml -e "debug_level='2'" -K
 ```
-### Tsting
+### Testing
 
 To only run tests (for an existing installation) use tags as follows:
 

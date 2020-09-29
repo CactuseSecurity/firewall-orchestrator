@@ -4,7 +4,7 @@
 using devservffm as a central server for all services that are not debugged via visual studio (code)
 
 ### connect via ssh:
-    ssh -p 60333 cactus.de -L 9443:localhost:9443 -L 636:localhost:636 -L 60443:localhost:443
+    sudo -u tim  ssh -i /home/tim/.ssh/id_rsa -p 60333 cactus.de -L 9443:localhost:9443 -L 636:localhost:636 -L 60443:localhost:443
 
 ### automatic updates of test server
 The testserver has a webhook receiver running at https://cactus.de:60344/fwo which is triggered by changes to the cactus master.

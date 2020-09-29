@@ -23,7 +23,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Test", "test\files\FWO_
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Config", "lib\files\FWO_Config\FWO_Config.csproj", "{EB1283FB-8639-45E9-8D7C-30261B5DDF93}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO_Logging", "FWO_Logging\FWO_Logging.csproj", "{DC86C1A8-D808-433A-8EBC-D5F590B7E3A3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO_Logging", "FWO_Logging\FWO_Logging.csproj", "{DC86C1A8-D808-433A-8EBC-D5F590B7E3A3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

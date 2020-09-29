@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using FWO_Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
@@ -15,30 +16,27 @@ namespace FWO.Api
 
         private readonly GraphQLHttpClient Client;
 
-        public string Jwt
-        {
-            set
-            {
-                Jwt = value; // Save jwt for debug purpose
-                Client.HttpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", value); // Change jwt in auth header
-            }
-        }
-
         public APIConnection(string APIServerURI)
         {
             // Save Server URI
             this.APIServerURI = APIServerURI;
 
             // Allow all certificates | TODO: REMOVE IF SERVER GOT VALID CERTIFICATE
-            HttpClientHandler Handler = new HttpClientHandler();
-            Handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
+            HttpClientHandler Handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; }
+            };
 
             Client = new GraphQLHttpClient(new GraphQLHttpClientOptions()
             {
                 EndPoint = new Uri(APIServerURI),
                 HttpMessageHandler = Handler,
             }, new SystemTextJsonSerializer());
+        }
+
+        public void SetAuthHeader(string jwt)
+        {
+            Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
         }
 
         public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string Query, string Variables = null, string OperationName = null)
@@ -50,13 +48,16 @@ namespace FWO.Api
 
                 if (response.Errors != null)
                 {
+                    string errorMessage = "";
+
                     foreach (GraphQLError error in response.Errors)
                     {
                         // TODO: handle graphql errors
-                        Console.WriteLine(error.Message);
+                        Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
+                        errorMessage += $"{error.Message}\n";
                     }
                     
-                    throw new Exception("");
+                    throw new Exception(errorMessage);
                 }
 
                 else
@@ -72,11 +73,11 @@ namespace FWO.Api
                 }
             }
 
-            catch (Exception e)
+            catch (Exception exception)
             {
                 // TODO: handle unexpected errors
-                Console.WriteLine(e.Message);
-                throw e;
+                Log.WriteError("API Connection", "Unexpected Error not caught by GraphQL client library, while sending query to GraphQL API.", exception);
+                throw exception;
             }
         }
     }

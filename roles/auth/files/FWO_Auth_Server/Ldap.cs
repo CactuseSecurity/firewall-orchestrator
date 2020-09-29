@@ -39,6 +39,10 @@ namespace FWO_Auth_Server
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
 
+        /// <summary>
+        /// Builds a connection to the specified Ldap server.
+        /// </summary>
+        /// <returns>Connection to the specified Ldap server.</returns>
         private LdapConnection Connect()
         {
             try

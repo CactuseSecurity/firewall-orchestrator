@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 
 namespace FWO.Auth.Client
 {
-    public class Jwt
+    public class JwtReader
     {
         private readonly string jwt_generator_public_key_file = "../../../etc/secrets/jwt_public_key.pem";
         private readonly string publicJWTKey; // in PEM-Format with armor
@@ -17,7 +17,7 @@ namespace FWO.Auth.Client
         private readonly JwtSecurityToken Token;
         private readonly RSACryptoServiceProvider rsa;
 
-        public Jwt(string TokenString)
+        public JwtReader(string TokenString)
         {   // Get public key from file
             try
             {
@@ -65,8 +65,8 @@ namespace FWO.Auth.Client
         {
             if (Token == null)
                 return false;
-            string[] tokenParts = this.TokenString.Split('.');  // 
-            if (tokenParts[2] == null || tokenParts[2] == String.Empty)
+            string[] tokenParts = TokenString.Split('.');  // 
+            if (tokenParts[2] == null || tokenParts[2] == string.Empty)
                 return false;
             bool verified = true; // default ok, then set to false if any exception occurs during validation 
             
@@ -107,15 +107,7 @@ namespace FWO.Auth.Client
 
         public Claim[] GetClaims()
         {
-            try
-            {
-                return Token.Claims.ToArray();
-            }
-            catch (Exception)
-            {
-                //This should never happen
-            }
-            return new Claim[0];
+            return Token.Claims.ToArray();
         }
     }
 }

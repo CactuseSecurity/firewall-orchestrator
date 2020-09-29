@@ -33,6 +33,7 @@ namespace FWO
         {
             services.AddRazorPages();
             services.AddServerSideBlazor();
+
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
             // Todo: Get ApiUri + AuthModuleUri from config file

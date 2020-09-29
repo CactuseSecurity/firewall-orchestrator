@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace FWO_Auth_Server
 {
-    class TokenGenerator
+    class JwtWriter
     {
         // private readonly SymmetricSecurityKey privateJwtKey;
         // private readonly AsymmetricSignatureProvider publicJwtKey;
@@ -17,18 +17,18 @@ namespace FWO_Auth_Server
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public TokenGenerator(RsaSecurityKey rsaSecurityKey, int hoursValid)
+        public JwtWriter(RsaSecurityKey rsaSecurityKey, int hoursValid)
         {
             this.hoursValid = hoursValid;
             this.rsaSecurityKey = rsaSecurityKey;
         }
 
-        public string CreateJWT(User user, UserData userData, Role[] roles)
+        public string CreateJWT(User user)
         {
             Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = CreateClaimsIdentities(user, userData, roles);
+            ClaimsIdentity subject = CreateClaimsIdentities(user);
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
@@ -36,7 +36,8 @@ namespace FWO_Auth_Server
                 issuer: issuer,
                 audience: audience,
                 subject: subject,
-                notBefore: DateTime.UtcNow,
+                notBefore: DateTime.UtcNow.AddMinutes(-5),
+                issuedAt: DateTime.UtcNow.AddMinutes(-5),
                 expires: DateTime.UtcNow.AddHours(hoursValid),
                 signingCredentials: new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.RsaSha256)
              );
@@ -46,11 +47,10 @@ namespace FWO_Auth_Server
             return GeneratedToken;
         }
 
-        private ClaimsIdentity CreateClaimsIdentities(User user, UserData userData, Role[] roles)
+        private ClaimsIdentity CreateClaimsIdentities(User user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-            //claimsIdentity.AddClaim(new Claim(ClaimTypes.UserData, JsonSerializer.Serialize(userData)));
 
             // TODO: Remove later
             // Fake managment claims REMOVE LATER 
@@ -58,25 +58,29 @@ namespace FWO_Auth_Server
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", "{1,7,17}"));
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
 
-            // adding roles:
-            List<string> localRolesList = new List<string>();
+            // adding roles
+            Role[] roles = user.Roles;
+
+            // we need to create an extra list beacause hasura only accepts an array of roles even if there is only one
+            List<string> hasuraRolesList = new List<string>();
 
             foreach (Role role in roles)
             {
                 claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name)); // Frontend Roles
-                localRolesList.Add(role.Name); // Hasura Roles
+                hasuraRolesList.Add(role.Name); // Hasura Roles
             }
 
-            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(localRolesList.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
+            // add hasura roles claim as array
+            claimsIdentity.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(hasuraRolesList.ToArray()), JsonClaimValueTypes.JsonArray)); // Convert Hasura Roles to Array
 
             // deciding on default-role
-            String defaultRole = "";
+            string defaultRole = "";
             if (roles != null && roles.Length > 0) 
             {
-                if (localRolesList.Contains("reporter-viewall"))
+                if (hasuraRolesList.Contains("reporter-viewall"))
                     defaultRole = "reporter-viewall";
                 else {
-                    if (localRolesList.Contains("reporter"))
+                    if (hasuraRolesList.Contains("reporter"))
                         defaultRole = "reporter";
                     else
                         defaultRole = roles[0].Name; // pick first role at random (todo: might need to be changed)

@@ -8,15 +8,15 @@ namespace FWO_Auth_Server.Requests
 {
     class AuthenticationRequestHandler : RequestHandler
     {
-        private readonly TokenGenerator tokenGenerator;
+        private readonly JwtWriter tokenGenerator;
 
-        public AuthenticationRequestHandler(List<Ldap> Ldaps, TokenGenerator tokenGenerator)
+        public AuthenticationRequestHandler(ref List<Ldap> Ldaps, JwtWriter tokenGenerator)
         {
             this.Ldaps = Ldaps;
             this.tokenGenerator = tokenGenerator;
         }
 
-        public Role[] GetUserRoles(User user)
+        public Role[] SetUserRoles(User user)
         {
             string UserDn = user.Dn;
 
@@ -86,7 +86,7 @@ namespace FWO_Auth_Server.Requests
             throw new Exception("Invalid credentials.");
         }
 
-        public string GetUserTenant(User user)
+        public string SetUserTenant(User user)
         {
             /*
             Tenant tenant = new Tenant();
@@ -125,7 +125,7 @@ namespace FWO_Auth_Server.Requests
         /// <param name="user"></param>
         /// <param name="tokenGenerator"></param>
         /// <returns>jwt if credentials are valid</returns>
-        private string AuthenticateUser(User user)
+        private string AuthorizeUser(User user)
         {
             // Validate user credentials and get ldap distinguish name
             user = ValidateUserCredentials(user);
@@ -133,19 +133,17 @@ namespace FWO_Auth_Server.Requests
             // User has valid credentials / is anonymous user. Otherwise exception would have been thrown
 
             // Get roles of user
-            Role[] roles = GetUserRoles(user);
+            SetUserRoles(user);
 
             // Get tenant of user
-            GetUserTenant(user);
+            SetUserTenant(user);
 
             // Create JWT for validated user with roles and tenant
-            return tokenGenerator.CreateJWT(user, null, roles);
+            return tokenGenerator.CreateJWT(user);
         }
 
-        protected override string HandleRequest(HttpListenerRequest request)
+        protected override (HttpStatusCode status, string wrappedResult) HandleRequestInternal(HttpListenerRequest request)
         {
-            // Read parameters from request
-            Dictionary<string, object> Parameters = GetRequestParameters(request);
             User user;
 
             try
@@ -159,7 +157,10 @@ namespace FWO_Auth_Server.Requests
             }
 
             // Authenticate user
-            return AuthenticateUser(user);
+            string jwt = AuthorizeUser(user);
+
+            // Return status and result
+            return WrapResult(HttpStatusCode.OK, ("jwt", jwt)); 
         }
     }
 }

@@ -8,4 +8,9 @@
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\FWO_API_Client\FWO_API_Client.csproj" />
+    <ProjectReference Include="..\FWO_Auth_Client\FWO_Auth_Client.csproj" />
+  </ItemGroup>
+
 </Project>

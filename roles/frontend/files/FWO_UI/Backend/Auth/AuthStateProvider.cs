@@ -17,7 +17,7 @@ namespace FWO.UI.Auth
 
         public void AuthenticateUser(string Username, string Password, string JwtString)
         {
-            Jwt jwt = new Jwt(JwtString);
+            JwtReader jwt = new JwtReader(JwtString);
 
             if (jwt.Valid())
             {

@@ -21,30 +21,30 @@ namespace FWO_Auth_Server
             fileName = value;
         }
 
-        private Dictionary<String, String> conf;
+        private Dictionary<string, string> conf;
 
-        public Dictionary<String, String> GetConf()
+        public Dictionary<string, string> GetConf()
         {
             return conf;
         }
 
-        public void SetConf(Dictionary<String, String> value)
+        public void SetConf(Dictionary<string, string> value)
         {
             conf = value;
         }
 
-        public Config(String FileName)
+        public Config(string FileName)
         {
             // var stream = Yaml.StreamFrom(FileName);
-            String yamlString = File.ReadAllText(FileName).TrimEnd();
+            string yamlString = File.ReadAllText(FileName).TrimEnd();
             var YamlDeserializer = new DeserializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .Build();
 
-            this.SetConf(YamlDeserializer.Deserialize<Dictionary<String,String>>(yamlString));
+            this.SetConf(YamlDeserializer.Deserialize<Dictionary<string, string>>(yamlString));
             this.SetFileName(FileName ?? throw new ArgumentNullException(nameof(FileName)));
         }
-        public String GetConfigValue(String ConfigKey)
+        public string GetConfigValue(string ConfigKey)
         {
             return GetConf()[ConfigKey];
         }

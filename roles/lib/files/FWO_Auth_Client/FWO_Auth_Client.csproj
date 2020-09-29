@@ -8,4 +8,8 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.7.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\FWO_Logging\FWO_Logging.csproj" />
+  </ItemGroup>
+
 </Project>

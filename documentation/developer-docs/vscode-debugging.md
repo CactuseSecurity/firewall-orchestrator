@@ -3,7 +3,9 @@
 ## setting up central backend host
 using devservffm as a central server for all services that are not debugged via visual studio (code)
 
-### connect via ssh:
+### connect via ssh
+this needs to be done as root to be able to forward low port 636
+
     sudo -u tim  ssh -i /home/tim/.ssh/id_rsa -p 60333 cactus.de -L 9443:localhost:9443 -L 636:localhost:636 -L 60443:localhost:443
 
 ### automatic updates of test server

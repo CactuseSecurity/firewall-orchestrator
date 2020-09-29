@@ -23,7 +23,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory/ site.yml -e "debug_leve
 To only run tests (for an existing installation) use tags as follows:
 
 ```console
-ansible-playbook -i inventory/ site.yml -tags test -K
+ansible-playbook -i inventory/ site.yml --tags test -K
 ```
 
 ### Parameter "ui_php" to additionally install old php UI

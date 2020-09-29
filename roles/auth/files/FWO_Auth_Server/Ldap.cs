@@ -39,6 +39,8 @@ namespace FWO_Auth_Server
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
 
+        private const int timeOutInMs = 200;
+
         /// <summary>
         /// Builds a connection to the specified Ldap server.
         /// </summary>
@@ -47,8 +49,12 @@ namespace FWO_Auth_Server
         {
             try
             {
-                LdapConnection connection = new LdapConnection { SecureSocketLayer = Tls, ConnectionTimeout = 200 };
-                connection.UserDefinedServerCertValidationDelegate += (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation
+                LdapConnection connection = new LdapConnection { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
+
+                if (Tls)
+                {
+                    connection.UserDefinedServerCertValidationDelegate += (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation
+                }
 
                 connection.Connect(Address, Port);
 

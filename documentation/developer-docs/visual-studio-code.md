@@ -20,7 +20,8 @@ Clone your own fork, eg.
 
     git clone 
 
-## Add upstream cactus repo (from vscode 1.49 can now also be done in vscode)
+## Add upstream cactus repo
+(from vscode 1.49 can now also be done in vscode UI)
 
 change into the workspace directory on command line and run
 

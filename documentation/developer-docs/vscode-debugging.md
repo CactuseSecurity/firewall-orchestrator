@@ -29,7 +29,7 @@ In order to allow locally running components to read the necessary config you ha
           jwt_private_key.pem
           jwt_public_key.pem
 
-### /etc/fworch/fworch.yaml
+#### /etc/fworch/fworch.yaml
 ```yaml
 fworch_home: "/usr/local/fworch"
 dotnet_mode: "Release"
@@ -44,9 +44,9 @@ auth_hostname: "127.0.0.1"
 auth_server_port: "8888"
 ```
 
-### configure port forwarding per ssh
+### configure port forwarding via ssh
 
-- central server (to be built): cactus.de
+- central server: ssh://developer@cactus.de:60333
   - 9443:localhost:9443
   - 636:localhost:636
 

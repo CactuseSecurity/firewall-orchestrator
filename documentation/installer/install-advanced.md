@@ -18,6 +18,13 @@ Set debug parameter to "true" for extended debugging info during installation.
 ```console
 cd firewall-orchestrator; ansible-playbook -i inventory/ site.yml -e "debug_level='2'" -K
 ```
+### Tsting
+
+To only run tests (for an existing installation) use tags as follows:
+
+```console
+ansible-playbook -i inventory/ site.yml -tags test -K
+```
 
 ### Parameter "ui_php" to additionally install old php UI
 

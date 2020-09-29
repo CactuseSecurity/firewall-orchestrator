@@ -37,9 +37,12 @@ Use the following command to verify settings:
 
 if vs code does not show the upstream repo in pull-from, just give it some time to show up?!
 
-### sync fork
+## setting up central backend host
+using devservffm as a central sever for all services that are not debugged via visual studio (code)
 
-## add local config on development client
+- webhook receiver url: https://cactus.de:60344/fwo
+
+### add local config on development client
 
     /etc/fworch/   (in Windows c:\etc\fworch\)
         fworch.yaml
@@ -67,7 +70,6 @@ auth_server_port: "8888"
 - central server (to be built): cactus.de
   - 9443:localhost:9443
   - 636:localhost:636
-- webhook receiver url: https://cactus.de:60344/fwo
 
 
 ### local listeners on client

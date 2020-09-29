@@ -17,6 +17,7 @@
       loop:
         - FWO_API_Client
         - FWO_Auth_Client
+        - FWO_Logging
 
   become: yes
 

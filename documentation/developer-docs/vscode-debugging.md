@@ -1,4 +1,4 @@
-# how to debug using vscode or vs
+# How to debug fworch using vscode or vs
 
 ## using central backend host
 devservffm is a central backend server for all services that are not debugged locally on client via visual studio (code)

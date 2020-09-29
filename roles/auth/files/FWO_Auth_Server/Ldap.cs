@@ -50,12 +50,7 @@ namespace FWO_Auth_Server
             try
             {
                 LdapConnection connection = new LdapConnection { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
-
-                if (Tls)
-                {
-                    connection.UserDefinedServerCertValidationDelegate += (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation
-                }
-
+                if (Tls) connection.UserDefinedServerCertValidationDelegate += (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation                
                 connection.Connect(Address, Port);
 
                 return connection;

@@ -2,7 +2,7 @@
 
 Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
 
-## Installation
+## Installation VSCODE
 
 - Install [.NET Core SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu#1804-)
 - Install [Visual Studio Code](https://code.visualstudio.com/Download) for Linux or Windows
@@ -20,7 +20,8 @@ Clone your own fork, eg.
 
     git clone 
 
-## Add upstream cactus repo (needs to be done on command line)
+## Add upstream cactus repo
+(starting with vscode 1.49 this can now also be done in vscode UI)
 
 change into the workspace directory on command line and run
 
@@ -36,8 +37,6 @@ Use the following command to verify settings:
     tim@acantha:~/VisualStudioCodeProjects/fwo-tpurschke/firewall-orchestrator$ 
 
 if vs code does not show the upstream repo in pull-from, just give it some time to show up?!
-
-### sync fork
 
 ## Select, prepare and run project
 

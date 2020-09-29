@@ -721,6 +721,8 @@ tables:
       - ldap_server
       - ldap_tenant_level
       - ldap_tls
+      - ldap_write_user
+      - ldap_write_user_pwd
       filter: {}
     role: auth-server
   table:
@@ -861,23 +863,6 @@ tables:
     role: reporter-viewall
   table:
     name: management
-    schema: public
-- select_permissions:
-  - permission:
-      columns:
-      - id
-      - topic_l1_id
-      - topic_l2_id
-      - topic_l1_txt_eng
-      - topic_l1_txt_ger
-      - topic_l2_txt_eng
-      - topic_l2_txt_ger
-      - body_txt_eng
-      - body_txt_ger
-      filter: {}
-    role: reporter
-  table:
-    name: manual
     schema: public
 - array_relationships:
   - name: changelog_objects

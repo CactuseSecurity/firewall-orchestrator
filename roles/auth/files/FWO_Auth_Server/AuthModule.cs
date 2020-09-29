@@ -21,6 +21,7 @@ namespace FWO_Auth
     public class AuthModule
     {
         private readonly HttpListener Listener;
+
         private List<Ldap> connectedLdaps;
 
         private readonly ConfigConnection config;

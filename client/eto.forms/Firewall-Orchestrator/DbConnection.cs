@@ -8,7 +8,7 @@ namespace Firewall_Orchestrator
     class DbConnection
     {
         // Server URL
-        private const string APIServerURI = "https://localhost:9443/api/v1/graphql";
+        private const string APIServerURI = "https://127.0.0.1:9443/api/v1/graphql";
 
         // Http/s Client
         private readonly HttpClient Client;

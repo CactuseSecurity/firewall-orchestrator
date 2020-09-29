@@ -64,11 +64,10 @@ auth_server_port: "8888"
 
 ### port forwarding per ssh
 
-    9443:localhost:9443
-    636:localhost:636
-
-
-central server (to be built): fworcht.cactus.de
+- central server (to be built): cactus.de
+  - 9443:localhost:9443
+  - 636:localhost:636
+- webhook receiver url: https://cactus.de:60344/fwo
 
 
 ### local listeners on client

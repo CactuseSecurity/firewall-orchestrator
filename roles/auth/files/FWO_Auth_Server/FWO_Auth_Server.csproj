@@ -8,8 +8,9 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.7.1" />
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
   </ItemGroup>
-  <ItemGroup>
-      <ProjectReference Include="../../../lib/files/FWO_API_Client/FWO_API_Client.csproj" />
-      <ProjectReference Include="../../../lib/files/FWO_Auth_Client/FWO_Auth_Client.csproj" />
+  <ItemGroup> 
+      <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO_API_Client.csproj" /> 
+      <ProjectReference Include="..\..\..\lib\files\FWO_Auth_Client\FWO_Auth_Client.csproj" />
+      <ProjectReference Include="..\..\..\lib\files\FWO_Config\FWO_Config.csproj" />
   </ItemGroup>
 </Project>

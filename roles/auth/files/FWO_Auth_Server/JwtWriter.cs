@@ -10,17 +10,16 @@ namespace FWO_Auth_Server
 {
     class JwtWriter
     {
-        // private readonly SymmetricSecurityKey privateJwtKey;
-        // private readonly AsymmetricSignatureProvider publicJwtKey;
-        private readonly RsaSecurityKey rsaSecurityKey;
-        private readonly int hoursValid;
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
 
-        public JwtWriter(RsaSecurityKey rsaSecurityKey, int hoursValid)
+        private readonly RsaSecurityKey jwtPrivateKey;
+        private readonly int hoursValid;
+
+        public JwtWriter(RsaSecurityKey jwtPrivateKey, int hoursValid)
         {
             this.hoursValid = hoursValid;
-            this.rsaSecurityKey = rsaSecurityKey;
+            this.jwtPrivateKey = jwtPrivateKey;
         }
 
         public string CreateJWT(User user)
@@ -28,7 +27,7 @@ namespace FWO_Auth_Server
             Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = CreateClaimsIdentities(user);
+            ClaimsIdentity subject = GetClaims(user);
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
@@ -36,18 +35,19 @@ namespace FWO_Auth_Server
                 issuer: issuer,
                 audience: audience,
                 subject: subject,
-                notBefore: DateTime.UtcNow.AddMinutes(-5),
+                notBefore: DateTime.UtcNow.AddMinutes(-5), // TODO: JUST FOR YANNIK
                 issuedAt: DateTime.UtcNow.AddMinutes(-5),
                 expires: DateTime.UtcNow.AddHours(hoursValid),
-                signingCredentials: new SigningCredentials(rsaSecurityKey, SecurityAlgorithms.RsaSha256)
+                signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
              );
 
             string GeneratedToken = tokenHandler.WriteToken(token);
-            Console.WriteLine($"Generated JWT {GeneratedToken} for User {user.Name}");
+
+            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
             return GeneratedToken;
         }
 
-        private ClaimsIdentity CreateClaimsIdentities(User user)
+        private ClaimsIdentity GetClaims(User user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
@@ -88,7 +88,7 @@ namespace FWO_Auth_Server
             }
             else
             {
-                Console.WriteLine($"ERROR: User {user.Name} does not have any assigned roles");    
+                Log.WriteError("User roles", $"User {user.Name} does not have any assigned roles.");  
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));

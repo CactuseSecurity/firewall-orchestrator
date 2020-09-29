@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FWO_Logging;
+using System;
 
 namespace FWO_Auth
 {
@@ -13,7 +14,7 @@ namespace FWO_Auth
             catch (Exception exception)
             {
                 // Log error
-                FWO_Logging.Log.WriteError("Unhandeled unexpected exception", "Unhandeled unexpected exception caught at Programm.cs", exception);
+                Log.WriteError("Unhandeled unexpected exception", "Unhandeled unexpected exception caught at Programm.cs", exception);
 
                 // Exit auth module with error
                 Environment.Exit(1);
@@ -21,3 +22,4 @@ namespace FWO_Auth
         }
     }
 }
+

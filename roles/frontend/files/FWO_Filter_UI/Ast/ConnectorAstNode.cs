@@ -9,5 +9,10 @@ namespace FWO_Filter
         public AstNode Right { get; set; }
         public AstNode Left { get; set; }
         public TokenKind ConnectorTyp { get; set; }
+
+        public override string Extract()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

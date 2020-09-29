@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Linq;
-using FWO_Auth_Client.Requests;
 using System.Net;
 
 namespace FWO.Auth.Client

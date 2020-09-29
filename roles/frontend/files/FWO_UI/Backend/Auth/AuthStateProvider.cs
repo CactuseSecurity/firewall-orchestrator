@@ -19,7 +19,7 @@ namespace FWO.UI.Auth
         {
             JwtReader jwt = new JwtReader(JwtString);
 
-            if (jwt.Valid())
+            if (jwt.Validate())
             {
                 ClaimsIdentity identity = new ClaimsIdentity
                 (

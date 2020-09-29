@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace FWO_Auth_Client.Requests
+namespace FWO.Auth.Client
 {
     class RequestSender
     {

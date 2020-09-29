@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using FWO.Config;
 
 namespace FWO
 {
@@ -36,8 +37,6 @@ namespace FWO
 
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
-            // Todo: Get ApiUri + AuthModuleUri from config file
-
             /*
             for local API testing (in visual studio without running full ansible installer), either 
             - create a local ssh tunneling to the http server on the virtual machine on an arbitrary port (here 8443) to connect to api like this:
@@ -46,11 +45,10 @@ namespace FWO
             const string APIHost = "demo.itsecorg.de";
             */
 
-            string ApiUri = "https://localhost:9443/api/v1/graphql"; // todo: read from config
-#if DEBUG
-            //ApiUri = "https://demo.itsecorg.de:443/api/v1/graphql";
-#endif
-            string AuthUri = "http://localhost:8888/"; // todo: read from config
+            ConfigConnection configConnection = new ConfigConnection();
+
+            string ApiUri = configConnection.ApiServerUri;
+            string AuthUri = configConnection.AuthServerUri;
 
             services.AddScoped<APIConnection>(api => new APIConnection(ApiUri));
             services.AddScoped<AuthClient>(auth => new AuthClient(AuthUri));

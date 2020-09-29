@@ -1,6 +1,7 @@
 @using FWO.UI.Auth
 @using FWO.Api
 @using FWO.Auth.Client
+@using System.Net
 
 @inject AuthClient AuthClient
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
@@ -61,9 +62,9 @@
     private async Task LoginSubmit()
     {
         // There is no jwt in session storage. Get one from auth module.
-        string jwt = await AuthClient.GetJWT(Username, Password);
+        (HttpStatusCode status , Dictionary<string, object> result)  = await AuthClient.AuthenticateUser(Username, Password);
 
-        if (jwt == "InvalidCredentials")
+        if (status == HttpStatusCode.BadRequest)
         {
             InputClass = "is-invalid";
             StateHasChanged();
@@ -71,6 +72,8 @@
 
         else
         {
+            string jwt = (string)result["jwt"];
+
             // Save it in session storage.
             await sessionStorage.SetItemAsync<string>("jwt", jwt);
 

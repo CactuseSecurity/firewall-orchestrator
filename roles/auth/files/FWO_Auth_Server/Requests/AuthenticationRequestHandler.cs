@@ -130,7 +130,7 @@ namespace FWO_Auth_Server.Requests
             // Validate user credentials and get ldap distinguish name
             user = ValidateUserCredentials(user);
 
-            // User has valid credentials / is anonymous user. Otherwise exception would have been thrown
+            // User has valid credentials / is anonymous user. Otherwise exception would have been thrown and handeled in base class
 
             // Get roles of user
             SetUserRoles(user);

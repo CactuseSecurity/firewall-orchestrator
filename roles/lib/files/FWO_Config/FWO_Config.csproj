@@ -1,16 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.7.1" />
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FWO_API_Client\FWO_API_Client.csproj" />
-    <ProjectReference Include="..\FWO_Auth_Client\FWO_Auth_Client.csproj" />
+    <ProjectReference Include="..\FWO_Logging\FWO_Logging.csproj" />
   </ItemGroup>
 
 </Project>

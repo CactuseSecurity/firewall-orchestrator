@@ -20,11 +20,13 @@ namespace FWO_Filter
         public AstNode Parse()
         {
             Start();
+            return null;
         }
 
         private AstNode Start()
         {
-            Bracket();        
+            Bracket();
+            return null;
         }
 
         private AstNode Bracket()
@@ -46,11 +48,13 @@ namespace FWO_Filter
                 Connector();
                 Bracket();
             }
+            return null;
         }
 
         private AstNode Connector()
         {
             CheckToken(TokenKind.And, TokenKind.Or);
+            return null;
         }
 
         private AstNode Expression()
@@ -66,21 +70,25 @@ namespace FWO_Filter
                 Operator();
                 Text();
             }
+            return null;
         }
 
         private AstNode Operator()
         {
             CheckToken(TokenKind.EQ, TokenKind.NEQ);
+            return null;
         }
 
         private AstNode Text()
         {
             CheckToken(TokenKind.Text);
+            return null;
         }
 
         private AstNode Filter()
         {
             CheckToken(TokenKind.Destination, TokenKind.Source);
+            return null;
         }
 
         private bool CheckToken(params TokenKind[] Matches)

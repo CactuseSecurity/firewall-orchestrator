@@ -1,5 +1,4 @@
-﻿using FWO.Api;
-using FWO.Auth.Client;
+﻿using FWO_Logging;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -15,120 +14,134 @@ namespace FWO.Config
     public class ConfigConnection
     {
         /// <summary>
-        /// Path to config files
+        /// Path to config file
         /// </summary>
-        private const string configPath = ""; //TODO: Add path to config (absolute)
+        private const string configPath = "/etc/fworch/fworch.yaml";
 
-        private readonly AuthClient authClient;
+        /// <summary>
+        /// Path to jwt public key
+        /// </summary>
+        private const string jwtPublicKeyPath = "/etc/fworch/secrets/jwt_public_key.pem";
 
-        private readonly APIConnection apiConnection;
+        /// <summary>
+        /// Path to jwt private key
+        /// </summary>
+        private const string jwtPrivateKeyPath = "/etc/fworch/secrets/jwt_private_key.pem";
 
-        private Dictionary<string, string> configData;
+        /// <summary>
+        /// Internal connection to auth server. Used to connect with api server.
+        /// </summary>
+        //private readonly AuthClient authClient;
 
-        public string this[string configKey]
+        /// <summary>
+        /// Internal connection to api server. Used to get/edit config data.
+        /// </summary>
+        //private readonly APIConnection apiConnection;
+
+
+        private RsaSecurityKey jwtPrivateKey = null;
+        public RsaSecurityKey JwtPrivateKey
         {
             get
             {
-                return configData[configKey];
+                CriticalConfigValueLoaded(jwtPrivateKey);
+                return jwtPrivateKey;
             }
+        }
 
-            set
+        private RsaSecurityKey jwtPublicKey = null;
+        public RsaSecurityKey JwtPublicKey
+        {
+            get
             {
-                configData[configKey] = value;
+                CriticalConfigValueLoaded(jwtPublicKey);
+                return jwtPublicKey;
+            }
+        }
+
+        private string apiServerUri = null;
+        public string ApiServerUri
+        {
+            get
+            {
+                CriticalConfigValueLoaded(apiServerUri);
+                return apiServerUri;
+            }
+        }
+
+        private string authServerUri = null;
+        public string AuthServerUri
+        {
+            get
+            {
+                CriticalConfigValueLoaded(authServerUri);
+                return authServerUri;
             }
         }
 
         public ConfigConnection()
         {
-            #region Config File
+            try
+            {
+                #region Config File
 
-            // Read config as yaml from file
-            string yamlConfig = File.ReadAllText(configPath).TrimEnd();
+                // Read config as yaml from file
+                string yamlConfig = File.ReadAllText(configPath).TrimEnd();
 
-            // Create yaml deserializer
-            IDeserializer yamlDeserializer = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .Build();
+                // Create yaml deserializer
+                IDeserializer yamlDeserializer = new DeserializerBuilder()
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .Build();
 
-            // Deserialize yaml config to dictionary
-            configData = yamlDeserializer.Deserialize<Dictionary<string, string>>(yamlConfig);
+                // Deserialize yaml config to dictionary
+                Dictionary<string, string> configFileData = yamlDeserializer.Deserialize<Dictionary<string, string>>(yamlConfig);
+
+                try
+                {
+                    // Try to read jwt private key
+                    jwtPrivateKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPrivateKeyPath), isPrivateKey: true);
+
+                    // Try to read jwt public key
+                    jwtPublicKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPublicKeyPath), isPrivateKey: false);
+
+                    // Try to get auth uri
+                    authServerUri = configFileData["auth_uri"];
+
+                    // Try to get api uri
+                    apiServerUri = configFileData["api_uri"];
+                }
+                // Errors can be ignored. If requested from outside this class error is thrown. See NotNullCriticalConfigValue()
+                catch (Exception) { }
+            }
+
+            catch (Exception configFileReadException)
+            {
+                Log.WriteError("Config file read", $"Config file could not be found.", configFileReadException);
+                Environment.Exit(1); // Exit with error
+            }
 
             #endregion
 
             #region Config Api
-            
-            authClient = new AuthClient(configData["auth_uri"]);
 
-            apiConnection = new APIConnection(configData["api_uri"]);
-            apiConnection.SetAuthHeader("");
+            // TODO: Get Config Values form API
+
+            //authClient = new AuthClient(authServerUri);
+            //apiConnection = new APIConnection(apiServerUri);
+
+            // TODO: Which Jwt should be used here?
+            //apiConnection.SetAuthHeader("");
 
             #endregion
         }
 
-        public static RsaSecurityKey ExtractKeyFromPem(string RawKey, bool isPrivateKey)
+        private void CriticalConfigValueLoaded(object configValue)
         {
-            bool isRsaKey;
-            string keyText = ExtractKeyFromPemAsString(RawKey, isPrivateKey, out isRsaKey);
-            RsaSecurityKey rsaKey = null;
-
-            try
+            if (configValue == null)
             {
-                byte[] keyBytes = Convert.FromBase64String(keyText);
-                // creating the RSA key 
-                RSACryptoServiceProvider provider = new RSACryptoServiceProvider();
-                if (isPrivateKey)
-                {
-                    if (isRsaKey)
-                    {   // ubuntu 20.04:
-                        provider.ImportRSAPrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
-                    }
-                    else
-                    {   // debian 10:
-                        provider.ImportPkcs8PrivateKey(new ReadOnlySpan<byte>(keyBytes), out _);
-                    }
-                }
-                else   // public key
-                    provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
-                rsaKey = new RsaSecurityKey(provider);
+                Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
+                Environment.Exit(1); // Exit with error
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
-            }
-            return rsaKey;
-        }
-
-        public static string ExtractKeyFromPemAsString(string rawKey, bool isPrivateKey, out bool isRsaKey)
-        {
-            string keyText = null;
-            isRsaKey = true;
-            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
-            try
-            {
-                // removing armor of PEM file (first and last line)
-                List<string> lines = new List<string>(rawKey.Split('\n'));
-                var firstline = lines[0];
-                if (firstline.Contains("RSA"))
-                {
-                    isRsaKey = true;
-                    // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = true");
-                }
-                else
-                {
-                    isRsaKey = false;
-                    // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = false");
-                }
-                keyText = string.Join('\n', lines.GetRange(1, lines.Count - 2).ToArray());
-                keyText = keyText.Replace("\n", "");    // remove line breaks
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
-            }
-            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString keyText={keyText}");
-            return keyText;
         }
     }
 }

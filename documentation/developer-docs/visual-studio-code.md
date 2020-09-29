@@ -38,7 +38,6 @@ Use the following command to verify settings:
 
 if vs code does not show the upstream repo in pull-from, just give it some time to show up?!
 
-
 ## Select, prepare and run project
 
 ## repair references and intellisense / refresh 

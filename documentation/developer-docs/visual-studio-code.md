@@ -206,5 +206,5 @@ auth_server_port: "8888"
 
 ### local listeners on client
 
-    5001 - blazor
-    8888 - auth-server
+- 5001 - blazor
+- 8888 - auth-server

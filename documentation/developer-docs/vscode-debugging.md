@@ -1,18 +1,19 @@
 # how to debug using vscode or vs
 
-## setting up central backend host
-using devservffm as a central server for all services that are not debugged via visual studio (code)
+## using central backend host
+devservffm is a central backend server for all services that are not debugged locally on client via visual studio (code)
 
-### connect via ssh
-this needs to be done as root to be able to forward low port 636
+### connect as user developer via ssh on port 60333/tcp
+
+(on linux this needs to be done as root to be able to forward low port 636)
 
     sudo ssh -i <your-private-key> -p 60333 developer@cactus.de -L 9443:localhost:9443 -L 636:localhost:636 [-L 60443:localhost:443]
 
-for user tim:
+example for user tim:
 
     sudo ssh -i /home/tim/.ssh/id_rsa -p 60333 developer@cactus.de -L 9443:localhost:9443 -L 636:localhost:636
     
-note: your public key needs to be added to /home/authorized_keys on devservffm 
+note: your public key needs to be added to /home/devoloper/.ssh/authorized_keys on devservffm 
 
 ### automatic updates of test server
 The testserver has a webhook receiver running at https://cactus.de:60344/fwo which is triggered by changes to the cactus master.

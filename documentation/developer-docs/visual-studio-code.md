@@ -2,7 +2,7 @@
 
 Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
 
-## Installation
+## Installation VSCODE
 
 - Install [.NET Core SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu#1804-)
 - Install [Visual Studio Code](https://code.visualstudio.com/Download) for Linux or Windows

@@ -1,11 +1,6 @@
 
 - block:
 
-    - name: remove complete lib dir
-      file:
-        dest: "{{ lib_dir }}"
-        state: absent
-
     - name: create lib dir
       file:
         dest: "{{ lib_dir }}"

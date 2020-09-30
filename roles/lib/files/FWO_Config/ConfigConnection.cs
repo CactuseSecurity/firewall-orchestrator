@@ -96,25 +96,19 @@ namespace FWO.Config
                 // Deserialize yaml config to dictionary
                 Dictionary<string, string> configFileData = yamlDeserializer.Deserialize<Dictionary<string, string>>(yamlConfig);
 
-                try
-                {
-                    string rawPrivateKey = File.ReadAllText(jwtPrivateKeyPath);
-                    string rawPublicKey = File.ReadAllText(jwtPublicKeyPath);
-
-                    // Try to read jwt private key
-                    jwtPrivateKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPrivateKeyPath), isPrivateKey: true);
-
-                    // Try to read jwt public key
-                    jwtPublicKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPublicKeyPath), isPrivateKey: false);
-
-                    // Try to get auth uri
-                    authServerUri = configFileData["auth_uri"];
-
-                    // Try to get api uri
-                    apiServerUri = configFileData["api_uri"];
-                }
                 // Errors can be ignored. If requested from outside this class error is thrown. See NotNullCriticalConfigValue()
-                catch (Exception) { }
+
+                // Try to read jwt private key
+                IgnoreExceptions(() => jwtPrivateKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPrivateKeyPath), isPrivateKey: true));
+
+                // Try to read jwt public key
+                IgnoreExceptions(() => jwtPublicKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPublicKeyPath), isPrivateKey: false));
+
+                // Try to get auth uri
+                IgnoreExceptions(() => authServerUri = configFileData["auth_uri"]);
+
+                // Try to get api uri
+                IgnoreExceptions(() => apiServerUri = configFileData["api_uri"]);               
             }
 
             catch (Exception configFileReadException)
@@ -145,6 +139,11 @@ namespace FWO.Config
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
                 Environment.Exit(1); // Exit with error
             }
+        }
+        
+        private void IgnoreExceptions(Action method)
+        {
+            try { method(); } catch (Exception e){ Log.WriteDebug("Config value", $"Config value could not be loaded. Error: {e.Message}"); }
         }
     }
 }

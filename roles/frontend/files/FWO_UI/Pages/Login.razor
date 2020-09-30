@@ -63,6 +63,8 @@
         // There is no jwt in session storage. Get one from auth module.
         string jwt = await AuthClient.GetJWT(Username, Password);
 
+        Console.WriteLine($"UI:Login JWT={jwt}");
+
         if (jwt == "InvalidCredentials")
         {
             InputClass = "is-invalid";

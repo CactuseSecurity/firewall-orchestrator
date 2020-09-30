@@ -1,6 +1,11 @@
 
 - block:
 
+    - name: remove complete lib dir
+      file:
+        dest: "{{ lib_dir }}"
+        state: absent
+
     - name: create lib dir
       file:
         dest: "{{ lib_dir }}"
@@ -17,7 +22,7 @@
       loop:
         - FWO_API_Client
         - FWO_Auth_Client
+        - FWO_Logging
+        - FWO_Config
 
   become: yes
-
-# - include: lib_install_dot_net.yml

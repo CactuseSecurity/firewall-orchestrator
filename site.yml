@@ -1,25 +1,32 @@
 ---
-
 # todo: add switch "demo_install" to disable all invasive actions like change pwd, delete devices, ... 
 
 - hosts: all
   roles:
     - common
+  tags:
+    - backend
 
 - hosts: backendserver
   roles:
     - database
+  tags:
+    - backend
 
 - hosts: authserver
   roles:
     - openldap-server
     - lib
     - auth
+  tags:
+    - backend
 
 - hosts: apiserver
   roles:
     - { role: docker, when: "run_on_github is not defined" }
     - { role: api, when: "run_on_github is not defined" }
+  tags:
+    - backend
    # todo: make api (and docker) work with github actions
 
 # restart authserver now that the API is ready
@@ -28,16 +35,22 @@
     - name: start auth service
       command: "systemctl restart {{ auth_service_name }}"
       become: yes
+  tags:
+    - backend
 
 - hosts: frontends
   roles:
     - lib
     - frontend
     - { role: frontend-php, when: "ui_php is defined"}
+  tags:
+    - frontend
 
 - hosts: importers
   roles:
     - importer
+  tags:
+    - frontend
 
 - hosts: sampleserver
   roles:
@@ -45,12 +58,14 @@
     - { role: sample-data-connect-sting, when: "connect_sting is defined" }
   tags:
     - samples
+    - backend
 
 - hosts: authserver
   roles:
     - { role: sample-auth-data, when: "without_sample_data is not defined" }
   tags:
     - samples
+    - backend
   # todo: add meta dependency on role sample-data
 
 - hosts: all

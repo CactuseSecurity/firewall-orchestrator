@@ -70,7 +70,7 @@ namespace FWO_Auth
         private void StartListener(string AuthServerListenerUri)
         {
             // Add prefixes to listen to 
-            Listener.Prefixes.Add(AuthServerListenerUri + "AuthenticateUser/");
+            Listener.Prefixes.Add(AuthServerListenerUri + "/AuthenticateUser/");
 
             // Start listener
             Listener.Start();
@@ -99,14 +99,14 @@ namespace FWO_Auth
                 switch (requestName)
                 {
                     // Authenticate user request. Returns jwt if user credentials are valid.
-                    case "AuthenticateUser":
+                    case "AuthenticateUser/":
                         // Try to authenticate user
                         (status, responseString) = authenticationRequestHandler.HandleRequest(request);
                         break;
 
                     // Listened to a request but could not handle it. In theory impossible. FATAL ERROR
                     default:
-                        Log.WriteError("Internal Error", "We listend to a request we could not handle. How could this happen?", LogStackTrace: true);
+                        Log.WriteError("Internal Error", "We received to a request we could not handle. How could this happen?", LogStackTrace: true);
                         status = HttpStatusCode.InternalServerError;
                         break;
                 }

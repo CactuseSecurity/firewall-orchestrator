@@ -27,7 +27,7 @@ namespace FWO.Auth.Client
                 { "Password", Password }
             };
 
-            return await requestSender.SendRequest(parameters, "AuthenticateUser");
+            return await requestSender.SendRequest(parameters, "AuthenticateUser/");
         }
     }
 }

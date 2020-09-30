@@ -90,23 +90,23 @@ namespace FWO_Auth
                 string responseString = "";
 
                 // Get name of request without "/" as first character
-                string requestName = request.Url.LocalPath.Remove(0, 1);
+                string requestName = request.Url.LocalPath.TrimStart('/');
 
                 // Log that a request was received
                 Log.WriteInfo("Request received", $"New request received: \"{requestName}\".");
 
                 // Find correct way to handle request.
-                switch (requestName)
+                switch (requestName.TrimEnd('/'))
                 {
                     // Authenticate user request. Returns jwt if user credentials are valid.
-                    case "AuthenticateUser/":
+                    case "AuthenticateUser":
                         // Try to authenticate user
                         (status, responseString) = authenticationRequestHandler.HandleRequest(request);
                         break;
 
                     // Listened to a request but could not handle it. In theory impossible. FATAL ERROR
                     default:
-                        Log.WriteError("Internal Error", "We received to a request we could not handle. How could this happen?", LogStackTrace: true);
+                        Log.WriteError("Internal Error", $"We received a request we could not handle: {request.RawUrl}", LogStackTrace: true);
                         status = HttpStatusCode.InternalServerError;
                         break;
                 }

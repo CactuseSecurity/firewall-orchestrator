@@ -153,7 +153,7 @@ namespace FWO_Auth_Server.Requests
             }
             catch (Exception)
             {
-                throw new Exception("Parameter username/password was not found or bad formatted.");
+                throw new Exception("Parameter username/password was not found or bad format.");
             }
 
             // Authenticate user

@@ -16,17 +16,17 @@ namespace FWO_Auth_Server.Requests
             this.tokenGenerator = tokenGenerator;
         }
 
-        public Role[] SetUserRoles(User user)
+        public string[] GetRoles(User user)
         {
             string UserDn = user.Dn;
 
-            List<Role> UserRoles = new List<Role>();
+            List<string> UserRoles = new List<string>();
 
             // Anonymous case
             if (UserDn == "anonymous")
             {
                 Log.WriteWarning("Anonymous/empty user", $"Using anonymous role.");
-                UserRoles.Add(new Role("anonymous"));
+                UserRoles.Add("anonymous");
             }
             else
             {
@@ -46,13 +46,13 @@ namespace FWO_Auth_Server.Requests
             {
                 // Use anonymous role
                 Log.WriteWarning("Missing roles", $"No roles for user \"{UserDn}\" could be found. Using anonymous role.");
-                UserRoles.Add(new Role("anonymous"));
+                UserRoles.Add("anonymous");
             }
 
             return UserRoles.ToArray();
         }
 
-        public User ValidateUserCredentials(User user)
+        public string GetLdapDistinguishName(User user)
         {
             Log.WriteDebug("User validation", $"Trying to validate {user.Name}...");
 
@@ -60,8 +60,7 @@ namespace FWO_Auth_Server.Requests
             if (user.Name == "")
             {
                 Log.WriteWarning("Anonymous/empty user", "No username was provided. Using anonymous username.");
-                user.Dn = "anonymous";
-                return user;
+                return "anonymous";
             }
 
             else
@@ -76,8 +75,7 @@ namespace FWO_Auth_Server.Requests
                     {
                         // User was successfully authenticated via LDAP
                         Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {UserDn}");
-                        user.Dn = UserDn;
-                        return user;
+                        return UserDn;
                     }
                 }
             }
@@ -86,7 +84,7 @@ namespace FWO_Auth_Server.Requests
             throw new Exception("Invalid credentials.");
         }
 
-        public string SetUserTenant(User user)
+        public Tenant GetTenant(User user)
         {
             /*
             Tenant tenant = new Tenant();
@@ -128,15 +126,15 @@ namespace FWO_Auth_Server.Requests
         private string AuthorizeUser(User user)
         {
             // Validate user credentials and get ldap distinguish name
-            user = ValidateUserCredentials(user);
+            user.Dn = GetLdapDistinguishName(user);
 
             // User has valid credentials / is anonymous user. Otherwise exception would have been thrown and handeled in base class
 
             // Get roles of user
-            SetUserRoles(user);
+            user.Roles = GetRoles(user);
 
             // Get tenant of user
-            SetUserTenant(user);
+            user.Tenant = GetTenant(user);
 
             // Create JWT for validated user with roles and tenant
             return tokenGenerator.CreateJWT(user);
@@ -146,15 +144,11 @@ namespace FWO_Auth_Server.Requests
         {
             User user;
 
-            try
-            {
-                // Try to read username and password parameters
-                user = new User() { Name = (string)Parameters["Username"], Password = (string)Parameters["Password"] };
-            }
-            catch (Exception)
-            {
-                throw new Exception("Parameter username/password was not found or bad formatted.");
-            }
+            // Get parameters from request. Expected parameters: "Username", "Password" 
+            Parameters = GetRequestParameters(request, "Username", "Password");
+
+            // Read username and password parameters
+            user = new User() { Name = (string)Parameters["Username"], Password = (string)Parameters["Password"] };
 
             // Authenticate user
             string jwt = AuthorizeUser(user);

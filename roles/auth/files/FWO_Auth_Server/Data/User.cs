@@ -10,7 +10,7 @@ namespace FWO_Auth_Server
         public string Password { get; set; }
         public string Dn { get; set; }
         public Tenant Tenant { get; set; }
-        public Role DefaultRole { get; set; }
-        public Role[] Roles { get; set; }
+        public string DefaultRole { get; set; }
+        public string[] Roles { get; set; }
     }
 }

@@ -81,10 +81,10 @@ namespace FWO.Config
 
         public ConfigConnection()
         {
-            try
-            {
-                #region Config File
+            #region Config File
 
+            try
+            {              
                 // Read config as yaml from file
                 string yamlConfig = File.ReadAllText(configPath).TrimEnd();
 

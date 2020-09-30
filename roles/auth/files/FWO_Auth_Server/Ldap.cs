@@ -125,9 +125,9 @@ namespace FWO_Auth_Server
             return "";
         }
 
-        public Role[] GetRoles(string userDn)
+        public string[] GetRoles(string userDn)
         {
-            List<Role> userRoles = new List<Role>();
+            List<string> userRoles = new List<string>();
 
             // If this Ldap is containing roles
             if (RoleSearchPath != null)
@@ -161,8 +161,9 @@ namespace FWO_Auth_Server
                             if (currentDn == userDn)
                             {
                                 // Get role name and add it to list of roles of given user
-                                string RoleName = entry.GetAttribute("cn").StringValue;
-                                userRoles.Add(new Role { Name = RoleName });
+                                string role = entry.GetAttribute("cn").StringValue;
+                                userRoles.Add(role);
+                                break;
                             }
                         }
                     }

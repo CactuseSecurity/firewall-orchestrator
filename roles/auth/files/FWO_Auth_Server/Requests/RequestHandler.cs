@@ -29,8 +29,7 @@ namespace FWO_Auth_Server.Requests
         public virtual (HttpStatusCode status, string wrappedResult) HandleRequest(HttpListenerRequest request)
         { 
             try
-            {
-                Parameters = GetRequestParameters(request);
+            {            
                 return HandleRequestInternal(request);
             }
             catch (Exception exception)
@@ -55,17 +54,25 @@ namespace FWO_Auth_Server.Requests
         /// </summary>
         /// <param name="request">Request to extract parameters from.</param>
         /// <returns> Parameters as <c>Dictionary</c> </returns>
-        private Dictionary<string, object> GetRequestParameters(HttpListenerRequest request)
+        protected Dictionary<string, object> GetRequestParameters(HttpListenerRequest request, params string[] expectedParameters)
         {
             Log.WriteDebug("Request Parameters", "Trying to read request parameters...");
 
             try
             {
-                string ParametersJson = new StreamReader(request.InputStream).ReadToEnd();
-                Dictionary<string, object> Parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(ParametersJson);
+                string parametersJson = new StreamReader(request.InputStream).ReadToEnd();
+                Dictionary<string, object> parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(parametersJson);
+
+                foreach (string expectedParameter in expectedParameters)
+                {
+                    if (parameters.ContainsKey(expectedParameter) == false)
+                    {
+                        throw new ArgumentException($"Expected request parameter \"{expectedParameter}\" could not be found.");
+                    }
+                }
 
                 Log.WriteDebug("Request Parameters", "Request Parameters successfully read.");
-                return Parameters;
+                return parameters;
             }
             catch (Exception ex)
             {

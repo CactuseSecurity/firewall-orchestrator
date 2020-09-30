@@ -50,7 +50,7 @@ namespace FWO_Auth
 
             // create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header 
             APIConnection ApiConn = new APIConnection(apiUri);
-            ApiConn.SetAuthHeader(jwtGenerator.CreateJWT(new User { Name = "auth-server", Password = "", Roles = new Role[] { new Role("auth-server") } }));
+            ApiConn.SetAuthHeader(jwtGenerator.CreateJWT(new User { Name = "auth-server", Password = "", Roles = new string[] {"auth-server"} }));
 
             // fetch all connectedLdaps via API. Blocking wait via result.
             connectedLdaps = ApiConn.SendQuery<Ldap>(Queries.LdapConnections).Result.ToList();

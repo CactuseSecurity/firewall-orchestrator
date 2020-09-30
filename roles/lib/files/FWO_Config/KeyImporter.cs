@@ -46,6 +46,7 @@ namespace FWO.Config
         {
             string keyText = null;
             isRsaKey = true;
+            rawKey = rawKey.Trim(); // remove trailing empty lines
             Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
             try
             {

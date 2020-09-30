@@ -70,6 +70,7 @@ namespace FWO.Auth.Client
 
         public Claim[] GetClaims()
         {
+            Log.WriteDebug("Claims Jwt", "Reading claims from Jwt.");
             return jwt.Claims.ToArray();
         }
     }

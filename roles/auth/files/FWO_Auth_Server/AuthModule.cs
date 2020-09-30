@@ -106,7 +106,7 @@ namespace FWO_Auth
 
                     // Listened to a request but could not handle it. In theory impossible. FATAL ERROR
                     default:
-                        Log.WriteError("Internal Error", "We received to a request we could not handle. How could this happen?", LogStackTrace: true);
+                        Log.WriteError("Internal Error", "We received a request we could not handle but tried to. How could this happen?", LogStackTrace: true);
                         status = HttpStatusCode.InternalServerError;
                         break;
                 }

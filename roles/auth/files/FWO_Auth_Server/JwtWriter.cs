@@ -59,15 +59,15 @@ namespace FWO_Auth_Server
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
 
             // adding roles
-            Role[] roles = user.Roles;
+            string[] roles = user.Roles;
 
             // we need to create an extra list beacause hasura only accepts an array of roles even if there is only one
             List<string> hasuraRolesList = new List<string>();
 
-            foreach (Role role in roles)
+            foreach (string role in roles)
             {
-                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.Name)); // Frontend Roles
-                hasuraRolesList.Add(role.Name); // Hasura Roles
+                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role)); // Frontend Roles
+                hasuraRolesList.Add(role); // Hasura Roles
             }
 
             // add hasura roles claim as array
@@ -83,7 +83,7 @@ namespace FWO_Auth_Server
                     if (hasuraRolesList.Contains("reporter"))
                         defaultRole = "reporter";
                     else
-                        defaultRole = roles[0].Name; // pick first role at random (todo: might need to be changed)
+                        defaultRole = roles[0]; // pick first role at random (todo: might need to be changed)
                 }
             }
             else

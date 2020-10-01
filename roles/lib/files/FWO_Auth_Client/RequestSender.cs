@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Auth.Client
 {
-    class RequestSender
+    internal class RequestSender
     {
         readonly HttpClient httpClient;
         readonly string authServerUri;
@@ -20,8 +20,10 @@ namespace FWO.Auth.Client
             this.authServerUri = authServerUri;
         }
 
-        public virtual async Task<(HttpStatusCode status, Dictionary<string, object> result)> SendRequest(Dictionary<string, object> parameters, string request)
+        public virtual async Task<(HttpStatusCode status, RequestResult result)> SendRequest(Dictionary<string, object> parameters, string request)
         {
+            RequestResult result;
+
             try
             {
                 // Wrap parameters
@@ -29,11 +31,12 @@ namespace FWO.Auth.Client
                 StringContent requestContent = new StringContent(wrappedParameters);
 
                 // Send request, Receive answer
-                HttpResponseMessage httpResponse = await httpClient.PostAsync(authServerUri + $"/{request}/", requestContent);
+                HttpResponseMessage httpResponse = await httpClient.PostAsync($"{authServerUri}/{request}/", requestContent);
                 
                 // Unwrap result
                 string wrappedResult = await httpResponse.Content.ReadAsStringAsync();
-                Dictionary<string, object> result = JsonSerializer.Deserialize<Dictionary<string, object>>(wrappedResult);
+                Dictionary<string, JsonElement> jsonResults = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(wrappedResult);
+                result = new RequestResult(jsonResults);
 
                 // Return result
                 return (httpResponse.StatusCode, result);
@@ -44,7 +47,9 @@ namespace FWO.Auth.Client
                     $"An error occured while sending request \"{GetType().Name}\".",
                     exception);
 
-                return (HttpStatusCode.BadRequest, new Dictionary<string, object> { { "error", exception } });
+                result = new RequestResult();
+                result.SetClientSideError("An error occured while sending request.", exception);
+                return (HttpStatusCode.BadRequest, result);
             }
         }
     }

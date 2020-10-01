@@ -15,6 +15,7 @@ using Microsoft.IdentityModel.Tokens;
 using FWO_Logging;
 using FWO_Auth_Server.Requests;
 using FWO.Config;
+using FWO.Api.Client;
 
 namespace FWO_Auth
 {
@@ -89,14 +90,14 @@ namespace FWO_Auth
                 HttpStatusCode status = HttpStatusCode.OK;
                 string responseString = "";
 
-                // Get name of request without "/" as first character
-                string requestName = request.Url.LocalPath.TrimStart('/');
+                // Get name of request without leading and trailing '/' and '\'
+                string requestName = request.Url.LocalPath.Trim('\\', '/');
 
                 // Log that a request was received
                 Log.WriteInfo("Request received", $"New request received: \"{requestName}\".");
 
                 // Find correct way to handle request.
-                switch (requestName.TrimEnd('/'))
+                switch (requestName)
                 {
                     // Authenticate user request. Returns jwt if user credentials are valid.
                     case "AuthenticateUser":

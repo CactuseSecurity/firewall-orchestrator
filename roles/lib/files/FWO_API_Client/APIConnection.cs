@@ -7,7 +7,7 @@ using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 
-namespace FWO.Api
+namespace FWO.Api.Client
 {
     public class APIConnection
     {
@@ -45,6 +45,7 @@ namespace FWO.Api
             {
                 GraphQLRequest request = new GraphQLRequest(Query, Variables, OperationName);
                 GraphQLResponse<dynamic> response = await Client.SendQueryAsync<dynamic>(request);
+                //GraphQLResponse<HasuraResponse<QueryResponseType>> response = await Client.SendQueryAsync<HasuraResponse<QueryResponseType>>(request);
 
                 if (response.Errors != null)
                 {
@@ -56,7 +57,7 @@ namespace FWO.Api
                         Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
                         errorMessage += $"{error.Message}\n";
                     }
-                    
+
                     throw new Exception(errorMessage);
                 }
 
@@ -76,7 +77,7 @@ namespace FWO.Api
             catch (Exception exception)
             {
                 // TODO: handle unexpected errors
-                Log.WriteError("API Connection", "Unexpected Error not caught by GraphQL client library, while sending query to GraphQL API.", exception);
+                Log.WriteError("API Connection", "Error while sending query to GraphQL API.", exception);
                 throw exception;
             }
         }

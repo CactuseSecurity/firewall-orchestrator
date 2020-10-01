@@ -13,7 +13,7 @@ namespace FWO_Auth_Server.Requests
         /// <summary>
         /// Parameters of request
         /// </summary>
-        protected Dictionary<string, object> Parameters;
+        private Dictionary<string, JsonElement> Parameters;
 
         /// <summary>
         /// Connected Ldaps to handle requests
@@ -29,7 +29,8 @@ namespace FWO_Auth_Server.Requests
         public virtual (HttpStatusCode status, string wrappedResult) HandleRequest(HttpListenerRequest request)
         { 
             try
-            {            
+            {
+                InitializeRequestParameters(request);
                 return HandleRequestInternal(request);
             }
             catch (Exception exception)
@@ -38,7 +39,7 @@ namespace FWO_Auth_Server.Requests
                     $"An error occured while handling request \"{GetType().Name}\". \nSending error to requester.",
                     exception);
 
-                return WrapResult(HttpStatusCode.BadRequest, ("error", exception));
+                return WrapResult(HttpStatusCode.BadRequest, ("error", exception.Message));
             }
         }
 
@@ -50,33 +51,57 @@ namespace FWO_Auth_Server.Requests
         protected abstract (HttpStatusCode status, string wrappedResult) HandleRequestInternal(HttpListenerRequest request);
 
         /// <summary>
-        /// Exctracts Parameters from <paramref name="request"/>. Tries to convert them from Json to <c>Dictionary</c>.
+        /// Reads request parameters from <paramref name="request"/> as string. Converts them and save them in <see cref="Parameters"/>.
         /// </summary>
-        /// <param name="request">Request to extract parameters from.</param>
-        /// <returns> Parameters as <c>Dictionary</c> </returns>
-        protected Dictionary<string, object> GetRequestParameters(HttpListenerRequest request, params string[] expectedParameters)
+        /// <param name="request">Request to read parameters from.</param>
+        private void InitializeRequestParameters(HttpListenerRequest request)
         {
-            Log.WriteDebug("Request Parameters", "Trying to read request parameters...");
+            Log.WriteDebug("Initialize Request Parameters", "Trying to read request parameters...");
 
             try
             {
                 string parametersJson = new StreamReader(request.InputStream).ReadToEnd();
-                Dictionary<string, object> parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(parametersJson);
-
-                foreach (string expectedParameter in expectedParameters)
-                {
-                    if (parameters.ContainsKey(expectedParameter) == false)
-                    {
-                        throw new ArgumentException($"Expected request parameter \"{expectedParameter}\" could not be found.");
-                    }
-                }
+                Parameters = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(parametersJson);
 
                 Log.WriteDebug("Request Parameters", "Request Parameters successfully read.");
-                return parameters;
             }
             catch (Exception ex)
             {
                 throw new ArgumentException("Request Parameters could not be read.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Exctracts Parameter with name: <paramref name="parameterName"/> and type: <typeparamref name="ParameterType"/> from <see cref="Parameters"/>.
+        /// </summary>
+        /// <typeparam name="ParameterType">Type of expected parameter</typeparam>
+        /// <param name="parameterName">Name of expected parameter</param>
+        /// <param name="notNull">True if parameter can be null, otherwise false.</param>
+        /// <returns>Specified parameter (Name: <paramref name="parameterName"/>, Type: <typeparamref name="ParameterType"/>)</returns>
+        protected ParameterType GetRequestParameter<ParameterType>(string parameterName, bool notNull = false)
+        {
+            Log.WriteDebug("Request Parameter", $"Trying to read request parameter \"{parameterName}\".");
+
+            try
+            {
+                if (Parameters.ContainsKey(parameterName))
+                {                   
+                    ParameterType parameter = JsonSerializer.Deserialize<ParameterType>(Parameters[parameterName].GetRawText());
+                    if (parameter == null && notNull == true)
+                    {
+                        throw new ArgumentNullException("Expected request parameter to not be null");
+                    }
+                    Log.WriteDebug("Request Parameters", $"Request Parameter \"{parameterName}\" successfully read.");
+                    return parameter;
+                }
+                else
+                {
+                    throw new ArgumentException("Expected request parameter could not be found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException($"Request Parameters \"{parameterName}\" could not be read.", ex);
             }
         }
 

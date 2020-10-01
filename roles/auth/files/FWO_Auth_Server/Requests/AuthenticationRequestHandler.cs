@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 
 namespace FWO_Auth_Server.Requests
 {
@@ -144,11 +145,12 @@ namespace FWO_Auth_Server.Requests
         {
             User user;
 
-            // Get parameters from request. Expected parameters: "Username", "Password" 
-            Parameters = GetRequestParameters(request, "Username", "Password");
+            // Get parameters from request. Expected parameters: "Username", "Password" from Type string
+            string username = GetRequestParameter<string>("Username", notNull: true);
+            string password = GetRequestParameter<string>("Password", notNull: true);
 
-            // Read username and password parameters
-            user = new User() { Name = (string)Parameters["Username"], Password = (string)Parameters["Password"] };
+            // Create User from given parameters
+            user = new User() { Name = username, Password = password };
 
             // Authenticate user
             string jwt = AuthorizeUser(user);

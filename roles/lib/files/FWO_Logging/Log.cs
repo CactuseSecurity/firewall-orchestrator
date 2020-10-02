@@ -63,14 +63,11 @@ namespace FWO_Logging
             ConsoleColor StandardBackgroundColor = Console.BackgroundColor;
             ConsoleColor StandardForegroundColor = Console.ForegroundColor;
 
-            Console.WriteLine("");
+            // Console.WriteLine("");
+            WriteInColor($"### {LogType} --- {Title} ### In file \"{File}\" in line \"{Line}\": {Text}", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
 
-            WriteInColor($"### {LogType} --- {Title} ### In File \"{File}\" Line \"{Line}\"", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
-
-            Console.WriteLine(Text);
-
-            WriteInColor($"### {LogType} ###", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
-
+            // Console.WriteLine(Text);
+            // WriteInColor($"### {LogType} ###", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
             Console.WriteLine("");
         }
 

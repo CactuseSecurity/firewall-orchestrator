@@ -15,7 +15,7 @@ auth_service_name: "{{ product_name }}-auth"
 auth_change_local_ldap: "yes"
 
 # use static jwt generation test key if set to 1 - only for testing, not for production environment
-test_key: 0
+testkey: 0
 
 ########## test data only ##############
 

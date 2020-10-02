@@ -8,7 +8,7 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-    private string _authMessage;
+    private string _authMessage = "Test";
 
     private async Task LogUsername()
     {

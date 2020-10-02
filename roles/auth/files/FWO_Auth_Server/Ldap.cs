@@ -1,20 +1,20 @@
-﻿using Novell.Directory.Ldap;
+﻿using FWO_Logging;
+using Novell.Directory.Ldap;
 using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Text.Json.Serialization;
 
 
 namespace FWO_Auth_Server
 {
     public class Ldap
-    // the following parameters are retrieved from the query and set in this class:
-    //     ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles
     {
+        // The following properties are retrieved from the database api:
+        // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
+
         [JsonPropertyName("ldap_server")]
         public string Address { get; set; }
 
@@ -39,132 +39,139 @@ namespace FWO_Auth_Server
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
 
+        private const int timeOutInMs = 200;
 
-        public Ldap()
+        /// <summary>
+        /// Builds a connection to the specified Ldap server.
+        /// </summary>
+        /// <returns>Connection to the specified Ldap server.</returns>
+        private LdapConnection Connect()
         {
-//            Console.WriteLine($"Connecting to LDAP server on LdapServerAdress={Address} with LdapServerPort={Port}, SearchUser={SearchUser}, UserSearchPath={UserSearchPath}");
-        }
-
-        public LdapConnection Connect()
-        {
-            LdapConnection connection = null;
-            int timeOutInMsecs = 200;
-            
             try
             {
-                if (Tls) {
-                    connection = new LdapConnection { SecureSocketLayer = true, ConnectionTimeout = timeOutInMsecs };
-                    connection.UserDefinedServerCertValidationDelegate +=
-                        (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true; // todo: allow cert validation
-                }
-                else 
-                    connection = new LdapConnection { SecureSocketLayer = false, ConnectionTimeout = timeOutInMsecs };
-
+                LdapConnection connection = new LdapConnection { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
+                if (Tls) connection.UserDefinedServerCertValidationDelegate += (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation                
                 connection.Connect(Address, Port);
+
+                return connection;
             }
 
-            catch (Exception exConn)
+            catch (Exception exception)
             {
-                // TODO: Ldap Server not reachable
-                Console.Write($"\n Error while trying to reach LDAP server {Address}:{Port} #### Message #### \n {exConn.Message} \n #### Stack Trace #### \n {exConn.StackTrace} \n");
+                throw new Exception($"Error while trying to reach LDAP server {Address}:{Port}", exception);
             }
-
-            return connection;
         }
 
         public string ValidateUser(User user)
         {
-            Console.WriteLine($"Validating User: \"{user.Name}\" ...");
-            try
-            {               
+            Log.WriteInfo("User Validation", $"Validating User: \"{user.Name}\" ...");
+            try         
+            {
+                // Connecting to Ldap
                 using (LdapConnection connection = Connect())
                 {
+                    // Authenticate as search user
                     connection.Bind(SearchUser, SearchUserPwd);
+
+                    // Search for users in ldap with same name as user to validate
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(
                         UserSearchPath,             // top-level path under which to search for user
                         LdapConnection.ScopeSub,    // search all levels beneath
                         $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
-                        null, 
+                        null,
                         typesOnly: false
                     );
 
                     while (possibleUsers.HasMore())
                     {
                         LdapEntry currentUser = possibleUsers.Next();
-#if DEBUG
-                        Console.WriteLine($"Trying distinguished name: \"{ currentUser.Dn}\" ...");
-#endif
+                      
                         try
                         {
+                            Log.WriteDebug("User Validation", $"Trying to validate user with distinguished name: \"{ currentUser.Dn}\" ...");
+
+                            // Try to authenticate as user with given password
                             connection.Bind(currentUser.Dn, user.Password);
+
+                            // If authentication was successful (user is bound)
                             if (connection.Bound)
                             {
+                                // Return ldap dn
                                 Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
                                 return currentUser.Dn;
                             }
+
+                            else
+                            {
+                                // Incorrect password - do nothing, assume its another user with the same username
+                                Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                            }
                         }
-                        catch (LdapException exInner)
+                        catch (LdapException)
                         {
-#if DEBUG
-                            Console.WriteLine($"Found user with same uid but different pwd distinguished name: \"{ currentUser.Dn}\" ...");
-                            Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {exInner.Message} \n #### Stack Trace #### \n {exInner.StackTrace} \n");
-#endif
-                        } // Incorrect password - do nothing, assuming another user with the same username
+                            // Incorrect password - do nothing, assume its another user with the same username
+                            Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                        } 
                     }
                 }
             }
-            catch (LdapException ex)
+            catch (Exception exception)
             {
-                Console.Write($"\n Error while trying LDAP Connection #### Message #### \n {ex.Message} \n #### Stack Trace #### \n {ex.StackTrace} \n");
-                // Log exception
+                Log.WriteError("Ldap exception", "Unexpected error while trying to validate user", exception);
             }
 
-            Console.WriteLine($"User \"{user.Name}\": invalid login credentials!");
+            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials!");
 
             return "";
         }
 
-        public Role[] GetRoles(string userDn)
-        {
-            List<Role> roleList= new List<Role>();
-            using (LdapConnection connection = Connect())
-            {
-                if (!(RoleSearchPath is null))
-                {
-                    connection.Bind(SearchUser,SearchUserPwd);
-                    int searchScope = LdapConnection.ScopeOne;
-                    string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath,searchScope,searchFilter,null,false);
-                    foreach (LdapEntry entry in searchResults)
+        public string[] GetRoles(string userDn)
+        {
+            List<string> userRoles = new List<string>();
+
+            // If this Ldap is containing roles
+            if (RoleSearchPath != null)
+            {
+                // Connect to Ldap
+                using (LdapConnection connection = Connect())
+                {     
+                    // Authenticate as search user
+                    connection.Bind(SearchUser, SearchUserPwd);
+
+                    // Search for Ldap roles in given directory          
+                    int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scobe?
+                    string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
+                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath, searchScope, searchFilter, null, false);                
+
+                    // Foreach found role
+                    foreach (LdapEntry entry in searchResults)
                     {
-                        LdapAttribute membersAttribute = entry.GetAttribute("uniqueMember");
-                        string[] stringValueArray = membersAttribute.StringValueArray;
-                        System.Collections.IEnumerator ienum = stringValueArray.GetEnumerator();
-#if DEBUG
-                        Console.WriteLine($"Ldap::GetRoles:dealing with ldap entry {entry.GetAttribute("cn").StringValue}");
-#endif
-                        while (ienum.MoveNext())
+                        Log.WriteDebug("Ldap Roles", $"Try to get roles from ldap entry {entry.GetAttribute("cn").StringValue}");
+
+                        // Get dn of users having current role
+                        LdapAttribute roleMembers = entry.GetAttribute("uniqueMember");
+                        string[] roleMemberDn = roleMembers.StringValueArray;
+
+                        // Foreach user 
+                        foreach (string currentDn in roleMemberDn)
                         {
-                            string attribute=ienum.Current.ToString();
-#if DEBUG
-                            Console.WriteLine($"Ldap::GetRoles:ldap.ienum.current: {ienum.Current.ToString()}:");
-#endif
-                            if (attribute == userDn)
+                            Log.WriteDebug("Ldap Roles", $"Checking if current Dn: {currentDn} is user Dn. Then user has current role.");
+
+                            // Check if current user dn is matching with given user dn => Given user has current role
+                            if (currentDn == userDn)
                             {
-                                string RoleName = entry.GetAttribute("cn").StringValue;
-                                roleList.Add(new Role {Name = RoleName});
+                                // Get role name and add it to list of roles of given user
+                                string role = entry.GetAttribute("cn").StringValue;
+                                userRoles.Add(role);
+                                break;
                             }
                         }
-                    }
+                    }
                 }
-            }
-            Role[] roles = roleList.ToArray();
-#if DEBUG
-            Console.WriteLine($"Ldap::GetRoles:Found the following roles for user {userDn}:");
-            for (int i = 0; i < roles.Length; i++)
-                Console.WriteLine($"RoleListElement: { roles[i].Name}");
-#endif
-            return roles;
-        }
+            }
+
+            Log.WriteDebug($"Found the following roles for user {userDn}:", string.Join("\n", userRoles));
+            return userRoles.ToArray();
+        }
     }
 }

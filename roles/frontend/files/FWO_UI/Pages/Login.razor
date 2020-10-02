@@ -1,6 +1,8 @@
 @using FWO.UI.Auth
-@using FWO.Api
+@using FWO.Api.Client
 @using FWO.Auth.Client
+@using FWO_Logging
+@using System.Net
 
 @inject AuthClient AuthClient
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
@@ -46,7 +48,7 @@
         if (firstRender)
         {
             StateHasChanged();
-            await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
+            //await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
         }
     }
 
@@ -61,11 +63,9 @@
     private async Task LoginSubmit()
     {
         // There is no jwt in session storage. Get one from auth module.
-        string jwt = await AuthClient.GetJWT(Username, Password);
+        (HttpStatusCode status , RequestResult result)  = await AuthClient.AuthenticateUser(Username, Password);
 
-        Console.WriteLine($"UI:Login JWT={jwt}");
-
-        if (jwt == "InvalidCredentials")
+        if (status == HttpStatusCode.BadRequest)
         {
             InputClass = "is-invalid";
             StateHasChanged();
@@ -73,10 +73,13 @@
 
         else
         {
+            string jwt = result.GetResult<string>("jwt");
+            Log.WriteInfo($"UI:Login",  "User {Username} with JWT={jwt}");
+
             // Save it in session storage.
             await sessionStorage.SetItemAsync<string>("jwt", jwt);
 
-            ApiConnection.Jwt = jwt;
+            ApiConnection.SetAuthHeader(jwt);
 
             // Try to auth with jwt (validates it, gets roles, ...).
             ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);

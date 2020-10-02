@@ -4,8 +4,8 @@ using System.Text;
 
 namespace FWO_Filter
 {
-    public class AstNode
+    public abstract class AstNode
     {
-        
+        public abstract string Extract();
     }
 }

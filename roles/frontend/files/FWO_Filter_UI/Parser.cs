@@ -5,7 +5,7 @@ using System.Data;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
-namespace FWO_Filter
+namespace FWO.Ui.Filter
 {
     public class Parser
     {

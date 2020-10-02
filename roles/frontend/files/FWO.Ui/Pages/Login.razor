@@ -1,0 +1,86 @@
+@using FWO.Ui.Auth
+@using FWO.Api.Client
+@using FWO.Auth.Client
+@using System.Net
+
+@inject AuthClient AuthClient
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject AuthenticationStateProvider AuthService
+@inject APIConnection ApiConnection
+@inject IJSRuntime js
+
+@if (showLoginForm)
+{
+    <div class="row m-4 justify-content-center">
+        <div>
+            <h2 class="text-center"> Login </h2>
+            <div class="shadow-sm card p-2">
+                <input type="text" class="m-2 form-control @InputClass" style="width: 200px;" id="UsernameInput" placeholder="Username" @bind="Username" @bind:event="oninput" @onkeypress="PotentialSubmit">
+                <input type="password" class="m-2 form-control @InputClass" style="width: 200px;" id="PasswordInput" placeholder="Password" @bind="Password" @bind:event="oninput" @onkeypress="PotentialSubmit">
+                <button class="btn btn-primary m-2" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button>
+            </div>
+        </div>
+    </div>
+}
+
+@code
+{
+    // dont immediately show login page because session storage is only available after render, so there might be a immediate redirect
+    private bool showLoginForm = false;
+
+    private string Username = "";
+    private string Password = "";
+
+    private string InputClass = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        string jwt = await sessionStorage.GetItemAsync<string>("jwt");
+
+        if (jwt != null)
+        {
+            // This might be a reconnect. Check if there is a jwt in session storage.
+            ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
+        }
+
+        showLoginForm = true;
+        if (firstRender)
+        {
+            StateHasChanged();
+            //await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
+        }
+    }
+
+    private async Task PotentialSubmit(KeyboardEventArgs e)
+    {
+        InputClass = "";
+
+        if (e.Key == "Enter")
+            await LoginSubmit();
+    }
+
+    private async Task LoginSubmit()
+    {
+        // There is no jwt in session storage. Get one from auth module.
+        (HttpStatusCode status , RequestResult result)  = await AuthClient.AuthenticateUser(Username, Password);
+
+        if (status == HttpStatusCode.BadRequest)
+        {
+            InputClass = "is-invalid";
+            StateHasChanged();
+        }
+
+        else
+        {
+            string jwt = result.GetResult<string>("jwt");
+
+            // Save it in session storage.
+            await sessionStorage.SetItemAsync<string>("jwt", jwt);
+
+            ApiConnection.SetAuthHeader(jwt);
+
+            // Try to auth with jwt (validates it, gets roles, ...).
+            ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
+        }
+    }
+}

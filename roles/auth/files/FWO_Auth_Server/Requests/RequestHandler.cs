@@ -1,4 +1,4 @@
-﻿using FWO_Logging;
+﻿using FWO.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +6,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace FWO_Auth_Server.Requests
+namespace FWO.Auth.Server.Requests
 {
     abstract class RequestHandler
     {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace FWO_Filter
+namespace FWO.Ui.Filter
 {
     public static class Scanner
     {

@@ -1,0 +1,72 @@
+﻿@*@using BlazorTable
+@using FWO.Ui.Data.Api
+@using System.Data 
+
+<div class="card d-inline m-2 shadow">
+    <div class="card-body">
+        
+        <Table TableItem="DataRow" Items="Data.AsEnumerable()" PageSize="10">
+            <Column TableItem="DataRow" Title="@Data.Columns[0].ColumnName" Field="@(x => x[0])" Sortable="true" Filterable="true">
+                <Template>
+                    <div class="oi @((bool)context[0] ? "oi-check bg-success" : "oi-x  bg-danger")"></div>
+                </Template>
+            </Column>
+
+            <Column TableItem="DataRow" Title="@Data.Columns[i].ColumnName" Field="@(x => x[i])" Sortable="true" Filterable="true">
+                <Template>
+                    @switch (context[i])
+                    {
+                        case bool value:
+                            <div class="oi @(value? "oi-check" : "oi-x")"></div>
+                            break;
+
+                        default:
+                            <p>@context[i].ToString()</p>
+                            break;
+                    }
+                </Template>
+            </Column>
+
+
+            <Column TableItem="FilterDataObject" Title="@FilterData.AttributeDefinitions[i].Name" Field="@(x => x.Attributes[i].Value)" Sortable="true" Filterable="true" Width="10%">
+                <Template>
+                    @switch (FilterData.AttributeDefinitions[i].Type)
+                    {
+                        case "string":
+                            <p>@context.Attributes[i].Value</p>
+                            break;
+
+                        case "int":
+                            <p>@context.Attributes[i].Value</p>
+                            break;
+
+                        case "bool":
+                            <div class="oi @((bool)context.Attributes[i].Value? "oi-check" : "oi-x")"></div>
+                            break;
+
+                        default:
+                            break;
+                    }
+                </Template>
+            </Column>
+
+
+        <Pager ShowPageNumber="true"></Pager>
+        </Table>
+        
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public DataTable Data { get; set; }
+
+    private void Test()
+    {
+        
+    }
+}*@

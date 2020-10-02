@@ -1,9 +1,9 @@
-using FWO.Api;
+using FWO.Api.Client;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Threading.Tasks;
 
-namespace FWO_Test
+namespace FWO.Test.Api
 {
     [TestClass]
     public class ApiTest

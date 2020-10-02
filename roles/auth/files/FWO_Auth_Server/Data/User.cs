@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace FWO_Auth_Server
+namespace FWO.Auth.Server.Data
 {
     public class User
     {

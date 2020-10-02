@@ -1,0 +1,57 @@
+﻿@using BlazorTable
+
+@page "/test"
+
+<h1>Edit Mode</h1>
+
+<button class="btn btn-sm btn-danger" title="Toggle Edit Mode" @onclick="@((x) => ToggleEdit())">Toggle Edit Mode</button>
+<br />
+<br />
+<Table TableItem="PersonData" Items="data" PageSize="15" @ref="Table" ColumnReorder="true">
+    <Column TableItem="PersonData" Title="Id" Field="@(x => x.id)" Sortable="true" Filterable="true" Width="10%" DefaultSortColumn="true">
+        <EditTemplate>
+            <input type="number" @bind-value="@context.id" class="form-control form-control-sm" />
+        </EditTemplate>
+    </Column>
+    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+</Table>
+
+@code
+{
+    private ITable<PersonData> Table;
+
+    private PersonData[] data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        data = new PersonData[2]
+        {
+            new PersonData
+            {
+                id = 1,
+            },
+
+            new PersonData
+            {
+                id = 2,
+            }
+            };
+    }
+
+    public class PersonData
+    {
+        public int id { get; set; }
+    }
+
+    public enum CreditCard
+    {
+        none = 0,
+        MasterCard = 1,
+        Visa = 2
+    }
+
+    private void ToggleEdit()
+    {
+        Table.ToggleEditMode();
+    }
+}

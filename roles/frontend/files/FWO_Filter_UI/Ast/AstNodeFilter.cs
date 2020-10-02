@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace FWO_Filter
+namespace FWO.Ui.Filter
 {
     class AstNodeFilter : AstNode
     {

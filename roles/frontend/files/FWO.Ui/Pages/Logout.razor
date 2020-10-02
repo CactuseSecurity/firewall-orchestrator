@@ -1,0 +1,21 @@
+﻿@using FWO.Ui.Auth;
+
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject AuthenticationStateProvider AuthService
+@inject NavigationManager NavigationManager
+
+@page "/logout"
+
+<h3>Logout</h3>
+
+@code
+{
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await sessionStorage.ClearAsync();
+
+        ((AuthStateProvider)AuthService).Deauthenticate();
+
+        NavigationManager.NavigateTo("");
+    }
+}

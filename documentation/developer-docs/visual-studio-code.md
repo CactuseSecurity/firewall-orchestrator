@@ -48,6 +48,8 @@ if vs code does not show the upstream repo in pull-from, just give it some time 
 - if in a .cs file no references for objects are shown, just start editing (changing) it and the references will appear
 - might also help: Go to File - Preferences - Settings
   - search for omnisharp (in extension c# configuration) and enter the name of the missing / not working solution (project) into the "Omnisharp: Default Launch Solution" form, e.g. FWO.sln or FWO_Auth.sln
+- finally: if references are not foud - simply run the project - this might solve dependencies  
+
 
 ### install nuget packages
 

@@ -2,11 +2,12 @@
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using FWO_Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 
-namespace FWO.Api
+namespace FWO.Api.Client
 {
     public class APIConnection
     {
@@ -15,26 +16,16 @@ namespace FWO.Api
 
         private readonly GraphQLHttpClient Client;
 
-
-        private string jwt;
-        public string Jwt
-        {
-            set
-            {
-                jwt = value; // Save jwt for debug purpose
-                Client.HttpClient.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", value); // Change jwt in auth header
-            }
-        }
-
         public APIConnection(string APIServerURI)
         {
             // Save Server URI
             this.APIServerURI = APIServerURI;
 
             // Allow all certificates | TODO: REMOVE IF SERVER GOT VALID CERTIFICATE
-            HttpClientHandler Handler = new HttpClientHandler();
-            Handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
+            HttpClientHandler Handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; }
+            };
 
             Client = new GraphQLHttpClient(new GraphQLHttpClientOptions()
             {
@@ -42,11 +33,11 @@ namespace FWO.Api
                 HttpMessageHandler = Handler,
             }, new SystemTextJsonSerializer());
         }
-        // public void ChangeAuthHeader(string Jwt)
-        // {
-        //     // this.Jwt = Jwt;
-        //     Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Jwt);
-        // }
+
+        public void SetAuthHeader(string jwt)
+        {
+            Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
+        }
 
         public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string Query, string Variables = null, string OperationName = null)
         {
@@ -54,16 +45,20 @@ namespace FWO.Api
             {
                 GraphQLRequest request = new GraphQLRequest(Query, Variables, OperationName);
                 GraphQLResponse<dynamic> response = await Client.SendQueryAsync<dynamic>(request);
+                //GraphQLResponse<HasuraResponse<QueryResponseType>> response = await Client.SendQueryAsync<HasuraResponse<QueryResponseType>>(request);
 
                 if (response.Errors != null)
                 {
+                    string errorMessage = "";
+
                     foreach (GraphQLError error in response.Errors)
                     {
                         // TODO: handle graphql errors
-                        Console.WriteLine(error.Message);
+                        Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Caught by GraphQL client library. \nMessage: {error.Message}");
+                        errorMessage += $"{error.Message}\n";
                     }
-                    
-                    throw new Exception("");
+
+                    throw new Exception(errorMessage);
                 }
 
                 else
@@ -79,11 +74,11 @@ namespace FWO.Api
                 }
             }
 
-            catch (Exception e)
+            catch (Exception exception)
             {
                 // TODO: handle unexpected errors
-                Console.WriteLine(e.Message);
-                throw e;
+                Log.WriteError("API Connection", "Error while sending query to GraphQL API.", exception);
+                throw exception;
             }
         }
     }

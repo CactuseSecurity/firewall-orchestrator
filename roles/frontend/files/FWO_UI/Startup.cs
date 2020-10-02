@@ -4,7 +4,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using Blazored.SessionStorage;
-using FWO.Api;
+using FWO.Api.Client;
 using FWO.UI.Auth;
 using FWO.Auth.Client;
 using Microsoft.AspNetCore.Builder;
@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using FWO.Config;
 
 namespace FWO
 {
@@ -33,9 +34,8 @@ namespace FWO
         {
             services.AddRazorPages();
             services.AddServerSideBlazor();
-            services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
-            // Todo: Get ApiUri + AuthModuleUri from config file
+            services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
             /*
             for local API testing (in visual studio without running full ansible installer), either 
@@ -45,11 +45,10 @@ namespace FWO
             const string APIHost = "demo.itsecorg.de";
             */
 
-            string ApiUri = "https://localhost:9443/api/v1/graphql"; // todo: read from config
-#if DEBUG
-            //ApiUri = "https://demo.itsecorg.de:443/api/v1/graphql";
-#endif
-            string AuthUri = "http://localhost:8888/"; // todo: read from config
+            ConfigConnection configConnection = new ConfigConnection();
+
+            string ApiUri = configConnection.ApiServerUri;
+            string AuthUri = configConnection.AuthServerUri;
 
             services.AddScoped<APIConnection>(api => new APIConnection(ApiUri));
             services.AddScoped<AuthClient>(auth => new AuthClient(AuthUri));

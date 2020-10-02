@@ -23,7 +23,7 @@ todo: exclude changes to documentation
 ### add local config on development client
 
 In order to allow locally running components to read the necessary config you have to create the following config files on your client:
-    /etc/fworch/   (in Windows <current drive>:\etc\fworch\)
+    /etc/fworch/   (in Windows "current drive":\etc\fworch\)
         fworch.yaml
         secrets/
           jwt_private_key.pem

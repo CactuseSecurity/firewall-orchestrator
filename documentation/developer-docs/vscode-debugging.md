@@ -29,6 +29,8 @@ In order to allow locally running components to read the necessary config you ha
           jwt_private_key.pem
           jwt_public_key.pem
 
+If you manually replace the keys on the server side (use the test keys) you need to reboot the server to reload all services depending on these keys.
+
 #### /etc/fworch/fworch.yaml
 ```yaml
 fworch_home: "/usr/local/fworch"

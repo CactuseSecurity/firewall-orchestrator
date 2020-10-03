@@ -1,6 +1,7 @@
 @using FWO.UI.Auth
 @using FWO.Api.Client
 @using FWO.Auth.Client
+@using FWO_Logging
 @using System.Net
 
 @inject AuthClient AuthClient
@@ -73,6 +74,7 @@
         else
         {
             string jwt = result.GetResult<string>("jwt");
+            Log.WriteInfo($"UI:Login",  "User {Username} with JWT={jwt}");
 
             // Save it in session storage.
             await sessionStorage.SetItemAsync<string>("jwt", jwt);

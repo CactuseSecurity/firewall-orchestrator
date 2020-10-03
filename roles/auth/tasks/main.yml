@@ -38,8 +38,9 @@
   when: ldap_conn_present.stdout >= "1"
 
 - debug:
-     var: ldap_conn_present
-     var: auth_change_local_ldap
+    var:
+      - ldap_conn_present
+      - auth_change_local_ldap
 
 # todo: better to have each ldap operation itempotent in itself instead of these global tests
 - name: build ldap tree

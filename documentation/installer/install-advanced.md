@@ -12,12 +12,12 @@ note: this does not yet work 100%
 ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
 
-### Test - with fixed jwt key - not for production use
+### Test - with fixed jwt keys - not for production use
 
 Use the test switch to always use the same fixed jwt generation keys
 
 ```console
-ansible-playbook -i inventory/ site.yml -e "testkey=1" -K
+ansible-playbook -i inventory/ site.yml -e "testkeys=yes" -K
 ```
 
 ### Debugging

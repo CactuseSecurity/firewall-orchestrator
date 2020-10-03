@@ -35,6 +35,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        showLoginForm = true;
         string jwt = await sessionStorage.GetItemAsync<string>("jwt");
 
         if (jwt != null)
@@ -43,7 +44,6 @@
             ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
         }
 
-        showLoginForm = true;
         if (firstRender)
         {
             StateHasChanged();
@@ -62,9 +62,9 @@
     private async Task LoginSubmit()
     {
         // There is no jwt in session storage. Get one from auth module.
-        (HttpStatusCode status , RequestResult result)  = await AuthClient.AuthenticateUser(Username, Password);
+        RequestResult result = await AuthClient.AuthenticateUser(Username, Password);
 
-        if (status == HttpStatusCode.BadRequest)
+        if (result.Status == HttpStatusCode.BadRequest)
         {
             InputClass = "is-invalid";
             StateHasChanged();

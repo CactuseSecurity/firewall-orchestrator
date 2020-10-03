@@ -6,7 +6,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using FWO.Config;
-using FWO_Logging;
+using FWO.Logging;
 
 namespace FWO.Auth.Client
 {

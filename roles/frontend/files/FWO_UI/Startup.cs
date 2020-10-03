@@ -4,8 +4,8 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using Blazored.SessionStorage;
-using FWO.Api.Client;
-using FWO.UI.Auth;
+using FWO.ApiClient;
+using FWO.Ui.Auth;
 using FWO.Auth.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
@@ -17,13 +17,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using FWO.Config;
 
-namespace FWO
+namespace FWO.Ui
 {
     public class Startup
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;           
+            Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }

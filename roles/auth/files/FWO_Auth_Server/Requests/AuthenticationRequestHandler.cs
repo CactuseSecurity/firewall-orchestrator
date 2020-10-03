@@ -1,11 +1,12 @@
-﻿using FWO_Logging;
+﻿using FWO.Auth.Server.Data;
+using FWO.Logging;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace FWO_Auth_Server.Requests
+namespace FWO.Auth.Server.Requests
 {
     class AuthenticationRequestHandler : RequestHandler
     {

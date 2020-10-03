@@ -1,4 +1,4 @@
-﻿namespace FWO_Filter
+﻿namespace FWO.Ui.Filter
 {
     public enum TokenKind
     {

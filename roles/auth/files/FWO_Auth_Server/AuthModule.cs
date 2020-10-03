@@ -7,17 +7,14 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using FWO_Auth_Server;
-using FWO.Auth.Client;
-using FWO.Api;
-using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
-using FWO_Logging;
-using FWO_Auth_Server.Requests;
+using FWO.Logging;
+using FWO.Auth.Server.Requests;
 using FWO.Config;
-using FWO.Api.Client;
+using FWO.ApiClient;
+using FWO.Auth.Server.Data;
 
-namespace FWO_Auth
+namespace FWO.Auth.Server
 {
     public class AuthModule
     {

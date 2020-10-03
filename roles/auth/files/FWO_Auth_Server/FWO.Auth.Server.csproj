@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -9,8 +9,7 @@
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
   </ItemGroup>
   <ItemGroup> 
-      <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO_API_Client.csproj" /> 
-      <ProjectReference Include="..\..\..\lib\files\FWO_Auth_Client\FWO_Auth_Client.csproj" />
-      <ProjectReference Include="..\..\..\lib\files\FWO_Config\FWO_Config.csproj" />
+      <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO.ApiClient.csproj" /> 
+      <ProjectReference Include="..\..\..\lib\files\FWO_Config\FWO.Config.csproj" />
   </ItemGroup>
 </Project>

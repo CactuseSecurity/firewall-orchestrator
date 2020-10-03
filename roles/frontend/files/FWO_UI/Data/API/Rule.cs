@@ -5,7 +5,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO.Backend.Data.API
+namespace FWO.Ui.Data.Api
 {
     public class Rule
     {

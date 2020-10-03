@@ -1,4 +1,5 @@
-﻿using FWO_Logging;
+﻿using FWO.Auth.Server.Data;
+using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
 
-namespace FWO_Auth_Server
+namespace FWO.Auth.Server
 {
     class JwtWriter
     {

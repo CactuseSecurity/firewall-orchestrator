@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using FWO.Auth.Client;
 using Microsoft.AspNetCore.Components.Authorization;
 
-namespace FWO.UI.Auth
+namespace FWO.Ui.Auth
 {
     public class AuthStateProvider : AuthenticationStateProvider
     {

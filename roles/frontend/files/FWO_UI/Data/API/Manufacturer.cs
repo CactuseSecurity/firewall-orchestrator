@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace FWO.Backend.Data.API
+namespace FWO.Ui.Data.Api
 {
-    public class Client
+    public class Manufacturer
     {
+        public readonly int Id;
         public readonly string Name;
-        public readonly Manufacturer[] Manufacturers;
+        public readonly Management[] Managements;
     }
 }

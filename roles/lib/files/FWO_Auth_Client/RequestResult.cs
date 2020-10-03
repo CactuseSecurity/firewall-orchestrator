@@ -1,6 +1,7 @@
-﻿using FWO_Logging;
+﻿using FWO.Logging;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -10,21 +11,32 @@ namespace FWO.Auth.Client
     {
         private Dictionary<string, JsonElement> resultsJson;
 
-        internal RequestResult(Dictionary<string, JsonElement> resultsJson = null)
+        public readonly HttpStatusCode Status;
+
+        public string Error { get; internal set; }
+
+        internal RequestResult(HttpStatusCode status, Dictionary<string, JsonElement> resultsJson = null)
         {
             this.resultsJson = resultsJson;
+            Status = status;
+
+            try
+            {
+                if (resultsJson.ContainsKey("error"))
+                {
+                    Error = JsonSerializer.Deserialize<string>(resultsJson["error"].GetRawText());
+                }
+            }
+            catch (Exception)
+            {
+                Error = "Server side error could not be read.";
+            }
         }
 
-        public Exception GetError()
+        internal RequestResult(HttpStatusCode status, string errorMessage)
         {
-            // TODO: Handle Client Side and Server Side Error
-            throw new NotImplementedException();
-        }
-
-        internal void SetClientSideError(string message, Exception error)
-        {
-            // TODO: Allow Client Side to add Errors 
-            throw new NotImplementedException();
+            Status = status;
+            Error = errorMessage;
         }
 
         public ResultType GetResult<ResultType>(string resultName)

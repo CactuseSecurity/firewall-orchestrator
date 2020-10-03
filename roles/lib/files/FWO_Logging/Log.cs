@@ -3,7 +3,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
-namespace FWO_Logging
+namespace FWO.Logging
 {
     public class Log
     {

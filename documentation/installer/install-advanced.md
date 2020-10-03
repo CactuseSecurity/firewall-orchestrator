@@ -20,6 +20,18 @@ Use the test switch to always use the same fixed jwt generation keys
 ansible-playbook -i inventory/ site.yml -e "testkeys=yes" -K
 ```
 
+This helps with debugging c# code in visual studio (code) - you can use a static backend (ldap & api) with these keys.
+
+You need to
+- add the config file and keys once on your local development machine
+- set up an ssh tunnel to the back end machine
+
+        sudo ssh -i /home/tim/.ssh/id_rsa -p 10222 tim@localhost -L 9443:localhost:9443 -L 636:localhost:636
+
+    or to the central test server
+
+        sudo ssh -i /home/tim/.ssh/id_rsa -p 60333 developer@cactus.de -L 9443:localhost:9443 -L 636:localhost:636
+
 ### Debugging
 
 Set debug level for extended debugging info during installation.

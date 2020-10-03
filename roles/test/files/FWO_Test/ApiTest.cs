@@ -2,6 +2,7 @@ using FWO.ApiClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Threading.Tasks;
+using FWO.Api.Client;
 
 namespace FWO.Test.Api
 {
@@ -19,7 +20,8 @@ namespace FWO.Test.Api
         [TestMethod]
         public async Task QueryTestRules()
         {
-            // Query aufgebaut wie folgt { "query" : " 'query' ", "variables" : { 'variables' } } mit 'query' für die zu versendende Query und 'variables' für die dazugehörigen Variablen
+            // Query syntax:
+            // { "query" : " 'query' ", "variables" : { 'variables' } } with 'query' containing the query and 'variables' the corresponding variables used in the query
             string Query = @"{ ""query"": "" 
 query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [cidr!]) {
   management(where: {mgm_id: {_in: $management_id}}) {

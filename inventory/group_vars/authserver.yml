@@ -14,6 +14,8 @@ auth_server_start_dir: "{{ auth_server_base_dir }}/FWO_Auth_Server"
 auth_service_name: "{{ product_name }}-auth"
 auth_change_local_ldap: "yes"
 
+# use static jwt generation test key if set to 1 - only for testing, not for production environment
+testkey: 0
 
 ########## test data only ##############
 

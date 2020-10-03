@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace FWO.Api.Client
+namespace FWO.ApiClient
 {
     public static class Queries
     {

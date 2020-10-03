@@ -11,7 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using FWO.Logging;
 using FWO.Auth.Server.Requests;
 using FWO.Config;
-using FWO.Api.Client;
+using FWO.ApiClient;
 using FWO.Auth.Server.Data;
 
 namespace FWO.Auth.Server

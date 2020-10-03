@@ -6,8 +6,9 @@ using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
+using GraphQL.Client.Abstractions;
 
-namespace FWO.Api.Client
+namespace FWO.ApiClient
 {
     public class APIConnection
     {
@@ -39,13 +40,12 @@ namespace FWO.Api.Client
             Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
         }
 
-        public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string Query, string Variables = null, string OperationName = null)
+        public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string query, string variables = null, string operationName = null)
         {
             try
             {
-                GraphQLRequest request = new GraphQLRequest(Query, Variables, OperationName);
+                GraphQLRequest request = new GraphQLRequest(query, variables, operationName);
                 GraphQLResponse<dynamic> response = await Client.SendQueryAsync<dynamic>(request);
-                //GraphQLResponse<HasuraResponse<QueryResponseType>> response = await Client.SendQueryAsync<HasuraResponse<QueryResponseType>>(request);
 
                 if (response.Errors != null)
                 {

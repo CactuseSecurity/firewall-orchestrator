@@ -4,7 +4,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using Blazored.SessionStorage;
-using FWO.Api.Client;
+using FWO.ApiClient;
 using FWO.Ui.Auth;
 using FWO.Auth.Client;
 using Microsoft.AspNetCore.Builder;

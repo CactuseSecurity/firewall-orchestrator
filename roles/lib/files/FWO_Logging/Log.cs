@@ -57,20 +57,11 @@ namespace FWO.Logging
 
         private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
-            // Extract file from path
+            // do not show the full file path, just the basename
             string File = Path.Split('\\', '/').Last();
-
             ConsoleColor StandardBackgroundColor = Console.BackgroundColor;
             ConsoleColor StandardForegroundColor = Console.ForegroundColor;
-
-            Console.WriteLine("");
-
-            WriteInColor($"### {LogType} --- {Title} ### In File \"{File}\" Line \"{Line}\"", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
-
-            Console.WriteLine(Text);
-
-            WriteInColor($"### {LogType} ###", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
-
+            WriteInColor($"{LogType} - {Title} ({File} in line {Line}: {Text}", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
             Console.WriteLine("");
         }
 

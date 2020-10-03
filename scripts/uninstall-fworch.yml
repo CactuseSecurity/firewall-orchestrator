@@ -1,0 +1,90 @@
+---
+
+- name: Pre-Install packages to minimize installation time
+  hosts: all
+  become: yes
+  tasks:
+
+- name: remove database
+  command: psql -c "drop database fworch"
+  become_user: postgres
+
+- name: remove docker container
+  command: docker rm fworch-api
+
+- set_fact: 
+    distribution_version: "debian/10"
+    when: ansible_facts['distribution']|lower == 'debian'
+
+- set_fact: 
+    distribution_version: "ubuntu/20.04"
+    when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
+
+- set_fact: 
+    distribution_version: "ubuntu/18.04"
+    when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
+
+- name: find out installed postgres version
+  script: "get_pg_version.sh"
+  register: pg_version_result
+  changed_when: false
+
+- name: set fact pg_version
+  set_fact:
+      pg_version: "{{ pg_version_result.stdout }}"      
+
+- set_fact:
+    postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+
+- name: uninstall all packages for fworch, keeping git and ansible
+  package:
+    state: absent
+    name: "{{ item }}"
+  tag: purge
+  loop:
+    - rsyslog
+    - apache2
+    - gnupg2
+    - apt-transport-https
+    - ca-certificates 
+    - curl 
+    - software-properties-common
+    - npm
+    - python3-pip
+    - python3-virtualenv
+    - python3-psycopg2
+    - libpq-dev
+    - "{{ postgresql_package }}"
+    - libpq-dev
+    - postgresql-client
+    - slapd
+    - ldap-utils
+    - openssl
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - dotnet-sdk-3.1
+    - make
+    - "{{ postgresql_dev_package }}"
+    - "{{ postgresql_test_package }}"
+    - apache2
+    - php
+    - libapache2-mod-php
+    - php-pgsql
+    - php-pear
+    - libdbi-perl 
+    - libdbd-pg-perl 
+    - libdate-calc-perl 
+    - psmisc 
+    - libnet-cidr-perl 
+    - libsys-syslog-perl 
+    - libexpect-perl
+    - libcgi-pm-perl
+
+- name: remove fworch dirs
+  file: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ fworch_home }}"
+    - /etc/fworch
+

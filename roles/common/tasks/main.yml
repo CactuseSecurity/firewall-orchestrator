@@ -10,6 +10,7 @@
          - importer  
          - install  
          - ui
+         - lib
 
      - name: update operating system packages .deb based
        apt:

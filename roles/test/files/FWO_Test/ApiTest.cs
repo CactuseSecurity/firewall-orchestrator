@@ -2,7 +2,6 @@ using FWO.ApiClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Threading.Tasks;
-using FWO.Api.Client;
 
 namespace FWO.Test.Api
 {

@@ -46,14 +46,15 @@
             }"
         },
         "name": "listRuleChanges",
-            "query": "query listRuleChanges($startId: Int, $stopId: Int) {
-                changelog_rule(where: {_and: [{control_id: {_lt: $stopId}}, {control_id: {_gt: $startId}}, {security_relevant:{_eq:true}}]}) {
+            "query": "query listRuleChanges($startId: Int, $stopId: Int, $devId: Int) {
+                changelog_rule(where: {_and: [{control_id: {_lt: $stopId}}, {control_id: {_gt: $startId}}, {security_relevant: {_eq: true}}], dev_id: {_eq: $devId}}, order_by: {device: {}, rule: {rule_num_numeric: asc, dev_id: asc}, control_id: asc}) {
                   change_request_info
                   change_time
                   changelog_rule_comment
                   new_rule_id
                   old_rule_id
                   unique_name
+                  dev_id
                   rule {
                     rule_id
                     rule_src

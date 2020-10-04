@@ -47,10 +47,73 @@
             {
                 <h4>@device.Name</h4>
 
-                <Table TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="20">
-                    <Column TableItem="Rule" Title="ID" Field="@(x => x.Id)" Sortable="true" Filterable="false" Width="15%" />
-                    <Column TableItem="Rule" Title="Source" Field="@(x => x.Source)" Sortable="true" Filterable="false" Width="10%" />
-                    <Column TableItem="Rule" Title="Destination" Field="@(x => x.Destination)" Sortable="true" Filterable="false" Width="10%" />
+                <Table TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="20" ColumnReorder="true">
+                    <Column TableItem="Rule" Title="ID" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Rule" Title="Number" Field="@(x => x.Number)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Rule" Title="Source" Field="@(x => x.Source)" Sortable="true" Filterable="true">
+                        <Template>
+                            <p>@(context.SourceNegated ? "not " : "") @(context.Source)</p>
+                        </Template>
+                    </Column>
+                    <Column TableItem="Rule" Title="From" Field="@(x => x.Froms)" Sortable="true" Filterable="true">
+                        <Template>
+                            @{
+                                List<string> fromsIp = new List<string>();
+
+                                foreach (NetworkObjectWrapper from in context.Froms)
+                                {
+                                    fromsIp.Add(from.Content.IP);
+                                }
+
+                                <p>@string.Join(", ", fromsIp)</p>
+                            }
+                        </Template>
+                    </Column>
+                    <Column TableItem="Rule" Title="Destination" Field="@(x => x.Destination)" Sortable="true" Filterable="true">
+                        <Template>
+                            <p>@(context.DestinationNegated ? "not " : "") @(context.Destination)</p>
+                        </Template>
+                    </Column>
+                    <Column TableItem="Rule" Title="Tos" Field="@(x => x.Tos)" Sortable="true" Filterable="true">
+                        <Template>
+                            @{
+                                List<string> TosIp = new List<string>();
+
+                                foreach (NetworkObjectWrapper to in context.Tos)
+                                {
+                                    TosIp.Add(to.Content.IP);
+                                }
+
+                                <p>@string.Join(", ", TosIp)</p>
+                            }
+                        </Template>
+                    </Column>
+                    <Column TableItem="Rule" Title="Services" Field="@(x => x.Service)" Sortable="true" Filterable="true">
+                        <Template>
+                            <p>@(context.ServiceNegated ? "not " : "") @(context.Service)</p>
+                        </Template>
+                    </Column>
+                    <Column TableItem="Rule" Title="Services" Field="@(x => x.Services)" Sortable="true" Filterable="true">
+                        <Template>
+                            @{
+                                List<string> servicesName = new List<string>();
+
+                                foreach (ServiceWrapper service in context.Services)
+                                {
+                                    servicesName.Add(service.Content.Name);
+                                }
+
+                                <p>@string.Join(", ", servicesName)</p>
+                            }
+                        </Template>
+                    </Column>
+                    <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
+                    <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
+                        <Template>
+                            <div class="oi @(context.Disabled? "oi-check" : "oi-x")"></div>
+                        </Template>
+                    </Column>
                     <Pager ShowPageNumber="true"></Pager>
                 </Table>
             }

@@ -65,7 +65,8 @@ def post_handler():
       log += 'executing ' + clone_cmd + '\n'
       os.system(clone_cmd) # Cloning
       build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && " + \
-          "ansible-playbook -i inventory site.yml -e \"testkeys=yes\" --skip-tags \"test,frontend\"" + "'"
+          "ansible-playbook -i inventory site.yml -e \"testkeys=yes\" --skip-tags \"test\"" + "'"
+          #"ansible-playbook -i inventory site.yml -e \"testkeys=yes\" --skip-tags \"test,frontend\"" + "'"
       log += 'executing build command: ' + build_cmd + '\n'
       os.system(build_cmd) # building fworch backend
       now = datetime.now() # current date and time

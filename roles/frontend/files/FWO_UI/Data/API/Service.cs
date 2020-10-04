@@ -12,7 +12,7 @@ namespace FWO.Ui.Data.Api
         public string Name { get; set; }
 
         [JsonPropertyName("svc_port")]
-        public int Port { get; set; }
+        public int? Port { get; set; }
 
         [JsonPropertyName("stm_svc_typ")]
         public ServiceType Type { get; set; }

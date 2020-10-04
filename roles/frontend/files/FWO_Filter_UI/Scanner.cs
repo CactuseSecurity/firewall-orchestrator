@@ -4,102 +4,159 @@ using System.Linq;
 
 namespace FWO.Ui.Filter
 {
-    public static class Scanner
+    public class Scanner
     {
-        public static List<Token> Scan(string Input)
+        private string input;
+        private int position;
+
+        public Scanner(string input)
         {
-            int Position = 0;
-            Token Token;
+            this.input = input;
+        }
+
+        public List<Token> Scan()
+        {
             List<Token> Tokens = new List<Token>();
 
-            Position = SkipWhitespaces(Input, Position);
-
-            while (Position < Input.Length)
+            for (position = 0; position < input.Length; position++)
             {
-                (Position, Token) = ReadToken(Input, Position);
-                Tokens.Add(Token);
-                Position = SkipWhitespaces(Input, Position);
+                SkipWhitespaces();
+
+                Tokens.AddRange(ReadToken());
             }
 
             return Tokens;
         }
 
-        private static int SkipWhitespaces(string Input, int Position)
+        private void SkipWhitespaces()
         {
-            while (Position < Input.Length && (Input[Position] == ' ' || Input[Position] == '\t' || Input[Position] == '\n'))
-                Position++;
-
-            return Position;
+            while (IsWhitespaceOrEnd() == false)
+            {
+                position++;
+            }
         }
 
-        private static (int, Token) ReadToken(string Input, int Position)
+        private bool IsWhitespaceOrEnd()
         {
-            Token Token = new Token();
-            Token.Position = Position;
-
-            string Text = "";
-
-            while (Position < Input.Length && (Input[Position] != ' ' && Input[Position] != '\t' && Input[Position] != '\n'))
+            if (position < input.Length && (input[position] == ' ' || input[position] == '\t' || input[position] == '\n'))
             {
-                Text += Input[Position];
-                Position++;
+                return true;
+            }
+            else
+            {
+                return false;
+            }      
+        }
+
+        private List<Token> ReadToken()
+        {
+            // Token position
+            int tokenPosition = position;          
+            
+            // Token text
+            string tokenText = "";
+            while (IsWhitespaceOrEnd() == false)
+            {
+                switch (input[position])
+                {
+                    case '\\':
+                        HandleEscapeSequence(input[++position]);
+                        break;
+
+                    case '\"':
+                    case '\'':
+
+
+                    default:
+                        position++;
+                        break;
+                }
+
+                tokenText += input[position];
+                position++;
             }
 
-            Token.Text = Text;
-            
-            TokenKind Kind;
+            // Token kind
+            TokenKind tokenKind;
 
-            switch (Text)
+            tokenText.Contains("src")
+
+            switch (tokenText)
             {
                 case "src":
                 case "source":
-                    Kind = TokenKind.Source;
+                    tokenKind = TokenKind.Source;
                     break;
 
                 case "dest":
                 case "destination":
-                    Kind = TokenKind.Destination;
+                    tokenKind = TokenKind.Destination;
                     break;
 
                 case "(":
-                    Kind = TokenKind.BL;
+                    tokenKind = TokenKind.BL;
                     break;
 
                 case ")":
-                    Kind = TokenKind.BR;
+                    tokenKind = TokenKind.BR;
                     break;
 
                 case "or":
                 case "|":
                 case "||":
-                    Kind = TokenKind.Or;
+                    tokenKind = TokenKind.Or;
                     break;
 
                 case "and":
                 case "&":
                 case "&&":
-                    Kind = TokenKind.And;
+                    tokenKind = TokenKind.And;
                     break;
 
                 case "=":
                 case "==":
                 case "eq":
-                    Kind = TokenKind.EQ;
+                    tokenKind = TokenKind.EQ;
                     break;
 
                 case "!=":
                 case "neq":
-                    Kind = TokenKind.NEQ;
+                    tokenKind = TokenKind.NEQ;
                     break;
 
                 default:
-                    Kind = TokenKind.Text;
+                    tokenKind = TokenKind.Text;
                     break;
             }
 
-            Token.Kind = Kind;
+            return new Token(tokenPosition, tokenText, tokenKind);
+        }
 
-            return (Position, Token);
+        private char HandleEscapeSequence(char characterCode)
+        {
+            switch (characterCode)
+            {
+                // Marks \ " ' as non keywords
+                case '\\':
+                case '\"':
+                case '\'':
+                    return characterCode;
+
+                // tab
+                case 't':
+                    return '\t';
+
+                // new line
+                case 'n':
+                    return '\n';
+                
+                // carriage return
+                case 'r':
+                    return '\r';
+
+                default:
+                    break;
+            }
         }
     }
 }

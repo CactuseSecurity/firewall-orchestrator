@@ -50,6 +50,9 @@ namespace FWO.Ui.Filter
 
         private List<Token> ReadToken()
         {
+            List<Token> tokens = new List<Token>();
+
+
             // Token position
             int tokenPosition = position;          
             
@@ -78,8 +81,6 @@ namespace FWO.Ui.Filter
 
             // Token kind
             TokenKind tokenKind;
-
-            tokenText.Contains("src")
 
             switch (tokenText)
             {
@@ -129,7 +130,9 @@ namespace FWO.Ui.Filter
                     break;
             }
 
-            return new Token(tokenPosition, tokenText, tokenKind);
+            tokens.Add(new Token(tokenPosition, tokenText, tokenKind));
+
+            return tokens;
         }
 
         private char HandleEscapeSequence(char characterCode)
@@ -155,7 +158,7 @@ namespace FWO.Ui.Filter
                     return '\r';
 
                 default:
-                    break;
+                    throw new NotSupportedException($"Escape Sequence \"\\{characterCode}\" is unknown.");
             }
         }
     }

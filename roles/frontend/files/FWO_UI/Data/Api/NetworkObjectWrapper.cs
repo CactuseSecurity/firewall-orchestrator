@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace FWO.Ui.Data.Api
 {
-    public class NetworkObject
+    public class NetworkObjectWrapper
     {
-        [JsonPropertyName("obj_ip")]
-        public string IP { get; set; }
+        [JsonPropertyName("object")]
+        public NetworkObject Content { get; set; }
     }
 }

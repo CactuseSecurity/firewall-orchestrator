@@ -14,7 +14,7 @@ namespace FWO.Auth.Server
             catch (Exception exception)
             {
                 // Log error
-                Log.WriteError("Unhandeled unexpected excepti_on", "Unhandeled unexpected exception caught at Programm.cs", exception);
+                Log.WriteError("Unhandeled unexpected exception", "Unhandeled unexpected exception caught at Programm.cs", exception);
 
                 // Exit auth module with error
                 Environment.Exit(1);

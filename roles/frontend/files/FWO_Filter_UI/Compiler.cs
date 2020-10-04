@@ -6,9 +6,11 @@ namespace FWO.Ui.Filter
 {
     public class Compiler
     {
-        public static void Compile(string Input)
+        public static void Compile(string input)
         {
-            Parser parser = new Parser(Scanner.Scan(Input));
+            Scanner scanner = new Scanner(input);
+            List<Token> tokens = scanner.Scan();
+            Parser parser = new Parser(tokens);
             parser.Parse();
         }
     }

@@ -1,8 +1,8 @@
 # this playbook sets up some sample devices with configs to play around with
 # postgresql-client
 
-- name: create import sample user and copy configs
-  include_tasks: setup-sample-import.yml
+# - name: create import sample user and copy configs
+#   include_tasks: setup-sample-import.yml
 
 - name: install packages necessary for testing
   package:
@@ -11,16 +11,48 @@
   loop: "{{ test_packages }}"
   become: yes
 
-# - name: api testing
-#   import_tasks: test-api.yml
+# check if all listeners are up and running:
+# tim@ubu2004test:~/firewall-orchestrator$ sudo netstat -tplen | grep -v ":53"
+# Active Internet connections (only servers)
+# Proto Recv-Q Send-Q Local Address           Foreign Address         State       User       Inode      PID/Program name    
+# tcp        0      0 0.0.0.0:514             0.0.0.0:*               LISTEN      0          29498      1433/rsyslogd       
+# tcp        0      0 127.0.0.1:5000          0.0.0.0:*               LISTEN      60320      98844      10524/FWO_UI        
+# tcp        0      0 127.0.0.1:5001          0.0.0.0:*               LISTEN      60320      98837      10524/FWO_UI        
+# tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      0          70086      7083/graphql-engine 
+# tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      0          23663      725/sshd: /usr/sbin 
+# tcp        0      0 127.0.0.1:8888          0.0.0.0:*               LISTEN      60320      112350     12094/FWO_Auth_Serv 
+# tcp        0      0 127.0.0.1:5432          0.0.0.0:*               LISTEN      112        32628      1768/postgres       
+# tcp        0      0 0.0.0.0:636             0.0.0.0:*               LISTEN      0          59910      5545/slapd          
+# tcp6       0      0 :::514                  :::*                    LISTEN      0          29499      1433/rsyslogd       
+# tcp6       0      0 :::9443                 :::*                    LISTEN      0          88513      9093/apache2        
+# tcp6       0      0 ::1:5000                :::*                    LISTEN      60320      98845      10524/FWO_UI        
+# tcp6       0      0 ::1:5001                :::*                    LISTEN      60320      98842      10524/FWO_UI        
+# tcp6       0      0 :::80                   :::*                    LISTEN      0          88509      9093/apache2        
+# tcp6       0      0 :::22                   :::*                    LISTEN      0          23674      725/sshd: /usr/sbin 
+# tcp6       0      0 :::443                  :::*                    LISTEN      0          88517      9093/apache2        
+# tcp6       0      0 :::636                  :::*                    LISTEN      0          59911      5545/slapd          
+# tim@ubu2004test:~/firewall-orchestrator$ 
+
+
+- name: database testing
+  import_tasks: test-database.yml
+
+- name: auth testing
+  import_tasks: test-auth.yml
+
+- name: api testing
+  import_tasks: test-api.yml
+
+- name: ui testing
+  import_tasks: test-ui.yml
 
 # - name: remove all test data
 #   import_tasks: test-data-cleanup.yml
 #   when: test == 'with_cleanup'
 
-- name: remove packages only necessary for testing
-  package:
-    name: "{{ item }}"
-    state: absent
-  loop: "{{ test_packages }}"
-  become: yes
+# - name: remove packages only necessary for testing
+#   package:
+#     name: "{{ item }}"
+#     state: absent
+#   loop: "{{ test_packages }}"
+#   become: yes

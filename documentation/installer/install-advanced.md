@@ -1,5 +1,6 @@
 # Advanced installation options
 
+always change into the firewwall-orchestrator directory before starting the installation!
 
 ## Install parameters
 ### Installation behind a proxy (no direct Internet connection)
@@ -8,15 +9,42 @@ e.g. with IP 1.2.3.4, listening on port 3128<br>
 note: this does not yet work 100%
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
+ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
+
+### Test - with fixed jwt keys - not for production use
+
+Use the test switch to always use the same fixed jwt generation keys
+
+```console
+ansible-playbook -i inventory/ site.yml -e "testkeys=yes" -K
+```
+
+This helps with debugging c# code in visual studio (code) - you can use a static backend (ldap & api) with these keys.
+
+You need to
+- add the config file and keys once on your local development machine
+- set up an ssh tunnel to the back end machine
+
+        sudo ssh -i /home/tim/.ssh/id_rsa -p 10222 tim@localhost -L 9443:localhost:9443 -L 636:localhost:636
+
+    or to the central test server
+
+        sudo ssh -i /home/tim/.ssh/id_rsa -p 60333 developer@cactus.de -L 9443:localhost:9443 -L 636:localhost:636
 
 ### Debugging
 
-Set debug parameter to "true" for extended debugging info during installation.
+Set debug level for extended debugging info during installation.
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory/ site.yml -e "debug_level='2'" -K
+ansible-playbook -i inventory/ site.yml -e "debug_level='2'" -K
+```
+### Testing
+
+To only run tests (for an existing installation) use tags as follows:
+
+```console
+ansible-playbook -i inventory/ site.yml --tags test -K
 ```
 
 ### Parameter "ui_php" to additionally install old php UI
@@ -24,7 +52,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory/ site.yml -e "debug_leve
 With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "ui_php=1 ui_php_web_port=44310" site.yml -K
+ansible-playbook -i inventory -e "ui_php=1 ui_php_web_port=44310" site.yml -K
 ```
 
 ### Parameter "clean_install" to start with fresh database
@@ -32,7 +60,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory -e "ui_php=1 ui_php_web_
 if you want to drop the database and re-install from scratch, simply add the variable clean_install as follows:
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "clean_install=1" site.yml -K
+ansible-playbook -i inventory -e "clean_install=1" site.yml -K
 ```
 
 ### Parameter "api_no_metadata" to prevent meta data import
@@ -40,7 +68,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory -e "clean_install=1" sit
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "api_no_metadata=1" site.yml -K
+ansible-playbook -i inventory -e "api_no_metadata=1" site.yml -K
 ```
 
 ### Parameter "without_sample_data" to not create sample data (i.e. in production)
@@ -48,7 +76,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory -e "api_no_metadata=1" s
 The following command prevents the creation of sample data in the database:
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "without_sample_data=1" site.yml -K
+ansible-playbook -i inventory -e "without_sample_data=1" site.yml -K
 ```
 
 ### Parameter "connect_sting" to add Cactus test firewall CP R8x
@@ -56,7 +84,7 @@ cd firewall-orchestrator; ansible-playbook -i inventory -e "without_sample_data=
 The following command adds the sting test firewall to your fw orch system (needs VPN tunnel to Cactus)
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "connect_sting=1" site.yml -K
+ansible-playbook -i inventory -e "connect_sting=1" site.yml -K
 ```
 
 ### Parameter "api_docu" to install API documentation

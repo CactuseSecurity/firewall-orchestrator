@@ -5,7 +5,7 @@ using System.Data;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
-namespace FWO_Filter
+namespace FWO.Ui.Filter
 {
     public class Parser
     {
@@ -17,17 +17,19 @@ namespace FWO_Filter
             this.Tokens = Tokens;
         }
 
-        public void Parse()
+        public AstNode Parse()
         {
             Start();
+            return null;
         }
 
-        private void Start()
+        private AstNode Start()
         {
-            Bracket();        
+            Bracket();
+            return null;
         }
 
-        private void Bracket()
+        private AstNode Bracket()
         {
             if (GetNextToken().Kind == TokenKind.BL)
             {
@@ -46,14 +48,16 @@ namespace FWO_Filter
                 Connector();
                 Bracket();
             }
+            return null;
         }
 
-        private void Connector()
+        private AstNode Connector()
         {
             CheckToken(TokenKind.And, TokenKind.Or);
+            return null;
         }
 
-        private void Expression()
+        private AstNode Expression()
         {
             if (GetNextToken().Kind == TokenKind.Text)
             {
@@ -66,24 +70,28 @@ namespace FWO_Filter
                 Operator();
                 Text();
             }
+            return null;
         }
 
-        private void Operator()
+        private AstNode Operator()
         {
             CheckToken(TokenKind.EQ, TokenKind.NEQ);
+            return null;
         }
 
-        private void Text()
+        private AstNode Text()
         {
             CheckToken(TokenKind.Text);
+            return null;
         }
 
-        private void Filter()
+        private AstNode Filter()
         {
             CheckToken(TokenKind.Destination, TokenKind.Source);
+            return null;
         }
 
-        private void CheckToken(params TokenKind[] Matches)
+        private bool CheckToken(params TokenKind[] Matches)
         {
             Token TokenToCheck = GetNextToken();
 
@@ -92,7 +100,7 @@ namespace FWO_Filter
                 if (TokenToCheck.Kind == Matches[i])
                 {
                     Position++;
-                    return;
+                    return true;
                 }                   
             }
 

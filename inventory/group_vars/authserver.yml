@@ -1,6 +1,6 @@
 
 auth_ldap_path: "dc=fworch,dc=internal"
-auth_ldap_server_internal: "localhost"
+auth_ldap_server_internal: "127.0.0.1"
 auth_ldap_internal_url: "ldaps://{{ auth_ldap_server_internal }}"
 auth_ldap_superuser_name: "cn=Manager,ou=systemuser,ou=user,{{ auth_ldap_path }}"
 auth_ldap_user_inital_pwd: "fworch.1"
@@ -14,6 +14,8 @@ auth_server_start_dir: "{{ auth_server_base_dir }}/FWO_Auth_Server"
 auth_service_name: "{{ product_name }}-auth"
 auth_change_local_ldap: "yes"
 
+# use static jwt generation test key if set to 1 - only for testing, not for production environment
+testkey: "no"
 
 ########## test data only ##############
 

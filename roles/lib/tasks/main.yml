@@ -17,7 +17,7 @@
       loop:
         - FWO_API_Client
         - FWO_Auth_Client
+        - FWO_Logging
+        - FWO_Config
 
   become: yes
-
-# - include: lib_install_dot_net.yml

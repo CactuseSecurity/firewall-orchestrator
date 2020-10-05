@@ -1,0 +1,7 @@
+## adding potentially missing base64 = padding to base64encoded string:
+- set_fact: item="{{ item }}=" cacheable=yes
+  when: "item|length % 4 > 0"
+  loop:
+    - 1
+    - 2
+    - 3

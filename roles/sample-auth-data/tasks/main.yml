@@ -1,7 +1,10 @@
 # this playbook sets up some sample auth data (roles, users)
 
 - name: add auth test data to database
-  include_tasks: auth_test_data.yml
+  include_tasks: auth_sample_data.yml
+
+- name: add auth test ext. ldap to database
+  include_tasks: auth_sample_ext_ldap.yml
 
 - block:
   - name: copy ldif template for roles

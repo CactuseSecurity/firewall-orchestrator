@@ -1,10 +1,10 @@
-﻿@using BlazorTable
-@using FWO.Backend.Data.API
+﻿@*@using BlazorTable
+@using FWO.Ui.Data.Api
 @using System.Data 
 
 <div class="card d-inline m-2 shadow">
     <div class="card-body">
-        @*
+        
         <Table TableItem="DataRow" Items="Data.AsEnumerable()" PageSize="10">
             <Column TableItem="DataRow" Title="@Data.Columns[0].ColumnName" Field="@(x => x[0])" Sortable="true" Filterable="true">
                 <Template>
@@ -53,7 +53,7 @@
 
         <Pager ShowPageNumber="true"></Pager>
         </Table>
-        *@
+        
     </div>
 </div>
 
@@ -69,4 +69,4 @@
     {
         
     }
-}
+}*@

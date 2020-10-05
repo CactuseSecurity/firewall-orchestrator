@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace FWO_Filter
+namespace FWO.Ui.Filter
 {
-    public class AstNode
+    public abstract class AstNode
     {
-        
+        public abstract string Extract();
     }
 }

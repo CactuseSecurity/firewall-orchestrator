@@ -1,13 +1,24 @@
-﻿using System;
+﻿using FWO.Logging;
+using System;
 
-namespace FWO_Auth
+namespace FWO.Auth.Server
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            AuthModule Server = new AuthModule();
-            Console.ReadLine();
+            try
+            {
+                AuthModule Server = new AuthModule();
+            }
+            catch (Exception exception)
+            {
+                // Log error
+                Log.WriteError("Unhandled unexpected exception", "Unhandled unexpected exception caught at Programm.cs", exception);
+                // Exit auth module with error
+                Environment.Exit(1);
+            }
         }
     }
 }
+

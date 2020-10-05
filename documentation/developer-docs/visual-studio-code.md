@@ -2,7 +2,7 @@
 
 Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
 
-## Installation
+## Installation VSCODE
 
 - Install [.NET Core SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu#1804-)
 - Install [Visual Studio Code](https://code.visualstudio.com/Download) for Linux or Windows
@@ -20,7 +20,8 @@ Clone your own fork, eg.
 
     git clone 
 
-## Add upstream cactus repo (needs to be done on command line)
+## Add upstream cactus repo
+(starting with vscode 1.49 this can now also be done in vscode UI)
 
 change into the workspace directory on command line and run
 
@@ -37,8 +38,6 @@ Use the following command to verify settings:
 
 if vs code does not show the upstream repo in pull-from, just give it some time to show up?!
 
-### sync fork
-
 ## Select, prepare and run project
 
 ## repair references and intellisense / refresh 
@@ -49,6 +48,8 @@ if vs code does not show the upstream repo in pull-from, just give it some time 
 - if in a .cs file no references for objects are shown, just start editing (changing) it and the references will appear
 - might also help: Go to File - Preferences - Settings
   - search for omnisharp (in extension c# configuration) and enter the name of the missing / not working solution (project) into the "Omnisharp: Default Launch Solution" form, e.g. FWO.sln or FWO_Auth.sln
+- finally: if references are not foud - simply run the project - this might solve dependencies  
+
 
 ### install nuget packages
 

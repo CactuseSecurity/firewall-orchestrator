@@ -2242,6 +2242,20 @@ tables:
         table:
           name: usr
           schema: public
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - tenant_id
+      - tenant_name
+      - tenant_projekt
+      - tenant_comment
+      - tenant_report
+      - tenant_can_view_all_devices
+      - tenant_is_superadmin
+      - tenant_create
+      filter: {}
+    role: auth-server
   table:
     name: tenant
     schema: public
@@ -2641,4 +2655,3 @@ tables:
   table:
     name: zone
     schema: public
-version: 2

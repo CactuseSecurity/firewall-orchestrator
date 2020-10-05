@@ -39,9 +39,6 @@
   - name: Add roles
     command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_roles.ldif"
 
-  - name: Pass example roles
-    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/modify_example_roles.ldif"
-
   - name: delete ldif files
     file:
       path: "{{ auth_server_base_dir }}/ldif"

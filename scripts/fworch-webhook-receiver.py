@@ -1,13 +1,12 @@
 #!/usr/bin/python3
-# quelle: https://github.com/Esri/webhooks-samples/tree/master/python/receiver/flask
+# source: https://github.com/Esri/webhooks-samples/tree/master/python/receiver/flask
 
-# starten: python3 /home/fworchtest/fworch-webhook-receiver.py
-# in webhook definition von github:
+# starting with: python3 /home/fworchtest/fworch-webhook-receiver.py
+# in github settings webhook:
 #   https://cactus.de:60344/fwo
 #   content-type: application/json
 #   trigger: just the push-event
 #   Disable SSL verification
-
 # todo: deal with timeout of long build process
 
 from flask import Flask, request
@@ -17,6 +16,7 @@ import sys
 import json
 import subprocess
 from datetime import datetime
+import re
 
 root_dir = '/home/fworchtest/'
 tmp_git_dir = root_dir + 'tmp_git'
@@ -53,24 +53,31 @@ def post_handler():
    req_data = request.get_json()
    req_data_str = json.dumps(req_data)
    now = datetime.now() # current date and time
-   # debugging # log = '--- '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\nraw post request: '+req_data_str+'\n'
-
    if 'head_commit' in req_data:
+      log = ""
       now = datetime.now() # current date and time
-      log = '--- build starting   '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n'
-      modifications = req_data['head_commit']['modified']
-      log += 'found modified files: ' + json.dumps(modifications) + '\n'
-      target_path  =  tmp_git_dir
-      clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone ssh://git@" + github_hostname + project_path + "'"
-      log += 'executing ' + clone_cmd + '\n'
-      os.system(clone_cmd) # Cloning
-      build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && " + \
-          "ansible-playbook -i inventory site.yml -e \"testkeys=yes\" --skip-tags \"test\"" + "'"
-          #"ansible-playbook -i inventory site.yml -e \"testkeys=yes\" --skip-tags \"test,frontend\"" + "'"
-      log += 'executing build command: ' + build_cmd + '\n'
-      os.system(build_cmd) # building fworch backend
-      now = datetime.now() # current date and time
-      log += '--- build completed '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n'
+      log += '--- webhook call received '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n'
+      modified_files = req_data['head_commit']['modified']
+      log += 'found modified files: ' + json.dumps(modified_files) + '\n'
+      relevant_change = False
+      pattern = '^roles\/|^inventory\/|^site.yml$'
+      for modified_file in modified_files:
+         if (re.match(pattern, modified_file)):
+            relevant_change = True
+      if (relevant_change):
+         log += 'Relevant change: start building\n'
+         target_path  =  tmp_git_dir
+         clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone ssh://git@" + github_hostname + project_path + "'"
+         log += 'executing ' + clone_cmd + '\n'
+         os.system(clone_cmd) # Cloning
+         build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && " + \
+            "ansible-playbook -i inventory site.yml -e \"testkeys=yes\" --skip-tags \"test\"" + "'"
+         log += 'executing build command: ' + build_cmd + '\n'
+         os.system(build_cmd) # building fworch backend
+         now = datetime.now() # current date and time
+         log += '--- build completed '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n'
+      else:
+         log += 'No relevant change found, not re-building.\n'         
    f.write(log)
    f.close()
    return '{"success":"true"}'

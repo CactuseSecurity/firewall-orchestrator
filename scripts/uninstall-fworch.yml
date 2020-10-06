@@ -93,8 +93,6 @@
       package:
         state: absent
         name: "{{ item }}"
-      tag: purge
-      tag: autoremove
       loop:
         - rsyslog
         - apache2

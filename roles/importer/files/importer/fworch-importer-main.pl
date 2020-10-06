@@ -17,7 +17,7 @@ if ($#ARGV>=0) { if (defined($ARGV[0]) && is_numeric($ARGV[0])) { $sleep_time = 
 
 while (1) {
 	output_txt("Import: another loop is starting... ");
-	# Managementsysteme aus der DB holen
+	# get management systems from the database
 	my $dbh1 = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port","$fworch_srv_user","$fworch_srv_pw");
 	if ( !defined $dbh1 ) { die "Cannot connect to database!\n"; }
 	my $sth1 = $dbh1->prepare("SELECT mgm_id, mgm_name, do_not_import, importer_hostname from management LEFT JOIN stm_dev_typ USING (dev_typ_id)" .
@@ -27,8 +27,9 @@ while (1) {
 	my $management_hash = $sth1->fetchall_hashref('mgm_name');
 	$sth1->finish;
 	$dbh1->disconnect;
-	# Schleife ueber alle Managementsysteme
+	# loop across all management systems
 	foreach $mgm_name (sort keys %{$management_hash}) {
+		$fehler = 0;
 		output_txt("Import: looking at $mgm_name ... ");
 		$mgm_id = $management_hash->{"$mgm_name"}->{"mgm_id"};
 		if (defined($management_hash->{"$mgm_name"}->{"importer_hostname"})) {
@@ -37,6 +38,9 @@ while (1) {
 		if ($importer_hostname eq $hostname_localhost) {
 			output_txt("Import: running on responsible importer $importer_hostname ... ");
 			$fehler = system("$importdir/fworch-importer-single.pl mgm_id=$mgm_id");
+			if ($fehler) {
+				output_txt("Import fehler: $fehler");
+			}
 		}
 	}
 	output_txt("-------- Import module: going back to sleep for $sleep_time seconds --------\n");

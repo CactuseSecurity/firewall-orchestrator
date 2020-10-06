@@ -32,7 +32,7 @@
 # restart authserver now that the API is ready
 - hosts: authserver
   tasks:
-    - name: start auth service
+    - name: restart auth service
       command: "systemctl restart {{ auth_service_name }}"
       become: yes
   tags:
@@ -67,6 +67,15 @@
     - samples
     - backend
   # todo: add meta dependency on role sample-data
+
+# restart importer to make sure it works correctly with sample data
+- hosts: importers
+  tasks:
+    - name: restart importer service
+      command: "/etc/init.d/fworch-importer restart"
+      become: yes
+  tags:
+    - backend
 
 - hosts: all
   roles:

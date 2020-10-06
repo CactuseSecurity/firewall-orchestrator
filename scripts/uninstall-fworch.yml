@@ -1,90 +1,170 @@
 ---
+# this script will uninstall all fworch components from all hosts in the chosen inventory
+# also all packages potentially installed during fworch installation will be removed
 
-- name: Pre-Install packages to minimize installation time
-  hosts: all
-  become: yes
-  tasks:
+# call with:
+# ansible-playbook -i inventory/ scripts/uninstall-fworch.yml -K
 
-- name: remove database
-  command: psql -c "drop database fworch"
-  become_user: postgres
+# caveat: this script
+# - is only meant to be run on fworch-exclusive systems
+# - removes all packages (and some of their config data) necessary for fworch
+# this means if you are running other services that depend on any of these
+# this uninstall script will break them
 
-- name: remove docker container
-  command: docker rm fworch-api
+  - name: Pre-Install packages to minimize installation time
+    hosts: all
+    become: yes
+    tasks:
 
-- set_fact: 
-    distribution_version: "debian/10"
-    when: ansible_facts['distribution']|lower == 'debian'
+    - name: stop docker container
+      command: docker stop fworch-api
+      ignore_errors: true
 
-- set_fact: 
-    distribution_version: "ubuntu/20.04"
-    when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
+    - name: remove docker container
+      command: docker rm fworch-api
+      ignore_errors: true
 
-- set_fact: 
-    distribution_version: "ubuntu/18.04"
-    when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
+    - name: remove database
+      command: psql -c "drop database fworchdb"
+      become_user: postgres
+      ignore_errors: true
 
-- name: find out installed postgres version
-  script: "get_pg_version.sh"
-  register: pg_version_result
-  changed_when: false
+    - name: stop and disable slapd
+      service:
+        name: slapd
+        state: stopped
+        enabled: no
+      when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
+      ignore_errors: true
 
-- name: set fact pg_version
-  set_fact:
-      pg_version: "{{ pg_version_result.stdout }}"      
+    - name: stop and disable postgres
+      service:
+        name: postgresql
+        state: stopped
+        enabled: no
+      ignore_errors: true
 
-- set_fact:
-    postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+    - name: stop and disable fworch-ui
+      service:
+        name: fworch-ui
+        state: stopped
+        enabled: no
+      ignore_errors: true
 
-- name: uninstall all packages for fworch, keeping git and ansible
-  package:
-    state: absent
-    name: "{{ item }}"
-  tag: purge
-  loop:
-    - rsyslog
-    - apache2
-    - gnupg2
-    - apt-transport-https
-    - ca-certificates 
-    - curl 
-    - software-properties-common
-    - npm
-    - python3-pip
-    - python3-virtualenv
-    - python3-psycopg2
-    - libpq-dev
-    - "{{ postgresql_package }}"
-    - libpq-dev
-    - postgresql-client
-    - slapd
-    - ldap-utils
-    - openssl
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
-    - dotnet-sdk-3.1
-    - make
-    - "{{ postgresql_dev_package }}"
-    - "{{ postgresql_test_package }}"
-    - apache2
-    - php
-    - libapache2-mod-php
-    - php-pgsql
-    - php-pear
-    - libdbi-perl 
-    - libdbd-pg-perl 
-    - libdate-calc-perl 
-    - psmisc 
-    - libnet-cidr-perl 
-    - libsys-syslog-perl 
-    - libexpect-perl
-    - libcgi-pm-perl
+    - name: stop and disable fworch-auth
+      service:
+        name: fworch-auth
+        state: stopped
+        enabled: no
+      ignore_errors: true
 
-- name: remove fworch dirs
-  file: "{{ item }}"
-    state: absent
-  loop:
-    - "{{ fworch_home }}"
-    - /etc/fworch
+    - name: stop and disable hasura-docker-api
+      service:
+        name: hasura-docker-api
+        state: stopped
+        enabled: no
+      ignore_errors: true
 
+    - set_fact: 
+        distribution_version: "debian/10"
+        when: ansible_facts['distribution']|lower == 'debian'
+
+    - set_fact: 
+        distribution_version: "ubuntu/20.04"
+        when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
+
+    - set_fact: 
+        distribution_version: "ubuntu/18.04"
+        when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
+
+    - name: find out installed postgres version
+      script: "get_pg_version.sh"
+      register: pg_version_result
+      changed_when: false
+
+    - name: set fact pg_version
+      set_fact:
+          pg_version: "{{ pg_version_result.stdout }}"      
+
+    - set_fact:
+        postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+
+    - name: uninstall all packages for fworch, keeping git and ansible
+      package:
+        state: absent
+        name: "{{ item }}"
+      tag: purge
+      tag: autoremove
+      loop:
+        - rsyslog
+        - apache2
+        - gnupg2
+        - apt-transport-https
+        - software-properties-common
+        - npm
+        - python3-pip
+        - python3-virtualenv
+        - python3-psycopg2
+        - libpq-dev
+        - "{{ postgresql_package }}"
+        - libpq-dev
+        - postgresql-client
+        - slapd
+        - ldap-utils
+        - libldap-common
+        - libldap
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - dotnet-sdk-3.1
+        - make
+        - "{{ postgresql_dev_package }}"
+        - "{{ postgresql_test_package }}"
+        - apache2
+        - php
+        - libapache2-mod-php
+        - php-pgsql
+        - php-pear
+        - libdbi-perl 
+        - libdbd-pg-perl 
+        - libdate-calc-perl 
+        - psmisc 
+        - libnet-cidr-perl 
+        - libsys-syslog-perl 
+        - libexpect-perl
+        - libcgi-pm-perl
+
+    - name: remove fworch dirs
+      file: 
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ fworch_home }}"
+        - /etc/fworch
+
+    - name: remove ldap data dir
+      file: 
+        name: /var/lib/ldap/fworch.internal
+        state: absent
+      
+    - name: Remove dependencies that are no longer required
+      apt:
+        autoremove: yes
+      when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
+
+    - name: Remove ldap settings
+      apt:
+        name: slapd
+        state: absent
+        purge: yes
+      when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
+
+    # - name: reload systemd
+    #   command: systemctl daemon-reload
+
+    - name: get running tcp services
+      command: netstat -tlpen
+      register: netstat_result
+
+    - name: show running tcp services
+      debug: var=netstat_result.stdout_lines

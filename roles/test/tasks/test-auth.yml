@@ -1,16 +1,16 @@
 # this playbook contains auth server tests
 
-# curl --request POST --url http://127.0.0.1:8888/jwt --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
+# curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
 - name: auth test get jwt valid creds
   command: |
     curl --request POST --insecure 
-      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/jwt 
+      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/AuthenticateUser/ 
       --header 'content-type: application/json' 
       --data '{"Username":"fritz","Password":"fritz1"}'
   register: sample_jwt
   changed_when: false
 
-- set_fact: jwt_header="{{ sample_jwt.stdout.split('.')[0] }}"
+- set_fact: jwt_header="{{ sample_jwt.stdout.split('.')[0].split(":\"")[1] }}"
 
 ## adding potentially missing base64 = padding to header:
 - set_fact: jwt_header="{{ jwt_header }}=" cacheable=yes
@@ -49,7 +49,7 @@
 - name: auth test get jwt wrong creds
   command: |
     curl --request POST --insecure 
-      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/jwt 
+      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/AuthenticateUser/
       --header 'content-type: application/json' 
       --data '{"Username":"fritz","Password":"wrong-pwd"}'
   register: sample_jwt

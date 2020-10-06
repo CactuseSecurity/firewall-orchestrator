@@ -8,7 +8,7 @@
 # caveat: this script
 # - is only meant to be run on fworch-exclusive systems
 # - removes all packages (and some of their config data) necessary for fworch
-# this means if you are running other services that depend on any of these
+# This means if you are running other services that depend on any of these
 # this uninstall script will break them
 
   - name: Pre-Install packages to minimize installation time
@@ -142,21 +142,25 @@
         - "{{ fworch_home }}"
         - /etc/fworch
 
-    - name: remove ldap data dir
-      file: 
-        name: /var/lib/ldap/fworch.internal
-        state: absent
+    # - name: remove ldap data dir
+    #   file: 
+    #     name: /var/lib/ldap/fworch.internal
+    #     state: absent
       
     - name: Remove dependencies that are no longer required
       apt:
         autoremove: yes
       when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
 
-    - name: Remove ldap settings
+    - name: Remove ldap settings that avoid purging so far with generic package tool
       apt:
-        name: slapd
+        name: "{{ item }}"
         state: absent
         purge: yes
+      loop:
+        - slapd
+        - libldap-common
+        - libldap
       when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
 
     # - name: reload systemd

@@ -13,7 +13,7 @@
       src: "{{ item }}"
       dest: "{{ auth_server_base_dir }}/ldif/{{ item | basename | regex_replace('\\.j2$', '') }}"
     with_fileglob:
-      - ../templates/ldif_files/*.j2
+      - ldif_files/*.j2
 
   - name: Create tree level 1 (ou user, role)
     command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_1.ldif"

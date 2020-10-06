@@ -1,7 +1,7 @@
 # How to debug fworch using vscode or vs
 
 ## using central backend host
-devservffm is a central backend server for all services that are not debugged locally on client via visual studio (code)
+devsrvffm is a central backend server for all services that are not debugged locally on client via visual studio (code)
 
 ### connect as user developer via ssh on port 60333/tcp
 
@@ -13,12 +13,11 @@ example for user tim:
 
     sudo ssh -i /home/tim/.ssh/id_rsa -p 60333 developer@cactus.de -L 9443:localhost:9443 -L 636:localhost:636
     
-note: your public key needs to be added to /home/devoloper/.ssh/authorized_keys on devservffm 
+note: your public key needs to be added to /home/devoloper/.ssh/authorized_keys on devsrvffm 
 
 ### automatic updates of test server
-The testserver has a webhook receiver running at https://cactus.de:60344/fwo which is triggered by changes to the cactus master.
-
-todo: exclude changes to documentation
+The testserver has a webhook receiver running at https://cactus.de:60344/fwo which is triggered by changes to the cactus repo (not the individual forks!).
+Only changes to roles, inventory and site.yml will trigger a rebuild, not documentation changes.
 
 ### add local config on development client
 
@@ -28,6 +27,8 @@ In order to allow locally running components to read the necessary config you ha
         secrets/
           jwt_private_key.pem
           jwt_public_key.pem
+
+For keys see below.
 
 If you manually replace the keys on the server side (use the test keys) you need to reboot the server to reload all services depending on these keys.
 

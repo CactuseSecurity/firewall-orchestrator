@@ -6,7 +6,6 @@
 - Demo: if you want to see what it looks like in advance, visit <https://demo.itsecorg.de> (user: admin, password: fworch.1)
 
 ## Installation instructions
-
 ### Server installation
 
 See [Server installation instructions](https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/server-install.md)

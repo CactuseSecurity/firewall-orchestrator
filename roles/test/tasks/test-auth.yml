@@ -10,7 +10,11 @@
   register: sample_jwt
   changed_when: false
 
-- set_fact: jwt_header="{{ sample_jwt.stdout.split('.')[0].split(":\"")[1] }}"
+- debug: var=sample_jwt.stdout
+- set_fact: jwt_header="{{ sample_jwt.stdout.split('.')[0] }}"
+- debug: var=jwt_header
+- set_fact: jwt_header="{{ jwt_header.split(":")[1] }}"
+- debug: var=jwt_header
 
 ## adding potentially missing base64 = padding to header:
 - set_fact: jwt_header="{{ jwt_header }}=" cacheable=yes

@@ -1,0 +1,10 @@
+block:
+  - name: adding functions
+      # the user fworch should be expressed by variable, eg {{ product_name }}
+      command: 'psql -h {{ fworch_db_host }} -U fworch -d {{ fworch_db_name }} -c {{ item }}'
+      loop:
+        - "\copy stm_color (color_name,color_rgb) FROM '{{ database_install_dir }}/csv/color.csv' DELIMITER ';' CSV"
+        - "\copy error (error_id,error_lvl,error_txt_ger,error_txt_eng) FROM '{{ database_install_dir }}/csv/error.csv' DELIMITER ';' CSV"
+        - "\copy stm_ip_proto (ip_proto_id,ip_proto_name,ip_proto_comment) FROM '{{ database_install_dir }}/csv/ip-protocol-list.csv' DELIMITER ';' CSV"
+        - "\i {{ database_install_dir }}/sql/fworch-fill-stm.sql"
+become: yes

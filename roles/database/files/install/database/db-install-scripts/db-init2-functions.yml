@@ -1,6 +1,6 @@
 block:
   - name: adding functions
-      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item}}"'
+      command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
       loop:
         - fworch-basic-procs.sql
         - fworch-import.sql

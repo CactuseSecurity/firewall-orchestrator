@@ -28,7 +28,7 @@
     command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/fworch-db-model.sql"'
 
   - name: settings privileges
-    command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item}}"'
+    command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
     loop:
       - fworch-user-textreader.sql
       - fworch-grants.sql

@@ -40,7 +40,7 @@ namespace FWO.ApiClient
             Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
         }
 
-        public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string query, string variables = null, string operationName = null)
+        public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string query, object variables = null, string operationName = null)
         {
             try
             {

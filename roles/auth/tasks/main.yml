@@ -42,10 +42,19 @@
       - ldap_conn_present
       - auth_change_local_ldap
 
-# todo: better to have each ldap operation itempotent in itself instead of these global tests
-- name: build ldap tree
-  include_tasks: create_ldap_tree.yml
-  when: auth_change_local_ldap == "yes"
+- name: delete complete ldap tree
+  command: "ldapdelete -r -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x '{{ auth_ldap_path }}'"
+  ignore_errors: yes
+  #when: clean_install is defined and clean_install == '1'
+
+- name: include ldif driven changes
+  import_tasks: modify_ldap_tree.yml
+
+- name: Set {{ auth_ldap_internal_readonly_user }} password in ldap
+  command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid={{ auth_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ auth_ldap_path }}'"
+
+- name: Set admin password in ldap
+  command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}'"
 
 - name: add local ldap connection
   shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ auth_ldap_server_internal | quote }}', 636, '{{ auth_ldap_std_user_path | quote }}', '{{ auth_ldap_std_role_path | quote }}', 1, '{{ auth_ldap_internal_readonly_user_fq | quote }}', '{{ ldap_inspector_pw }}'); END IF; END \$do\$"

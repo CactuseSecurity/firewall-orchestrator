@@ -3,8 +3,9 @@ postgresql_package: postgresql
 postgresql_test_package: pgtap
 postgresql_dev_package_prefix: postgresql-server-dev
 
-fworch_bin_dir: "{{ fworch_home }}/install/database/db-install-scripts"
-database_install_dir: "{{ fworch_home }}/install/database"
+# Musst du nochmal schauen, wenn alle Pfade angepasst sind
+# fworch_bin_dir: "{{ fworch_home }}/install/database/db-install-scripts"
+database_install_dir: "{{ fworch_home }}/database"
 
 # table_space variable can be used to create database in another place where there is enough space
 # table_space: /var/db/fworch_tablespace

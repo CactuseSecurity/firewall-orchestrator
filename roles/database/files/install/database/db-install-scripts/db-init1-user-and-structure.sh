@@ -15,9 +15,10 @@ PATH=$PATH:$FWORCHBINDIR:$FWORCHBASE/importer
 
 . $FWORCHBINDIR/iso-set-vars.sh $FWORCHBASE
 . $FWORCHBINDIR/iso-pgpass-create.sh $FWORCHBASE
+## Was ist PGPASS? Ein file mit Pathvariablen?
 
 $PSQLCMD_INIT -c "DROP DATABASE $FWORCHDB" 2>&1 | tee | $OUT
-## "/usr/bin/psql -h 127.0.0.1 -U dbadmin -d
+## "/usr/bin/psql -h 127.0.0.1 -U dbadmin -d template1
 # " -c "DROP DATABASE $FWORCHDB" 2>&1 | tee | $OUT
 ## Dies ist psql Befehl: -h "hostname" -U "username" -d "dbname" -c "command"
 ## Was ist template1?
@@ -31,6 +32,8 @@ $DBCREATE_CMD -c "CREATE DATABASE $FWORCHDB" | $OUT
 echo "creating fworch-db-model" | $OUT
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/fworch-db-model.sql" 2>&1 | $OUT
 ## /usr/bin/psql -h 127.0.0.1 -U dbadmin -d dbadmin -c "\i $SQLDIR/fworch-db-model.sql"
+## \i executes a psql comman from the file following
+## the file $SQLDIR/fworch-db-model.sql was moved to files/sql
 
 echo "settings privileges" | $OUT
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/iso-user-textreader.sql" 2>&1 | $OUT

@@ -89,10 +89,19 @@
     - set_fact:
         postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
 
+    # - name: disable apache modules (due to a bug with php mod not properly getting purged)
+    #   apache2_module: state=absent name={{ item }}
+    #   loop:
+    #     - php
+    #     - proxy_http
+    #     - rewrite
+    #     - proxy_wstunnel
+
     - name: uninstall all packages for fworch, keeping git and ansible
       package:
         state: absent
         name: "{{ item }}"
+        purge: yes
       loop:
         - rsyslog
         - apache2

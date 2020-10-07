@@ -9,24 +9,42 @@
 @inject APIConnection ApiConnection
 @inject IJSRuntime js
 
-@if (showLoginForm)
-{
-    <div class="row m-4 justify-content-center">
+<div class="row m-4 justify-content-center">
+    @if (showLoginForm)
+    {
         <div>
             <h2 class="text-center"> Login </h2>
-            <div class="shadow-sm card p-2">
+            <div class="shadow-sm card p-2 d-flex flex-column">
                 <input type="text" class="m-2 form-control @InputClass" style="width: 200px;" id="UsernameInput" placeholder="Username" @bind="Username" @bind:event="oninput" @onkeypress="PotentialSubmit">
                 <input type="password" class="m-2 form-control @InputClass" style="width: 200px;" id="PasswordInput" placeholder="Password" @bind="Password" @bind:event="oninput" @onkeypress="PotentialSubmit">
-                <button class="btn btn-primary m-2" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button>
+
+                @if (loginInProgress == false)
+                {
+                    <button class="btn btn-primary m-2" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button>
+                }
+                else
+                {
+                    <div class="spinner-border text-primary align-self-center" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                }
             </div>
         </div>
-    </div>
-}
+    }
+    else
+    {
+        <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    }
+</div>
 
 @code
 {
     // dont immediately show login page because session storage is only available after render, so there might be a immediate redirect
     private bool showLoginForm = false;
+
+    private bool loginInProgress = false;
 
     private string Username = "";
     private string Password = "";
@@ -35,17 +53,17 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        showLoginForm = true;
+        // This might be a reconnect. Check if there is a jwt in session storage.
         string jwt = await sessionStorage.GetItemAsync<string>("jwt");
 
         if (jwt != null)
         {
-            // This might be a reconnect. Check if there is a jwt in session storage.
-            ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
+            ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
         }
 
         if (firstRender)
         {
+            showLoginForm = true;
             StateHasChanged();
             //await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
         }
@@ -61,13 +79,17 @@
 
     private async Task LoginSubmit()
     {
+        loginInProgress = true;
+
         // There is no jwt in session storage. Get one from auth module.
         RequestResult result = await AuthClient.AuthenticateUser(Username, Password);
 
+        // There was an error trying to authenticate the user. Probably invalid credentials
         if (result.Status == HttpStatusCode.BadRequest)
         {
+            // Visualisize there was an error by making border of inputboxes red
             InputClass = "is-invalid";
-            StateHasChanged();
+            loginInProgress = false;
         }
 
         else
@@ -77,10 +99,13 @@
             // Save it in session storage.
             await sessionStorage.SetItemAsync<string>("jwt", jwt);
 
+            // Tell api connection to use jwt as authentication
             ApiConnection.SetAuthHeader(jwt);
 
             // Try to auth with jwt (validates it, gets roles, ...).
-            ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
+            ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+
+            loginInProgress = false;
         }
     }
 }

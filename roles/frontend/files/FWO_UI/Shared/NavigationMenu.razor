@@ -1,44 +1,51 @@
 ﻿@using FWO.Ui.Data;
 
-<nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark shadow">
-    <a class="navbar-brand" href="#">
-        <!-- <img src="images/FWO_Logo.png" /> -->
-        Firewall-Orchestrator
-    </a>
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 
-    <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
-        <span class="navbar-toggler-icon"></span>
-    </button>
+@if (show)
+{
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark shadow">
+        <a class="navbar-brand" href="#">
+            <!-- <img src="images/FWO_Logo.png" /> -->
+            Firewall-Orchestrator
+        </a>
 
-    <div class="@NavMenuLeftClass" @onclick="ToggleNavMenu">
-        <ul class="nav navbar-nav">
-            @foreach (NavItem navItem in navItemsLeft)
-            {
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="@navItem.Link">
-                        <span class="@navItem.Symbol" aria-hidden="true"></span> @navItem.Name
-                    </NavLink>
-                </li>
-            }
-        </ul>
-    </div>
+        <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <div class="@NavMenuRightClass" @onclick="ToggleNavMenu">
-        <ul class="nav navbar-nav">
-            @foreach (NavItem navItem in navItemsRight)
-            {
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="@navItem.Link">
-                        <span class="@navItem.Symbol" aria-hidden="true"></span> @navItem.Name
-                    </NavLink>
-                </li>
-            }
-        </ul>
-    </div>
-</nav>
+        <div class="@NavMenuLeftClass" @onclick="ToggleNavMenu">
+            <ul class="nav navbar-nav">
+                @foreach (NavItem navItem in navItemsLeft)
+                {
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="@navItem.Link">
+                            <span class="@navItem.Symbol" aria-hidden="true"></span> @navItem.Name
+                        </NavLink>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="@NavMenuRightClass" @onclick="ToggleNavMenu">
+            <ul class="nav navbar-nav">
+                @foreach (NavItem navItem in navItemsRight)
+                {
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="@navItem.Link">
+                            <span class="@navItem.Symbol" aria-hidden="true"></span> @navItem.Name
+                        </NavLink>
+                    </li>
+                }
+            </ul>
+        </div>
+    </nav>
+}
 
 @code
 {
+    private bool show = false;
+
     [Parameter]
     public NavItem[] navItemsLeft { get; set; }
 
@@ -53,10 +60,16 @@
     string baseMenuRightClass = "navbar-collapse d-sm-inline-flex flex-row-reverse";
     string NavMenuRightClass => baseMenuRightClass + (collapseNavMenu ? " collapse" : "");
 
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        show = true;
+        string jwt = await sessionStorage.GetItemAsync<string>("jwt");
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var token = handler.ReadJwtToken(jwt);
+        string username = token.Payload.GetValueOrDefault("unique_name").ToString();
+
         navItemsLeft = new NavItem[]
-        {
+    {
             new NavItem("Reporting", "/report", "oi oi-spreadsheet"),
             new NavItem("Documentation", "#", "oi oi-book"),
             new NavItem("Request", "#", "oi oi-comment-square"),
@@ -66,9 +79,14 @@
         {
             new NavItem("Help", "/help", "oi oi-info"),
             new NavItem("Settings", "#", "oi oi-cog"),
-            new NavItem("My Profile", "#", "oi oi-person"),
+            new NavItem(username.ToUpper(), "#", "oi oi-person"),
             new NavItem("Logout", "/logout", "oi oi-account-logout"),
         };
+
+        if (firstRender)
+        {
+            StateHasChanged();
+        }
     }
 
     void ToggleNavMenu()

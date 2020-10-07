@@ -47,7 +47,7 @@
         if (firstRender)
         {
             StateHasChanged();
-            //await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
+            await focusInput();
         }
     }
 
@@ -68,6 +68,7 @@
         {
             InputClass = "is-invalid";
             StateHasChanged();
+            await focusInput();
         }
 
         else
@@ -82,5 +83,11 @@
             // Try to auth with jwt (validates it, gets roles, ...).
             ((AuthStateProvider)AuthService).AuthenticateUser(Username, Password, jwt);
         }
+    }
+
+    private async Task focusInput()
+    {
+        if (showLoginForm)
+            await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
     }
 }

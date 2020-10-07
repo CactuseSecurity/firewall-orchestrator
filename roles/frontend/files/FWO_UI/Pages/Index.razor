@@ -1,5 +1,7 @@
 ﻿@page "/"
 
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
 <button @onclick="LogUsername">Log username</button>
 
 <p>@_authMessage</p>
@@ -17,7 +19,11 @@
 
         if (user.Identity.IsAuthenticated)
         {
-            _authMessage = $"{user.Identity.Name} is authenticated.";
+            string jwt = await sessionStorage.GetItemAsync<string>("jwt");
+            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var token = handler.ReadJwtToken(jwt);
+            string username = token.Payload.GetValueOrDefault("unique_name").ToString();
+            _authMessage = $"{username} is authenticated."; //{user.Identity.Name}
         }
         else
         {

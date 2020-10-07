@@ -27,10 +27,10 @@
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         
         # auth
-        auth_JWT_key_file: "{{ jwt_private_key_file }}"
-        auth_hostname: "{{ auth_hostname }}"
-        auth_server_port: "{{ auth_web_listener_port }}"
+        #auth_JWT_key_file: "{{ jwt_private_key_file }}"
+        #auth_hostname: "{{ auth_hostname }}"
+        #auth_server_port: "{{ auth_web_listener_port }}"
+        # should be auth_uri: "https://{{ auth_hostname }}:{{ auth_web_listener_port }}"
         auth_uri: "http://{{ auth_hostname }}:{{ auth_web_listener_port }}"
-
 
   become: yes

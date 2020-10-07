@@ -89,32 +89,27 @@ namespace FWO.Auth.Server.Requests
         public Tenant GetTenant(User user)
         {
             /*
+            necessary queries:
+               query getTenantId($tenant_name: String!) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
+               query getVisibleDeviceIdsPerTenant($tenantId: Int!) { visibleDevices: get_visible_devices_per_tenant(args: {arg_1: $tenantId}) { id } }
+               query getVisibleManagementIdsPerTenant($tenantId: Int!) { visibleManagements: get_visible_managements_per_tenant(args: {arg_1: $tenantId}) { id } }
+            
             Tenant tenant = new Tenant();
             tenant.Name = UserDn; //only part of it (first ou)
 
-            // need to make APICalls available as common library
-
             // need to resolve tenant_name from DN to tenant_id first 
-            // query get_tenant_id($tenant_name: String) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
-            // variables: {"tenant_name": "forti"}
-            tenant.Id = 0; // todo: replace with APICall() result
+            // get visible devices
 
-            // get visible devices with the following queries:
-
-            // query get_visible_mgm_per_tenant($tenant_id:Int!){  get_visible_managements_per_tenant(args: {arg_1: $tenant_id})  id } }
             string variables = $"\"tenant_id\":{tenant.Id}";
-            // tenant.VisibleDevices = APICall(query,variables);
+            tenant.VisibleDevices = APICall(query,variables);
 
-            // query get_visible_devices_per_tenant($tenant_id:Int!){ get_visible_devices_per_tenant(args: {arg_1: $tenant_id}) { id }}
-            // variables: {"tenant_id":3}
-            // tenant.VisibleDevices = APICall();
+            variables: {"tenant_id":3}
+            tenant.VisibleManagements = APICall();
 
-            // tenantInformation.VisibleDevices = {};
-            // tenantInformation.VisibleManagements = [];
+            tenantInformation.VisibleDevices = {};
+            tenantInformation.VisibleManagements = [];
 
-            UserData userData = new UserData();
-            userData.tenant = tenant;
-            responseString = TokenGenerator.CreateJWT(User, userData, roleLdap.GetRoles(UserDN));
+            user.tenant = tenant;
             */
             return null;            
         }

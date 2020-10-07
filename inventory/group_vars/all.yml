@@ -79,8 +79,7 @@ ui_test_start_dir: "{{ fworch_home }}/test/ui/FWO_Test"
 
 sting_fworch_user: itsecorg
 
-### to be moved to vault: passwords
+# todo: can be moved to vault before project goes public
 dbadmin_pwd: "st8chel"
 fworch_pwd: "st8chel"
 admin_pwd: "fworch.1"
-

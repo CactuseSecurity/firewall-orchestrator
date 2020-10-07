@@ -12,8 +12,17 @@ namespace FWO.Ui.Data.Api
         [JsonPropertyName("rule_id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("rule_num")]
-        public int Number { get; set; }  
+        [JsonPropertyName("rule_uid")]
+        public string Uid { get; set; }
+
+        [JsonPropertyName("rule_num_numeric")]
+        public double OrderNumber { get; set; } 
+        
+        [JsonPropertyName("rule_name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("rule_comment")]
+        public string Comment { get; set; }
 
         [JsonPropertyName("rule_disabled")]
         public bool Disabled { get; set; }

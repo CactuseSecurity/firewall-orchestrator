@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Blazored.SessionStorage" Version="1.0.12" />
-    <PackageReference Include="BlazorTable" Version="1.12.1" />
+    <PackageReference Include="BlazorTable" Version="1.13.1" />
   </ItemGroup>
 
   <ItemGroup>

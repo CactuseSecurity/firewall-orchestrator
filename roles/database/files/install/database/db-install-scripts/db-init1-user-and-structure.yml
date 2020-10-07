@@ -1,0 +1,18 @@
+# Als erstes wurde gefragt, ob ein Parameter übergeben wurde. Wird nirgends in ansible übergeben
+
+- block:
+  - name: drop database {{ fworch_db_name }}
+    postgresql_db:
+      name: "{{ fworch_db_name }}"
+      state: absent
+      login_host: "{{ fworch_db_host }}"
+      login_user: "{{ fworch_dbadmin_name }}"
+      template: template1
+
+  - name: create database {{ fworch_db_name }}
+    postgresql_db:
+      name: "{{ fworch_db_name }}"
+      state: present
+      login_host: "{{ fworch_db_host }}"
+      login_user: "{{ fworch_dbadmin_name }}"
+      template: template1

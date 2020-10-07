@@ -17,10 +17,20 @@ PATH=$PATH:$FWORCHBINDIR:$FWORCHBASE/importer
 . $FWORCHBINDIR/iso-pgpass-create.sh $FWORCHBASE
 
 $PSQLCMD_INIT -c "DROP DATABASE $FWORCHDB" 2>&1 | tee | $OUT
+## "/usr/bin/psql -h 127.0.0.1 -U dbadmin -d
+# " -c "DROP DATABASE $FWORCHDB" 2>&1 | tee | $OUT
+## Dies ist psql Befehl: -h "hostname" -U "username" -d "dbname" -c "command"
+## Was ist template1?
+## tee braucht datei, sonst passiert nichts
+## der befehl leitet den stderror zum stdout und der wird input für $OUT
+## OUT='logger -t fworch:db-init.sh -p local6.notice'
+## FWORCHDB={{fworch_db_name}}
 echo "creating db $FWORCHDB" 2>&1 | tee | $OUT
 $DBCREATE_CMD -c "CREATE DATABASE $FWORCHDB" | $OUT
+## /usr/bin/psql -h 127.0.0.1 -U dbadmin -d template1 -c "CREATE DATABASE $FWORCHDB"
 echo "creating fworch-db-model" | $OUT
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/fworch-db-model.sql" 2>&1 | $OUT
+## /usr/bin/psql -h 127.0.0.1 -U dbadmin -d dbadmin -c "\i $SQLDIR/fworch-db-model.sql"
 
 echo "settings privileges" | $OUT
 $PSQLCMD_CREATE_REST -c "\i $SQLDIR/iso-user-textreader.sql" 2>&1 | $OUT

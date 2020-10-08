@@ -43,7 +43,7 @@
   #   shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ auth_ldap_server_internal | quote }}', 636, '{{ auth_ldap_std_user_path | quote }}', 1, '{{ auth_ldap_internal_readonly_user | quote }}', 'initial pwd to-be-changed'); END IF; END \$do\$"
 
   - name: create functions needed during authentication
-    command: 'psql -d {{ fworch_db_name }} -c "\i {{ fworch_home }}/install/database/stored-procedures/pre_auth_functions.sql"'
+    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/pre_auth_functions.sql"'
 
   become: yes
   become_user: postgres

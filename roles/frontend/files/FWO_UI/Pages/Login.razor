@@ -47,7 +47,8 @@
         if (firstRender)
         {
             StateHasChanged();
-            await focusInput();
+            if (jwt == null) //not a reload
+                await focusInput();
         }
     }
 

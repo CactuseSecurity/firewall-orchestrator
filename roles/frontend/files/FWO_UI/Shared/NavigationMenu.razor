@@ -1,6 +1,5 @@
 ﻿@using FWO.Ui.Data;
-
-@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@using System.Security.Claims
 
 @if (show)
 {
@@ -52,6 +51,9 @@
     [Parameter]
     public NavItem[] navItemsRight { get; set; }
 
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
     bool collapseNavMenu = true;
 
     string baseMenuLeftClass = "navbar-collapse d-sm-inline-flex";
@@ -63,13 +65,12 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         show = true;
-        string jwt = await sessionStorage.GetItemAsync<string>("jwt");
-        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-        var token = handler.ReadJwtToken(jwt);
-        string username = token.Payload.GetValueOrDefault("unique_name").ToString();
+
+        AuthenticationState authState = await authenticationStateTask;
+        ClaimsPrincipal user = authState.User;
 
         navItemsLeft = new NavItem[]
-    {
+{
             new NavItem("Reporting", "/report", "oi oi-spreadsheet"),
             new NavItem("Documentation", "#", "oi oi-book"),
             new NavItem("Request", "#", "oi oi-comment-square"),
@@ -79,9 +80,9 @@
         {
             new NavItem("Help", "/help", "oi oi-info"),
             new NavItem("Settings", "#", "oi oi-cog"),
-            new NavItem(username.ToUpper(), "#", "oi oi-person"),
+            new NavItem(user.Identity.Name.ToUpper(), "#", "oi oi-person"),
             new NavItem("Logout", "/logout", "oi oi-account-logout"),
-        };
+            };
 
         if (firstRender)
         {

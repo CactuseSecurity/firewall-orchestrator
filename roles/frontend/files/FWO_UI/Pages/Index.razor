@@ -1,6 +1,6 @@
-﻿@page "/"
+﻿@using System.Security.Claims
 
-@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@page "/"
 
 <button @onclick="LogUsername">Log username</button>
 
@@ -14,16 +14,12 @@
 
     private async Task LogUsername()
     {
-        var authState = await authenticationStateTask;
-        var user = authState.User;
+        AuthenticationState authState = await authenticationStateTask;
+        ClaimsPrincipal user = authState.User;
 
         if (user.Identity.IsAuthenticated)
         {
-            string jwt = await sessionStorage.GetItemAsync<string>("jwt");
-            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-            var token = handler.ReadJwtToken(jwt);
-            string username = token.Payload.GetValueOrDefault("unique_name").ToString();
-            _authMessage = $"{username} is authenticated."; //{user.Identity.Name}
+            _authMessage = $"{user.Identity.Name} is authenticated.";
         }
         else
         {

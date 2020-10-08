@@ -40,6 +40,26 @@ app {
     text-overflow: ellipsis;
 }
 
+.sidebar {
+    background-color: ghostwhite;
+    right: 0px;
+    top: 0px;
+    position: fixed;
+    height: 100%;
+}
+
+.sizer {
+    width: 4px;
+    background-color: black;
+    height: 100%;
+    z-index: 20;
+}
+
+.report-content {
+    width: auto;
+    overflow: auto;
+}
+
 .content {
     padding-top: 1.1rem;
 }

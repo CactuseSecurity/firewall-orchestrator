@@ -1,5 +1,6 @@
 ﻿using FWO.Auth.Server.Data;
 using FWO.Logging;
+using FWO.ApiClient;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -11,11 +12,14 @@ namespace FWO.Auth.Server.Requests
     class AuthenticationRequestHandler : RequestHandler
     {
         private readonly JwtWriter tokenGenerator;
+        private APIConnection ApiConn;
+        private int tenantLevel = 1;
 
-        public AuthenticationRequestHandler(ref List<Ldap> Ldaps, JwtWriter tokenGenerator)
+        public AuthenticationRequestHandler(ref List<Ldap> Ldaps, JwtWriter tokenGenerator, ref APIConnection ApiConn)
         {
             this.Ldaps = Ldaps;
             this.tokenGenerator = tokenGenerator;
+            this.ApiConn = ApiConn;
         }
 
         public string[] GetRoles(User user)
@@ -77,6 +81,7 @@ namespace FWO.Auth.Server.Requests
                     {
                         // User was successfully authenticated via LDAP
                         Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {UserDn}");
+                        tenantLevel = currentLdap.TenantLevel;
                         return UserDn;
                     }
                 }
@@ -88,31 +93,53 @@ namespace FWO.Auth.Server.Requests
 
         public Tenant GetTenant(User user)
         {
-            /*
-            necessary queries:
-               query getTenantId($tenant_name: String!) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
-               query getVisibleDeviceIdsPerTenant($tenantId: Int!) { visibleDevices: get_visible_devices_per_tenant(args: {arg_1: $tenantId}) { id } }
-               query getVisibleManagementIdsPerTenant($tenantId: Int!) { visibleManagements: get_visible_managements_per_tenant(args: {arg_1: $tenantId}) { id } }
+            Tenant tenant = new Tenant();
+            tenant.Name = ExtractTenantName(user.Dn, tenantLevel);
+
+            var tenNameObj = new { tenant_name = tenant.Name };
+
+            tenant = ApiConn.SendQuery<Tenant>(Queries.getTenantId, tenNameObj, "getTenantId").Result[0];
+
+            var tenIdObj = new { tenantId = tenant.Id };
+
+            DeviceId[] deviceIds = ApiConn.SendQuery<DeviceId>(Queries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant").Result;
+            tenant.VisibleDevices = new int[deviceIds.Length];
+            for(int i = 0; i < deviceIds.Length; ++i)
+            {
+                tenant.VisibleDevices[i] = deviceIds[i].Id;
+            }
             
-            Tenant tenant = new Tenant();
-            tenant.Name = UserDn; //only part of it (first ou)
+            ManagementId[] managementIds = ApiConn.SendQuery<ManagementId>(Queries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant").Result;
+            tenant.VisibleManagements = new int[managementIds.Length];
+            for(int i = 0; i < managementIds.Length; ++i)
+            {
+                tenant.VisibleManagements[i] = managementIds[i].Id;
+            }
 
-            // need to resolve tenant_name from DN to tenant_id first 
-            // get visible devices
-
-            string variables = $"\"tenant_id\":{tenant.Id}";
-            tenant.VisibleDevices = APICall(query,variables);
-
-            variables: {"tenant_id":3}
-            tenant.VisibleManagements = APICall();
-
-            tenantInformation.VisibleDevices = {};
-            tenantInformation.VisibleManagements = [];
-
-            user.tenant = tenant;
-            */
-            return null;            
+            return tenant;
         }
+
+        private string ExtractTenantName(string userDN, int ldapTenantLevel)
+        {
+            string localString = userDN;
+            string beginSeparator = "ou=";
+            string endSeparator = ",";
+            int beginSeparatorIndex = 0;
+            int endSeparatorIndex = 0;
+            for(int i = 0; i < ldapTenantLevel; ++i)
+            {
+                localString = localString.Substring(endSeparatorIndex);
+                beginSeparatorIndex = localString.IndexOf(beginSeparator);
+                endSeparatorIndex = localString.Substring(beginSeparatorIndex).IndexOf(endSeparator);
+            }
+            string tenantName = "";
+            if((beginSeparatorIndex >= 0) && (endSeparatorIndex >= 0))
+            {
+                tenantName = localString.Substring(beginSeparatorIndex + beginSeparator.Length, endSeparatorIndex - 3);
+            }
+            Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenantName} from {userDN}");
+            return tenantName;
+        }
 
         /// <summary>
         /// 
@@ -125,7 +152,7 @@ namespace FWO.Auth.Server.Requests
             // Validate user credentials and get ldap distinguish name
             user.Dn = GetLdapDistinguishName(user);
 
-            // User has valid credentials / is anonymous user. Otherwise exception would have been thrown and handeled in base class
+            // User has valid credentials / is anonymous user. Otherwise exception would have been thrown and handled in base class
 
             // Get roles of user
             user.Roles = GetRoles(user);

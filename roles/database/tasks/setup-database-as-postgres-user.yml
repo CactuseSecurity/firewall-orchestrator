@@ -2,7 +2,7 @@
 - name: copy authentication sql file
   copy:
     src: pre_auth_functions.sql
-    dest: "{{ fworch_home }}/install/database/stored-procedures"
+    dest: "{{ database_install_dir }}/sql"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
   become: yes
@@ -25,7 +25,7 @@
 # include add-tablespace.yml here
 
   - name: create new database - drop existing db before when clean_install is set
-    shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
+    import_tasks: db-init1-user-and-structure.yml
     when: clean_install is defined or db_exists.stdout=="0"
 
   # todo: the following user is to be moved from postgres to ldap:
@@ -33,10 +33,10 @@
     shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''admin'') THEN CREATE ROLE admin PASSWORD ''{{ admin_pwd }}'' IN ROLE isoadmins, secuadmins LOGIN; END IF; END \$do\$"'
 
   - name: (re)defines functions and views (idempotent)
-    shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init2-functions.sh"
+   import_tasks: db-init2-functions.yml
 
   - name: add base data to the database (if db was just freshly created or clean_install is set)
-    shell:  "{{ fworch_home }}/install/database/db-install-scripts/db-init3-fill.sh"
+    import_tasks: db-init3-fill.yml
     when: clean_install is defined or db_exists.stdout=="0"
 
   # - name: add local ldap connection

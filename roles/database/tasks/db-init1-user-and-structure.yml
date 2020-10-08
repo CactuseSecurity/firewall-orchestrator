@@ -1,21 +1,21 @@
 # Todo: nach Tasks, für oberes oder unteres Format entscheiden
 
 - block:
-  - name: drop database {{ fworch_db_name }}
-    postgresql_db:
-      name: "{{ fworch_db_name }}"
-      state: absent
-      login_host: "{{ fworch_db_host }}"
-      login_user: "{{ fworch_dbadmin_name }}"
-      template: template1
-
-  - name: create database {{ fworch_db_name }}
-    postgresql_db:
-      name: "{{ fworch_db_name }}"
-      state: present
-      login_host: "{{ fworch_db_host }}"
-      login_user: "{{ fworch_dbadmin_name }}"
-      template: template1
+#  - name: drop database {{ fworch_db_name }}
+#    postgresql_db:
+#      name: "{{ fworch_db_name }}"
+#      state: absent
+#      login_host: "{{ fworch_db_host }}"
+#      login_user: "{{ fworch_dbadmin_name }}"
+#      template: template1
+#
+#  - name: create database {{ fworch_db_name }}
+#    postgresql_db:
+#      name: "{{ fworch_db_name }}"
+#      state: present
+#      login_host: "{{ fworch_db_host }}"
+#      login_user: "{{ fworch_dbadmin_name }}"
+#      template: template1
 
 
   - name: drop database {{ fworch_db_name }} # Ist hier der name überhaupt korrekt? Im nächsten das gleiche

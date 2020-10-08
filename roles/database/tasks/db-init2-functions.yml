@@ -19,4 +19,4 @@ block:
       - fworch-report-basics.sql
       - fworch-views.sql
       - fworch-grants.sql  # Achtung, schon das zwite mal
-become: yes
+  become: yes

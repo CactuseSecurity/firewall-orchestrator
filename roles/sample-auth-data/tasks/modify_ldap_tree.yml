@@ -32,8 +32,9 @@
 - name: add tree
   command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/tree_{{ item }}.ldif"
   loop:
-    - tenant_samples
+    - sample_tenants
     - sample_operators
+    - sample_roles_for_operators
   ignore_errors: yes
 
 - name: delete ldif files

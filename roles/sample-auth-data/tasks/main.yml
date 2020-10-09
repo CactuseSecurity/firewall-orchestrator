@@ -13,7 +13,7 @@
 - name: include ldif driven changes
   import_tasks: modify_ldap_tree.yml
 
-# - block:
+- block:
 
   # - name: copy ldif template for roles
   #   template:
@@ -34,16 +34,16 @@
   # - name: set user viewallreporter password in ldap
   #   command: "ldappasswd -s {{ auth_ldap_user_inital_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x 'uid=viewallreporter,ou=viewall,{{ auth_ldap_std_user_path }}'"
 
-  # - name: copy ldif template for example roles
-  #   template:
-  #     src: modify_example_roles.ldif.j2
-  #     dest: "{{ fworch_home }}/auth/modify_example_roles.ldif"
-  #   become: yes
+  - name: copy ldif template for example roles
+    template:
+      src: modify_example_roles.ldif.j2
+      dest: "{{ fworch_home }}/auth/modify_example_roles.ldif"
+    become: yes
 
-  # - name: Pass example roles
-  #   command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ fworch_home }}/auth/modify_example_roles.ldif"
+  - name: Pass example roles
+    command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ openldap_server_random_rootpw }} -x -f {{ fworch_home }}/auth/modify_example_roles.ldif"
 
-  # when: auth_change_local_ldap == 'yes'
+  when: auth_change_local_ldap == 'yes'
 
 - name: restart auth server in case any changes to ldap_connections were made
   command: "systemctl restart {{ auth_service_name }}"

@@ -1,15 +1,13 @@
 - block:
-  - name: insert tenant viewall
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''viewall'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''viewall'', false, false); END IF; END $do$"'
+  # - name: insert tenant viewall
+  #   command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''viewall'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''viewall'', false, false); END IF; END $do$"'
 
-  - name: add devices for tenant viewall
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''viewall'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name=''viewall''; END IF; END $do$"'
+  # - name: add devices for tenant viewall
+  #   command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''viewall'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name=''viewall''; END IF; END $do$"'
 
-  - name: insert tenant tenant0
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''tenant0'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''tenant0'', true, true); END IF; END $do$"'
-
-  - name: add all devices for tenant tenant0
+  - name: add all devices for admin tenant0 to database
     command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name=''tenant0'') THEN INSERT INTO tenant_to_device (tenant_id, device_id) select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name=''tenant0''; END IF; END $do$"'
+    # todo: this needs to be done every time a device is added to database
 
   - name: insert tenant tenant1
     command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''tenant1'') THEN insert into tenant (tenant_id, tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (5, ''tenant1'', false, false); END IF; END $do$"'

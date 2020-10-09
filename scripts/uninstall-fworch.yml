@@ -140,16 +140,15 @@
       - /etc/apache2/sites-available/fworch.conf
       - /etc/apache2/sites-available/fworch-api.conf
 
-  # - name: remove ldap data dir
-  #   file: 
-  #     name: /var/lib/ldap/fworch.internal
-  #     state: absent
+  - name: remove ldap data dir
+    file: 
+      name: /var/lib/ldap/fworch.internal
+      state: absent
 
-  - name: delete complete ldap tree
-    command: "ldapdelete -r -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x '{{ auth_ldap_path }}'"
-    ignore_errors: yes
-    when: installation_mode == 'new'
-    # todo: and is ldap server (maybe just ignore_errors)
+  # - name: delete complete ldap tree
+  #   command: "ldapdelete -r -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x '{{ auth_ldap_path }}'"
+  #   ignore_errors: yes
+  #   # todo: only execute if this is an ldap server (maybe just ignore_errors)
 
   - name: check if netstat exists
     stat: 

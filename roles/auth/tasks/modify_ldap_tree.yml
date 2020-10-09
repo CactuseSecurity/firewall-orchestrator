@@ -87,3 +87,4 @@
     path: "{{ auth_server_base_dir }}/ldif"
     state: absent
   become: yes
+

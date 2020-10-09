@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using FWO.Auth.Client;
@@ -15,16 +16,18 @@ namespace FWO.Ui.Auth
             return Task.FromResult(new AuthenticationState(user));
         }
 
-        public void AuthenticateUser(string Username, string Password, string JwtString)
+        public void AuthenticateUser(string jwtString)
         {
-            JwtReader jwt = new JwtReader(JwtString);
+            JwtReader jwt = new JwtReader(jwtString);
 
             if (jwt.Validate())
             {
                 ClaimsIdentity identity = new ClaimsIdentity
                 (
                     claims: jwt.GetClaims(),
-                    authenticationType: "username: " + Username
+                    authenticationType: "fake type", // TODO: change authentication type
+                    nameType: JwtRegisteredClaimNames.UniqueName,
+                    roleType: "role"           
                 );
 
                 ClaimsPrincipal user = new ClaimsPrincipal(identity);

@@ -19,13 +19,13 @@
 
 
   - name: drop database {{ fworch_db_name }} # Ist hier der name überhaupt korrekt? Im nächsten das gleiche
-    command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d template1 -c "DROP DATABASE {{ fworch_db_name }}"'
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF EXISTS (DATABASE {{ fworch_db_name }}) THEN DROP DATABASE {{ fworch_db_name }}; END IF; END $do$"'
 
   - name: create database {{ fworch_db_name }}
-    command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d template1 -c "CREATE DATABASE {{ fworch_db_name }}"'
+    command: 'psql -d {{ fworch_db_name }} -c "CREATE DATABASE {{ fworch_db_name }}"'
 
   - name: creating {{ fworch_db_name }}-db-model
-    command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/fworch-db-model.sql"'
+    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/fworch-db-model.sql"'
 
   - name: settings privileges
     command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
@@ -34,3 +34,5 @@
       - fworch-grants.sql
       - fworch-change-to-delete-cascade.sql
   become: yes
+  become_user: postgres
+

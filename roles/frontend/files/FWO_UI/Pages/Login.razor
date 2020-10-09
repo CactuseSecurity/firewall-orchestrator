@@ -65,7 +65,8 @@
         {
             showLoginForm = true;
             StateHasChanged();
-            //await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
+            if (jwt == null) //not a reload
+                await focusInput();
         }
     }
 
@@ -90,6 +91,7 @@
             // Visualisize there was an error by making border of inputboxes red
             InputClass = "is-invalid";
             loginInProgress = false;
+            await focusInput();
         }
 
         else
@@ -107,5 +109,11 @@
 
             loginInProgress = false;
         }
+    }
+
+    private async Task focusInput()
+    {
+        if (showLoginForm)
+            await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
     }
 }

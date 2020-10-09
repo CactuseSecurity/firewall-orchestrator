@@ -19,10 +19,10 @@
 
 
   - name: drop database {{ fworch_db_name }} # Ist hier der name überhaupt korrekt? Im nächsten das gleiche
-    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF EXISTS (DATABASE {{ fworch_db_name }}) THEN DROP DATABASE {{ fworch_db_name }}; END IF; END $do$"'
+    command: 'psql -d {{ fworch_db_name }} -c "DROP DATABASE IF EXISTS {{ fworch_db_name }}"'
 
   - name: create database {{ fworch_db_name }}
-    command: 'psql -d {{ fworch_db_name }} -c "CREATE DATABASE {{ fworch_db_name }}"'
+    command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (DATABASE {{ fworch_db_name }}) THEN CREATE DATABASE {{ fworch_db_name }}; END IF; END $do$"'
 
   - name: creating {{ fworch_db_name }}-db-model
     command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/fworch-db-model.sql"'

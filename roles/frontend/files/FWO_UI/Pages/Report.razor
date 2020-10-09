@@ -1,5 +1,6 @@
 ﻿@using BlazorTable
 @using FWO.ApiClient
+@using FWO.ApiClient.Queries
 @using FWO.Ui.Data.Api
 @using System.Diagnostics 
 
@@ -185,7 +186,7 @@
 
     private async Task GenerateTestReport(MouseEventArgs e)
     {
-        Managements = await Connection.SendQuery<Management>(Queries.Rules);
+        Managements = await Connection.SendQuery<Management>(RuleQueries.Rules);
     }
 
     private void CollapseButtonClicked(MouseEventArgs e)

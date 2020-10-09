@@ -1,19 +1,28 @@
 - block: 
 
+  - name: fetch remote config file
+    fetch:
+      src: "{{ fworch_conf_file }}"
+      dest: "temp_remote_config_file.yml"
+      flat: yes
+    when: already_installed and installation_mode == "upgrade"
+
+  - name: read config file of currently installed product
+    include_vars: 
+      file: "temp_remote_config_file.yml"
+      name: config
+    when: already_installed and installation_mode == "upgrade"
+
+  - name: remove local copy of remote config file
+    file:
+      state: absent
+      name: "temp_remote_config_file.yml"
+
   - name: create symlink /usr/local/fworch/etc to /etc/fworch
     file:
       src: "{{ fworch_home }}/etc"
       dest: "/etc/{{ product_name }}"
       state: link
-
-  - name: read config file of currently installed product
-    include_vars: 
-      file: "{{ fworch_conf_file }}"
-      remote_src: yes
-      name: config
-    when: already_installed and installation_mode == "upgrade"
-
-  # - debug: var=config
 
   - name: get version of currently installed product
     set_fact: 

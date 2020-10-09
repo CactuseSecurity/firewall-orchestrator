@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace FWO.ApiClient
+namespace FWO.ApiClient.Queries
 {
-    public static class Queries
+    public static class ObjectQueries
     {
 
 public static readonly string Rules =

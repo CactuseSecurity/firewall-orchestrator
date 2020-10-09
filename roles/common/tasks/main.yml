@@ -11,6 +11,11 @@
   - debug:
       msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
   
+  - name: fail if unknown installation_mode is set
+    fail:
+      msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
+    when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
+
   - name: fail if already installed and installation_mode is new
     fail:
       msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}"

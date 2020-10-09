@@ -42,11 +42,6 @@
       - ldap_conn_present
       - auth_change_local_ldap
 
-- name: delete complete ldap tree
-  command: "ldapdelete -r -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x '{{ auth_ldap_path }}'"
-  ignore_errors: yes
-  #when: clean_install is defined and clean_install == '1'
-
 - name: include ldif driven changes
   import_tasks: modify_ldap_tree.yml
 

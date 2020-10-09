@@ -1,15 +1,12 @@
 ---
 # this script will uninstall all fworch components from all hosts in the chosen inventory
-# NO: also all packages potentially installed during fworch installation will be removed
-
 # call with:
-# ansible-playbook -i inventory/ scripts/uninstall-fworch.yml -K
-
-# caveat: this script
-# - is only meant to be run on fworch-exclusive systems
-# NO: - removes all packages (and some of their config data) necessary for fworch
-# NO: This means if you are running other services that depend on any of these
-# NO: this uninstall script will break them
+# ansible-playbook -i inventory/ scripts/uninstall-fworch.yml -K [-e "wipe_packages=yes"]
+# parameters:
+# wipe_packages=yes    removes all packages potentially installed during fworch installation
+#                      NB: this might break other applications running on the same system
+#
+# caveat: run this script with "wipe_packages" switch only if you are on an fworch-exclusive system
 
   - name: stop docker container
     command: docker stop fworch-api
@@ -32,13 +29,6 @@
     when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
     ignore_errors: true
 
-  # - name: stop and disable postgres
-  #   service:
-  #     name: postgresql
-  #     state: stopped
-  #     #enabled: no
-  #   ignore_errors: true
-
   - name: stop and disable fworch-ui
     service:
       name: fworch-ui
@@ -60,81 +50,85 @@
       enabled: no
     ignore_errors: true
 
-  # - set_fact: 
-  #     distribution_version: "debian/10"
-  #     when: ansible_facts['distribution']|lower == 'debian'
+  - block:
 
-  # - set_fact: 
-  #     distribution_version: "ubuntu/20.04"
-  #     when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
+    - set_fact: 
+        distribution_version: "debian/10"
+        when: ansible_facts['distribution']|lower == 'debian'
 
-  # - set_fact: 
-  #     distribution_version: "ubuntu/18.04"
-  #     when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
+    - set_fact: 
+        distribution_version: "ubuntu/20.04"
+        when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
 
-  # - name: find out installed postgres version
-  #   script: "get_pg_version.sh"
-  #   register: pg_version_result
-  #   changed_when: false
+    - set_fact: 
+        distribution_version: "ubuntu/18.04"
+        when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
 
-  # - name: set fact pg_version
-  #   set_fact:
-  #       pg_version: "{{ pg_version_result.stdout }}"      
+    - name: find out installed postgres version
+      script: "get_pg_version.sh"
+      register: pg_version_result
+      changed_when: false
 
-  # - set_fact:
-  #     postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+    - name: set fact pg_version
+      set_fact:
+          pg_version: "{{ pg_version_result.stdout }}"      
 
-  # - name: disable apache modules (due to a bug with php mod not properly getting purged)
-  #   apache2_module: state=absent name={{ item }}
-  #   loop:
-  #     - php
-  #     - proxy_http
-  #     - rewrite
-  #     - proxy_wstunnel
+    - set_fact:
+        postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
 
-  # - name: uninstall all packages for fworch, keeping git and ansible
-  #   package:
-  #     state: absent
-  #     name: "{{ item }}"
-  #     purge: yes
-  #   loop:
-  #     - rsyslog
-  #     - apache2
-  #     - gnupg2
-  #     - apt-transport-https
-  #     - software-properties-common
-  #     - npm
-  #     - python3-pip
-  #     - python3-virtualenv
-  #     - python3-psycopg2
-  #     - libpq-dev
-  #     - "{{ postgresql_package }}"
-  #     - libpq-dev
-  #     - postgresql-client
-  #     - slapd
-  #     - ldap-utils
-  #     - libldap-common
-  #     - libldap
-  #     - docker-ce
-  #     - docker-ce-cli
-  #     - containerd.io
-  #     - dotnet-sdk-3.1
-  #     - make
-  #     - "{{ postgresql_dev_package }}"
-  #     - "{{ postgresql_test_package }}"
-  #     - apache2
-  #     - php
-  #     - libapache2-mod-php
-  #     - php-pgsql
-  #     - php-pear
-  #     - libdbi-perl 
-  #     - libdbd-pg-perl 
-  #     - libdate-calc-perl 
-  #     - psmisc 
-  #     - libnet-cidr-perl 
-  #     - libsys-syslog-perl 
-  #     - libexpect-perl
-  #     - libcgi-pm-perl
+    - name: disable apache modules (due to a bug with php mod not properly getting purged)
+      apache2_module: state=absent name={{ item }}
+      loop:
+        - php
+        - proxy_http
+        - rewrite
+        - proxy_wstunnel
+
+    - name: uninstall all packages for fworch, keeping git and ansible
+      package:
+        state: absent
+        name: "{{ item }}"
+        purge: yes
+      loop:
+        - rsyslog
+        - apache2
+        - gnupg2
+        - apt-transport-https
+        - software-properties-common
+        - npm
+        - python3-pip
+        - python3-virtualenv
+        - python3-psycopg2
+        - libpq-dev
+        - "{{ postgresql_package }}"
+        - libpq-dev
+        - postgresql-client
+        - slapd
+        - ldap-utils
+        - libldap-common
+        - libldap
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - dotnet-sdk-3.1
+        - make
+        - "{{ postgresql_dev_package }}"
+        - "{{ postgresql_test_package }}"
+        - apache2
+        - php
+        - libapache2-mod-php
+        - php-pgsql
+        - php-pear
+        - libdbi-perl 
+        - libdbd-pg-perl 
+        - libdate-calc-perl 
+        - psmisc 
+        - libnet-cidr-perl 
+        - libsys-syslog-perl 
+        - libexpect-perl
+        - libcgi-pm-perl
+  
+    when: wipe_packages is defined and wipe_packages == "yes"
 
   - name: remove fworch dirs
     file: 
@@ -143,34 +137,30 @@
     loop:
       - "{{ fworch_home }}"
       - /etc/fworch
+      - /etc/apache2/sites-available/fworch.conf
+      - /etc/apache2/sites-available/fworch-api.conf
 
-  - name: remove ldap data dir
-    file: 
-      name: /var/lib/ldap/fworch.internal
-      state: absent
-    
-  # - name: Remove dependencies that are no longer required
-  #   apt:
-  #     autoremove: yes
-  #   when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
-
-  # - name: Remove ldap settings that avoid purging so far with generic package tool
-  #   apt:
-  #     name: "{{ item }}"
+  # - name: remove ldap data dir
+  #   file: 
+  #     name: /var/lib/ldap/fworch.internal
   #     state: absent
-  #     purge: yes
-  #   loop:
-  #     - slapd
-  #     - libldap-common
-  #     - libldap
-  #   when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
 
-  # - name: reload systemd
-  #   command: systemctl daemon-reload
+  - name: delete complete ldap tree
+    command: "ldapdelete -r -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x '{{ auth_ldap_path }}'"
+    ignore_errors: yes
+    when: installation_mode == 'new'
+    # todo: and is ldap server (maybe just ignore_errors)
+
+  - name: check if netstat exists
+    stat: 
+      path: /bin/netstat
+    register: netstat_file_exists
 
   - name: get running tcp services
     command: netstat -tlpen
     register: netstat_result
+    when:  netstat_file_exists.stat.exists == true
 
   - name: show running tcp services
     debug: var=netstat_result.stdout_lines
+    when:  netstat_file_exists.stat.exists == true

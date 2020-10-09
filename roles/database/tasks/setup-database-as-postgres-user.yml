@@ -21,6 +21,8 @@
       password: "{{ fworch_pwd }}"
       encrypted: yes
       role_attr_flags: LOGIN
+  become: yes
+  become_user: postgres
 
 # include add-tablespace.yml here
   - name: create database password file
@@ -30,11 +32,15 @@
         "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:fworch:{{ fworch_pwd }}"
         "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
         "{{ fworch_db_host }}:{{ fworch_db_port }}:template1:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
+      mode: "0600"
+    become: yes
 
   - name: create new database - drop existing db before when clean_install is set
     import_tasks: db-init1-user-and-structure.yml
     when: clean_install is defined or db_exists.stdout=="0"
+    become: yes
 
+- block:
   - name: (re)defines functions and views (idempotent)
     import_tasks: db-init2-functions.yml
 

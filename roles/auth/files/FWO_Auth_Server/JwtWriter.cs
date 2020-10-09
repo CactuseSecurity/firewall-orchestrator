@@ -40,7 +40,7 @@ namespace FWO.Auth.Server
                 issuedAt: DateTime.UtcNow.AddMinutes(-5),
                 expires: DateTime.UtcNow.AddHours(hoursValid),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
-             );
+            );
 
             string GeneratedToken = tokenHandler.WriteToken(token);
 

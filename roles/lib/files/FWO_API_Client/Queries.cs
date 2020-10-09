@@ -8,7 +8,7 @@ namespace FWO.ApiClient
     public static class Queries
     {
 
-public static readonly string Rules = 
+public static readonly string Rules =
 @"
 query ($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [cidr!], $limit: Int, $offset: Int) {
   management(where: {mgm_id: {_in: $management_id}}) {
@@ -18,14 +18,16 @@ query ($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $r
       dev_id
       dev_name
       rules(limit: $limit, offset: $offset, where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}, rule_froms: {object: {obj_ip: {_in: $rule_src_ip}}}}) {
-        rule_id
-        rule_num
+        rule_uid
+        rule_num_numeric
+        rule_name
         rule_disabled
         rule_src_neg
         rule_src
         rule_froms {
           object {
             obj_ip
+            obj_name
           }
         }
         rule_dst_neg
@@ -33,6 +35,7 @@ query ($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $r
         rule_tos {
           object {
             obj_ip
+            obj_name
           }
         }
         rule_svc_neg
@@ -48,6 +51,7 @@ query ($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $r
         }
         rule_action
         rule_track
+        rule_comment
       }
     }
   }

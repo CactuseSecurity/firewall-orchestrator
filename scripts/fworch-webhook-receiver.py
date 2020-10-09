@@ -54,31 +54,29 @@ def post_handler():
    req_data_str = json.dumps(req_data)
    now = datetime.now() # current date and time
    if 'head_commit' in req_data:
-      log = ""
       now = datetime.now() # current date and time
-      log += '--- webhook call received '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n'
+      f.write('--- webhook call received '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n')
       modified_files = req_data['head_commit']['modified']
-      log += 'found modified files: ' + json.dumps(modified_files) + '\n'
+      f.write('found modified files: ' + json.dumps(modified_files) + '\n')
       relevant_change = False
       pattern = '^roles\/|^inventory\/|^site.yml$'
       for modified_file in modified_files:
          if (re.match(pattern, modified_file)):
             relevant_change = True
       if (relevant_change):
-         log += 'Relevant change: start building\n'
+         f.write('Relevant change: start building\n')
          target_path  =  tmp_git_dir
          clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone ssh://git@" + github_hostname + project_path + "'"
-         log += 'executing ' + clone_cmd + '\n'
+         f.write('executing ' + clone_cmd + '\n')
          os.system(clone_cmd) # Cloning
          build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && " + \
-            "ansible-playbook -i inventory site.yml -e \"testkeys=yes\" --skip-tags \"test\"" + "'"
-         log += 'executing build command: ' + build_cmd + '\n'
+            "ansible-playbook -i inventory site.yml -e \"testkeys=yes clean_install=1\" --skip-tags \"test\"" + "'"
+         f.write('executing build command: ' + build_cmd + '\n')
          os.system(build_cmd) # building fworch backend
          now = datetime.now() # current date and time
-         log += '--- build completed '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n'
+         f.write('--- build completed '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n')
       else:
-         log += 'No relevant change found, not re-building.\n'         
-   f.write(log)
+         f.write('No relevant change found, not re-building.\n')
    f.close()
    return '{"success":"true"}'
 

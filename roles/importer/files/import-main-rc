@@ -78,10 +78,10 @@ case "$1" in
         script_abs_path=`readlink -f $0`
         script_basename=`basename $(readlink -f $0)`        
         cp $script_abs_path /etc/init.d/
-        /bin/ln -s /etc/init.d/$script_basename /etc/rc2.d/S88fworch-importer
-        /bin/ln -s /etc/init.d/$script_basename /etc/rc3.d/S88fworch-importer
-        /bin/ln -s /etc/init.d/$script_basename /etc/rc0.d/K22fworch-importer
-        /bin/ln -s /etc/init.d/$script_basename /etc/rc6.d/K22fworch-importer
+        /bin/ln -s /etc/init.d/$script_basename /etc/rc2.d/S88$script_basename
+        /bin/ln -s /etc/init.d/$script_basename /etc/rc3.d/S88$script_basename
+        /bin/ln -s /etc/init.d/$script_basename /etc/rc0.d/K22$script_basename
+        /bin/ln -s /etc/init.d/$script_basename /etc/rc6.d/K22$script_basename
         ;;
     *)
         echo "Usage: $0 {start|stop|status|restart}"

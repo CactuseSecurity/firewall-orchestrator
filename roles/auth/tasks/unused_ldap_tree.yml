@@ -1,0 +1,32 @@
+# in the following errors are ignored for the case that we run the delete script on an empty ldap database
+
+- name: modify tree
+  command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/tree_{{ item }}.ldif"
+  ignore_errors: "{{ ignore_mode }}"
+  loop:
+    - level_0
+    - level_1
+    - level_2
+    - systemusers
+    - roles
+    - tenant0
+    - tenant_samples
+    - sample_operators
+
+- name: Set {{ auth_ldap_internal_readonly_user }} password in ldap
+  command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid={{ auth_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ auth_ldap_path }}'"
+  ignore_errors: "{{ ignore_mode }}"
+
+- name: Create tree level 4 with parent tenantx (cn admin)
+  command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/add_tree_level_4.ldif"
+  ignore_errors: "{{ ignore_mode }}"
+
+- name: Set admin password in ldap
+  command: "ldappasswd -s {{ admin_pwd }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}'"
+  ignore_errors: "{{ ignore_mode }}"
+
+- name: delete ldif files
+  file:
+    path: "{{ auth_server_base_dir }}/ldif"
+    state: absent
+  become: yes

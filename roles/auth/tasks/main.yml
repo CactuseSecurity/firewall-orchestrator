@@ -53,12 +53,18 @@
   
 - name: insert admin tenant0 to database
   command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''tenant0'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''tenant0'', true, true); END IF; END $do$"'
+  become: yes
+  become_user: postgres
 
 - name: add local ldap connection
   shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ auth_ldap_server_internal | quote }}', 636, '{{ auth_ldap_std_user_path | quote }}', '{{ auth_ldap_std_role_path | quote }}', 1, '{{ auth_ldap_internal_readonly_user_fq | quote }}', '{{ ldap_inspector_pw }}'); END IF; END \$do\$"
   become: yes
   become_user: postgres
-  when: auth_change_local_ldap == "yes"
+
+- name: update password for local ldap connection  in case of upgrade
+  shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF EXISTS (SELECT * FROM ldap_connection) THEN UPDATE ldap_connection SET ldap_server='{{ auth_ldap_server_internal | quote }}', ldap_port=636, ldap_searchpath_for_users='{{ auth_ldap_std_user_path | quote }}', ldap_searchpath_for_roles='{{ auth_ldap_std_role_path | quote }}', ldap_tenant_level=1, ldap_search_user='{{ auth_ldap_internal_readonly_user_fq | quote }}', ldap_search_user_pwd='{{ ldap_inspector_pw }}' WHERE ldap_server='{{ auth_ldap_server_internal | quote }}'; END IF; END \$do\$"
+  become: yes
+  become_user: postgres
 
 - name: install dot net
   import_tasks: auth_install_dot_net.yml

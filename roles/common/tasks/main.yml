@@ -35,6 +35,10 @@
       msg: "uninstall completed, thanks for using firewall orchestrator"
     when: installation_mode == "uninstall"
 
+  # - name: uninstall completed, thanks for using firewall orchestrator
+  #   meta: end_play
+  #   when: installation_mode == "uninstall"
+
   - name: remove complete {{ fworch_home }} dir except for etc
     file:
       state: absent

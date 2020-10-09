@@ -1,5 +1,13 @@
 # this playbook contains auth server tests
 
+- name:  wait for auth server port to become available
+  wait_for:
+    port: "{{ auth_web_listener_port }}"
+    host: "{{ auth_hostname }}"
+    connect_timeout: 3
+    delay: 3
+    timeout: 30
+
 # curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
 - name: auth test get jwt valid creds
   command: |

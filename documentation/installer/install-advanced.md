@@ -3,6 +3,20 @@
 always change into the firewwall-orchestrator directory before starting the installation!
 
 ## Install parameters
+
+### Installation mode parameter
+
+The followin switch can be used to set the type of installation to perform
+
+```console
+ansible-playbook -i inventory -e "installation_mode=upgrade" site.yml -K
+```
+
+installation_mode options:
+- new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
+- uninstall     - uninstalls the product including any data
+- upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api
+
 ### Installation behind a proxy (no direct Internet connection)
 
 e.g. with IP 1.2.3.4, listening on port 3128<br>

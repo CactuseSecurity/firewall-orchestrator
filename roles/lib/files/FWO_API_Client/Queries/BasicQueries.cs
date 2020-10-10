@@ -8,10 +8,17 @@ namespace FWO.ApiClient.Queries
     public static class BasicQueries
     {
 
-public static readonly string getTenantId = @"
-   query getTenantId($tenant_name: String) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
+public static readonly string getTenantId = @"
+   query getTenantId($tenant_name: String!) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
 ";
-// variables: {"tenant_name": "forti"}
+
+public static readonly string getVisibleDeviceIdsPerTenant = @"
+   query getVisibleDeviceIdsPerTenant($tenantId: Int!) { visibleDevices: get_visible_devices_per_tenant(args: {arg_1: $tenantId}) { id } }
+";
+
+public static readonly string getVisibleManagementIdsPerTenant = @"
+   query getVisibleManagementIdsPerTenant($tenantId: Int!) { visibleManagements: get_visible_managements_per_tenant(args: {arg_1: $tenantId}) { id } }
+";
 
 public static readonly string LdapConnections = @"
    query getLdapConnections

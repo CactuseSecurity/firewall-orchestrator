@@ -1,6 +1,7 @@
 ﻿using FWO.Auth.Server.Data;
 using FWO.Logging;
 using FWO.ApiClient;
+using FWO.ApiClient.Queries;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -98,18 +99,18 @@ namespace FWO.Auth.Server.Requests
 
             var tenNameObj = new { tenant_name = tenant.Name };
 
-            tenant = ApiConn.SendQuery<Tenant>(Queries.getTenantId, tenNameObj, "getTenantId").Result[0];
+            tenant = ApiConn.SendQuery<Tenant>(BasicQueries.getTenantId, tenNameObj, "getTenantId").Result[0];
 
             var tenIdObj = new { tenantId = tenant.Id };
 
-            DeviceId[] deviceIds = ApiConn.SendQuery<DeviceId>(Queries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant").Result;
+            DeviceId[] deviceIds = ApiConn.SendQuery<DeviceId>(BasicQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant").Result;
             tenant.VisibleDevices = new int[deviceIds.Length];
             for(int i = 0; i < deviceIds.Length; ++i)
             {
                 tenant.VisibleDevices[i] = deviceIds[i].Id;
             }
             
-            ManagementId[] managementIds = ApiConn.SendQuery<ManagementId>(Queries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant").Result;
+            ManagementId[] managementIds = ApiConn.SendQuery<ManagementId>(BasicQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant").Result;
             tenant.VisibleManagements = new int[managementIds.Length];
             for(int i = 0; i < managementIds.Length; ++i)
             {

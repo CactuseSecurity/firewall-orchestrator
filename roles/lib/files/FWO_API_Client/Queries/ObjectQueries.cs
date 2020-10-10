@@ -18,7 +18,7 @@ namespace FWO.ApiClient.Queries
             getNetworkServiceObjectDetails = 
                 File.ReadAllText(QueryPath + "serviceObject/fragments/serviceObjectDetails.graphql") + 
                 File.ReadAllText(QueryPath + "serviceObject/getNetworkServiceObjectDetails.graphql");
-            getNetworkObjectDetails = 
+            getUserDetails = 
                 File.ReadAllText(QueryPath + "user/fragments/userDetails.graphql") + 
                 File.ReadAllText(QueryPath + "user/getUserDetails.graphql");
         }

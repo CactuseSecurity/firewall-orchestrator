@@ -1,0 +1,6 @@
+
+query getText($text_id: String) {
+  text_msg_eng
+  text_msg_ger
+  text_msg_id
+}

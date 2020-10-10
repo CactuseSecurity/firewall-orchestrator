@@ -1,0 +1,5 @@
+query getTenantId($tenant_name: String!) {
+  tenant(where: { tenant_name: { _eq: $tenant_name } }) {
+    tenant_id
+  }
+}

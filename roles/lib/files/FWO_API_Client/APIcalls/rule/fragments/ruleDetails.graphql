@@ -1,0 +1,49 @@
+
+fragment ruleDetails on rule {
+  rule_id
+  rule_action
+  section_header: rule_head_text
+  rule_comment
+  rule_track
+  rule_disabled
+  src_zone: zone {
+    zone_name
+    zone_id
+  }
+  rule_src_neg
+  rule_dst_neg
+  rule_svc_neg
+  rule_num_numeric
+  rule_name
+  rule_src
+  rule_froms {
+    user_id
+    object {
+      ...networkObjectDetails
+    }
+  }
+  dst_zone: zoneByRuleToZone {
+    zone_name
+    zone_id
+  }
+  rule_dst
+  rule_tos {
+    object {
+      ...networkObjectDetails
+    }
+  }
+  rule_svc
+  rule_services {
+    service {
+      svc_uid
+      svc_name
+      svc_typ_id
+      ip_proto_id
+      svc_comment
+      svc_member_names
+      svc_member_refs
+      svc_port
+      svc_port_end
+    }
+  }
+}

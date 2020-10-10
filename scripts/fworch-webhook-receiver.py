@@ -63,14 +63,22 @@ def post_handler():
       for modified_file in modified_files:
          if (re.match(pattern, modified_file)):
             relevant_change = True
+      pattern = '^scripts\/fworch-webhook-receiver.py$'
+      for modified_file in modified_files:
+         if (re.match(pattern, modified_file)):
+            webhook_script_changed = True
       if (relevant_change):
          f.write('Relevant change: start building\n')
          target_path  =  tmp_git_dir
          clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone ssh://git@" + github_hostname + project_path + "'"
          f.write('executing ' + clone_cmd + '\n')
          os.system(clone_cmd) # Cloning
+         if (webhook_script_changed):
+            os.system("cp " + tmp_git_dir + "/scripts/fworch-webhook-receiver.py " + root_dir)
+            # might not work due to user rights:
+            # os.system("systemctl restart fworch-webhook-receiver.service")
          build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && " + \
-            "ansible-playbook -i inventory site.yml -e \"testkeys=yes clean_install=1\" --skip-tags \"test\"" + "'"
+            "ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" --skip-tags \"test\"" + "'"
          f.write('executing build command: ' + build_cmd + '\n')
          os.system(build_cmd) # building fworch backend
          now = datetime.now() # current date and time

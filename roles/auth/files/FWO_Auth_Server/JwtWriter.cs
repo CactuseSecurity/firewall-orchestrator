@@ -52,13 +52,12 @@ namespace FWO.Auth.Server
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-
-            // TODO: Remove later
-            // Fake managment claims REMOVE LATER 
-
-            claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", "{1,7,17}"));
-            claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
-
+            if(user.Tenant != null)
+            {
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", JsonSerializer.Serialize(user.Tenant.VisibleManagements)));
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", JsonSerializer.Serialize(user.Tenant.VisibleDevices)));
+            }
+        
             // adding roles
             string[] roles = user.Roles;
 

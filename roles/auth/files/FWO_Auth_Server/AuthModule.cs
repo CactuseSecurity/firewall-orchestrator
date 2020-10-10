@@ -12,6 +12,7 @@ using FWO.Logging;
 using FWO.Auth.Server.Requests;
 using FWO.Config;
 using FWO.ApiClient;
+using FWO.ApiClient.Queries;
 using FWO.Auth.Server.Data;
 
 namespace FWO.Auth.Server
@@ -52,7 +53,7 @@ namespace FWO.Auth.Server
             ApiConn.SetAuthHeader(jwtGenerator.CreateJWT(new User { Name = "auth-server", Password = "", Roles = new string[] {"auth-server"} }));
 
             // fetch all connectedLdaps via API. Blocking wait via result.
-            connectedLdaps = ApiConn.SendQuery<Ldap>(Queries.LdapConnections).Result.ToList();
+            connectedLdaps = ApiConn.SendQuery<Ldap>(BasicQueries.LdapConnections).Result.ToList();
 
             foreach (Ldap connectedLdap in connectedLdaps)
             {

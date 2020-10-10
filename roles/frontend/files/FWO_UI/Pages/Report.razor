@@ -1,7 +1,8 @@
 ﻿@using BlazorTable
 @using FWO.ApiClient
+@using FWO.ApiClient.Queries
 @using FWO.Ui.Data.Api
-@using System.Diagnostics 
+@using System.Diagnostics
 
 @inject APIConnection Connection
 
@@ -151,9 +152,12 @@
         </div>
     </div>
 
-    <div class="sidebar" style="z-index:@sidebarLayerZ;  width:@($"{sidebarWidth}px");">
-        <div class="d-flex flex-row h-100">
-            <div class="sizer shadow" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+    <div class="sidebar d-flex flex-row h-100">
+        <div class="btn-dark btn-sm min-max-button align-self-center text-left"@onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
+            <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+        </div>
+        <div class="sizer shadow" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+        <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x: @overflowSidebar;">
             <div class="m-2">
                 <div class="d-flex justify-content-center m-2">
                     <h5>Netzwerkobjekte / Services</h5>
@@ -185,7 +189,7 @@
 
     private async Task GenerateTestReport(MouseEventArgs e)
     {
-        Managements = await Connection.SendQuery<Management>(Queries.Rules);
+        Managements = await Connection.SendQuery<Management>(RuleQueries.Rules);
     }
 
     private void CollapseButtonClicked(MouseEventArgs e)
@@ -194,32 +198,48 @@
         FilterButtonCollapse = (FilterButtonCollapse == "oi-plus") ? "oi-minus" : "oi-plus";
     }
 
-    private Stopwatch stopwatch = new Stopwatch();
-
     private double resizeStartX;
 
-    private void ResizeStart(DragEventArgs mouseArgs)
+    private void ResizeStart(DragEventArgs dragArgs)
     {
-        resizeStartX = mouseArgs.ScreenX;
-
-        stopwatch.Restart();
+        dragArgs.DataTransfer.DropEffect = "link";
+        dragArgs.DataTransfer.EffectAllowed = "copyMove";
+        resizeStartX = dragArgs.ScreenX;
     }
 
     private void Resize(DragEventArgs mouseArgs)
     {
-        stopwatch.Stop();
-        long time = stopwatch.ElapsedMilliseconds;
-
         int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
-        int tolerance = 0;//(int)(((resizeStartX - mouseArgs.ClientX) / Math.Sqrt(Math.Pow(resizeStartX - mouseArgs.ClientX, 2))) * 1000 / time);
 
-        sidebarWidth = (int)(sidebarWidth + postitionDiffrence + tolerance);
-        contentMarginRight = (int)(contentMarginRight + postitionDiffrence + tolerance);
+        sidebarWidth = (int)(sidebarWidth + postitionDiffrence);
+        contentMarginRight = (int)(contentMarginRight + postitionDiffrence);
 
-        resizeStartX = mouseArgs.ScreenX + tolerance;
+        resizeStartX = mouseArgs.ScreenX;
+    }
 
-        stopwatch.Restart();
+    int sidebarWidthBeforeMinimize;
+    int contentMarginRightBeforeMinimize;
+    string minMaxButtonSymbol = "minus";
+    string overflowSidebar = "auto";
 
-        StateHasChanged();
+    private void MinMaxSidebar()
+    {
+        if (sidebarWidth == 0)
+        {
+            overflowSidebar = "hidden";
+            minMaxButtonSymbol = "minus";
+            sidebarWidth = sidebarWidthBeforeMinimize;
+            contentMarginRight = contentMarginRightBeforeMinimize;
+        }
+
+        else
+        {
+            overflowSidebar = "auto";
+            minMaxButtonSymbol = "plus";
+            sidebarWidthBeforeMinimize = sidebarWidth;
+            contentMarginRightBeforeMinimize = contentMarginRight;
+            sidebarWidth = 0;
+            contentMarginRight = 20;
+        }
     }
 }

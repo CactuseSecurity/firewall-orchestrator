@@ -41,7 +41,6 @@ app {
 }
 
 .sidebar {
-    background-color: ghostwhite;
     right: 0px;
     top: 0px;
     position: fixed;
@@ -53,6 +52,20 @@ app {
     background-color: black;
     height: 100%;
     z-index: 20;
+    border-style: double;
+}
+
+.min-max-button {
+    border-radius: 14px 0px 0px 14px;
+    border-right-style: hidden;
+    padding: 10px;
+    width: 20px;
+    height: 30px;
+}
+
+.max {
+    width: 10px;
+    height: 10px;
 }
 
 .report-content {

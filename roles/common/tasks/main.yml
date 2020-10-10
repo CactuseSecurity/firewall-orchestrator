@@ -1,143 +1,183 @@
 - block: 
-     - name: remove complete {{ fworch_home }} dir except for etc
-       file:
-          state: absent
-          path: "{{ fworch_home }}/{{ item }}"
-       loop:
-         - api
-         - auth
-         - bin
-         - importer  
-         - install  
-         - ui
-         - lib
 
-     - name: update operating system packages .deb based
-       apt:
-         upgrade: dist
-       when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+  - name: check for existing main config file
+    stat:
+      path: "{{ fworch_conf_file }}"
+    register: already_installed
 
-     - name: update operating system packages .rpm based (untested)
-       apt:
-         upgrade: dist
-       when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+  - set_fact:
+      already_installed: "{{ already_installed.stat.exists }}"
+  
+  - debug:
+      msg: "installation_mode={{ installation_mode }}, already_installed={{ already_installed }}"
+  
+  - name: fail if unknown installation_mode is set
+    fail:
+      msg: "Found undefined installation_mode: {{ installation_mode }}, aborting."
+    when: installation_mode != "new" and installation_mode != "uninstall" and installation_mode != "upgrade"
 
-     - name: install package rsyslog
-       package:
-        name: "rsyslog"
-        state: present
+  - name: fail if already installed and installation_mode is new
+    fail:
+      msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}"
+    when: already_installed and installation_mode == "new"
 
-     - name: change rsyslog config to receive logs TODO on backend only
-       blockinfile:
-        path: /etc/rsyslog.conf
-        block: |
-          module(load="im{{ syslog_proto }}")
-          input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
+  - name: fail if not already installed and installation_mode is upgrade
+    fail:
+      msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
+    when: not already_installed and installation_mode == "upgrade"
 
-     - name: create log dir for {{ product_name }} on ubuntu - owner syslog
-       file:
-         path: "/var/log/{{ product_name }}/"
-         state: directory
-         owner: syslog
-         group: syslog
-         mode: "0775"
-       when: ansible_facts['distribution'] == "Ubuntu"
-         
-     - name: create log dir for {{ product_name }} on debian - owner root
-       file:
-         path: "/var/log/{{ product_name }}/"
-         state: directory
-         owner: root
-         group: root
-         mode: "0775"
-       when: ansible_facts['distribution'] == "Debian"
-         
-     - name: edit rsyslog
-       blockinfile:
-         path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
-         create: yes
-         block: |
-            # syslog for {{ product_name }}
-            # Log {{ product_name }} log messages to file
-            local6.warning                 /var/log/{{ product_name }}/error.log
-            local6.=info                   /var/log/{{ product_name }}/login_info.log
-            local6.debug                   /var/log/{{ product_name }}/debug.log
-            :programname, isequal, "postgres-{{ product_name }}" /var/log/fworch/database.log
-            :programname, isequal, "{{ auth_server_syslog_id }}" /var/log/fworch/auth.log
-            :programname, isequal, "{{ ui_syslog_id }}" /var/log/{{ product_name }}/ui.log
-            :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log
-            :programname, isequal, "{{ product_name }}-import" /var/log/{{ product_name }}/import.log
-            :programname, isequal, "{{ product_name }}-api" /var/log/{{ product_name }}/api.log
+  - name: uninstall product
+    import_tasks: ../scripts/uninstall-fworch.yml
+    when: installation_mode == "uninstall"
 
-     - name: edit logrotate
-       blockinfile:
-         path: "/etc/logrotate.d/{{ product_name }}.conf"
-         create: yes
-         block: |
-            /var/log/{{ product_name }}/*.log {
-               compress
-               maxage 7
-               rotate 99
-               size=+4096k
-               missingok
-               copytruncate
-               sharedscripts
-                   prerotate
-                           /etc/init.d/{{ product_name }}-import stop >/dev/null
-                   endscript
-                   postrotate
-                           /etc/init.d/{{ product_name }}-import start >/dev/null
-                   endscript
-            }
+  - name: stopping here in case of uninstall
+    fail:
+      msg: "uninstall completed, thanks for using firewall orchestrator"
+    when: installation_mode == "uninstall"
 
-     - name: reload rsyslog service
-       service:
-        name: "rsyslog"
-        state: restarted
+  # - name: uninstall completed, thanks for using firewall orchestrator
+  #   meta: end_play
+  #   when: installation_mode == "uninstall"
 
-     - name: create group {{ fworch_user }}
-       group:
-        name: "{{ fworch_user }}"
-        gid: "{{ user_id }}"
-        state: present
-       
-     - name: add user {{ fworch_user }}
-       user:
-        name: "{{ fworch_user }}"
-        comment: "{{ product_name }} User"
-        uid: "{{ user_id }}"
-        home: "{{ fworch_home }}"
-        shell: /bin/bash
-        group: "{{ fworch_user }}"
-        generate_ssh_key: yes
-        ssh_key_bits: 4096
-        ssh_key_file: .ssh/id_rsa
+  - name: remove complete {{ fworch_home }} dir except for etc
+    file:
+      state: absent
+      path: "{{ fworch_home }}/{{ item }}"
+    loop:
+      - api
+      - auth
+      - bin
+      - importer  
+      - install  
+      - ui
+      - lib
 
-     - name: create etc dir
-       file:
-         path: "{{ fworch_home }}/etc"
-         state: directory
-         owner: "{{ fworch_user }}"
-         group: "{{ fworch_user }}"
-         mode: '0755'
+  - name: update operating system packages .deb based
+    apt:
+      upgrade: dist
+    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
 
-     - name: create dir for passwords
-       file:
-         path: "{{ fworch_home }}/etc/secrets"
-         state: directory
-         owner: "{{ fworch_user }}"
-         group: "{{ fworch_user }}"
-         mode: '0700'
+  - name: update operating system packages .rpm based (untested)
+    yum:
+      upgrade: dist
+    when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
 
-     - name: copy iso.conf to target
-       copy:
-        src: iso.conf
-        dest: "{{ fworch_home }}/etc/iso.conf"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_user }}"
+  - name: install package rsyslog
+    package:
+      name: "rsyslog"
+      state: present
 
-     - name: include fworch.yaml config file creator
-       import_tasks: conf_file_creator.yml
+  - name: change rsyslog config to receive logs TODO on backend only
+    blockinfile:
+      path: /etc/rsyslog.conf
+      block: |
+        module(load="im{{ syslog_proto }}")
+        input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
+
+  - name: create log dir for {{ product_name }} on ubuntu - owner syslog
+    file:
+      path: "/var/log/{{ product_name }}/"
+      state: directory
+      owner: syslog
+      group: syslog
+      mode: "0775"
+    when: ansible_facts['distribution'] == "Ubuntu"
+      
+  - name: create log dir for {{ product_name }} on debian - owner root
+    file:
+      path: "/var/log/{{ product_name }}/"
+      state: directory
+      owner: root
+      group: root
+      mode: "0775"
+    when: ansible_facts['distribution'] == "Debian"
+      
+  - name: edit rsyslog
+    blockinfile:
+      path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
+      create: yes
+      block: |
+        # syslog for {{ product_name }}
+        # Log {{ product_name }} log messages to file
+        local6.warning                 /var/log/{{ product_name }}/error.log
+        local6.=info                   /var/log/{{ product_name }}/login_info.log
+        local6.debug                   /var/log/{{ product_name }}/debug.log
+        :programname, isequal, "postgres-{{ product_name }}" /var/log/fworch/database.log
+        :programname, isequal, "{{ auth_server_syslog_id }}" /var/log/fworch/auth.log
+        :programname, isequal, "{{ ui_syslog_id }}" /var/log/{{ product_name }}/ui.log
+        :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log
+        :programname, isequal, "{{ product_name }}-import" /var/log/{{ product_name }}/import.log
+        :programname, isequal, "{{ product_name }}-api" /var/log/{{ product_name }}/api.log
+
+  - name: edit logrotate
+    blockinfile:
+      path: "/etc/logrotate.d/{{ product_name }}.conf"
+      create: yes
+      block: |
+        /var/log/{{ product_name }}/*.log {
+            compress
+            maxage 7
+            rotate 99
+            size=+4096k
+            missingok
+            copytruncate
+            sharedscripts
+                prerotate
+                        /etc/init.d/{{ product_name }}-import stop >/dev/null
+                endscript
+                postrotate
+                        /etc/init.d/{{ product_name }}-import start >/dev/null
+                endscript
+        }
+
+  - name: reload rsyslog service
+    service:
+      name: "rsyslog"
+      state: restarted
+
+  - name: create group {{ fworch_user }}
+    group:
+      name: "{{ fworch_user }}"
+      gid: "{{ user_id }}"
+      state: present
+    
+  - name: add user {{ fworch_user }}
+    user:
+      name: "{{ fworch_user }}"
+      comment: "{{ product_name }} User"
+      uid: "{{ user_id }}"
+      home: "{{ fworch_home }}"
+      shell: /bin/bash
+      group: "{{ fworch_user }}"
+      generate_ssh_key: yes
+      ssh_key_bits: 4096
+      ssh_key_file: .ssh/id_rsa
+
+  - name: create etc dir
+    file:
+      path: "{{ fworch_home }}/etc"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+      mode: '0755'
+
+  - name: create dir for passwords
+    file:
+      path: "{{ fworch_home }}/etc/secrets"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+      mode: '0700'
+
+  - name: copy iso.conf to target
+    copy:
+      src: iso.conf
+      dest: "{{ fworch_home }}/etc/iso.conf"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+
+  - name: include fworch.yaml config file creator
+    import_tasks: conf_file_creator.yml
         
   become: yes
   

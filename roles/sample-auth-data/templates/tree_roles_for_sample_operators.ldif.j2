@@ -37,8 +37,3 @@ dn: cn=importer,ou=role,{{ auth_ldap_path }}
 changetype: modify
 add: uniquemember
 uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
-
-dn: cn=admin,ou=role,{{ auth_ldap_path }}
-changetype: modify
-add: uniquemember
-uniquemember: uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal

@@ -189,7 +189,7 @@
 
     private async Task GenerateTestReport(MouseEventArgs e)
     {
-        Managements = await Connection.SendQuery<Management>(RuleQueries.Rules);
+        Managements = await Connection.SendQuery<Management>(RuleQueries.getRuleOverview);
     }
 
     private void CollapseButtonClicked(MouseEventArgs e)

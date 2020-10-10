@@ -9,7 +9,7 @@ query showManufacturers {
 #####################################
 
 query showManagements {
-	management {
+  management {
     mgm_id
     mgm_name
   }
@@ -49,7 +49,6 @@ query showDevicesByManagement {
   }
 }
 
-
 query showDevicesByManagementDetails {
   management {
     mgm_name
@@ -88,3 +87,38 @@ query showDevicesWithType {
   }
 }
 
+###################################
+
+query showManufacturers {
+  stm_dev_typ(order_by: { dev_typ_manufacturer: asc, dev_typ_version: asc }) {
+    dev_typ_id
+    dev_typ_manufacturer
+    dev_typ_version
+  }
+}
+
+
+#############################
+## mutations
+#############################
+
+
+mutation newManagement(
+  $dev_typ_id: Int!
+  $mgm_name: String!
+  $ssh_private_key: String!
+) {
+  insert_management(
+    objects: {
+      config_path: ""
+      dev_typ_id: 10
+      importer_hostname: ""
+      mgm_name: "$mgm_name"
+      ssh_hostname: ""
+      ssh_private_key: ""
+      ssh_user: ""
+    }
+  ) {
+    affected_rows
+  }
+}

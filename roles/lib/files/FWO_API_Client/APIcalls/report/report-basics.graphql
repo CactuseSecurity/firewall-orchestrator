@@ -1,0 +1,11 @@
+query getImportId($management_id: Int!, $time: timestamp!) {
+  import_control_aggregate(
+    where: { mgm_id: { _eq: $management_id }, stop_time: { _lte: $time } }
+  ) {
+    aggregate {
+      max {
+        control_id
+      }
+    }
+  }
+}

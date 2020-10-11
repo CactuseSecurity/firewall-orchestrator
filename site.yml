@@ -1,5 +1,5 @@
 ---
-# todo: add switch "demo_install" to disable all invasive actions like change pwd, delete devices, ... 
+# todo: add switch "demo_install" to disable all unwanted activity like change pwd, delete devices, ... 
 
 - hosts: all
   roles:

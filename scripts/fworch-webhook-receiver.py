@@ -64,6 +64,7 @@ def post_handler():
          if (re.match(pattern, modified_file)):
             relevant_change = True
       pattern = '^scripts\/fworch-webhook-receiver.py$'
+      webhook_script_changed = False
       for modified_file in modified_files:
          if (re.match(pattern, modified_file)):
             webhook_script_changed = True

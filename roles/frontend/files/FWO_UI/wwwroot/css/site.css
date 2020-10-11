@@ -41,16 +41,20 @@ app {
 }
 
 .sidebar {
+    margin-top: -60px;
+    margin-right: -40px;
     right: 0px;
     top: 0px;
-    position: fixed;
-    height: 100%;
+    position: -webkit-sticky; /* Safari */
+    position: sticky;
+    height: 100vh;
+    max-height: 100vh;
 }
 
 .sizer {
+    height: 100%;
     width: 4px;
     background-color: black;
-    height: 100%;
     z-index: 20;
     border-style: double;
 }

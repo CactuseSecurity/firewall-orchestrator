@@ -9,7 +9,6 @@
 
 <h3>Test-Report</h3>
 
-
 <div class="d-flex flex-row">
     <div class="report-content" style="margin-right:@($"{contentMarginRight}px")">
         <button class="btn btn-primary m-2" @onclick="GenerateTestReport">Generate Report</button>
@@ -18,10 +17,6 @@
             <div class="form-group m-1">
                 <label for="rulesPerDeviceHtml">Load rules per fetch: </label>
                 <input id="rulesPerDeviceHtml" type="number" class="form-control m-1" @bind="rulesPerFetch" />
-            </div>
-            <div class="form-group m-1">
-                <label for="rulesPerFetchHtml">Show rules per device: </label>
-                <input id="rulesPerFetchHtml" type="number" class="form-control m-1" @bind="rulesPerDevice" />
             </div>
             <div class="form-group m-1">
                 <label for="rulesPerPageHtml">Show rules per page: </label>
@@ -76,7 +71,7 @@
                                         {
                                             if (device.Rules[i].OrderNumber == context.OrderNumber)
                                             {
-                                                @i
+                                                @(i + 1)
                                             }
                                         }
                                     }
@@ -95,7 +90,8 @@
 
                                             @foreach (NetworkObjectWrapper source in context.Froms)
                                             {
-                                                @($"{source.Content.Name} ({source.Content.IP})")<br>
+                                                @($"{source.Content.Name}" +
+                                                source.Content.IP != null ? $"({source.Content.IP})" : "")<br>
                                             }
                                         }
                                     </p>
@@ -112,7 +108,8 @@
 
                                             foreach (NetworkObjectWrapper destination in context.Tos)
                                             {
-                                                @($"{destination.Content.Name} ({destination.Content.IP})")<br>
+                                                @($"{destination.Content.Name}" +
+                                                destination.Content.IP != null ? $"({destination.Content.IP})" : "")<br>
                                             }
                                         }
                                     </p>
@@ -129,7 +126,8 @@
 
                                             foreach (ServiceWrapper service in context.Services)
                                             {
-                                                @($"{service.Content.Name} ({service.Content.Port})")<br>
+                                                @($"{service.Content.Name}" +
+                                                service.Content.Port != null ? $"({service.Content.Port}/{service.Content.Type.Name})" : "")<br>
                                             }
                                         }
                                     </p>
@@ -144,6 +142,10 @@
                             </Column>
                             <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
                             <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+
+                            <DetailTemplate TableItem="Rule">
+                                <div>test</div>
+                            </DetailTemplate>
                         </Table>
                     }
                 }
@@ -151,18 +153,26 @@
         </div>
     </div>
 
-    <div class="sidebar d-flex flex-row h-100">
-        <div class="btn-dark btn-sm min-max-button align-self-center text-left"@onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
+    <div class="sidebar d-flex flex-row h-100 navbar-dark bg-dark">
+        <div class="btn-dark btn-sm min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
             <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
         </div>
-        <div class="sizer shadow" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
-        <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x: @overflowSidebar;">
+        <div class="sizer" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+        <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x:@overflowSidebar;">
             <div class="m-2">
                 <div class="d-flex justify-content-center m-2">
                     <h5>Netzwerkobjekte / Services</h5>
                 </div>
                 <div class="m-2">
                     @* Sidebar Content *@
+                    <Table style="font-size:small" TableItem="Service" Items="services" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="Service" Title="Name" Field="@(x => x.Name)" />
+                        <DetailTemplate TableItem="Service">
+                            <b>UID</b> @context.Uid <br />
+                            <b>Port</b> @(context.Port == context.PortEnd ? context.Port.ToString() : $"{context.Port.ToString()}-{context.PortEnd.ToString()}") <br />
+                            <b>Type</b> @context.Type.Name
+                        </DetailTemplate>
+                    </Table>
                 </div>
             </div>
         </div>
@@ -176,15 +186,20 @@
     private string FilterButtonCollapse = "oi-minus";
 
     private Management[] Managements = new Management[0];
+    private Service[] services = new Service[0];
 
     private int rulesPerFetch = 0;
-    private int rulesPerDevice = 0;
     private int rulesPerPage = 0;
 
     private int sidebarLayerZ = 0;
     private int sidebarWidth = 300;
 
     private int contentMarginRight = 280;
+
+    protected override async Task OnInitializedAsync()
+    {
+        services = await Connection.SendQuery<Service>(Queries.ServiceObjects);
+    }
 
     private async Task GenerateTestReport(MouseEventArgs e)
     {

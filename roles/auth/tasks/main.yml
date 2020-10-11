@@ -1,4 +1,4 @@
-
+---
 - name: create auth directory
   file:
     dest: "{{ auth_server_base_dir }}"

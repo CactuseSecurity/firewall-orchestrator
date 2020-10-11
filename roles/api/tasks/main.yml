@@ -24,10 +24,6 @@
 - name: hasura basic config
   import_tasks: hasura-basic-config.yml
 
-# currently on hold until decision is clear whether to use dynamic queries for filtering
-# - name: create query_collections and add to allow-list 
-#   import_tasks: api-query-collection.yml
-
 - name: api create documentation
   import_tasks: api-create-docu.yml
   when: "api_docu is defined and api_docu == 'yes'"

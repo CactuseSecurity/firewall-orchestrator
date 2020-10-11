@@ -2,40 +2,29 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using GraphQL;
+using GraphQL.Types;
+using System.IO;
+
 
 namespace FWO.ApiClient.Queries
 {
-    public static class BasicQueries
+    public class BasicQueries : Queries
     {
+        public static readonly string getTenantId;
+        public static readonly string getVisibleDeviceIdsPerTenant;
+        public static readonly string getVisibleManagementIdsPerTenant;
+        public static readonly string getLdapConnections;
 
-public static readonly string getTenantId = @"
-   query getTenantId($tenant_name: String!) { tenant(where: {tenant_name: {_eq: $tenant_name}}) { tenant_id } }
-";
+        static BasicQueries() 
+        {
+            getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
 
-public static readonly string getVisibleDeviceIdsPerTenant = @"
-   query getVisibleDeviceIdsPerTenant($tenantId: Int!) { visibleDevices: get_visible_devices_per_tenant(args: {arg_1: $tenantId}) { id } }
-";
+            getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleDeviceIdsPerTenant.graphql");
 
-public static readonly string getVisibleManagementIdsPerTenant = @"
-   query getVisibleManagementIdsPerTenant($tenantId: Int!) { visibleManagements: get_visible_managements_per_tenant(args: {arg_1: $tenantId}) { id } }
-";
+            getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleManagementIdsPerTenant.graphql");
 
-public static readonly string LdapConnections = @"
-   query getLdapConnections
-   {
-     ldap_connection
-      { 
-        ldap_server 
-        ldap_port 
-        ldap_search_user 
-        ldap_tls 
-        ldap_tenant_level 
-        ldap_connection_id 
-        ldap_search_user_pwd 
-        ldap_searchpath_for_users
-        ldap_searchpath_for_roles
-      } 
-    }
-";
+            getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
+        }
     }
 }

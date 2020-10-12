@@ -68,7 +68,8 @@ namespace FWO.ApiClient
 
                     JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
                     responseObjectEnumerator.MoveNext();
-
+                    Log.WriteDebug("API Response", $"API response: { responseObjectEnumerator.Current.Value.GetRawText() }");
+                    
                     QueryResponseType[] result = JsonSerializer.Deserialize<QueryResponseType[]>(responseObjectEnumerator.Current.Value.GetRawText());
 
                     return result;

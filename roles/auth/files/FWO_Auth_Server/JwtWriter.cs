@@ -52,13 +52,12 @@ namespace FWO.Auth.Server
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-
-            // TODO: Remove later
-            // Fake managment claims REMOVE LATER 
-
-            claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", "{1,7,17}"));
-            claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", "{1,4}"));
-
+            if(user.Tenant != null)
+            {
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", BuildHasuraString(user.Tenant.VisibleManagements)));
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", BuildHasuraString(user.Tenant.VisibleDevices)));
+            }
+        
             // adding roles
             string[] roles = user.Roles;
 
@@ -96,6 +95,23 @@ namespace FWO.Auth.Server
             Console.WriteLine($"User {user.Name} was assigned default-role {defaultRole}");
 
             return claimsIdentity;
+        }
+
+        private string BuildHasuraString(int[] idArray)
+        {
+            string listString = "{";
+            bool first = true;
+            foreach(int id in idArray)
+            {
+                if (!first)
+                {
+                    listString += ",";
+                }
+                first = false;
+                listString += id;
+            }
+            listString += "}";
+            return listString;
         }
     }
 }

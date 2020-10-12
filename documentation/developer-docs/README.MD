@@ -11,7 +11,7 @@
 - all other changes need to be reviewed via pull-request
 
 
-## avoiding git commits by copying sources without commit for testing
+## avoiding git commits while testing: copy sources without commit 
 
 ```shell
 tim@acantha:~/bin$ cat fwo-cp-debian.sh 

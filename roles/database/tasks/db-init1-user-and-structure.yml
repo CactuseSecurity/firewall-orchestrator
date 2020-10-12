@@ -21,28 +21,14 @@
   - name: drop database {{ fworch_db_name }} # Ist hier der name überhaupt korrekt? Im nächsten das gleiche
     command: 'psql -d {{ fworch_db_name }} -c "DROP DATABASE IF EXISTS {{ fworch_db_name }}"'
 
-  - name: Pause for 5 minutes to build app cache
-    pause:
-      minutes: 2
-
-# The next line is difficult:
-  # postgres doesn't feature create database if not exists
-  # Create database can only be executed as single statement, not inside transaction block (eg DO)
-  # Workaround: use pg_database https://stackoverflow.com/questions/18389124/simulate-create-database-if-not-exists-for-postgresql
-  # The easiest solution might be to create the database unconditionally since it is always deleted in the command above
   - name: create database {{ fworch_db_name }}
-    #command: 'psql -d {{ fworch_db_name }} -c "CREATE DATABASE {{ fworch_db_name }}"'
-    shell: "echo \"SELECT 'CREATE DATABASE {{ fworch_db_name }}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'mydb')\\gexec\" | psql"
-
-  - name: Pause for 5 minutes to build app cache
-    pause:
-      minutes: 5
+    command: 'psql -d {{ fworch_db_name }} -c "CREATE DATABASE {{ fworch_db_name }}"'
 
   - name: creating {{ fworch_db_name }}-db-model
     command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/fworch-db-model.sql"'
 
   - name: settings privileges
-    command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
+    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
     loop:
       - fworch-user-textreader.sql
       - fworch-grants.sql

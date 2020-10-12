@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
+using FWO.Logging;
 
 namespace FWO.Config
 {
@@ -36,8 +37,8 @@ namespace FWO.Config
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
-                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
+                Log.WriteError("Extract Key", e.ToString());
+                Log.WriteError("Extract Key", new System.Diagnostics.StackTrace().ToString()); 
             }
             return rsaKey;
         }
@@ -47,7 +48,7 @@ namespace FWO.Config
             string keyText = null;
             isRsaKey = true;
             rawKey = rawKey.Trim(); // remove trailing empty lines
-            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
+            Log.WriteDebug("Extract Key", $"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
             try
             {
                 // removing armor of PEM file (first and last line)
@@ -56,21 +57,19 @@ namespace FWO.Config
                 if (firstline.Contains("RSA"))
                 {
                     isRsaKey = true;
-                    // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = true");
                 }
                 else
                 {
                     isRsaKey = false;
-                    // Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString: firstline={firstline}, contains rsa = false");
                 }
                 keyText = string.Join("", lines.GetRange(1, lines.Count - 2).ToArray());
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
-                Console.WriteLine(new System.Diagnostics.StackTrace().ToString());
+                Log.WriteError("Extract Key", e.ToString());
+                Log.WriteError("Extract Key", new System.Diagnostics.StackTrace().ToString()); 
             }
-            Console.WriteLine($"AuthClient::ExtractKeyFromPemAsString keyText={keyText}");
+            Log.WriteDebug("Extract Key", $"AuthClient::ExtractKeyFromPemAsString keyText={keyText}");
             return keyText;
         }
     }

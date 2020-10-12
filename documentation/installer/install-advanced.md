@@ -3,6 +3,21 @@
 always change into the firewwall-orchestrator directory before starting the installation!
 
 ## Install parameters
+
+### Installation mode parameter
+
+The followin switch can be used to set the type of installation to perform
+
+```console
+ansible-playbook -i inventory -e "installation_mode=upgrade" site.yml -K
+```
+
+installation_mode options:
+- new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
+- uninstall     - uninstalls the product including any data
+- upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api; removes all files from target and copies latest sources instead
+                
+
 ### Installation behind a proxy (no direct Internet connection)
 
 e.g. with IP 1.2.3.4, listening on port 3128<br>
@@ -58,6 +73,13 @@ ansible-playbook -i inventory -e "ui_php=1 ui_php_web_port=44310" site.yml -K
 ### Parameter "clean_install" to start with fresh database
 
 if you want to drop the database and re-install from scratch, simply add the variable clean_install as follows:
+NB: this switch has been removed in favor of the "cleaner" method:
+
+```console
+ansible-playbook -i inventory -e "installation_mode=uninstall" site.yml -K
+ansible-playbook -i inventory -e "installation_mode=new" site.yml -K
+```
+
 
 ```console
 ansible-playbook -i inventory -e "clean_install=1" site.yml -K
@@ -130,5 +152,5 @@ modify /etc/postgresql/x.y/main/pg_hba.conf to allow secuadmins access from web 
 ```console
 host    all         +secuadmins         127.0.0.1/32           md5
 host    all         +secuadmins         10.5.5.5/32            md5
-host    all         dbadmin             10.5.10.10/32            md5
+host    all         dbadmin             10.5.10.10/32          md5
 ```

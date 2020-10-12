@@ -1,4 +1,5 @@
 # content of settings page in UI
+graphical descriptions, see <https://xfer.cactus.de/index.php/f/18376>
 - all values that do not have a default value and are not nullable will be mandatory (!)
 
 - settings

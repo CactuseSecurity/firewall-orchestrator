@@ -1,5 +1,4 @@
 ---
-# todo: add switch "demo_install" to disable all invasive actions like change pwd, delete devices, ... 
 
 - hosts: all
   roles:
@@ -29,7 +28,7 @@
     - backend
    # todo: make api (and docker) work with github actions
 
-# restart authserver now that the API is ready
+# restart authserver now that the API is ready.
 - hosts: authserver
   tasks:
     - name: restart auth service
@@ -66,7 +65,7 @@
   tags:
     - samples
     - backend
-  # todo: add meta dependency on role sample-data
+  # todo: add a meta dependency on role sample-data
 
 # restart importer to make sure it works correctly with sample data
 - hosts: importers
@@ -82,3 +81,4 @@
     - test
   tags:
     - test
+    

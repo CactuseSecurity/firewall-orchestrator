@@ -12,6 +12,7 @@ using FWO.Logging;
 using FWO.Auth.Server.Requests;
 using FWO.Config;
 using FWO.ApiClient;
+using FWO.ApiClient.Queries;
 using FWO.Auth.Server.Data;
 
 namespace FWO.Auth.Server
@@ -30,6 +31,7 @@ namespace FWO.Auth.Server
 
         private readonly string authServerUri;
         private readonly string apiUri;
+        private APIConnection ApiConn;
 
         private readonly AuthenticationRequestHandler authenticationRequestHandler;
 
@@ -47,11 +49,11 @@ namespace FWO.Auth.Server
             jwtGenerator = new JwtWriter(privateJWTKey, hoursValid);
 
             // create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header 
-            APIConnection ApiConn = new APIConnection(apiUri);
+            ApiConn = new APIConnection(apiUri);
             ApiConn.SetAuthHeader(jwtGenerator.CreateJWT(new User { Name = "auth-server", Password = "", Roles = new string[] {"auth-server"} }));
 
             // fetch all connectedLdaps via API. Blocking wait via result.
-            connectedLdaps = ApiConn.SendQuery<Ldap>(Queries.LdapConnections).Result.ToList();
+            connectedLdaps = ApiConn.SendQuery<Ldap>(BasicQueries.getLdapConnections).Result.ToList();
 
             foreach (Ldap connectedLdap in connectedLdaps)
             {
@@ -59,7 +61,7 @@ namespace FWO.Auth.Server
             }
 
             // Initialize Request Handler          
-            authenticationRequestHandler = new AuthenticationRequestHandler(ref connectedLdaps, jwtGenerator);
+            authenticationRequestHandler = new AuthenticationRequestHandler(ref connectedLdaps, jwtGenerator, ref ApiConn);
 
             // Start Http Listener, todo: move to https
             StartListener(authServerUri);

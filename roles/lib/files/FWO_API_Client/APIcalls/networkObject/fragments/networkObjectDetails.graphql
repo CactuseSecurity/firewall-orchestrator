@@ -1,0 +1,29 @@
+fragment networkObjectDetails on object {
+    obj_id
+    obj_name
+    obj_ip
+    obj_ip_end
+    obj_uid
+    zone_id
+    stm_obj_typ {
+      obj_typ_name
+    }
+    obj_comment
+    obj_member_names
+    obj_member_refs
+    objgrps {
+      objgrp_member_id
+      objectByObjgrpMemberId {
+        obj_id
+        obj_name
+      }
+    }
+    objgrp_flats {
+      objgrp_flat_id
+      objectByObjgrpFlatMemberId {
+        obj_id
+        obj_name
+      }
+    }
+}
+

@@ -1,0 +1,49 @@
+
+# These are test users with plain text passwords
+
+dn: uid=fritz,ou=tenant1,ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: fritz
+givenName: Fritz
+sn: Gelb
+userPassword: fritz1
+{%- endif %}
+
+
+dn: uid=helga,ou=tenant1,ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: helga
+givenName: Helga
+sn: Gelb
+userPassword: helga1
+{%- endif %}
+
+
+dn: uid=fritz,ou=tenant2,ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: fritz
+givenName: Fritz
+sn: Gelb
+userPassword: fritz2
+{%- endif %}
+
+
+dn: uid=helga,ou=tenant2,ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: helga
+givenName: Helga
+sn: Rot
+userPassword: helga2
+{%- endif %}

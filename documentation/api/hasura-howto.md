@@ -7,6 +7,7 @@
 - track tables, views, relations --> create queries and expose these
 - permissions can be set here: <https://demo.itsecorg.de/api/console/data/schema/public/permissions>
 - more elaborate example: <https://hasura.io/docs/1.0/graphql/manual/auth/authorization/permission-rules.html#using-column-operators-to-build-rules>
+- nullability: https://hasura.io/blog/graphql-nulls-cheatsheet/
 
 
 ## hasura database

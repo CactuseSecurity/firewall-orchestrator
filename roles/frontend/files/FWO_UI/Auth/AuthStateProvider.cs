@@ -27,7 +27,7 @@ namespace FWO.Ui.Auth
                     claims: jwt.GetClaims(),
                     authenticationType: "fake type", // TODO: change authentication type
                     nameType: JwtRegisteredClaimNames.UniqueName,
-                    roleType: "role"           
+                    roleType: "role"
                 );
 
                 ClaimsPrincipal user = new ClaimsPrincipal(identity);

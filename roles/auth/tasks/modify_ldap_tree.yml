@@ -1,0 +1,90 @@
+
+- name: change value for auth_change_local_ldap if ldap conn already exists to prevent re-creation errors
+  set_fact:
+    auth_change_local_ldap: "no"
+  when: ldap_conn_present.stdout >= "1"
+
+- debug:
+    var:
+      - ldap_conn_present
+      - auth_change_local_ldap
+
+- name: create ldif directory
+  file:
+    dest: "{{ auth_server_base_dir }}/ldif"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
+  become: yes
+
+# - name: set remove and ignore errors mode for cleaning up ldap
+#   set_fact:
+#     ldif_changetype: delete
+
+# - name: copy the ldif templates to system
+#   template:
+#     src: "{{ item }}"
+#     dest: "{{ auth_server_base_dir }}/ldif/{{ item | basename | regex_replace('\\.j2$', '') }}"
+#   with_fileglob:
+#     - ../templates/ldif_files/*.j2
+#   become: yes
+
+# # in the following errors are ignored for the case that we run the deletes on an empty ldap database
+# - name: remove tree
+#   command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/tree_{{ item }}.ldif"
+#   ignore_errors: yes
+#   loop:
+#     - sample_operators
+#     - tenant_samples
+#     - tenant0
+#     - roles
+#     - systemusers
+#     - level_2
+#     - level_1
+#     - level_0
+
+# - name: delete ldif files
+#   file:
+#     path: "{{ auth_server_base_dir }}/ldif"
+#     state: absent
+#   become: yes
+
+# - name: create ldif directory once more
+#   file:
+#     dest: "{{ auth_server_base_dir }}/ldif"
+#     state: directory
+#     owner: "{{ fworch_user }}"
+#     group: "{{ fworch_user }}"
+#   become: yes
+
+- name: set add mode for creating ldap tree
+  set_fact:
+    ldif_changetype: add
+
+- name: copy the ldif templates to system once more (this time for adding entries)
+  template:
+    src: "{{ item }}"
+    dest: "{{ auth_server_base_dir }}/ldif/{{ item | basename | regex_replace('\\.j2$', '') }}"
+  with_fileglob:
+    - ../templates/ldif_files/*.j2
+  become: yes
+
+- name: add tree
+  command: "ldapmodify -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ auth_server_base_dir }}/ldif/tree_{{ item }}.ldif"
+  loop:
+    - level_0
+    - level_1
+    - level_2
+    - systemusers
+    - roles
+    - tenant0
+    - operators
+  when: installation_mode == "new"
+  # ignore errors only when re-installing on a system
+
+- name: delete ldif files
+  file:
+    path: "{{ auth_server_base_dir }}/ldif"
+    state: absent
+  become: yes
+

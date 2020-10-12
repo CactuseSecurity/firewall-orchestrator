@@ -1,0 +1,5 @@
+fragment networkObjectOverview on object {
+  obj_ip
+  obj_ip_end
+  obj_name
+}

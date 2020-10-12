@@ -5,8 +5,11 @@ fragment networkObjectDetails on object {
     obj_ip_end
     obj_uid
     zone_id
-    stm_obj_typ {
-      obj_typ_name
+    active
+    obj_create
+    obj_last_seen
+    type: stm_obj_typ {
+      name: obj_typ_name
     }
     obj_comment
     obj_member_names

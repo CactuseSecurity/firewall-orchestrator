@@ -1,4 +1,3 @@
-
 fragment ruleDetails on rule {
   rule_id
   rule_action
@@ -10,6 +9,9 @@ fragment ruleDetails on rule {
     zone_name
     zone_id
   }
+  active
+  rule_create
+  rule_last_seen
   rule_src_neg
   rule_dst_neg
   rule_svc_neg
@@ -17,7 +19,9 @@ fragment ruleDetails on rule {
   rule_name
   rule_src
   rule_froms {
-    user_id
+    usr {
+      ...userDetails
+    }
     object {
       ...networkObjectDetails
     }
@@ -35,15 +39,7 @@ fragment ruleDetails on rule {
   rule_svc
   rule_services {
     service {
-      svc_uid
-      svc_name
-      svc_typ_id
-      ip_proto_id
-      svc_comment
-      svc_member_names
-      svc_member_refs
-      svc_port
-      svc_port_end
+      ...networkServiceDetails
     }
   }
 }

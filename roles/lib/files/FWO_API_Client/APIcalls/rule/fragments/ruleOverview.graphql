@@ -15,7 +15,9 @@ fragment ruleOverview on rule {
   rule_num_numeric
   rule_name
   rule_froms {
-    user_id
+    usr {
+      ...userOverview
+    }
     object {
       ...networkObjectOverview
     }
@@ -31,11 +33,7 @@ fragment ruleOverview on rule {
   }
   rule_services {
     service {
-      svc_name
-      svc_typ_id
-      ip_proto_id
-      svc_port
-      svc_port_end
+      ...networkServiceOverview
     }
   }
 }

@@ -37,14 +37,6 @@ namespace FWO.Ui
 
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
-            /*
-            for local API testing (in visual studio without running full ansible installer), either 
-            - create a local ssh tunneling to the http server on the virtual machine on an arbitrary port (here 8443) to connect to api like this:
-            const string APIPort = "9443";
-            - or use the demo system as api host like this: 
-            const string APIHost = "demo.itsecorg.de";
-            */
-
             ConfigConnection configConnection = new ConfigConnection();
 
             string ApiUri = configConnection.ApiServerUri;

@@ -115,13 +115,13 @@ The search above won't work anymore. LDAP is now exlusive to the users "manager"
 ### check password
 wrong password:
 
-    tim@ubu1804:~$ ldapwhoami -x -w fworch.2  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
+    tim@ubu1804:~$ ldapwhoami -x -w fworch.2 -D uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal -H ldaps://localhost/
     ldap_bind: Invalid credentials (49)
 
 correct password:
 
-    tim@ubu1804:~$ ldapwhoami -x -w fworch.1  -D uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal  -H ldaps://localhost/
-    dn:uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
+    tim@ubu1804:~$ ldapwhoami -x -w fworch.1 -D uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal -H ldaps://localhost/
+    dn:uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
 
 ### delete entries with ldapmodify
 

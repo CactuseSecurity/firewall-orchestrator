@@ -1,0 +1,16 @@
+dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: admin
+sn: admin
+{%- endif %}
+
+
+{% if ldif_changetype != 'delete' -%}
+dn: cn=admin,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
+{%- endif %}

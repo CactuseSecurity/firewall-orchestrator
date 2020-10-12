@@ -1,0 +1,25 @@
+query getNetworkServiceDetails(
+  $management_id: [Int!]
+  $time: String
+  $svc_name: [String!]
+  $svc_port: [Int!]
+  $limit: Int
+  $offset: Int
+) {
+  management(where: { mgm_id: { _in: $management_id } }) {
+    mgm_id
+    mgm_name
+    services(
+      limit: $limit
+      offset: $offset
+      where: {
+        active: { _eq: true }
+        svc_name: { _in: $svc_name }
+        svc_port: { _in: $svc_port }
+      }
+      order_by: { svc_name: asc }
+    ) {
+      ...networkServiceDetails
+    }
+  }
+}

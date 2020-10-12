@@ -1,9 +1,20 @@
 ﻿@inherits LayoutComponentBase
 
-<NavigationMenu />
+<CascadingValue Value="navLayerZ">
+    <div style="z-index:2">
+        <NavigationMenu />
+    </div>
+</CascadingValue>
+
+
 
 <div class="main">
     <div class="content p-4">
         @Body
     </div>
 </div>
+
+@code
+{
+    int navLayerZ;
+}

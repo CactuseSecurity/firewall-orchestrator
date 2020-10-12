@@ -1,7 +1,0 @@
-# this playbook runs some tests against the api
-
-# - name: remove api home
-#   file:
-#     path: "{{ api_home }}"
-#     state: absent
-#   become: yes

@@ -1,18 +1,42 @@
 - block: 
 
+  - name: fetch remote config file
+    fetch:
+      src: "{{ fworch_conf_file }}"
+      dest: "temp_remote_config_file.yml"
+      flat: yes
+    when: already_installed and installation_mode == "upgrade"
+
+  - name: read config file of currently installed product
+    include_vars: 
+      file: "temp_remote_config_file.yml"
+      name: config
+    when: already_installed and installation_mode == "upgrade"
+
+  - name: remove local copy of remote config file
+    file:
+      state: absent
+      name: "temp_remote_config_file.yml"
+
   - name: create symlink /usr/local/fworch/etc to /etc/fworch
     file:
       src: "{{ fworch_home }}/etc"
       dest: "/etc/{{ product_name }}"
       state: link
 
-  # - name: create temp symlink necessary for rel path to conf file in csharp debugging
-  #   file:
-  #     src: "{{ fworch_home }}/etc"
-  #     dest: "/usr/etc"
-  #     state: link
+  - name: get version of currently installed product
+    set_fact: 
+      old_version: "{{ config.product_version }}"
+    when: already_installed and installation_mode == "upgrade"
 
-      # settings used within c# source code only
+  - name: write new version of product to config file
+    lineinfile:
+      path: "{{ fworch_conf_file }}"
+      regexp: "^product_version:"
+      line: "product_version: {{ product_version }}"
+      backup: yes
+    when: installation_mode == "upgrade"
+
   - name: edit central conf file
     blockinfile:
       path: "{{ fworch_conf_file }}"
@@ -21,16 +45,15 @@
         # general settings
         fworch_home: "{{ fworch_home }}"
         dotnet_mode: "{{ dotnet_mode }}"
+        product_version: "{{ product_version }}"
         
         # api
         api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         
         # auth
-        auth_JWT_key_file: "{{ jwt_private_key_file }}"
-        auth_hostname: "{{ auth_hostname }}"
-        auth_server_port: "{{ auth_web_listener_port }}"
         auth_uri: "http://{{ auth_hostname }}:{{ auth_web_listener_port }}"
-
+        # should be auth_uri: "https://{{ auth_hostname }}:{{ auth_web_listener_port }}"
+    when: installation_mode != "upgrade"
 
   become: yes

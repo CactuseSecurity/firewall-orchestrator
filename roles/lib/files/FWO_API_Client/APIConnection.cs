@@ -40,7 +40,7 @@ namespace FWO.ApiClient
             Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
         }
 
-        public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string query, string variables = null, string operationName = null)
+        public async Task<QueryResponseType[]> SendQuery<QueryResponseType>(string query, object variables = null, string operationName = null)
         {
             try
             {
@@ -68,7 +68,8 @@ namespace FWO.ApiClient
 
                     JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
                     responseObjectEnumerator.MoveNext();
-
+                    Log.WriteDebug("API Response", $"API response: { responseObjectEnumerator.Current.Value.GetRawText() }");
+                    
                     QueryResponseType[] result = JsonSerializer.Deserialize<QueryResponseType[]>(responseObjectEnumerator.Current.Value.GetRawText());
 
                     return result;

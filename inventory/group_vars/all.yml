@@ -3,6 +3,13 @@
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
+product_version: "5.0"
+
+# installation_mode options:
+#   new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
+#   uninstall     - runs uninstall-fworch.yml
+#   upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api
+installation_mode: new
 
 ### operating system settings
 user_id: 60320
@@ -79,6 +86,7 @@ ui_test_start_dir: "{{ fworch_home }}/test/ui/FWO_Test"
 
 sting_fworch_user: itsecorg
 
+# todo: can be moved to vault before project goes public
 dbadmin_pwd: "st8chel"
 fworch_pwd: "st8chel"
 admin_pwd: "fworch.1"

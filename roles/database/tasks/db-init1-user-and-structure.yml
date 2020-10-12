@@ -35,4 +35,3 @@
       - fworch-change-to-delete-cascade.sql
   become: yes
   become_user: postgres
-

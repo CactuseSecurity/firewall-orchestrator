@@ -1,0 +1,16 @@
+dn: ou=user,{{ auth_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: organizationalUnit
+ou: user
+{%- endif %}
+
+
+dn: ou=role,{{ auth_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: organizationalUnit
+ou: role
+{%- endif %}

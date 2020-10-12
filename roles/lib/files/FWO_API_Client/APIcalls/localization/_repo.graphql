@@ -1,0 +1,16 @@
+query getText($textId: String) {
+  text_msg(where: { txt_msg_id: { _in: $textId } }) {
+    text_msg_eng
+    text_msg_ger
+    text_msg_id
+  }
+}
+
+# get all localized texts (when logging in)
+query getText {
+  text_msg {
+    text_msg_eng
+    text_msg_ger
+    text_msg_id
+  }
+}

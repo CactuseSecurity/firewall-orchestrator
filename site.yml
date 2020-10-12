@@ -1,5 +1,4 @@
 ---
-# todo: add switch "demo_install" to disable all invasive actions for users like change pwd, delete devices, ... 
 
 - hosts: all
   roles:
@@ -29,10 +28,10 @@
     - backend
    # todo: make api (and docker) work with github actions
 
-# restarting authserver now that the API is ready
+# restart authserver now that the API is ready.
 - hosts: authserver
   tasks:
-    - name: start auth service
+    - name: restart auth service
       command: "systemctl restart {{ auth_service_name }}"
       become: yes
   tags:
@@ -66,10 +65,20 @@
   tags:
     - samples
     - backend
-  # todo: add meta dependency on role sample-data
+  # todo: add a meta dependency on role sample-data
+
+# restart importer to make sure it works correctly with sample data
+- hosts: importers
+  tasks:
+    - name: restart importer service
+      command: "/etc/init.d/fworch-importer restart"
+      become: yes
+  tags:
+    - backend
 
 - hosts: all
   roles:
     - test
   tags:
     - test
+    

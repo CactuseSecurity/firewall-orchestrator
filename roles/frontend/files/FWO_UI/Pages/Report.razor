@@ -1,6 +1,8 @@
 ﻿@using BlazorTable
 @using FWO.ApiClient
+@using FWO.ApiClient.Queries
 @using FWO.Ui.Data.Api
+@using System.Diagnostics
 
 @inject APIConnection Connection
 
@@ -8,135 +10,236 @@
 
 <h3>Test-Report</h3>
 
-<button class="btn btn-primary m-2" @onclick="GenerateTestReport">Generate Report</button>
 
-<div class="m-2">
-    <input type="text" class="form-control" placeholder="Filter" />
-</div>
+<div class="d-flex flex-row">
+    <div class="report-content" style="margin-right:@($"{contentMarginRight}px")">
+        <button class="btn btn-primary m-2" @onclick="GenerateTestReport">Generate Report</button>
 
-@*<div class="card m-2">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="d-inline-flex align-items-center">
-                Filter
-                <button class="btn btn-dark btn-sm ml-3 oi @FilterButtonCollapse" @onclick="CollapseButtonClicked"></button>
-            </h4>
-            <h4 class="btn-group">
-                <button class="btn btn-success btn-sm">Add</button>
-                <button class="btn btn-danger btn-sm">Remove</button>
-            </h4>
+        <form class="form-inline m-2">
+            <div class="form-group m-1">
+                <label for="rulesPerDeviceHtml">Load rules per fetch: </label>
+                <input id="rulesPerDeviceHtml" type="number" class="form-control m-1" @bind="rulesPerFetch" />
+            </div>
+            <div class="form-group m-1">
+                <label for="rulesPerFetchHtml">Show rules per device: </label>
+                <input id="rulesPerFetchHtml" type="number" class="form-control m-1" @bind="rulesPerDevice" />
+            </div>
+            <div class="form-group m-1">
+                <label for="rulesPerPageHtml">Show rules per page: </label>
+                <input id="rulesPerPageHtml" type="number" class="form-control m-1" @bind="rulesPerPage" />
+            </div>
+        </form>
+
+        <div class="m-2">
+            <input type="text" class="form-control" placeholder="Filter" />
         </div>
-        <div class="collapse card-body @FilterCollapseCSS">
-            <div class="m-2 d-flex flex-wrap">
-                @foreach (DataTable CurrentFilterDataTable in FilterDataTables)
+
+        @*<div class="card m-2">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="d-inline-flex align-items-center">
+                        Filter
+                        <button class="btn btn-dark btn-sm ml-3 oi @FilterButtonCollapse" @onclick="CollapseButtonClicked"></button>
+                    </h4>
+                    <h4 class="btn-group">
+                        <button class="btn btn-success btn-sm">Add</button>
+                        <button class="btn btn-danger btn-sm">Remove</button>
+                    </h4>
+                </div>
+                <div class="collapse card-body @FilterCollapseCSS">
+                    <div class="m-2 d-flex flex-wrap">
+                        @foreach (DataTable CurrentFilterDataTable in FilterDataTables)
+                        {
+                            <Filter Data="CurrentFilterDataTable"></Filter>
+                        }
+                    </div>
+                </div>
+            </div>*@
+
+        <div class="card m-2 shadow">
+            <div class="card-body">
+
+                @foreach (Management management in Managements)
                 {
-                    <Filter Data="CurrentFilterDataTable"></Filter>
+                    <h3>@management.Name</h3>
+                    <hr />
+
+                    @foreach (Device device in management.Devices)
+                    {
+                        <h4>@device.Name</h4>
+
+                        Array.Sort(device.Rules, (a, b) => (int)(a.OrderNumber - b.OrderNumber));
+
+                        <Table style="font-size:small" TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="rulesPerPage" ColumnReorder="true">
+                            <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
+                                <Template>
+                                    @{
+                                        for (int i = 0; i < device.Rules.Length; i++)
+                                        {
+                                            if (device.Rules[i].OrderNumber == context.OrderNumber)
+                                            {
+                                                @i
+                                            }
+                                        }
+                                    }
+                                </Template>
+                            </Column>
+                            <Pager ShowPageNumber="true"></Pager>
+                            <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                            <Column TableItem="Rule" Title="Source" Field="@(x => x.Froms)" Sortable="true" Filterable="true">
+                                <Template>
+                                    <p>
+                                        @{
+                                            if (context.SourceNegated)
+                                            {
+                                                @("anything but") <br>
+                                            }
+
+                                            @foreach (NetworkObjectWrapper source in context.Froms)
+                                            {
+                                                @($"{source.Content.Name} ({source.Content.IP})")<br>
+                                            }
+                                        }
+                                    </p>
+                                </Template>
+                            </Column>
+                            <Column TableItem="Rule" Title="Destination" Field="@(x => x.Tos)" Sortable="true" Filterable="true">
+                                <Template>
+                                    <p>
+                                        @{
+                                            if (context.DestinationNegated)
+                                            {
+                                                @("anything but") <br>
+                                            }
+
+                                            foreach (NetworkObjectWrapper destination in context.Tos)
+                                            {
+                                                @($"{destination.Content.Name} ({destination.Content.IP})")<br>
+                                            }
+                                        }
+                                    </p>
+                                </Template>
+                            </Column>
+                            <Column TableItem="Rule" Title="Services" Field="@(x => x.Services)" Sortable="true" Filterable="true">
+                                <Template>
+                                    <p>
+                                        @{
+                                            if (context.ServiceNegated)
+                                            {
+                                                @("anything but") <br>
+                                            }
+
+                                            foreach (ServiceWrapper service in context.Services)
+                                            {
+                                                @($"{service.Content.Name} ({service.Content.Port})")<br>
+                                            }
+                                        }
+                                    </p>
+                                </Template>
+                            </Column>
+                            <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
+                            <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
+                            <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
+                                <Template>
+                                    <div class="oi @(context.Disabled? "oi-check" : "oi-x")"></div>
+                                </Template>
+                            </Column>
+                            <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
+                            <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                        </Table>
+                    }
                 }
             </div>
         </div>
-    </div>*@
+    </div>
 
-<div class="card m-2 shadow">
-    <div class="card-body">
-
-        @foreach (Management management in Managements)
-        {
-            <h3>@management.Name</h3>
-            <hr />
-
-            foreach (Device device in management.Devices)
-            {
-                <h4>@device.Name</h4>
-
-                <Table TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="20" ColumnReorder="true">
-                    <Column TableItem="Rule" Title="ID" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
-                    <Column TableItem="Rule" Title="Number" Field="@(x => x.Number)" Sortable="true" Filterable="true" />
-                    <Column TableItem="Rule" Title="Source" Field="@(x => x.Source)" Sortable="true" Filterable="true">
-                        <Template>
-                            <p>@(context.SourceNegated ? "not " : "") @(context.Source)</p>
-                        </Template>
-                    </Column>
-                    <Column TableItem="Rule" Title="From" Field="@(x => x.Froms)" Sortable="true" Filterable="true">
-                        <Template>
-                            @{
-                                List<string> fromsIp = new List<string>();
-
-                                foreach (NetworkObjectWrapper from in context.Froms)
-                                {
-                                    fromsIp.Add(from.Content.IP);
-                                }
-
-                                <p>@string.Join(", ", fromsIp)</p>
-                            }
-                        </Template>
-                    </Column>
-                    <Column TableItem="Rule" Title="Destination" Field="@(x => x.Destination)" Sortable="true" Filterable="true">
-                        <Template>
-                            <p>@(context.DestinationNegated ? "not " : "") @(context.Destination)</p>
-                        </Template>
-                    </Column>
-                    <Column TableItem="Rule" Title="Tos" Field="@(x => x.Tos)" Sortable="true" Filterable="true">
-                        <Template>
-                            @{
-                                List<string> TosIp = new List<string>();
-
-                                foreach (NetworkObjectWrapper to in context.Tos)
-                                {
-                                    TosIp.Add(to.Content.IP);
-                                }
-
-                                <p>@string.Join(", ", TosIp)</p>
-                            }
-                        </Template>
-                    </Column>
-                    <Column TableItem="Rule" Title="Services" Field="@(x => x.Service)" Sortable="true" Filterable="true">
-                        <Template>
-                            <p>@(context.ServiceNegated ? "not " : "") @(context.Service)</p>
-                        </Template>
-                    </Column>
-                    <Column TableItem="Rule" Title="Services" Field="@(x => x.Services)" Sortable="true" Filterable="true">
-                        <Template>
-                            @{
-                                List<string> servicesName = new List<string>();
-
-                                foreach (ServiceWrapper service in context.Services)
-                                {
-                                    servicesName.Add(service.Content.Name);
-                                }
-
-                                <p>@string.Join(", ", servicesName)</p>
-                            }
-                        </Template>
-                    </Column>
-                    <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
-                    <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
-                    <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
-                        <Template>
-                            <div class="oi @(context.Disabled? "oi-check" : "oi-x")"></div>
-                        </Template>
-                    </Column>
-                    <Pager ShowPageNumber="true"></Pager>
-                </Table>
-            }
-        }
-
+    <div class="sidebar d-flex flex-row h-100">
+        <div class="btn-dark btn-sm min-max-button align-self-center text-left"@onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
+            <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+        </div>
+        <div class="sizer shadow" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+        <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x: @overflowSidebar;">
+            <div class="m-2">
+                <div class="d-flex justify-content-center m-2">
+                    <h5>Netzwerkobjekte / Services</h5>
+                </div>
+                <div class="m-2">
+                    @* Sidebar Content *@
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
+
 @code
 {
-    string FilterCollapseCSS = "show";
-    string FilterButtonCollapse = "oi-minus";
+    private string FilterCollapseCSS = "show";
+    private string FilterButtonCollapse = "oi-minus";
 
     private Management[] Managements = new Management[0];
 
+    private int rulesPerFetch = 0;
+    private int rulesPerDevice = 0;
+    private int rulesPerPage = 0;
+
+    private int sidebarLayerZ = 0;
+    private int sidebarWidth = 300;
+
+    private int contentMarginRight = 280;
+
     private async Task GenerateTestReport(MouseEventArgs e)
     {
-        Managements = await Connection.SendQuery<Management>(Queries.Rules);
+        Managements = await Connection.SendQuery<Management>(RuleQueries.getRuleOverview);
     }
 
     private void CollapseButtonClicked(MouseEventArgs e)
     {
         FilterCollapseCSS = (FilterCollapseCSS == "") ? "show" : "";
         FilterButtonCollapse = (FilterButtonCollapse == "oi-plus") ? "oi-minus" : "oi-plus";
+    }
+
+    private double resizeStartX;
+
+    private void ResizeStart(DragEventArgs dragArgs)
+    {
+        dragArgs.DataTransfer.DropEffect = "link";
+        dragArgs.DataTransfer.EffectAllowed = "copyMove";
+        resizeStartX = dragArgs.ScreenX;
+    }
+
+    private void Resize(DragEventArgs mouseArgs)
+    {
+        int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
+
+        sidebarWidth = (int)(sidebarWidth + postitionDiffrence);
+        contentMarginRight = (int)(contentMarginRight + postitionDiffrence);
+
+        resizeStartX = mouseArgs.ScreenX;
+    }
+
+    int sidebarWidthBeforeMinimize;
+    int contentMarginRightBeforeMinimize;
+    string minMaxButtonSymbol = "minus";
+    string overflowSidebar = "auto";
+
+    private void MinMaxSidebar()
+    {
+        if (sidebarWidth == 0)
+        {
+            overflowSidebar = "hidden";
+            minMaxButtonSymbol = "minus";
+            sidebarWidth = sidebarWidthBeforeMinimize;
+            contentMarginRight = contentMarginRightBeforeMinimize;
+        }
+
+        else
+        {
+            overflowSidebar = "auto";
+            minMaxButtonSymbol = "plus";
+            sidebarWidthBeforeMinimize = sidebarWidth;
+            contentMarginRightBeforeMinimize = contentMarginRight;
+            sidebarWidth = 0;
+            contentMarginRight = 20;
+        }
     }
 }

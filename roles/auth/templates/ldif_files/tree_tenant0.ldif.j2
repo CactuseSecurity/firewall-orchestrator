@@ -1,0 +1,7 @@
+dn: ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: organizationalUnit
+ou: tenant0
+{%- endif %}

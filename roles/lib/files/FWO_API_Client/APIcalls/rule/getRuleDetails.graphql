@@ -1,0 +1,30 @@
+query listRulesDetails(
+  $managementId: [Int!]
+  $deviceId: [Int!]
+  $ruleSrcName: [String!]
+  $ruleSrcIp: [cidr!]
+  $limit: Int
+  $offset: Int
+) {
+  management(where: { mgm_id: { _in: $managementId } }) {
+    mgm_id
+    mgm_name
+    devices(where: { dev_id: { _in: $deviceId } }) {
+      dev_id
+      dev_name
+      rules(
+        limit: $limit
+        offset: $offset
+        where: {
+          active: { _eq: true }
+          rule_src: { _in: $ruleSrcName }
+          rule_disabled: { _eq: false }
+          rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
+        }
+        order_by: { rule_num_numeric: asc }
+      ) {
+        ...ruleDetails
+      }
+    }
+  }
+}

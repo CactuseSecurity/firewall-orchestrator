@@ -153,18 +153,20 @@
         </div>
     </div>
 
-    <div class="sidebar d-flex flex-row h-100 navbar-dark bg-dark">
+    <div class="sidebar d-flex flex-row h-100">
         <div class="btn-dark btn-sm min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
             <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
         </div>
         <div class="sizer" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
         <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x:@overflowSidebar;">
             <div class="m-2">
-                <div class="d-flex justify-content-center m-2">
-                    <h5>Netzwerkobjekte / Services</h5>
-                </div>
+
                 <div class="m-2">
                     @* Sidebar Content *@
+
+                    <div class="d-flex justify-content-center m-2">
+                        <h5>Services</h5>
+                    </div>
                     <Table style="font-size:small" TableItem="Service" Items="services" PageSize="0" ColumnReorder="true">
                         <Column TableItem="Service" Title="Name" Field="@(x => x.Name)" />
                         <DetailTemplate TableItem="Service">
@@ -173,6 +175,22 @@
                             <b>Type</b> @context.Type.Name
                         </DetailTemplate>
                     </Table>
+
+                    <div class="d-flex justify-content-center m-2">
+                        <h5>Netzwerkobjekte</h5>
+                    </div>
+                    <Table style="font-size:small" TableItem="NetworkObject" Items="networkObjects" PageSize="0" ColumnReorder="true">
+                        <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" />
+                        <DetailTemplate TableItem="NetworkObject">
+                            <b>UID</b> @context <br />
+                            <b>IP</b> @(context.IP == context.IP ? context.IP.ToString() : $"{context.IP.ToString()}-{context.IP.ToString()}") <br />
+                            <b>Type</b> @context
+                        </DetailTemplate>
+                    </Table>
+
+                    <div class="d-flex justify-content-center m-2">
+                        <h5>User</h5>
+                    </div>
                 </div>
             </div>
         </div>
@@ -187,6 +205,7 @@
 
     private Management[] Managements = new Management[0];
     private Service[] services = new Service[0];
+    private NetworkObject[] networkObjects = new NetworkObject[0];
 
     private int rulesPerFetch = 0;
     private int rulesPerPage = 0;
@@ -199,6 +218,7 @@
     protected override async Task OnInitializedAsync()
     {
         services = await Connection.SendQuery<Service>(Queries.ServiceObjects);
+        networkObjects = await Connection.SendQuery<NetworkObject>(Queries.NetworkObjects);
     }
 
     private async Task GenerateTestReport(MouseEventArgs e)

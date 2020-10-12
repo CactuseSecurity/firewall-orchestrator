@@ -41,12 +41,13 @@ app {
 }
 
 .sidebar {
-    margin-top: -60px;
-    margin-right: -40px;
+/*    margin-top: -60px;
+    margin-right: -40px;*/
     right: 0px;
     top: 0px;
-    position: -webkit-sticky; /* Safari */
-    position: sticky;
+    position: fixed;
+    /*position: -webkit-sticky;*/ /* Safari */
+    /*position: sticky;*/
     height: 100vh;
     max-height: 100vh;
 }

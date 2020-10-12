@@ -19,7 +19,7 @@ fragment ruleDetails on rule {
   rule_name
   rule_src
   rule_froms {
-    user {
+    usr {
       ...userDetails
     }
     object {

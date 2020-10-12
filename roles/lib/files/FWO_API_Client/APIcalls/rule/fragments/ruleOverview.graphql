@@ -15,7 +15,7 @@ fragment ruleOverview on rule {
   rule_num_numeric
   rule_name
   rule_froms {
-    user {
+    usr {
       ...userOverview
     }
     object {

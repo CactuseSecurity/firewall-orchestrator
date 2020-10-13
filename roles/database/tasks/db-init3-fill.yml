@@ -6,3 +6,4 @@
     - "\\copy stm_ip_proto (ip_proto_id,ip_proto_name,ip_proto_comment) FROM '{{ database_install_dir }}/csv/ip-protocol-list.csv' DELIMITER ';' CSV"
     - "\\i {{ database_install_dir }}/sql/fworch-fill-stm.sql"
   become: yes
+  become_user: postgres

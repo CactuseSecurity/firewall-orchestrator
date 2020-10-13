@@ -5,11 +5,3 @@
         owner: postgres
         group: postgres
         mode: "0755"
-
-       # Kann das gelöscht werden? Brauche andere Lösung, das shell script wird gelöscht
-     - name: change db create command if using a specific tablespace location
-       lineinfile: 
-        path: "{{ fworch_home }}/install/database/db-install-scripts/db-init1-user-and-structure.sh"
-        backrefs: yes
-        regexp: '^(\$DBCREATE_CMD -c \"CREATE DATABASE \$FWORCHDB)(\" \| \$OUT)$'
-        line: '\1 TABLESPACE={{ table_space_name }} \2'

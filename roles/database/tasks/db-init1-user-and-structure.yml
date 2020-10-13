@@ -17,12 +17,13 @@
 #      login_user: "{{ fworch_dbadmin_name }}"
 #      template: template1
 
-
-  - name: drop database {{ fworch_db_name }} # Ist hier der name überhaupt korrekt? Im nächsten das gleiche
-    command: 'psql -c "DROP DATABASE IF EXISTS {{ fworch_db_name }}"'
+#  - name: drop database {{ fworch_db_name }}
+#    command: 'psql -c "DROP DATABASE IF EXISTS {{ fworch_db_name }}"'
 
   - name: create database {{ fworch_db_name }}
     command: 'psql -c "CREATE DATABASE {{ fworch_db_name }}"'
+    # Hier noch ein Fallunterscheidung falls Kunde schon db Namens "fworchdb" hat (unwahrscheinlich)
+
 
   - name: creating {{ fworch_db_name }}-db-model
     command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/fworch-db-model.sql"'
@@ -31,7 +32,8 @@
     command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
     loop:
       - fworch-user-textreader.sql
-      - fworch-grants.sql
+#      - fworch-grants.sql testen obs weg kann
       - fworch-change-to-delete-cascade.sql
   become: yes
   become_user: postgres
+  when: installation_mode == "new"

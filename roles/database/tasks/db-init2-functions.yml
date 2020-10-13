@@ -17,5 +17,6 @@
     - fworch-qa.sql
     - fworch-report-basics.sql
     - fworch-views.sql
-    - fworch-grants.sql  # Achtung, schon das zwite mal
+    - fworch-grants.sql
   become: yes
+  become_user: postgres

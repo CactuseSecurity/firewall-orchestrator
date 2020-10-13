@@ -1,12 +1,4 @@
 
-- name: copy authentication sql file
-  copy:
-    src: pre_auth_functions.sql
-    dest: "{{ database_install_dir }}/sql"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
-  become: yes
-
 - block:
   - name: create postgres user "{{ fworch_dbadmin_name }}"
     postgresql_user: 
@@ -24,9 +16,47 @@
 
 # include add-tablespace.yml here
 
-  - name: create new database - drop existing db before when clean_install is set
-    import_tasks: db-init1-user-and-structure.yml
-    when: clean_install is defined or db_exists.stdout=="0"
+#  - name: create new database - drop existing db before when clean_install is set
+#    import_tasks: db-init1-user-and-structure.yml
+#    # Dieses when muss angepasst werden, Tim fragen
+#    when: clean_install is defined or db_exists.stdout=="0"
+
+    #  - name: drop database {{ fworch_db_name }}
+    #    postgresql_db:
+    #      name: "{{ fworch_db_name }}"
+    #      state: absent
+    #      login_host: "{{ fworch_db_host }}"
+    #      login_user: "{{ fworch_dbadmin_name }}"
+    #      template: template1
+    #
+    #  - name: create database {{ fworch_db_name }}
+    #    postgresql_db:
+    #      name: "{{ fworch_db_name }}"
+    #      state: present
+    #      login_host: "{{ fworch_db_host }}"
+    #      login_user: "{{ fworch_dbadmin_name }}"
+    #      template: template1
+
+    #  - name: drop database {{ fworch_db_name }}
+    #    command: 'psql -c "DROP DATABASE IF EXISTS {{ fworch_db_name }}"'
+
+  - name: create database {{ fworch_db_name }}
+    command: 'psql -c "CREATE DATABASE {{ fworch_db_name }}"'
+    when: installation_mode == "new" and db_exists.stdout == "0"
+
+  - name: fail upon new installation with existing database
+    fail:
+      msg: "Error: You choose new installation on a system with existing database {{ fworch_db_name }}"
+    when: installation_mode == "new" and db_exists.stdout != "0"
+
+  - name: creating {{ fworch_db_name }}-db-model and settings privileges
+    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
+    loop:
+      - fworch-db-model.sql
+      - fworch-user-textreader.sql
+      # - fworch-grants.sql testen obs weg kann
+      - fworch-change-to-delete-cascade.sql
+    when: installation_mode == "new"
 
   - name: (re)defines functions and views (idempotent)
     import_tasks: db-init2-functions.yml

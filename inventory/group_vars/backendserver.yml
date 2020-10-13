@@ -5,6 +5,7 @@ postgresql_dev_package_prefix: postgresql-server-dev
 
 database_install_dir: "{{ fworch_home }}/database"
 # Is this correct for all OS?
+# nicht gebraucht, löschen
 database_home: /var/lib/postgresql
 
 # table_space variable can be used to create database in another place where there is enough space

@@ -83,19 +83,11 @@
         name: "{{ postgresql_package }}"
         state: restarted
 
-      # Todo: alf
     - name: copy database files to backend target
       copy: src="{{ item }}" dest="{{ database_install_dir }}" owner="{{ fworch_user }}" group="{{ fworch_user }}"
       loop:
         - csv
         - sql
-
-      # Todo: alf
-#    - name: make db install scripts executable
-#      file:
-#        path: "{{ fworch_home }}/install/database/db-install-scripts"
-#        mode: "u+x,g+x,o+x"
-#        recurse: yes
 
     - name: include task install db to extra tablespace if defined
       include_tasks: tablespace_as_root_prereq.yml      
@@ -146,6 +138,14 @@
   service:
     name: postgresql
     state: restarted
+  become: yes
+
+- name: copy authentication sql file
+  copy:
+    src: pre_auth_functions.sql
+    dest: "{{ database_install_dir }}/sql"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
   become: yes
 
 - name: create new database

@@ -10,7 +10,8 @@
     connect_timeout: 3
     delay: 3
     timeout: 30
-
+  when: "run_on_github is not defined"
+  
 # curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
 - name: auth test get jwt valid creds
   command: |

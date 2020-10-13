@@ -1,5 +1,8 @@
 # this playbook contains auth server tests
 
+# the following does not work on github actions: 
+#   TASK [test : wait for auth server port to become available] ********************
+#   fatal: [fworch-srv]: FAILED! => {"changed": false, "elapsed": 30, "msg": "Timeout when waiting for 127.0.0.1:8888"}
 - name:  wait for auth server port to become available
   wait_for:
     port: "{{ auth_web_listener_port }}"
@@ -7,7 +10,8 @@
     connect_timeout: 3
     delay: 3
     timeout: 30
-
+  when: "run_on_github is not defined"
+  
 # curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
 - name: auth test get jwt valid creds
   command: |
@@ -21,7 +25,9 @@
 - debug: var=sample_jwt.stdout
 - set_fact: jwt_header="{{ sample_jwt.stdout.split('.')[0] }}"
 - debug: var=jwt_header
-- set_fact: jwt_header="{{ jwt_header.split(":")[1] }}"
+- set_fact: jwt_header="{{ jwt_header.split(':')[1] }}"
+- debug: var=jwt_header
+- set_fact: jwt_header="{{ jwt_header.split('\"')[1] }}"
 - debug: var=jwt_header
 
 ## adding potentially missing base64 = padding to header:
@@ -34,6 +40,8 @@
 
 - set_fact: jwt_type="{{ jwt_header|b64decode }}"
 - set_fact: jwt_type="{{ jwt_type.typ }}"
+
+- debug: var=jwt_type
 
 - name: auth get jwt test valid creds output
   debug:
@@ -53,7 +61,7 @@
 - set_fact: jwt_payload="{{ jwt_encoded_payload|b64decode }}"
 - set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
 
-- name: auth get jwt test valid creds output
+- name: auth get jwt check valid creds output
   debug:
     msg: "ERROR unexpected jwt test result (username does not match 'fritz'): {{ jwt_unique_user_name }}"
   when: "jwt_unique_user_name is not match('fritz')"

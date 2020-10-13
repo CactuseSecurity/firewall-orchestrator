@@ -92,7 +92,7 @@ namespace FWO.Auth.Server
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
-            Log.WriteInfo("User roles", $"User {user.Name} was assigned default-role {defaultRole}");
+            Log.WriteDebug("Default role assignment", $"User {user.Name} was assigned default-role {defaultRole}");
 
             return claimsIdentity;
         }

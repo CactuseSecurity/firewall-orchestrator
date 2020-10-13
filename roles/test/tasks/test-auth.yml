@@ -1,5 +1,8 @@
 # this playbook contains auth server tests
 
+# the following does not work on github actions: 
+#   TASK [test : wait for auth server port to become available] ********************
+#   fatal: [fworch-srv]: FAILED! => {"changed": false, "elapsed": 30, "msg": "Timeout when waiting for 127.0.0.1:8888"}
 - name:  wait for auth server port to become available
   wait_for:
     port: "{{ auth_web_listener_port }}"

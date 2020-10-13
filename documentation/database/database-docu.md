@@ -26,6 +26,6 @@ psql -d fworchdb -f "database-dump"
 ### Optimization
 
 - allow for disk space triple the size of the DB (e.g. 500 GB for a 140 GB DB) - especially needed for the vacuum step at the end
-- transform database tables to auto cascade thru all tables when deleting unwanted managements: see install/database/stored-procedures/iso-change-to-delete-cascade.sql
-- start this shell script as a dbadmin to remove all unwanted managements: see install/database/db-maintenance/remove-2-year-old-devices.sh
+- transform database tables to auto cascade thru all tables when deleting unwanted managements: see database/sql/fworch-change-to-delete-cascade.sql
+- start this shell script as a dbadmin to remove all unwanted managements: see scripts/remove-2-year-old-devices.sh
 - stop all db activity before the next command: time psql -d fworchdb -c "vacuum full verbose"

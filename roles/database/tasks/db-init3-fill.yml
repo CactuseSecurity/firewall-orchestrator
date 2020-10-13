@@ -1,0 +1,4 @@
+- name: adding functions
+
+  become: yes
+  become_user: postgres

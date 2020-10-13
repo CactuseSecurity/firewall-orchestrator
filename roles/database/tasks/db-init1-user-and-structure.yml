@@ -1,0 +1,39 @@
+# Todo: nach Tasks, für oberes oder unteres Format entscheiden
+
+- block:
+#  - name: drop database {{ fworch_db_name }}
+#    postgresql_db:
+#      name: "{{ fworch_db_name }}"
+#      state: absent
+#      login_host: "{{ fworch_db_host }}"
+#      login_user: "{{ fworch_dbadmin_name }}"
+#      template: template1
+#
+#  - name: create database {{ fworch_db_name }}
+#    postgresql_db:
+#      name: "{{ fworch_db_name }}"
+#      state: present
+#      login_host: "{{ fworch_db_host }}"
+#      login_user: "{{ fworch_dbadmin_name }}"
+#      template: template1
+
+#  - name: drop database {{ fworch_db_name }}
+#    command: 'psql -c "DROP DATABASE IF EXISTS {{ fworch_db_name }}"'
+
+  - name: create database {{ fworch_db_name }}
+    command: 'psql -c "CREATE DATABASE {{ fworch_db_name }}"'
+    # Hier noch ein Fallunterscheidung falls Kunde schon db Namens "fworchdb" hat (unwahrscheinlich)
+
+
+  - name: creating {{ fworch_db_name }}-db-model
+    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/fworch-db-model.sql"'
+
+  - name: settings privileges
+    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
+    loop:
+      - fworch-user-textreader.sql
+#      - fworch-grants.sql testen obs weg kann
+      - fworch-change-to-delete-cascade.sql
+  become: yes
+  become_user: postgres
+  when: installation_mode == "new"

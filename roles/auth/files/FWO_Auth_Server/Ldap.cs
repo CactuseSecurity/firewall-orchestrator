@@ -3,7 +3,6 @@ using FWO.Logging;
 using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
@@ -104,24 +103,29 @@ namespace FWO.Auth.Server
 
                             else
                             {
+                                // this will probably never be reached as an error is thrown before
                                 // Incorrect password - do nothing, assume its another user with the same username
-                                Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                                // Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                                Log.WriteDebug("Oops", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+
                             }
                         }
-                        catch (LdapException)
+                        catch (LdapException exc)
                         {
-                            // Incorrect password - do nothing, assume its another user with the same username
-                            Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                            if (exc.ResultCode == 49)  // 49 = InvalidCredentials
+                                Log.WriteDebug("Duplicate user", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                            else
+                                Log.WriteError("Ldap exception", "Unexpected error while trying to validate user \"{ currentUser.Dn}\".");
                         } 
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Ldap exception", "Unexpected error while trying to validate user", exception);
+                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to validate user", exception);
             }
 
-            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials!");
+            Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\".");
 
             return "";
         }

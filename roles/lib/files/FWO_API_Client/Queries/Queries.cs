@@ -10,6 +10,6 @@ namespace FWO.ApiClient.Queries
 {
     public class Queries
     {
-        protected static readonly string QueryPath = "../../../lib/files/FWO_API_Client/APIcalls/";
+        protected static readonly string QueryPath = AppDomain.CurrentDomain.BaseDirectory + "../../../../../../lib/files/FWO_API_Client/APIcalls/";
     }
 }

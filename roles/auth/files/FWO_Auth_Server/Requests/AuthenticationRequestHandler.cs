@@ -127,18 +127,26 @@ namespace FWO.Auth.Server.Requests
             string endSeparator = ",";
             int beginSeparatorIndex = 0;
             int endSeparatorIndex = 0;
-            for(int i = 0; i < ldapTenantLevel; ++i)
-            {
-                localString = localString.Substring(endSeparatorIndex);
-                beginSeparatorIndex = localString.IndexOf(beginSeparator);
-                endSeparatorIndex = localString.Substring(beginSeparatorIndex).IndexOf(endSeparator);
-            }
             string tenantName = "";
-            if((beginSeparatorIndex >= 0) && (endSeparatorIndex >= 0))
-            {
-                tenantName = localString.Substring(beginSeparatorIndex + beginSeparator.Length, endSeparatorIndex - 3);
-            }
-            Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenantName} from {userDN}");
+
+            if (userDN=="anonymous") 
+            {
+                // user anonymous gets assigned the only reliably existing tenant0 - might lead to anonymous able to see too much!
+                tenantName = "tenant0";
+            }
+            else {
+                for(int i = 0; i < ldapTenantLevel; ++i)
+                {
+                    localString = localString.Substring(endSeparatorIndex);
+                    beginSeparatorIndex = localString.IndexOf(beginSeparator);
+                    endSeparatorIndex = localString.Substring(beginSeparatorIndex).IndexOf(endSeparator);
+                }
+                if((beginSeparatorIndex >= 0) && (endSeparatorIndex >= 0))
+                {
+                    tenantName = localString.Substring(beginSeparatorIndex + beginSeparator.Length, endSeparatorIndex - 3);
+                }
+                Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenantName} from {userDN}");
+            }
             return tenantName;
         }
 

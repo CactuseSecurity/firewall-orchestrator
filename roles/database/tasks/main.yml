@@ -146,7 +146,7 @@
 - name: stop api container
   command: "docker stop {{ api_container_name }}"
   become: yes
-  when: not docker_ps_out.stdout == ""
+  when: docker_is_installed.stat.exists == True and not docker_ps_out.stdout == ""
   #when: clean_install is defined and not docker_ps_out.stdout == ""
 
 - name: check if api container exists
@@ -159,7 +159,7 @@
 - name: remove api container
   command: "docker rm {{ api_container_name }}"
   become: yes
-  when: not docker_ps_out.stdout == ""
+  when: docker_is_installed.stat.exists == True and not docker_ps_out.stdout == ""
   #when: clean_install is defined and not docker_ps_out.stdout == ""
 
 - name: restart postgresql to get rid of unwanted connections when dropping db
@@ -167,6 +167,7 @@
     name: postgresql
     state: restarted
   become: yes
+  when: installation_mode == "upgrade"
 
 - name: create new database
   import_tasks: setup-database-as-postgres-user.yml

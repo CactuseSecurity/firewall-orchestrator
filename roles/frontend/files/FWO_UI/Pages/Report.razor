@@ -2,6 +2,7 @@
 @using FWO.ApiClient
 @using FWO.ApiClient.Queries
 @using FWO.Ui.Data.Api
+@using System
 @using System.Diagnostics
 
 @inject APIConnection Connection
@@ -189,7 +190,20 @@
 
     private async Task GenerateTestReport(MouseEventArgs e)
     {
-        Managements = await Connection.SendQuery<Management>(RuleQueries.getRuleOverview);
+        try {
+            Managements = await Connection.SendQuery<Management>(RuleQueries.getRuleOverview);
+        }
+        catch(Exception exception)
+        {
+            if (exception.Message == "no such type exists in the schema: 'cidr'")
+            {
+                // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+                // leave Managements as default = empty array
+            } else
+            {
+                Log.WriteError("Access rights", "User does not have sufficient access rights", exception);
+            }
+        }
     }
 
     private void CollapseButtonClicked(MouseEventArgs e)

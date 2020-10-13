@@ -9,10 +9,10 @@ namespace FWO.Config
 {
     class KeyImporter
     {
-        public static RsaSecurityKey ExtractKeyFromPem(string RawKey, bool isPrivateKey)
+        public static RsaSecurityKey ExtractKeyFromPem(string rawKey, bool isPrivateKey)
         {
             bool isRsaKey;
-            string keyText = ExtractKeyFromPemAsString(RawKey, isPrivateKey, out isRsaKey);
+            string keyText = ExtractKeyFromPemAsString(rawKey, isPrivateKey, out isRsaKey);
             RsaSecurityKey rsaKey = null;
 
             try
@@ -37,8 +37,7 @@ namespace FWO.Config
             }
             catch (Exception e)
             {
-                Log.WriteError("Extract Key", e.ToString());
-                Log.WriteError("Extract Key", new System.Diagnostics.StackTrace().ToString()); 
+                Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", e);
             }
             return rsaKey;
         }
@@ -66,8 +65,7 @@ namespace FWO.Config
             }
             catch (Exception e)
             {
-                Log.WriteError("Extract Key", e.ToString());
-                Log.WriteError("Extract Key", new System.Diagnostics.StackTrace().ToString()); 
+                Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", e);
             }
             Log.WriteDebug("Extract Key", $"AuthClient::ExtractKeyFromPemAsString keyText={keyText}");
             return keyText;

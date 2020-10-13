@@ -97,7 +97,7 @@ namespace FWO.Auth.Server
                             if (connection.Bound)
                             {
                                 // Return ldap dn
-                                Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
+                                Log.WriteInfo("User Validation", $"Successful authentication for \"{ currentUser.Dn}\"");
                                 return currentUser.Dn;
                             }
 

@@ -63,6 +63,7 @@
       - fworch-qa.sql
       - fworch-report-basics.sql
       - fworch-views.sql
+      - fworch-pre-auth.sql
       - fworch-grants.sql
 
   - name: add base data to the database
@@ -73,12 +74,6 @@
       - "\\copy stm_ip_proto (ip_proto_id,ip_proto_name,ip_proto_comment) FROM '{{ database_install_dir }}/csv/ip-protocol-list.csv' DELIMITER ';' CSV"
       - "\\i {{ database_install_dir }}/sql/fworch-fill-stm.sql"
     when: installation_mode == "new"
-
-  # - name: add local ldap connection
-  #   shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ auth_ldap_server_internal | quote }}', 636, '{{ auth_ldap_std_user_path | quote }}', 1, '{{ auth_ldap_internal_readonly_user | quote }}', 'initial pwd to-be-changed'); END IF; END \$do\$"
-
-  - name: create functions needed during authentication
-    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/pre_auth_functions.sql"'
 
   become: yes
   become_user: postgres

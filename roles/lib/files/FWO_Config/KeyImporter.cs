@@ -3,8 +3,6 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
-using System.Text;
-using FWO.Logging;
 
 namespace FWO.Config
 {
@@ -12,7 +10,7 @@ namespace FWO.Config
     {
         public static RsaSecurityKey ExtractKeyFromPem(string rawKey, bool isPrivateKey)
         {
-            (string keyText, bool isRsaKey) = ExtractKeyFromPemAsString(RawKey);
+            (string keyText, bool isRsaKey) = ExtractKeyFromPemAsString(rawKey);
             RsaSecurityKey rsaKey = null;
 
             try
@@ -37,7 +35,7 @@ namespace FWO.Config
             }
             catch (Exception exception)
             {
-                Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", e);
+                Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", exception);
             }
 
             return rsaKey;

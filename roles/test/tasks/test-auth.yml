@@ -1,16 +1,13 @@
 # this playbook contains auth server tests
 
-# the following does not work on github actions (and kills our auth server): 
-#   TASK [test : wait for auth server port to become available] ********************
-#   fatal: [fworch-srv]: FAILED! => {"changed": false, "elapsed": 30, "msg": "Timeout when waiting for 127.0.0.1:8888"}
-# - name:  wait for auth server port to become available
-#   wait_for:
-#     port: "{{ auth_web_listener_port }}"
-#     host: "{{ auth_hostname }}"
-#     connect_timeout: 1
-#     delay: 10
-#     timeout: 25
-#   when: "run_on_github is not defined"
+- name:  wait for auth server port to become available
+  wait_for:
+    port: "{{ auth_web_listener_port }}"
+    host: "{{ auth_hostname }}"
+    connect_timeout: 1
+    delay: 10
+    timeout: 25
+  when: "run_on_github is not defined"
 
 # curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
 - name: auth test get jwt valid creds

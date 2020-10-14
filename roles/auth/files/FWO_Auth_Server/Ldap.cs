@@ -40,7 +40,7 @@ namespace FWO.Auth.Server
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
 
-        private const int timeOutInMs = 200;
+        private const int timeOutInMs = 200; // TODO: MOVE TO API
 
         /// <summary>
         /// Builds a connection to the specified Ldap server.
@@ -98,20 +98,20 @@ namespace FWO.Auth.Server
                             if (connection.Bound)
                             {
                                 // Return ldap dn
-                                Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
+                                Log.WriteDebug("User Validation", $"\"{ currentUser.Dn}\" successfully authenticated.");
                                 return currentUser.Dn;
                             }
 
                             else
                             {
                                 // Incorrect password - do nothing, assume its another user with the same username
-                                Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                                Log.WriteDebug("User Validation", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
                             }
                         }
                         catch (LdapException)
                         {
                             // Incorrect password - do nothing, assume its another user with the same username
-                            Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                            Log.WriteDebug("User Validation", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
                         } 
                     }
                 }
@@ -121,7 +121,7 @@ namespace FWO.Auth.Server
                 Log.WriteError("Ldap exception", "Unexpected error while trying to validate user", exception);
             }
 
-            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials!");
+            Log.WriteDebug("User Validation", $"Invalid login credentials!");
 
             return "";
         }
@@ -156,7 +156,7 @@ namespace FWO.Auth.Server
                         // Foreach user 
                         foreach (string currentDn in roleMemberDn)
                         {
-                            Log.WriteDebug("Ldap Roles", $"Checking if current Dn: {currentDn} is user Dn. Then user has current role.");
+                            Log.WriteDebug("Ldap Roles", $"Checking if current Dn: \"{currentDn}\" is user Dn. Then user has current role.");
 
                             // Check if current user dn is matching with given user dn => Given user has current role
                             if (currentDn == userDn)

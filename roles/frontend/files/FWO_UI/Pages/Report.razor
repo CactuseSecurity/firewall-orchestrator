@@ -2,7 +2,6 @@
 @using FWO.ApiClient
 @using FWO.ApiClient.Queries
 @using FWO.Ui.Data.Api
-@using System.Diagnostics
 
 @inject APIConnection Connection
 
@@ -10,7 +9,7 @@
 
 <h3>Test-Report</h3>
 
-<div class="d-flex flex-row">
+<div class="d-flex flex-row justify-content-between">
     <div class="report-content" style="margin-right:@($"{contentMarginRight}px")">
         <button class="btn btn-primary m-2" @onclick="GenerateTestReport">Generate Report</button>
 
@@ -91,8 +90,7 @@
 
                                             @foreach (NetworkObjectWrapper source in context.Froms)
                                             {
-                                                @($"{source.Content.Name}" +
-                                                source.Content.IP != null ? $"({source.Content.IP})" : "")<br>
+                                                @($"{source.Content.Name}" + (source.Content.IP != null ? $"({source.Content.IP})" : ""))<br>
                                             }
                                         }
                                     </p>
@@ -109,8 +107,7 @@
 
                                             foreach (NetworkObjectWrapper destination in context.Tos)
                                             {
-                                                @($"{destination.Content.Name}" +
-                                                destination.Content.IP != null ? $"({destination.Content.IP})" : "")<br>
+                                                @($"{destination.Content.Name}" + (destination.Content.IP != null ? $"({destination.Content.IP})" : ""))<br>
                                             }
                                         }
                                     </p>
@@ -127,8 +124,7 @@
 
                                             foreach (ServiceWrapper service in context.Services)
                                             {
-                                                @($"{service.Content.Name}" +
-                                                service.Content.Port != null ? $"({service.Content.Port}/{service.Content.Type.Name})" : "")<br>
+                                                @($"{service.Content.Name}" + (service.Content.Port != null ? $"({service.Content.Port}/{service.Content.Type.Name})" : ""))<br>
                                             }
                                         }
                                     </p>
@@ -168,7 +164,7 @@
                     <div class="d-flex justify-content-center m-2">
                         <h5>Services</h5>
                     </div>
-                    <Table style="font-size:small" TableItem="Service" Items="services" PageSize="0" ColumnReorder="true">
+                    <Table style="font-size:small" TableItem="Service" Items="networkServices" PageSize="0" ColumnReorder="true">
                         <Column TableItem="Service" Title="Name" Field="@(x => x.Name)" />
                         <DetailTemplate TableItem="Service">
                             <b>UID</b> @context.Uid <br />
@@ -205,7 +201,7 @@
     private string FilterButtonCollapse = "oi-minus";
 
     private Management[] Managements = new Management[0];
-    private Service[] services = new Service[0];
+    private Service[] networkServices = new Service[0];
     private NetworkObject[] networkObjects = new NetworkObject[0];
 
     private int rulesPerFetch = 0;
@@ -218,8 +214,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        services = await Connection.SendQuery<Service>(Queries.ServiceObjects);
-        networkObjects = await Connection.SendQuery<NetworkObject>(Queries.NetworkObjects);
+        networkServices = await Connection.SendQuery<Service>(ObjectQueries.getNetworkServiceObjectDetails);
+        networkObjects = await Connection.SendQuery<NetworkObject>(ObjectQueries.getNetworkObjectDetails);
     }
 
     private async Task GenerateTestReport(MouseEventArgs e)

@@ -17,7 +17,7 @@ namespace FWO.ApiClient
 
         private readonly GraphQLHttpClient Client;
 
-        public APIConnection(string APIServerURI)
+        public APIConnection(string APIServerURI, string jwt = null)
         {
             // Save Server URI
             this.APIServerURI = APIServerURI;
@@ -33,6 +33,11 @@ namespace FWO.ApiClient
                 EndPoint = new Uri(APIServerURI),
                 HttpMessageHandler = Handler,
             }, new SystemTextJsonSerializer());
+
+            if (jwt != null)
+            {
+                SetAuthHeader(jwt);
+            }
         }
 
         public void SetAuthHeader(string jwt)

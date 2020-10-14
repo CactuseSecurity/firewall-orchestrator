@@ -54,8 +54,9 @@ namespace FWO.Auth.Server
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
             if(user.Tenant != null)
             {
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", BuildHasuraString(user.Tenant.VisibleManagements)));
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", BuildHasuraString(user.Tenant.VisibleDevices)));
+                // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleDevices)} }}"));
             }
         
             // adding roles
@@ -92,26 +93,9 @@ namespace FWO.Auth.Server
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
-            Console.WriteLine($"User {user.Name} was assigned default-role {defaultRole}");
+            Log.WriteDebug("User roles", $"User {user.Name} was assigned default-role {defaultRole}");
 
             return claimsIdentity;
-        }
-
-        private string BuildHasuraString(int[] idArray)
-        {
-            string listString = "{";
-            bool first = true;
-            foreach(int id in idArray)
-            {
-                if (!first)
-                {
-                    listString += ",";
-                }
-                first = false;
-                listString += id;
-            }
-            listString += "}";
-            return listString;
         }
     }
 }

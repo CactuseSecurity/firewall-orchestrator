@@ -9,7 +9,7 @@ namespace FWO.Ui.Data.Api
     public class Service
     {
         [JsonPropertyName("svc_id")]
-        public string Id { get; set; }
+        public int Id { get; set; }
 
         [JsonPropertyName("svc_uid")]
         public string Uid { get; set; }
@@ -23,7 +23,7 @@ namespace FWO.Ui.Data.Api
         [JsonPropertyName("svc_port_end")]
         public int? PortEnd { get; set; }
 
-        [JsonPropertyName("stm_svc_typ")]
+        [JsonPropertyName("service_type")]
         public ServiceType Type { get; set; }
 
         [JsonPropertyName("svc_comment")]

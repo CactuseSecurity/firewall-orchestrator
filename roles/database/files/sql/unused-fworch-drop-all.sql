@@ -1,5 +1,5 @@
--- $Id: iso-drop-all.sql,v 1.1.2.2 2007-12-13 10:47:32 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-drop-all.sql,v $
+-- drops the whole content of the database but not the database itself
+-- not in use
 
 /* Drop Indexes */
 Drop index "firewall_akey";

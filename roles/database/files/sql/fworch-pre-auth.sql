@@ -1,9 +1,4 @@
 
-Create table "device_type"
-(
-    "id"      int,
-    "name"    VARCHAR
-);
 
 CREATE OR REPLACE FUNCTION public.get_visible_devices_per_tenant(integer)
     RETURNS SETOF device_type 

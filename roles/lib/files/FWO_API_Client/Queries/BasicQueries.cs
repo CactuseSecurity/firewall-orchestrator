@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Types;
 using System.IO;
-
+using FWO.Logging;
 
 namespace FWO.ApiClient.Queries
 {
@@ -16,15 +16,23 @@ namespace FWO.ApiClient.Queries
         public static readonly string getVisibleManagementIdsPerTenant;
         public static readonly string getLdapConnections;
 
-        static BasicQueries() 
+        static BasicQueries()
         {
-            getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
+            try
+            {
+                getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
 
-            getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleDeviceIdsPerTenant.graphql");
+                getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleDeviceIdsPerTenant.graphql");
 
-            getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleManagementIdsPerTenant.graphql");
+                getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleManagementIdsPerTenant.graphql");
 
-            getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
+                getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Initialize Api Queries", "Api Object Queries could not be loaded.", exception);
+                Environment.Exit(-1);
+            }
         }
     }
 }

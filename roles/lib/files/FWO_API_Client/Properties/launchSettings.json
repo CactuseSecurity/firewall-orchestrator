@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FWO.ApiClient": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\Nils\\Documents\\GitHub\\firewall-orchestrator\\roles\\lib\\files\\FWO_API_Client"
+    }
+  }
+}

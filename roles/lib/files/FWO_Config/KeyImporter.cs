@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using FWO.Logging;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -11,8 +12,7 @@ namespace FWO.Config
     {
         public static RsaSecurityKey ExtractKeyFromPem(string rawKey, bool isPrivateKey)
         {
-            bool isRsaKey;
-            string keyText = ExtractKeyFromPemAsString(rawKey, isPrivateKey, out isRsaKey);
+            (string keyText, bool isRsaKey) = ExtractKeyFromPemAsString(RawKey);
             RsaSecurityKey rsaKey = null;
 
             try
@@ -35,40 +35,36 @@ namespace FWO.Config
                     provider.ImportSubjectPublicKeyInfo(new ReadOnlySpan<byte>(keyBytes), out _);
                 rsaKey = new RsaSecurityKey(provider);
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
                 Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", e);
             }
+
             return rsaKey;
         }
 
-        public static string ExtractKeyFromPemAsString(string rawKey, bool isPrivateKey, out bool isRsaKey)
+        public static (string key, bool isRsa) ExtractKeyFromPemAsString(string rawKey)
         {
             string keyText = null;
-            isRsaKey = true;
-            rawKey = rawKey.Trim(); // remove trailing empty lines
-            Log.WriteDebug("Extract Key", $"AuthClient::ExtractKeyFromPemAsString rawKey={rawKey}");
+            bool isRsaKey = true;
+
+            rawKey = rawKey.Trim(); // remove trailing and leading empty lines
+            Log.WriteDebug("Key extraction", $"Raw key = \"{rawKey}\"");
+
             try
             {
                 // removing armor of PEM file (first and last line)
                 List<string> lines = new List<string>(rawKey.Split('\n'));
-                var firstline = lines[0];
-                if (firstline.Contains("RSA"))
-                {
-                    isRsaKey = true;
-                }
-                else
-                {
-                    isRsaKey = false;
-                }
+                isRsaKey = lines[0].Contains("RSA");
                 keyText = string.Join("", lines.GetRange(1, lines.Count - 2).ToArray());
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", e);
+                Log.WriteError("Key extraction", "Error while trying to read key from file.", exception);
             }
-            Log.WriteDebug("Extract Key", $"AuthClient::ExtractKeyFromPemAsString keyText={keyText}");
-            return keyText;
+          
+            Log.WriteDebug("Key extraction", "Key was succesfully extracted.");
+            return (keyText, isRsaKey);
         }
     }
 }

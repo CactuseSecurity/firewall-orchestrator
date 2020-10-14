@@ -39,7 +39,7 @@ namespace FWO.Auth.Server
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
 
-        private const int timeOutInMs = 200;
+        private const int timeOutInMs = 200; // TODO: MOVE TO API
 
         /// <summary>
         /// Builds a connection to the specified Ldap server.
@@ -97,7 +97,7 @@ namespace FWO.Auth.Server
                             if (connection.Bound)
                             {
                                 // Return ldap dn
-                                Log.WriteInfo("User Validation", $"Successful authentication for \"{ currentUser.Dn}\"");
+                                Log.WriteDebug("User Validation", $"\"{ currentUser.Dn}\" successfully authenticated.");
                                 return currentUser.Dn;
                             }
 
@@ -105,9 +105,7 @@ namespace FWO.Auth.Server
                             {
                                 // this will probably never be reached as an error is thrown before
                                 // Incorrect password - do nothing, assume its another user with the same username
-                                // Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
-                                Log.WriteDebug("Oops", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
-
+                                Log.WriteDebug("User Validation", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
                             }
                         }
                         catch (LdapException exc)
@@ -126,7 +124,6 @@ namespace FWO.Auth.Server
             }
 
             Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\".");
-
             return "";
         }
 
@@ -160,7 +157,7 @@ namespace FWO.Auth.Server
                         // Foreach user 
                         foreach (string currentDn in roleMemberDn)
                         {
-                            Log.WriteDebug("Ldap Roles", $"Checking if current Dn: {currentDn} is user Dn. Then user has current role.");
+                            Log.WriteDebug("Ldap Roles", $"Checking if current Dn: \"{currentDn}\" is user Dn. Then user has current role.");
 
                             // Check if current user dn is matching with given user dn => Given user has current role
                             if (currentDn == userDn)

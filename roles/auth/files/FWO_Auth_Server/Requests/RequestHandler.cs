@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace FWO.Auth.Server.Requests
 {
@@ -16,22 +17,17 @@ namespace FWO.Auth.Server.Requests
         private Dictionary<string, JsonElement> Parameters;
 
         /// <summary>
-        /// Connected Ldaps to handle requests
-        /// </summary>
-        protected List<Ldap> Ldaps;
-
-        /// <summary>
         /// Calls <see cref="GetRequestParameters(HttpListenerRequest)"/> to get request parameters.
-        /// Then calls <see cref="HandleRequestInternal(HttpListenerRequest)"/> to handle request. Catches errors wraps them and sends them back.
+        /// Then calls <see cref="HandleRequestInternalAsync(HttpListenerRequest)"/> to handle request. Catches errors wraps them and sends them back.
         /// </summary>
         /// <param name="request">The request to handle.</param>
         /// <returns>(Status of request, Result wrapped in dictonary as Json / Errors wrapped in dictonary as Json)</returns>
-        public virtual (HttpStatusCode status, string wrappedResult) HandleRequest(HttpListenerRequest request)
+        public virtual async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestAsync(HttpListenerRequest request)
         { 
             try
             {
                 InitializeRequestParameters(request);
-                return HandleRequestInternal(request);
+                return await HandleRequestInternalAsync(request);
             }
             catch (Exception exception)
             {
@@ -48,7 +44,7 @@ namespace FWO.Auth.Server.Requests
         /// </summary>
         /// <param name="request">Request to handle.</param>
         /// <returns>(Status of request, Result wrapped in dictonary as json)</returns>
-        protected abstract (HttpStatusCode status, string wrappedResult) HandleRequestInternal(HttpListenerRequest request);
+        protected abstract Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request);
 
         /// <summary>
         /// Reads request parameters from <paramref name="request"/> as string. Converts them and save them in <see cref="Parameters"/>.
@@ -56,18 +52,18 @@ namespace FWO.Auth.Server.Requests
         /// <param name="request">Request to read parameters from.</param>
         private void InitializeRequestParameters(HttpListenerRequest request)
         {
-            Log.WriteDebug("Initialize Request Parameters", "Trying to read request parameters...");
+            Log.WriteDebug("Request Parameters", "Trying to unwrap request parameters...");
 
             try
             {
                 string parametersJson = new StreamReader(request.InputStream).ReadToEnd();
                 Parameters = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(parametersJson);
 
-                Log.WriteDebug("Request Parameters", "Request Parameters successfully read.");
+                Log.WriteDebug("Request Parameters", "Request Parameters successfully unwrapped.");
             }
             catch (Exception ex)
             {
-                throw new ArgumentException("Request Parameters could not be read.", ex);
+                throw new ArgumentException("Request Parameters could not be unwrapped.", ex);
             }
         }
 

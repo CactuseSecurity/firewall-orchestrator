@@ -8,7 +8,7 @@ namespace FWO.Ui.Data.Api
 {
     public class ServiceType
     {
-        [JsonPropertyName("svc_typ_name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
     }
 }

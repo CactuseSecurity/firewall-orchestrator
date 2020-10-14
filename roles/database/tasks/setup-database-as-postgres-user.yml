@@ -41,7 +41,6 @@
     loop:
       - fworch-db-model.sql
       - fworch-user-textreader.sql
-      # - fworch-grants.sql testen obs weg kann
       - fworch-change-to-delete-cascade.sql
     when: installation_mode == "new"
 

@@ -6,14 +6,12 @@ on:
      paths-ignore:
        - 'design/**'
        - 'roles/frontend-php/**'
-       - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
   pull_request:
      types: [ ready_for_review review_requested ]
      branches: [ master ]
      paths-ignore:
       - 'design/**'
       - 'roles/frontend-php/**'
-      - 'roles/backend/files/install/database/db-install-scripts/**' # TODO: Convert to ANSIBLE
 
 jobs:
   # This workflow contains a single job called "build"

@@ -39,7 +39,7 @@ app {
     text-overflow: ellipsis;
 }
 
-.sidebar {
+.sidebar-main {
 /*    margin-top: -60px;
     margin-right: -40px;*/
     right: 0px;
@@ -49,7 +49,7 @@ app {
     height: 100vh;
 }
 
-.sizer {
+.sidebar-sizer {
     height: 100%;
     width: 4px;
     background-color: black;
@@ -57,7 +57,7 @@ app {
     border-style: double;
 }
 
-.min-max-button {
+.sidebar-min-max-button {
     border-radius: 14px 0px 0px 14px;
     border-right-style: hidden;
     padding: 10px;

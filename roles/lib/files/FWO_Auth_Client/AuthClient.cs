@@ -19,7 +19,7 @@ namespace FWO.Auth.Client
             requestSender = new RequestSender(authServerUri);
         }
 
-        public async Task<RequestResult> AuthenticateUser(string Username, string Password)
+        public async Task<AuthServerResponse> AuthenticateUser(string Username, string Password)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {

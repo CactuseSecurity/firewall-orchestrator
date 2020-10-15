@@ -214,14 +214,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        networkServices = await Connection.SendQuery<Service>(ObjectQueries.getNetworkServiceObjectDetails);
-        networkObjects = await Connection.SendQuery<NetworkObject>(ObjectQueries.getNetworkObjectDetails);
+        networkServices = await Connection.SendQueryAsync<Service>(ObjectQueries.getNetworkServiceObjectDetails);
+        networkObjects = await Connection.SendQueryAsync<NetworkObject>(ObjectQueries.getNetworkObjectDetails);
     }
 
     private async Task GenerateTestReport(MouseEventArgs e)
     {
         try {
-            Managements = await Connection.SendQuery<Management>(RuleQueries.getRuleOverview);
+            Managements = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview);
         }
         catch(Exception exception)
         {

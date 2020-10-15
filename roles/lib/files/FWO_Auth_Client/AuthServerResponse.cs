@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace FWO.Auth.Client
 {
-    public class RequestResult
+    public class AuthServerResponse
     {
         private Dictionary<string, JsonElement> resultsJson;
 
@@ -15,7 +15,7 @@ namespace FWO.Auth.Client
 
         public string Error { get; internal set; }
 
-        internal RequestResult(HttpStatusCode status, Dictionary<string, JsonElement> resultsJson = null)
+        internal AuthServerResponse(HttpStatusCode status, Dictionary<string, JsonElement> resultsJson = null)
         {
             this.resultsJson = resultsJson;
             Status = status;
@@ -33,7 +33,7 @@ namespace FWO.Auth.Client
             }
         }
 
-        internal RequestResult(HttpStatusCode status, string errorMessage)
+        internal AuthServerResponse(HttpStatusCode status, string errorMessage)
         {
             Status = status;
             Error = errorMessage;

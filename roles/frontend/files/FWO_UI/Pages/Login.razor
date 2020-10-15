@@ -85,7 +85,7 @@
         loginInProgress = true;
 
         // There is no jwt in session storage. Get one from auth module.
-        RequestResult apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
+        AuthServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
 
         // There was an error trying to authenticate the user. Probably invalid credentials
         if (apiAuthResponse.Status == HttpStatusCode.BadRequest)

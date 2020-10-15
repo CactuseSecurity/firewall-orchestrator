@@ -109,7 +109,7 @@ namespace FWO.Auth.Server.Requests
         /// <returns><paramref name="result"/> wrapped in <c>Dictionary</c> serialized to Json.</returns>
         protected (HttpStatusCode status, string wrappedResult) WrapResult(HttpStatusCode status, params (string key, object value)[] result)
         {
-            Log.WriteDebug("Warp Result", $"Wrapping Result: \n {string.Join("\n", result)}");
+            Log.WriteDebug("Wrap result", $"Wrapping Result: \n {string.Join("\n", result)}");
 
             Dictionary<string, object> resultWrapper = new Dictionary<string, object>();
 

@@ -61,7 +61,7 @@ namespace FWO.Logging
             string File = Path.Split('\\', '/').Last();
             ConsoleColor StandardBackgroundColor = Console.BackgroundColor;
             ConsoleColor StandardForegroundColor = Console.ForegroundColor;
-            WriteInColor($"{LogType} - {Title} ({File} in line {Line}): {Text}\n", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
+            WriteInColor($"{LogType} - {Title} ({File} in line {Line}): {Text}", StandardForegroundColor, StandardBackgroundColor, ForegroundColor, BackgroundColor);
         }
 
         private static void WriteInColor(string Text, ConsoleColor StandardForegroundColor, ConsoleColor StandardBackgroundColor, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)

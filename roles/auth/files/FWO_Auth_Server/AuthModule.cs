@@ -42,11 +42,9 @@ namespace FWO.Auth.Server
             listener = new HttpListener();
 
             // Handle timeouts
-            HttpListenerTimeoutManager timeoutManager = listener.TimeoutManager;
-            timeoutManager.IdleConnection = TimeSpan.FromSeconds(10);
-            timeoutManager.HeaderWait = TimeSpan.FromSeconds(10);
-            timeoutManager.DrainEntityBody = TimeSpan.FromSeconds(10);
-            timeoutManager.RequestQueue = TimeSpan.FromMinutes(2);
+            //HttpListenerTimeoutManager timeoutManager = listener.TimeoutManager;
+            //timeoutManager.IdleConnection = TimeSpan.FromSeconds(10);
+            // TODO: Timeout for Request in HandleConnectionAsync
 
             // Create Token Generator
             JwtWriter jwtWriter = GetNewJwtWriter();

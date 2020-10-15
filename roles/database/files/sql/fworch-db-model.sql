@@ -16,6 +16,14 @@ Cache 1;
 
 /* Create Tables */
 
+-- the device_type table is only needed for the API
+-- it allows for the pre-auth functions to work with hasura
+Create table "device_type"
+(
+    "id"      int,
+    "name"    VARCHAR
+);
+
 Create table "device"
 (
 	"dev_id" SERIAL,

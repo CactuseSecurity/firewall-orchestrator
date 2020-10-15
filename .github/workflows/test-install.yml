@@ -1,5 +1,5 @@
 
-name: test-install on ready for review PR
+name: test-install
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch

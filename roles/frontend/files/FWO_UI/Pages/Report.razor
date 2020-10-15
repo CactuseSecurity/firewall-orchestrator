@@ -150,11 +150,11 @@
         </div>
     </div>
 
-    <div class="sidebar d-flex flex-row h-100">
-        <div class="btn-dark btn-sm min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
+    <div class="sidebar-main d-flex flex-row h-100">
+        <div class="btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
             <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
         </div>
-        <div class="sizer" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+        <div class="sidebar-sizer" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
         <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x:@overflowSidebar;">
             <div class="m-2">
 
@@ -210,7 +210,7 @@
     private int sidebarLayerZ = 0;
     private int sidebarWidth = 300;
 
-    private int contentMarginRight = 280;
+    private int contentMarginRight = 30;
 
     protected override async Task OnInitializedAsync()
     {
@@ -243,7 +243,7 @@
         int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
 
         sidebarWidth = (int)(sidebarWidth + postitionDiffrence);
-        contentMarginRight = (int)(contentMarginRight + postitionDiffrence);
+        //contentMarginRight = (int)(contentMarginRight + postitionDiffrence);
 
         resizeStartX = mouseArgs.ScreenX;
     }
@@ -260,7 +260,7 @@
             overflowSidebar = "hidden";
             minMaxButtonSymbol = "minus";
             sidebarWidth = sidebarWidthBeforeMinimize;
-            contentMarginRight = contentMarginRightBeforeMinimize;
+            //contentMarginRight = contentMarginRightBeforeMinimize;
         }
 
         else
@@ -270,7 +270,7 @@
             sidebarWidthBeforeMinimize = sidebarWidth;
             contentMarginRightBeforeMinimize = contentMarginRight;
             sidebarWidth = 0;
-            contentMarginRight = 20;
+            //contentMarginRight = 20;
         }
     }
 }

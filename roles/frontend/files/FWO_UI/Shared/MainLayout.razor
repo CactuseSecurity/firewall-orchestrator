@@ -1,18 +1,11 @@
 ﻿@inherits LayoutComponentBase
 
-<CascadingValue Value="navLayerZ">
-    <div style="z-index:2; position:sticky; position: -webkit-sticky; top: 0;">
-        <NavigationMenu />
-    </div>
-</CascadingValue>
+<div style="z-index:2; position:sticky; position: -webkit-sticky; top: 0;">
+    <NavigationMenu />
+</div>
 
 <div class="main" style="position:relative">
     <div class="content p-4">
         @Body
     </div>
 </div>
-
-@code
-{
-    int navLayerZ;
-}

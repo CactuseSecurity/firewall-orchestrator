@@ -9,9 +9,6 @@
         - "{{ postgresql_test_package }}"
         - libpq-dev
 
-    # - name: set fact pg_version
-    #   set_fact: ansible_python_interpreter=/usr/bin/python3
-
     - name: find out installed postgres version
       script: get_pg_version.sh
       register: pg_version_result
@@ -93,9 +90,6 @@
       include_tasks: tablespace_as_root_prereq.yml      
       when: table_space is defined
 
-    # - name: remove all containers including api to make sure the database can be dropped
-    #   script: "remove_all_containers.sh"
-
   become: yes
 
 - name: check if database already exists
@@ -104,35 +98,9 @@
   become: yes
   become_user: postgres 
 
-- name: Check that docker bin is installed
-  stat:
-    path: /usr/bin/docker
-  register: docker_is_installed
-
-- name: check if api container is running
-  command: "docker ps -q --filter name={{ api_container_name }}"
-  become: yes
-  register: docker_ps_out
-  when: docker_is_installed.stat.exists == True
-
-- name: stop api container
-  command: "docker stop {{ api_container_name }}"
-  become: yes
-  when: docker_is_installed.stat.exists == True and not docker_ps_out.stdout == ""
-  #when: clean_install is defined and not docker_ps_out.stdout == ""
-
-- name: check if api container exists
-  command: "docker ps --all -q --filter name={{ api_container_name }}"
-  become: yes
-  register: docker_ps_out
-  when: docker_is_installed.stat.exists == True
-  #when: (docker_is_installed.stat.exists == True) and (clean_install is defined)
-
-- name: remove api container
-  command: "docker rm {{ api_container_name }}"
-  become: yes
-  when: docker_is_installed.stat.exists == True and not docker_ps_out.stdout == ""
-  #when: clean_install is defined and not docker_ps_out.stdout == ""
+- name: stop api docker container to remove blocking database connections
+  import_tasks: remove-api-docker.yml
+  when: installation_mode == "upgrade"
 
 - name: restart postgresql to get rid of unwanted connections when dropping db
   service:
@@ -140,14 +108,6 @@
     state: restarted
   become: yes
   when: installation_mode == "upgrade"
-
-- name: copy authentication sql file
-  copy:
-    src: pre_auth_functions.sql
-    dest: "{{ database_install_dir }}/sql"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
-  become: yes
 
 - name: create new database
   import_tasks: setup-database-as-postgres-user.yml

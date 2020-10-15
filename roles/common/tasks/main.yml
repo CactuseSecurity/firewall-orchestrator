@@ -48,7 +48,7 @@
       - auth
       - bin
       - importer  
-      - install  
+      - database  
       - ui
       - lib
 

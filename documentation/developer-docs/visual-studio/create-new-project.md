@@ -15,7 +15,8 @@
 
 ## add necessary references in project file
 
-  cat ~/dev/tpur-fwo/firewall-orchestrator/roles/lib/files/FWO.ApiConfig/FWO.ApiConfig.csproj
+    cat ~/dev/tpur-fwo/firewall-orchestrator/roles/lib/files/FWO.ApiConfig/FWO.ApiConfig.csproj
+
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
 

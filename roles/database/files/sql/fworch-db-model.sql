@@ -1,9 +1,9 @@
 /*
-Created		29.04.2005
-Modified	21.07.2020
-Project		IT Security Organizer
-Company		Cactus eSecurity GmbH
-Database	PostgreSQL 9-12
+Created			29.04.2005
+Last modified	18.10.2020
+Project			IT Security Organizer
+Company			Cactus eSecurity GmbH
+Database		PostgreSQL 9-12
 */
 
 /* Create Sequences */
@@ -16,6 +16,25 @@ Cache 1;
 
 /* Create Tables */
 
+-- contains exactly one entry for each language available
+Create table "language"
+(
+	"id" Integer NOT NULL,
+	"name" Varchar NOT NULL,
+    primary key ("id")
+);
+
+-- contains all texts in all languages
+Create table "plain_text"
+(
+	"id" Serial,
+	"key" Varchar NOT NULL,
+	"language_id" Integer,
+    "text" Varchar
+    primary key ("id", "language_id")
+);
+
+
 -- the device_type table is only needed for the API
 -- it allows for the pre-auth functions to work with hasura
 Create table "device_type"
@@ -24,6 +43,9 @@ Create table "device_type"
     "name"    VARCHAR
 );
 
+-- fundamental firewall data -------------------------------------
+
+-- contains an entry for each firewall gateway
 Create table "device"
 (
 	"dev_id" SERIAL,
@@ -41,61 +63,6 @@ Create table "device"
 	"force_initial_import" Boolean NOT NULL Default FALSE,
 	"hide_in_gui" Boolean NOT NULL Default false,
  primary key ("dev_id")
-);
-
-Create table "tenant_project"
-(
-	"tenant_id" Integer NOT NULL,
-	"prj_id" Integer NOT NULL,
- primary key ("tenant_id","prj_id")
-);
-
-Create table "tenant"
-(
-	"tenant_id" SERIAL,
-	"tenant_name" Varchar NOT NULL,
-	"tenant_projekt" Varchar,
-	"tenant_comment" Text,
-	"tenant_report" Boolean Default true,
-	"tenant_can_view_all_devices" Boolean NOT NULL Default false,
-	"tenant_is_superadmin" Boolean NOT NULL default false,	
-	"tenant_create" Timestamp NOT NULL Default now(),
- primary key ("tenant_id")
-);
-
--- Create table "role"
--- (
--- 	"role_id" SERIAL,
--- 	"role_name" Varchar NOT NULL,
--- 	"role_can_view_all_devices" Boolean NOT NULL Default false,
--- 	"role_is_superadmin" Boolean NOT NULL default false,	
---  primary key ("role_id")
--- );
-
-Create table "tenant_to_device"
-(
-	"tenant_id" Integer NOT NULL,
-	"device_id" Integer NOT NULL,
- primary key ("tenant_id", "device_id")
-);
-
-Create table "tenant_object"
-(
-	"tenant_id" Integer NOT NULL,
-	"obj_id" Integer NOT NULL,
- primary key ("tenant_id","obj_id")
-);
-
-Create table "tenant_network"
-(
-	"tenant_net_id" BIGSERIAL,
-	"tenant_id" Integer NOT NULL,
-	"tenant_net_name" Varchar,
-	"tenant_net_comment" Text,
-	"tenant_net_ip" Cidr,
-	"tenant_net_ip_end" Cidr,
-	"tenant_net_create" Timestamp NOT NULL Default now(),
- primary key ("tenant_net_id")
 );
 
 Create table "management"
@@ -304,6 +271,96 @@ Create table "svcgrp"
  primary key ("svcgrp_id","svcgrp_member_id")
 );
 
+
+Create table "zone"
+(
+	"zone_id" BIGSERIAL,
+	"zone_create" Integer NOT NULL,
+	"zone_last_seen" Integer NOT NULL,
+	"mgm_id" Integer NOT NULL,
+	"zone_name" Varchar NOT NULL,
+	"active" Boolean NOT NULL Default TRUE,
+ primary key ("zone_id")
+);
+
+Create table "usr"
+(
+	"user_id" BIGSERIAL PRIMARY KEY,
+	"usr_typ_id" Integer NOT NULL,
+	"user_color_id" Integer Default 1,
+	"mgm_id" Integer NOT NULL,
+	"user_name" Varchar NOT NULL,
+	"active" Boolean NOT NULL Default TRUE,
+	"user_member_names" Text,
+	"user_member_refs" Text,
+	"user_authmethod" Varchar,
+	"user_valid_from" Date Default '1900-01-01',
+	"user_valid_until" Date Default '9999-12-31',
+	"src_restrict" Text,
+	"dst_restrict" Text,
+	"time_restrict" Text,
+	"user_create" Integer NOT NULL,
+	"user_last_seen" Integer NOT NULL,
+	"user_comment" Text,
+	"user_uid" Text,
+	"user_firstname" Varchar,
+	"user_lastname" Varchar,
+	"last_change_admin" Integer,
+	"tenant_id" Integer
+);
+
+Create table "usergrp"
+(
+	"usergrp_id" BIGSERIAL,
+	"usergrp_member_id" BIGSERIAL,
+	"import_created" Integer NOT NULL,
+	"import_last_seen" Integer NOT NULL,
+	"active" Boolean NOT NULL Default TRUE,
+ primary key ("usergrp_id","usergrp_member_id")
+);
+
+-- tenant -------------------------------------
+Create table "tenant"
+(
+	"tenant_id" SERIAL,
+	"tenant_name" Varchar NOT NULL,
+	"tenant_projekt" Varchar,
+	"tenant_comment" Text,
+	"tenant_report" Boolean Default true,
+	"tenant_can_view_all_devices" Boolean NOT NULL Default false,
+	"tenant_is_superadmin" Boolean NOT NULL default false,	
+	"tenant_create" Timestamp NOT NULL Default now(),
+ primary key ("tenant_id")
+);
+
+Create table "tenant_to_device"
+(
+	"tenant_id" Integer NOT NULL,
+	"device_id" Integer NOT NULL,
+ primary key ("tenant_id", "device_id")
+);
+
+Create table "tenant_object"
+(
+	"tenant_id" Integer NOT NULL,
+	"obj_id" Integer NOT NULL,
+ primary key ("tenant_id","obj_id")
+);
+
+Create table "tenant_network"
+(
+	"tenant_net_id" BIGSERIAL,
+	"tenant_id" Integer NOT NULL,
+	"tenant_net_name" Varchar,
+	"tenant_net_comment" Text,
+	"tenant_net_ip" Cidr,
+	"tenant_net_ip_end" Cidr,
+	"tenant_net_create" Timestamp NOT NULL Default now(),
+ primary key ("tenant_net_id")
+);
+
+-- basic static data -------------------------------------
+
 Create table "stm_action"
 (
 	"action_id" SERIAL,
@@ -373,53 +430,6 @@ Create table "stm_svc_typ"
 	"svc_typ_name" Varchar,
 	"svc_typ_comment" Text,
  primary key ("svc_typ_id")
-);
-
-Create table "zone"
-(
-	"zone_id" BIGSERIAL,
-	"zone_create" Integer NOT NULL,
-	"zone_last_seen" Integer NOT NULL,
-	"mgm_id" Integer NOT NULL,
-	"zone_name" Varchar NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
- primary key ("zone_id")
-);
-
-Create table "usr"
-(
-	"user_id" BIGSERIAL PRIMARY KEY,
-	"usr_typ_id" Integer NOT NULL,
-	"user_color_id" Integer Default 1,
-	"mgm_id" Integer NOT NULL,
-	"user_name" Varchar NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"user_member_names" Text,
-	"user_member_refs" Text,
-	"user_authmethod" Varchar,
-	"user_valid_from" Date Default '1900-01-01',
-	"user_valid_until" Date Default '9999-12-31',
-	"src_restrict" Text,
-	"dst_restrict" Text,
-	"time_restrict" Text,
-	"user_create" Integer NOT NULL,
-	"user_last_seen" Integer NOT NULL,
-	"user_comment" Text,
-	"user_uid" Text,
-	"user_firstname" Varchar,
-	"user_lastname" Varchar,
-	"last_change_admin" Integer,
-	"tenant_id" Integer
-);
-
-Create table "usergrp"
-(
-	"usergrp_id" BIGSERIAL,
-	"usergrp_member_id" BIGSERIAL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
- primary key ("usergrp_id","usergrp_member_id")
 );
 
 Create table "import_service"
@@ -953,10 +963,6 @@ Create index "IX_Relationship205" on "report" ("dev_id");
 Alter table "report" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_relationship7" on "device" ("tenant_id");
 Alter table "device" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
-Create index "IX_relationship1" on "tenant_project" ("tenant_id");
-Alter table "tenant_project" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
-Create index "IX_relationship2" on "tenant_project" ("prj_id");
-Alter table "tenant_project" add  foreign key ("prj_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
 Create index "IX_relationship15" on "tenant_object" ("tenant_id");
 Alter table "tenant_object" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
 Create index "IX_relationship3" on "tenant_network" ("tenant_id");

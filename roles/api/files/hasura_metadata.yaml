@@ -2200,20 +2200,6 @@ tables:
         table:
           name: tenant_object
           schema: public
-  - name: tenant_projects
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: tenant_project
-          schema: public
-  - name: tenantProjectsByPrjId
-    using:
-      foreign_key_constraint_on:
-        column: prj_id
-        table:
-          name: tenant_project
-          schema: public
   - name: tenant_to_devices
     using:
       foreign_key_constraint_on:
@@ -2275,16 +2261,6 @@ tables:
       foreign_key_constraint_on: tenant_id
   table:
     name: tenant_object
-    schema: public
-- object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  - name: tenantByPrjId
-    using:
-      foreign_key_constraint_on: prj_id
-  table:
-    name: tenant_project
     schema: public
 - object_relationships:
   - name: device

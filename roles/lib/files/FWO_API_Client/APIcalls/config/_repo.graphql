@@ -1,0 +1,48 @@
+
+# JWT Hash algorithm (needed by API, Auth, UI)
+
+
+###############################################
+# localization
+# texts in multiple languages (UI)
+
+
+query getText($textId: String) {
+  text_msg(where: { txt_msg_id: { _in: $textId } }) {
+    text_msg_eng
+    text_msg_ger
+    text_msg_id
+  }
+}
+
+# get all localized texts (once when logging in)
+query getText {
+  text_msg {
+    text_msg_eng
+    text_msg_ger
+    text_msg_id
+  }
+}
+
+
+# default language per user (UI)
+# current strategy: all user specific information is stored in ldap
+# --> should be retrieved via auth server?
+
+###############################################
+# basic config data related to device import/report
+# the following could be exposed for offering a UI menu for adding new basic config data:
+# currently only read by (UI, Importer)
+
+# stm_
+#     action
+#     change_type
+#     color
+#     dev_typ
+#     ip_proto
+#     nattyp (needed?)
+#     obj_typ
+#     report_typ
+#     svc_typ
+#     track
+#     usr_typ

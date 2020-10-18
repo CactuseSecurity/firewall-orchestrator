@@ -5,13 +5,17 @@ on:
      branches: [ master ]
      paths-ignore:
        - 'design/**'
+       - 'documentation/**'
        - 'roles/frontend-php/**'
+       - 'roles/frontend/files/FWO_UI/wwwroot/css/**'
   pull_request:
      types: [ ready_for_review review_requested ]
      branches: [ master ]
      paths-ignore:
-      - 'design/**'
-      - 'roles/frontend-php/**'
+       - 'design/**'
+       - 'documentation/**'
+       - 'roles/frontend-php/**'
+       - 'roles/frontend/files/FWO_UI/wwwroot/css/**'
 
 jobs:
   # This workflow contains a single job called "build"

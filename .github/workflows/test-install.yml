@@ -1,5 +1,5 @@
 
-name: test-install on ready for review PR
+name: Build
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
@@ -33,4 +33,4 @@ jobs:
 
     - name: do test install in case of merged pull request
       # if: github.event_name == 'push' && github.event.action == 'closed' && github.event.pull_request.merged == true
-      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory -e 'run_on_github=yes' site.yml -K
+      run: cd /home/runner/work/firewall-orchestrator/firewall-orchestrator && ansible-playbook -i inventory -e 'run_on_github=yes' --skip-tags test site.yml -K

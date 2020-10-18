@@ -7,10 +7,11 @@
 
 @page "/report"
 
-<h3>Test-Report</h3>
-
 <div class="d-flex flex-row justify-content-between">
-    <div class="report-content" style="margin-right:@($"{contentMarginRight}px")">
+
+    <div class="report-content" style="margin-right: @($"{sidebarWidth + 10}px")">
+        <h3>Test-Report</h3>
+
         <button class="btn btn-primary m-2" @onclick="GenerateTestReport">Generate Report</button>
 
         <form class="form-inline m-2">
@@ -63,7 +64,7 @@
 
                         Array.Sort(device.Rules, (a, b) => (int)(a.OrderNumber - b.OrderNumber));
 
-                        <Table style="font-size:small" TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="rulesPerPage" ColumnReorder="true">
+                        <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="rulesPerPage" ColumnReorder="true">
                             <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
                                 <Template>
                                     @{
@@ -90,7 +91,7 @@
 
                                             @foreach (NetworkObjectWrapper source in context.Froms)
                                             {
-                                                @($"{source.Content.Name}" + (source.Content.IP != null ? $"({source.Content.IP})" : ""))<br>
+                                                @($"{source.Content.Name}" + (source.Content.IP != null ? $" ({source.Content.IP})" : ""))<br>
                                             }
                                         }
                                     </p>
@@ -107,7 +108,7 @@
 
                                             foreach (NetworkObjectWrapper destination in context.Tos)
                                             {
-                                                @($"{destination.Content.Name}" + (destination.Content.IP != null ? $"({destination.Content.IP})" : ""))<br>
+                                                @($"{destination.Content.Name}" + (destination.Content.IP != null ? $" ({destination.Content.IP})" : ""))<br>
                                             }
                                         }
                                     </p>
@@ -124,7 +125,7 @@
 
                                             foreach (ServiceWrapper service in context.Services)
                                             {
-                                                @($"{service.Content.Name}" + (service.Content.Port != null ? $"({service.Content.Port}/{service.Content.Type.Name})" : ""))<br>
+                                                @($"{service.Content.Name}" + (service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{service.Content.Protocol.Name})" : ""))<br>
                                             }
                                         }
                                     </p>
@@ -150,45 +151,53 @@
         </div>
     </div>
 
-    <div class="sidebar-main d-flex flex-row h-100">
+    <div class="sidebar-main d-flex flex-row" style="right: 0px;">
         <div class="btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
             <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
         </div>
         <div class="sidebar-sizer" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
         <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x:@overflowSidebar;">
-            <div class="m-2">
+            <div class="m-3">
+                @* Sidebar Content *@
 
-                <div class="m-2">
-                    @* Sidebar Content *@
-
-                    <div class="d-flex justify-content-center m-2">
-                        <h5>Services</h5>
-                    </div>
-                    <Table style="font-size:small" TableItem="Service" Items="networkServices" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="Service" Title="Name" Field="@(x => x.Name)" />
-                        <DetailTemplate TableItem="Service">
-                            <b>UID</b> @context.Uid <br />
-                            <b>Port</b> @(context.Port == context.PortEnd ? context.Port.ToString() : $"{context.Port.ToString()}-{context.PortEnd.ToString()}") <br />
-                            <b>Type</b> @context.Type.Name
-                        </DetailTemplate>
-                    </Table>
-
-                    <div class="d-flex justify-content-center m-2">
-                        <h5>Netzwerkobjekte</h5>
-                    </div>
-                    <Table style="font-size:small" TableItem="NetworkObject" Items="networkObjects" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" />
-                        <DetailTemplate TableItem="NetworkObject">
-                            <b>UID</b> @context <br />
-                            <b>IP</b> @(context.IP == context.IP ? context.IP.ToString() : $"{context.IP.ToString()}-{context.IP.ToString()}") <br />
-                            <b>Type</b> @context
-                        </DetailTemplate>
-                    </Table>
-
-                    <div class="d-flex justify-content-center m-2">
-                        <h5>User</h5>
-                    </div>
+                <div class="d-flex justify-content-center m-2">
+                    <h5>Services</h5>
                 </div>
+                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="networkServices" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="NetworkService" Title="Name" Field="@(x => x.Name)" />
+                    <DetailTemplate TableItem="NetworkService">
+                        <b>UID</b> @context.Uid <br />
+                        <b>Source Port</b> @(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") <br />
+                        <b>Destination Port</b> @(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") <br />
+                        <b>Type</b> @context.Type.Name
+                    </DetailTemplate>
+                </Table>
+
+                <div class="d-flex justify-content-center m-2">
+                    <h5>Netzwerkobjekte</h5>
+                </div>
+                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="networkObjects" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" />
+                    <DetailTemplate TableItem="NetworkObject">
+                        <b>UID</b> @context <br />
+                        <b>IP</b> @(context.IP == context.IP ? context.IP.ToString() : $"{context.IP.ToString()}-{context.IP.ToString()}") <br />
+                        <b>Type</b> @context
+                    </DetailTemplate>
+                </Table>
+
+                <div class="d-flex justify-content-center m-2">
+                    <h5>User</h5>
+                </div>
+                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="networkUsers" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" />
+                    <DetailTemplate TableItem="NetworkUser">
+                        <b>UID</b> @context.Uid <br />
+                        <b>Name</b> @context.Name <br />
+                        <b>Real Name</b> @($"{context.FirstName} {context.LastName}") <br />
+                        <b>Comment</b> @context.Comment <br />
+                        <b>Type</b> @context.Type.Name
+                    </DetailTemplate>
+                </Table>
             </div>
         </div>
     </div>
@@ -201,35 +210,87 @@
     private string FilterButtonCollapse = "oi-minus";
 
     private Management[] Managements = new Management[0];
-    private Service[] networkServices = new Service[0];
+    private NetworkService[] networkServices = new NetworkService[0];
     private NetworkObject[] networkObjects = new NetworkObject[0];
+    private NetworkUser[] networkUsers = new NetworkUser[0];
 
     private int rulesPerFetch = 0;
     private int rulesPerPage = 0;
 
-    private int sidebarLayerZ = 0;
-    private int sidebarWidth = 300;
-
-    private int contentMarginRight = 30;
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        networkServices = await Connection.SendQueryAsync<Service>(ObjectQueries.getNetworkServiceObjectDetails);
-        networkObjects = await Connection.SendQueryAsync<NetworkObject>(ObjectQueries.getNetworkObjectDetails);
+        //List<Task> tasks = new List<Task>();
+
+        //tasks.Add(
+        Task.Run(async () =>
+        {
+            try
+            {
+                Management[] managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
+
+                foreach (Management management in managementsServices)
+                {
+                    networkServices = networkServices.Concat(management.Services).ToArray();
+                }
+
+                await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
+        }
+            catch (Exception exception)
+            {
+                Log.WriteError("Fetching Error", "Error while fetching network services from API.", exception);
+            }
+        });
+        //);
+
+        //tasks.Add(
+        Task.Run(async () =>
+        {
+            Management[] managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
+
+            foreach (Management management in managementsObjects)
+            {
+                networkObjects = networkObjects.Concat(management.Objects).ToArray();
+            }
+
+            await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
+    });
+        //);
+
+        //tasks.Add(
+        Task.Run(async () =>
+        {
+            Management[] managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
+
+            foreach (Management management in managementsUsers)
+            {
+                networkUsers = networkUsers.Concat(management.Users).ToArray();
+            }
+
+            await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
+    });
+        //);
+
+        //while (tasks.Count > 0)
+        //{
+        //    tasks.Remove(await Task.WhenAny(tasks.ToArray()));
+        //    StateHasChanged();
+        //}
     }
 
     private async Task GenerateTestReport(MouseEventArgs e)
     {
-        try {
+        try
+        {
             Managements = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview);
         }
-        catch(Exception exception)
+        catch (Exception exception)
         {
             if (exception.Message == "no such type exists in the schema: 'cidr'")
             {
                 // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
                 // leave Managements as default = empty array
-            } else
+            }
+            else
             {
                 Log.WriteError("Access rights", "User does not have sufficient access rights", exception);
             }
@@ -261,10 +322,12 @@
         resizeStartX = mouseArgs.ScreenX;
     }
 
-    int sidebarWidthBeforeMinimize;
-    int contentMarginRightBeforeMinimize;
-    string minMaxButtonSymbol = "minus";
-    string overflowSidebar = "auto";
+    private int sidebarLayerZ = 0;
+    private int sidebarWidth = 300;
+    private int sidebarWidthBeforeMinimize;
+
+    private string minMaxButtonSymbol = "minus";
+    private string overflowSidebar = "auto";
 
     private void MinMaxSidebar()
     {
@@ -273,7 +336,7 @@
             overflowSidebar = "hidden";
             minMaxButtonSymbol = "minus";
             sidebarWidth = sidebarWidthBeforeMinimize;
-            //contentMarginRight = contentMarginRightBeforeMinimize;
+
         }
 
         else
@@ -281,9 +344,7 @@
             overflowSidebar = "auto";
             minMaxButtonSymbol = "plus";
             sidebarWidthBeforeMinimize = sidebarWidth;
-            contentMarginRightBeforeMinimize = contentMarginRight;
             sidebarWidth = 0;
-            //contentMarginRight = 20;
         }
     }
 }

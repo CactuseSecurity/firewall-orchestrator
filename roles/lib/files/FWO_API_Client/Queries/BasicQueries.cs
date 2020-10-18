@@ -15,6 +15,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string getVisibleDeviceIdsPerTenant;
         public static readonly string getVisibleManagementIdsPerTenant;
         public static readonly string getLdapConnections;
+        public static readonly string getManagementsDetails;
 
         static BasicQueries()
         {
@@ -27,10 +28,12 @@ namespace FWO.ApiClient.Queries
                 getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleManagementIdsPerTenant.graphql");
 
                 getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
+
+                getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql");
             }
             catch (Exception exception)
             {
-                Log.WriteError("Initialize Api Queries", "Api Object Queries could not be loaded.", exception);
+                Log.WriteError("Initialize Api Queries", "Api Basic Queries could not be loaded.", exception);
                 Environment.Exit(-1);
             }
         }

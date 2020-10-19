@@ -40,13 +40,9 @@ app {
 }
 
 .sidebar-main {
-/*    margin-top: -60px;
-    margin-right: -40px;*/
-    right: 0px;
-    top: 0px;
-    position: -webkit-sticky;
-    position: sticky;
-    height: 100vh;
+    position: fixed;
+    top: 56px;
+    height: 95%;
 }
 
 .sidebar-sizer {

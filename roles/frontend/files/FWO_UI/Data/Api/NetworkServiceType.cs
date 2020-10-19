@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Ui.Data.Api
 {
-    public class ServiceType
+    public class NetworkServiceType
     {
         [JsonPropertyName("name")]
         public string Name { get; set; }

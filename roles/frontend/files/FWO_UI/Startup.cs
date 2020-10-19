@@ -41,9 +41,12 @@ namespace FWO.Ui
 
             string ApiUri = configConnection.ApiServerUri;
             string AuthUri = configConnection.AuthServerUri;
+            string ProductVersion = configConnection.ProductVersion;
 
-            services.AddScoped<APIConnection>(api => new APIConnection(ApiUri));
-            services.AddScoped<AuthClient>(auth => new AuthClient(AuthUri));
+            services.AddScoped<APIConnection>(_ => new APIConnection(ApiUri));
+            services.AddScoped<AuthClient>(_ => new AuthClient(AuthUri));
+            services.AddSingleton<string>(_ => ProductVersion); // TODO: turn this into config class
+            //services.AddSingleton<List<UiText>>(uiTexts => UiTexts);
             services.AddBlazoredSessionStorage();
         }
 

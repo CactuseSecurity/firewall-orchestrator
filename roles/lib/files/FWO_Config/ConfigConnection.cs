@@ -79,6 +79,16 @@ namespace FWO.Config
             }
         }
 
+        private string productVersion = null;
+        public string ProductVersion
+        {
+            get
+            {
+                CriticalConfigValueLoaded(productVersion);
+                return productVersion;
+            }
+        }
+
         public ConfigConnection()
         {
             #region Config File
@@ -108,7 +118,10 @@ namespace FWO.Config
                 IgnoreExceptions(() => authServerUri = configFileData["auth_uri"]);
 
                 // Try to get api uri
-                IgnoreExceptions(() => apiServerUri = configFileData["api_uri"]);               
+                IgnoreExceptions(() => apiServerUri = configFileData["api_uri"]);
+                
+                // Try to get productVersion
+                IgnoreExceptions(() => productVersion = configFileData["product_version"]);
             }
 
             catch (Exception configFileReadException)

@@ -1,12 +1,14 @@
 ﻿@using FWO.Ui.Data;
 @using System.Security.Claims
 
+@inject string version
+
 @if (show)
 {
     <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark shadow">
         <a class="navbar-brand" href="#">
             <!-- <img src="images/FWO_Logo.png" /> -->
-            Firewall-Orchestrator
+            Firewall-Orchestrator @($"v{version}")
         </a>
 
         <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">

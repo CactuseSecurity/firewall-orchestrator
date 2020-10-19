@@ -97,11 +97,9 @@ query showManufacturers {
   }
 }
 
-
 #############################
 ## mutations
 #############################
-
 
 mutation newManagement(
   $dev_typ_id: Int!
@@ -111,14 +109,16 @@ mutation newManagement(
   insert_management(
     objects: {
       config_path: ""
-      dev_typ_id: 10
+      dev_typ_id: $dev_typ_id
       importer_hostname: ""
-      mgm_name: "$mgm_name"
+      mgm_name: $mgm_name
       ssh_hostname: ""
-      ssh_private_key: ""
+      ssh_private_key: $ssh_private_key
       ssh_user: ""
     }
   ) {
-    affected_rows
+    returning {
+      mgm_id
+    }
   }
 }

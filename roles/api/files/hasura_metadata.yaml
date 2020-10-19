@@ -166,13 +166,6 @@ tables:
         table:
           name: report
           schema: public
-  - name: rule_orders
-    using:
-      foreign_key_constraint_on:
-        column: dev_id
-        table:
-          name: rule_order
-          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
@@ -438,13 +431,6 @@ tables:
         column: rf_last_seen
         table:
           name: rule_from
-          schema: public
-  - name: rule_orders
-    using:
-      foreign_key_constraint_on:
-        column: control_id
-        table:
-          name: rule_order
           schema: public
   - name: rules
     using:
@@ -1263,13 +1249,6 @@ tables:
         table:
           name: rule_from
           schema: public
-  - name: rule_orders
-    using:
-      foreign_key_constraint_on:
-        column: rule_id
-        table:
-          name: rule_order
-          schema: public
   - name: rule_reviews
     using:
       foreign_key_constraint_on:
@@ -1451,19 +1430,6 @@ tables:
     role: reporter-viewall
   table:
     name: rule_from
-    schema: public
-- object_relationships:
-  - name: device
-    using:
-      foreign_key_constraint_on: dev_id
-  - name: import_control
-    using:
-      foreign_key_constraint_on: control_id
-  - name: rule
-    using:
-      foreign_key_constraint_on: rule_id
-  table:
-    name: rule_order
     schema: public
 - object_relationships:
   - name: rule

@@ -19,5 +19,6 @@
         - FWO_Auth_Client
         - FWO_Logging
         - FWO_Config
+        - FWO.ApiConfig
 
   become: yes

@@ -1,6 +1,6 @@
 # Installation instructions server
 
-- for client installation see <https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/client-eto-install.md>
+- for client installation see [client install instructions](client-eto-install.md)
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
 - this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 

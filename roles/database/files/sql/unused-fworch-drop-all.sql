@@ -67,7 +67,6 @@ Drop table "management" Cascade;
 Drop table "tenant_network" Cascade;
 Drop table "tenant_object" Cascade;
 Drop table "tenant" Cascade;
-Drop table "tenant_project" Cascade;
 Drop table "device" Cascade;
 ---
 Drop table "tenant_username" Cascade;

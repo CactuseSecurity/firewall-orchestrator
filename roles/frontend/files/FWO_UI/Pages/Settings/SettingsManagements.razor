@@ -1,0 +1,125 @@
+﻿@using BlazorTable
+@using FWO.Ui.Data.Api
+@using FWO.ApiClient
+
+@page "/settings/managements"
+
+@inject APIConnection apiConnection
+
+<h3 class="m-2">Managements Settings</h3>
+
+<button class="btn btn-success m-2" @onclick="Add">Add</button>
+
+<div class="d-flex flex-column m-2">
+    <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Management" Title="Id" Field="@(x => x.Id)" Sortable="true" Filterable="true" DefaultSortColumn="true">
+            <Template>
+                @{
+                    if (EditMode && context.Id == ManagementIdEdit)
+                    {
+                        <input type="number" step="1" @bind-value="@context.Id" class="form-control form-control-sm" />
+                    }
+                    else
+                    {
+                        @context.Id
+                    }
+                }
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+            <Template>
+                @{
+                    if (EditMode && context.Id == ManagementIdEdit)
+                    {
+                        <input type="text" @bind-value="@context.Name" class="form-control form-control-sm" />
+                    }
+                    else
+                    {
+                        @context.Name
+                    }
+                }
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                @{
+                    if (EditMode && ManagementIdEdit == context.Id)
+                    {
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+                            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Toggle Edit</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete</button>
+                        </div>
+                    }
+                }
+            </Template>
+        </Column>
+    </Table>
+
+    @*<form class="form-inline m-2">
+            <div class="form-group m-1">
+                <label for="rulesPerDeviceHtml">Load rules per fetch: </label>
+                <input id="rulesPerDeviceHtml" type="number" class="form-control m-1" @bind="rulesPerFetch" />
+            </div>
+            <div class="form-group m-1">
+                <label for="rulesPerPageHtml">Show rules per page: </label>
+                <input id="rulesPerPageHtml" type="number" class="form-control m-1" @bind="rulesPerPage" />
+            </div>
+        </form>*@
+</div>
+
+@code
+{
+    private List<Management> managements = new List<Management>();
+
+    private ITable<Management> table;
+
+    private bool EditMode = false;
+    private bool DeleteMode = false;
+    private bool AddMode = false;
+
+    private int ManagementIdEdit = int.MinValue;
+    private int ManagementIdDelete = int.MinValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.getManagementsDetails))).ToList();
+    }
+
+    private void Edit(Management management)
+    {
+        ManagementIdEdit = management.Id;
+        EditMode = !EditMode;
+    }
+
+    private void Delete(Management management)
+    {
+        managements.Remove(management);
+    }
+
+    private void Add()
+    {
+        Management newManagement = new Management() { Id = int.MaxValue, Name = "" };
+        managements.Add(newManagement);
+        Edit(newManagement);
+    }
+
+    private void Save()
+    {
+        EditMode = false;
+    }
+
+    private void Cancel()
+    {
+        EditMode = false;
+    }
+}
+
+
+

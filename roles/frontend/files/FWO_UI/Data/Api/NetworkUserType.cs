@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace FWO.Ui.Data.Api
 {
-    public class ServiceWrapper
+    public class NetworkUserType
     {
-        [JsonPropertyName("service")]
-        public NetworkService Content { get; set; }
+        [JsonPropertyName("usr_typ_name")]
+        public string Name { get; set; }
     }
 }

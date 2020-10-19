@@ -37,13 +37,12 @@
     auth_change_local_ldap: "no"
   when: ldap_conn_present.stdout >= "1"
 
-- debug:
-    var:
-      - ldap_conn_present
-      - auth_change_local_ldap
+- name: import ldif driven changes
+  import_tasks: set_initial_ldap_tree.yml
 
-- name: include ldif driven changes
-  import_tasks: modify_ldap_tree.yml
+- name: import ldif driven upgrades
+  import_tasks: upgrade_ldap_tree.yml
+  when: installation_mode == "upgrade"
 
 - name: Set {{ auth_ldap_internal_readonly_user }} password in ldap
   command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid={{ auth_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ auth_ldap_path }}'"

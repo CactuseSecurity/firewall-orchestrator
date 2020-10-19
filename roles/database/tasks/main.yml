@@ -98,21 +98,9 @@
   become: yes
   become_user: postgres 
 
-# - name: stop api docker container to remove blocking database connections
-#   import_tasks: remove-api-docker.yml
-#   when: installation_mode == "upgrade"
-
-# - name: restart postgresql to get rid of unwanted connections when dropping db
-#   service:
-#     name: postgresql
-#     state: restarted
-#   become: yes
-#   when: installation_mode == "upgrade"
-
 - name: create new database
   import_tasks: install-database.yml
   when: installation_mode == "new"
-#  when: installation_mode == "new" or db_exists.stdout=="0"
 
 - name: upgrade database
   import_tasks: upgrade-database.yml

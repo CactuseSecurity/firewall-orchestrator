@@ -1,16 +1,16 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
-using FWO.Auth.Server.Data;
-using FWO.Auth.Server.Requests;
-using FWO.Config;
-using FWO.Logging;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using FWO.ApiClient;
+using FWO.ApiClient.Queries;
+using FWO.Auth.Server.Data;
+using FWO.Auth.Server.Requests;
+using FWO.Config;
+using FWO.Logging;
 
 namespace FWO.Auth.Server
 {

@@ -21,14 +21,21 @@
  
 - name: set list of relevant upgrade files (without extension)
   set_fact:
-    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') ] }}"
-  when: installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1')
+    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1') ] }}"
+  when: installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1')
   with_fileglob:
-    - "upgrade/*.ldif"
+    - "../templates/upgrade/*.ldif"
 
-- name: Copy relevant upgrade files
-  copy:
-    src: "upgrade/{{ item }}.ldif"
+# - name: Copy relevant upgrade files
+#   copy:
+#     src: "upgrade/{{ item }}.ldif"
+#     dest: "{{ fworch_home }}/auth/upgrade/"
+#   loop: "{{ upgrade_files }}"
+#   become: yes
+
+- name: copy the upgrade ldif templates to target
+  template:
+    src: "../templates/upgrade/{{ item }}.ldif"
     dest: "{{ fworch_home }}/auth/upgrade/"
   loop: "{{ upgrade_files }}"
   become: yes

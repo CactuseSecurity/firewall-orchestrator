@@ -1,0 +1,13 @@
+# test
+
+dn: uid=admin2,ou=tenant0,ou=operator,ou=user,{{ auth_ldap_path }}
+changetype: add
+objectClass: top
+objectclass: inetorgperson
+cn: admin
+sn: admin
+
+dn: cn=admin,ou=role,{{ auth_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal

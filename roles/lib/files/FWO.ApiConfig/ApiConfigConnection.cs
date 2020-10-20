@@ -4,10 +4,12 @@ using FWO.Logging;
 using FWO.Config;
 using FWO.Auth.Client;
 using FWO.ApiClient;
+using FWO.ApiConfig.Data;
+using FWO.ApiClient.Queries;
 
 namespace FWO.ApiConfig
 {
-    public class ApiConfigConnection
+    public class ConfigCollection
     {
         /// <summary>
         /// Internal connection to auth server. Used to connect with api server.
@@ -19,18 +21,23 @@ namespace FWO.ApiConfig
         /// </summary>
         private readonly APIConnection apiConnection;
 
-        public ApiConfigConnection(string jwt)
+        private readonly string productVersion;
+        private readonly UiText[] uiTexts;
+
+        public ConfigCollection(string jwt)
         {
             ConfigConnection config = new Config.ConfigConnection();
             RsaSecurityKey jwtPublicKey = config.JwtPublicKey;
             string authServerUri = config.AuthServerUri;
             string apiServerUri = config.ApiServerUri;
-
+            productVersion = config.ProductVersion;
+            
             try
             {
                 authClient = new AuthClient(authServerUri);
                 apiConnection = new APIConnection(apiServerUri);
                 apiConnection.SetAuthHeader(jwt);
+                uiTexts = apiConnection.SendQueryAsync<UiText>(BasicQueries.getUiTexts).Result;
             }
             catch (Exception exception)
             {

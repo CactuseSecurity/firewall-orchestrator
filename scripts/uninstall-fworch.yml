@@ -16,6 +16,13 @@
     command: docker rm fworch-api
     ignore_errors: true
 
+  - name: restart postgres to make sure no connections are blocking the database removal
+    service:
+      name: postgresql
+      state: restarted
+    when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
+    ignore_errors: true
+
   - name: remove database
     command: psql -c "drop database fworchdb"
     become_user: postgres

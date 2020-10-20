@@ -5,7 +5,7 @@ Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
 ## Installation VSCODE
 
 - Install [.NET Core SDK](https://docs.microsoft.com/en-us/dotnet/core/install/linux-ubuntu#1804-)
-- on Linux: install mono-complete
+- on Linux: install mono-complete (avoids error "System.TypeLoadException: Could not load type of field 'McMaster.Extensions.CommandLineUtils.CommandLineApplication")
 
       sudo apt install mono-complete
 - Install [Visual Studio Code](https://code.visualstudio.com/Download) for Linux or Windows

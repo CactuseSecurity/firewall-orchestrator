@@ -75,9 +75,16 @@
   tags:
     - backend
 
+# simply set new version in config file
+- hosts: all
+  roles:
+    - upgrade-completion
+  tags:
+    - backend
+    - frontend
+
 - hosts: all
   roles:
     - test
   tags:
     - test
-    

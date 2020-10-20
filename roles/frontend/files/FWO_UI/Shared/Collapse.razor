@@ -1,0 +1,28 @@
+﻿<div class="w-100 card">
+    <div class="btn-group w-100">
+        <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse">Toggle</button>
+        <button class="btn btn-sm btn-block btn-@Style" disabled>@Title</button>
+    </div>
+    <div class="@($"collapse{show}") p-2">
+        @ChildContent
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Style { get; set; } = "secondary";
+
+    private string show = "";
+
+    private void ToggleCollapse()
+    {
+        show = show == "" ? ".show" : "";
+    }
+}

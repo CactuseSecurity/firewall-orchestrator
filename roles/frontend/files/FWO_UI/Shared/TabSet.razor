@@ -1,0 +1,35 @@
+﻿<!-- Display the tab headers -->
+<CascadingValue Value=this>
+    <ul class="nav nav-tabs">
+        @ChildContent
+    </ul>
+</CascadingValue>
+
+<!-- Display body for only the active tab -->
+<div class="nav-tabs-body pt-3">
+    @ActiveTab?.ChildContent
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    public Tab ActiveTab { get; private set; }
+
+    public void AddTab(Tab tab)
+    {
+        if (ActiveTab == null)
+        {
+            SetActiveTab(tab);
+        }
+    }
+
+    public void SetActiveTab(Tab tab)
+    {
+        if (ActiveTab != tab)
+        {
+            ActiveTab = tab;
+            StateHasChanged();
+        }
+    }
+}

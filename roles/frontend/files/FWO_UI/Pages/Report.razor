@@ -13,6 +13,9 @@
         <h3>Test-Report</h3>
 
         <button class="btn btn-primary m-2" @onclick="GenerateTestReport">Generate Report</button>
+        <button class="btn btn-danger m-2" @onclick="() => ShowPopUp = true">Show Pop up</button>
+
+        <PopUp Title="test" Show="@ShowPopUp" OnClose="() => ShowPopUp = false">test</PopUp>
 
         <form class="form-inline m-2">
             <div class="form-group m-1">
@@ -29,31 +32,10 @@
             <input type="text" class="form-control" placeholder="Filter" />
         </div>
 
-        @*<div class="card m-2">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="d-inline-flex align-items-center">
-                        Filter
-                        <button class="btn btn-dark btn-sm ml-3 oi @FilterButtonCollapse" @onclick="CollapseButtonClicked"></button>
-                    </h4>
-                    <h4 class="btn-group">
-                        <button class="btn btn-success btn-sm">Add</button>
-                        <button class="btn btn-danger btn-sm">Remove</button>
-                    </h4>
-                </div>
-                <div class="collapse card-body @FilterCollapseCSS">
-                    <div class="m-2 d-flex flex-wrap">
-                        @foreach (DataTable CurrentFilterDataTable in FilterDataTables)
-                        {
-                            <Filter Data="CurrentFilterDataTable"></Filter>
-                        }
-                    </div>
-                </div>
-            </div>*@
-
         <div class="card m-2 shadow">
             <div class="card-body">
 
-                @foreach (Management management in Managements)
+                @foreach (Management management in managementsReport)
                 {
                     <h3>@management.Name</h3>
                     <hr />
@@ -64,7 +46,8 @@
 
                         Array.Sort(device.Rules, (a, b) => (int)(a.OrderNumber - b.OrderNumber));
 
-                        <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="rulesPerPage" ColumnReorder="true">
+                        <Table SelectedItems="selectedItemsReportRuleTable" RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }" 
+                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="rulesPerPage" ColumnReorder="true">
                             <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
                                 <Template>
                                     @{
@@ -157,118 +140,101 @@
         </div>
         <div class="sidebar-sizer" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
         <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x:@overflowSidebar;">
-            <div class="m-3">
+            <div class="p-3">
                 @* Sidebar Content *@
-
-                <div class="d-flex justify-content-center m-2">
-                    <h5>Services</h5>
-                </div>
-                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="networkServices" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="NetworkService" Title="Name" Field="@(x => x.Name)" />
-                    <DetailTemplate TableItem="NetworkService">
-                        <b>UID</b> @context.Uid <br />
-                        <b>Source Port</b> @(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") <br />
-                        <b>Destination Port</b> @(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") <br />
-                        <b>Type</b> @context.Type.Name
-                    </DetailTemplate>
-                </Table>
-
-                <div class="d-flex justify-content-center m-2">
-                    <h5>Netzwerkobjekte</h5>
-                </div>
-                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="networkObjects" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" />
-                    <DetailTemplate TableItem="NetworkObject">
-                        <b>UID</b> @context <br />
-                        <b>IP</b> @(context.IP == context.IP ? context.IP.ToString() : $"{context.IP.ToString()}-{context.IP.ToString()}") <br />
-                        <b>Type</b> @context
-                    </DetailTemplate>
-                </Table>
-
-                <div class="d-flex justify-content-center m-2">
-                    <h5>User</h5>
-                </div>
-                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="networkUsers" PageSize="0" ColumnReorder="true">
-                    <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" />
-                    <DetailTemplate TableItem="NetworkUser">
-                        <b>UID</b> @context.Uid <br />
-                        <b>Name</b> @context.Name <br />
-                        <b>Real Name</b> @($"{context.FirstName} {context.LastName}") <br />
-                        <b>Comment</b> @context.Comment <br />
-                        <b>Type</b> @context.Type.Name
-                    </DetailTemplate>
-                </Table>
+                <TabSet>
+                    <Tab Title="All">
+                        <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects" 
+                                     NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users"/>
+                    </Tab>
+                    <Tab Title="Report">
+                        <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                     NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    </Tab>
+                    <Tab Title="Rule">
+                        <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
+                                     NetworkObjectExtractor="rule => rule.Froms.Concat(rule.Tos).ToList().ConvertAll(wrapper => wrapper.Content)"
+                                     NetworkServiceExtractor="rule => rule.Services.ToList().ConvertAll(wrapper => wrapper.Content)" NetworkUserExtractor="rule => null" />
+                    </Tab>
+                </TabSet>
             </div>
         </div>
     </div>
 </div>
-
 
 @code
 {
     private string FilterCollapseCSS = "show";
     private string FilterButtonCollapse = "oi-minus";
 
-    private Management[] Managements = new Management[0];
-    private NetworkService[] networkServices = new NetworkService[0];
-    private NetworkObject[] networkObjects = new NetworkObject[0];
-    private NetworkUser[] networkUsers = new NetworkUser[0];
+    private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
+
+    private Management[] managementsReport = new Management[0];
+
+    private Management[] managementsAllObjects = new Management[0];
+    private Management[] managementsServices = new Management[0];
+    private Management[] managementsObjects = new Management[0];
+    private Management[] managementsUsers = new Management[0];
 
     private int rulesPerFetch = 0;
     private int rulesPerPage = 0;
 
-    protected override void OnInitialized()
+    private bool ShowPopUp = false;
+
+    [CascadingParameter]
+    Action<string, string> ShowError { get; set; }
+
+    protected async override Task OnInitializedAsync()
     {
         //List<Task> tasks = new List<Task>();
 
-        //tasks.Add(
-        Task.Run(async () =>
+        managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
+        managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
+        managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
+
+
+        // Workaround
+        managementsAllObjects = managementsServices;
+
+        for (int i = 0; i < managementsAllObjects.Length; i++)
         {
-            try
-            {
-                Management[] managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
-
-                foreach (Management management in managementsServices)
-                {
-                    networkServices = networkServices.Concat(management.Services).ToArray();
-                }
-
-                await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
+            managementsAllObjects[i].Objects = managementsObjects[i].Objects;
+            managementsAllObjects[i].Users = managementsUsers[i].Users;
         }
-            catch (Exception exception)
-            {
-                Log.WriteError("Fetching Error", "Error while fetching network services from API.", exception);
-            }
-        });
-        //);
+        // Workaround
 
-        //tasks.Add(
-        Task.Run(async () =>
-        {
-            Management[] managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
+        StateHasChanged();
 
-            foreach (Management management in managementsObjects)
-            {
-                networkObjects = networkObjects.Concat(management.Objects).ToArray();
-            }
+        ////tasks.Add(
+        //Task.Run(async () =>
+        //{
+        //    try
+        //    {
+        //        managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
+        //        await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
+        //    }
+        //    catch (Exception exception)
+        //    {
+        //        Log.WriteError("Fetching Error", "Error while fetching network services from API.", exception);
+        //    }
+        //});
+        ////);
 
-            await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
-    });
-        //);
+        ////tasks.Add(
+        //Task.Run(async () =>
+        //{
+        //    managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
+        //    await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
+        //});
+        ////);
 
-        //tasks.Add(
-        Task.Run(async () =>
-        {
-            Management[] managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
-
-            foreach (Management management in managementsUsers)
-            {
-                networkUsers = networkUsers.Concat(management.Users).ToArray();
-            }
-
-            await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
-    });
-        //);
+        ////tasks.Add(
+        //Task.Run(async () =>
+        //{
+        //    managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
+        //    await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
+        //});
+        ////);
 
         //while (tasks.Count > 0)
         //{
@@ -281,18 +247,22 @@
     {
         try
         {
-            Managements = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview);
+            managementsReport = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview);
         }
         catch (Exception exception)
         {
             if (exception.Message == "no such type exists in the schema: 'cidr'")
             {
+                Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
+                ShowError("Report generation", "You dont have sufficient acces rights.");
+
                 // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
-                // leave Managements as default = empty array
+                // leave managementsReport as default = empty array
             }
             else
             {
-                Log.WriteError("Access rights", "User does not have sufficient access rights", exception);
+                Log.WriteError("Report generation", "Unclassified error.", exception);
+                ShowError("Report generation", "Unclassified error.");
             }
         }
     }

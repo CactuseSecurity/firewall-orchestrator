@@ -45,7 +45,7 @@ namespace FWO.Auth.Client
                     exception);
 
                 // Inform requester about errors
-                result = new AuthServerResponse(HttpStatusCode.BadRequest, "An error occured while sending request");
+                result = new AuthServerResponse(HttpStatusCode.BadRequest, "An error occured while sending request.");
             }
 
             // Return result

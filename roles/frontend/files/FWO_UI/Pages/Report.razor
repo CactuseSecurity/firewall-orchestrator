@@ -154,8 +154,8 @@
                     </Tab>
                     <Tab Title="Rule">
                         <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
-                                     NetworkObjectExtractor="rule => rule.Froms.Concat(rule.Tos).ToList().ConvertAll(wrapper => wrapper.Content)"
-                                     NetworkServiceExtractor="rule => rule.Services.ToList().ConvertAll(wrapper => wrapper.Content)" NetworkUserExtractor="rule => null" />
+                                     NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos, wrapper => wrapper.Content)"
+                                     NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)" NetworkUserExtractor="rule => null" />
                     </Tab>
                 </TabSet>
             </div>
@@ -177,7 +177,7 @@
     private Management[] managementsObjects = new Management[0];
     private Management[] managementsUsers = new Management[0];
 
-    private int rulesPerFetch = 0;
+    private int rulesPerFetch = 10;
     private int rulesPerPage = 0;
 
     private bool ShowPopUp = false;
@@ -185,23 +185,35 @@
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
 
-    protected async override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         //List<Task> tasks = new List<Task>();
 
-        try
+        Task.Run(async () =>
         {
-            dynamic paginationVariables = new System.Dynamic.ExpandoObject();
+            try
+            {
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
 
-            paginationVariables.limit = 10000;
-            paginationVariables.offset = 0;
-            managementsAllObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getAllObjectDetails, paginationVariables);
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Object Fetching Error", "Error while fetching objects from API.", exception);
-            ShowError("Object Fetching Error", "Error while fetching objects from API.");
-        }
+                managementsAllObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                await InvokeAsync(StateHasChanged);
+
+                bool newObjects = true;
+
+                while (newObjects)
+                {
+                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                    newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
+                    paginationVariables.Offset += rulesPerFetch;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Object Fetching Error", "Error while fetching objects from API.", exception);
+                ShowError("Object Fetching Error", "Error while fetching objects from API.");
+            }
+        });
 
         //managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
         //managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);

@@ -1,11 +1,13 @@
-﻿@using FWO.Ui.Data;
+﻿@using FWO.Ui.Data
 @using System.Security.Claims
+@using FWO.ApiConfig
 
+@inject ConfigCollection configCollection
 
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark shadow w-100">
     <a class="navbar-brand" href="#">
         <!-- <img src="images/FWO_Logo.png" /> -->
-        Firewall-Orchestrator
+        Firewall-Orchestrator @(configCollection.productVersion)
     </a>
 
     <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
@@ -64,6 +66,7 @@
 
         navItemsRight = new NavItem[]
         {
+            // new NavItem("Language", "#", ""),
             new NavItem("Help", "/help", "oi oi-info"),
             new NavItem("Settings", "/settings", "oi oi-cog"),
             new NavItem(user.Identity.Name.ToUpper(), "#", "oi oi-person"),

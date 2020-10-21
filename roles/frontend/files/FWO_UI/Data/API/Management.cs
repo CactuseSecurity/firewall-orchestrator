@@ -17,13 +17,13 @@ namespace FWO.Ui.Data.Api
         [JsonPropertyName("devices")]
         public Device[] Devices { get; set; }
 
-        [JsonPropertyName("objects")]
+        [JsonPropertyName("networkObjects")]
         public NetworkObject[] Objects { get; set; }
 
-        [JsonPropertyName("services")]
+        [JsonPropertyName("serviceObjects")]
         public NetworkService[] Services { get; set; }
 
-        [JsonPropertyName("usrs")]
+        [JsonPropertyName("userObjects")]
         public NetworkUser[] Users { get; set; }
     }
 }

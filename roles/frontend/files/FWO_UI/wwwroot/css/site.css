@@ -105,3 +105,11 @@ app {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    z-index: 2147483647;
+    width: 100%;
+}

@@ -7,9 +7,8 @@
 {
     @foreach (InputDataType obj in Data)
     {
-        <Collapse Title="@NameExtractor(obj)" Style="@("primary")">
-
-            <Collapse Title="Network Objects">
+        <Collapse Title="@NameExtractor(obj)" Style="@("primary")" StartToggled="true">
+            <Collapse Title="Network Objects" StartToggled="true">
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" />
                     <DetailTemplate TableItem="NetworkObject">
@@ -18,8 +17,7 @@
                     </DetailTemplate>
                 </Table>
             </Collapse>
-
-            <Collapse Title="Services">
+            <Collapse Title="Services" StartToggled="true">
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkService" Title="Name" Field="@(x => x.Name)" />
                     <DetailTemplate TableItem="NetworkService">
@@ -30,8 +28,7 @@
                     </DetailTemplate>
                 </Table>
             </Collapse>
-
-            <Collapse Title="Users">
+            <Collapse Title="Users" StartToggled="true">
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" />
                     <DetailTemplate TableItem="NetworkUser">
@@ -43,7 +40,6 @@
                     </DetailTemplate>
                 </Table>
             </Collapse>
-
         </Collapse>
     }
 }

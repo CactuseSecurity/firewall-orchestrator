@@ -16,10 +16,25 @@
     [Parameter]
     public string Title { get; set; }
 
+    private bool startToggled;
+
+    [Parameter]
+    public bool StartToggled
+    {
+        get
+        {
+            return startToggled;
+        }
+        set
+        {
+            show = value ? "" : ".show";
+        }
+    }
+
     [Parameter]
     public string Style { get; set; } = "secondary";
 
-    private string show = "";
+    private string show = ".show";
 
     private void ToggleCollapse()
     {

@@ -9,7 +9,7 @@
 
 <div class="d-flex flex-row justify-content-between">
 
-    <div class="report-content" style="margin-right: @($"{sidebarWidth + 10}px")">
+    <div class="report-content w-100" style="margin-right: @($"{sidebarWidth + 10}px")">
         <h3>Test-Report</h3>
 
         <button class="btn btn-primary m-2" @onclick="GenerateTestReport">Generate Report</button>
@@ -37,98 +37,99 @@
 
                 @foreach (Management management in managementsReport)
                 {
-                    <h3>@management.Name</h3>
+                <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
                     <hr />
 
                     @foreach (Device device in management.Devices)
                     {
-                        <h4>@device.Name</h4>
-
                         Array.Sort(device.Rules, (a, b) => (int)(a.OrderNumber - b.OrderNumber));
 
-                        <Table SelectedItems="selectedItemsReportRuleTable" RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }" 
-                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="rulesPerPage" ColumnReorder="true">
-                            <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
-                                <Template>
-                                    @{
-                                        for (int i = 0; i < device.Rules.Length; i++)
-                                        {
-                                            if (device.Rules[i].OrderNumber == context.OrderNumber)
-                                            {
-                                                @(i + 1)
-                                            }
-                                        }
-                                    }
-                                </Template>
-                            </Column>
-                            <Pager ShowPageNumber="true"></Pager>
-                            <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-                            <Column TableItem="Rule" Title="Source" Field="@(x => x.Froms)" Sortable="true" Filterable="true">
-                                <Template>
-                                    <p>
+                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+                            <Table SelectedItems="selectedItemsReportRuleTable" RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
+                                   style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true" PageSize="rulesPerPage" ColumnReorder="true">
+                                <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
+                                    <Template>
                                         @{
-                                            if (context.SourceNegated)
+                                            for (int i = 0; i < device.Rules.Length; i++)
                                             {
-                                                @("anything but") <br>
-                                            }
-
-                                            @foreach (NetworkObjectWrapper source in context.Froms)
-                                            {
-                                                @($"{source.Content.Name}" + (source.Content.IP != null ? $" ({source.Content.IP})" : ""))<br>
+                                                if (device.Rules[i].OrderNumber == context.OrderNumber)
+                                                {
+                                                    @(i + 1)
+                                                }
                                             }
                                         }
-                                    </p>
-                                </Template>
-                            </Column>
-                            <Column TableItem="Rule" Title="Destination" Field="@(x => x.Tos)" Sortable="true" Filterable="true">
-                                <Template>
-                                    <p>
-                                        @{
-                                            if (context.DestinationNegated)
-                                            {
-                                                @("anything but") <br>
-                                            }
+                                    </Template>
+                                </Column>
+                                <Pager ShowPageNumber="true"></Pager>
+                                <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="Source" Field="@(x => x.Froms)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        <p>
+                                            @{
+                                                if (context.SourceNegated)
+                                                {
+                                                    @("anything but") <br>
+                                                }
 
-                                            foreach (NetworkObjectWrapper destination in context.Tos)
-                                            {
-                                                @($"{destination.Content.Name}" + (destination.Content.IP != null ? $" ({destination.Content.IP})" : ""))<br>
+                                                @foreach (NetworkObjectWrapper source in context.Froms)
+                                                {
+                                                    @($"{source.Content.Name}" + (source.Content.IP != null ? $" ({source.Content.IP})" : ""))<br>
+                                                }
                                             }
-                                        }
-                                    </p>
-                                </Template>
-                            </Column>
-                            <Column TableItem="Rule" Title="Services" Field="@(x => x.Services)" Sortable="true" Filterable="true">
-                                <Template>
-                                    <p>
-                                        @{
-                                            if (context.ServiceNegated)
-                                            {
-                                                @("anything but") <br>
-                                            }
+                                        </p>
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Destination" Field="@(x => x.Tos)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        <p>
+                                            @{
+                                                if (context.DestinationNegated)
+                                                {
+                                                    @("anything but") <br>
+                                                }
 
-                                            foreach (ServiceWrapper service in context.Services)
-                                            {
-                                                @($"{service.Content.Name}" + (service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{service.Content.Protocol.Name})" : ""))<br>
+                                                foreach (NetworkObjectWrapper destination in context.Tos)
+                                                {
+                                                    @($"{destination.Content.Name}" + (destination.Content.IP != null ? $" ({destination.Content.IP})" : ""))<br>
+                                                }
                                             }
-                                        }
-                                    </p>
-                                </Template>
-                            </Column>
-                            <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
-                            <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
-                            <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
-                                <Template>
-                                    <div class="oi @(context.Disabled? "oi-check" : "oi-x")"></div>
-                                </Template>
-                            </Column>
-                            <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
-                            <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                                        </p>
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Services" Field="@(x => x.Services)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        <p>
+                                            @{
+                                                if (context.ServiceNegated)
+                                                {
+                                                    @("anything but") <br>
+                                                }
 
-                            <DetailTemplate TableItem="Rule">
-                                <div>test</div>
-                            </DetailTemplate>
-                        </Table>
+                                                foreach (ServiceWrapper service in context.Services)
+                                                {
+                                                    @($"{service.Content.Name}" + (service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{service.Content.Protocol.Name})" : ""))<br>
+                                                }
+                                            }
+                                        </p>
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        <div class="oi @(context.Disabled? "oi-check" : "oi-x")"></div>
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+
+                                <DetailTemplate TableItem="Rule">
+                                    <div>test</div>
+                                </DetailTemplate>
+                            </Table>
+                        </Collapse>
                     }
+                </Collapse>
                 }
             </div>
         </div>
@@ -144,8 +145,8 @@
                 @* Sidebar Content *@
                 <TabSet>
                     <Tab Title="All">
-                        <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects" 
-                                     NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users"/>
+                        <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                     NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                     </Tab>
                     <Tab Title="Report">
                         <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"

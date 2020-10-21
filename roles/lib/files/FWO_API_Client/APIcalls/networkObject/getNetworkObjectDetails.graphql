@@ -11,7 +11,7 @@ query getNetworkObjectDetails(
   management(where: { mgm_id: { _in: $management_id } }) {
     mgm_id
     mgm_name
-    objects(
+    networkObjects: objects(
       limit: $limit
       offset: $offset
       where: {

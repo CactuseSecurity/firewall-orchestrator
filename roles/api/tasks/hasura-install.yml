@@ -72,13 +72,13 @@
 
 - name: copy hasura docker systemd service script
   template:
-     src: hasura-docker-api.service.j2
-     dest: "/lib/systemd/system/hasura-docker-api.service"
+     src: "{{ api_service_name }}.service.j2"
+     dest: "/lib/systemd/system/{{ api_service_name }}.service"
      backup: yes
      mode: "0644"
      owner: "root"
   become: yes
 
 - name: make hasura docker container runs at host startup
-  command: "systemctl enable hasura-docker-api"
+  command: "systemctl enable {{ api_service_name }}"
   become: yes

@@ -188,22 +188,32 @@
     {
         //List<Task> tasks = new List<Task>();
 
-        managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
-        managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
-        managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
-
-
-        // Workaround
-        managementsAllObjects = managementsServices;
-
-        for (int i = 0; i < managementsAllObjects.Length; i++)
+        try
         {
-            managementsAllObjects[i].Objects = managementsObjects[i].Objects;
-            managementsAllObjects[i].Users = managementsUsers[i].Users;
+            managementsAllObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getAllObjectDetails);
         }
-        // Workaround
+        catch (Exception exception)
+        {
+            Log.WriteError("Object Fetching Error", "Error while fetching objects from API.", exception);
+            ShowError("Object Fetching Error", "Error while fetching objects from API.");
+        }
 
-        StateHasChanged();
+        //managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
+        //managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
+        //managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
+
+
+        //// Workaround
+        //managementsAllObjects = managementsServices;
+
+        //for (int i = 0; i < managementsAllObjects.Length; i++)
+        //{
+        //    managementsAllObjects[i].Objects = managementsObjects[i].Objects;
+        //    managementsAllObjects[i].Users = managementsUsers[i].Users;
+        //}
+        //// Workaround
+
+        //StateHasChanged();
 
         ////tasks.Add(
         //Task.Run(async () =>

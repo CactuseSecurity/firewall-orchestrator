@@ -17,10 +17,10 @@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
-                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="Username" @bind="Username" @bind:event="oninput" @onkeypress="PotentialSubmit">
+                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="Username" @bind="Username" @bind:event="oninput" @onkeypress="ClearInputClass">
                     </div>
                     <div class="form-group">
-                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="Password" @bind="Password" @bind:event="oninput" @onkeypress="PotentialSubmit">
+                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="Password" @bind="Password" @bind:event="oninput" @onkeypress="ClearInputClass">
                     </div>
                     @if (loginInProgress == false)
                     {
@@ -78,46 +78,46 @@
         }
     }
 
-    private async Task PotentialSubmit(KeyboardEventArgs e)
+    private void ClearInputClass(KeyboardEventArgs e)
     {
         InputClass = "";
-
-        if (e.Key == "Enter")
-            await LoginSubmit();
     }
 
     private async Task LoginSubmit()
     {
-        loginInProgress = true;
-
-        // There is no jwt in session storage. Get one from auth module.
-        AuthServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
-
-        // There was an error trying to authenticate the user. Probably invalid credentials
-        if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+        if (loginInProgress == false)
         {
-            errorMessage = apiAuthResponse.Error + " See log for details!";
+            loginInProgress = true;
 
-            // Visualisize there was an error by making border of inputboxes red
-            InputClass = "is-invalid";
-            loginInProgress = false;
-            await focusInput();
-        }
+            // There is no jwt in session storage. Get one from auth module.
+            AuthServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
 
-        else
-        {
-            string jwt = apiAuthResponse.GetResult<string>("jwt");
+            // There was an error trying to authenticate the user. Probably invalid credentials
+            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            {
+                errorMessage = apiAuthResponse.Error + " See log for details!";
 
-            // Save it in session storage.
-            await sessionStorage.SetItemAsync<string>("jwt", jwt);
+                // Visualisize there was an error by making border of inputboxes red
+                InputClass = "is-invalid";
+                loginInProgress = false;
+                await focusInput();
+            }
 
-            // Tell api connection to use jwt as authentication
-            ApiConnection.SetAuthHeader(jwt);
+            else
+            {
+                string jwt = apiAuthResponse.GetResult<string>("jwt");
 
-            // Try to auth with jwt (validates it, gets roles, ...).
-            ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+                // Save it in session storage.
+                await sessionStorage.SetItemAsync<string>("jwt", jwt);
 
-            loginInProgress = false;
+                // Tell api connection to use jwt as authentication
+                ApiConnection.SetAuthHeader(jwt);
+
+                // Try to auth with jwt (validates it, gets roles, ...).
+                ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+
+                loginInProgress = false;
+            }
         }
     }
 

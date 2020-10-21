@@ -12,6 +12,9 @@ namespace FWO.Ui.Data.Api
         [JsonPropertyName("obj_id")]
         public int Id { get; set; }
 
+        [JsonPropertyName("obj_uid")]
+        public string Uid { get; set; }
+
         [JsonPropertyName("obj_ip")]
         public string IP { get; set; }
 

@@ -13,7 +13,7 @@
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" />
                     <DetailTemplate TableItem="NetworkObject">
-                        <b>UID</b> @context <br />
+                        <b>UID</b> @context.Uid <br />
                         <b>IP</b> @(context.IP == context.IP ? context.IP.ToString() : $"{context.IP.ToString()}-{context.IP.ToString()}") <br />
                     </DetailTemplate>
                 </Table>

@@ -703,6 +703,13 @@ tables:
         table:
           name: txt
           schema: public
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - name
+      filter: {}
+    role: anonymous
   table:
     name: language
     schema: public

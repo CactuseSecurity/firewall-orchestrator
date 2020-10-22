@@ -65,7 +65,7 @@ namespace FWO.ApiConfig
 
             // try
             // {
-            //     uiTexts = apiConnection.SendQueryAsync<UiText>(BasicQueries.getUiTexts).Result;
+            //     uiTexts = apiConnection.SendQueryAsync<UiText[]>(BasicQueries.getUiTexts).Result;
             //     foreach (UiText text in uiTexts)
             //     {
             //         string[] Languages = {}; 

@@ -223,7 +223,7 @@
         //{
         //    try
         //    {
-        //        managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
+        //        managementsServices = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkServiceObjectDetails);
         //        await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
         //    }
         //    catch (Exception exception)
@@ -236,7 +236,7 @@
         ////tasks.Add(
         //Task.Run(async () =>
         //{
-        //    managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
+        //    managementsObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkObjectDetails);
         //    await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
         //});
         ////);
@@ -244,7 +244,7 @@
         ////tasks.Add(
         //Task.Run(async () =>
         //{
-        //    managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
+        //    managementsUsers = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getUserDetails);
         //    await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
         //});
         ////);

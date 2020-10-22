@@ -15,7 +15,7 @@
 #roles/importer/* linguist-detectable=false
 roles/importer/files/* linguist-detectable=false
 roles/importer/tasks/* linguist-detectable=false 
-#roles/importer/templates/* linguist-detectable=false 
+roles/importer/templates/* linguist-detectable=false 
 #roles/sample-auth-data/* linguist-detectable=false
 #roles/sample-data-connect-sting/tasks/* linguist-detectable=false
 #roles/sample-data/* linguist-detectable=false

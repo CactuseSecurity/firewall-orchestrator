@@ -15,7 +15,7 @@
 roles/sample-auth-data/* linguist-detectable=false
 roles/sample-data-connect-sting/* linguist-detectable=false
 roles/sample-data/* linguist-detectable=false
-roles/test/* linguist-detectable=false
+#roles/test/* linguist-detectable=false
 #roles/upgrade-completion/tasks/* linguist-detectable=false
 
 #api

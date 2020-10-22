@@ -1,2 +1,4 @@
 *.php linguist-detectable=false
 *.md linguist-detectable=false
+*.yml linguist-detectable=false
+*.yaml linguist-detectable=false

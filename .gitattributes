@@ -2,3 +2,4 @@
 *.md linguist-detectable=false
 *.yml linguist-detectable=false
 *.yaml linguist-detectable=false
+*.pm linguist-detectable=false

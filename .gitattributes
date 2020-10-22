@@ -9,7 +9,7 @@
 #roles/openldap-server/* linguist-detectable=false
 #roles/api/* linguist-detectable=false
 #roles/common/* linguist-detectable=false
-roles/database/* linguist-detectable=false
+#roles/database/* linguist-detectable=false
 #roles/docker/* linguist-detectable=false
 #roles/frontend-php/* linguist-detectable=false
 roles/importer/* linguist-detectable=false

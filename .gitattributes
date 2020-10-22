@@ -1,9 +1,9 @@
-*.php linguist-detectable=false
-*.md linguist-detectable=false
-*.yml linguist-detectable=false
-*.yaml linguist-detectable=false
-*.pm linguist-detectable=false
-*.pl linguist-detectable=false
+#*.php linguist-detectable=false
+#*.md linguist-detectable=false
+#*.yml linguist-detectable=false
+#*.yaml linguist-detectable=false
+#*.pm linguist-detectable=false
+#*.pl linguist-detectable=false
 #roles/* linguist-detectable=false
 #roles/openldap-server/* linguist-detectable=false
 #roles/api/* linguist-detectable=false

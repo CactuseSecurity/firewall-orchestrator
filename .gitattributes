@@ -3,3 +3,4 @@
 *.yml linguist-detectable=false
 *.yaml linguist-detectable=false
 *.pm linguist-detectable=false
+*.pl linguist-detectable=false

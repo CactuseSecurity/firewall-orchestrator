@@ -42,7 +42,7 @@ namespace FWO.ApiConfig
             // get languages defined 
             try
             {
-                uiLanguages = apiConnection.SendQueryAsync<Language>(BasicQueries.getLanguages).Result;
+                uiLanguages = apiConnection.SendQueryAsync<Language[]>(BasicQueries.getLanguages).Result;
             }
             catch (Exception exception)
             {
@@ -52,7 +52,7 @@ namespace FWO.ApiConfig
 
             try
             {
-                uiTexts = apiConnection.SendQueryAsync<UiText>(BasicQueries.getUiTexts).Result;
+                uiTexts = apiConnection.SendQueryAsync<UiText[]>(BasicQueries.getUiTexts).Result;
             }
             catch (Exception exception)
             {

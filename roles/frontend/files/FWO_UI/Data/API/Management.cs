@@ -14,6 +14,12 @@ namespace FWO.Ui.Data.Api
         [JsonPropertyName("mgm_name")]
         public string Name { get; set; }
 
+        [JsonPropertyName("dev_typ_id")]
+        public int Type { get; set; }
+
+        [JsonPropertyName("ssh_private_key")]
+        public string PrivateKey { get; set; }
+
         [JsonPropertyName("devices")]
         public Device[] Devices { get; set; }
 
@@ -25,5 +31,11 @@ namespace FWO.Ui.Data.Api
 
         [JsonPropertyName("usrs")]
         public NetworkUser[] Users { get; set; }
+    }
+
+    public class ReturnManagement
+    {
+        [JsonPropertyName("returning")]
+        public Management[] ReturnId { get; set; }
     }
 }

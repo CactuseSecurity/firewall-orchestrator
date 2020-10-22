@@ -226,7 +226,7 @@
         {
             try
             {
-                Management[] managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
+                Management[] managementsServices = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkServiceObjectDetails);
 
                 foreach (Management management in managementsServices)
                 {
@@ -245,7 +245,7 @@
         //tasks.Add(
         Task.Run(async () =>
         {
-            Management[] managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
+            Management[] managementsObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkObjectDetails);
 
             foreach (Management management in managementsObjects)
             {
@@ -259,7 +259,7 @@
         //tasks.Add(
         Task.Run(async () =>
         {
-            Management[] managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
+            Management[] managementsUsers = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getUserDetails);
 
             foreach (Management management in managementsUsers)
             {
@@ -281,7 +281,7 @@
     {
         try
         {
-            Managements = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview);
+            Managements = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview);
         }
         catch (Exception exception)
         {

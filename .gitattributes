@@ -5,4 +5,22 @@
 *.pm linguist-detectable=false
 *.pl linguist-detectable=false
 *.pl linguist-detectable=false
-roles/* linguist-detectable=false
+#roles/* linguist-detectable=false
+roles/openldap-server linguist-detectable=false
+
+
+#api
+#auth
+#common
+#database
+#docker
+#frontend-php
+#frontend
+#importer
+#lib
+#openldap-server
+#sample-auth-data
+#sample-data-connect-sting/tasks
+#sample-data
+#test
+#upgrade-completion/tasks

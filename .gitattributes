@@ -7,7 +7,7 @@
 *.pl linguist-detectable=false
 #roles/* linguist-detectable=false
 roles/openldap-server/* linguist-detectable=false
-roles/api/* linguist-detectable=false
+#roles/api/* linguist-detectable=false
 #roles/common/* linguist-detectable=false
 #roles/database/* linguist-detectable=false
 #roles/docker/* linguist-detectable=false

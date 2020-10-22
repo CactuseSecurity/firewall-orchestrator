@@ -13,8 +13,9 @@
 #roles/docker/* linguist-detectable=false
 #roles/frontend-php/* linguist-detectable=false
 #roles/importer/* linguist-detectable=false
-/roles/importer/files/* linguist-detectable=false
-/roles/importer/tasks/* linguist-detectable=false 
+roles/importer/files/* linguist-detectable=false
+#roles/importer/tasks/* linguist-detectable=false 
+#roles/importer/tasks/* linguist-detectable=false 
 #roles/sample-auth-data/* linguist-detectable=false
 #roles/sample-data-connect-sting/tasks/* linguist-detectable=false
 #roles/sample-data/* linguist-detectable=false

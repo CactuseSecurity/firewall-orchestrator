@@ -10,13 +10,6 @@
 ################### ignore paths like #######################
 #roles/* linguist-detectable=false
 #roles/openldap-server/* linguist-detectable=false
-#roles/api/* linguist-detectable=false
-#roles/common/* linguist-detectable=false
-#roles/database/* linguist-detectable=false
-#roles/docker/* linguist-detectable=false
-#roles/frontend-php/* linguist-detectable=false
-#roles/importer/* linguist-detectable=false
-#roles/test/* linguist-detectable=false
 #roles/upgrade-completion/tasks/* linguist-detectable=false
 #############################################################
 
@@ -24,4 +17,5 @@
 roles/sample-auth-data/* linguist-detectable=false
 roles/sample-data-connect-sting/* linguist-detectable=false
 roles/sample-data/* linguist-detectable=false
+roles/test/* linguist-detectable=false
 #############################################################

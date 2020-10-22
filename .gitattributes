@@ -5,7 +5,7 @@
 *.pm linguist-detectable=false
 *.pl linguist-detectable=false
 *.pl linguist-detectable=false
-#roles/* linguist-detectable=false
+roles/* linguist-detectable=false
 #roles/openldap-server/* linguist-detectable=false
 #roles/api/* linguist-detectable=false
 roles/common/* linguist-detectable=false

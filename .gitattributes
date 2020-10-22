@@ -6,7 +6,7 @@
 *.pl linguist-detectable=false
 *.pl linguist-detectable=false
 #roles/* linguist-detectable=false
-roles/openldap-server linguist-detectable=false
+roles/openldap-server/* linguist-detectable=false
 
 
 #api

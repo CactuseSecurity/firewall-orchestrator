@@ -86,8 +86,13 @@
         - csv
         - sql
 
-    - name: include task install db to extra tablespace if defined
-      include_tasks: tablespace_as_root_prereq.yml      
+    - name: create tablespace directory 
+      file:
+        path:  "{{ table_space }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0755"
       when: table_space is defined
 
   become: yes
@@ -98,21 +103,9 @@
   become: yes
   become_user: postgres 
 
-# - name: stop api docker container to remove blocking database connections
-#   import_tasks: remove-api-docker.yml
-#   when: installation_mode == "upgrade"
-
-# - name: restart postgresql to get rid of unwanted connections when dropping db
-#   service:
-#     name: postgresql
-#     state: restarted
-#   become: yes
-#   when: installation_mode == "upgrade"
-
 - name: create new database
   import_tasks: install-database.yml
   when: installation_mode == "new"
-#  when: installation_mode == "new" or db_exists.stdout=="0"
 
 - name: upgrade database
   import_tasks: upgrade-database.yml

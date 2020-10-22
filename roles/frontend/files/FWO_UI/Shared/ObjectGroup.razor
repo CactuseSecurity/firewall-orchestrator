@@ -1,0 +1,66 @@
+﻿@using BlazorTable
+@using FWO.Ui.Data.API
+
+@typeparam InputDataType
+
+@if (Data != null)
+{
+    @foreach (InputDataType obj in Data)
+    {
+        <Collapse Title="@NameExtractor(obj)" Style="@("primary")" StartToggled="true">
+            <Collapse Title="Network Objects" StartToggled="true">
+                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
+                    <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" />
+                    <DetailTemplate TableItem="NetworkObject">
+                        <b>UID</b> @context.Uid <br />
+                        <b>IP</b> @(context.IP == context.IP ? context.IP.ToString() : $"{context.IP.ToString()}-{context.IP.ToString()}") <br />
+                    </DetailTemplate>
+                </Table>
+            </Collapse>
+            <Collapse Title="Services" StartToggled="true">
+                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
+                    <Column TableItem="NetworkService" Title="Name" Field="@(x => x.Name)" />
+                    <DetailTemplate TableItem="NetworkService">
+                        <b>UID</b> @context.Uid <br />
+                        <b>Source Port</b> @(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") <br />
+                        <b>Destination Port</b> @(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") <br />
+                        <b>Type</b> @context.Type.Name
+                    </DetailTemplate>
+                </Table>
+            </Collapse>
+            <Collapse Title="Users" StartToggled="true">
+                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
+                    <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" />
+                    <DetailTemplate TableItem="NetworkUser">
+                        <b>UID</b> @context.Uid <br />
+                        <b>Name</b> @context.Name <br />
+                        <b>Real Name</b> @($"{context.FirstName} {context.LastName}") <br />
+                        <b>Comment</b> @context.Comment <br />
+                        <b>Type</b> @context.Type.Name
+                    </DetailTemplate>
+                </Table>
+            </Collapse>
+        </Collapse>
+    }
+}
+
+@code
+{
+    [Parameter]
+    public int PageSize { get; set; }
+
+    [Parameter]
+    public IEnumerable<InputDataType> Data { get; set; }
+
+    [Parameter]
+    public Func<InputDataType, string> NameExtractor { get; set; }
+
+    [Parameter]
+    public Func<InputDataType, IEnumerable<NetworkObject>> NetworkObjectExtractor { get; set; }
+
+    [Parameter]
+    public Func<InputDataType, IEnumerable<NetworkService>> NetworkServiceExtractor { get; set; }
+
+    [Parameter]
+    public Func<InputDataType, IEnumerable<NetworkUser>> NetworkUserExtractor { get; set; }
+}

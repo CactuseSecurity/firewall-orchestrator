@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO.Ui.Data.Api
+namespace FWO.Ui.Data.API
 {
     public class Management
     {
@@ -23,13 +23,13 @@ namespace FWO.Ui.Data.Api
         [JsonPropertyName("devices")]
         public Device[] Devices { get; set; }
 
-        [JsonPropertyName("objects")]
+        [JsonPropertyName("networkObjects")]
         public NetworkObject[] Objects { get; set; }
 
-        [JsonPropertyName("services")]
+        [JsonPropertyName("serviceObjects")]
         public NetworkService[] Services { get; set; }
 
-        [JsonPropertyName("usrs")]
+        [JsonPropertyName("userObjects")]
         public NetworkUser[] Users { get; set; }
     }
 

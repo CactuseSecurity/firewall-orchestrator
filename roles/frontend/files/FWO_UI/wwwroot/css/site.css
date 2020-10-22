@@ -114,4 +114,6 @@ app {
     width: 100%;
 }
 
-/*:root {font-size: 0.95rem }*/
+.hide-all-but-second-child :not(:nth-child(2))  {
+    display: none;
+}

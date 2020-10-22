@@ -6,28 +6,25 @@
     msg: "Error: You choose new installation on a system with existing database {{ fworch_db_name }}"
   when: installation_mode != "upgrade" or db_exists.stdout == "0"
 
-- set_fact: 
-    installed_version: "{{ old_version }}"
-
-- set_fact: 
-    current_version: "{{ product_version }}"
-
-- set_fact: 
-    all_upgrades_available: "{{ lookup('fileglob', 'upgrade/*.sql') }}"
-
-- set_fact:
-    upgrade_files: []
-
 - name: create upgrade dir
   file:
     path: "{{ database_install_dir }}/upgrade"
     state: directory
   become: yes
  
+- set_fact: 
+    installed_version: "{{ old_version }}"
+    current_version: "{{ product_version }}"
+    all_upgrades_available: "{{ lookup('fileglob', 'upgrade/*.sql') }}"
+    upgrade_files: []
+
 - name: set list of relevant upgrade files (without extension)
   set_fact:
     upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') ] }}"
-  when: installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1')
+  when: |
+    installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') 
+    and 
+    current_version >= installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1')
   with_fileglob:
     - "upgrade/*.sql"
 

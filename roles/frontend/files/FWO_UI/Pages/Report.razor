@@ -1,7 +1,7 @@
 @using BlazorTable
 @using FWO.ApiClient
 @using FWO.ApiClient.Queries
-@using FWO.Ui.Data.Api
+@using FWO.Ui.Data.API
 
 @inject APIConnection Connection
 
@@ -51,7 +51,7 @@
                                        PageSize="rulesPerPage" ColumnReorder="true">
                                     <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true" />
                                         @*<Template>
-                                            @{
+                                           @{
                                                 for (int i = 0; i < device.Rules.Length; i++)
                                                 {
                                                     if (device.Rules[i].OrderNumber == context.OrderNumber)
@@ -60,9 +60,10 @@
                                                     }
                                                 }
                                             }
-                                        </Template>*@
+                                          </Template>*@
                                     <Pager ShowPageNumber="true"></Pager>
                                     <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                                    <Column TableItem="Rule" Title="Source Zone" Field="@(x => x.SourceZone.Name)" Sortable="true" Filterable="true" />
                                     <Column TableItem="Rule" Title="Source" Field="@(x => x.Froms)" Sortable="true" Filterable="true">
                                         <Template>
                                             <p>
@@ -76,10 +77,11 @@
                                                     {
                                                         @($"{source.Content.Name}" + (source.Content.IP != null ? $" ({source.Content.IP})" : ""))<br>
                                                     }
-                                                }
+                                                 }
                                             </p>
                                         </Template>
                                     </Column>
+                                    <Column TableItem="Rule" Title="Destination Zone" Field="@(x => x.DestinationZone.Name)" Sortable="true" Filterable="true" />
                                     <Column TableItem="Rule" Title="Destination" Field="@(x => x.Tos)" Sortable="true" Filterable="true">
                                         <Template>
                                             <p>
@@ -93,7 +95,7 @@
                                                     {
                                                         @($"{destination.Content.Name}" + (destination.Content.IP != null ? $" ({destination.Content.IP})" : ""))<br>
                                                     }
-                                                }
+                                                 }
                                             </p>
                                         </Template>
                                     </Column>

@@ -618,6 +618,56 @@ SET search_path = public, pg_catalog;
 --
 -- Data for Name: text_msg; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
+INSERT INTO language (name) VALUES('German');
+INSERT INTO language (name) VALUES('English');
+
+-- import
+INSERT INTO txt VALUES ('initial_import',		'German',	'Dieses Element ist Teil der initial importierten Konfiguration.');
+INSERT INTO txt VALUES ('initial_import', 		'English',	'This entity is part of the initially imported configuration.');
+
+-- navivation
+INSERT INTO txt VALUES ('reporting', 			'German',	'Reporting');
+INSERT INTO txt VALUES ('reporting', 			'English',	'Reporting');
+INSERT INTO txt VALUES ('settings', 			'German',	'Einstellungen');
+INSERT INTO txt VALUES ('settings', 			'English',	'Settings');
+INSERT INTO txt VALUES ('fworch_long',			'German',	'Firewall-Orchestrator');
+INSERT INTO txt VALUES ('fworch_long',			'English',	'Firewall-Orchstrator');
+INSERT INTO txt VALUES ('help',					'German',	'Hilfe');
+INSERT INTO txt VALUES ('help', 				'English',	'Help');
+INSERT INTO txt VALUES ('logout', 				'German',	'Abmelden');
+INSERT INTO txt VALUES ('logout', 				'English',	'Logout');
+INSERT INTO txt VALUES ('documentation', 		'German',	'Dokumentation');
+INSERT INTO txt VALUES ('documentation', 		'English',	'Documentation');
+
+-- reporting
+INSERT INTO txt VALUES ('generate_report',		'German', 	'Report erstellen');
+INSERT INTO txt VALUES ('generate_report',		'English', 	'Generate report');
+INSERT INTO txt VALUES ('filter', 				'German', 	'Filter');
+INSERT INTO txt VALUES ('filter', 				'English', 	'filter');
+INSERT INTO txt VALUES ('number', 				'German', 	'Nr.');
+INSERT INTO txt VALUES ('number', 				'English', 	'No.');
+INSERT INTO txt VALUES ('name', 				'German', 	'Name');
+INSERT INTO txt VALUES ('name', 				'English', 	'Name');
+INSERT INTO txt VALUES ('source', 				'German', 	'Quelle');
+INSERT INTO txt VALUES ('source', 				'English', 	'Ziel');
+INSERT INTO txt VALUES ('destination', 			'German', 	'Ziel');
+INSERT INTO txt VALUES ('destination', 			'English', 	'Destination');
+INSERT INTO txt VALUES ('services', 			'German', 	'Dienste');
+INSERT INTO txt VALUES ('services', 			'English', 	'Services');
+INSERT INTO txt VALUES ('action', 				'German', 	'Aktion');
+INSERT INTO txt VALUES ('action', 				'English', 	'Action');
+INSERT INTO txt VALUES ('track', 				'German', 	'Logging');
+INSERT INTO txt VALUES ('track', 				'English', 	'Logging');
+INSERT INTO txt VALUES ('disabled',				'German', 	'deaktiviert');
+INSERT INTO txt VALUES ('disabled',				'English', 	'disabled');
+INSERT INTO txt VALUES ('comment',				'German', 	'Kommentar');
+INSERT INTO txt VALUES ('comment',				'English', 	'Comment');
+
+-- settings
+INSERT INTO txt VALUES ('devices',				'German', 	'Devices');
+INSERT INTO txt VALUES ('devices',				'English', 	'Devices');
+INSERT INTO txt VALUES ('authorization',		'German', 	'Berechtigungen');
+INSERT INTO txt VALUES ('authorization',		'English', 	'Authorization');
 
 INSERT INTO text_msg VALUES ('INITIAL_IMPORT', 'Dieses Element ist Teil der initial importierten Konfiguration.', 'This entity is part of the initially imported configuration.');
 INSERT INTO text_msg VALUES ('NON_SECURITY_RELEVANT_CHANGE', 'Keine sicherheitsrelevante Änderung', 'This was a non-security-relevant change.');

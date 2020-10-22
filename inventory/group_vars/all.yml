@@ -44,9 +44,10 @@ jwt_public_key_file: "{{ fworch_home }}/etc/secrets/jwt_public_key.pem"
 auth_hostname: "127.0.0.1"
 auth_web_listener_port: 8888
 ldif_changetype: add
+auth_service_name: "{{ product_name }}-auth"
 
 ### database & api
-api_service_name: hasura-docker-api
+api_service_name: fworch-hasura-docker-api
 api_container_name: "{{ product_name }}-api"
 api_ip_address: "127.0.0.1"
 api_web_port: 9443

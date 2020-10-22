@@ -361,12 +361,27 @@ Create table "isoadmin"
 
 -- text tables ----------------------------------------
 
+-- to be removed in 5.0 (replaced by language, txt)
 Create table "text_msg"
 (
 	"text_msg_id" Varchar NOT NULL UNIQUE,
 	"text_msg_ger" Text NOT NULL,
 	"text_msg_eng" Text NOT NULL,
  primary key ("text_msg_id")
+);
+
+Create table "language"
+(
+	"name" Varchar NOT NULL UNIQUE,
+ primary key ("name")
+);
+
+Create table "txt"
+(
+	"id" Varchar NOT NULL,
+	"language" Varchar NOT NULL,
+	"txt" Varchar NOT NULL,
+ primary key ("id", "language")
 );
 
 Create table "error"
@@ -979,6 +994,7 @@ Create index "rule_oder_idx" on "rule_order" using btree ("control_id","rule_id"
 
 
 /* Create Foreign Keys */
+Alter table "txt" add foreign key ("language") references "language" ("name") on update restrict on delete cascade;
 Create index "IX_relationship11" on "object" ("obj_nat_install");
 Alter table "object" add  foreign key ("obj_nat_install") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_Relationship126" on "rule_order" ("dev_id");

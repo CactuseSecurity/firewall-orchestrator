@@ -16,6 +16,8 @@ namespace FWO.ApiClient.Queries
         public static readonly string getVisibleManagementIdsPerTenant;
         public static readonly string getLdapConnections;
         public static readonly string getManagementsDetails;
+        public static readonly string getLanguages;
+        public static readonly string getUiTexts;
 
         static BasicQueries()
         {
@@ -30,6 +32,10 @@ namespace FWO.ApiClient.Queries
                 getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
 
                 getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql");
+
+                getLanguages = File.ReadAllText(QueryPath + "config/getLanguages.graphql");
+
+                getUiTexts = File.ReadAllText(QueryPath + "config/getUiTexts.graphql");
             }
             catch (Exception exception)
             {

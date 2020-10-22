@@ -131,18 +131,6 @@ namespace FWO.Config
             }
 
             #endregion
-
-            #region Config Api
-
-            // TODO: Get Config Values form API
-
-            //authClient = new AuthClient(authServerUri);
-            //apiConnection = new APIConnection(apiServerUri);
-
-            // TODO: Which Jwt should be used here?
-            //apiConnection.SetAuthHeader("");
-
-            #endregion
         }
 
         private void CriticalConfigValueLoaded(object configValue)

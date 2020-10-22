@@ -6,9 +6,12 @@ using System.Threading.Tasks;
 
 namespace FWO.Ui.Data.API
 {
-    public class NetworkUserType
+    public class Zone
     {
-        [JsonPropertyName("usr_typ_name")]
+        [JsonPropertyName("zone_name")]
         public string Name { get; set; }
+
+        [JsonPropertyName("zone_id")]
+        public int Id { get; set; }
     }
 }

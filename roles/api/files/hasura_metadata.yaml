@@ -695,6 +695,24 @@ tables:
   table:
     name: isoadmin
     schema: public
+- array_relationships:
+  - name: txts
+    using:
+      foreign_key_constraint_on:
+        column: language
+        table:
+          name: txt
+          schema: public
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - name
+      filter: {}
+    role: anonymous
+  table:
+    name: language
+    schema: public
 - select_permissions:
   - permission:
       columns:
@@ -2281,6 +2299,22 @@ tables:
     role: reporter-viewall
   table:
     name: text_msg
+    schema: public
+- object_relationships:
+  - name: languageByLanguage
+    using:
+      foreign_key_constraint_on: language
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - id
+      - language
+      - txt
+      filter: {}
+    role: anonymous
+  table:
+    name: txt
     schema: public
 - object_relationships:
   - name: import_control

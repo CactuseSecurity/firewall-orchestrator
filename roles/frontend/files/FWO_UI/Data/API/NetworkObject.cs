@@ -5,7 +5,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO.Ui.Data.Api
+namespace FWO.Ui.Data.API
 {
     public class NetworkObject
     {

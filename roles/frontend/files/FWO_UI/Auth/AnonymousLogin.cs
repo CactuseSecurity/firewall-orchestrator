@@ -1,3 +1,4 @@
+using System.Net;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading;
@@ -5,14 +6,12 @@ using System.Threading.Tasks;
 using FWO.Auth.Client;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.ApiClient;
-using FWO.Auth.Client;
-using System.Net;
 
 namespace FWO.Ui.Auth
 {
     public class AnonymousLogin
     {
-        private AuthClient authClient;
+        private AuthClient authClient; // = new AuthClient();
 
         private APIConnection apiConnection;
 
@@ -32,6 +31,5 @@ namespace FWO.Ui.Auth
                 apiConnection = new APIConnection(apiAuthResponse.GetResult<string>("jwt"));
             }
         }
-
     }
 }

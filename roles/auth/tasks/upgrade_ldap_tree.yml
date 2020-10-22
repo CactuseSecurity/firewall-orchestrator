@@ -1,37 +1,27 @@
 
   # install all upgrades between running version and version currently being installed
 
-- set_fact: 
-    installed_version: "{{ old_version }}"
-
-- set_fact: 
-    current_version: "{{ product_version }}"
-
-- set_fact: 
-    all_upgrades_available: "{{ lookup('fileglob', 'upgrade/*.ldif') }}"
-
-- set_fact:
-    upgrade_files: []
-
 - name: create upgrade dir
   file:
     path: "{{ fworch_home }}/auth/upgrade"
     state: directory
   become: yes
  
+- set_fact: 
+    installed_version: "{{ old_version }}"
+    current_version: "{{ product_version }}"
+    all_upgrades_available: "{{ lookup('fileglob', 'upgrade/*.ldif') }}"
+    upgrade_files: []
+
 - name: set list of relevant upgrade files (without extension)
   set_fact:
     upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1') ] }}"
-  when: installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1')
+  when: |
+    installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1')
+    and
+    current_version >= item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1')
   with_fileglob:
     - "../templates/upgrade/*.ldif"
-
-# - name: Copy relevant upgrade files
-#   copy:
-#     src: "upgrade/{{ item }}.ldif"
-#     dest: "{{ fworch_home }}/auth/upgrade/"
-#   loop: "{{ upgrade_files }}"
-#   become: yes
 
 - name: copy the upgrade ldif templates to target
   template:

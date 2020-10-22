@@ -1,9 +1,13 @@
+#### ignore file endings like ####
 #*.php linguist-detectable=false
 #*.md linguist-detectable=false
 #*.yml linguist-detectable=false
 #*.yaml linguist-detectable=false
 #*.pm linguist-detectable=false
 #*.pl linguist-detectable=false
+##################################
+
+################### ignore paths like #######################
 #roles/* linguist-detectable=false
 #roles/openldap-server/* linguist-detectable=false
 #roles/api/* linguist-detectable=false
@@ -12,24 +16,12 @@
 #roles/docker/* linguist-detectable=false
 #roles/frontend-php/* linguist-detectable=false
 #roles/importer/* linguist-detectable=false
+#roles/test/* linguist-detectable=false
+#roles/upgrade-completion/tasks/* linguist-detectable=false
+#############################################################
+
+####################### paths to ignore #####################
 roles/sample-auth-data/* linguist-detectable=false
 roles/sample-data-connect-sting/* linguist-detectable=false
 roles/sample-data/* linguist-detectable=false
-#roles/test/* linguist-detectable=false
-#roles/upgrade-completion/tasks/* linguist-detectable=false
-
-#api
-#auth
-#common
-#database
-#docker
-#frontend-php
-#frontend
-#importer
-#lib
-#openldap-server
-#sample-auth-data
-#sample-data-connect-sting/tasks
-#sample-data
-#test
-#upgrade-completion/tasks
+#############################################################

@@ -37,6 +37,10 @@
     - backend
 
 - hosts: frontends
+  tasks:
+    - name: testen
+      debug:
+        msg: "{{ group_names }}"
   roles:
     - { role: lib, when: "'authserver' not in {{ group_names }}"}
     - frontend

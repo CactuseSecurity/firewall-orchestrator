@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -16,6 +17,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using FWO.Config;
+using FWO.ApiConfig;
+using FWO.Logging;
 
 namespace FWO.Ui
 {
@@ -41,9 +44,27 @@ namespace FWO.Ui
 
             string ApiUri = configConnection.ApiServerUri;
             string AuthUri = configConnection.AuthServerUri;
+            string ProductVersion = configConnection.ProductVersion;
 
-            services.AddScoped<APIConnection>(api => new APIConnection(ApiUri));
-            services.AddScoped<AuthClient>(auth => new AuthClient(AuthUri));
+            services.AddScoped<APIConnection>(_ => new APIConnection(ApiUri));
+            services.AddScoped<AuthClient>(_ => new AuthClient(AuthUri));
+            // use anonymous login
+
+            AuthClient authClient = new AuthClient(AuthUri);
+            APIConnection apiConn = new APIConnection(ApiUri);
+            AuthServerResponse authResponse = authClient.AuthenticateUser("","").Result;
+            if (authResponse.Status == HttpStatusCode.BadRequest) 
+            {
+                Log.WriteError("Auth Server Connection", $"Error while authenticating as anonymous user from UI.");
+                Environment.Exit(1);
+            }
+            string jwt = authResponse.GetResult<string>("jwt");
+            apiConn.SetAuthHeader(jwt);
+            //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+            
+            ConfigCollection configCollection = new ConfigCollection(jwt);
+
+            services.AddSingleton<ConfigCollection>(_ => configCollection);
             services.AddBlazoredSessionStorage();
         }
 

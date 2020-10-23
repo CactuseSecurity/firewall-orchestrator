@@ -1,5 +1,6 @@
 fragment ruleOverview on rule {
   rule_id
+  rule_uid
   rule_action
   section_header: rule_head_text
   rule_comment

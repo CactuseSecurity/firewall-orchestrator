@@ -9,7 +9,7 @@ query getNetworkServiceDetails(
   management(where: { mgm_id: { _in: $management_id } }) {
     mgm_id
     mgm_name
-    services(
+    serviceObjects : services(
       limit: $limit
       offset: $offset
       where: {

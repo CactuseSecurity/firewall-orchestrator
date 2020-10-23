@@ -8,7 +8,7 @@ query listUsers(
   management(where: { mgm_id: { _in: $management_id } }) {
     mgm_id
     mgm_name
-    usrs(
+    userObjects: usrs(
       limit: $limit
       offset: $offset
       where: { active: { _eq: true }, user_name: { _in: $user_name } }

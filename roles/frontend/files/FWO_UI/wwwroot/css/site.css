@@ -23,7 +23,6 @@ app {
 .main {
     flex: 1;
 }
-
     .main .top-row {
         background-color: #f7f7f7;
         border-bottom: 1px solid #d6d5d5;
@@ -40,22 +39,21 @@ app {
     text-overflow: ellipsis;
 }
 
-.sidebar {
-    right: 0px;
-    top: 0px;
+.sidebar-main {
     position: fixed;
-    height: 100%;
+    top: 56px;
+    height: 95%;
 }
 
-.sizer {
+.sidebar-sizer {
+    height: 100%;
     width: 4px;
     background-color: black;
-    height: 100%;
     z-index: 20;
     border-style: double;
 }
 
-.min-max-button {
+.sidebar-min-max-button {
     border-radius: 14px 0px 0px 14px;
     border-right-style: hidden;
     padding: 10px;
@@ -107,3 +105,15 @@ app {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    z-index: 2147483647;
+    width: 100%;
+}
+
+.hide-all-but-second-child :not(:nth-child(2))  {
+    display: none;
+}

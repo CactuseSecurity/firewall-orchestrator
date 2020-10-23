@@ -79,6 +79,16 @@ namespace FWO.Config
             }
         }
 
+        private string productVersion = null;
+        public string ProductVersion
+        {
+            get
+            {
+                CriticalConfigValueLoaded(productVersion);
+                return productVersion;
+            }
+        }
+
         public ConfigConnection()
         {
             #region Config File
@@ -108,7 +118,10 @@ namespace FWO.Config
                 IgnoreExceptions(() => authServerUri = configFileData["auth_uri"]);
 
                 // Try to get api uri
-                IgnoreExceptions(() => apiServerUri = configFileData["api_uri"]);               
+                IgnoreExceptions(() => apiServerUri = configFileData["api_uri"]);
+                
+                // Try to get productVersion
+                IgnoreExceptions(() => productVersion = configFileData["product_version"]);
             }
 
             catch (Exception configFileReadException)
@@ -116,18 +129,6 @@ namespace FWO.Config
                 Log.WriteError("Config file read", $"Config file could not be found.", configFileReadException);
                 Environment.Exit(1); // Exit with error
             }
-
-            #endregion
-
-            #region Config Api
-
-            // TODO: Get Config Values form API
-
-            //authClient = new AuthClient(authServerUri);
-            //apiConnection = new APIConnection(apiServerUri);
-
-            // TODO: Which Jwt should be used here?
-            //apiConnection.SetAuthHeader("");
 
             #endregion
         }

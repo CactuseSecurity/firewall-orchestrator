@@ -15,31 +15,6 @@ query showManagements {
   }
 }
 
-query showManagementDetails {
-  management {
-    dev_typ_id
-    hide_in_gui
-    do_not_import
-    force_initial_import
-    importer_hostname
-    last_import_md5_complete_config
-    last_import_md5_objects
-    last_import_md5_rules
-    last_import_md5_users
-    config_path
-    mgm_comment
-    mgm_create
-    mgm_id
-    mgm_name
-    mgm_update
-    ssh_hostname
-    ssh_port
-    ssh_private_key
-    ssh_public_key
-    ssh_user
-  }
-}
-
 query showDevicesByManagement {
   management {
     mgm_name
@@ -97,11 +72,9 @@ query showManufacturers {
   }
 }
 
-
 #############################
 ## mutations
 #############################
-
 
 mutation newManagement(
   $dev_typ_id: Int!
@@ -111,14 +84,16 @@ mutation newManagement(
   insert_management(
     objects: {
       config_path: ""
-      dev_typ_id: 10
+      dev_typ_id: $dev_typ_id
       importer_hostname: ""
-      mgm_name: "$mgm_name"
+      mgm_name: $mgm_name
       ssh_hostname: ""
-      ssh_private_key: ""
+      ssh_private_key: $ssh_private_key
       ssh_user: ""
     }
   ) {
-    affected_rows
+    returning {
+      mgm_id
+    }
   }
 }

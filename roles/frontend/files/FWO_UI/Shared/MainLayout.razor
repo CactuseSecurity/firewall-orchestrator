@@ -1,20 +1,48 @@
-﻿@inherits LayoutComponentBase
+﻿@using FWO.Ui.Shared
+@inherits LayoutComponentBase
 
-<CascadingValue Value="navLayerZ">
-    <div style="z-index:2">
-        <NavigationMenu />
-    </div>
-</CascadingValue>
+<div style="z-index:2; top:0px;" class="position-sticky">
+    <NavigationMenu />
+</div>
 
-
-
-<div class="main">
+<div class="main h-100">
     <div class="content p-4">
-        @Body
+        <CascadingValue Value="@showErrorFunction">
+            @Body
+        </CascadingValue>
+    </div>
+</div>
+
+<div class="footer alert alert-danger @errorDialogClass">
+    <div class="d-flex flex-row justify-content-between">
+        <div>@errorDialogTitle - @errorDialogMessage See logs for details!</div>  <div class="oi oi-x" @onclick="@(() => { errorDialogClass = "d-none"; StateHasChanged();})"></div>
     </div>
 </div>
 
 @code
 {
-    int navLayerZ;
+    private string errorDialogClass = "d-none";
+    private string errorDialogTitle;
+    private string errorDialogMessage;
+
+    private object errorLock = new object();
+
+    Action<string, string> showErrorFunction;
+
+    protected override void OnInitialized()
+    {
+        showErrorFunction = ShowError;
+    }
+
+    private void ShowError(string title, string message)
+    {
+        // Needed so there is no chance an error is announced by 2 threads at the same time.
+        lock (errorLock)
+        {
+            errorDialogTitle = title;
+            errorDialogMessage = message;
+            errorDialogClass = "";
+            StateHasChanged();
+        }
+    }
 }

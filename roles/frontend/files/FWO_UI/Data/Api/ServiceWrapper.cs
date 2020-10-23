@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO.Ui.Data.Api
+namespace FWO.Ui.Data.API
 {
     public class ServiceWrapper
     {
         [JsonPropertyName("service")]
-        public Service Content { get; set; }
+        public NetworkService Content { get; set; }
     }
 }

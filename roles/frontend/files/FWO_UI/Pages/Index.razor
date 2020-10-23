@@ -2,7 +2,7 @@
 
 @page "/"
 
-<button @onclick="LogUsername">Log username</button>
+<button @onclick="ShowUsername">show username</button>
 
 <p>@_authMessage</p>
 
@@ -12,7 +12,7 @@
 
     private string _authMessage = "Test";
 
-    private async Task LogUsername()
+    private async Task ShowUsername()
     {
         AuthenticationState authState = await authenticationStateTask;
         ClaimsPrincipal user = authState.User;

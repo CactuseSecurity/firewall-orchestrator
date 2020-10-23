@@ -1,7 +1,0 @@
-     - name: create tablespace directory 
-       file:
-        path:  "{{ table_space }}"
-        state: directory
-        owner: postgres
-        group: postgres
-        mode: "0755"

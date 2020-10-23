@@ -20,9 +20,9 @@ namespace FWO.Auth.Client
             this.authServerUri = authServerUri;
         }
 
-        public virtual async Task<RequestResult> SendRequest(Dictionary<string, object> parameters, string request)
+        public virtual async Task<AuthServerResponse> SendRequest(Dictionary<string, object> parameters, string request)
         {
-            RequestResult result;
+            AuthServerResponse result;
 
             try
             {
@@ -36,7 +36,7 @@ namespace FWO.Auth.Client
                 // Unwrap result
                 string wrappedResult = await httpResponse.Content.ReadAsStringAsync();
                 Dictionary<string, JsonElement> jsonResults = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(wrappedResult);
-                result = new RequestResult(httpResponse.StatusCode, jsonResults);
+                result = new AuthServerResponse(httpResponse.StatusCode, jsonResults);
             }
             catch (Exception exception)
             {
@@ -45,7 +45,7 @@ namespace FWO.Auth.Client
                     exception);
 
                 // Inform requester about errors
-                result = new RequestResult(HttpStatusCode.BadRequest, "An error occured while sending request");
+                result = new AuthServerResponse(HttpStatusCode.BadRequest, "An error occured while sending request.");
             }
 
             // Return result

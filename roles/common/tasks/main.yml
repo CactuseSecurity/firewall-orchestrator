@@ -18,7 +18,7 @@
 
   - name: fail if already installed and installation_mode is new
     fail:
-      msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}"
+      msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
     when: already_installed and installation_mode == "new"
 
   - name: fail if not already installed and installation_mode is upgrade
@@ -48,7 +48,7 @@
       - auth
       - bin
       - importer  
-      - install  
+      - database  
       - ui
       - lib
 

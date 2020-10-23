@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO.Ui.Data.Api
+namespace FWO.Ui.Data.API
 {
     public class Device
     {
@@ -16,5 +16,31 @@ namespace FWO.Ui.Data.Api
 
         [JsonPropertyName("rules")]
         public Rule[] Rules { get; set; }
+    }
+
+    public static class DeviceUtility
+    {
+        public static bool Merge(this Device[] devices, Device[] devicesToMerge)
+        {
+            bool newObjects = false;
+
+            for (int i = 0; i < devices.Length; i++)
+            {
+                if (devices[i].Id == devicesToMerge[i].Id)
+                {
+                    if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules.Length > 0)
+                    {
+                        devices[i].Rules = devices[i].Rules.Concat(devicesToMerge[i].Rules).ToArray();
+                        newObjects = true;
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException("Managements have to be in the same order in oder to merge.");
+                }
+            }
+
+            return newObjects;
+        }
     }
 }

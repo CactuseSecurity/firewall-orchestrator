@@ -1,9 +1,9 @@
 /*
-Created		29.04.2005
-Modified	21.07.2020
-Project		IT Security Organizer
-Company		Cactus eSecurity GmbH
-Database	PostgreSQL 9-12
+Created			29.04.2005
+Last modified	18.10.2020
+Project			IT Security Organizer
+Company			Cactus eSecurity GmbH
+Database		PostgreSQL 9-12
 */
 
 /* Create Sequences */
@@ -16,7 +16,18 @@ Cache 1;
 
 /* Create Tables */
 
-Create table "device"
+
+-- the device_type table is only needed for the API
+-- it allows for the pre-auth functions to work with hasura
+Create table "device_type"
+(
+    "id"      int,
+    "name"    VARCHAR
+);
+
+-- fundamental firewall data -------------------------------------
+
+Create table "device" -- contains an entry for each firewall gateway
 (
 	"dev_id" SERIAL,
 	"mgm_id" Integer NOT NULL,
@@ -35,62 +46,7 @@ Create table "device"
  primary key ("dev_id")
 );
 
-Create table "tenant_project"
-(
-	"tenant_id" Integer NOT NULL,
-	"prj_id" Integer NOT NULL,
- primary key ("tenant_id","prj_id")
-);
-
-Create table "tenant"
-(
-	"tenant_id" SERIAL,
-	"tenant_name" Varchar NOT NULL,
-	"tenant_projekt" Varchar,
-	"tenant_comment" Text,
-	"tenant_report" Boolean Default true,
-	"tenant_can_view_all_devices" Boolean NOT NULL Default false,
-	"tenant_is_superadmin" Boolean NOT NULL default false,	
-	"tenant_create" Timestamp NOT NULL Default now(),
- primary key ("tenant_id")
-);
-
--- Create table "role"
--- (
--- 	"role_id" SERIAL,
--- 	"role_name" Varchar NOT NULL,
--- 	"role_can_view_all_devices" Boolean NOT NULL Default false,
--- 	"role_is_superadmin" Boolean NOT NULL default false,	
---  primary key ("role_id")
--- );
-
-Create table "tenant_to_device"
-(
-	"tenant_id" Integer NOT NULL,
-	"device_id" Integer NOT NULL,
- primary key ("tenant_id", "device_id")
-);
-
-Create table "tenant_object"
-(
-	"tenant_id" Integer NOT NULL,
-	"obj_id" Integer NOT NULL,
- primary key ("tenant_id","obj_id")
-);
-
-Create table "tenant_network"
-(
-	"tenant_net_id" BIGSERIAL,
-	"tenant_id" Integer NOT NULL,
-	"tenant_net_name" Varchar,
-	"tenant_net_comment" Text,
-	"tenant_net_ip" Cidr,
-	"tenant_net_ip_end" Cidr,
-	"tenant_net_create" Timestamp NOT NULL Default now(),
- primary key ("tenant_net_id")
-);
-
-Create table "management"
+Create table "management" -- contains an entry for each firewall management system
 (
 	"mgm_id" SERIAL,
 	"dev_typ_id" Integer NOT NULL,
@@ -296,6 +252,238 @@ Create table "svcgrp"
  primary key ("svcgrp_id","svcgrp_member_id")
 );
 
+Create table "zone"
+(
+	"zone_id" BIGSERIAL,
+	"zone_create" Integer NOT NULL,
+	"zone_last_seen" Integer NOT NULL,
+	"mgm_id" Integer NOT NULL,
+	"zone_name" Varchar NOT NULL,
+	"active" Boolean NOT NULL Default TRUE,
+ primary key ("zone_id")
+);
+
+Create table "usr"
+(
+	"user_id" BIGSERIAL PRIMARY KEY,
+	"usr_typ_id" Integer NOT NULL,
+	"user_color_id" Integer Default 1,
+	"mgm_id" Integer NOT NULL,
+	"user_name" Varchar NOT NULL,
+	"active" Boolean NOT NULL Default TRUE,
+	"user_member_names" Text,
+	"user_member_refs" Text,
+	"user_authmethod" Varchar,
+	"user_valid_from" Date Default '1900-01-01',
+	"user_valid_until" Date Default '9999-12-31',
+	"src_restrict" Text,
+	"dst_restrict" Text,
+	"time_restrict" Text,
+	"user_create" Integer NOT NULL,
+	"user_last_seen" Integer NOT NULL,
+	"user_comment" Text,
+	"user_uid" Text,
+	"user_firstname" Varchar,
+	"user_lastname" Varchar,
+	"last_change_admin" Integer,
+	"tenant_id" Integer
+);
+
+Create table "usergrp"
+(
+	"usergrp_id" BIGSERIAL,
+	"usergrp_member_id" BIGSERIAL,
+	"import_created" Integer NOT NULL,
+	"import_last_seen" Integer NOT NULL,
+	"active" Boolean NOT NULL Default TRUE,
+ primary key ("usergrp_id","usergrp_member_id")
+);
+
+Create table "usergrp_flat"
+(
+	"active" Boolean NOT NULL Default TRUE,
+	"usergrp_flat_id" Integer NOT NULL,
+	"usergrp_flat_member_id" Integer NOT NULL,
+	"import_created" Integer NOT NULL,
+	"import_last_seen" Integer NOT NULL,
+ primary key ("usergrp_flat_id","usergrp_flat_member_id")
+);
+
+Create table "objgrp_flat"
+(
+	"objgrp_flat_id" Integer NOT NULL,
+	"objgrp_flat_member_id" Integer NOT NULL,
+	"active" Boolean NOT NULL Default TRUE,
+	"import_created" Integer NOT NULL,
+	"import_last_seen" Integer NOT NULL,
+	"negated" Boolean NOT NULL Default FALSE
+);
+
+Create table "svcgrp_flat"
+(
+	"svcgrp_flat_id" Integer NOT NULL,
+	"svcgrp_flat_member_id" Integer NOT NULL,
+	"import_created" Integer NOT NULL,
+	"import_last_seen" Integer NOT NULL,
+	"active" Boolean NOT NULL Default TRUE,
+	"negated" Boolean NOT NULL Default FALSE
+);
+
+-- to be removed in 5.0
+Create table "rule_order"
+(
+	"control_id" Integer NOT NULL,
+	"dev_id" Integer NOT NULL,
+	"rule_id" Integer NOT NULL,
+	"rule_number" Integer NOT NULL,
+ primary key ("control_id","dev_id","rule_id")
+);
+
+-- isoadmin - change metadata -------------------------------------
+
+Create table "isoadmin"
+(
+	"isoadmin_id" Integer NOT NULL,
+	"isoadmin_username" Varchar NOT NULL UNIQUE,
+	"isoadmin_first_name" Varchar,
+	"isoadmin_last_name" Varchar,
+	"isoadmin_password" Varchar,
+	"isoadmin_start_date" Date Default now(),
+	"isoadmin_end_date" Date,
+	"isoadmin_email" Varchar,
+	"tenant_id" Integer,
+	"isoadmin_password_must_be_changed" Boolean NOT NULL Default TRUE,
+	"isoadmin_last_login" Timestamp with time zone,
+	"isoadmin_last_password_change" Timestamp with time zone,
+	"isoadmin_pwd_history" Text,
+ primary key ("isoadmin_id")
+);
+
+-- text tables ----------------------------------------
+
+-- to be removed in 5.0 (replaced by language, txt)
+Create table "text_msg"
+(
+	"text_msg_id" Varchar NOT NULL UNIQUE,
+	"text_msg_ger" Text NOT NULL,
+	"text_msg_eng" Text NOT NULL,
+ primary key ("text_msg_id")
+);
+
+Create table "language"
+(
+	"name" Varchar NOT NULL UNIQUE,
+ primary key ("name")
+);
+
+Create table "txt"
+(
+	"id" Varchar NOT NULL,
+	"language" Varchar NOT NULL,
+	"txt" Varchar NOT NULL,
+ primary key ("id", "language")
+);
+
+Create table "error"
+(
+	"error_id" Varchar NOT NULL UNIQUE,
+	"error_lvl" Integer NOT NULL,
+	"error_txt_ger" Text NOT NULL,
+	"error_txt_eng" Text NOT NULL,
+ primary key ("error_id")
+);
+
+Create table "error_log"
+(
+	"error_log_id" BIGSERIAL,
+	"error_id" Varchar NOT NULL,
+	"error_txt" Text,
+	"error_time" Timestamp NOT NULL Default now(),
+ primary key ("error_log_id")
+);
+
+-- -- contains exactly one entry for each language available
+-- Create table "language"
+-- (
+-- 	"id" Integer NOT NULL,
+-- 	"name" Varchar NOT NULL,
+--     primary key ("id")
+-- );
+
+-- -- contains all texts in all languages
+-- Create table "plain_text"
+-- (
+-- 	"id" Serial,
+-- 	"key" Varchar NOT NULL,
+-- 	"language_id" Integer,
+--     "text" Varchar
+--     primary key ("id", "language_id")
+-- );
+
+-- Create index "fkey_plain_text_TO_language" on "plain_text" ("language_id");
+-- Alter table "plain_text" add  foreign key ("language_id") references "language" ("id") on update restrict on delete cascade;
+
+-- tenant -------------------------------------
+Create table "tenant"
+(
+	"tenant_id" SERIAL,
+	"tenant_name" Varchar NOT NULL,
+	"tenant_projekt" Varchar,
+	"tenant_comment" Text,
+	"tenant_report" Boolean Default true,
+	"tenant_can_view_all_devices" Boolean NOT NULL Default false,
+	"tenant_is_superadmin" Boolean NOT NULL default false,	
+	"tenant_create" Timestamp NOT NULL Default now(),
+ primary key ("tenant_id")
+);
+
+Create table "tenant_to_device"
+(
+	"tenant_id" Integer NOT NULL,
+	"device_id" Integer NOT NULL,
+ primary key ("tenant_id", "device_id")
+);
+
+Create table "tenant_object"
+(
+	"tenant_id" Integer NOT NULL,
+	"obj_id" Integer NOT NULL,
+ primary key ("tenant_id","obj_id")
+);
+
+Create table "tenant_network"
+(
+	"tenant_net_id" BIGSERIAL,
+	"tenant_id" Integer NOT NULL,
+	"tenant_net_name" Varchar,
+	"tenant_net_comment" Text,
+	"tenant_net_ip" Cidr,
+	"tenant_net_ip_end" Cidr,
+	"tenant_net_create" Timestamp NOT NULL Default now(),
+ primary key ("tenant_net_id")
+);
+
+-- unused in 5.0, moved to ldap
+Create table "tenant_user"
+(
+	"user_id" BIGSERIAL,
+	"tenant_id" BIGSERIAL,
+ primary key ("user_id","tenant_id")
+);
+
+-- unused in 5.0, moved to ldap
+Create table "tenant_username"
+(
+	"tenant_username_id" BIGSERIAL,
+	"tenant_id" Integer,
+	"tenant_username_pattern" Varchar,
+	"tenant_username_comment" Text,
+	"tenant_username_create" Timestamp NOT NULL Default now(),
+ primary key ("tenant_username_id")
+);
+
+-- basic static data -------------------------------------
+
 Create table "stm_action"
 (
 	"action_id" SERIAL,
@@ -367,52 +555,38 @@ Create table "stm_svc_typ"
  primary key ("svc_typ_id")
 );
 
-Create table "zone"
+Create table "stm_usr_typ"
 (
-	"zone_id" BIGSERIAL,
-	"zone_create" Integer NOT NULL,
-	"zone_last_seen" Integer NOT NULL,
-	"mgm_id" Integer NOT NULL,
-	"zone_name" Varchar NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
- primary key ("zone_id")
+	"usr_typ_id" Integer NOT NULL UNIQUE,
+	"usr_typ_name" Varchar,
+ primary key ("usr_typ_id")
 );
 
-Create table "usr"
+-- permanent import table -----------------------------------------------
+-- these tables are only filled during an import run and the import data
+-- is immediately removed afterwards
+
+Create table "import_control"
 (
-	"user_id" BIGSERIAL PRIMARY KEY,
-	"usr_typ_id" Integer NOT NULL,
-	"user_color_id" Integer Default 1,
+	"control_id" BIGSERIAL,
+	"start_time" Timestamp NOT NULL Default now(),
+	"stop_time" Timestamp,
+	"config_name" Text,
+	"mgm_product" Text,
+	"mgm_version" Text,
+	"is_initial_import" Boolean NOT NULL Default FALSE,
+	"delimiter_group" Varchar(3) NOT NULL Default '|',
+	"delimiter_zone" Varchar(3) Default '%',
+	"delimiter_user" Varchar(3) Default '@',
+	"delimiter_list" Varchar(3) Default '|',
 	"mgm_id" Integer NOT NULL,
-	"user_name" Varchar NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"user_member_names" Text,
-	"user_member_refs" Text,
-	"user_authmethod" Varchar,
-	"user_valid_from" Date Default '1900-01-01',
-	"user_valid_until" Date Default '9999-12-31',
-	"src_restrict" Text,
-	"dst_restrict" Text,
-	"time_restrict" Text,
-	"user_create" Integer NOT NULL,
-	"user_last_seen" Integer NOT NULL,
-	"user_comment" Text,
-	"user_uid" Text,
-	"user_firstname" Varchar,
-	"user_lastname" Varchar,
-	"last_change_admin" Integer,
-	"tenant_id" Integer
+	"last_change_in_config" Timestamp,
+	"successful_import" Boolean NOT NULL Default FALSE,
+	"import_errors" Varchar,
+ primary key ("control_id")
 );
 
-Create table "usergrp"
-(
-	"usergrp_id" BIGSERIAL,
-	"usergrp_member_id" BIGSERIAL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
- primary key ("usergrp_id","usergrp_member_id")
-);
+-- temporary import tables -------------------------------------
 
 Create table "import_service"
 (
@@ -523,31 +697,28 @@ Create table "import_rule"
  primary key ("control_id","rule_id")
 );
 
-Create table "import_control"
-(
-	"control_id" BIGSERIAL,
-	"start_time" Timestamp NOT NULL Default now(),
-	"stop_time" Timestamp,
-	"config_name" Text,
-	"mgm_product" Text,
-	"mgm_version" Text,
-	"is_initial_import" Boolean NOT NULL Default FALSE,
-	"delimiter_group" Varchar(3) NOT NULL Default '|',
-	"delimiter_zone" Varchar(3) Default '%',
-	"delimiter_user" Varchar(3) Default '@',
-	"delimiter_list" Varchar(3) Default '|',
-	"mgm_id" Integer NOT NULL,
-	"last_change_in_config" Timestamp,
-	"successful_import" Boolean NOT NULL Default FALSE,
-	"import_errors" Varchar,
- primary key ("control_id")
-);
-
 Create table "import_zone"
 (
 	"control_id" Integer NOT NULL,
 	"zone_name" Text NOT NULL,
 	"last_change_time" Timestamp
+);
+
+-- changelog tables -------------------------------------
+
+Create table "import_changelog"
+(
+	"change_time" Timestamp,
+	"management_name" Varchar,
+	"changed_object_name" Varchar,
+	"changed_object_uid" Varchar,
+	"changed_object_type" Varchar,
+	"change_action" Varchar NOT NULL,
+	"change_admin" Varchar,
+	"control_id" Integer NOT NULL,
+	"import_changelog_nr" Integer,
+	"import_changelog_id" BIGSERIAL,
+ primary key ("import_changelog_id")
 );
 
 Create table "changelog_object"
@@ -570,33 +741,6 @@ Create table "changelog_object"
 	"change_time" Timestamp,
 	"unique_name" Varchar,
  primary key ("log_obj_id")
-);
-
-Create table "isoadmin"
-(
-	"isoadmin_id" Integer NOT NULL,
-	"isoadmin_username" Varchar NOT NULL UNIQUE,
-	"isoadmin_first_name" Varchar,
-	"isoadmin_last_name" Varchar,
-	"isoadmin_password" Varchar,
-	"isoadmin_start_date" Date Default now(),
-	"isoadmin_end_date" Date,
-	"isoadmin_email" Varchar,
-	"tenant_id" Integer,
-	"isoadmin_password_must_be_changed" Boolean NOT NULL Default TRUE,
-	"isoadmin_last_login" Timestamp with time zone,
-	"isoadmin_last_password_change" Timestamp with time zone,
-	"isoadmin_pwd_history" Text,
- primary key ("isoadmin_id")
-);
-
-Create table "error"
-(
-	"error_id" Varchar NOT NULL UNIQUE,
-	"error_lvl" Integer NOT NULL,
-	"error_txt_ger" Text NOT NULL,
-	"error_txt_eng" Text NOT NULL,
- primary key ("error_id")
 );
 
 Create table "changelog_service"
@@ -667,82 +811,7 @@ Create table "changelog_rule"
  primary key ("log_rule_id")
 );
 
-Create table "error_log"
-(
-	"error_log_id" BIGSERIAL,
-	"error_id" Varchar NOT NULL,
-	"error_txt" Text,
-	"error_time" Timestamp NOT NULL Default now(),
- primary key ("error_log_id")
-);
-
-Create table "config"
-(
-	"config_id" BIGSERIAL,
-	"language" VARCHAR Default 'english',
- primary key ("config_id")
-);
-
-Create table "stm_usr_typ"
-(
-	"usr_typ_id" Integer NOT NULL UNIQUE,
-	"usr_typ_name" Varchar,
- primary key ("usr_typ_id")
-);
-
-Create table "text_msg"
-(
-	"text_msg_id" Varchar NOT NULL UNIQUE,
-	"text_msg_ger" Text NOT NULL,
-	"text_msg_eng" Text NOT NULL,
- primary key ("text_msg_id")
-);
-
-Create table "rule_order"
-(
-	"control_id" Integer NOT NULL,
-	"dev_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL,
-	"rule_number" Integer NOT NULL,
- primary key ("control_id","dev_id","rule_id")
-);
-
-Create table "objgrp_flat"
-(
-	"objgrp_flat_id" Integer NOT NULL,
-	"objgrp_flat_member_id" Integer NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
-	"negated" Boolean NOT NULL Default FALSE
-);
-
-Create table "svcgrp_flat"
-(
-	"svcgrp_flat_id" Integer NOT NULL,
-	"svcgrp_flat_member_id" Integer NOT NULL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"negated" Boolean NOT NULL Default FALSE
-);
-
-Create table "stm_report_typ"
-(
-	"report_typ_id" SERIAL,
-	"report_typ_name_german" Varchar NOT NULL,
-	"report_typ_name_english" Varchar,
-	"report_typ_comment_german" Text,
-	"report_typ_comment_english" Text,
- primary key ("report_typ_id")
-);
-
-Create table "tenant_user"
-(
-	"user_id" BIGSERIAL,
-	"tenant_id" BIGSERIAL,
- primary key ("user_id","tenant_id")
-);
+-- request handling -------------------------------------------
 
 Create table "request"
 (
@@ -785,14 +854,12 @@ Create table "request_user_change"
  primary key ("log_usr_id","request_id")
 );
 
-Create table "usergrp_flat"
+Create table "request_type"
 (
-	"active" Boolean NOT NULL Default TRUE,
-	"usergrp_flat_id" Integer NOT NULL,
-	"usergrp_flat_member_id" Integer NOT NULL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
- primary key ("usergrp_flat_id","usergrp_flat_member_id")
+	"request_type_id" Integer NOT NULL UNIQUE,
+	"request_type_name" Varchar NOT NULL UNIQUE,
+	"request_type_comment" Varchar,
+ primary key ("request_type_id")
 );
 
 Create table "stm_change_type"
@@ -802,59 +869,9 @@ Create table "stm_change_type"
  primary key ("change_type_id")
 );
 
-Create table "temp_table_for_tenant_filtered_rule_ids"
-(
-	"rule_id" Integer NOT NULL,
-	"report_id" Integer NOT NULL,
- primary key ("rule_id","report_id")
-);
+-- reporting -------------------------------------------------------
 
-Create table "tenant_username"
-(
-	"tenant_username_id" BIGSERIAL,
-	"tenant_id" Integer,
-	"tenant_username_pattern" Varchar,
-	"tenant_username_comment" Text,
-	"tenant_username_create" Timestamp NOT NULL Default now(),
- primary key ("tenant_username_id")
-);
-
-Create table "request_type"
-(
-	"request_type_id" Integer NOT NULL UNIQUE,
-	"request_type_name" Varchar NOT NULL UNIQUE,
-	"request_type_comment" Varchar,
- primary key ("request_type_id")
-);
-
-Create table "temp_filtered_rule_ids"
-(
-	"report_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL
-);
-
-Create table "temp_mgmid_importid_at_report_time"
-(
-	"control_id" Integer,
-	"mgm_id" Integer,
-	"report_id" Integer NOT NULL
-);
-
-Create table "import_changelog"
-(
-	"change_time" Timestamp,
-	"management_name" Varchar,
-	"changed_object_name" Varchar,
-	"changed_object_uid" Varchar,
-	"changed_object_type" Varchar,
-	"change_action" Varchar NOT NULL,
-	"change_admin" Varchar,
-	"control_id" Integer NOT NULL,
-	"import_changelog_nr" Integer,
-	"import_changelog_id" BIGSERIAL,
- primary key ("import_changelog_id")
-);
-
+-- not needed in 5.0?
 Create table "reporttyp_tenant_map"
 (
 	"tenant_id" Integer NOT NULL,
@@ -877,6 +894,40 @@ Create table "report"
  primary key ("report_id")
 );
 
+Create table "stm_report_typ"
+(
+	"report_typ_id" SERIAL,
+	"report_typ_name_german" Varchar NOT NULL,
+	"report_typ_name_english" Varchar,
+	"report_typ_comment_german" Text,
+	"report_typ_comment_english" Text,
+ primary key ("report_typ_id")
+);
+
+-- temp tables reporting -------------------------------------------
+
+Create table "temp_table_for_tenant_filtered_rule_ids"
+(
+	"rule_id" Integer NOT NULL,
+	"report_id" Integer NOT NULL,
+ primary key ("rule_id","report_id")
+);
+
+Create table "temp_filtered_rule_ids"
+(
+	"report_id" Integer NOT NULL,
+	"rule_id" Integer NOT NULL
+);
+
+Create table "temp_mgmid_importid_at_report_time"
+(
+	"control_id" Integer,
+	"mgm_id" Integer,
+	"report_id" Integer NOT NULL
+);
+
+-- configuration
+
 Create table "ldap_connection"
 (
 	"ldap_connection_id" BIGSERIAL,
@@ -892,6 +943,18 @@ Create table "ldap_connection"
 	"ldap_write_user_pwd" Varchar,
 	primary key ("ldap_connection_id")
 );
+
+-- drop or rebuild this in 5.0
+Create table "config"
+(
+	"config_id" BIGSERIAL,
+	"language" VARCHAR Default 'english',
+ primary key ("config_id")
+);
+
+
+-----------------------------------------------------------------
+-----------------------------------------------------------------
 
 /* Create Tab 'Others' for Selected Tables */
 
@@ -931,6 +994,7 @@ Create index "rule_oder_idx" on "rule_order" using btree ("control_id","rule_id"
 
 
 /* Create Foreign Keys */
+Alter table "txt" add foreign key ("language") references "language" ("name") on update restrict on delete cascade;
 Create index "IX_relationship11" on "object" ("obj_nat_install");
 Alter table "object" add  foreign key ("obj_nat_install") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_Relationship126" on "rule_order" ("dev_id");
@@ -945,10 +1009,6 @@ Create index "IX_Relationship205" on "report" ("dev_id");
 Alter table "report" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_relationship7" on "device" ("tenant_id");
 Alter table "device" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
-Create index "IX_relationship1" on "tenant_project" ("tenant_id");
-Alter table "tenant_project" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
-Create index "IX_relationship2" on "tenant_project" ("prj_id");
-Alter table "tenant_project" add  foreign key ("prj_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
 Create index "IX_relationship15" on "tenant_object" ("tenant_id");
 Alter table "tenant_object" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete restrict;
 Create index "IX_relationship3" on "tenant_network" ("tenant_id");
@@ -1238,120 +1298,11 @@ Create group "isoadmins";
 Create user "fworch";
 Create user "dbbackup";
 Create user "isoimporter";
-
+CREATE ROLE textreader LOGIN
+  NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE;
+COMMENT ON ROLE textreader IS 'only used for reading from text_msg';
 
 /* Add Users To Groups */
 Alter group "dbbackupusers" add user "dbbackup";
 Alter group "configimporters" add user "isoimporter";
 Alter group "isoadmins" add user "fworch";
-
-/* Create Group Permissions */
-
-/*  grants for all (implicit) sequences */
-
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "secuadmins";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "secuadmins";
-
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "configimporters";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "configimporters";
-
-GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO group "dbbackupusers";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO group "dbbackupusers";
-
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "reporters";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "reporters";
-
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "isoadmins";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "isoadmins";
-
-/* Group permissions on tables */
-
--- general grants:
-
-Grant ALL on ALL tables in SCHEMA public to group isoadmins;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO group isoadmins;
-
-Grant select on ALL TABLES in SCHEMA public to group dbbackupusers;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group dbbackupusers;
-
-Grant select on ALL TABLES in SCHEMA public to group configimporters;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group configimporters;
-
-Grant select on ALL TABLES in SCHEMA public to group reporters;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group reporters;
-
-Grant select on ALL TABLES in SCHEMA public to group secuadmins;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group secuadmins;
-
--- granular grants:
-
--- config importers:
-Grant ALL on "import_service" to group "configimporters";
-Grant ALL on "import_object" to group "configimporters";
-Grant ALL on "import_user" to group "configimporters";
-Grant ALL on "import_rule" to group "configimporters";
-Grant ALL on "import_control" to group "configimporters";
-Grant ALL on "import_zone" to group "configimporters";
-Grant ALL on "import_changelog" to group "configimporters";
-
-Grant update on "device" to group "configimporters";
-Grant update on "management" to group "configimporters";
-Grant update,insert on "object" to group "configimporters";
-Grant update,insert on "objgrp" to group "configimporters";
-Grant update,insert on "rule" to group "configimporters";
-Grant update,insert on "rule_from" to group "configimporters";
-Grant update,insert on "rule_review" to group "configimporters";
-Grant update,insert on "rule_service" to group "configimporters";
-Grant update,insert on "rule_to" to group "configimporters";
-Grant update,insert on "service" to group "configimporters";
-Grant update,insert on "svcgrp" to group "configimporters";
-Grant update,insert on "usr" to group "configimporters";
-Grant update,insert on "zone" to group "configimporters";
-Grant update,insert on "usergrp" to group "configimporters";
-Grant update,insert on "usergrp_flat" to group "configimporters";
-Grant update,insert on "rule_order" to group "configimporters";
-Grant update,insert on "objgrp_flat" to group "configimporters";
-Grant update,insert on "svcgrp_flat" to group "configimporters";
-Grant update,insert on "tenant_user" to group "configimporters";
-Grant insert on "changelog_object" to group "configimporters";
-Grant insert on "changelog_service" to group "configimporters";
-Grant insert on "changelog_user" to group "configimporters";
-Grant insert on "changelog_rule" to group "configimporters";
-Grant insert on "error_log" to group "configimporters";
-
--- secuadmins:
-
-Grant ALL on "request" to group "secuadmins";
-Grant ALL on "request_object_change" to group "secuadmins";
-Grant ALL on "request_service_change" to group "secuadmins";
-Grant ALL on "request_rule_change" to group "secuadmins";
-Grant ALL on "request_user_change" to group "secuadmins";
-Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "secuadmins";
-Grant ALL on "tenant_username" to group "secuadmins";
-Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
-Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
-
-Grant update on "isoadmin" to group "secuadmins";
-Grant update,insert on "changelog_object" to group "secuadmins";
-Grant update,insert on "changelog_service" to group "secuadmins";
-Grant update,insert on "changelog_user" to group "secuadmins";
-Grant update,insert on "changelog_rule" to group "secuadmins";
-Grant update,insert on "error_log" to group "secuadmins";
-Grant insert on "report" to group "secuadmins";
-
--- reporters:
-
-Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "reporters";
-Grant ALL on "temp_filtered_rule_ids" to group "reporters";
-Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
-
-Grant update on "isoadmin" to group "reporters";
-Grant insert on "error_log" to group "reporters";
-Grant insert on "report" to group "reporters";
-
-
-
-/* Group permissions on views */
-
-/* Group permissions on procedures */
-

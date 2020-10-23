@@ -166,13 +166,6 @@ tables:
         table:
           name: report
           schema: public
-  - name: rule_orders
-    using:
-      foreign_key_constraint_on:
-        column: dev_id
-        table:
-          name: rule_order
-          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
@@ -439,13 +432,6 @@ tables:
         table:
           name: rule_from
           schema: public
-  - name: rule_orders
-    using:
-      foreign_key_constraint_on:
-        column: control_id
-        table:
-          name: rule_order
-          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
@@ -708,6 +694,24 @@ tables:
       foreign_key_constraint_on: tenant_id
   table:
     name: isoadmin
+    schema: public
+- array_relationships:
+  - name: txts
+    using:
+      foreign_key_constraint_on:
+        column: language
+        table:
+          name: txt
+          schema: public
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - name
+      filter: {}
+    role: anonymous
+  table:
+    name: language
     schema: public
 - select_permissions:
   - permission:
@@ -1263,13 +1267,6 @@ tables:
         table:
           name: rule_from
           schema: public
-  - name: rule_orders
-    using:
-      foreign_key_constraint_on:
-        column: rule_id
-        table:
-          name: rule_order
-          schema: public
   - name: rule_reviews
     using:
       foreign_key_constraint_on:
@@ -1451,19 +1448,6 @@ tables:
     role: reporter-viewall
   table:
     name: rule_from
-    schema: public
-- object_relationships:
-  - name: device
-    using:
-      foreign_key_constraint_on: dev_id
-  - name: import_control
-    using:
-      foreign_key_constraint_on: control_id
-  - name: rule
-    using:
-      foreign_key_constraint_on: rule_id
-  table:
-    name: rule_order
     schema: public
 - object_relationships:
   - name: rule
@@ -2200,20 +2184,6 @@ tables:
         table:
           name: tenant_object
           schema: public
-  - name: tenant_projects
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: tenant_project
-          schema: public
-  - name: tenantProjectsByPrjId
-    using:
-      foreign_key_constraint_on:
-        column: prj_id
-        table:
-          name: tenant_project
-          schema: public
   - name: tenant_to_devices
     using:
       foreign_key_constraint_on:
@@ -2277,16 +2247,6 @@ tables:
     name: tenant_object
     schema: public
 - object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  - name: tenantByPrjId
-    using:
-      foreign_key_constraint_on: prj_id
-  table:
-    name: tenant_project
-    schema: public
-- object_relationships:
   - name: device
     using:
       foreign_key_constraint_on: device_id
@@ -2339,6 +2299,22 @@ tables:
     role: reporter-viewall
   table:
     name: text_msg
+    schema: public
+- object_relationships:
+  - name: languageByLanguage
+    using:
+      foreign_key_constraint_on: language
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - id
+      - language
+      - txt
+      filter: {}
+    role: anonymous
+  table:
+    name: txt
     schema: public
 - object_relationships:
   - name: import_control

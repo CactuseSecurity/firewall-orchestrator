@@ -3,7 +3,6 @@ using FWO.Logging;
 using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
@@ -40,7 +39,7 @@ namespace FWO.Auth.Server
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
 
-        private const int timeOutInMs = 200;
+        private const int timeOutInMs = 200; // TODO: MOVE TO API
 
         /// <summary>
         /// Builds a connection to the specified Ldap server.
@@ -98,31 +97,33 @@ namespace FWO.Auth.Server
                             if (connection.Bound)
                             {
                                 // Return ldap dn
-                                Console.WriteLine($"Successful authentication for \"{ currentUser.Dn}\"");
+                                Log.WriteDebug("User Validation", $"\"{ currentUser.Dn}\" successfully authenticated.");
                                 return currentUser.Dn;
                             }
 
                             else
                             {
+                                // this will probably never be reached as an error is thrown before
                                 // Incorrect password - do nothing, assume its another user with the same username
-                                Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                                Log.WriteDebug("User Validation", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
                             }
                         }
-                        catch (LdapException)
+                        catch (LdapException exc)
                         {
-                            // Incorrect password - do nothing, assume its another user with the same username
-                            Log.WriteDebug("", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                            if (exc.ResultCode == 49)  // 49 = InvalidCredentials
+                                Log.WriteDebug("Duplicate user", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                            else
+                                Log.WriteError("Ldap exception", "Unexpected error while trying to validate user \"{ currentUser.Dn}\".");
                         } 
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Ldap exception", "Unexpected error while trying to validate user", exception);
+                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to validate user", exception);
             }
 
-            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials!");
-
+            Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\".");
             return "";
         }
 
@@ -156,7 +157,7 @@ namespace FWO.Auth.Server
                         // Foreach user 
                         foreach (string currentDn in roleMemberDn)
                         {
-                            Log.WriteDebug("Ldap Roles", $"Checking if current Dn: {currentDn} is user Dn. Then user has current role.");
+                            Log.WriteDebug("Ldap Roles", $"Checking if current Dn: \"{currentDn}\" is user Dn. Then user has current role.");
 
                             // Check if current user dn is matching with given user dn => Given user has current role
                             if (currentDn == userDn)

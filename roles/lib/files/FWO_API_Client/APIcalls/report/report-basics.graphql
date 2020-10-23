@@ -9,3 +9,10 @@ query getImportId($management_id: Int!, $time: timestamp!) {
     }
   }
 }
+
+query getReportTyp {
+  stm_report_typ {
+    id: report_typ_id
+    name: report_typ_name_english
+  }
+}

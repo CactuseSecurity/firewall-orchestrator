@@ -1,1 +1,1 @@
-﻿window.jsfunction = { focusElement: function (id) { const element = document.getElementById(id); element.focus(); } }
+﻿window.jsfunction = { focusElement: function (id) { document.getElementById(id).focus(); } }

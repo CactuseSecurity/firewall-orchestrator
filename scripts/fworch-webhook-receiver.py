@@ -25,10 +25,6 @@ project_path = '/CactuseSecurity/firewall-orchestrator.git'
 ssh_priv_key_file = root_dir + '.ssh/id_github_deploy'
 webhook_log_file_basename = 'webhookPayloads.txt'
 
-# prepare a path for git cloning
-os.system('rm -rf ' + tmp_git_dir)
-os.system('mkdir -p ' + tmp_git_dir)
-
 webhook_logfile = root_dir + '/' + webhook_log_file_basename
 if os.path.exists(webhook_logfile):
     append_write = 'a' # append if already exists
@@ -70,6 +66,9 @@ def post_handler():
             webhook_script_changed = True
       if (relevant_change):
          f.write('Relevant change: start building\n')
+         # prepare a clean path for git cloning
+         os.system('rm -rf ' + tmp_git_dir)
+         os.system('mkdir -p ' + tmp_git_dir)
          target_path  =  tmp_git_dir
          clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone ssh://git@" + github_hostname + project_path + "'"
          f.write('executing ' + clone_cmd + '\n')

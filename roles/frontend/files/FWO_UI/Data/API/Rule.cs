@@ -5,7 +5,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO.Ui.Data.Api
+namespace FWO.Ui.Data.API
 {
     public class Rule
     {
@@ -42,6 +42,9 @@ namespace FWO.Ui.Data.Api
         [JsonPropertyName("rule_src")]
         public string Source { get; set; }
 
+        [JsonPropertyName("src_zone")]
+        public Zone SourceZone { get; set; }
+
         [JsonPropertyName("rule_froms")]
         public NetworkObjectWrapper[] Froms { get; set; }
 
@@ -50,6 +53,9 @@ namespace FWO.Ui.Data.Api
 
         [JsonPropertyName("rule_dst")]
         public string Destination { get; set; }
+
+        [JsonPropertyName("dst_zone")]
+        public Zone DestinationZone { get; set; }
 
         [JsonPropertyName("rule_tos")]
         public NetworkObjectWrapper[] Tos { get; set; }
@@ -61,3 +67,5 @@ namespace FWO.Ui.Data.Api
         public string Track { get; set; }
     }
 }
+
+

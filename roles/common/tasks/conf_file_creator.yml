@@ -55,5 +55,6 @@
         auth_uri: "http://{{ auth_hostname }}:{{ auth_web_listener_port }}"
         # should be auth_uri: "https://{{ auth_hostname }}:{{ auth_web_listener_port }}"
     when: installation_mode != "upgrade"
+    # keep old version number in config file until end of upgrade
 
   become: yes

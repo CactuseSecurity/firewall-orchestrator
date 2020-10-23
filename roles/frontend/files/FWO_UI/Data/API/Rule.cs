@@ -65,11 +65,6 @@ namespace FWO.Ui.Data.API
 
         [JsonPropertyName("rule_track")]
         public string Track { get; set; }
-
-        public string DisplayDestinationZone()
-        {
-            return DestinationZone?.Name;
-        }
     }
 }
 

@@ -212,8 +212,6 @@
 
                     await InvokeAsync(StateHasChanged);
                 }
-
-                throw new Exception("test");
             }
             catch (Exception exception)
             {
@@ -295,6 +293,7 @@
                     paginationVariables.Offset += rulesPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview, paginationVariables);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
+                    
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -303,17 +302,15 @@
                 if (exception.Message == "no such type exists in the schema: 'cidr'")
                 {
                     Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
-                    await InvokeAsync(() => ShowError("Report generation", "You dont have sufficient acces rights."));
-                    await InvokeAsync(StateHasChanged);
+                    ShowError("Report generation", "You dont have sufficient acces rights.");
 
-                // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
-                // leave managementsReport as default = empty array
-            }
+                    // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+                    // leave managementsReport as default = empty array
+                }
                 else
                 {
                     Log.WriteError("Report generation", "Unclassified error.", exception);
-                    await InvokeAsync(() => ShowError("Report generation", "Unclassified error."));
-                    await InvokeAsync(StateHasChanged);
+                    ShowError("Report generation", "Unclassified error.");
                 }
             }
         });

@@ -38,7 +38,7 @@
 
 - hosts: frontends
   roles:
-    - lib
+    - { role: lib, when: "'authserver' not in group_names"}
     - frontend
     - { role: frontend-php, when: "ui_php is defined"}
   tags:

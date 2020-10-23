@@ -1,0 +1,14 @@
+#### ignore file endings like ####
+#*.php linguist-detectable=false
+#*.md linguist-detectable=false
+#*.yml linguist-detectable=false
+#*.yaml linguist-detectable=false
+#*.pm linguist-detectable=false
+#*.pl linguist-detectable=false
+##################################
+
+################### ignore paths like #######################
+#roles/* linguist-detectable=false
+#roles/openldap-server/* linguist-detectable=false
+#roles/upgrade-completion/tasks/* linguist-detectable=false
+#############################################################

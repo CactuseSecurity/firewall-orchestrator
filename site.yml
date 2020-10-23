@@ -37,12 +37,8 @@
     - backend
 
 - hosts: frontends
-  tasks:
-    - name: testen
-      debug:
-        msg: "{{ group_names }}"
   roles:
-    - { role: lib, when: "'authserver' in {{ group_names }}"}
+    - { role: lib, when: "'authserver' not in group_names"}
     - frontend
     - { role: frontend-php, when: "ui_php is defined"}
   tags:

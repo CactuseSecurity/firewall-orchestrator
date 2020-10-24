@@ -42,7 +42,7 @@
             errorDialogTitle = title;
             errorDialogMessage = message;
             errorDialogClass = "";
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         }
     }
 }

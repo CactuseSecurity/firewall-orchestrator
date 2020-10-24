@@ -113,3 +113,11 @@ app {
     z-index: 2147483647;
     width: 100%;
 }
+
+.hide-all-but-second-child :not(:nth-child(2))  {
+    display: none;
+}
+
+.word-wrap {
+    word-wrap: break-word;
+}

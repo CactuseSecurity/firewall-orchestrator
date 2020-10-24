@@ -46,11 +46,21 @@
                                 <Table SelectedItems="selectedItemsReportRuleTable"
                                        RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
                                        style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                                       PageSize="rulesPerPage" ColumnReorder="true">
-                                    <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
+                                       PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
+                                    <Column TableItem="Rule" @ref="test" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
                                         <Template>
-                                            @(Array.IndexOf(device.Rules, context) + 1)
-                                            @($"DEBUG: {context.OrderNumber}")
+                                            @{
+                                                if (context.SectionHeader != null)
+                                                {
+                                                    @context.SectionHeader
+                                                }
+
+                                                else
+                                                {
+                                                    @(Array.IndexOf(device.Rules, context) + 1)
+                                                    @($"DEBUG: {context.OrderNumber}")
+                                                }
+                                            }
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
@@ -181,6 +191,8 @@
     private Management[] managementsObjects = new Management[0];
     private Management[] managementsUsers = new Management[0];
 
+    Column<Rule> test;
+
     private int rulesPerFetch = 10;
     private int rulesPerPage = 0;
 
@@ -293,7 +305,7 @@
                     paginationVariables.Offset += rulesPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview, paginationVariables);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
-                    
+
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -304,9 +316,9 @@
                     Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
                     ShowError("Report generation", "You dont have sufficient acces rights.");
 
-                    // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
-                    // leave managementsReport as default = empty array
-                }
+                // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+                // leave managementsReport as default = empty array
+            }
                 else
                 {
                     Log.WriteError("Report generation", "Unclassified error.", exception);

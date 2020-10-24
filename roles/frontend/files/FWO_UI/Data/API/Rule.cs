@@ -65,6 +65,9 @@ namespace FWO.Ui.Data.API
 
         [JsonPropertyName("rule_track")]
         public string Track { get; set; }
+
+        [JsonPropertyName("section_header")]
+        public string SectionHeader { get; set; }
     }
 }
 

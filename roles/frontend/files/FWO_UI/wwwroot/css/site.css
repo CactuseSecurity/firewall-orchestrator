@@ -118,6 +118,10 @@ app {
     display: none;
 }
 
+.second-child-full-width :nth-child(2) {
+    column-span: all;
+}
+
 .word-wrap {
     word-wrap: break-word;
 }

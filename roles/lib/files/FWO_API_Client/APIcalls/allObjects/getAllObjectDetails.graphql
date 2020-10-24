@@ -9,7 +9,10 @@ query getAllObjectDetails(
   $limit: Int
   $offset: Int
 ) {
-  management(where: { mgm_id: { _in: $management_id } }) {
+  management(
+    where: { mgm_id: { _in: $management_id } }
+    order_by: { mgm_name: asc }
+  ) {
     mgm_id
     mgm_name
     networkObjects: objects(

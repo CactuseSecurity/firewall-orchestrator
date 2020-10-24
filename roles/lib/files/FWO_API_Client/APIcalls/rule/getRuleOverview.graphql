@@ -6,10 +6,16 @@ query listRulesOverview(
   $limit: Int
   $offset: Int
 ) {
-  management(where: { mgm_id: { _in: $management_id } }) {
+  management(
+    where: { mgm_id: { _in: $management_id } }
+    order_by: { mgm_name: asc }
+  ) {
     mgm_id
     mgm_name
-    devices(where: { dev_id: { _in: $device_id } }) {
+    devices(
+      where: { dev_id: { _in: $device_id } }
+      order_by: { dev_name: asc }
+    ) {
       dev_id
       dev_name
       rules(

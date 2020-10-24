@@ -24,30 +24,30 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="Management" Title="Type" Field="@(x => x.Type)" Sortable="true" Filterable="true">
+        <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Name)" Sortable="true" Filterable="true">
             <Template>
                 @{
                     if (EditMode && context.Id == ManagementIdEdit)
                     {
-                        <input type="text" @bind-value="@context.Type" class="form-control form-control-sm" />
+                        <input type="text" @bind-value="@context.DeviceType.Name" class="form-control form-control-sm" />
                     }
                     else
                     {
-                        @DevTypeName(context.Type)
+                        @context.DeviceType.Name
                     }
                 }
             </Template>
         </Column>
-        <Column TableItem="Management" Title="Version" Field="@(x => x.Type)" Sortable="true" Filterable="true">
+        <Column TableItem="Management" Title="Version" Field="@(x => x.DeviceType.Version)" Sortable="true" Filterable="true">
             <Template>
                 @{
                     if (EditMode && context.Id == ManagementIdEdit)
                     {
-                        <input type="text" @bind-value="@context.Type" class="form-control form-control-sm" />
+                        <input type="text" @bind-value="@context.DeviceType.Version" class="form-control form-control-sm" />
                     }
                     else
                     {
-                        @DevTypeVersion(context.Type)
+                        @context.DeviceType.Version
                     }
                 }
             </Template>
@@ -61,7 +61,7 @@
                     }
                     else
                     {
-                        @context.PrivateKey.Substring(0, (context.PrivateKey.Length < 60 ? context.PrivateKey.Length : 60))
+                        <div style="max-width: 600px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
                     }
                 }
             </Template>
@@ -106,7 +106,7 @@
 @code
 {
     private List<Management> managements = new List<Management>();
-    private List<DeviceType> deviceTypes = new List<DeviceType>();
+    // private List<DeviceType> deviceTypes = new List<DeviceType>();
 
     private ITable<Management> table;
 
@@ -118,32 +118,26 @@
     // private int ManagementIdDelete = int.MinValue;
 
     Management newManagement;
-    // Management unchangedManagement;
+    Management actManagement;
 
     protected override async Task OnInitializedAsync()
     {
         managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.BasicQueries.getManagementsDetails))).ToList();
-        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceTypeDetails))).ToList();
+        // we may need this later for building up a selection list of all possible Device types in the add/edit mode
+        // deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceTypeDetails))).ToList();
     }
 
-    private string DevTypeName(int id)
-    {
-        return deviceTypes.Find(x => x.Id == id).Name;
-    }
-
-    private string DevTypeVersion(int id)
-    {
-        return deviceTypes.Find(x => x.Id == id).Version;
-    }
     private void Edit(Management management)
     {
+        // Todo: branch into edit mask?
         ManagementIdEdit = management.Id;
-        // unchangedManagement = management;
+        actManagement = management;
         EditMode = true;
     }
 
     private async Task Delete(Management management)
     {
+        // todo: pop up window for confirmation?
         var Variables = new { id = management.Id };
         int delId = (await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.deleteManagement, Variables))).Id;
         if(delId == management.Id)
@@ -155,7 +149,8 @@
     private void Add()
     {
         AddMode = true;
-        newManagement = new Management() { Id = int.MaxValue, Name = "" };
+        newManagement = new Management() { Id = int.MaxValue, Name = "", DeviceType = new DeviceType { Id = 1 } };
+        // Todo: define init values
         managements.Add(newManagement);
         Edit(newManagement);
     }
@@ -167,13 +162,15 @@
             if (AddMode)
             {
                 // insert new management
-                var Variables = new { dev_typ_id = newManagement.Type, mgm_name = newManagement.Name, ssh_private_key = newManagement.PrivateKey };
+                // Todo: enhance Variables
+                var Variables = new { dev_typ_id = actManagement.DeviceType.Id, mgm_name = actManagement.Name, ssh_private_key = actManagement.PrivateKey };
                 newManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnManagement>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnId[0].Id;
             }
             else
             {
                 // Update existing management
-                var Variables = new { mgm_id = ManagementIdEdit, dev_typ_id = newManagement.Type, mgm_name = newManagement.Name, ssh_private_key = newManagement.PrivateKey };
+                // Todo: enhance Variables
+                var Variables = new { mgm_id = ManagementIdEdit, dev_typ_id = actManagement.DeviceType.Id, mgm_name = actManagement.Name, ssh_private_key = actManagement.PrivateKey };
                 await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables));
             }
             EditMode = false;

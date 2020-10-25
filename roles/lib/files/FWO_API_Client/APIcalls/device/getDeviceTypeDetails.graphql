@@ -1,0 +1,7 @@
+query getDeviceTypeDetails {
+  stm_dev_typ {
+    dev_typ_id
+    dev_typ_name
+    dev_typ_version
+  }
+}

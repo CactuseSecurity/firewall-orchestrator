@@ -1,0 +1,19 @@
+mutation update_management (
+  $mgm_id: Int!
+  $dev_typ_id: Int!
+  $mgm_name: String!
+  $ssh_private_key: String!) {
+  update_management_by_pk (
+    pk_columns: {mgm_id: $mgm_id}
+    _set: {       
+      config_path: ""
+      dev_typ_id: $dev_typ_id
+      importer_hostname: ""
+      mgm_name: $mgm_name
+      ssh_hostname: ""
+      ssh_private_key: $ssh_private_key
+      ssh_user: "" }
+  ) {
+    mgm_id
+  }
+}

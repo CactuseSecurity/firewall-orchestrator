@@ -6,26 +6,10 @@
 
 @inject APIConnection apiConnection
 
-<h3 class="m-2">Managements Settings</h3>
-
-<button class="btn btn-success m-2" @onclick="Add">Add</button>
+<h3 class="m-2">Managements</h3>
 
 <div class="d-flex flex-column m-2">
     <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Management" Title="Id" Field="@(x => x.Id)" Sortable="true" Filterable="true" DefaultSortColumn="true">
-            <Template>
-                @{
-                    if (EditMode && context.Id == ManagementIdEdit)
-                    {
-                        <input type="number" step="1" @bind-value="@context.Id" class="form-control form-control-sm" />
-                    }
-                    else
-                    {
-                        @context.Id
-                    }
-                }
-            </Template>
-        </Column>
         <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true">
             <Template>
                 @{
@@ -36,6 +20,48 @@
                     else
                     {
                         @context.Name
+                    }
+                }
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Name)" Sortable="true" Filterable="true">
+            <Template>
+                @{
+                    if (EditMode && context.Id == ManagementIdEdit)
+                    {
+                        <input type="text" @bind-value="@context.DeviceType.Name" class="form-control form-control-sm" />
+                    }
+                    else
+                    {
+                        @context.DeviceType.Name
+                    }
+                }
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="Version" Field="@(x => x.DeviceType.Version)" Sortable="true" Filterable="true">
+            <Template>
+                @{
+                    if (EditMode && context.Id == ManagementIdEdit)
+                    {
+                        <input type="text" @bind-value="@context.DeviceType.Version" class="form-control form-control-sm" />
+                    }
+                    else
+                    {
+                        @context.DeviceType.Version
+                    }
+                }
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="Private Key" Field="@(x => x.PrivateKey)" Sortable="false" Filterable="false">
+            <Template>
+                @{
+                    if (EditMode && context.Id == ManagementIdEdit)
+                    {
+                        <input type="text" @bind-value="@context.PrivateKey" class="form-control form-control-sm" />
+                    }
+                    else
+                    {
+                        <div style="max-width: 600px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
                     }
                 }
             </Template>
@@ -53,7 +79,7 @@
                     else
                     {
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Toggle Edit</button>
+                            <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
                             <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete</button>
                         </div>
                     }
@@ -74,49 +100,101 @@
         </form>*@
 </div>
 
+<button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+
+
 @code
 {
     private List<Management> managements = new List<Management>();
+    // private List<DeviceType> deviceTypes = new List<DeviceType>();
 
     private ITable<Management> table;
 
     private bool EditMode = false;
-    private bool DeleteMode = false;
+    // private bool DeleteMode = false;
     private bool AddMode = false;
 
     private int ManagementIdEdit = int.MinValue;
-    private int ManagementIdDelete = int.MinValue;
+    // private int ManagementIdDelete = int.MinValue;
+
+    Management newManagement;
+    Management actManagement;
 
     protected override async Task OnInitializedAsync()
     {
-        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.getManagementsDetails))).ToList();
+        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.BasicQueries.getManagementsDetails))).ToList();
+        // we may need this later for building up a selection list of all possible Device types in the add/edit mode
+        // deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceTypeDetails))).ToList();
     }
 
     private void Edit(Management management)
     {
+        // Todo: branch into edit mask?
         ManagementIdEdit = management.Id;
-        EditMode = !EditMode;
+        actManagement = management;
+        EditMode = true;
     }
 
-    private void Delete(Management management)
+    private async Task Delete(Management management)
     {
-        managements.Remove(management);
+        // todo: pop up window for confirmation?
+        var Variables = new { id = management.Id };
+        int delId = (await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.deleteManagement, Variables))).Id;
+        if(delId == management.Id)
+        {
+            managements.Remove(management);
+        }
     }
 
     private void Add()
     {
-        Management newManagement = new Management() { Id = int.MaxValue, Name = "" };
+        AddMode = true;
+        newManagement = new Management() { Id = int.MaxValue, Name = "", DeviceType = new DeviceType { Id = 1 } };
+        // Todo: define init values
         managements.Add(newManagement);
         Edit(newManagement);
     }
 
-    private void Save()
+    private async Task Save()
     {
-        EditMode = false;
+        try
+        {
+            if (AddMode)
+            {
+                // insert new management
+                // Todo: enhance Variables
+                var Variables = new { dev_typ_id = actManagement.DeviceType.Id, mgm_name = actManagement.Name, ssh_private_key = actManagement.PrivateKey };
+                newManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnManagement>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnId[0].Id;
+            }
+            else
+            {
+                // Update existing management
+                // Todo: enhance Variables
+                var Variables = new { mgm_id = ManagementIdEdit, dev_typ_id = actManagement.DeviceType.Id, mgm_name = actManagement.Name, ssh_private_key = actManagement.PrivateKey };
+                await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables));
+            }
+            EditMode = false;
+            AddMode = false;
+        }
+        catch (Exception exception)
+        {
+            // Todo: Error message? Ignore?
+            Log.WriteDebug("Save Management", $"Exception occurred: {exception}");
+        }
     }
 
     private void Cancel()
     {
+        if (AddMode)
+        {
+            // forget the new management
+            managements.Remove(newManagement);
+        }
+        else
+        {
+            // Todo: reset to unchanged values (without changing the Id)
+        }
+        AddMode = false;
         EditMode = false;
     }
 }

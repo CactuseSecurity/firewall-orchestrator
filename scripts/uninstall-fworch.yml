@@ -23,10 +23,28 @@
     when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
     ignore_errors: true
 
-  - name: remove database
-    command: psql -c "drop database fworchdb"
+  # - name: remove database
+  #   command: psql -c "drop database fworchdb"
+  #   # command: psql -c "drop database fworchdb with force"  # only with postgres  >=13
+  #   become_user: postgres
+  #   ignore_errors: true
+
+  - name: remove database using postgresql_db
+    postgresql_db:
+      name: fworchdb
+      state: absent
     become_user: postgres
+    register: drop_db
     ignore_errors: true
+
+  # - name: show result of drop db
+  #   debug:
+  #     msg: drop_db = {{ drop_db }}
+
+  - name: fail when drop db failed
+    fail:
+      msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
+    when: drop_db.failed
 
   - name: stop and disable slapd
     service:

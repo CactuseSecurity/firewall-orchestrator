@@ -215,7 +215,7 @@
             {
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
 
-                managementsAllObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                 await InvokeAsync(StateHasChanged);
 
                 bool newObjects = true;
@@ -223,7 +223,7 @@
                 while (newObjects)
                 {
                     paginationVariables.Offset += rulesPerFetch;
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                     newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
 
                     await InvokeAsync(StateHasChanged);
@@ -236,9 +236,9 @@
             }
         });
 
-        //managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
-        //managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
-        //managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
+        //managementsObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkObjectDetails);
+        //managementsServices = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkServiceObjectDetails);
+        //managementsUsers = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getUserDetails);
 
 
         //// Workaround
@@ -258,7 +258,7 @@
         //{
         //    try
         //    {
-        //        managementsServices = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkServiceObjectDetails);
+        //        managementsServices = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkServiceObjectDetails);
         //        await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
         //    }
         //    catch (Exception exception)
@@ -271,7 +271,7 @@
         ////tasks.Add(
         //Task.Run(async () =>
         //{
-        //    managementsObjects = await Connection.SendQueryAsync<Management>(ObjectQueries.getNetworkObjectDetails);
+        //    managementsObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkObjectDetails);
         //    await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
         //});
         ////);
@@ -279,7 +279,7 @@
         ////tasks.Add(
         //Task.Run(async () =>
         //{
-        //    managementsUsers = await Connection.SendQueryAsync<Management>(ObjectQueries.getUserDetails);
+        //    managementsUsers = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getUserDetails);
         //    await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
         //});
         ////);
@@ -299,7 +299,7 @@
             {
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
 
-                managementsReport = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview, paginationVariables);
+                managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
                 await InvokeAsync(StateHasChanged);
 
                 bool newObjects = true;
@@ -307,7 +307,7 @@
                 while (newObjects)
                 {
                     paginationVariables.Offset += rulesPerFetch;
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management>(RuleQueries.getRuleOverview, paginationVariables);
+                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
 
                     await InvokeAsync(StateHasChanged);

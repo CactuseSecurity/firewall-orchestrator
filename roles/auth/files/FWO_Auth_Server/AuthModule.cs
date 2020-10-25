@@ -53,7 +53,7 @@ namespace FWO.Auth.Server
             APIConnection apiConn = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriter));
 
             // Fetch all connectedLdaps via API (blocking).
-            connectedLdaps = apiConn.SendQueryAsync<Ldap>(BasicQueries.getLdapConnections).Result.ToList();
+            connectedLdaps = apiConn.SendQueryAsync<Ldap[]>(BasicQueries.getLdapConnections).Result.ToList();
             Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
             // Start Http Listener, todo: move to https

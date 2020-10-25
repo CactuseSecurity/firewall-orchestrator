@@ -638,6 +638,8 @@ INSERT INTO txt VALUES ('logout', 				'German',	'Abmelden');
 INSERT INTO txt VALUES ('logout', 				'English',	'Logout');
 INSERT INTO txt VALUES ('documentation', 		'German',	'Dokumentation');
 INSERT INTO txt VALUES ('documentation', 		'English',	'Documentation');
+INSERT INTO txt VALUES ('request', 				'German',	'Antrag');
+INSERT INTO txt VALUES ('request', 				'English',	'Request');
 
 -- reporting
 INSERT INTO txt VALUES ('generate_report',		'German', 	'Report erstellen');

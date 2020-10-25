@@ -2,12 +2,15 @@
 @using FWO.ApiClient
 @using FWO.Auth.Client
 @using System.Net
+@using FWO.ApiConfig
 
 @inject AuthClient AuthClient
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
 @inject IJSRuntime js
+@inject FWO.ApiConfig.UserConfigCollection userConfig
+@inject FWO.ApiConfig.ConfigCollection globalConfig
 
 @if (showLoginForm)
 {
@@ -115,6 +118,10 @@
 
                 // Try to auth with jwt (validates it, gets roles, ...).
                 ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+
+                // overwrite userConfig with actual userData after login (does this work?)
+                //userConfig = new ApiConfig.UserConfigCollection();
+                userConfig.CurrentLanguage = "English"; //ConfigCollection.defaultLanguage;
 
                 loginInProgress = false;
             }

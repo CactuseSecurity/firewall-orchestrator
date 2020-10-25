@@ -1,6 +1,10 @@
 [Unit]
 Description=FW Orch Auth Server
+{% if 'apiserver' in group_names -%}
 After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service
+{% else -%}
+After=network.target remote-fs.target nss-lookup.target
+{%- endif %}
 [Service]
 WorkingDirectory={{ auth_server_start_dir }}
 ExecStart=/usr/bin/dotnet run FWO_Auth_Server.dll

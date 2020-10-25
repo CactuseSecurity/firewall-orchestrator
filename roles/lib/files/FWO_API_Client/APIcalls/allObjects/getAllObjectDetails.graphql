@@ -1,8 +1,6 @@
-## only implemented for current (not historical) object view
-
 query getAllObjectDetails(
   $management_id: [Int!]
-  $type: [String!]
+  $type: [String!] 
   $uid: [String!]
   $time: String
   $obj_name: [String!]

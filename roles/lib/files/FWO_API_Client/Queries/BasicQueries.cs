@@ -21,7 +21,8 @@ namespace FWO.ApiClient.Queries
         public static readonly string updateManagement;
         public static readonly string deleteManagement;
         public static readonly string getLanguages;
-        public static readonly string getUiTexts;
+        public static readonly string getAllTexts;
+        public static readonly string getTextsPerLanguage;
 
         static BasicQueries()
         {
@@ -47,7 +48,9 @@ namespace FWO.ApiClient.Queries
                 
                 getLanguages = File.ReadAllText(QueryPath + "config/getLanguages.graphql");
 
-                getUiTexts = File.ReadAllText(QueryPath + "config/getUiTexts.graphql");
+                getAllTexts = File.ReadAllText(QueryPath + "config/getTexts.graphql");
+
+                getTextsPerLanguage = File.ReadAllText(QueryPath + "config/getTextsPerLanguage.graphql");
             }
             catch (Exception exception)
             {

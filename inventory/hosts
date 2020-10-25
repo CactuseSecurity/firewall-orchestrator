@@ -10,6 +10,11 @@ fworch-srv
 fworch-srv
 #fworch-back
 
+# just used for systemd dependency
+# should the api wait for the db on the same server?
+[databaseserver]
+fworch-srv
+
 [apiserver]
 fworch-srv
 #fworch-back

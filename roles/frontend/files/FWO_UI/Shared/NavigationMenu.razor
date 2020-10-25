@@ -29,6 +29,7 @@
                 </li>
             }
         </ul>
+        <button class="oi oi-flag" @onclick="userConfig.setNextLanguage">@userConfig.CurrentLanguage</button>
         <ul class="navbar-nav">
             @foreach (NavItem navItem in navItemsRight)
             {
@@ -39,7 +40,6 @@
                 </li>
             }
         </ul>
-        <button class="oi oi-flag" @onclick="userConfig.setNextLanguage">Switch Language (@userConfig.CurrentLanguage)</button>
     </div>
 </nav>
 
@@ -65,9 +65,9 @@
 
         navItemsLeft = new NavItem[]
         {
-            new NavItem("Reporting", "/report", "oi oi-spreadsheet"),
-            new NavItem("Documentation", "#", "oi oi-book"),
-            new NavItem("Request", "#", "oi oi-comment-square")
+            new NavItem(userConfig.translate["reporting"], "/report", "oi oi-spreadsheet"),
+            new NavItem(userConfig.translate["documentation"], "#", "oi oi-book"),
+            new NavItem(userConfig.translate["request"], "#", "oi oi-comment-square")
         };
 
         // Dictionary<string,string> a = new Dictionary<string,string>(); a.GetValueOrDefault<string>("German");

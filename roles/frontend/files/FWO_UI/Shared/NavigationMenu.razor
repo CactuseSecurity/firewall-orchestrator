@@ -1,7 +1,7 @@
 ﻿@using System.Collections.Generic
+@using System.Security.Claims
 @using FWO.Ui.Data
 @using FWO.ApiConfig.Data
-@using System.Security.Claims
 @using FWO.ApiConfig
 
 @inject ConfigCollection globalConfig
@@ -29,7 +29,9 @@
                 </li>
             }
         </ul>
-        <button class="oi oi-flag" @onclick="userConfig.setNextLanguage">@userConfig.CurrentLanguage</button>
+        <button class="oi oi-flag" @onclick="@(e => { userConfig.setNextLanguage(); StateHasChanged(); })">@userConfig.CurrentLanguage</button>
+        @* rendering on state change does not work here! *@
+
         <ul class="navbar-nav">
             @foreach (NavItem navItem in navItemsRight)
             {
@@ -70,19 +72,12 @@
             new NavItem(userConfig.translate["request"], "#", "oi oi-comment-square")
         };
 
-        // Dictionary<string,string> a = new Dictionary<string,string>(); a.GetValueOrDefault<string>("German");
-
         // build list of items in right navigation and turning into array in the end
         List<NavItem> navRightList = new List<NavItem>();
-
-        @* foreach (Language language in configCollection.uiLanguages)
-            navRightList.Add(new NavItem(language.Name, "#", "oi oi-flag")); *@
-        // @"{oi oi-flag}"
         navRightList.Add(new NavItem(userConfig.translate["help"], "/help", "oi oi-info"));
         navRightList.Add(new NavItem(userConfig.translate["settings"], "/settings", "oi oi-cog"));
         navRightList.Add(new NavItem(user.Identity.Name.ToUpper(), "#", "oi oi-person"));
         navRightList.Add(new NavItem(userConfig.translate["logout"], "/logout", "oi oi-account-logout"));
-
         navItemsRight = navRightList.ToArray();
     }
 
@@ -90,8 +85,4 @@
     {
         collapseNavMenu = !collapseNavMenu;
     }
-    @* void switchLanguage()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }*@
 }

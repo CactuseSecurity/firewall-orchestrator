@@ -33,54 +33,53 @@ namespace FWO.ApiConfig
         public Dictionary<string, Dictionary<string, string>> langDict { get; set; }
         public string defaultLanguage { get; set; }
 
-    /// <summary>
-    /// create a config collection (used centrally once in a UI server for all users
-    /// </summary>
-    public ConfigCollection(string jwt)
-    {
-        ConfigConnection config = new Config.ConfigConnection();
-        RsaSecurityKey jwtPublicKey = config.JwtPublicKey;
-        string authServerUri = config.AuthServerUri;
-        string apiServerUri = config.ApiServerUri;
-        productVersion = config.ProductVersion;
-        authClient = new AuthClient(authServerUri);
-        apiConnection = new APIConnection(apiServerUri);
-        apiConnection.SetAuthHeader(jwt);
-        defaultLanguage = "English";
-
-        // get languages defined 
-        try
+        /// <summary>
+        /// create a config collection (used centrally once in a UI server for all users)
+        /// </summary>
+        public ConfigCollection(string jwt)
         {
-            uiLanguages = apiConnection.SendQueryAsync<Language>(BasicQueries.getLanguages).Result;
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("ApiConfig connection", $"Could not connect to API server to get languages.", exception);
-            Environment.Exit(1); // Exit with error
-        }
+            ConfigConnection config = new Config.ConfigConnection();
+            RsaSecurityKey jwtPublicKey = config.JwtPublicKey;
+            string authServerUri = config.AuthServerUri;
+            string apiServerUri = config.ApiServerUri;
+            productVersion = config.ProductVersion;
+            authClient = new AuthClient(authServerUri);
+            apiConnection = new APIConnection(apiServerUri);
+            apiConnection.SetAuthHeader(jwt);
+            defaultLanguage = "English";
 
-        langDict = new Dictionary<string, Dictionary<string, string>>();
-
-        try
-        {
-            foreach (Language lang in uiLanguages)
+            // get languages defined 
+            try
             {
-                // string variables = $"{{\"language\": \"{lang.Name}\"}}";
-                var languageVariable = new { language = lang.Name };
-                Dictionary<string, string> dict = new Dictionary<string, string>();
-                uiTexts = apiConnection.SendQueryAsync<UiText>(BasicQueries.getTextsPerLanguage, languageVariable).Result;
-                foreach (UiText text in uiTexts)
-                    dict.Add(text.Id, text.Txt); // add "word" to dictionary
+                uiLanguages = apiConnection.SendQueryAsync<Language>(BasicQueries.getLanguages).Result;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("ApiConfig connection", $"Could not connect to API server to get languages.", exception);
+                Environment.Exit(1); // Exit with error
+            }
 
-                // add language dictionary to dictionary of dictionaries
-                langDict.Add(lang.Name, dict);
+            langDict = new Dictionary<string, Dictionary<string, string>>();
+
+            try
+            {
+                foreach (Language lang in uiLanguages)
+                {
+                    var languageVariable = new { language = lang.Name };
+                    Dictionary<string, string> dict = new Dictionary<string, string>();
+                    uiTexts = apiConnection.SendQueryAsync<UiText>(BasicQueries.getTextsPerLanguage, languageVariable).Result;
+                    foreach (UiText text in uiTexts)
+                        dict.Add(text.Id, text.Txt); // add "word" to dictionary
+
+                    // add language dictionary to dictionary of dictionaries
+                    langDict.Add(lang.Name, dict);
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("ApiConfig connection", $"Could not connect to API server .", exception);
+                Environment.Exit(1); // Exit with error
             }
         }
-        catch (Exception exception)
-        {
-            Log.WriteError("ApiConfig connection", $"Could not connect to API server .", exception);
-            Environment.Exit(1); // Exit with error
-        }
     }
-}
 }

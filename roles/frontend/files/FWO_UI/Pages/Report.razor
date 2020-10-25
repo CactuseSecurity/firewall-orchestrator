@@ -47,7 +47,7 @@
                                        RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
                                        style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
                                        PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
-                                    <Column TableItem="Rule" @ref="test" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
+                                    <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
                                         <Template>
                                             @{
                                                 if (context.SectionHeader != null)
@@ -196,8 +196,6 @@
     private Management[] managementsServices = new Management[0];
     private Management[] managementsObjects = new Management[0];
     private Management[] managementsUsers = new Management[0];
-
-    Column<Rule> test;
 
     private int rulesPerFetch = 10;
     private int rulesPerPage = 0;

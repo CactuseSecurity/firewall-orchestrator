@@ -38,14 +38,11 @@
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" Class="word-wrap" />
                     <DetailTemplate TableItem="NetworkUser">
-                        @if (context != null)
-                        {
-                            <b>UID</b> @context.Uid <br />
-                            <b>Name</b> @context.Name <br />
-                            <b>Real Name</b> @($"{context.FirstName} {context.LastName}") <br />
-                            <b>Comment</b> @context.Comment <br />
-                            <b>Type</b> @context.Type.Name
-                        }
+                        <b>UID</b> @context.Uid <br />
+                        <b>Name</b> @context.Name <br />
+                        <b>Real Name</b> @($"{context.FirstName} {context.LastName}") <br />
+                        <b>Comment</b> @context.Comment <br />
+                        <b>Type</b> @context.Type.Name
                     </DetailTemplate>
                 </Table>
             </Collapse>

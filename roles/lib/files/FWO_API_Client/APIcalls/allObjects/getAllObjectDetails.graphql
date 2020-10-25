@@ -1,15 +1,16 @@
-## only implemented for current (not historical) object view
-
 query getAllObjectDetails(
   $management_id: [Int!]
-  $type: [String!]
+  $type: [String!] 
   $uid: [String!]
   $time: String
   $obj_name: [String!]
   $limit: Int
   $offset: Int
 ) {
-  management(where: { mgm_id: { _in: $management_id } }) {
+  management(
+    where: { mgm_id: { _in: $management_id } }
+    order_by: { mgm_name: asc }
+  ) {
     mgm_id
     mgm_name
     networkObjects: objects(

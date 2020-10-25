@@ -62,9 +62,13 @@ namespace FWO.Ui
             apiConn.SetAuthHeader(jwt);
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
             
+            // get all non-confidential configuration settings and add to a global service (for all users)
             ConfigCollection configCollection = new ConfigCollection(jwt);
-
             services.AddSingleton<ConfigCollection>(_ => configCollection);
+            
+            UserConfigCollection userConfig = new UserConfigCollection(configCollection);
+            services.AddScoped<UserConfigCollection>(_ => userConfig);
+
             services.AddBlazoredSessionStorage();
         }
 

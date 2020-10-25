@@ -1,5 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-
+using System.Collections.Generic;
 namespace FWO.ApiConfig.Data
 {
     /// <summary>
@@ -7,7 +7,18 @@ namespace FWO.ApiConfig.Data
     /// </summary>
     public class Language
     {
+
         [JsonPropertyName("name")]
-        public string Txt { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class LanguageDict
+    {
+        public string LanguageName { get; set; }
+        public Dictionary<string,string> Dict; 
+        public LanguageDict(string languageName)
+        {
+            LanguageName = languageName;
+        }
     }
 }

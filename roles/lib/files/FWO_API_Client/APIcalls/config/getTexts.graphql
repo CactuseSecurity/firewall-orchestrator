@@ -1,5 +1,5 @@
 
-query getText {
+query getAllTexts {
   txt {
     id
     language

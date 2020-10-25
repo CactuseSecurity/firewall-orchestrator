@@ -1,14 +1,18 @@
-﻿@using FWO.Ui.Data
+﻿@using System.Collections.Generic
 @using System.Security.Claims
+@using FWO.Ui.Data
+@using FWO.ApiConfig.Data
 @using FWO.ApiConfig
 
-@inject ConfigCollection configCollection
+@inject ConfigCollection globalConfig
+@inject UserConfigCollection userConfig
 
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark shadow w-100">
     <a class="navbar-brand" href="#">
         <!-- <img src="images/FWO_Logo.png" /> -->
-        Firewall-Orchestrator @(configCollection.productVersion)
+        Firewall-Orchestrator v@(globalConfig.productVersion)
     </a>
+
 
     <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
         <span class="navbar-toggler-icon"></span>
@@ -25,6 +29,9 @@
                 </li>
             }
         </ul>
+        <button class="oi oi-flag" @onclick="@(e => { userConfig.setNextLanguage(); StateHasChanged(); })">@userConfig.CurrentLanguage</button>
+        @* rendering on state change does not work here! *@
+
         <ul class="navbar-nav">
             @foreach (NavItem navItem in navItemsRight)
             {
@@ -50,6 +57,7 @@
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     bool collapseNavMenu = true;
+
     string NavMenuCollapseClass => (collapseNavMenu ? " collapse" : "");
 
     protected override async Task OnInitializedAsync()
@@ -59,19 +67,18 @@
 
         navItemsLeft = new NavItem[]
         {
-            new NavItem("Reporting", "/report", "oi oi-spreadsheet"),
-            new NavItem("Documentation", "#", "oi oi-book"),
-            new NavItem("Request", "#", "oi oi-comment-square")
-            };
+            new NavItem(userConfig.translate["reporting"], "/report", "oi oi-spreadsheet"),
+            new NavItem(userConfig.translate["documentation"], "#", "oi oi-book"),
+            new NavItem(userConfig.translate["request"], "#", "oi oi-comment-square")
+        };
 
-        navItemsRight = new NavItem[]
-        {
-            // new NavItem("Language", "#", ""),
-            new NavItem("Help", "/help", "oi oi-info"),
-            new NavItem("Settings", "/settings", "oi oi-cog"),
-            new NavItem(user.Identity.Name.ToUpper(), "#", "oi oi-person"),
-            new NavItem("Logout", "/logout", "oi oi-account-logout")
-            };
+        // build list of items in right navigation and turning into array in the end
+        List<NavItem> navRightList = new List<NavItem>();
+        navRightList.Add(new NavItem(userConfig.translate["help"], "/help", "oi oi-info"));
+        navRightList.Add(new NavItem(userConfig.translate["settings"], "/settings", "oi oi-cog"));
+        navRightList.Add(new NavItem(user.Identity.Name.ToUpper(), "#", "oi oi-person"));
+        navRightList.Add(new NavItem(userConfig.translate["logout"], "/logout", "oi oi-account-logout"));
+        navItemsRight = navRightList.ToArray();
     }
 
     void ToggleNavMenu()

@@ -1,6 +1,10 @@
 [Unit]
 Description={{ product_name }} API
+{% if 'databaseserver' in group_names -%}
 After=network.target remote-fs.target nss-lookup.target postgresql.service
+{% else -%}
+After=network.target remote-fs.target nss-lookup.target
+{%- endif %}
 [Service]
 WorkingDirectory={{ api_home }}
 ExecStartPre=/bin/sleep 10

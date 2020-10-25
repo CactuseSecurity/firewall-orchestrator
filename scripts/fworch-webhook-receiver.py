@@ -77,10 +77,14 @@ def post_handler():
             os.system("cp " + tmp_git_dir + "/scripts/fworch-webhook-receiver.py " + root_dir)
             # might not work due to user rights:
             # os.system("systemctl restart fworch-webhook-receiver.service")
+         uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && " + \
+            "ansible-playbook -i inventory site.yml -e \"installation_mode=uninstall\"" + "'"
+         f.write('executing uninstall command: ' + uninstall_cmd + '\n')
+         os.system(uninstall_cmd) # remove fworch
          build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && " + \
-            "ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" --skip-tags \"test\"" + "'"
+            "ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=new\" --skip-tags \"test\"" + "'"
          f.write('executing build command: ' + build_cmd + '\n')
-         os.system(build_cmd) # building fworch backend
+         os.system(build_cmd) # building fworch
          now = datetime.now() # current date and time
          f.write('--- build completed '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n')
       else:

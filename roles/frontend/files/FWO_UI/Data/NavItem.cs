@@ -10,7 +10,7 @@ namespace FWO.Ui.Data
         /// <summary>
         /// Displayed Nav Item Name
         /// </summary>
-        public readonly string Name;
+        public readonly Func<string> Name;
 
         /// <summary>
         /// Link to navigate when clicked.
@@ -22,7 +22,7 @@ namespace FWO.Ui.Data
         /// </summary>
         public readonly string Symbol;
         
-        public NavItem(string Name, string Link, string Symbol)
+        public NavItem(Func<string> Name, string Link, string Symbol)
         {
             this.Name = Name;
             this.Link = Link;

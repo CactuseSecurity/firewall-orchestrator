@@ -117,3 +117,7 @@ app {
 .hide-all-but-second-child :not(:nth-child(2))  {
     display: none;
 }
+
+.word-wrap {
+    word-wrap: break-word;
+}

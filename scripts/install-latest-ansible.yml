@@ -1,0 +1,39 @@
+---
+
+- block:
+
+  - name: add keyserver ubuntu
+    command: apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
+    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+
+  - name: add ppa repo for debian
+    lineinfile:
+      path: /etc/apt/sources.list
+      line: deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main
+    when: ansible_facts['distribution'] == "Debian"
+
+  - name: add ppa repo
+    command: add-apt-repository ppa:ansible/ansible
+    when: ansible_facts['distribution'] == "Ubuntu"
+
+  - name: update operating system package cache .deb based
+    apt:
+      update_cache: yes
+      upgrade: yes
+    environment: "{{ proxy_env }}"
+    when: ansible_facts['distribution'] == "Ubuntu" or ansible_facts['distribution'] == "Debian"
+
+  - name: update operating system packages .rpm based (untested)
+    yum:
+      upgrade: dist
+    when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
+
+  - name: install latest ansible package
+    package:
+      name: ansible
+
+  - name: install community general (for postgresql_db)
+    command: ansible-galaxy collection install community.general
+
+  become: yes
+  delegate_to: localhost

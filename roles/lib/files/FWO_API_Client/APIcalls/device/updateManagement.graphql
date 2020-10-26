@@ -40,6 +40,7 @@ mutation updateManagement(
 
 # example variables (at least the following)
 # {
+#   "Id": 17,
 #   "Name": "huhu",
 #   "DevTypeId": 10,
 #   "ImportUser": "usr12",

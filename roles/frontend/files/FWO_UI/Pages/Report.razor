@@ -186,7 +186,7 @@
 @code
 {
     private string FilterCollapseCSS = "show";
-    private string FilterButtonCollapse = "oi-minus";
+    private string FilterButtonCollapse = "oi-collapse-right";
 
     private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
 
@@ -335,7 +335,7 @@
     private void CollapseButtonClicked(MouseEventArgs e)
     {
         FilterCollapseCSS = (FilterCollapseCSS == "") ? "show" : "";
-        FilterButtonCollapse = (FilterButtonCollapse == "oi-plus") ? "oi-minus" : "oi-plus";
+        FilterButtonCollapse = (FilterButtonCollapse == "oi-collapse-left") ? "oi-collapse-right" : "oi-collapse-left";
     }
 
     private double resizeStartX;
@@ -361,7 +361,7 @@
     private int sidebarWidth = 300;
     private int sidebarWidthBeforeMinimize;
 
-    private string minMaxButtonSymbol = "minus";
+    private string minMaxButtonSymbol = "collapse-right";
     private string overflowSidebar = "auto";
 
     private void MinMaxSidebar()
@@ -369,7 +369,7 @@
         if (sidebarWidth == 0)
         {
             overflowSidebar = "hidden";
-            minMaxButtonSymbol = "minus";
+            minMaxButtonSymbol = "collapse-right";
             sidebarWidth = sidebarWidthBeforeMinimize;
 
         }
@@ -377,7 +377,7 @@
         else
         {
             overflowSidebar = "auto";
-            minMaxButtonSymbol = "plus";
+            minMaxButtonSymbol = "collapse-left";
             sidebarWidthBeforeMinimize = sidebarWidth;
             sidebarWidth = 0;
         }

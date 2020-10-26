@@ -1,7 +1,9 @@
-﻿<div class="w-100 card">
+﻿@using System.Diagnostics;
+
+<div class="w-100 card">
     <div class="btn-group w-100">
-        <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse">Toggle</button>
-        <button class="btn btn-sm btn-block btn-@Style" disabled>@Title</button>
+        <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show == ".show" ? "collapse-up" : "collapse-down")"></span> </button>
+        <button class="btn btn-sm btn-block btn-@Style disabled" @ondblclick="ToggleCollapse" >@Title</button>
     </div>
     <div class="@($"collapse{show}") p-2">
         @ChildContent

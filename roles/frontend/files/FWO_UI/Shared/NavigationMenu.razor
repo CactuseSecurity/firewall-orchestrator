@@ -29,8 +29,7 @@
                 </li>
             }
         </ul>
-        <button class="oi oi-flag" @onclick="@(e => { userConfig.setNextLanguage(); })">@userConfig.CurrentLanguage</button>
-        @* rendering on state change does not work here! *@
+        <button class="btn btn-sm btn-dark" @onclick="@(e => { userConfig.setNextLanguage(); })"> <span class="oi oi-flag"></span> @userConfig.CurrentLanguage</button>
 
         <ul class="navbar-nav">
             @foreach (NavItem navItem in navItemsRight)

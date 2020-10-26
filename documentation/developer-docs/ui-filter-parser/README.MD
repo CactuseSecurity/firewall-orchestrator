@@ -5,6 +5,10 @@
 - <https://github.com/antlr/antlr4/tree/master/runtime/CSharp>
 - simple example grammar is defined [here](/design/UI/ui-filter-grammar.g4)
 
+## use hasura competitor prisma
+
+- <https://www.prisma.io/>
+
 ## use graphql only
 - <https://dev.to/mgustus/filtering-graphql-query-using-typescript-and-typeorm-2l49>
 

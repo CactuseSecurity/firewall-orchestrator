@@ -1,6 +1,6 @@
 # Firewall Orchestrator
 
-![Build passing](workflows/test-install/badge.svg)
+![Build passing](https://github.com/CactuseSecurity/firewall-orchestrator/workflows/test-install/badge.svg)
 
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
 - Display reports on firewall configuration and changes

@@ -4,8 +4,15 @@ mutation newManagement(
   $ImportUser: String!
   $ImportUserSecret: String!
   $Hostname: String!
+  $Port: Int!
+  $SshPublicKey: String!
+  $ImportDisabled: Boolean!
+  $ForceInitialImport: Boolean!
+  $HideInUi: Boolean!
   $ConfigPath: String
   $ImporterHostname: String
+  $Comment: String
+  $TenantId: Int
 ) {
   insert_management(
     objects: {
@@ -16,6 +23,13 @@ mutation newManagement(
       ssh_private_key: $ImportUserSecret
       config_path: $ConfigPath
       importer_hostname: $ImporterHostname
+      ssh_port: $Port
+      ssh_public_key: $SshPublicKey
+      do_not_import: $ImportDisabled
+      force_initial_import: $ForceInitialImport
+      hide_in_gui: $HideInUi
+      mgm_comment: $Comment
+      tenant_id: $TenantId
     }
   ) {
     returning {
@@ -23,3 +37,17 @@ mutation newManagement(
     }
   }
 }
+
+# example variables (at least the following)
+# { 
+#   "Name": "huhu",
+#   "DevTypeId": 10,
+#   "ImportUser": "usr12",
+#   "ImportUserSecret": "secret123",
+#   "Hostname": "host1234",
+#   "Port": 22,
+#   "SshPublicKey": "",
+#   "ImportDisabled": false,
+#   "ForceInitialImport": false,
+#   "HideInUi": false
+# }

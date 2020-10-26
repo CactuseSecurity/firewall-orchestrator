@@ -1,25 +1,54 @@
 mutation updateManagement(
   $Id: Int!
-  $DevTypeId: Int!
   $Name: String!
+  $DevTypeId: Int!
   $ImportUser: String!
   $ImportUserSecret: String!
   $Hostname: String!
+  $Port: Int!
+  $SshPublicKey: String!
+  $ImportDisabled: Boolean!
+  $ForceInitialImport: Boolean!
+  $HideInUi: Boolean!
   $ConfigPath: String
   $ImporterHostname: String
+  $Comment: String
+  $TenantId: Int
 ) {
   update_management_by_pk(
     pk_columns: { mgm_id: $Id }
     _set: {
-      dev_typ_id: $DevTypeId
       mgm_name: $Name
+      dev_typ_id: $DevTypeId
       ssh_hostname: $Hostname
-      ssh_private_key: $ImportUserSecret
       ssh_user: $ImportUser
-      importer_hostname: $ImporterHostname
+      ssh_private_key: $ImportUserSecret
       config_path: $ConfigPath
+      importer_hostname: $ImporterHostname
+      ssh_port: $Port
+      ssh_public_key: $SshPublicKey
+      do_not_import: $ImportDisabled
+      force_initial_import: $ForceInitialImport
+      hide_in_gui: $HideInUi
+      mgm_comment: $Comment
+      tenant_id: $TenantId
     }
   ) {
     UpdatedId: mgm_id
   }
 }
+
+# example variables (at least the following)
+# {
+#   "Id": 17,
+#   "Name": "huhu",
+#   "DevTypeId": 10,
+#   "ImportUser": "usr12",
+#   "ImportUserSecret": "secret123",
+#   "Hostname": "host1234",
+#   "Port": 22,
+#   "SshPublicKey": "",
+#   "ImportDisabled": false,
+#   "ForceInitialImport": false,
+#   "HideInUi": false
+# }

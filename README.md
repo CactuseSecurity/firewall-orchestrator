@@ -2,9 +2,11 @@
 
 ![Build passing](https://github.com/CactuseSecurity/firewall-orchestrator/workflows/test-install/badge.svg)
 
-![GitHub Workflow Status](https://github.com/workflows/CactuseSecurity/firewall-orchestrator/Build/badge.svg)
+![Build (name)](https://github.com/workflows/CactuseSecurity/firewall-orchestrator/Build/badge.svg)
 
-![GitHub Workflow Status](https://github.com/workflows/CactuseSecurity/firewall-orchestrator/.github/workflows/test-install.yml/badge.svg)
+![Build (file)](https://github.com/workflows/CactuseSecurity/firewall-orchestrator/workflows/.github/workflows/test-install.yml/badge.svg)
+
+![Build (PR event)](https://github.com/workflows/CactuseSecurity/firewall-orchestrator/workflows/Build/badge.svg?event=pull_request)
 
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
 - Display reports on firewall configuration and changes

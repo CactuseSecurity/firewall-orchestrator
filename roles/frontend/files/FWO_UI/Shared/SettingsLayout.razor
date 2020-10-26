@@ -3,29 +3,30 @@
 @inherits LayoutComponentBase
 @layout MainLayout
 
-<div class="sidebar-main d-flex flex-row navbar-dark bg-dark" style="left: 0px;">
-    <div style="z-index:3; width:@($"{sidebarWidth}px"); overflow-x:auto;">
-        <div class="m-2">
-            <ul class="navbar-nav flex-column">
-                @foreach (NavItem navItem in navItems)
-                {
-                    <AuthorizeView Roles="Admin">
-                        <Authorized>
-                            <p>Only admins can see this</p>
-                        </Authorized>
-                    </AuthorizeView>
+<Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" InitialWidth="sidebarWidth" @bind-Width="sidebarWidth">
+    <div class="m-2">
+        <ul class="navbar-nav flex-column">
+            @foreach (NavItem navItem in navItems)
+            {
+                <AuthorizeView Roles="admin">
+                    <Authorized>
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="#">
+                                Only admins can see this
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>
 
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="@navItem.Link">
-                            @navItem.Name() <span class="@navItem.Symbol"></span>
-                        </NavLink>
-                    </li>
-                }
-            </ul>
-        </div>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="@navItem.Link">
+                        @navItem.Name() <span class="@navItem.Symbol"></span>
+                    </NavLink>
+                </li>
+            }
+        </ul>
     </div>
-    <div class="sidebar-sizer" draggable="false"></div>
-</div>
+</Sidebar>
 
 <div style="margin-left: @($"{sidebarWidth + 20}px");">
     @Body
@@ -33,7 +34,7 @@
 
 @code
 {
-    private const int sidebarWidth = 200;
+    private int sidebarWidth = 200;
 
     private NavItem[] navItems;
 

@@ -9,7 +9,7 @@
 
 <div class="d-flex flex-row justify-content-between">
 
-    <div class="report-content w-100" style="margin-right: @($"{sidebarWidth + 10}px")">
+    <div class="w-100" style="margin-right: @($"{sidebarWidth + 10}px")">
         <h4 class="m-1">Reporting</h4>
 
         <button class="btn btn-primary btn-sm m-1" @onclick="GenerateTestReport">Generate Report</button>
@@ -154,40 +154,30 @@
         </div>
     </div>
 
-    <div class="sidebar-main d-flex flex-row" style="right: 0px;">
-        <div class="btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize">
-            <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+    <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarWidth" PositionLeft="false" @bind-Width="sidebarWidth">
+        <div class="p-3">
+            <TabSet>
+                <Tab Title="All">
+                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                </Tab>
+                <Tab Title="Report">
+                    <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                </Tab>
+                <Tab Title="Rule">
+                    <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
+                                 NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                                 NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                 NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                </Tab>
+            </TabSet>
         </div>
-        <div class="sidebar-sizer" draggable="true" @ondragstart="ResizeStart" @ondragend="Resize"></div>
-        <div style="z-index:@sidebarLayerZ; width:@($"{sidebarWidth}px"); overflow-x:@overflowSidebar;">
-            <div class="p-3">
-                @* Sidebar Content *@
-                <TabSet>
-                    <Tab Title="All">
-                        <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                     NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                    </Tab>
-                    <Tab Title="Report">
-                        <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                     NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                    </Tab>
-                    <Tab Title="Rule">
-                        <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
-                                     NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
-                                     NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                     NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
-                    </Tab>
-                </TabSet>
-            </div>
-        </div>
-    </div>
+    </Sidebar>
 </div>
 
 @code
 {
-    private string FilterCollapseCSS = "show";
-    private string FilterButtonCollapse = "oi-collapse-right";
-
     private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
 
     private Management[] managementsReport = new Management[0];
@@ -201,6 +191,8 @@
     private int rulesPerPage = 0;
 
     private bool ShowPopUp = false;
+
+    private int sidebarWidth = 300;
 
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
@@ -320,9 +312,9 @@
                     Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
                     ShowError("Report generation", "You dont have sufficient acces rights.");
 
-                // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
-                // leave managementsReport as default = empty array
-            }
+                    // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+                    // leave managementsReport as default = empty array
+                }
                 else
                 {
                     Log.WriteError("Report generation", "Unclassified error.", exception);
@@ -330,56 +322,5 @@
                 }
             }
         });
-    }
-
-    private void CollapseButtonClicked(MouseEventArgs e)
-    {
-        FilterCollapseCSS = (FilterCollapseCSS == "") ? "show" : "";
-        FilterButtonCollapse = (FilterButtonCollapse == "oi-collapse-left") ? "oi-collapse-right" : "oi-collapse-left";
-    }
-
-    private double resizeStartX;
-
-    private void ResizeStart(DragEventArgs dragArgs)
-    {
-        dragArgs.DataTransfer.DropEffect = "link";
-        dragArgs.DataTransfer.EffectAllowed = "copyMove";
-        resizeStartX = dragArgs.ScreenX;
-    }
-
-    private void Resize(DragEventArgs mouseArgs)
-    {
-        int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
-
-        sidebarWidth = (int)(sidebarWidth + postitionDiffrence);
-        //contentMarginRight = (int)(contentMarginRight + postitionDiffrence);
-
-        resizeStartX = mouseArgs.ScreenX;
-    }
-
-    private int sidebarLayerZ = 0;
-    private int sidebarWidth = 300;
-    private int sidebarWidthBeforeMinimize;
-
-    private string minMaxButtonSymbol = "collapse-right";
-    private string overflowSidebar = "auto";
-
-    private void MinMaxSidebar()
-    {
-        if (sidebarWidth == 0)
-        {
-            overflowSidebar = "hidden";
-            minMaxButtonSymbol = "collapse-right";
-            sidebarWidth = sidebarWidthBeforeMinimize;
-
-        }
-
-        else
-        {
-            overflowSidebar = "auto";
-            minMaxButtonSymbol = "collapse-left";
-            sidebarWidthBeforeMinimize = sidebarWidth;
-            sidebarWidth = 0;
-        }
     }
 }

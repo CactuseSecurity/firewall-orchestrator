@@ -8,6 +8,7 @@ namespace FWO.ApiConfig.Data
     /// </summary>
     public class UiText
     {
+
         [JsonPropertyName("txt")]
         public string Txt { get; set; }
 
@@ -22,13 +23,14 @@ namespace FWO.ApiConfig.Data
     /// <summary>
     /// contains texts needed for displaying UI in a single language
     /// </summary>
-    public class LocalizedText
+    public class SingleLanguage
     {
-        private Dictionary<string,string> text;
+        public Dictionary<string,string> text { get; set; }
 
-        public LocalizedText()
+        // key of all_text ref is a combination ${language,id}
+        public SingleLanguage(string language, ref Dictionary<string,string> all_text)
         {
-
+            
         }
 
     }

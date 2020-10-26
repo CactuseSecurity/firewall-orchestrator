@@ -1,6 +1,5 @@
 ﻿query getManagementDetails {
   management {
-    dev_typ_id
     hide_in_gui
     do_not_import
     force_initial_import
@@ -20,5 +19,10 @@
     ssh_private_key
     ssh_public_key
     ssh_user
+    stm_dev_typ {
+      dev_typ_id
+      dev_typ_name
+      dev_typ_version
+    }
   }
 }

@@ -1,21 +1,25 @@
 mutation newManagement(
-  $dev_typ_id: Int!
-  $mgm_name: String!
-  $ssh_private_key: String!
+  $Name: String!
+  $DevTypeId: Int!
+  $ImportUser: String!
+  $ImportUserSecret: String!
+  $Hostname: String!
+  $ConfigPath: String
+  $ImporterHostname: String
 ) {
   insert_management(
     objects: {
-      config_path: ""
-      dev_typ_id: $dev_typ_id
-      importer_hostname: ""
-      mgm_name: $mgm_name
-      ssh_hostname: ""
-      ssh_private_key: $ssh_private_key
-      ssh_user: ""
+      mgm_name: $Name
+      dev_typ_id: $DevTypeId
+      ssh_hostname: $Hostname
+      ssh_user: $ImportUser
+      ssh_private_key: $ImportUserSecret
+      config_path: $ConfigPath
+      importer_hostname: $ImporterHostname
     }
   ) {
     returning {
-      mgm_id
+      newId: mgm_id
     }
   }
 }

@@ -2,7 +2,7 @@
 
 ![Build passing](https://github.com/CactuseSecurity/firewall-orchestrator/workflows/test-install/badge.svg)
 
-![GitHub Workflow Status](https://github.com/workflows/CactuseSecurity/firewall-orchestrator/test-install/badge.svg)
+![GitHub Workflow Status](https://github.com/workflows/CactuseSecurity/firewall-orchestrator/Build/badge.svg)
 
 
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)

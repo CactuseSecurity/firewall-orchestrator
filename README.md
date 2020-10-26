@@ -4,6 +4,13 @@
 
 ![GitHub pull request check state](https://img.shields.io/github/status/s/pulls/CactuseSecurity/firewall-orchestrator/test-install?style=plastic)
 
+https://img.shields.io/github/workflow/status/CactuseSecurity/firewall-orchestrator/test-install
+
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/CactuseSecurity/firewall-orchestrator/test-install)
+
+![GitHub Workflow Status](https://github.com/workflow/status/CactuseSecurity/firewall-orchestrator/test-install)
+
+
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
 - Display reports on firewall configuration and changes
 - Document changes and integrate with ticketing systems

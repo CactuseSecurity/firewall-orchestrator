@@ -1,9 +1,6 @@
-using Microsoft.VisualBasic.CompilerServices;
-using System;
+using FWO.Ui.Filter.Ast;
 using System.Collections.Generic;
 using System.Data;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
 
 namespace FWO.Ui.Filter
 {
@@ -19,79 +16,131 @@ namespace FWO.Ui.Filter
 
         public AstNode Parse()
         {
-            Start();
-            return null;
+            return ParseStart();
         }
 
-        private AstNode Start()
+        private AstNode ParseStart()
         {
-            Bracket();
-            return null;
+            return ParseOr();
         }
 
-        private AstNode Bracket()
+        private AstNode ParseOr()
+        {
+            AstNodeConnector rootNode = new AstNodeConnector() 
+            { 
+                Left = ParseAnd(),
+                ConnectorTyp = TokenKind.Or
+            };
+
+            while (GetNextToken().Kind == TokenKind.Or)
+            {
+                CheckToken(TokenKind.Or);
+                rootNode.Right = ParseAnd();
+                rootNode = new AstNodeConnector()
+                {
+                    Left = rootNode,
+                    ConnectorTyp = TokenKind.Or
+                };
+            }
+
+            return rootNode;
+        }
+
+        private AstNode ParseAnd()
+        {
+            AstNodeConnector rootNode = new AstNodeConnector() 
+            { 
+                Left = ParseNot(),
+                ConnectorTyp = TokenKind.And
+            };
+
+            while (GetNextToken().Kind == TokenKind.And)
+            {
+                CheckToken(TokenKind.And);
+                rootNode.Right = ParseNot();
+                rootNode = new AstNodeConnector() 
+                { 
+                    Left = rootNode,
+                    ConnectorTyp = TokenKind.And
+                };
+            }
+
+            return rootNode;
+        }
+
+        private AstNode ParseNot()
+        {
+            //AstNodeUnary rootNode = new AstNodeUnary();
+
+            //while (GetNextToken().Kind == TokenKind.Not)
+            //{
+            //    CheckToken(TokenKind.Not);
+            //    rootNode.Kind = TokenKind.Not;                
+            //    rootNode.Value = ParseNot();
+            //}
+
+            return ParseAtom();
+        }
+
+        private AstNode ParseAtom()
         {
             if (GetNextToken().Kind == TokenKind.BL)
             {
-                CheckToken(TokenKind.BL);
-                Bracket();
-                CheckToken(TokenKind.BR);
+                return ParseBracket();
             }
 
             else
             {
-                Expression();
+                return ParseFilter();
             }
-
-            while (Position < Tokens.Count && (GetNextToken().Kind == TokenKind.And || GetNextToken().Kind == TokenKind.Or))
-            {
-                Connector();
-                Bracket();
-            }
-            return null;
         }
 
-        private AstNode Connector()
+        private AstNode ParseBracket()
         {
-            CheckToken(TokenKind.And, TokenKind.Or);
-            return null;
+            CheckToken(TokenKind.BL);
+            AstNode rootNode = ParseStart();
+            CheckToken(TokenKind.BR);
+
+            return rootNode;
         }
 
-        private AstNode Expression()
+        private AstNode ParseFilter()
         {
+            AstNodeFilter filterNode = new AstNodeFilter();
+
             if (GetNextToken().Kind == TokenKind.Text)
             {
-                CheckToken(TokenKind.Text);
+                filterNode.Name = TokenKind.Text;
+                filterNode.Operator = TokenKind.EQ;
+                filterNode.Value = CheckToken(TokenKind.Text).Text;
             }
 
             else
             {
-                Filter();
-                Operator();
-                Text();
+                filterNode.Name = ParseFilterName();
+                filterNode.Operator = ParseOperator();
+                filterNode.Value = ParseValue();
             }
-            return null;
+
+            return filterNode;
         }
 
-        private AstNode Operator()
+        private TokenKind ParseOperator()
         {
-            CheckToken(TokenKind.EQ, TokenKind.NEQ);
-            return null;
+            return CheckToken(TokenKind.EQ, TokenKind.NEQ).Kind;
         }
 
-        private AstNode Text()
+        private string ParseValue()
         {
-            CheckToken(TokenKind.Text);
-            return null;
+            return CheckToken(TokenKind.Text).Text;
         }
 
-        private AstNode Filter()
+        private TokenKind ParseFilterName()
         {
-            CheckToken(TokenKind.Destination, TokenKind.Source);
-            return null;
+            return CheckToken(TokenKind.Destination, TokenKind.Source).Kind;
         }
 
-        private bool CheckToken(params TokenKind[] Matches)
+        private Token CheckToken(params TokenKind[] Matches)
         {
             Token TokenToCheck = GetNextToken();
 
@@ -100,7 +149,7 @@ namespace FWO.Ui.Filter
                 if (TokenToCheck.Kind == Matches[i])
                 {
                     Position++;
-                    return true;
+                    return TokenToCheck;
                 }                   
             }
 

@@ -9,7 +9,8 @@
         BR, // )
         And,       
         Or,
+        Not,
         EQ, // ==
-        NEQ, // !=
+        NEQ // !=
     }
 }

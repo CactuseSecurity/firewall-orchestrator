@@ -20,7 +20,10 @@ namespace FWO.Ui.Filter
 
             for (position = 0; position < input.Length; position++)
             {
-                SkipWhitespaces();
+                while ((position < input.Length && (input[position] == ' ' || input[position] == '\t' || input[position] == '\n')) == true)
+                {
+                    position++;
+                }
 
                 Tokens.AddRange(ReadToken());
             }
@@ -28,17 +31,9 @@ namespace FWO.Ui.Filter
             return Tokens;
         }
 
-        private void SkipWhitespaces()
-        {
-            while (IsWhitespaceOrEnd() == false)
-            {
-                position++;
-            }
-        }
-
         private bool IsWhitespaceOrEnd()
         {
-            if (position < input.Length && (input[position] == ' ' || input[position] == '\t' || input[position] == '\n'))
+            if (position >= input.Length || input[position] == ' ' || input[position] == '\t' || input[position] == '\n')
             {
                 return true;
             }
@@ -52,91 +47,120 @@ namespace FWO.Ui.Filter
         {
             List<Token> tokens = new List<Token>();
 
-
-            // Token position
-            int tokenPosition = position;          
+            // Token begin position
+            int tokenBeginPosition = position;          
             
             // Token text
             string tokenText = "";
+
+            // Token kind
+            TokenKind tokenKind = TokenKind.Text;
+
+            // Detect Keywordss
+            bool detectKeywords = true;
+
             while (IsWhitespaceOrEnd() == false)
-            {
+            { 
                 switch (input[position])
                 {
                     case '\\':
-                        HandleEscapeSequence(input[++position]);
+                        tokenText += HandleEscapeSequence(input[position]);
+                        position++;
                         break;
 
-                    case '\"':
                     case '\'':
-
-
-                    default:
+                    case '\"':
+                        detectKeywords = !detectKeywords;
                         position++;
                         break;
                 }
 
+                if (IsWhitespaceOrEnd())
+                    break;
+
                 tokenText += input[position];
+
+                if (detectKeywords == true)
+                {
+                    switch (tokenText)
+                    {
+                        case string _ when tokenText.EndsWith("src"):
+                        case string _ when tokenText.EndsWith("source"):
+                            tokenKind = TokenKind.Source;
+                            break;
+
+                        case string _ when tokenText.EndsWith("dst"):
+                        case string _ when tokenText.EndsWith("dest"):
+                        case string _ when tokenText.EndsWith("destination"):
+                            tokenKind = TokenKind.Destination;
+                            break;
+
+                        case string _ when tokenText.EndsWith("("):
+                            tokenKind = TokenKind.BL;
+                            break;
+
+                        case string _ when tokenText.EndsWith(")"):
+                            tokenKind = TokenKind.BR;
+                            break;
+
+                        case string _ when tokenText.EndsWith("or"):
+                        case string _ when tokenText.EndsWith("|"):
+                        case string _ when tokenText.EndsWith("||"):
+                            tokenKind = TokenKind.Or;
+                            break;
+
+                        case string _ when tokenText.EndsWith("and"):
+                        case string _ when tokenText.EndsWith("&"):
+                        case string _ when tokenText.EndsWith("&&"):
+                            tokenKind = TokenKind.And;
+                            break;
+
+                        case string _ when tokenText.EndsWith(":"):
+                        case string _ when tokenText.EndsWith("="):
+                        case string _ when tokenText.EndsWith("=="):
+                        case string _ when tokenText.EndsWith("eq"):
+                            tokenKind = TokenKind.EQ;
+                            break;
+
+                        case string _ when tokenText.EndsWith("!="):
+                        case string _ when tokenText.EndsWith("neq"):
+                            tokenKind = TokenKind.NEQ;
+                            break;
+
+                        default:
+                            tokenKind = TokenKind.Text;
+                            break;
+                    }
+
+                    if (tokenKind != TokenKind.Text)
+                    {
+                        tokens.Add(new Token(tokenBeginPosition, tokenText, tokenKind));
+                        tokenText = "";
+                        tokenKind = TokenKind.Text;
+                        tokenBeginPosition = position + 1;
+                    }
+                }
+
                 position++;
             }
 
-            // Token kind
-            TokenKind tokenKind;
-
-            switch (tokenText)
+            if (tokenText != "")
             {
-                case "src":
-                case "source":
-                    tokenKind = TokenKind.Source;
-                    break;
-
-                case "dest":
-                case "destination":
-                    tokenKind = TokenKind.Destination;
-                    break;
-
-                case "(":
-                    tokenKind = TokenKind.BL;
-                    break;
-
-                case ")":
-                    tokenKind = TokenKind.BR;
-                    break;
-
-                case "or":
-                case "|":
-                case "||":
-                    tokenKind = TokenKind.Or;
-                    break;
-
-                case "and":
-                case "&":
-                case "&&":
-                    tokenKind = TokenKind.And;
-                    break;
-
-                case "=":
-                case "==":
-                case "eq":
-                    tokenKind = TokenKind.EQ;
-                    break;
-
-                case "!=":
-                case "neq":
-                    tokenKind = TokenKind.NEQ;
-                    break;
-
-                default:
-                    tokenKind = TokenKind.Text;
-                    break;
+                tokens.Add(new Token(tokenBeginPosition, tokenText, tokenKind));
             }
-
-            tokens.Add(new Token(tokenPosition, tokenText, tokenKind));
 
             return tokens;
         }
 
         private char HandleEscapeSequence(char characterCode)
         {
+            position++;
+
+            if (IsWhitespaceOrEnd())
+            {
+                throw new NotSupportedException("Expected escape sequence got whitespace or end.");
+            }
+
             switch (characterCode)
             {
                 // Marks \ " ' as non keywords

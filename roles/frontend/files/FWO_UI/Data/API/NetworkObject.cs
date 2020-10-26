@@ -21,37 +21,37 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("obj_name")]
         public string Name { get; set; }
 
-//        obj_id
-//    obj_name
-//    obj_ip
-//    obj_ip_end
-//    obj_uid
-//    zone_id
-//    active
-//    obj_create
-//    obj_last_seen
-//    type: stm_obj_typ {
-//      name: obj_typ_name
-//    }
-//    obj_comment
-//    obj_member_names
-//    obj_member_refs
-//    objgrps
-//    {
-//        objgrp_member_id
-//      objectByObjgrpMemberId
-//        {
-//            obj_id
-//            obj_name
-//      }
-//    }
-//    objgrp_flats {
-//      objgrp_flat_id
-//      objectByObjgrpFlatMemberId
-//    {
-//        obj_id
-//        obj_name
-//    }
-//}
+        //    obj_id
+        //    obj_name
+        //    obj_ip
+        //    obj_ip_end
+        //    obj_uid
+        //    zone_id
+        //    active
+        //    obj_create
+        //    obj_last_seen
+        //    type: stm_obj_typ {
+        //      name: obj_typ_name
+        //    }
+        //    obj_comment
+        //    obj_member_names
+        //    obj_member_refs
+        //    objgrps
+        //    {
+        //        objgrp_member_id
+        //      objectByObjgrpMemberId
+        //        {
+        //            obj_id
+        //            obj_name
+        //      }
+        //    }
+        //    objgrp_flats {
+        //      objgrp_flat_id
+        //      objectByObjgrpFlatMemberId
+        //    {
+        //        obj_id
+        //        obj_name
+        //    }
+        //}
     }
 }

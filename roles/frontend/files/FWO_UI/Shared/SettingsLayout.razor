@@ -41,8 +41,8 @@
     {
         navItems = new NavItem[]
         {
-            new NavItem("Managements", "settings/managements", "oi oi-inbox"),
-            new NavItem("Authorization", "settings/authorization", "oi oi-lock-locked")
+            new NavItem(() => "Managements", "settings/managements", "oi oi-inbox"),
+            new NavItem(() => "Authorization", "settings/authorization", "oi oi-lock-locked")
         };
     }
 }

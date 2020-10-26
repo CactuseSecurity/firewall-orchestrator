@@ -46,11 +46,21 @@
                                 <Table SelectedItems="selectedItemsReportRuleTable"
                                        RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
                                        style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                                       PageSize="rulesPerPage" ColumnReorder="true">
+                                       PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
                                     <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
                                         <Template>
-                                            @(Array.IndexOf(device.Rules, context) + 1)
-                                            @($"DEBUG: {context.OrderNumber}")
+                                            @{
+                                                if (context.SectionHeader != null)
+                                                {
+                                                    @context.SectionHeader
+                                                }
+
+                                                else
+                                                {
+                                                    @(Array.IndexOf(device.Rules, context) + 1) <br />
+                                                    @($"DEBUG: {context.OrderNumber}")
+                                                }
+                                            }
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
@@ -65,12 +75,17 @@
                                                 @{
                                                     if (context.SourceNegated)
                                                     {
-                                                        @("anything but") <br>
+                                                        @("anything but") <br />
                                                     }
 
-                                                    foreach (NetworkObjectWrapper source in context.Froms)
+                                                    foreach (NetworkLocation source in context.Froms)
                                                     {
-                                                        @($"{source.Content.Name}" + (source.Content.IP != null ? $" ({source.Content.IP})" : ""))<br>
+                                                        if (source.User != null)
+                                                        {
+                                                            @($"{source.User.Name}@")
+                                                        }
+
+                                                        @($"{source.Object.Name}" + (source.Object.IP != null ? $" ({source.Object.IP})" : ""))<br>
                                                     }
                                                 }
                                             </p>
@@ -90,9 +105,9 @@
                                                         @("anything but") <br>
                                                     }
 
-                                                    foreach (NetworkObjectWrapper destination in context.Tos)
+                                                    foreach (NetworkLocation destination in context.Tos)
                                                     {
-                                                        @($"{destination.Content.Name}" + (destination.Content.IP != null ? $" ({destination.Content.IP})" : ""))<br>
+                                                        @($"{destination.Object.Name}" + (destination.Object.IP != null ? $" ({destination.Object.IP})" : ""))<br>
                                                     }
                                                 }
                                             </p>
@@ -158,8 +173,9 @@
                     </Tab>
                     <Tab Title="Rule">
                         <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
-                                     NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos, wrapper => wrapper.Content)"
-                                     NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)" NetworkUserExtractor="rule => null" />
+                                     NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                                     NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                     NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
                     </Tab>
                 </TabSet>
             </div>
@@ -293,7 +309,7 @@
                     paginationVariables.Offset += rulesPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
-                    
+
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -304,9 +320,9 @@
                     Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
                     ShowError("Report generation", "You dont have sufficient acces rights.");
 
-                    // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
-                    // leave managementsReport as default = empty array
-                }
+                // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+                // leave managementsReport as default = empty array
+            }
                 else
                 {
                     Log.WriteError("Report generation", "Unclassified error.", exception);

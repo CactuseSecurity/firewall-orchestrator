@@ -14,8 +14,20 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("mgm_name")]
         public string Name { get; set; }
 
+        [JsonPropertyName("ssh_hostname")]
+        public string Hostname { get; set; }
+
+        [JsonPropertyName("ssh_user")]
+        public string ImportUser { get; set; }
+
         [JsonPropertyName("ssh_private_key")]
         public string PrivateKey { get; set; }
+
+        [JsonPropertyName("config_path")]
+        public string ConfigPath { get; set; }
+
+        [JsonPropertyName("importer_hostname")]
+        public string ImporterHostname { get; set; }
 
         [JsonPropertyName("devices")]
         public Device[] Devices { get; set; }
@@ -33,10 +45,18 @@ namespace FWO.Ui.Data.API
         public DeviceType DeviceType { get; set; }
     }
 
-    public class ReturnManagement
+    public class ReturnId
+    {
+        [JsonPropertyName("newId")]
+        public int NewId { get; set; }
+
+        [JsonPropertyName("UpdatedId")]
+        public int UpdatedId { get; set; }
+    }
+    public class NewMgtReturning
     {
         [JsonPropertyName("returning")]
-        public Management[] ReturnId { get; set; }
+        public ReturnId[] ReturnIds { get; set; }
     }
 
     public static class ManagementUtility

@@ -149,7 +149,12 @@
     private void Add()
     {
         AddMode = true;
-        newManagement = new Management() { Id = int.MaxValue, Name = "", DeviceType = new DeviceType { Id = 1 } };
+        newManagement = new Management() { 
+            Id = int.MaxValue, 
+            Name = "x", 
+            DeviceType = new DeviceType { Id = 1 },
+            Hostname = "y",
+            ImportUser = "z"};
         // Todo: define init values
         managements.Add(newManagement);
         Edit(newManagement);
@@ -162,19 +167,33 @@
             if (AddMode)
             {
                 // insert new management
-                // Todo: enhance Variables
-                var Variables = new { dev_typ_id = actManagement.DeviceType.Id, mgm_name = actManagement.Name, ssh_private_key = actManagement.PrivateKey };
-                newManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnManagement>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnId[0].Id;
+                var Variables = new { 
+                    name = actManagement.Name, 
+                    devTypeId= actManagement.DeviceType.Id, 
+                    hostname = actManagement.Hostname, 
+                    importUser = actManagement.ImportUser,
+                    importUserSecret = actManagement.PrivateKey,
+                    configPath = actManagement.ConfigPath,
+                    importerHostname = actManagement.ImporterHostname };
+                newManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewMgtReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
+                AddMode = false;
+                EditMode = false;
             }
             else
             {
                 // Update existing management
-                // Todo: enhance Variables
-                var Variables = new { mgm_id = ManagementIdEdit, dev_typ_id = actManagement.DeviceType.Id, mgm_name = actManagement.Name, ssh_private_key = actManagement.PrivateKey };
-                await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables));
+                var Variables = new { 
+                    id = ManagementIdEdit, 
+                    name = actManagement.Name, 
+                    devTypeId= actManagement.DeviceType.Id, 
+                    hostname = actManagement.Hostname, 
+                    importUser = actManagement.ImportUser,
+                    importUserSecret = actManagement.PrivateKey,
+                    configPath = actManagement.ConfigPath,
+                    importerHostname = actManagement.ImporterHostname };
+                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables))).UpdatedId;
+                EditMode = (udId == ManagementIdEdit ? false : true);
             }
-            EditMode = false;
-            AddMode = false;
         }
         catch (Exception exception)
         {

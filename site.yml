@@ -42,7 +42,7 @@
   tags:
     - backend
 
-- hosts: frontends^
+- hosts: frontends
   roles:
     - { role: lib, when: "'authserver' not in group_names"}
     - frontend

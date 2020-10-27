@@ -8,82 +8,37 @@
 
 <h3 class="m-2">Managements</h3>
 
+<button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+
 <div class="d-flex flex-column m-2">
     <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
         <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true">
             <Template>
-                @{
-                    if (EditMode && context.Id == ManagementIdEdit)
-                    {
-                        <input type="text" @bind-value="@context.Name" class="form-control form-control-sm" />
-                    }
-                    else
-                    {
-                        @context.Name
-                    }
-                }
+                @context.Name
             </Template>
         </Column>
-        <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Name)" Sortable="true" Filterable="true">
+        <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
-                @{
-                    if (EditMode && context.Id == ManagementIdEdit)
-                    {
-                        <input type="text" @bind-value="@context.DeviceType.Name" class="form-control form-control-sm" />
-                    }
-                    else
-                    {
-                        @context.DeviceType.Name
-                    }
-                }
-            </Template>
-        </Column>
-        <Column TableItem="Management" Title="Version" Field="@(x => x.DeviceType.Version)" Sortable="true" Filterable="true">
-            <Template>
-                @{
-                    if (EditMode && context.Id == ManagementIdEdit)
-                    {
-                        <input type="text" @bind-value="@context.DeviceType.Version" class="form-control form-control-sm" />
-                    }
-                    else
-                    {
-                        @context.DeviceType.Version
-                    }
-                }
+                @DevTypeNameVersion(context.DeviceType.Id)
             </Template>
         </Column>
         <Column TableItem="Management" Title="Private Key" Field="@(x => x.PrivateKey)" Sortable="false" Filterable="false">
             <Template>
-                @{
-                    if (EditMode && context.Id == ManagementIdEdit)
-                    {
-                        <input type="text" @bind-value="@context.PrivateKey" class="form-control form-control-sm" />
-                    }
-                    else
-                    {
-                        <div style="max-width: 600px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
-                    }
-                }
+                <div style="max-width: 500px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="ImportDisabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true">
+            <Template>
+                @context.ImportDisabled
             </Template>
         </Column>
         <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
-                @{
-                    if (EditMode && ManagementIdEdit == context.Id)
-                    {
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
-                            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                            <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete</button>
-                        </div>
-                    }
-                }
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete</button>
+                </div>
             </Template>
         </Column>
     </Table>
@@ -100,13 +55,79 @@
         </form>*@
 </div>
 
-<button class="btn btn-success m-2" @onclick="Add">Add new management</button>
-
+<PopUp Title="Edit Management" Show="@EditMode" OnClose="() => EditMode = false">
+    @if (EditMode)
+    {
+        <form class="form-horizontal d-flex flex-column">
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Name:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.Name" />
+            </div>
+            <div class="form-inline mt-1 mb-1 mr-2">
+                <label class="mr-1">Type:</label>
+                <div class="select-wrapper form-control-sm">
+                    <select @bind="actManagement.DeviceType.Id">
+                        @foreach(DeviceType devType in deviceTypes)
+                        {
+                            <option>@DevTypeNameVersion(devType.Id)</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Hostname:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.Hostname" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">ImportUser:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.ImportUser" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Private Key:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.PrivateKey" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Port:</label>
+                <input type="number" class="form-control-sm" @bind="actManagement.Port" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Public Key:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.PublicKey" />
+            </div>
+            <div class="checkbox">
+                <label><input type="checkbox" @bind="actManagement.ImportDisabled">Import Disabled</label>
+            </div>
+            <div class="checkbox">
+                <label><input type="checkbox" @bind="actManagement.ForceInitialImport">Force Initial Import</label>
+            </div>
+            <div class="checkbox">
+                <label><input type="checkbox" @bind="actManagement.HideInUi">Hide In Ui</label>
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Config Path:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.ConfigPath" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Importer Hostname:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.ImporterHostname" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Comment:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.Comment" />
+            </div>
+            <label class="m-2">@errorMessage</label> 
+        </form>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    }
+</PopUp>
 
 @code
 {
     private List<Management> managements = new List<Management>();
-    // private List<DeviceType> deviceTypes = new List<DeviceType>();
+    private List<DeviceType> deviceTypes = new List<DeviceType>();
 
     private ITable<Management> table;
 
@@ -117,19 +138,19 @@
     private int ManagementIdEdit = int.MinValue;
     // private int ManagementIdDelete = int.MinValue;
 
-    Management newManagement;
-    Management actManagement;
+    private Management newManagement;
+    private Management actManagement;
 
+    private string errorMessage = "";
+ 
     protected override async Task OnInitializedAsync()
     {
         managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.BasicQueries.getManagementsDetails))).ToList();
-        // we may need this later for building up a selection list of all possible Device types in the add/edit mode
-        // deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceTypeDetails))).ToList();
+        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceTypeDetails))).ToList();
     }
 
     private void Edit(Management management)
     {
-        // Todo: branch into edit mask?
         ManagementIdEdit = management.Id;
         actManagement = management;
         EditMode = true;
@@ -149,8 +170,46 @@
     private void Add()
     {
         AddMode = true;
-        newManagement = new Management() { Id = int.MaxValue, Name = "", DeviceType = new DeviceType { Id = 1 } };
         // Todo: define init values
+        newManagement = new Management() { 
+            Id = int.MaxValue, 
+            Name = "x",
+            DeviceType = new DeviceType { Id = 1 },
+            Hostname = "y",
+            ImportUser = "z",
+            PrivateKey = "abc",
+            Port = 22,
+            PublicKey = "jkl",
+            ImportDisabled = false,
+            ForceInitialImport = false,
+            HideInUi = false,
+            ConfigPath = "",
+            ImporterHostname = "",
+            Comment = ""};
+        managements.Add(newManagement);
+        Edit(newManagement);
+    }
+
+    private void Clone(Management management)
+    {
+        AddMode = true;
+        // Todo: define what to copy
+        newManagement = new Management() { 
+            Id = int.MaxValue, 
+            Name = management.Name, 
+            DeviceType = management.DeviceType,
+            Hostname = management.Hostname,
+            ImportUser = management.ImportUser,
+            PrivateKey = management.PrivateKey,
+            Port = management.Port,
+            PublicKey = management.PublicKey,
+            ImportDisabled = management.ImportDisabled,
+            ForceInitialImport = management.ForceInitialImport,
+            HideInUi = management.HideInUi,
+            ConfigPath = management.ConfigPath,
+            ImporterHostname = management.ImporterHostname,
+            Comment = management.Comment /*,
+            TenantId = management.TenantId */};
         managements.Add(newManagement);
         Edit(newManagement);
     }
@@ -159,22 +218,57 @@
     {
         try
         {
+            // Todo: Value checks?
+            //if (CheckValues(actManagement))
+            //{
+            //    InputClass = "is-invalid";
+            //}
+
             if (AddMode)
             {
                 // insert new management
-                // Todo: enhance Variables
-                var Variables = new { dev_typ_id = actManagement.DeviceType.Id, mgm_name = actManagement.Name, ssh_private_key = actManagement.PrivateKey };
-                newManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnManagement>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnId[0].Id;
+                var Variables = new { 
+                    name = actManagement.Name, 
+                    devTypeId = actManagement.DeviceType.Id, 
+                    hostname = actManagement.Hostname, 
+                    importUser = actManagement.ImportUser,
+                    importUserSecret = actManagement.PrivateKey,
+                    port = actManagement.Port,
+                    sshPublicKey = actManagement.PublicKey,
+                    importDisabled = actManagement.ImportDisabled,
+                    forceInitialImport = actManagement.ForceInitialImport,
+                    hideInUi = actManagement.HideInUi,
+                    configPath = actManagement.ConfigPath,
+                    importerHostname = actManagement.ImporterHostname,
+                    comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */};
+                newManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewMgtReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
+                AddMode = false;
+                EditMode = false;
             }
             else
             {
                 // Update existing management
-                // Todo: enhance Variables
-                var Variables = new { mgm_id = ManagementIdEdit, dev_typ_id = actManagement.DeviceType.Id, mgm_name = actManagement.Name, ssh_private_key = actManagement.PrivateKey };
-                await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables));
+                // Todo: handle TenantId
+                var Variables = new { 
+                    id = ManagementIdEdit, 
+                    name = actManagement.Name, 
+                    devTypeId = actManagement.DeviceType.Id, 
+                    hostname = actManagement.Hostname, 
+                    importUser = actManagement.ImportUser,
+                    importUserSecret = actManagement.PrivateKey,
+                    port = actManagement.Port,
+                    sshPublicKey = actManagement.PublicKey,
+                    importDisabled = actManagement.ImportDisabled,
+                    forceInitialImport = actManagement.ForceInitialImport,
+                    hideInUi = actManagement.HideInUi,
+                    configPath = actManagement.ConfigPath,
+                    importerHostname = actManagement.ImporterHostname,
+                    comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */};
+                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables))).UpdatedId;
+                EditMode = (udId == ManagementIdEdit ? false : true);
             }
-            EditMode = false;
-            AddMode = false;
         }
         catch (Exception exception)
         {
@@ -197,7 +291,9 @@
         AddMode = false;
         EditMode = false;
     }
+
+    private string DevTypeNameVersion(int id)
+    {
+        return deviceTypes.Find(x => x.Id == id).NameVersion();
+    }
 }
-
-
-

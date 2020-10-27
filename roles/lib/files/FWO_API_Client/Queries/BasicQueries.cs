@@ -36,7 +36,8 @@ namespace FWO.ApiClient.Queries
 
                 getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
 
-                getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql");
+                getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql") + " " 
+                                        + File.ReadAllText(QueryPath + "device/fragments/ManagementDetails.graphql");
 
                 getDeviceTypeDetails = File.ReadAllText(QueryPath + "device/getDeviceTypeDetails.graphql");
 

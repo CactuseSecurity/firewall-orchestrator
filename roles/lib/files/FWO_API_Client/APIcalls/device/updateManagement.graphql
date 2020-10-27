@@ -1,37 +1,37 @@
 mutation updateManagement(
-  $Id: Int!
-  $Name: String!
-  $DevTypeId: Int!
-  $ImportUser: String!
-  $ImportUserSecret: String!
-  $Hostname: String!
-  $Port: Int!
-  $SshPublicKey: String!
-  $ImportDisabled: Boolean!
-  $ForceInitialImport: Boolean!
-  $HideInUi: Boolean!
-  $ConfigPath: String
-  $ImporterHostname: String
-  $Comment: String
-  $TenantId: Int
+  $id: Int!
+  $name: String!
+  $devTypeId: Int!
+  $importUser: String!
+  $importUserSecret: String!
+  $hostname: String!
+  $port: Int!
+  $sshPublicKey: String!
+  $importDisabled: Boolean!
+  $forceInitialImport: Boolean!
+  $hideInUi: Boolean!
+  $configPath: String
+  $importerHostname: String
+  $comment: String
+  $tenantId: Int
 ) {
   update_management_by_pk(
-    pk_columns: { mgm_id: $Id }
+    pk_columns: { mgm_id: $id }
     _set: {
-      mgm_name: $Name
-      dev_typ_id: $DevTypeId
-      ssh_hostname: $Hostname
-      ssh_user: $ImportUser
-      ssh_private_key: $ImportUserSecret
-      config_path: $ConfigPath
-      importer_hostname: $ImporterHostname
-      ssh_port: $Port
-      ssh_public_key: $SshPublicKey
-      do_not_import: $ImportDisabled
-      force_initial_import: $ForceInitialImport
-      hide_in_gui: $HideInUi
-      mgm_comment: $Comment
-      tenant_id: $TenantId
+      mgm_name: $name
+      dev_typ_id: $devTypeId
+      ssh_hostname: $hostname
+      ssh_user: $importUser
+      ssh_private_key: $importUserSecret
+      config_path: $configPath
+      importer_hostname: $importerHostname
+      ssh_port: $port
+      ssh_public_key: $sshPublicKey
+      do_not_import: $importDisabled
+      force_initial_import: $forceInitialImport
+      hide_in_gui: $hideInUi
+      mgm_comment: $comment
+      tenant_id: $tenantId
     }
   ) {
     UpdatedId: mgm_id
@@ -40,15 +40,15 @@ mutation updateManagement(
 
 # example variables (at least the following)
 # {
-#   "Id": 17,
-#   "Name": "huhu",
-#   "DevTypeId": 10,
-#   "ImportUser": "usr12",
-#   "ImportUserSecret": "secret123",
-#   "Hostname": "host1234",
-#   "Port": 22,
-#   "SshPublicKey": "",
-#   "ImportDisabled": false,
-#   "ForceInitialImport": false,
-#   "HideInUi": false
+#   "id": 17,
+#   "name": "huhu",
+#   "devTypeId": 10,
+#   "importUser": "usr12",
+#   "importUserSecret": "secret123",
+#   "hostname": "host1234",
+#   "port": 22,
+#   "sshPublicKey": "",
+#   "importDisabled": false,
+#   "forceInitialImport": false,
+#   "hideInUi": false
 # }

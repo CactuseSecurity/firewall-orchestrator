@@ -16,5 +16,13 @@ namespace FWO.Ui.Data.API
 
         [JsonPropertyName("version")]
         public string Version { get; set; }
+
+        // [JsonPropertyName("predefinedObjects")]
+        // public ??? PredefinedObjects { get; set; }
+
+        public string NameVersion()
+        {
+            return Name + " " + Version;
+        }
     }
 }

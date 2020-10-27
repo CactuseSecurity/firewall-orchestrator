@@ -1,28 +1,7 @@
-﻿query getManagementDetails {
-  management {
-    hide_in_gui
-    do_not_import
-    force_initial_import
-    importer_hostname
-    last_import_md5_complete_config
-    last_import_md5_objects
-    last_import_md5_rules
-    last_import_md5_users
-    config_path
-    mgm_comment
-    mgm_create
-    mgm_id
-    mgm_name
-    mgm_update
-    ssh_hostname
-    ssh_port
-    ssh_private_key
-    ssh_public_key
-    ssh_user
-    stm_dev_typ {
-      dev_typ_id
-      dev_typ_name
-      dev_typ_version
-    }
+﻿query getManagementDetails($Id:Int)
+{
+  management(where: {mgm_id: {_eq:$Id}}) {
+    ...ManagementDetails
+    
   }
 }

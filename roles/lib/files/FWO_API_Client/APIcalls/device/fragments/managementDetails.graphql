@@ -1,31 +1,31 @@
 
 fragment ManagementDetails on management
 {
-    Id: mgm_id
-    Name: mgm_name
-    Hostname: ssh_hostname
-    Port: ssh_port
-    Secret: ssh_private_key
-    SshPublicKey: ssh_public_key
-    User: ssh_user
-    DeviceType: stm_dev_typ {
-      Id: dev_typ_id
-      Name: dev_typ_name
-      Version: dev_typ_version
-      PredefinedObjects: dev_typ_predef_obj
+    id: mgm_id
+    name: mgm_name
+    hostname: ssh_hostname
+    port: ssh_port
+    secret: ssh_private_key
+    sshPublicKey: ssh_public_key
+    user: ssh_user
+    deviceType: stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+      version: dev_typ_version
+      predefinedObjects: dev_typ_predef_obj
     }
-    ConfigPath: config_path
-    ImportDisabled: do_not_import
-    ForceInitialImport: force_initial_import
-    HideInUi: hide_in_gui
-    ImporterHostname: importer_hostname
-    Comment: mgm_comment
-    CreationDate: mgm_create
-    UpdateDate: mgm_update
-    LastConfigHash: last_import_md5_complete_config
-    Tenant: tenant {
-      Id: tenant_id
-      Name: tenant_name
-      Comment: tenant_comment
+    configPath: config_path
+    importDisabled: do_not_import
+    forceInitialImport: force_initial_import
+    hideInUi: hide_in_gui
+    importerHostname: importer_hostname
+    comment: mgm_comment
+    creationDate: mgm_create
+    updateDate: mgm_update
+    lastConfigHash: last_import_md5_complete_config
+    tenant: tenant {
+      id: tenant_id
+      name: tenant_name
+      comment: tenant_comment
     } 
   }

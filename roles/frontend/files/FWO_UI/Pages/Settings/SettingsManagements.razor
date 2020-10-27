@@ -167,8 +167,14 @@
             Hostname = "y",
             ImportUser = "z",
             PrivateKey = "abc",
-            ConfigPath = "def",
-            ImporterHostname = "ghi"};
+            Port = 22,
+            PublicKey = "jkl",
+            ImportDisabled = false,
+            ForceInitialImport = false,
+            HideInUi = false,
+            ConfigPath = "",
+            ImporterHostname = "",
+            Comment = ""};
         managements.Add(newManagement);
         Edit(newManagement);
     }
@@ -184,8 +190,15 @@
             Hostname = management.Hostname,
             ImportUser = management.ImportUser,
             PrivateKey = management.PrivateKey,
+            Port = management.Port,
+            PublicKey = management.PublicKey,
+            ImportDisabled = management.ImportDisabled,
+            ForceInitialImport = management.ForceInitialImport,
+            HideInUi = management.HideInUi,
             ConfigPath = management.ConfigPath,
-            ImporterHostname = management.ImporterHostname};
+            ImporterHostname = management.ImporterHostname,
+            Comment = management.Comment /*,
+            TenantId = management.TenantId */};
         managements.Add(newManagement);
         Edit(newManagement);
     }
@@ -205,12 +218,19 @@
                 // insert new management
                 var Variables = new { 
                     name = actManagement.Name, 
-                    devTypeId= actManagement.DeviceType.Id, 
+                    devTypeId = actManagement.DeviceType.Id, 
                     hostname = actManagement.Hostname, 
                     importUser = actManagement.ImportUser,
                     importUserSecret = actManagement.PrivateKey,
+                    port = actManagement.Port,
+                    sshPublicKey = actManagement.PublicKey,
+                    importDisabled = actManagement.ImportDisabled,
+                    forceInitialImport = actManagement.ForceInitialImport,
+                    hideInUi = actManagement.HideInUi,
                     configPath = actManagement.ConfigPath,
-                    importerHostname = actManagement.ImporterHostname };
+                    importerHostname = actManagement.ImporterHostname,
+                    comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */};
                 newManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewMgtReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
                 AddMode = false;
                 EditMode = false;
@@ -218,15 +238,23 @@
             else
             {
                 // Update existing management
+                // Todo: handle TenantId
                 var Variables = new { 
                     id = ManagementIdEdit, 
                     name = actManagement.Name, 
-                    devTypeId= actManagement.DeviceType.Id, 
+                    devTypeId = actManagement.DeviceType.Id, 
                     hostname = actManagement.Hostname, 
                     importUser = actManagement.ImportUser,
                     importUserSecret = actManagement.PrivateKey,
+                    port = actManagement.Port,
+                    sshPublicKey = actManagement.PublicKey,
+                    importDisabled = actManagement.ImportDisabled,
+                    forceInitialImport = actManagement.ForceInitialImport,
+                    hideInUi = actManagement.HideInUi,
                     configPath = actManagement.ConfigPath,
-                    importerHostname = actManagement.ImporterHostname };
+                    importerHostname = actManagement.ImporterHostname,
+                    comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */};
                 int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables))).UpdatedId;
                 EditMode = (udId == ManagementIdEdit ? false : true);
             }

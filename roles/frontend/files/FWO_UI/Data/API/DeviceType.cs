@@ -8,13 +8,13 @@ namespace FWO.Ui.Data.API
 {
     public class DeviceType
     {
-        [JsonPropertyName("dev_typ_id")]
+        [JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("dev_typ_name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("dev_typ_version")]
+        [JsonPropertyName("version")]
         public string Version { get; set; }
     }
 }

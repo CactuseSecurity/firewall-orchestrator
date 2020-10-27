@@ -8,26 +8,47 @@ namespace FWO.Ui.Data.API
 {
     public class Management
     {
-        [JsonPropertyName("mgm_id")]
+        [JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("mgm_name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("ssh_hostname")]
+        [JsonPropertyName("hostname")]
         public string Hostname { get; set; }
 
-        [JsonPropertyName("ssh_user")]
+        [JsonPropertyName("user")]
         public string ImportUser { get; set; }
 
-        [JsonPropertyName("ssh_private_key")]
+        [JsonPropertyName("secret")]
         public string PrivateKey { get; set; }
 
-        [JsonPropertyName("config_path")]
+        [JsonPropertyName("configPath")]
         public string ConfigPath { get; set; }
 
-        [JsonPropertyName("importer_hostname")]
+        [JsonPropertyName("importerHostname")]
         public string ImporterHostname { get; set; }
+
+        [JsonPropertyName("port")]
+        public int Port { get; set; }
+
+        [JsonPropertyName("sshPublicKey")]
+        public string PublicKey { get; set; }
+
+        [JsonPropertyName("importDisabled")]
+        public bool ImportDisabled { get; set; }
+
+        [JsonPropertyName("forceInitialImport")]
+        public bool ForceInitialImport { get; set; }
+
+        [JsonPropertyName("hideInUi")]
+        public bool HideInUi { get; set; }
+
+        [JsonPropertyName("comment")]
+        public string Comment { get; set; }
+
+        [JsonPropertyName("tenant_id")]
+        public int TenantId { get; set; }
 
         [JsonPropertyName("devices")]
         public Device[] Devices { get; set; }
@@ -41,7 +62,7 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("userObjects")]
         public NetworkUser[] Users { get; set; }
 
-        [JsonPropertyName("stm_dev_typ")]
+        [JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; }
     }
 

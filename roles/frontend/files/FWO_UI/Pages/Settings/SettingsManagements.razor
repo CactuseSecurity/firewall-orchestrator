@@ -8,20 +8,13 @@
 
 <h3 class="m-2">Managements</h3>
 
+<button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+
 <div class="d-flex flex-column m-2">
     <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
         <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true">
             <Template>
-                @{
-                    if (EditMode && context.Id == ManagementIdEdit)
-                    {
-                        <input type="text" @bind-value="@context.Name" class="form-control form-control-sm" />
-                    }
-                    else
-                    {
-                        @context.Name
-                    }
-                }
+                @context.Name
             </Template>
         </Column>
         <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Name)" Sortable="true" Filterable="true">
@@ -54,36 +47,16 @@
         </Column>
         <Column TableItem="Management" Title="Private Key" Field="@(x => x.PrivateKey)" Sortable="false" Filterable="false">
             <Template>
-                @{
-                    if (EditMode && context.Id == ManagementIdEdit)
-                    {
-                        <input type="text" @bind-value="@context.PrivateKey" class="form-control form-control-sm" />
-                    }
-                    else
-                    {
-                        <div style="max-width: 600px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
-                    }
-                }
+                <div style="max-width: 600px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
             </Template>
         </Column>
         <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
-                @{
-                    if (EditMode && ManagementIdEdit == context.Id)
-                    {
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
-                            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                            <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete</button>
-                        </div>
-                    }
-                }
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete</button>
+                </div>
             </Template>
         </Column>
     </Table>
@@ -100,8 +73,37 @@
         </form>*@
 </div>
 
-<button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+<PopUp Title="Edit Management" Show="@EditMode" OnClose="() => EditMode = false">
+    <form class="d-flex flex-column">
+        <div class="form-group">
+            <label class="mr-1">Name: </label>
+            @if (EditMode)
+            {
+                <input type="text" class="form-control @InputClass" id="MgtNameInput" @bind="actManagement.Name" @bind:event="oninput" @onkeypress="ClearInputClass">
+            }
+        </div>
+        <div class="form-group">
+            <label class="mr-1">Hostname: </label>
+            @if (EditMode)
+            {
+                <input type="text" class="form-control @InputClass" id="MgtHostnameInput" @bind="actManagement.Hostname" @bind:event="oninput" @onkeypress="ClearInputClass">
+            }
+        </div>
+        <div class="form-group">
+            <label class="mr-1">Private Key: </label>
+            @if (EditMode)
+            {
+                <input type="text" class="form-control @InputClass" id="MgtPrivateKeyInput" @bind="actManagement.PrivateKey" @bind:event="oninput" @onkeypress="ClearInputClass">
+            }
+        </div>
 
+        <label class="m-2">@errorMessage</label> 
+    </form>
+    <div class="btn-group">
+        <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+        <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+    </div>
+</PopUp>
 
 @code
 {
@@ -117,8 +119,16 @@
     private int ManagementIdEdit = int.MinValue;
     // private int ManagementIdDelete = int.MinValue;
 
-    Management newManagement;
-    Management actManagement;
+    private Management newManagement;
+    private Management actManagement;
+
+    private string errorMessage = "";
+    private string InputClass = "";
+
+    private void ClearInputClass(KeyboardEventArgs e)
+    {
+        InputClass = "";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,13 +159,33 @@
     private void Add()
     {
         AddMode = true;
+        // Todo: define init values
         newManagement = new Management() { 
             Id = int.MaxValue, 
-            Name = "x", 
+            Name = "x",
             DeviceType = new DeviceType { Id = 1 },
             Hostname = "y",
-            ImportUser = "z"};
-        // Todo: define init values
+            ImportUser = "z",
+            PrivateKey = "abc",
+            ConfigPath = "def",
+            ImporterHostname = "ghi"};
+        managements.Add(newManagement);
+        Edit(newManagement);
+    }
+
+    private void Clone(Management management)
+    {
+        AddMode = true;
+        // Todo: define what to copy
+        newManagement = new Management() { 
+            Id = int.MaxValue, 
+            Name = management.Name, 
+            DeviceType = management.DeviceType,
+            Hostname = management.Hostname,
+            ImportUser = management.ImportUser,
+            PrivateKey = management.PrivateKey,
+            ConfigPath = management.ConfigPath,
+            ImporterHostname = management.ImporterHostname};
         managements.Add(newManagement);
         Edit(newManagement);
     }
@@ -164,6 +194,12 @@
     {
         try
         {
+            // Todo: Value checks?
+            //if (CheckValues(actManagement))
+            //{
+            //    InputClass = "is-invalid";
+            //}
+
             if (AddMode)
             {
                 // insert new management

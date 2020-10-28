@@ -1,6 +1,6 @@
-﻿query getManagementDetails($Id:Int)
+﻿query getManagementDetails
 {
-  management(where: {mgm_id: {_eq:$Id}}) {
+  management{
     ...ManagementDetails
     
   }

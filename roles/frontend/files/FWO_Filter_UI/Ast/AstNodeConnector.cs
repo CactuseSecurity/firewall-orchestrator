@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace FWO.Ui.Filter
+namespace FWO.Ui.Filter.Ast
 {
-    public class ConnectorAstNode : AstNode
+    public class AstNodeConnector : AstNode
     {
         public AstNode Right { get; set; }
         public AstNode Left { get; set; }

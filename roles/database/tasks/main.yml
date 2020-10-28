@@ -106,7 +106,8 @@
 
 - name: check if database already exists
   # Defaults here are autocommit=no, login_user="postgres", port=5432, ssl_mode=prefer, trust_input=yes
-  community.general.postgresql_query:
+  #community.general.postgresql_query:
+  postgresql_query:
     query: SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''
   register: db_exists
   become: yes

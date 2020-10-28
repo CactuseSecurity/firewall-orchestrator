@@ -44,7 +44,8 @@
 #    when: installation_mode == "new"
 
   - name: creating {{ fworch_db_name }}-db-model and settings privileges
-    community.general.postgresql_query:
+    #community.general.postgresql_query:
+    postgresql_query:
       db: "{{ fworch_db_name }}"
       path_to_script: "{{ database_install_dir }}/sql/{{ item }}"
     loop:
@@ -76,7 +77,8 @@
 #      - fworch-grants.sql
 
   - name: (re)defines functions and views (idempotent)
-      community.general.postgresql_query:
+      #community.general.postgresql_query:
+      postgresql_query:
         db: "{{ fworch_db_name }}"
         path_to_script: "{{ database_install_dir }}/sql/{{ item }}"
       loop:
@@ -110,7 +112,8 @@
 #    when: installation_mode == "new"
 
   - name: add colors to the database
-    community.general.postgresql_copy:
+    #community.general.postgresql_copy:
+    postgresql_copy:
       db: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/color.csv"
       dst: stm_color
@@ -123,7 +126,8 @@
     when: installation_mode == "new"
 
   - name: add error messages to the database
-    community.general.postgresql_copy:
+    #community.general.postgresql_copy:
+    postgresql_copy:
       db: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/error.csv"
       dst: error
@@ -138,7 +142,8 @@
     when: installation_mode == "new"
 
   - name: add ip protocols to the database
-    community.general.postgresql_copy:
+    #community.general.postgresql_copy:
+    postgresql_copy:
       db: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/ip-protocol-list.csv"
       dst: stm_ip_proto

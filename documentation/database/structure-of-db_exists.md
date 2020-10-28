@@ -24,4 +24,10 @@ the output for non-existing fworch_db is
         }
     }
     
+## reference important data
+
+the correct way to reference the count is
+
+    db_exists.query_result.0.count
+    
  

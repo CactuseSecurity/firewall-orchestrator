@@ -1,13 +1,15 @@
-﻿namespace FWO.Ui.Filter
+﻿using System;
+
+namespace FWO.Ui.Filter
 {
     public enum TokenKind
     {
-        Text, 
+        Value,
         Source,
         Destination,
         BL, // (
         BR, // )
-        And,       
+        And,
         Or,
         Not,
         EQ, // ==

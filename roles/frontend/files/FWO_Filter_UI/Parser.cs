@@ -32,7 +32,7 @@ namespace FWO.Ui.Filter
                 ConnectorTyp = TokenKind.Or
             };
 
-            while (GetNextToken().Kind == TokenKind.Or)
+            while (NextTokenExists() && GetNextToken().Kind == TokenKind.Or)
             {
                 CheckToken(TokenKind.Or);
                 rootNode.Right = ParseAnd();
@@ -43,7 +43,15 @@ namespace FWO.Ui.Filter
                 };
             }
 
-            return rootNode;
+            if (rootNode.Right != null)
+            {
+                return rootNode;
+            }
+
+            else
+            {
+                return rootNode.Left;
+            }
         }
 
         private AstNode ParseAnd()
@@ -54,7 +62,7 @@ namespace FWO.Ui.Filter
                 ConnectorTyp = TokenKind.And
             };
 
-            while (GetNextToken().Kind == TokenKind.And)
+            while (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
             {
                 CheckToken(TokenKind.And);
                 rootNode.Right = ParseNot();
@@ -65,7 +73,15 @@ namespace FWO.Ui.Filter
                 };
             }
 
-            return rootNode;
+            if (rootNode.Right != null)
+            {
+                return rootNode;
+            }
+
+            else
+            {
+                return rootNode.Left;
+            }
         }
 
         private AstNode ParseNot()
@@ -108,11 +124,11 @@ namespace FWO.Ui.Filter
         {
             AstNodeFilter filterNode = new AstNodeFilter();
 
-            if (GetNextToken().Kind == TokenKind.Text)
+            if (GetNextToken().Kind == TokenKind.Value)
             {
-                filterNode.Name = TokenKind.Text;
+                filterNode.Name = TokenKind.Value;
                 filterNode.Operator = TokenKind.EQ;
-                filterNode.Value = CheckToken(TokenKind.Text).Text;
+                filterNode.Value = CheckToken(TokenKind.Value).Text;
             }
 
             else
@@ -132,7 +148,7 @@ namespace FWO.Ui.Filter
 
         private string ParseValue()
         {
-            return CheckToken(TokenKind.Text).Text;
+            return CheckToken(TokenKind.Value).Text;
         }
 
         private TokenKind ParseFilterName()
@@ -153,7 +169,7 @@ namespace FWO.Ui.Filter
                 }                   
             }
 
-            throw new SyntaxErrorException("Unexpected token " + TokenToCheck.ToString()); // Wrong token
+            throw new SyntaxErrorException($"Unexpected token ({TokenToCheck}). Expected tokens of type: {string.Join(", ", Matches)}."); // Wrong token
         }
 
         private Token GetNextToken()
@@ -166,6 +182,19 @@ namespace FWO.Ui.Filter
             else
             {
                 return Tokens[Position];
+            }
+        }
+
+        private bool NextTokenExists()
+        {
+            if (Position >= Tokens.Count)
+            {
+                return false;
+            }
+
+            else
+            {
+                return true;
             }
         }
     }

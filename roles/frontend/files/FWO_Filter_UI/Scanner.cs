@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 
 namespace FWO.Ui.Filter
 {
@@ -54,7 +55,7 @@ namespace FWO.Ui.Filter
             string tokenText = "";
 
             // Token kind
-            TokenKind tokenKind = TokenKind.Text;
+            TokenKind tokenKind = TokenKind.Value;
 
             // Detect Keywordss
             bool detectKeywords = true;
@@ -82,62 +83,13 @@ namespace FWO.Ui.Filter
 
                 if (detectKeywords == true)
                 {
-                    switch (tokenText)
+                    List<Token> newTokens = TryExtractToken(position, tokenText);
+
+                    if (newTokens.Count > 0)
                     {
-                        case string _ when tokenText.EndsWith("src"):
-                        case string _ when tokenText.EndsWith("source"):
-                            tokenKind = TokenKind.Source;
-                            break;
-
-                        case string _ when tokenText.EndsWith("dst"):
-                        case string _ when tokenText.EndsWith("dest"):
-                        case string _ when tokenText.EndsWith("destination"):
-                            tokenKind = TokenKind.Destination;
-                            break;
-
-                        case string _ when tokenText.EndsWith("("):
-                            tokenKind = TokenKind.BL;
-                            break;
-
-                        case string _ when tokenText.EndsWith(")"):
-                            tokenKind = TokenKind.BR;
-                            break;
-
-                        case string _ when tokenText.EndsWith("or"):
-                        case string _ when tokenText.EndsWith("|"):
-                        case string _ when tokenText.EndsWith("||"):
-                            tokenKind = TokenKind.Or;
-                            break;
-
-                        case string _ when tokenText.EndsWith("and"):
-                        case string _ when tokenText.EndsWith("&"):
-                        case string _ when tokenText.EndsWith("&&"):
-                            tokenKind = TokenKind.And;
-                            break;
-
-                        case string _ when tokenText.EndsWith(":"):
-                        case string _ when tokenText.EndsWith("="):
-                        case string _ when tokenText.EndsWith("=="):
-                        case string _ when tokenText.EndsWith("eq"):
-                            tokenKind = TokenKind.EQ;
-                            break;
-
-                        case string _ when tokenText.EndsWith("!="):
-                        case string _ when tokenText.EndsWith("neq"):
-                            tokenKind = TokenKind.NEQ;
-                            break;
-
-                        default:
-                            tokenKind = TokenKind.Text;
-                            break;
-                    }
-
-                    if (tokenKind != TokenKind.Text)
-                    {
-                        tokens.Add(new Token(tokenBeginPosition, tokenText, tokenKind));
-                        tokenText = "";
-                        tokenKind = TokenKind.Text;
+                        tokens.AddRange(newTokens);
                         tokenBeginPosition = position + 1;
+                        tokenText = "";
                     }
                 }
 
@@ -184,6 +136,42 @@ namespace FWO.Ui.Filter
                 default:
                     throw new NotSupportedException($"Escape Sequence \"\\{characterCode}\" is unknown.");
             }
+        }
+
+        private List<Token> TryExtractToken(int beginPosition, string potentialToken)
+        {
+            List<Token> tokens = new List<Token>();
+
+            foreach (TokenKind tokenKind in Enum.GetValues(typeof(TokenKind)))
+            {
+                TokenSyntax validTokenSyntax = TokenSyntax.Get(tokenKind);
+
+                foreach (string validToken in validTokenSyntax.WhiteSpaceRequiered)
+                {
+                    if (potentialToken == validToken)
+                    {
+                        tokens.Add(new Token(beginPosition, potentialToken, tokenKind));
+                        return tokens;
+                    }
+                }
+
+                foreach (string validToken in validTokenSyntax.NoWhiteSpaceRequiered)
+                {
+                    if (potentialToken.EndsWith(validToken))
+                    {
+                        if (potentialToken.Length - validToken.Length > 0)
+                        {
+                            tokens.Add(new Token(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
+                        }
+
+                        tokens.Add(new Token(beginPosition + potentialToken.Length - validToken.Length, validToken, tokenKind));
+
+                        return tokens;
+                    }
+                }
+            }
+
+            return tokens;
         }
     }
 }

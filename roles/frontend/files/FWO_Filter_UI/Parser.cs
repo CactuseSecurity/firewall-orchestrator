@@ -1,4 +1,5 @@
 using FWO.Ui.Filter.Ast;
+using System;
 using System.Collections.Generic;
 using System.Data;
 
@@ -16,12 +17,32 @@ namespace FWO.Ui.Filter
 
         public AstNode Parse()
         {
-            return ParseStart();
+            AstNode root = ParseStart();
+
+            if (NextTokenExists() == true)
+            {
+                throw new SyntaxErrorException($"Unexpected token ({GetNextToken()}). Expected token: none."); // Wrong token
+            }
+
+            return root;
         }
 
         private AstNode ParseStart()
         {
-            return ParseOr();
+            if (GetNextToken().Kind == TokenKind.Value)
+            {
+                return new AstNodeFilter
+                {
+                    Name = TokenKind.Value,
+                    Operator = TokenKind.EQ,
+                    Value = CheckToken(TokenKind.Value).Text
+                };
+            }
+
+            else
+            {
+                return ParseOr();
+            }
         }
 
         private AstNode ParseOr()
@@ -114,7 +135,7 @@ namespace FWO.Ui.Filter
         private AstNode ParseBracket()
         {
             CheckToken(TokenKind.BL);
-            AstNode rootNode = ParseStart();
+            AstNode rootNode = ParseOr();
             CheckToken(TokenKind.BR);
 
             return rootNode;
@@ -124,19 +145,9 @@ namespace FWO.Ui.Filter
         {
             AstNodeFilter filterNode = new AstNodeFilter();
 
-            if (GetNextToken().Kind == TokenKind.Value)
-            {
-                filterNode.Name = TokenKind.Value;
-                filterNode.Operator = TokenKind.EQ;
-                filterNode.Value = CheckToken(TokenKind.Value).Text;
-            }
-
-            else
-            {
-                filterNode.Name = ParseFilterName();
-                filterNode.Operator = ParseOperator();
-                filterNode.Value = ParseValue();
-            }
+            filterNode.Name = ParseFilterName();
+            filterNode.Operator = ParseOperator();
+            filterNode.Value = ParseValue();
 
             return filterNode;
         }

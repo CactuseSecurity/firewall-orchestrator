@@ -19,13 +19,18 @@
           update_cache: yes
           upgrade: yes
 
+      - name: information regarding error
+        debug:
+          msg: the next (and final) task will throw an error which can be ignored. This is caused by the running ansible being replaced.
+
       - name: install latest ansible
         package:
           name: ansible
           state: present
+        ignore_errors: yes
 
-      - name: install community general (for postgresql_db)
-        command: ansible-galaxy collection install community.general
+      # - name: install community general (for postgresql_db)
+      #   command: ansible-galaxy collection install community.general
 
       become: yes
       #delegate_to: localhost
@@ -35,15 +40,7 @@
     ############################################
 
     ### ubuntu 20.04 (already ansible 2.9 installed)
-    - block:
-
-      - name: install community general (for postgresql_db)
-        command: ansible-galaxy collection install community.general
-
-      become: yes
-      #delegate_to: localhost
-      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == '20.04'
-      environment: "{{ proxy_env }}"
+    ### the community.general is already part of that version
 
     ############################################
 
@@ -66,8 +63,13 @@
         package:
           name: ansible
 
+      - name: information regarding error
+        debug:
+          msg: the next (and final) task will throw an error which can be ignored. This is caused by the running ansible being replaced.
+
       - name: install community general (for postgresql_db)
         command: ansible-galaxy collection install community.general
+        ignore_errors: yes
 
       become: yes
       #delegate_to: localhost

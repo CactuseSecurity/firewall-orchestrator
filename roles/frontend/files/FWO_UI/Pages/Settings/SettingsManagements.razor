@@ -12,11 +12,7 @@
 
 <div class="d-flex flex-column m-2">
     <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true">
-            <Template>
-                @context.Name
-            </Template>
-        </Column>
+        <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true"/>
         <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
                 @DevTypeNameVersion(context.DeviceType.Id)
@@ -27,17 +23,13 @@
                 <div style="max-width: 500px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
             </Template>
         </Column>
-        <Column TableItem="Management" Title="ImportDisabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true">
-            <Template>
-                @context.ImportDisabled
-            </Template>
-        </Column>
+        <Column TableItem="Management" Title="ImportDisabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true"/>
         <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
                 </div>
             </Template>
         </Column>
@@ -69,7 +61,7 @@
                     <select @bind="actManagement.DeviceType.Id">
                         @foreach(DeviceType devType in deviceTypes)
                         {
-                            <option>@DevTypeNameVersion(devType.Id)</option>
+                            <option value="@devType.Id">@DevTypeNameVersion(devType.Id)</option>
                         }
                     </select>
                 </div>
@@ -124,6 +116,17 @@
     }
 </PopUp>
 
+<PopUp Title="Delete" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+    @if (DeleteMode)
+    {
+        <label class="m-2">@errorMessage</label>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">Delete</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    }
+</PopUp>
+
 @code
 {
     private List<Management> managements = new List<Management>();
@@ -132,11 +135,11 @@
     private ITable<Management> table;
 
     private bool EditMode = false;
-    // private bool DeleteMode = false;
+    private bool DeleteMode = false;
     private bool AddMode = false;
 
     private int ManagementIdEdit = int.MinValue;
-    // private int ManagementIdDelete = int.MinValue;
+    private int ManagementIdDelete = int.MinValue;
 
     private Management newManagement;
     private Management actManagement;
@@ -156,36 +159,37 @@
         EditMode = true;
     }
 
+    private void RequestDelete(Management management)
+    {
+        ManagementIdDelete = management.Id;
+        actManagement = management;
+        DeleteMode = true;
+    }
+
     private async Task Delete(Management management)
     {
-        // todo: pop up window for confirmation?
-        var Variables = new { id = management.Id };
-        int delId = (await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.deleteManagement, Variables))).Id;
-        if(delId == management.Id)
+        try
         {
-            managements.Remove(management);
+            // Todo: checks if delete possible. Else set e.g. an archive flag?
+            var Variables = new { id = management.Id };
+            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.deleteManagement, Variables))).Id;
+            if(delId == management.Id)
+            {
+                managements.Remove(management);
+                DeleteMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Delete Management", $"Exception occurred: {exception}");
+            errorMessage = "Something went wrong with deleting: " + exception.Message;
         }
     }
 
     private void Add()
     {
         AddMode = true;
-        // Todo: define init values
-        newManagement = new Management() { 
-            Id = int.MaxValue, 
-            Name = "x",
-            DeviceType = new DeviceType { Id = 1 },
-            Hostname = "y",
-            ImportUser = "z",
-            PrivateKey = "abc",
-            Port = 22,
-            PublicKey = "jkl",
-            ImportDisabled = false,
-            ForceInitialImport = false,
-            HideInUi = false,
-            ConfigPath = "",
-            ImporterHostname = "",
-            Comment = ""};
+        newManagement = new Management() { DeviceType = new DeviceType { Id = deviceTypes.First().Id } };
         managements.Add(newManagement);
         Edit(newManagement);
     }
@@ -195,9 +199,8 @@
         AddMode = true;
         // Todo: define what to copy
         newManagement = new Management() { 
-            Id = int.MaxValue, 
-            Name = management.Name, 
-            DeviceType = management.DeviceType,
+            Name = management.Name,
+            DeviceType = new DeviceType { Id = management.DeviceType.Id },
             Hostname = management.Hostname,
             ImportUser = management.ImportUser,
             PrivateKey = management.PrivateKey,
@@ -268,12 +271,14 @@
                     tenantId = actManagement.TenantId */};
                 int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables))).UpdatedId;
                 EditMode = (udId == ManagementIdEdit ? false : true);
+                errorMessage = "Something went wrong with saving changes";
             }
         }
         catch (Exception exception)
         {
             // Todo: Error message? Ignore?
             Log.WriteDebug("Save Management", $"Exception occurred: {exception}");
+            errorMessage = "Something went wrong with saving: " + exception.Message;
         }
     }
 
@@ -284,12 +289,13 @@
             // forget the new management
             managements.Remove(newManagement);
         }
-        else
+        else if (EditMode)
         {
             // Todo: reset to unchanged values (without changing the Id)
         }
         AddMode = false;
         EditMode = false;
+        DeleteMode = false;
     }
 
     private string DevTypeNameVersion(int id)

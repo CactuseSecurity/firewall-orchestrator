@@ -1,10 +1,5 @@
 ---
 
-#- hosts: all
-#  tasks:
-#    - name: install latest ansible on localhost (currently 2.9ff)
-#      import_tasks: scripts/install-latest-ansible.yml
-
 - hosts: all
   roles:
     - common

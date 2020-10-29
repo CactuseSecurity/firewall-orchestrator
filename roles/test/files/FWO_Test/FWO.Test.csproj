@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\frontend\files\FWO_Filter_UI\FWO.Ui.Filter.csproj" />
+    <ProjectReference Include="..\..\..\ui\files\FWO_Filter_UI\FWO.Ui.Filter.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO.ApiClient.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO_Config\FWO.Config.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO_Logging\FWO.Logging.csproj" />

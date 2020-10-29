@@ -50,7 +50,7 @@ If your system does not have an ansible client with version >=2.8, you may want 
 ```console
 cd firewall-orchestrator; ansible-playbook -i inventory scripts/install-latest-ansible.yml -K
 ```
-Otherweise, directly run:
+Otherwise, directly run:
 
 ```console
 cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K

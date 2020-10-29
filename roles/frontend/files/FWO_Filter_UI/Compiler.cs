@@ -1,3 +1,4 @@
+using FWO.Ui.Filter.Ast;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -11,7 +12,7 @@ namespace FWO.Ui.Filter
             Scanner scanner = new Scanner(input);
             List<Token> tokens = scanner.Scan();
             Parser parser = new Parser(tokens);
-            parser.Parse();
+            AstNode root = parser.Parse();
         }
     }
 }

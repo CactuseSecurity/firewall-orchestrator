@@ -1,0 +1,39 @@
+query ruleFilterKVInTimeCount(
+  $managementId: [Int!]
+  $deviceId: [Int!]
+  $reportTime: timestamp
+  $ruleSrcName: [String!]
+  $ruleSrcIp: [cidr!]
+  $ruleDstName: [String!]
+  $ruleDstIp: [cidr!]
+) {
+  management(
+    where: { mgm_id: { _in: $managementId } }
+    order_by: { mgm_name: asc }
+  ) {
+    mgm_id
+    mgm_name
+    devices(
+      where: { dev_id: { _in: $deviceId } }
+      order_by: { dev_name: asc }
+    ) {
+      dev_id
+      dev_name
+      rules_aggregate(
+        where: {
+          import_control: { stop_time: { _lte: $reportTime } }
+          importControlByRuleLastSeen: { stop_time: { _gt: $reportTime } }
+          rule_disabled: { _eq: false }
+          rule_src: { _in: $ruleSrcName }
+          rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
+          rule_dst: { _in: $ruleDstName }
+          rule_tos: { object: { obj_ip: { _in: $ruleDstIp } } }
+        }
+      ) {
+        aggregate {
+          count
+        }
+      }
+    }
+  }
+}

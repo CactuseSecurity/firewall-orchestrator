@@ -10,7 +10,6 @@
 su -
 apt-get install git ansible ssh sudo
 ```
-
 if not already configured, add your current user to sudo group (make sure to activate this change by starting new shell or even rebooting):
 
 ```console
@@ -46,6 +45,12 @@ git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
 4) install (on localhost)
+
+If your system does not have an ansible client with version >=2.8, you may want to install before running it via running
+```console
+cd firewall-orchestrator; ansible-playbook -i inventory scripts/install-latest-ansible.yml -K
+```
+Otherweise, directly run:
 
 ```console
 cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K

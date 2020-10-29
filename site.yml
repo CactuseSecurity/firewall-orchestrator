@@ -40,7 +40,7 @@
 - hosts: frontends
   roles:
     - { role: lib, when: "'authserver' not in group_names"}    # do not install lib role twice (already installed for authserver)
-    - frontend
+    - UI
     - { role: frontend-php, when: "ui_php is defined"}
   tags:
     - frontend

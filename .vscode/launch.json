@@ -8,22 +8,21 @@
             "name": ".NET FWO Test",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceFolder}/roles/test/files/FWO_Test/bin/Debug/netcoreapp3.1/FWO.Test.Api.dll>",
+            "preLaunchTask": "build_test",
+            "program": "${workspaceFolder}/roles/test/files/FWO_Test/bin/Debug/netcoreapp3.1/FWO.Test.dll>",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
-       
         {
             "name": "Blazor (web)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_FWO",
-            "program": "${workspaceFolder}/roles/frontend/files/FWO_UI/bin/Debug/netcoreapp3.1/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/netcoreapp3.1/FWO.Ui.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/roles/frontend/files/FWO_UI",
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
@@ -9,6 +11,8 @@ namespace FWO.Ui.Data.API
 {
     public class Rule
     {
+        StringBuilder result;
+
         [JsonPropertyName("rule_id")]
         public int Id { get; set; }
 
@@ -68,6 +72,128 @@ namespace FWO.Ui.Data.API
 
         [JsonPropertyName("section_header")]
         public string SectionHeader { get; set; }
+
+        public string DisplayNumber(Rule[] rules)
+        {
+            result = new StringBuilder();
+            result.AppendLine($"{Array.IndexOf(rules, this) + 1} <br>");
+            result.AppendLine($"DEBUG: {OrderNumber}");
+            return result.ToString();
+        }
+
+        public string DisplayName()
+        {
+            return Name;
+        }
+
+        public string DisplaySourceZone()
+        {
+            return SourceZone?.Name;
+        }
+
+        public string DisplaySource()
+        {
+            result = new StringBuilder();
+            
+            result.AppendLine("<p>");
+
+            if (SourceNegated)
+            {
+                result.AppendLine("anything but <br>");
+            }
+
+            foreach (NetworkLocation source in Froms)
+            {
+                if (source.User != null)
+                {
+                    result.AppendLine($"{source.User.Name}@");
+                }
+
+                result.Append($"{source.Object.Name}");
+                result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
+                result.AppendLine("<br>");
+            }
+
+            result.AppendLine("</p>");
+
+            return result.ToString();
+        }
+
+        public string DisplayDestinationZone()
+        {
+            return DestinationZone?.Name;
+        }
+
+        public string DisplayDestination()
+        {
+            result = new StringBuilder();
+
+            result.AppendLine("<p>");
+
+            if (SourceNegated)
+            {
+                result.AppendLine("anything but <br>");
+            }
+
+            foreach (NetworkLocation destination in Tos)
+            {
+                result.Append($"{destination.Object.Name}");
+                result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
+                result.AppendLine("<br>");
+            }
+
+            result.AppendLine("</p>");
+
+            return result.ToString();
+        }
+
+        public string DisplayServices()
+        {
+            result = new StringBuilder();
+
+            result.AppendLine("<p>");
+
+            if (ServiceNegated)
+            {
+                result.AppendLine("anything but <br>");
+            }
+
+            foreach (ServiceWrapper service in Services)
+            {
+                result.Append($"{service.Content.Name}");
+                result.Append(service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{service.Content.Protocol.Name})" : "");
+                result.AppendLine("<br>");
+            }
+
+            result.AppendLine("</p>");
+
+            return result.ToString();
+        }
+
+        public string DisplayAction()
+        {
+            return Action;
+        }
+
+        public string DisplayTrack()
+        {
+            return Track;
+        }
+
+        public string DisplayDisabled()
+        {
+            return $"<div class=\"oi {(Disabled ? "oi-check" : "oi-x")}\"></div>";
+        }
+
+        public string DisplayUid()
+        {
+            return Uid;
+        }
+                       
+        public string DisplayComment()
+        {
+            return Comment;
+        }
     }
 }
 

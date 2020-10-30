@@ -2,6 +2,7 @@
 @using FWO.ApiClient
 @using FWO.ApiClient.Queries
 @using FWO.Ui.Data.API
+@using FWO.Ui.Data 
 
 @inject APIConnection Connection
 
@@ -13,6 +14,7 @@
         <h4 class="m-1">Reporting</h4>
 
         <button class="btn btn-primary btn-sm m-1" @onclick="GenerateTestReport">Generate Report</button>
+        <button class="btn btn-secondary btn-sm m-1" @onclick="Export">Export Report</button>
         <button class="btn btn-danger btn-sm m-1" @onclick="() => ShowPopUp = true">Show Pop up</button>
 
         <PopUp Title="test" Show="@ShowPopUp" OnClose="() => ShowPopUp = false">test</PopUp>
@@ -43,35 +45,39 @@
                         @foreach (Device device in management.Devices)
                         {
                             <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+
                                 <Table SelectedItems="selectedItemsReportRuleTable"
                                        RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
                                        style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
                                        PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
                                     <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
                                         <Template>
-                                            @{
-                                                if (context.SectionHeader != null)
-                                                {
-                                                    @context.SectionHeader
-                                                }
+                                            @((MarkupString)context.DisplayNumber(device.Rules))
+                                            @*@{
+                                                    if (context.SectionHeader != null)
+                                                    {
+                                                        @context.SectionHeader
+                                                    }
 
-                                                else
-                                                {
-                                                    @(Array.IndexOf(device.Rules, context) + 1) <br />
-                                                    @($"DEBUG: {context.OrderNumber}")
-                                                }
-                                            }
+                                                    else
+                                                    {
+                                                        @(Array.IndexOf(device.Rules, context) + 1) <br />
+                                                        @($"DEBUG: {context.OrderNumber}")
+                                                    }
+                                                }*@
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
                                     <Column TableItem="Rule" Title="Source Zone" Field="@(x => x.SourceZone)" Sortable="true" Filterable="true">
                                         <Template>
-                                            @(context.SourceZone?.Name)
+                                            @((MarkupString)context.DisplaySourceZone())
+                                            @*@(context.SourceZone?.Name)*@
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="Source" Field="@(x => x.Name)" Sortable="true" Filterable="true">
                                         <Template>
-                                            <p>
+                                            @((MarkupString)context.DisplaySource())
+                                            @*<p>
                                                 @{
                                                     if (context.SourceNegated)
                                                     {
@@ -88,17 +94,19 @@
                                                         @($"{source.Object.Name}" + (source.Object.IP != null ? $" ({source.Object.IP})" : ""))<br>
                                                     }
                                                 }
-                                            </p>
+                                            </p>*@
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="Destination Zone" Field="@(x => x.Name)" Sortable="true" Filterable="true">
                                         <Template>
-                                            @(context.DestinationZone?.Name)
+                                            @((MarkupString)context.DisplayDestinationZone())
+                                            @*@(context.DestinationZone?.Name)*@
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="Destination" Field="@(x => x.Name)" Sortable="true" Filterable="true">
                                         <Template>
-                                            <p>
+                                            @((MarkupString)context.DisplayDestination())
+                                            @*<p>
                                                 @{
                                                     if (context.DestinationNegated)
                                                     {
@@ -110,12 +118,13 @@
                                                         @($"{destination.Object.Name}" + (destination.Object.IP != null ? $" ({destination.Object.IP})" : ""))<br>
                                                     }
                                                 }
-                                            </p>
+                                            </p>*@
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="Services" Field="@(x => x.Name)" Sortable="true" Filterable="true">
                                         <Template>
-                                            <p>
+                                            @((MarkupString)context.DisplayServices())
+                                            @*<p>
                                                 @{
                                                     if (context.ServiceNegated)
                                                     {
@@ -127,14 +136,15 @@
                                                         @($"{service.Content.Name}" + (service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{service.Content.Protocol.Name})" : ""))<br>
                                                     }
                                                 }
-                                            </p>
+                                            </p>*@
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
                                     <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
                                     <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
                                         <Template>
-                                            <div class="oi @(context.Disabled? "oi-check" : "oi-x")"></div>
+                                            @((MarkupString)context.DisplayDisabled())
+                                            @*<div class="oi @(context.Disabled? "oi-check" : "oi-x")"></div>*@
                                         </Template>
                                     </Column>
                                     <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
@@ -322,5 +332,12 @@
                 }
             }
         });
+    }
+
+    private void Export()
+    {
+        ReportPointInTimeExporter exporter = new ReportPointInTimeExporter() { Managements = managementsReport };
+        string text = exporter.ToHtml();
+        exporter.ToPdf();
     }
 }

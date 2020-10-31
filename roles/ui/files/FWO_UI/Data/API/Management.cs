@@ -64,6 +64,32 @@ namespace FWO.Ui.Data.API
 
         [JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; }
+
+        public Management()
+        {}
+        
+        public Management(Management management)
+        {
+            Id = management.Id;
+            Name = management.Name;
+            Hostname = management.Hostname;
+            ImportUser = management.ImportUser;
+            PrivateKey = management.PrivateKey;
+            ConfigPath = management.ConfigPath;
+            ImporterHostname = management.ImporterHostname;
+            Port = management.Port;
+            PublicKey = management.PublicKey;
+            ImportDisabled = management.ImportDisabled;
+            ForceInitialImport = management.ForceInitialImport;
+            HideInUi = management.HideInUi;
+            Comment = management.Comment;
+            TenantId = management.TenantId;
+            // Devices = management.Devices;
+            // Objects = management.Objects;
+            // Services = management.Services;
+            // Users = management.Users;
+            DeviceType = new DeviceType(management.DeviceType);
+        }
     }
 
     public class ReturnId

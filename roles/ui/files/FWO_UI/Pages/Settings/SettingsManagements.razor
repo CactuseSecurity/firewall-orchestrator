@@ -138,9 +138,6 @@
     private bool DeleteMode = false;
     private bool AddMode = false;
 
-    private int ManagementIdEdit = int.MinValue;
-    private int ManagementIdDelete = int.MinValue;
-
     private Management newManagement;
     private Management actManagement;
 
@@ -154,14 +151,12 @@
 
     private void Edit(Management management)
     {
-        ManagementIdEdit = management.Id;
         actManagement = new Management(management);
         EditMode = true;
     }
 
     private void RequestDelete(Management management)
     {
-        ManagementIdDelete = management.Id;
         actManagement = management;
         DeleteMode = true;
     }
@@ -227,13 +222,14 @@
                 managements.Add(actManagement);
                 AddMode = false;
                 EditMode = false;
+                errorMessage = "";
             }
             else
             {
                 // Update existing management
                 // Todo: handle TenantId
                 var Variables = new { 
-                    id = ManagementIdEdit, 
+                    id = actManagement.Id, 
                     name = actManagement.Name, 
                     devTypeId = actManagement.DeviceType.Id, 
                     hostname = actManagement.Hostname, 
@@ -249,8 +245,8 @@
                     comment = actManagement.Comment /*,
                     tenantId = actManagement.TenantId */};
                 int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables))).UpdatedId;
-                EditMode = (udId == ManagementIdEdit ? false : true);
-                managements[managements.FindIndex(x => x.Id == ManagementIdEdit)] = actManagement;
+                EditMode = (udId == actManagement.Id ? false : true);
+                managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
             }
         }

@@ -20,6 +20,16 @@ namespace FWO.Ui.Data.API
         // [JsonPropertyName("predefinedObjects")]
         // public ??? PredefinedObjects { get; set; }
 
+        public DeviceType()
+        {}
+        
+        public DeviceType(DeviceType deviceType)
+        {
+            Id = deviceType.Id;
+            Name = deviceType.Name;
+            Version = deviceType.Version;
+        }
+
         public string NameVersion()
         {
             return Name + " " + Version;

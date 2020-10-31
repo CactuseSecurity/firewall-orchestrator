@@ -138,9 +138,6 @@
     private bool DeleteMode = false;
     private bool AddMode = false;
 
-    private int ManagementIdEdit = int.MinValue;
-    private int ManagementIdDelete = int.MinValue;
-
     private Management newManagement;
     private Management actManagement;
 
@@ -154,14 +151,12 @@
 
     private void Edit(Management management)
     {
-        ManagementIdEdit = management.Id;
-        actManagement = management;
+        actManagement = new Management(management);
         EditMode = true;
     }
 
     private void RequestDelete(Management management)
     {
-        ManagementIdDelete = management.Id;
         actManagement = management;
         DeleteMode = true;
     }
@@ -190,30 +185,13 @@
     {
         AddMode = true;
         newManagement = new Management() { DeviceType = new DeviceType { Id = deviceTypes.First().Id } };
-        managements.Add(newManagement);
         Edit(newManagement);
     }
 
     private void Clone(Management management)
     {
         AddMode = true;
-        // Todo: define what to copy
-        newManagement = new Management() { 
-            Name = management.Name,
-            DeviceType = new DeviceType { Id = management.DeviceType.Id },
-            Hostname = management.Hostname,
-            ImportUser = management.ImportUser,
-            PrivateKey = management.PrivateKey,
-            Port = management.Port,
-            PublicKey = management.PublicKey,
-            ImportDisabled = management.ImportDisabled,
-            ForceInitialImport = management.ForceInitialImport,
-            HideInUi = management.HideInUi,
-            ConfigPath = management.ConfigPath,
-            ImporterHostname = management.ImporterHostname,
-            Comment = management.Comment /*,
-            TenantId = management.TenantId */};
-        managements.Add(newManagement);
+        newManagement = new Management(management);
         Edit(newManagement);
     }
 
@@ -222,11 +200,6 @@
         try
         {
             // Todo: Value checks?
-            //if (CheckValues(actManagement))
-            //{
-            //    InputClass = "is-invalid";
-            //}
-
             if (AddMode)
             {
                 // insert new management
@@ -245,16 +218,18 @@
                     importerHostname = actManagement.ImporterHostname,
                     comment = actManagement.Comment /*,
                     tenantId = actManagement.TenantId */};
-                newManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewMgtReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
+                actManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewMgtReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
+                managements.Add(actManagement);
                 AddMode = false;
                 EditMode = false;
+                errorMessage = "";
             }
             else
             {
                 // Update existing management
                 // Todo: handle TenantId
                 var Variables = new { 
-                    id = ManagementIdEdit, 
+                    id = actManagement.Id, 
                     name = actManagement.Name, 
                     devTypeId = actManagement.DeviceType.Id, 
                     hostname = actManagement.Hostname, 
@@ -270,8 +245,9 @@
                     comment = actManagement.Comment /*,
                     tenantId = actManagement.TenantId */};
                 int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables))).UpdatedId;
-                EditMode = (udId == ManagementIdEdit ? false : true);
-                errorMessage = "Something went wrong with saving changes";
+                EditMode = (udId == actManagement.Id ? false : true);
+                managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
+                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
             }
         }
         catch (Exception exception)
@@ -284,18 +260,10 @@
 
     private void Cancel()
     {
-        if (AddMode)
-        {
-            // forget the new management
-            managements.Remove(newManagement);
-        }
-        else if (EditMode)
-        {
-            // Todo: reset to unchanged values (without changing the Id)
-        }
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
+        errorMessage = "";
     }
 
     private string DevTypeNameVersion(int id)

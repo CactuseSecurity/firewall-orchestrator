@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using FWO.Logging;
 using FWO.ApiConfig.Data;
+using System.Linq;
+using System;
 
 namespace FWO.ApiConfig
 {
@@ -9,20 +11,30 @@ namespace FWO.ApiConfig
     /// </summary>
     public class UserConfigCollection
     {
-        public string CurrentLanguage { get; set; }
+        public string CurrentLanguage { get; private set; }
         protected ConfigCollection globalConfig { get; set; }
 
         public Dictionary<string, string> translate;
+
+        public event EventHandler OnChange;
+
         /// <summary>
         /// create a config collection (used centrally once in a UI server for all users
         /// </summary>
-
         public UserConfigCollection(ConfigCollection globalConfigIn)
         {
             CurrentLanguage = globalConfigIn.defaultLanguage;   // TODO: not quite correct when a user signs back in and has alread set another language; Do not create a new UserConfigCollection then?
             translate = globalConfigIn.langDict[CurrentLanguage];
             globalConfig = globalConfigIn;
         }
+
+        public void ChangeLanguage(string languageName)
+        {
+            CurrentLanguage = languageName;
+            translate = globalConfig.langDict[languageName];
+            OnChange.Invoke(this, null);
+        }
+
         public void setNextLanguage()
         {
             int idx = 0;
@@ -41,6 +53,7 @@ namespace FWO.ApiConfig
                 idx++;
             }
 
+            OnChange.Invoke(this, null);
 
             if (!changedLanguage)
             {

@@ -1,4 +1,4 @@
-﻿<div class="w-100 card">
+﻿<div class="w-100 card @Class">
     <div class="btn-group w-100">
         <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show == ".show" ? "collapse-up" : "collapse-down")"></span> </button>
         <button class="btn btn-sm btn-block btn-@Style disabled" @ondblclick="ToggleCollapse">@Title</button>
@@ -21,6 +21,9 @@
 
     [Parameter]
     public string Style { get; set; } = "secondary";
+
+    [Parameter]
+    public string Class { get; set; } = "";
 
     private string show = ".show";
 

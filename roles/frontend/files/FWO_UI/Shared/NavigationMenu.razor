@@ -69,7 +69,7 @@
             new NavItem(() => userConfig.translate["reporting"], "/report", "oi oi-spreadsheet"),
             new NavItem(() => userConfig.translate["documentation"], "#", "oi oi-book"),
             new NavItem(() => userConfig.translate["request"], "#", "oi oi-comment-square")
-        };
+            };
 
         // build list of items in right navigation and turning into array in the end
         List<NavItem> navRightList = new List<NavItem>();
@@ -78,7 +78,11 @@
         navRightList.Add(new NavItem(() => user.Identity.Name.ToUpper(), "#", "oi oi-person"));
         navRightList.Add(new NavItem(() => userConfig.translate["logout"], "/logout", "oi oi-account-logout"));
         navItemsRight = navRightList.ToArray();
+
+        userConfig.OnChange += Update;
     }
+
+    private async void Update(object sender, EventArgs args) => await InvokeAsync(StateHasChanged);
 
     void ToggleNavMenu()
     {

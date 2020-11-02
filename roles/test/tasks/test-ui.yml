@@ -7,9 +7,15 @@
     group: "{{ fworch_user }}"
   become: yes
 
-- name: publish ui test
-  command: dotnet run
+- name: ui test
+  command: dotnet test
   args:
     chdir: "{{ ui_test_start_dir }}"
   become: yes
   become_user: "{{ fworch_user }}"
+  register: ui_test
+  ignore_errors: yes
+
+- name: show test results
+  debug:
+    var: ui_test

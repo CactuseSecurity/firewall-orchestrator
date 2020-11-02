@@ -29,3 +29,12 @@ psql -d fworchdb -f "database-dump"
 - transform database tables to auto cascade thru all tables when deleting unwanted managements: see database/sql/fworch-change-to-delete-cascade.sql
 - start this shell script as a dbadmin to remove all unwanted managements: see scripts/remove-2-year-old-devices.sh
 - stop all db activity before the next command: time psql -d fworchdb -c "vacuum full verbose"
+
+### wait for connection termination
+
+```
+SELECT pg_terminate_backend(pg_stat_activity.pid)
+FROM pg_stat_activity
+WHERE pg_stat_activity.datname = '[Database to copy]'
+AND pid <> pg_backend_pid();
+```

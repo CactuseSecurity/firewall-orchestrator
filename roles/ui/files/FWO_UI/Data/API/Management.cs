@@ -8,14 +8,47 @@ namespace FWO.Ui.Data.API
 {
     public class Management
     {
-        [JsonPropertyName("mgm_id")]
+        [JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("mgm_name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("ssh_private_key")]
+        [JsonPropertyName("hostname")]
+        public string Hostname { get; set; }
+
+        [JsonPropertyName("user")]
+        public string ImportUser { get; set; }
+
+        [JsonPropertyName("secret")]
         public string PrivateKey { get; set; }
+
+        [JsonPropertyName("configPath")]
+        public string ConfigPath { get; set; }
+
+        [JsonPropertyName("importerHostname")]
+        public string ImporterHostname { get; set; }
+
+        [JsonPropertyName("port")]
+        public int Port { get; set; }
+
+        [JsonPropertyName("sshPublicKey")]
+        public string PublicKey { get; set; }
+
+        [JsonPropertyName("importDisabled")]
+        public bool ImportDisabled { get; set; }
+
+        [JsonPropertyName("forceInitialImport")]
+        public bool ForceInitialImport { get; set; }
+
+        [JsonPropertyName("hideInUi")]
+        public bool HideInUi { get; set; }
+
+        [JsonPropertyName("comment")]
+        public string Comment { get; set; }
+
+        [JsonPropertyName("tenant_id")]
+        public int TenantId { get; set; }
 
         [JsonPropertyName("devices")]
         public Device[] Devices { get; set; }
@@ -29,14 +62,48 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("userObjects")]
         public NetworkUser[] Users { get; set; }
 
-        [JsonPropertyName("stm_dev_typ")]
+        [JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; }
+
+        public Management()
+        {}
+        
+        public Management(Management management)
+        {
+            Id = management.Id;
+            Name = management.Name;
+            Hostname = management.Hostname;
+            ImportUser = management.ImportUser;
+            PrivateKey = management.PrivateKey;
+            ConfigPath = management.ConfigPath;
+            ImporterHostname = management.ImporterHostname;
+            Port = management.Port;
+            PublicKey = management.PublicKey;
+            ImportDisabled = management.ImportDisabled;
+            ForceInitialImport = management.ForceInitialImport;
+            HideInUi = management.HideInUi;
+            Comment = management.Comment;
+            TenantId = management.TenantId;
+            // Devices = management.Devices;
+            // Objects = management.Objects;
+            // Services = management.Services;
+            // Users = management.Users;
+            DeviceType = new DeviceType(management.DeviceType);
+        }
     }
 
-    public class ReturnManagement
+    public class ReturnId
+    {
+        [JsonPropertyName("newId")]
+        public int NewId { get; set; }
+
+        [JsonPropertyName("UpdatedId")]
+        public int UpdatedId { get; set; }
+    }
+    public class NewMgtReturning
     {
         [JsonPropertyName("returning")]
-        public Management[] ReturnId { get; set; }
+        public ReturnId[] ReturnIds { get; set; }
     }
 
     public static class ManagementUtility

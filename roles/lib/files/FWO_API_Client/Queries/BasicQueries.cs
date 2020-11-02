@@ -39,7 +39,8 @@ namespace FWO.ApiClient.Queries
 
                 getDevicesByManagements = File.ReadAllText(QueryPath + "device/getDevicesByManagement.graphql");
 
-                getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql");
+                getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql") + " " 
+                                        + File.ReadAllText(QueryPath + "device/fragments/managementDetails.graphql");
 
                 getDeviceTypeDetails = File.ReadAllText(QueryPath + "device/getDeviceTypeDetails.graphql");
 

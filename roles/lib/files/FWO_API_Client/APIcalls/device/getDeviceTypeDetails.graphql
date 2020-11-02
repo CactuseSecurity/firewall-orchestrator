@@ -1,7 +1,8 @@
 query getDeviceTypeDetails {
-  stm_dev_typ {
-    dev_typ_id
-    dev_typ_name
-    dev_typ_version
-  }
+  deviceType: stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+      version: dev_typ_version
+      predefinedObjects: dev_typ_predef_obj
+    }
 }

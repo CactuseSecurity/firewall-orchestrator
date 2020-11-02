@@ -29,7 +29,6 @@
                 </li>
             }
         </ul>
-        <button class="btn btn-sm btn-dark" @onclick="@(e => { userConfig.setNextLanguage(); })"> <span class="oi oi-flag"></span> @userConfig.CurrentLanguage</button>
 
         <ul class="navbar-nav">
             @foreach (NavItem navItem in navItemsRight)
@@ -69,13 +68,13 @@
             new NavItem(() => userConfig.translate["reporting"], "/report", "oi oi-spreadsheet"),
             new NavItem(() => userConfig.translate["documentation"], "#", "oi oi-book"),
             new NavItem(() => userConfig.translate["request"], "#", "oi oi-comment-square")
-            };
+        };
 
         // build list of items in right navigation and turning into array in the end
         List<NavItem> navRightList = new List<NavItem>();
         navRightList.Add(new NavItem(() => userConfig.translate["help"], "/help", "oi oi-info"));
         navRightList.Add(new NavItem(() => userConfig.translate["settings"], "/settings", "oi oi-cog"));
-        navRightList.Add(new NavItem(() => user.Identity.Name.ToUpper(), "#", "oi oi-person"));
+        navRightList.Add(new NavItem(() => user.Identity.Name.ToUpper(), "/settings/personal", "oi oi-person"));
         navRightList.Add(new NavItem(() => userConfig.translate["logout"], "/logout", "oi oi-account-logout"));
         navItemsRight = navRightList.ToArray();
 

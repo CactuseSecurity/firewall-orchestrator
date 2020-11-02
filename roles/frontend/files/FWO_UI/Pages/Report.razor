@@ -73,8 +73,8 @@
 
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h4 class="m-1">Reporting</h4>
-    <button class="btn btn-secondary btn-sm m-1" @onclick="Export">Export Report</button>
-    <a href="downloads/test.pdf" target="_blank" download>Export Report</a>
+    <button class="btn btn-secondary btn-sm m-1" @onclick="Export">Generate Pdf Export</button>
+    <a href="downloads/test.pdf" target="_blank" download>Download Pdf Export</a>
     <button class="btn btn-danger btn-sm m-1" @onclick="() => ShowPopUp = true">Show Pop up</button>
 
     <PopUp Title="test" Show="@ShowPopUp" OnClose="() => ShowPopUp = false">test</PopUp>

@@ -19,11 +19,11 @@
           update_cache: yes
           upgrade: yes
 
-      - name: information regarding error
-        debug:
-          msg: the next (and final) task will throw an error which can be ignored. This is caused by the running ansible being replaced.
+      # - name: information regarding error
+      #   debug:
+      #     msg: the next (and final) task will throw an error which can be ignored. This is caused by the running ansible being replaced.
 
-      - name: install latest ansible
+      - name: install latest ansible (might throw error due to ansible updating itself)
         package:
           name: ansible
           state: present

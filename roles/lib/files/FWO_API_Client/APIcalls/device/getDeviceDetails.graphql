@@ -1,0 +1,6 @@
+query getDeviceDetails
+{
+  device{
+    ...deviceDetails
+  }
+}

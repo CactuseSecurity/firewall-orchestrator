@@ -2,205 +2,212 @@
 @using FWO.ApiClient
 @using FWO.ApiClient.Queries
 @using FWO.Ui.Data.API
+@using FWO.Ui.Data
+@using FWO.Ui.Display 
 
 @inject APIConnection Connection
 
 @page "/report"
 
-<div class="d-flex flex-row justify-content-between">
+<Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
+    <div class="p-3">
+        <h5 class="text-center">Report Type</h5>
 
-    <div class="w-100" style="margin-right: @($"{sidebarWidth + 10}px")">
-        <h4 class="m-1">Reporting</h4>
-
-        <button class="btn btn-primary btn-sm m-1" @onclick="GenerateTestReport">Generate Report</button>
-        <button class="btn btn-danger btn-sm m-1" @onclick="() => ShowPopUp = true">Show Pop up</button>
-
-        <PopUp Title="test" Show="@ShowPopUp" OnClose="() => ShowPopUp = false">test</PopUp>
-
-        <form class="form-inline m-1">
-            <div class="form-group mt-1 mb-1 mr-2">
-                <label for="rulesPerDeviceHtml" class="mr-1">Load rules per fetch: </label>
-                <input id="rulesPerDeviceHtml" type="number" class="form-control-sm" @bind="rulesPerFetch" />
-            </div>
-            <div class="form-group mt-1 mb-1">
-                <label for="rulesPerPageHtml" class="mr-1">Show rules per page: </label>
-                <input id="rulesPerPageHtml" type="number" class="form-control-sm" @bind="rulesPerPage" />
-            </div>
-        </form>
-
-        <div class="mr-1 ml-1">
-            <input type="text" class="form-control" placeholder="Filter" />
+        <div class="list-group small mt-3">
+            <a class="list-group-item list-group-item-action active" @onclick="() => { }" href="report">Point in time</a>
+            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Time intervall</a>
+            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Compliance</a>
+            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Statistics</a>
         </div>
 
-        <div class="card m-1 shadow">
-            <div class="card-body">
-
-                @foreach (Management management in managementsReport)
-                {
-                    <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                        <hr />
-
-                        @foreach (Device device in management.Devices)
-                        {
-                            <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
-                                <Table SelectedItems="selectedItemsReportRuleTable"
-                                       RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
-                                       style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                                       PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
-                                    <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
-                                        <Template>
-                                            @{
-                                                if (context.SectionHeader != null)
-                                                {
-                                                    @context.SectionHeader
-                                                }
-
-                                                else
-                                                {
-                                                    @(Array.IndexOf(device.Rules, context) + 1) <br />
-                                                    @($"DEBUG: {context.OrderNumber}")
-                                                }
-                                            }
-                                        </Template>
-                                    </Column>
-                                    <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-                                    <Column TableItem="Rule" Title="Source Zone" Field="@(x => x.SourceZone)" Sortable="true" Filterable="true">
-                                        <Template>
-                                            @(context.SourceZone?.Name)
-                                        </Template>
-                                    </Column>
-                                    <Column TableItem="Rule" Title="Source" Field="@(x => x.Name)" Sortable="true" Filterable="true">
-                                        <Template>
-                                            <p>
-                                                @{
-                                                    if (context.SourceNegated)
-                                                    {
-                                                        @("anything but") <br />
-                                                    }
-
-                                                    foreach (NetworkLocation source in context.Froms)
-                                                    {
-                                                        if (source.User != null)
-                                                        {
-                                                            @($"{source.User.Name}@")
-                                                        }
-
-                                                        @($"{source.Object.Name}" + (source.Object.IP != null ? $" ({source.Object.IP})" : ""))<br>
-                                                    }
-                                                }
-                                            </p>
-                                        </Template>
-                                    </Column>
-                                    <Column TableItem="Rule" Title="Destination Zone" Field="@(x => x.Name)" Sortable="true" Filterable="true">
-                                        <Template>
-                                            @(context.DestinationZone?.Name)
-                                        </Template>
-                                    </Column>
-                                    <Column TableItem="Rule" Title="Destination" Field="@(x => x.Name)" Sortable="true" Filterable="true">
-                                        <Template>
-                                            <p>
-                                                @{
-                                                    if (context.DestinationNegated)
-                                                    {
-                                                        @("anything but") <br>
-                                                    }
-
-                                                    foreach (NetworkLocation destination in context.Tos)
-                                                    {
-                                                        @($"{destination.Object.Name}" + (destination.Object.IP != null ? $" ({destination.Object.IP})" : ""))<br>
-                                                    }
-                                                }
-                                            </p>
-                                        </Template>
-                                    </Column>
-                                    <Column TableItem="Rule" Title="Services" Field="@(x => x.Name)" Sortable="true" Filterable="true">
-                                        <Template>
-                                            <p>
-                                                @{
-                                                    if (context.ServiceNegated)
-                                                    {
-                                                        @("anything but") <br>
-                                                    }
-
-                                                    foreach (ServiceWrapper service in context.Services)
-                                                    {
-                                                        @($"{service.Content.Name}" + (service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{service.Content.Protocol.Name})" : ""))<br>
-                                                    }
-                                                }
-                                            </p>
-                                        </Template>
-                                    </Column>
-                                    <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
-                                    <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
-                                    <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
-                                        <Template>
-                                            <div class="oi @(context.Disabled? "oi-check" : "oi-x")"></div>
-                                        </Template>
-                                    </Column>
-                                    <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
-                                    <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
-
-                                    <DetailTemplate TableItem="Rule">
-                                        <div>test</div>
-                                    </DetailTemplate>
-
-                                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                                </Table>
-                            </Collapse>
-                        }
-                    </Collapse>
-                }
-            </div>
+        @*<div class="form-check">
+            <input class="form-check-input" type="radio" name="reportType" id="reportTypePointInTime" value="1" checked>
+            <label class="form-check-label" for="reportTypePointInTime">
+                Point in time
+            </label>
         </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="reportType" id="reportTypeTimeIntervall" value="2">
+            <label class="form-check-label" for="reportTypeTimeIntervall">
+                Time intervall
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="reportType" id="reportTypeCompliance" value="3">
+            <label class="form-check-label" for="reportTypeCompliance">
+                Compliance
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="reportType" id="reportTypeStatistics" value="4">
+            <label class="form-check-label" for="reportTypeStatistics">
+                Statistics
+            </label>
+        </div>*@
+
+        <hr />
+
+        <button class="btn btn-primary btn-sm" @onclick="GenerateTestReport">Generate Report</button>
+
+        <hr />
+
+        @foreach (Management management in managementsOverview)
+        {
+            @if (management != null)
+            {
+                <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
+                    @foreach (Device device in management.Devices)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="@($"man{management.Id}dev{device.Id}")" value="">
+                            <label class="form-check-label" for="@($"man{management.Id}dev{device.Id}")">
+                                @(device.Name)
+                            </label>
+                        </div>
+                    }
+                </Collapse>
+            }
+        }
+    </div>
+</Sidebar>
+
+<div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
+    <h4 class="m-1">Reporting</h4>
+    <button class="btn btn-secondary btn-sm m-1" @onclick="Export">Generate Pdf Export</button>
+    <a href="downloads/test.pdf" target="_blank" download>Download Pdf Export</a>
+    <button class="btn btn-danger btn-sm m-1" @onclick="() => ShowPopUp = true">Show Pop up</button>
+
+    <PopUp Title="test" Show="@ShowPopUp" OnClose="() => ShowPopUp = false">test</PopUp>
+
+    <form class="form-inline m-1">
+        <div class="form-group mt-1 mb-1 mr-2">
+            <label for="rulesPerDeviceHtml" class="mr-1">Load rules per fetch: </label>
+            <input id="rulesPerDeviceHtml" type="number" class="form-control-sm" @bind="rulesPerFetch" />
+        </div>
+        <div class="form-group mt-1 mb-1">
+            <label for="rulesPerPageHtml" class="mr-1">Show rules per page: </label>
+            <input id="rulesPerPageHtml" type="number" class="form-control-sm" @bind="rulesPerPage" />
+        </div>
+    </form>
+
+    <div class="mr-1 ml-1">
+        <input type="text" class="form-control" placeholder="Filter" />
     </div>
 
-    <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarWidth" PositionLeft="false" @bind-Width="sidebarWidth">
-        <div class="p-3">
-            <TabSet>
-                <Tab Title="All">
-                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                </Tab>
-                <Tab Title="Report">
-                    <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                </Tab>
-                <Tab Title="Rule">
-                    <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
-                                 NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
-                                 NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                 NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
-                </Tab>
-            </TabSet>
+    <div class="card m-1 shadow">
+        <div class="card-body">
+
+            @foreach (Management management in managementsReport)
+            {
+                <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+                    <hr />
+
+                    @foreach (Device device in management.Devices)
+                    {
+                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+
+                            <Table SelectedItems="selectedItemsReportRuleTable"
+                                   RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
+                                   style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
+                                   PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
+
+                                <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        @((MarkupString)context.DisplayNumber(device.Rules))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="Source Zone" Field="@(x => x.SourceZone)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        @((MarkupString)context.DisplaySourceZone())
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Source" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        @((MarkupString)context.DisplaySource())
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Destination Zone" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        @((MarkupString)context.DisplayDestinationZone())
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Destination" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        @((MarkupString)context.DisplayDestination())
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Services" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        @((MarkupString)context.DisplayServices())
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
+                                    <Template>
+                                        @((MarkupString)context.DisplayDisabled())
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+
+                                <DetailTemplate TableItem="Rule">
+                                    <div>test</div>
+                                </DetailTemplate>
+
+                                <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                            </Table>
+                        </Collapse>
+                    }
+                </Collapse>
+            }
         </div>
-    </Sidebar>
+    </div>
 </div>
+
+<Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarRightWidth" PositionLeft="false" @bind-Width="sidebarRightWidth">
+    <div class="p-3">
+        <TabSet>
+            <Tab Title="All">
+                <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                             NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+            </Tab>
+            <Tab Title="Report">
+                <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                             NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+            </Tab>
+            <Tab Title="Rule">
+                <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
+                             NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                             NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                             NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+            </Tab>
+        </TabSet>
+    </div>
+</Sidebar>
 
 @code
 {
     private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
 
+    private Management[] managementsOverview = new Management[0];
     private Management[] managementsReport = new Management[0];
-
     private Management[] managementsAllObjects = new Management[0];
-    private Management[] managementsServices = new Management[0];
-    private Management[] managementsObjects = new Management[0];
-    private Management[] managementsUsers = new Management[0];
 
     private int rulesPerFetch = 10;
     private int rulesPerPage = 0;
 
     private bool ShowPopUp = false;
 
-    private int sidebarWidth = 300;
+    private int sidebarLeftWidth = 300;
+    private int sidebarRightWidth = 300;
 
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
 
     protected override void OnInitialized()
     {
-        //List<Task> tasks = new List<Task>();
-
         Task.Run(async () =>
         {
             try
@@ -228,59 +235,11 @@
             }
         });
 
-        //managementsObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkObjectDetails);
-        //managementsServices = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkServiceObjectDetails);
-        //managementsUsers = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getUserDetails);
-
-
-        //// Workaround
-        //managementsAllObjects = managementsServices;
-
-        //for (int i = 0; i < managementsAllObjects.Length; i++)
-        //{
-        //    managementsAllObjects[i].Objects = managementsObjects[i].Objects;
-        //    managementsAllObjects[i].Users = managementsUsers[i].Users;
-        //}
-        //// Workaround
-
-        //StateHasChanged();
-
-        ////tasks.Add(
-        //Task.Run(async () =>
-        //{
-        //    try
-        //    {
-        //        managementsServices = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkServiceObjectDetails);
-        //        await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
-        //    }
-        //    catch (Exception exception)
-        //    {
-        //        Log.WriteError("Fetching Error", "Error while fetching network services from API.", exception);
-        //    }
-        //});
-        ////);
-
-        ////tasks.Add(
-        //Task.Run(async () =>
-        //{
-        //    managementsObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getNetworkObjectDetails);
-        //    await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
-        //});
-        ////);
-
-        ////tasks.Add(
-        //Task.Run(async () =>
-        //{
-        //    managementsUsers = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getUserDetails);
-        //    await InvokeAsync(StateHasChanged); // Tell UI Thread to call "StateHasChanged"
-        //});
-        ////);
-
-        //while (tasks.Count > 0)
-        //{
-        //    tasks.Remove(await Task.WhenAny(tasks.ToArray()));
-        //    StateHasChanged();
-        //}
+        Task.Run(async () =>
+        {
+            managementsOverview = await Connection.SendQueryAsync<Management[]>(BasicQueries.getDevicesByManagements);
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     private void GenerateTestReport(MouseEventArgs e)
@@ -307,13 +266,12 @@
             }
             catch (Exception exception)
             {
+                //this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+                //leave managementsReport as default = empty array
                 if (exception.Message == "no such type exists in the schema: 'cidr'")
                 {
                     Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
                     ShowError("Report generation", "You dont have sufficient acces rights.");
-
-                    // this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
-                    // leave managementsReport as default = empty array
                 }
                 else
                 {
@@ -322,5 +280,12 @@
                 }
             }
         });
+    }
+
+    private void Export()
+    {
+        ReportPointInTimeExporter exporter = new ReportPointInTimeExporter() { Managements = managementsReport };
+        string text = exporter.ToHtml();
+        exporter.ToPdf();
     }
 }

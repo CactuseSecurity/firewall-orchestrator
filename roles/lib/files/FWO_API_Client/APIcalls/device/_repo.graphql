@@ -15,15 +15,6 @@ query showManagements {
   }
 }
 
-query showDevicesByManagement {
-  management {
-    mgm_name
-    devices {
-      dev_name
-    }
-  }
-}
-
 #####################################
 
 query showDevices {

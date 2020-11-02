@@ -1,7 +1,10 @@
 ﻿@using FWO.Ui.Data
+@using FWO.ApiConfig
 
 @inherits LayoutComponentBase
 @layout MainLayout
+
+@inject UserConfigCollection userConfig
 
 <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" InitialWidth="sidebarWidth" @bind-Width="sidebarWidth">
     <div class="m-2">
@@ -43,8 +46,13 @@
         navItems = new NavItem[]
         {
             new NavItem(() => "Managements", "settings/managements", "oi oi-inbox"),
-            new NavItem(() => "Authorization", "settings/authorization", "oi oi-lock-locked")
+            new NavItem(() => "Authorization", "settings/authorization", "oi oi-lock-locked"),
+            new NavItem(() => "Personal", "settings/personal", "oi oi-person")
         };
+
+        userConfig.OnChange += Update;
     }
+
+    private async void Update(object sender, EventArgs args) => await InvokeAsync(StateHasChanged);
 }
 

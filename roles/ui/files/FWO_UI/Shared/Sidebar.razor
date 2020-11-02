@@ -22,7 +22,7 @@
 
         if (Collapsible)
         {
-            <div class="btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+            <div class="btn-dark btn-sm sidebar-min-max-button align-self-center text-left" style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
                 <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
             </div>
         }
@@ -84,6 +84,9 @@
     private void Resize(DragEventArgs mouseArgs)
     {
         int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
+
+        if (PositionLeft)
+            postitionDiffrence = -postitionDiffrence;
 
         Width = (int)(Width + postitionDiffrence);
         WidthChanged.InvokeAsync(Width);

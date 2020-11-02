@@ -1,0 +1,34 @@
+﻿@using BlazorTable
+@using FWO.ApiConfig;
+@using FWO.ApiConfig.Data;
+@using FWO.Ui.Data
+@using FWO.ApiClient
+
+@page "/settings/personal"
+
+@inject ConfigCollection configCollection
+@inject UserConfigCollection userConfigCollection
+
+<h3>Personal Settings</h3>
+<hr />
+
+<form class="form-inline">
+    <label for="languageSelect" class="col-form-label mr-2">Language</label>
+    <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedLanguage">
+        @foreach (Language language in configCollection.uiLanguages)
+        {
+            <option selected="@(userConfigCollection.CurrentLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
+        }
+    </select>
+    <button class="btn btn-sm btn-success" @onclick="() => { userConfigCollection.ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
+</form>
+
+@code
+{
+    string selectedLanguage;
+
+    protected override void OnInitialized()
+    {
+        selectedLanguage = userConfigCollection.CurrentLanguage;
+    }
+}

@@ -19,6 +19,7 @@ using Microsoft.Extensions.Hosting;
 using FWO.Config;
 using FWO.ApiConfig;
 using FWO.Logging;
+using FWO.Ui.Services;
 
 namespace FWO.Ui
 {
@@ -68,6 +69,9 @@ namespace FWO.Ui
             
             UserConfigCollection userConfig = new UserConfigCollection(configCollection);
             services.AddScoped<UserConfigCollection>(_ => userConfig);
+
+            DownloadManagerService downloadManagerService = new DownloadManagerService();
+            services.AddScoped<DownloadManagerService>(_ => downloadManagerService);
 
             services.AddBlazoredSessionStorage();
         }

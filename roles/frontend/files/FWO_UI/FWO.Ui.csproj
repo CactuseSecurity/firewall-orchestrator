@@ -20,7 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Downloads\" />
     <Folder Include="wwwroot\downloads\" />
   </ItemGroup>
 

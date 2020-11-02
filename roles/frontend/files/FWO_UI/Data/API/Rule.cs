@@ -11,8 +11,6 @@ namespace FWO.Ui.Data.API
 {
     public class Rule
     {
-        StringBuilder result;
-
         [JsonPropertyName("rule_id")]
         public int Id { get; set; }
 

@@ -26,13 +26,13 @@ namespace FWO.Ui.Data
 
             foreach (Management management in Managements)
             {
-                report.AppendLine($"<p>{management.Name}<p>");
-                //report.AppendLine("<hr>");
+                report.AppendLine($"<h3>{management.Name}</h3>");
+                report.AppendLine("<hr>");
 
                 foreach (Device device in management.Devices)
                 {
-                    report.AppendLine($"<p>{device.Name}<p>");
-                    //report.AppendLine("<hr>");
+                    report.AppendLine($"<h4>{device.Name}</h4>");
+                    report.AppendLine("<hr>");
 
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
@@ -69,8 +69,6 @@ namespace FWO.Ui.Data
             }
 
             return Template.Replace("##Body##", report.ToString());
-
-            //throw new NotImplementedException();
         }
 
         public override string ToPdf()
@@ -80,12 +78,12 @@ namespace FWO.Ui.Data
 
             // CONFIG
             PdfGenerateConfig config = new PdfGenerateConfig();
-            config.PageOrientation = PageOrientation.Portrait;
+            config.PageOrientation = PageOrientation.Landscape;
             config.SetMargins(20);
             config.PageSize = PageSize.A4;
 
             PdfDocument document = PdfGenerator.GeneratePdf(html, config);
-            document.Save("test.pdf");
+            document.Save("wwwroot/downloads/test.pdf");
 
             return "";
         }

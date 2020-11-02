@@ -19,4 +19,9 @@
     <ProjectReference Include="..\..\..\lib\files\FWO_Auth_Client\FWO.Auth.Client.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Downloads\" />
+    <Folder Include="wwwroot\downloads\" />
+  </ItemGroup>
+
 </Project>

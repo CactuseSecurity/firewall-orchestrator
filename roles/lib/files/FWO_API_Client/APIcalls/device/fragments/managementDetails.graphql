@@ -12,7 +12,6 @@ fragment ManagementDetails on management
       id: dev_typ_id
       name: dev_typ_name
       version: dev_typ_version
-      predefinedObjects: dev_typ_predef_obj
     }
     configPath: config_path
     importDisabled: do_not_import
@@ -23,9 +22,9 @@ fragment ManagementDetails on management
     creationDate: mgm_create
     updateDate: mgm_update
     lastConfigHash: last_import_md5_complete_config
-    tenant: tenant {
-      id: tenant_id
-      name: tenant_name
-      comment: tenant_comment
-    } 
+    # tenant: tenant {
+    #   id: tenant_id
+    #   name: tenant_name
+    #   comment: tenant_comment
+    # } 
   }

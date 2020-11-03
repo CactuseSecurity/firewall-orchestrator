@@ -141,27 +141,32 @@ namespace FWO.Auth.Server.Requests
         {
             Tenant tenant = new Tenant();
             tenant.Name = ExtractTenantName(user.Dn, tenantLevel);
-
-            var tenNameObj = new { tenant_name = tenant.Name };
-
-            tenant = (await ApiConn.SendQueryAsync<Tenant[]>(BasicQueries.getTenantId, tenNameObj, "getTenantId"))[0];
-
-            var tenIdObj = new { tenantId = tenant.Id };
-
-            DeviceId[] deviceIds = await ApiConn.SendQueryAsync<DeviceId[]>(BasicQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
-            tenant.VisibleDevices = new int[deviceIds.Length];
-            for(int i = 0; i < deviceIds.Length; ++i)
+            if(tenant.Name == "")
             {
-                tenant.VisibleDevices[i] = deviceIds[i].Id;
+                return null;
             }
-            
-            ManagementId[] managementIds = await ApiConn.SendQueryAsync<ManagementId[]>(BasicQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
-            tenant.VisibleManagements = new int[managementIds.Length];
-            for(int i = 0; i < managementIds.Length; ++i)
+            else
             {
-                tenant.VisibleManagements[i] = managementIds[i].Id;
-            }
+                var tenNameObj = new { tenant_name = tenant.Name };
 
+                tenant = (await ApiConn.SendQueryAsync<Tenant[]>(BasicQueries.getTenantId, tenNameObj, "getTenantId"))[0];
+
+                var tenIdObj = new { tenantId = tenant.Id };
+
+                DeviceId[] deviceIds = await ApiConn.SendQueryAsync<DeviceId[]>(BasicQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+                tenant.VisibleDevices = new int[deviceIds.Length];
+                for(int i = 0; i < deviceIds.Length; ++i)
+                {
+                    tenant.VisibleDevices[i] = deviceIds[i].Id;
+                }
+                
+                ManagementId[] managementIds = await ApiConn.SendQueryAsync<ManagementId[]>(BasicQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+                tenant.VisibleManagements = new int[managementIds.Length];
+                for(int i = 0; i < managementIds.Length; ++i)
+                {
+                    tenant.VisibleManagements[i] = managementIds[i].Id;
+                }
+            }
             return tenant;
         }
 
@@ -174,24 +179,23 @@ namespace FWO.Auth.Server.Requests
             int endSeparatorIndex = 0;
             string tenantName = "";
 
-            if (userDN=="anonymous") 
-            {
-                // user anonymous gets assigned the only reliably existing tenant0 - might lead to anonymous able to see too much!
-                tenantName = "tenant0";
-            }
-            else {
-                for(int i = 0; i < ldapTenantLevel; ++i)
-                {
-                    localString = localString.Substring(endSeparatorIndex);
-                    beginSeparatorIndex = localString.IndexOf(beginSeparator);
-                    endSeparatorIndex = localString.Substring(beginSeparatorIndex).IndexOf(endSeparator);
-                }
-                if((beginSeparatorIndex >= 0) && (endSeparatorIndex >= 0))
-                {
-                    tenantName = localString.Substring(beginSeparatorIndex + beginSeparator.Length, endSeparatorIndex - 3);
-                }
-                Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenantName} from {userDN}");
-            }
+            for(int i = 0; i < ldapTenantLevel; ++i)
+            {
+                localString = localString.Substring(endSeparatorIndex);
+                beginSeparatorIndex = localString.IndexOf(beginSeparator);
+                if(beginSeparatorIndex < 0) 
+                {
+                    // No tenant found on this level
+                    return "";
+                }
+                endSeparatorIndex = localString.Substring(beginSeparatorIndex).IndexOf(endSeparator);
+            }
+            if((beginSeparatorIndex >= 0) && (endSeparatorIndex >= 0))
+            {
+                tenantName = localString.Substring(beginSeparatorIndex + beginSeparator.Length, endSeparatorIndex - 3);
+            }
+            Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenantName} from {userDN}");
+
             return tenantName;
         }
     }

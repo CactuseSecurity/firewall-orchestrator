@@ -11,8 +11,8 @@ query getAllObjectDetails(
     where: { mgm_id: { _in: $management_id } }
     order_by: { mgm_name: asc }
   ) {
-    mgm_id
-    mgm_name
+    id: mgm_id
+    name: mgm_name
     networkObjects: objects(
       limit: $limit
       offset: $offset

@@ -1,0 +1,25 @@
+﻿@if (show)
+{
+    <b>@Title</b> @Data <br />
+}
+
+@code {
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Data { get; set; }
+
+    [Parameter]
+    public bool HideIfEmpty { get; set; } = true;
+
+    private bool show = false;
+
+    protected override void OnInitialized()
+    {
+        if (HideIfEmpty && String.IsNullOrWhiteSpace(Data))
+            show = false;
+        else
+            show = true;
+    }
+}

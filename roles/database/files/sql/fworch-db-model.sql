@@ -8,7 +8,7 @@ Database		PostgreSQL 9-12
 
 /* Create Sequences */
 
-Create sequence "public"."abs_change_id_seq"
+Create sequence if not exists "public"."abs_change_id_seq"
 Increment 1
 Minvalue 1
 Maxvalue 9223372036854775807

@@ -40,6 +40,8 @@
                         <Detail Title="Real Name" Data=@($"{context.FirstName} {context.LastName}") />
                         <Detail Title="Comment" Data=@context.Comment />
                         <Detail Title="Type" Data=@context.Type.Name />
+                        <Detail Title="Member Names" Data=@context.MemberNames />
+                        <Detail Title="Member References" Data=@context.MemberRefs />
                     </DetailTemplate>
                 </Table>
             </Collapse>

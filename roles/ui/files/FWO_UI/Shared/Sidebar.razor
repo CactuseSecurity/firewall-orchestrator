@@ -1,0 +1,116 @@
+﻿<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
+    @if (!PositionLeft)
+    {
+        if (Collapsible)
+        {
+            <div class="btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+                <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+            </div>
+        }
+
+        <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+    }
+
+    <div class="@SidebarCssClass" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
+        @* Sidebar Content *@
+        @ChildContent
+    </div>
+
+    @if (PositionLeft)
+    {
+        <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+
+        if (Collapsible)
+        {
+            <div class="btn-dark btn-sm sidebar-min-max-button align-self-center text-left" style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+                <div class="oi oi-@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
+            </div>
+        }
+    }
+</div>
+
+@code
+{
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string SidebarContainerCssClass { get; set; }
+
+    [Parameter]
+    public string SidebarCssClass { get; set; }
+
+    [Parameter]
+    public bool PositionLeft { get; set; } = true;
+
+    [Parameter]
+    public bool Collapsible { get; set; } = false;
+
+    [Parameter]
+    public bool Resizeable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public int InitialWidth { get; set; } = 300;
+
+    [CascadingParameter]
+    private Action<string, string> ShowError { get; set; }
+
+    private double resizeStartX;
+
+    private int WidthBeforeMinimize;
+
+    private string minMaxButtonSymbol = "collapse-right";
+    private string overflowSidebar = "auto";
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+            Width = InitialWidth;
+    }
+
+    private void ResizeStart(DragEventArgs dragArgs)
+    {
+        dragArgs.DataTransfer.DropEffect = "link";
+        dragArgs.DataTransfer.EffectAllowed = "copyMove";
+        resizeStartX = dragArgs.ScreenX;
+    }
+
+    private void Resize(DragEventArgs mouseArgs)
+    {
+        int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
+
+        if (PositionLeft)
+            postitionDiffrence = -postitionDiffrence;
+
+        Width = (int)(Width + postitionDiffrence);
+        WidthChanged.InvokeAsync(Width);
+    }
+
+    private void MinMaxSidebar()
+    {
+        if (Width == 0)
+        {
+            overflowSidebar = "hidden";
+            minMaxButtonSymbol = "collapse-right";
+
+            Width = WidthBeforeMinimize;
+            WidthChanged.InvokeAsync(Width);
+        }
+
+        else
+        {
+            overflowSidebar = "auto";
+            minMaxButtonSymbol = "collapse-left";
+
+            WidthBeforeMinimize = Width;
+            Width = 0;
+            WidthChanged.InvokeAsync(Width);
+        }
+    }
+}

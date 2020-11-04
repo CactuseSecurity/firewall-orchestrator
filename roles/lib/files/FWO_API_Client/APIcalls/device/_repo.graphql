@@ -15,28 +15,6 @@ query showManagements {
   }
 }
 
-query showDevicesByManagement {
-  management {
-    mgm_name
-    devices {
-      dev_name
-    }
-  }
-}
-
-query showDevicesByManagementDetails {
-  management {
-    mgm_name
-    devices {
-      dev_name
-      stm_dev_typ {
-        dev_typ_name
-        dev_typ_version
-      }
-    }
-  }
-}
-
 #####################################
 
 query showDevices {

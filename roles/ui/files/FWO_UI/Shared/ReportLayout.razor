@@ -1,0 +1,29 @@
+﻿@using FWO.Ui.Data
+
+@inherits LayoutComponentBase
+@layout MainLayout
+
+<!--<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" @bind-Width="sidebarLeftWidth">
+    @SidebarLeftContent--> @* maybe not needed *@
+<!--</Sidebar>-->
+
+<div class="w-100" style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px")">
+    <CascadingValue Value="SidebarLeftContent" Name="SidebarLeftContent">
+        <CascadingValue Value="SidebarRightContent" Name="SidebarRightContent">
+            @Body
+        </CascadingValue>
+    </CascadingValue>
+</div>
+
+@*<Sidebar PositionLeft="false" Collapsible="true" Resizeable="true" InitialWidth="sidebarRightWidth" @bind-Width="sidebarRightWidth">
+    @SidebarRightContent
+</Sidebar>*@
+
+@code
+{
+    private RenderFragment SidebarLeftContent { get; set; } @* maybe not needed *@
+    private RenderFragment SidebarRightContent { get; set; }
+
+    private int sidebarLeftWidth = 300;
+    private int sidebarRightWidth = 300;
+}

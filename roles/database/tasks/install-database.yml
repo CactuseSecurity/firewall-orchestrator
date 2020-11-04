@@ -37,6 +37,17 @@
     #      login_user: "{{ fworch_dbadmin_name }}"
     #      template: template1
 
+  - name: test module postgresql_query functionality (only works with ansible >= 2.8) in case of an error message you may run scripts/install-lastes-ansible.yml
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: 'select version()'
+    register: test_query
+    when: ansible_version.string is version_compare('2.8', '>=')
+
+  - name: show dummy query result
+    debug:
+      msg: "test_query result: {{ test_query }}"
+
   - name: creating {{ fworch_db_name }}-db-model and settings privileges
     command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
     loop:

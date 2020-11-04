@@ -4,7 +4,7 @@
 - name: guard - stop when trying anything but an upgrade with existing database
   fail:
     msg: "Error: You choose new installation on a system with existing database {{ fworch_db_name }}"
-  when: installation_mode != "upgrade" or db_exists.stdout == "0"
+  when: installation_mode != "upgrade" or db_exists.query_result.0.count == 0
 
 - name: create upgrade dir
   file:
@@ -35,8 +35,16 @@
   loop: "{{ upgrade_files }}"
   become: yes
 
-- name: install upgrades   
-  command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/upgrade/{{ item }}.sql"'
+#- name: install upgrades
+#  command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/upgrade/{{ item }}.sql"'
+#  loop: "{{ upgrade_files | sort }}"
+#  become: yes
+#  become_user: postgres
+
+- name: install upgrades
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
   loop: "{{ upgrade_files | sort }}"
   become: yes
   become_user: postgres

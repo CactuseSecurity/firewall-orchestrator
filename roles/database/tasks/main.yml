@@ -97,11 +97,21 @@
 
   become: yes
 
+#- name: check if database already exists
+#  # old
+#  command: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
+#  register: db_exists
+#  become: yes
+#  become_user: postgres
+
 - name: check if database already exists
-  command: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
+  # Defaults here are autocommit=no, login_user="postgres", port=5432, ssl_mode=prefer, trust_input=yes
+  #community.general.postgresql_query:
+  postgresql_query:
+    query: SELECT count(*) FROM pg_database WHERE datname='{{ fworch_db_name }}'
   register: db_exists
   become: yes
-  become_user: postgres 
+  become_user: postgres
 
 - name: create new database
   import_tasks: install-database.yml

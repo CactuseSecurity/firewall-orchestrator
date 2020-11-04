@@ -113,10 +113,6 @@
   become: yes
   become_user: postgres
 
-- name: test db exists
-  debug:
-    msg: "{{ db_exists }}"
-
 - name: create new database
   import_tasks: install-database.yml
   when: installation_mode == "new"

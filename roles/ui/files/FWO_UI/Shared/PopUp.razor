@@ -12,6 +12,7 @@
                     @ChildContent
                 </div>
                 <div class="modal-footer">
+                    @Footer
                     <button type="button" class="btn btn-primary" @onclick="Close">Close</button>
                 </div>
             </div>
@@ -26,6 +27,9 @@
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment Footer { get; set; }
 
     [Parameter]
     public bool Show { get; set; } = false;

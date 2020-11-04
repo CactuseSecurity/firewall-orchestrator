@@ -1,3 +1,4 @@
+using FWO.Ui.Filter.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,12 @@ namespace FWO.Ui.Filter
 
         public Scanner(string input)
         {
+            if (input == null)
+                throw new ArgumentNullException("Filter input is null");
+
+            if (input == "")
+                throw new ArgumentException("Filter input is empty");
+
             this.input = input;
         }
 
@@ -28,7 +35,6 @@ namespace FWO.Ui.Filter
 
                 Tokens.AddRange(ReadToken());
             }
-
             return Tokens;
         }
 
@@ -83,7 +89,7 @@ namespace FWO.Ui.Filter
 
                 if (detectKeywords == true)
                 {
-                    List<Token> newTokens = TryExtractToken(position, tokenText);
+                    List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText);
 
                     if (newTokens.Count > 0)
                     {
@@ -110,7 +116,7 @@ namespace FWO.Ui.Filter
 
             if (IsWhitespaceOrEnd())
             {
-                throw new NotSupportedException("Expected escape sequence got whitespace or end.");
+                throw new SyntaxException("Expected escape sequence got whitespace or end.", (position-1)..^(position - 1));
             }
 
             switch (characterCode)
@@ -134,7 +140,7 @@ namespace FWO.Ui.Filter
                     return '\r';
 
                 default:
-                    throw new NotSupportedException($"Escape Sequence \"\\{characterCode}\" is unknown.");
+                    throw new SyntaxException($"Escape Sequence \"\\{characterCode}\" is unknown.", (position-1)..^position);
             }
         }
 

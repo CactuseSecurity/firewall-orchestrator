@@ -1,4 +1,5 @@
 using FWO.Ui.Filter.Ast;
+using FWO.Ui.Filter.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -7,12 +8,12 @@ namespace FWO.Ui.Filter
 {
     public class Parser
     {
-        int Position;
-        List<Token> Tokens;
+        int position;
+        List<Token> tokens;
 
-        public Parser(List<Token> Tokens)
+        public Parser(List<Token> tokens)
         {
-            this.Tokens = Tokens;
+            this.tokens = tokens;
         }
 
         public AstNode Parse()
@@ -21,9 +22,8 @@ namespace FWO.Ui.Filter
 
             if (NextTokenExists() == true)
             {
-                throw new SyntaxErrorException($"Unexpected token ({GetNextToken()}). Expected token: none."); // Wrong token
+                throw new SyntaxException($"Unexpected token ({GetNextToken()}). Expected token: none.", tokens[position].Position); // Wrong token
             }
-
             return root;
         }
 
@@ -175,30 +175,30 @@ namespace FWO.Ui.Filter
             {
                 if (TokenToCheck.Kind == Matches[i])
                 {
-                    Position++;
+                    position++;
                     return TokenToCheck;
                 }                   
             }
 
-            throw new SyntaxErrorException($"Unexpected token ({TokenToCheck}). Expected tokens of type: {string.Join(", ", Matches)}."); // Wrong token
+            throw new SyntaxException($"Unexpected token ({TokenToCheck}). Expected tokens of type: {string.Join(", ", Matches)}.", TokenToCheck.Position); // Wrong token
         }
 
         private Token GetNextToken()
         {
-            if (Position >= Tokens.Count)
+            if (position >= tokens.Count)
             {
-                throw new SyntaxErrorException("No token but one was expected"); // No token but one was expected
+                throw new SyntaxException("No token but one was expected", tokens[tokens.Count-1].Position); // No token but one was expected
             }
 
             else
             {
-                return Tokens[Position];
+                return tokens[position];
             }
         }
 
         private bool NextTokenExists()
         {
-            if (Position >= Tokens.Count)
+            if (position >= tokens.Count)
             {
                 return false;
             }

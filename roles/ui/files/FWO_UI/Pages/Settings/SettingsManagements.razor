@@ -1,0 +1,273 @@
+﻿@using BlazorTable
+@using FWO.Ui.Data.API
+@using FWO.ApiClient
+
+@page "/settings/managements"
+
+@inject APIConnection apiConnection
+
+<h3 class="m-2">Managements</h3>
+
+<button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+
+<div class="d-flex flex-column m-2">
+    <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true"/>
+        <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
+            <Template>
+                @DevTypeNameVersion(context.DeviceType.Id)
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="Private Key" Field="@(x => x.PrivateKey)" Sortable="false" Filterable="false">
+            <Template>
+                <div style="max-width: 500px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="ImportDisabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true"/>
+        <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
+    </Table>
+
+    @*<form class="form-inline m-2">
+            <div class="form-group m-1">
+                <label for="rulesPerDeviceHtml">Load rules per fetch: </label>
+                <input id="rulesPerDeviceHtml" type="number" class="form-control m-1" @bind="rulesPerFetch" />
+            </div>
+            <div class="form-group m-1">
+                <label for="rulesPerPageHtml">Show rules per page: </label>
+                <input id="rulesPerPageHtml" type="number" class="form-control m-1" @bind="rulesPerPage" />
+            </div>
+        </form>*@
+</div>
+
+<PopUp Title="Edit Management" Show="@EditMode" OnClose="() => EditMode = false">
+    @if (EditMode)
+    {
+        <form class="form-horizontal d-flex flex-column">
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Name:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.Name" />
+            </div>
+            <div class="form-inline mt-1 mb-1 mr-2">
+                <label class="mr-1">Type:</label>
+                <div class="select-wrapper form-control-sm">
+                    <select @bind="actManagement.DeviceType.Id">
+                        @foreach(DeviceType devType in deviceTypes)
+                        {
+                            <option value="@devType.Id">@DevTypeNameVersion(devType.Id)</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Hostname:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.Hostname" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">ImportUser:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.ImportUser" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Private Key:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.PrivateKey" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Port:</label>
+                <input type="number" class="form-control-sm" @bind="actManagement.Port" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Public Key:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.PublicKey" />
+            </div>
+            <div class="checkbox">
+                <label><input type="checkbox" @bind="actManagement.ImportDisabled">Import Disabled</label>
+            </div>
+            <div class="checkbox">
+                <label><input type="checkbox" @bind="actManagement.ForceInitialImport">Force Initial Import</label>
+            </div>
+            <div class="checkbox">
+                <label><input type="checkbox" @bind="actManagement.HideInUi">Hide In Ui</label>
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Config Path:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.ConfigPath" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Importer Hostname:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.ImporterHostname" />
+            </div>
+            <div class="form-group mt-1 mb-1 mr-2">
+                <label class="mr-1">Comment:</label>
+                <input type="text" class="form-control-sm" @bind="actManagement.Comment" />
+            </div>
+            <label class="m-2">@errorMessage</label> 
+        </form>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    }
+</PopUp>
+
+<PopUp Title="Delete" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+    @if (DeleteMode)
+    {
+        <label class="m-2">@errorMessage</label>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">Delete</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    }
+</PopUp>
+
+@code
+{
+    private List<Management> managements = new List<Management>();
+    private List<DeviceType> deviceTypes = new List<DeviceType>();
+
+    private ITable<Management> table;
+
+    private bool EditMode = false;
+    private bool DeleteMode = false;
+    private bool AddMode = false;
+
+    private Management newManagement;
+    private Management actManagement;
+
+    private string errorMessage = "";
+ 
+    protected override async Task OnInitializedAsync()
+    {
+        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.BasicQueries.getManagementsDetails))).ToList();
+        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceTypeDetails))).ToList();
+    }
+
+    private void Edit(Management management)
+    {
+        actManagement = new Management(management);
+        EditMode = true;
+    }
+
+    private void RequestDelete(Management management)
+    {
+        actManagement = management;
+        DeleteMode = true;
+    }
+
+    private async Task Delete(Management management)
+    {
+        try
+        {
+            // Todo: checks if delete possible. Else set e.g. an archive flag?
+            var Variables = new { id = management.Id };
+            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.deleteManagement, Variables))).Id;
+            if(delId == management.Id)
+            {
+                managements.Remove(management);
+                DeleteMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Delete Management", $"Exception occurred: {exception}");
+            errorMessage = "Something went wrong with deleting: " + exception.Message;
+        }
+    }
+
+    private void Add()
+    {
+        AddMode = true;
+        newManagement = new Management() { DeviceType = new DeviceType { Id = deviceTypes.First().Id } };
+        Edit(newManagement);
+    }
+
+    private void Clone(Management management)
+    {
+        AddMode = true;
+        newManagement = new Management(management);
+        Edit(newManagement);
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            // Todo: Value checks?
+            if (AddMode)
+            {
+                // insert new management
+                var Variables = new { 
+                    name = actManagement.Name, 
+                    devTypeId = actManagement.DeviceType.Id, 
+                    hostname = actManagement.Hostname, 
+                    importUser = actManagement.ImportUser,
+                    importUserSecret = actManagement.PrivateKey,
+                    port = actManagement.Port,
+                    sshPublicKey = actManagement.PublicKey,
+                    importDisabled = actManagement.ImportDisabled,
+                    forceInitialImport = actManagement.ForceInitialImport,
+                    hideInUi = actManagement.HideInUi,
+                    configPath = actManagement.ConfigPath,
+                    importerHostname = actManagement.ImporterHostname,
+                    comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */};
+                actManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewMgtReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
+                managements.Add(actManagement);
+                AddMode = false;
+                EditMode = false;
+                errorMessage = "";
+            }
+            else
+            {
+                // Update existing management
+                // Todo: handle TenantId
+                var Variables = new { 
+                    id = actManagement.Id, 
+                    name = actManagement.Name, 
+                    devTypeId = actManagement.DeviceType.Id, 
+                    hostname = actManagement.Hostname, 
+                    importUser = actManagement.ImportUser,
+                    importUserSecret = actManagement.PrivateKey,
+                    port = actManagement.Port,
+                    sshPublicKey = actManagement.PublicKey,
+                    importDisabled = actManagement.ImportDisabled,
+                    forceInitialImport = actManagement.ForceInitialImport,
+                    hideInUi = actManagement.HideInUi,
+                    configPath = actManagement.ConfigPath,
+                    importerHostname = actManagement.ImporterHostname,
+                    comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */};
+                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables))).UpdatedId;
+                EditMode = (udId == actManagement.Id ? false : true);
+                managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
+                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
+            }
+        }
+        catch (Exception exception)
+        {
+            // Todo: Error message? Ignore?
+            Log.WriteDebug("Save Management", $"Exception occurred: {exception}");
+            errorMessage = "Something went wrong with saving: " + exception.Message;
+        }
+    }
+
+    private void Cancel()
+    {
+        AddMode = false;
+        EditMode = false;
+        DeleteMode = false;
+        errorMessage = "";
+    }
+
+    private string DevTypeNameVersion(int id)
+    {
+        return deviceTypes.Find(x => x.Id == id).NameVersion();
+    }
+}

@@ -1,10 +1,5 @@
 ---
 
-#- hosts: all
-#  tasks:
-#    - name: install latest ansible on localhost (currently 2.9ff)
-#      import_tasks: scripts/install-latest-ansible.yml
-
 - hosts: all
   roles:
     - common
@@ -44,8 +39,8 @@
 
 - hosts: frontends
   roles:
-    - { role: lib, when: "'authserver' not in group_names"}
-    - frontend
+    - { role: lib, when: "'authserver' not in group_names"}    # do not install lib role twice (already installed for authserver)
+    - ui
     - { role: frontend-php, when: "ui_php is defined"}
   tags:
     - frontend

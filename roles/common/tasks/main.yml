@@ -1,5 +1,11 @@
 - block: 
 
+  - name: assert ansible version
+    assert:
+      that:
+        - "{{ ansible_version.string is version_compare('2.8', '>=') }}"
+      msg: Ansible 2.8 or above is required
+
   - name: check for existing main config file
     stat:
       path: "{{ fworch_conf_file }}"

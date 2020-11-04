@@ -1,0 +1,10 @@
+query getDevicesByManagement {
+  management {
+    id: mgm_id
+    name: mgm_name
+    devices {
+      dev_id
+      dev_name
+    }
+  }
+}

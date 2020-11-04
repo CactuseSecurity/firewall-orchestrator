@@ -1,21 +1,53 @@
 mutation newManagement(
-  $dev_typ_id: Int!
-  $mgm_name: String!
-  $ssh_private_key: String!
+  $name: String!
+  $devTypeId: Int!
+  $importUser: String!
+  $importUserSecret: String!
+  $hostname: String!
+  $port: Int!
+  $sshPublicKey: String!
+  $importDisabled: Boolean!
+  $forceInitialImport: Boolean!
+  $hideInUi: Boolean!
+  $configPath: String
+  $importerHostname: String
+  $comment: String
+  $tenantId: Int
 ) {
   insert_management(
     objects: {
-      config_path: ""
-      dev_typ_id: $dev_typ_id
-      importer_hostname: ""
-      mgm_name: $mgm_name
-      ssh_hostname: ""
-      ssh_private_key: $ssh_private_key
-      ssh_user: ""
+      mgm_name: $name
+      dev_typ_id: $devTypeId
+      ssh_hostname: $hostname
+      ssh_user: $importUser
+      ssh_private_key: $importUserSecret
+      config_path: $configPath
+      importer_hostname: $importerHostname
+      ssh_port: $port
+      ssh_public_key: $sshPublicKey
+      do_not_import: $importDisabled
+      force_initial_import: $forceInitialImport
+      hide_in_gui: $hideInUi
+      mgm_comment: $comment
+      tenant_id: $tenantId
     }
   ) {
     returning {
-      mgm_id
+      newId: mgm_id
     }
   }
 }
+
+# example variables (at least the following)
+# { 
+#   "name": "huhu",
+#   "devTypeId": 10,
+#   "importUser": "usr12",
+#   "importUserSecret": "secret123",
+#   "hostname": "host1234",
+#   "port": 22,
+#   "sshPublicKey": "",
+#   "importDisabled": false,
+#   "forceInitialImport": false,
+#   "hideInUi": false
+# }

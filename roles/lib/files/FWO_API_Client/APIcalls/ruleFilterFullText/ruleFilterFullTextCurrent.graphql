@@ -1,0 +1,42 @@
+query ruleFilterFullTextCurrent(
+  $managementId: [Int!]
+  $deviceId: [Int!]
+  $fullText: String!
+  $limit: Int
+  $offset: Int
+) {
+  management(
+    where: { mgm_id: { _in: $managementId } }
+    order_by: { mgm_name: asc }
+  ) {
+    mgm_id
+    mgm_name
+    devices(
+      where: { dev_id: { _in: $deviceId } }
+      order_by: { dev_name: asc }
+    ) {
+      dev_id
+      dev_name
+    }
+    rules(
+      limit: $limit
+      offset: $offset
+      where: {
+        _and: {
+          active: { _eq: true }
+          _or: [
+            { rule_src: { _ilike: $fullText } }
+            { rule_dst: { _ilike: $fullText } }
+            { rule_svc: { _ilike: $fullText } }
+          ]
+        }
+      }
+      order_by: { rule_num_numeric: asc }
+    ) {
+      rule_uid
+      rule_src
+      rule_dst
+      rule_svc
+    }
+  }
+}

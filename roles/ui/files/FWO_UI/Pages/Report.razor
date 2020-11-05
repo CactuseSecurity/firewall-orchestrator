@@ -4,6 +4,8 @@
 @using FWO.Ui.Data.API
 @using FWO.Ui.Data
 @using FWO.Ui.Display 
+@using FWO.Ui.Filter 
+@using FWO.Ui.Filter.Exceptions; 
 
 @inject APIConnection Connection
 
@@ -90,8 +92,9 @@
         </div>
     </form>
 
-    <div class="mr-1 ml-1">
-        <input type="text" class="form-control" placeholder="Filter" />
+    <div class="mr-1 ml-1 position-relative">
+        <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" class="form-control" placeholder="Filter" @oninput="TryFilter" />
+        <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none" class="form-control position-absolute">@filterFeedback</div> 
     </div>
 
     <div class="card m-1 shadow">
@@ -203,6 +206,9 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
+    private string FilterText = "";
+    private MarkupString filterFeedback = new MarkupString("");
+
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
 
@@ -287,5 +293,37 @@
         ReportPointInTimeExporter exporter = new ReportPointInTimeExporter() { Managements = managementsReport };
         string text = exporter.ToHtml();
         exporter.ToPdf();
+    }
+
+    private void TryFilter(ChangeEventArgs changeArgs)
+    {
+        string filterInput = "";
+
+        try
+        {
+            filterInput = changeArgs.Value.ToString();
+            filterFeedback = new MarkupString(filterInput);
+
+            if (filterInput != "")
+                Compiler.Compile(filterInput);
+        }
+        catch (FilterException filterError)
+        {
+            int errorStart = filterError.ErrorPosition.Start.Value;
+            int errorEnd = filterError.ErrorPosition.End.Value;
+
+            // TODO: RESTRUCTURE (current structure only for debug purpose)
+            string t0 = $"{filterInput.Substring(0, errorStart)}";
+            string t1 = $"<u class=\"error-underline\">{filterInput.Substring(errorStart, errorEnd + 1 - errorStart)}</u>";
+            string t2 = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
+
+            filterFeedback = new MarkupString(t0 + t1 + t2);
+        }
+        catch (Exception unexpectedError)
+        {
+#if DEBUG
+            ShowError("Filter Error", $"{unexpectedError.Message}\n{unexpectedError.StackTrace}");
+#endif
+        }
     }
 }

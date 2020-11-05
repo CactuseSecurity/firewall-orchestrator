@@ -6,7 +6,7 @@ namespace FWO.Ui.Filter
 {
     public class Token
     {
-        public readonly int Position;
+        public readonly Range Position;
         public readonly string Text;
         public readonly TokenKind Kind;
 
@@ -17,7 +17,7 @@ namespace FWO.Ui.Filter
 
         public Token(int position, string text, TokenKind kind)
         {
-            Position = position;
+            Position = position..^(position + text.Length-1);
             Text = text;
             Kind = kind;
         }

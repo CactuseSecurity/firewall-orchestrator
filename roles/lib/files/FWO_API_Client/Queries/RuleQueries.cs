@@ -9,6 +9,7 @@ namespace FWO.ApiClient.Queries
 {
     public class RuleQueries : Queries
     {
+        public static readonly string ruleOverviewFragments;
         public static readonly string getRuleOverview;
         public static readonly string getRuleDetails;
 
@@ -16,12 +17,13 @@ namespace FWO.ApiClient.Queries
         {
             try
             {
-                getRuleOverview =
+                ruleOverviewFragments =
                     File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectOverview.graphql") +
                     File.ReadAllText(QueryPath + "networkService/fragments/networkServiceOverview.graphql") +
                     File.ReadAllText(QueryPath + "user/fragments/userOverview.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql") +
-                    File.ReadAllText(QueryPath + "rule/getRuleOverview.graphql");
+                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql");
+
+                getRuleOverview = ruleOverviewFragments + File.ReadAllText(QueryPath + "rule/getRuleOverview.graphql");
 
                 getRuleDetails =
                     File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetails.graphql") +

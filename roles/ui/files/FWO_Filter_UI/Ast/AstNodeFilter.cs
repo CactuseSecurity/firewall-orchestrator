@@ -22,6 +22,9 @@ namespace FWO.Ui.Filter.Ast
                 case TokenKind.Destination:
                     Result += "dest_stub ";
                     break;
+                case TokenKind.Value:
+                    Result += "allsearch ";
+                    break;
                 default:
                     throw new Exception("### Parser Error: Expected Filtername Token (and thought there is one) ###");
             }

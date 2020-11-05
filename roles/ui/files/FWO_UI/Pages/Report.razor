@@ -93,6 +93,8 @@
     </form>
 
     <div class="mr-1 ml-1 position-relative">
+        @*<input @bind="filterText" style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" class="form-control" placeholder="Filter" @oninput="TryFilter" @onsubmit="GenerateTestReport"/>
+        *@
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" class="form-control" placeholder="Filter" @oninput="TryFilter" />
         <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none" class="form-control position-absolute">@filterFeedback</div> 
     </div>
@@ -206,7 +208,7 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private string FilterText = "";
+    private string filterText = "";
     private MarkupString filterFeedback = new MarkupString("");
 
     [CascadingParameter]
@@ -248,7 +250,7 @@
         });
     }
 
-    private void GenerateTestReport(MouseEventArgs e)
+    private void GenerateTestReport()
     {
         Task.Run(async () =>
         {
@@ -256,7 +258,9 @@
             {
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
 
-                managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+               //managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+                ( string query, string query_vars ) = Compiler.Compile("cactus");
+                managementsReport = await Connection.SendQueryAsync<Management[]>(query, paginationVariables);
                 await InvokeAsync(StateHasChanged);
 
                 bool newObjects = true;
@@ -264,7 +268,8 @@
                 while (newObjects)
                 {
                     paginationVariables.Offset += rulesPerFetch;
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+                    //Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, paginationVariables);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
 
                     await InvokeAsync(StateHasChanged);
@@ -298,6 +303,7 @@
     private void TryFilter(ChangeEventArgs changeArgs)
     {
         string filterInput = "";
+        string query;
 
         try
         {
@@ -305,7 +311,7 @@
             filterFeedback = new MarkupString(filterInput);
 
             if (filterInput != "")
-                Compiler.Compile(filterInput);
+                query = Compiler.Compile(filterInput);
         }
         catch (FilterException filterError)
         {

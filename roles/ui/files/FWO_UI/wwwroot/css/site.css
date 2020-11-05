@@ -122,8 +122,8 @@ app {
 }
 
 .error-underline {
-    text-decoration-line: overline overline;
-    text-decoration-style: wavy;
+    text-decoration-line: underline;
+    text-decoration-style: double;
     text-decoration-color: red;
     text-underline-position: under;
 }

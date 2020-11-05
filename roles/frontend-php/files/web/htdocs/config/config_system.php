@@ -187,15 +187,21 @@
 				}
 				$mgm_updated		= date('Y-m-d H:i');
 				$input_fehler = false;
-				if (preg_match("/\s/", $mgm_name)) $input_fehler = 'Management-Name darf keine Leerzeichen enthalten.'; 			
 				if (preg_match("/^$/", $mgm_name)) $input_fehler = 'Management-Name darf nicht leer sein.'; 			
 				if (preg_match("/^$/", $mgm_ssh_hostname)) $input_fehler = 'ssh Hostname darf nicht leer sein.'; 			
 				if (preg_match("/^$/", $mgm_importer_hostname)) $input_fehler = 'Importer Hostname darf nicht leer sein.'; 			
 				if (preg_match("/^$/", $mgm_ssh_priv_key)) $input_fehler = 'ssh private key darf nicht leer sein.'; 			
 				if (preg_match("/^$/", $mgm_ssh_user)) $input_fehler = 'ssh user darf nicht leer sein.'; 		
 				if (!preg_match("/^\d+$/", $mgm_ssh_port)) $input_fehler = 'ssh-Port ist keine Zahl.';
-				if (!preg_match("/\/$/", $mgm_config_path) and !preg_match("/^$/", $mgm_config_path)) $input_fehler = 'Config-Pfad muss entweder leer sein oder mit "/" enden.';
 				
+				// giving this up as we need paths not ending with / for R80 MDM
+				$mgm_sql_code = "SELECT dev_typ_manufacturer FROM stm_dev_typ WHERE dev_typ_id=$device_type_id";
+				$mgm_manu = $db_connection->fworch_db_query($mgm_sql_code);
+				$mgm_manu_name = $mgm_manu->data[0]['dev_typ_manufacturer'];
+				if ($mgm_manu_name != "Check Point") {
+				   if (preg_match("/\s/", $mgm_name)) $input_fehler = 'Management-Name darf keine Leerzeichen enthalten.'; 			
+				   if (!preg_match("/\/$/", $mgm_config_path) and !preg_match("/^$/", $mgm_config_path)) $input_fehler = 'Config-Pfad muss entweder leer sein oder mit "/" enden.';
+				}
 				// check for existing mgm with same name and same type
 				if (!$mgm_id or $mgm_id=='')	{// Aenderung an bestehendem Management
 					$mgm_double_sql_code = "SELECT mgm_name, dev_typ_id FROM management WHERE mgm_name='$mgm_name' AND dev_typ_id=$device_type_id";
@@ -254,10 +260,10 @@
 					if (preg_match("/^$/", $dev_name))					$input_fehler = 'Devicename darf nicht leer sein.';
 					if (preg_match("/^$/", $dev_rulebase))				$input_fehler = 'Policyname darf nicht leer sein.';
 					if (preg_match("/^$/", $dev_name))					$input_fehler = 'Devicename darf nicht leer sein.';
-					if (preg_match("/\s/", $dev_name))					$input_fehler = 'Devicename darf keine Leerzeichen enthalten.';
-					if ($mgm_manu_name != "Check Point R8x") {
-						if (preg_match("/\s/", $dev_rulebase))				$input_fehler = 'Policyname darf keine Leerzeichen enthalten.';
-						if (preg_match("/[\/\\\$\(\)\=]/", $dev_rulebase))	$input_fehler = 'Policyname darf keine Sonderzeichen (/,\,$,(,),=) enthalten.';
+					if ($mgm_manu_name != "Check Point") {
+						if (preg_match("/\s/", $dev_name))					$input_fehler = "Devicename darf keine Leerzeichen enthalten.";
+						if (preg_match("/\s/", $dev_rulebase))				$input_fehler = "Policyname darf keine Leerzeichen enthalten.";
+						if (preg_match("/[\/\\\$\(\)\=]/", $dev_rulebase))	$input_fehler = "Policyname darf keine Sonderzeichen (/,\,$,(,),=) enthalten.";
 					}
 				// end check form input
 				if (!$input_fehler) {

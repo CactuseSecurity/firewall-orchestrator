@@ -55,7 +55,6 @@
       msg: "test_query result: {{ test_query }}"
 
   - name: creating {{ fworch_db_name }}-db-model and settings privileges
-    #community.general.postgresql_query:
     postgresql_query:
       db: "{{ fworch_db_name }}"
       path_to_script: "{{ database_install_dir }}/sql/{{ item }}"
@@ -88,7 +87,6 @@
 #      - fworch-grants.sql
 
   - name: (re)defines functions and views (idempotent)
-    #community.general.postgresql_query:
     postgresql_query:
       db: "{{ fworch_db_name }}"
       path_to_script: "{{ database_install_dir }}/sql/{{ item }}"
@@ -123,7 +121,6 @@
 #    when: installation_mode == "new"
 
   - name: add colors to the database
-    #community.general.postgresql_copy:
     postgresql_copy:
       db: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/color.csv"
@@ -137,7 +134,6 @@
     when: installation_mode == "new"
 
   - name: add error messages to the database
-    #community.general.postgresql_copy:
     postgresql_copy:
       db: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/error.csv"
@@ -153,7 +149,6 @@
     when: installation_mode == "new"
 
   - name: add ip protocols to the database
-    #community.general.postgresql_copy:
     postgresql_copy:
       db: "{{ fworch_db_name }}"
       copy_from: "{{ database_install_dir }}/csv/ip-protocol-list.csv"
@@ -167,8 +162,10 @@
         format: csv
     when: installation_mode == "new"
 
-  # Hier fehlt noch psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/fworch-fill-stm.sql"
-  # Kann ich das einfach im loop oben mit einbinden? Oder müssen erst die 3 copy Befehle durchgeführt werden?
+  - name: add base data to database
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      path_to_script: "{{ database_install_dir }}/sql/fworch-fill-stm.sql"
 
   become: yes
   become_user: postgres

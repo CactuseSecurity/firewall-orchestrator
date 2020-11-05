@@ -107,14 +107,15 @@ namespace FWO.Ui.Filter
 
         private AstNode ParseNot()
         {
-            //AstNodeUnary rootNode = new AstNodeUnary();
+            AstNodeUnary rootNode = new AstNodeUnary();
 
-            //while (GetNextToken().Kind == TokenKind.Not)
-            //{
-            //    CheckToken(TokenKind.Not);
-            //    rootNode.Kind = TokenKind.Not;                
-            //    rootNode.Value = ParseNot();
-            //}
+            if (GetNextToken().Kind == TokenKind.Not)
+            {
+                CheckToken(TokenKind.Not);
+                rootNode.Kind = TokenKind.Not;
+                rootNode.Value = ParseNot();
+                return rootNode;
+            }
 
             return ParseAtom();
         }

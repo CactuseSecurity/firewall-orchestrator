@@ -236,20 +236,25 @@
         {
             try
             {
-                PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
-
+               //PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
                //managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
-                DynGraphqlQuery query = Compiler.Compile("cactus");
-                managementsReport = await Connection.SendQueryAsync<Management[]>(query.fullQuery, query.queryVariables);
+                DynGraphqlQuery query = Compiler.Compile("ny");
+                query.setVariableObject("limit", rulesPerFetch);
+                query.setVariableObject("offset", 0);
+                object queryVars = query.getVariableObject();
+                
+                managementsReport = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
                 await InvokeAsync(StateHasChanged);
 
                 bool newObjects = true;
 
                 while (newObjects)
                 {
-                    paginationVariables.Offset += rulesPerFetch;
+                    query.setVariableObject("offset", Convert.ToInt32(query.getVariableValue("offset"))+rulesPerFetch);
+                    queryVars = query.getVariableObject();
+                    //paginationVariables.Offset += rulesPerFetch;
                     //Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.fullQuery, query.queryVariables);
+                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
 
                     await InvokeAsync(StateHasChanged);

@@ -3,6 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Dynamic;
+//using GraphQL.SystemTextJson;
+//using Newtonsoft.Json.Linq;
 
 namespace FWO.Ui.Filter
 {
@@ -10,9 +15,8 @@ namespace FWO.Ui.Filter
     {
         public string queryDeviceHeader { get; }
 
-        public MemoryStream queryVariables { get; set; }
+        public Dictionary<string, object> queryVariableDict { get; set; }
 
-        //= new MemoryStream();
         public string fullQuery { get; set; }
         public string whereQueryPart { get; set; }
         public List<string> queryParameters { get; set; }
@@ -40,12 +44,41 @@ namespace FWO.Ui.Filter
                 ";
 
             queryParameters = new List<string>();
-            queryVariables = new MemoryStream();
             queryParameters.Add(" $managementId: [Int!] ");
             queryParameters.Add(" $deviceId: [Int!] ");
             queryParameters.Add(" $limit: Int ");
             queryParameters.Add(" $offset: Int ");
+            queryVariableDict = new Dictionary<string, object>();
+        }
+        public object getVariableValue(string key)
+        {
+            return queryVariableDict[key];
+        }
+        public void addVariable(string key, object value)
+        {
+            queryVariableDict[key] = value;
+        }
+        public void setVariableObject(string key, object value)
+        {
+            queryVariableDict[key] = value;
         }
 
+        public object getVariableObject()
+        {
+            return DictionaryToObject(queryVariableDict);
+        }
+        private static dynamic DictionaryToObject(IDictionary<string, Object> dictionary)
+        {
+            var expandoObj = new ExpandoObject();
+            var expandoObjCollection = (ICollection<KeyValuePair<string, Object>>)expandoObj;
+
+            foreach (var keyValuePair in dictionary)
+            {
+                expandoObjCollection.Add(keyValuePair);
+            }
+            dynamic eoDynamic = expandoObj;
+            return eoDynamic;
+        }
+    
     }
 }

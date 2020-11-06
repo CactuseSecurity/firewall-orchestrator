@@ -13,12 +13,8 @@ namespace FWO.Ui.Filter
     {
         public static DynGraphqlQuery ToGraphQl(AstNode ast)
         {
-            // prepare query object
             DynGraphqlQuery query = new DynGraphqlQuery();
-            using var varWriter = new Utf8JsonWriter(query.queryVariables);
-            varWriter.WriteStartObject();
-
-            string fullTextFilter = "";
+            string fullTextFilter = "ny";
             string timeFilter = "";
             string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
 
@@ -31,13 +27,13 @@ namespace FWO.Ui.Filter
 
             if (fullTextFilter != "")
             {
-                varWriter.WriteString("fullText", fullTextFilter);
+                query.addVariable("fullText", $"%{fullTextFilter}%");
                 query.queryParameters.Add(" $fullText: String! ");
                 query.whereQueryPart += @"
                     _or: [
-                        { rule_src: { _ilike: *$fullText*} }
-                        { rule_dst: { _ilike: *$fullText*} }
-                        { rule_svc: { _ilike: *$fullText*} }
+                        { rule_src: { _ilike: $fullText} }
+                        { rule_dst: { _ilike: $fullText} }
+                        { rule_svc: { _ilike: $fullText} }
                     ] ";
             }
 
@@ -59,9 +55,9 @@ namespace FWO.Ui.Filter
                     }} 
                 }}";
 
+            // remove linebreaks and multiple whitespaces
             query.fullQuery = Regex.Replace(query.fullQuery, "\n", " ");
-            varWriter.WriteEndObject();
-            varWriter.Flush();
+            query.fullQuery = Regex.Replace(query.fullQuery, @"\s+", " ");
             return query;
         }
     }

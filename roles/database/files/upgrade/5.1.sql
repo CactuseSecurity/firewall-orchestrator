@@ -4,12 +4,15 @@
 
 
 -- contains exactly one entry for each language available
+/*
+The table "language" is already created in fworch-db-model.sql
 Create table "language"
 (
 	"id" Integer NOT NULL,
 	"name" Varchar NOT NULL,
     primary key ("id")
 );
+*/
 
 -- contains all texts in all languages
 Create table "plain_text"
@@ -17,6 +20,6 @@ Create table "plain_text"
 	"id" Serial,
 	"key" Varchar NOT NULL,
 	"language_id" Integer,
-    "text" Varchar
+    "text" Varchar,
     primary key ("id", "language_id")
 );

@@ -10,7 +10,7 @@ namespace FWO.Ui.Filter.Ast
         public TokenKind Operator { get; set; }
         public string Value { get; set; }
 
-        public override string Extract()
+        public override string Extract(ref DynGraphqlQuery query)
         {
             string Result = "";
 

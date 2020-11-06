@@ -9,72 +9,31 @@ using System.Text;
 
 namespace FWO.Ui.Filter
 {
-
-    public class DynGraphqlQuery
-    {
-        MemoryStream queryVariables = new MemoryStream();
-        string whereQuery = "";
-        List<string> queryParameters = new List<string>();
-    }
     public class QueryGenerator
     {
-        public static (string query, MemoryStream queryVariables) ToGraphQl(AstNode ast)
+        public static DynGraphqlQuery ToGraphQl(AstNode ast)
         {
-            // prepare json stuff
-            using var memoryStreamVariables = new MemoryStream();
-            using var queryVariables = new Utf8JsonWriter(memoryStreamVariables);
-            queryVariables.WriteStartObject();
+            // prepare query object
+            DynGraphqlQuery query = new DynGraphqlQuery();
+            using var varWriter = new Utf8JsonWriter(query.queryVariables);
+            varWriter.WriteStartObject();
 
             string fullTextFilter = "";
             string timeFilter = "";
-            string query;
-
             string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
 
-            string queryParameters = @"
-                $managementId: [Int!]
-                $deviceId: [Int!]
-                $limit: Int
-                $offset: Int
-                ";
+            ast.Extract(ref query);
 
-            string queryDeviceHeader = @"                    
-                management(
-                    where: { mgm_id: { _in: $managementId } }
-                    order_by: { mgm_name: asc }
-                ) 
-                {
-                    mgm_id
-                    mgm_name
-                    devices(
-                        where: { dev_id: { _in: $deviceId } }
-                        order_by: { dev_name: asc }
-                    ) {
-                        dev_id
-                        dev_name
-                    }
-                ";
-
-            DynGraphqlQuery dynGraphqlQuery = new DynGraphqlQuery();
-
-            string queryRulesWhere = "";
-
-            // mock: assumiming simple text filter 
-            fullTextFilter = ast.Extract();
-            // check ast, if it contains
-            // - fullTextFilter
-            // - timeFilter
-
-            if (timeFilter == "")
-                queryRulesWhere += " active: { _eq: true } ";
+            if (query.timeFilter == "")
+                query.whereQueryPart += " active: { _eq: true } ";
             else
-                queryRulesWhere += $" {timeFilter} ";
+                query.whereQueryPart += $" {timeFilter} ";
 
             if (fullTextFilter != "")
             {
-                queryVariables.WriteString("fullText", fullTextFilter);
-                queryParameters += " $fullText: String! ";
-                queryRulesWhere += @"
+                varWriter.WriteString("fullText", fullTextFilter);
+                query.queryParameters.Add(" $fullText: String! ");
+                query.whereQueryPart += @"
                     _or: [
                         { rule_src: { _ilike: *$fullText*} }
                         { rule_dst: { _ilike: *$fullText*} }
@@ -82,16 +41,17 @@ namespace FWO.Ui.Filter
                     ] ";
             }
 
-            query = $@"
+            string paramString = string.Join(" ", query.queryParameters.ToArray());
+            query.fullQuery = $@"
                 {ruleOverviewFragment}
 
-                query ruleFilter ({queryParameters}) 
+                query ruleFilter ({paramString}) 
                     {{ 
-                        {queryDeviceHeader} 
+                        {query.queryDeviceHeader} 
                         rules(
                             limit: $limit 
                             offset: $offset
-                            where: {{ {queryRulesWhere} }} 
+                            where: {{ {query.whereQueryPart} }} 
                             order_by: {{ rule_num_numeric: asc }}
                         ) {{
                             ...ruleOverview
@@ -99,13 +59,10 @@ namespace FWO.Ui.Filter
                     }} 
                 }}";
 
-            query = Regex.Replace(query, "\n", " ");
-            queryVariables.WriteEndObject();
-            queryVariables.Flush();
-            return (query, memoryStreamVariables);
+            query.fullQuery = Regex.Replace(query.fullQuery, "\n", " ");
+            varWriter.WriteEndObject();
+            varWriter.Flush();
+            return query;
         }
-
-        // test method simple full text search without parsing 
-
     }
 }

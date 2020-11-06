@@ -8,13 +8,14 @@ namespace FWO.Ui.Filter
 {
     public class Compiler
     {
-        public static (string query, MemoryStream queryVariables) Compile(string input)
+        public static DynGraphqlQuery Compile(string input)
         {
             Scanner scanner = new Scanner(input);
             List<Token> tokens = scanner.Scan();
             Parser parser = new Parser(tokens);
             AstNode root = parser.Parse();
-            return QueryGenerator.ToGraphQl(root);
+            DynGraphqlQuery query = QueryGenerator.ToGraphQl(root);
+            return query;
         }
     }
 }

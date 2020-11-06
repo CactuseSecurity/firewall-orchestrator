@@ -257,8 +257,8 @@
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
 
                //managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
-                ( string query, string query_vars ) = Compiler.Compile("cactus");
-                managementsReport = await Connection.SendQueryAsync<Management[]>(query, paginationVariables);
+                DynGraphqlQuery query = Compiler.Compile("cactus");
+                managementsReport = await Connection.SendQueryAsync<Management[]>(query.fullQuery, query.queryVariables);
                 await InvokeAsync(StateHasChanged);
 
                 bool newObjects = true;
@@ -267,7 +267,7 @@
                 {
                     paginationVariables.Offset += rulesPerFetch;
                     //Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, paginationVariables);
+                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.fullQuery, query.queryVariables);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
 
                     await InvokeAsync(StateHasChanged);
@@ -301,7 +301,7 @@
     private void TryFilter(ChangeEventArgs changeArgs)
     {
         string filterInput = "";
-        string query;
+        DynGraphqlQuery query;
 
         try
         {

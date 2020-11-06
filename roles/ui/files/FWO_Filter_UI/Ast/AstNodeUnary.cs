@@ -10,7 +10,7 @@ namespace FWO.Ui.Filter.Ast
 
         public AstNode Value { get; set; }
 
-        public override string Extract()
+        public override string Extract(ref DynGraphqlQuery query)
         {
             throw new NotImplementedException();
         }

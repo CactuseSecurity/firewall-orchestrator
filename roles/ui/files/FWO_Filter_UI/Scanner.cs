@@ -1,3 +1,4 @@
+using FWO.Ui.Filter.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,12 @@ namespace FWO.Ui.Filter
 
         public Scanner(string input)
         {
+            if (input == null)
+                throw new ArgumentNullException("Filter input is null");
+
+            if (input == "")
+                throw new ArgumentException("Filter input is empty");
+
             this.input = input;
         }
 
@@ -28,13 +35,12 @@ namespace FWO.Ui.Filter
 
                 Tokens.AddRange(ReadToken());
             }
-
             return Tokens;
         }
 
-        private bool IsWhitespaceOrEnd()
+        private bool IsWhitespaceOrEnd(int currentPosition)
         {
-            if (position >= input.Length || input[position] == ' ' || input[position] == '\t' || input[position] == '\n')
+            if (currentPosition >= input.Length || input[currentPosition] == ' ' || input[currentPosition] == '\t' || input[currentPosition] == '\n')
             {
                 return true;
             }
@@ -60,7 +66,7 @@ namespace FWO.Ui.Filter
             // Detect Keywordss
             bool detectKeywords = true;
 
-            while (IsWhitespaceOrEnd() == false)
+            while (IsWhitespaceOrEnd(position) == false)
             { 
                 switch (input[position])
                 {
@@ -76,14 +82,19 @@ namespace FWO.Ui.Filter
                         break;
                 }
 
-                if (IsWhitespaceOrEnd())
+                if (IsWhitespaceOrEnd(position))
                     break;
 
                 tokenText += input[position];
 
                 if (detectKeywords == true)
                 {
-                    List<Token> newTokens = TryExtractToken(position, tokenText);
+                    bool surroundedByWhitespace = false;
+
+                    if (IsWhitespaceOrEnd(position + 1))
+                        surroundedByWhitespace = true;
+
+                    List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText, surroundedByWhitespace);
 
                     if (newTokens.Count > 0)
                     {
@@ -108,9 +119,9 @@ namespace FWO.Ui.Filter
         {
             position++;
 
-            if (IsWhitespaceOrEnd())
+            if (IsWhitespaceOrEnd(position))
             {
-                throw new NotSupportedException("Expected escape sequence got whitespace or end.");
+                throw new SyntaxException("Expected escape sequence got whitespace or end.", (position-1)..^(position - 1));
             }
 
             switch (characterCode)
@@ -134,11 +145,11 @@ namespace FWO.Ui.Filter
                     return '\r';
 
                 default:
-                    throw new NotSupportedException($"Escape Sequence \"\\{characterCode}\" is unknown.");
+                    throw new SyntaxException($"Escape Sequence \"\\{characterCode}\" is unknown.", (position-1)..^position);
             }
         }
 
-        private List<Token> TryExtractToken(int beginPosition, string potentialToken)
+        private List<Token> TryExtractToken(int beginPosition, string potentialToken, bool surroundedByWhitespace = false)
         {
             List<Token> tokens = new List<Token>();
 
@@ -146,12 +157,15 @@ namespace FWO.Ui.Filter
             {
                 TokenSyntax validTokenSyntax = TokenSyntax.Get(tokenKind);
 
-                foreach (string validToken in validTokenSyntax.WhiteSpaceRequiered)
+                if (surroundedByWhitespace == true)
                 {
-                    if (potentialToken == validToken)
+                    foreach (string validToken in validTokenSyntax.WhiteSpaceRequiered)
                     {
-                        tokens.Add(new Token(beginPosition, potentialToken, tokenKind));
-                        return tokens;
+                        if (potentialToken == validToken)
+                        {
+                            tokens.Add(new Token(beginPosition, potentialToken, tokenKind));
+                            return tokens;
+                        }
                     }
                 }
 
@@ -161,7 +175,12 @@ namespace FWO.Ui.Filter
                     {
                         if (potentialToken.Length - validToken.Length > 0)
                         {
-                            tokens.Add(new Token(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
+                            List<Token> potentialTokens = TryExtractToken(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), true);
+                            if (potentialTokens.Count == 0)
+                            {
+                                potentialTokens.Add(new Token(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
+                            }
+                            tokens.AddRange(potentialTokens);
                         }
 
                         tokens.Add(new Token(beginPosition + potentialToken.Length - validToken.Length, validToken, tokenKind));

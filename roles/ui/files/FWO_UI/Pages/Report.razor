@@ -3,7 +3,9 @@
 @using FWO.ApiClient.Queries
 @using FWO.Ui.Data.API
 @using FWO.Ui.Data
-@using FWO.Ui.Display 
+@using FWO.Ui.Display
+@using FWO.Ui.Filter
+@using FWO.Ui.Filter.Exceptions
 
 @inject APIConnection Connection
 
@@ -19,31 +21,6 @@
             <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Compliance</a>
             <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Statistics</a>
         </div>
-
-        @*<div class="form-check">
-            <input class="form-check-input" type="radio" name="reportType" id="reportTypePointInTime" value="1" checked>
-            <label class="form-check-label" for="reportTypePointInTime">
-                Point in time
-            </label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="reportType" id="reportTypeTimeIntervall" value="2">
-            <label class="form-check-label" for="reportTypeTimeIntervall">
-                Time intervall
-            </label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="reportType" id="reportTypeCompliance" value="3">
-            <label class="form-check-label" for="reportTypeCompliance">
-                Compliance
-            </label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="reportType" id="reportTypeStatistics" value="4">
-            <label class="form-check-label" for="reportTypeStatistics">
-                Statistics
-            </label>
-        </div>*@
 
         <hr />
 
@@ -77,7 +54,14 @@
     <a href="downloads/test.pdf" target="_blank" download>Download Pdf Export</a>
     <button class="btn btn-danger btn-sm m-1" @onclick="() => ShowPopUp = true">Show Pop up</button>
 
-    <PopUp Title="test" Show="@ShowPopUp" OnClose="() => ShowPopUp = false">test</PopUp>
+    <PopUp Title="test" Show="@ShowPopUp">
+        <Body>
+            test
+        </Body>
+        <Footer>
+            <button class="btn btn-sm btn-danger" @onclick="() => ShowPopUp = false">Close</button>
+        </Footer>
+    </PopUp>
 
     <form class="form-inline m-1">
         <div class="form-group mt-1 mb-1 mr-2">
@@ -90,8 +74,9 @@
         </div>
     </form>
 
-    <div class="mr-1 ml-1">
-        <input type="text" class="form-control" placeholder="Filter" />
+    <div class="mr-1 ml-1 position-relative">
+        <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off" class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" />
+        <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off" class="form-control position-absolute" spellcheck="false">@filterFeedback</div>
     </div>
 
     <div class="card m-1 shadow">
@@ -203,6 +188,9 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
+    private string FilterText = "";
+    private MarkupString filterFeedback = new MarkupString("");
+
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
 
@@ -287,5 +275,37 @@
         ReportPointInTimeExporter exporter = new ReportPointInTimeExporter() { Managements = managementsReport };
         string text = exporter.ToHtml();
         exporter.ToPdf();
+    }
+
+    private void TryFilter(ChangeEventArgs changeArgs)
+    {
+        string filterInput = "";
+
+        try
+        {
+            filterInput = changeArgs.Value.ToString();
+            filterFeedback = new MarkupString(filterInput);
+
+            if (filterInput != "")
+                Compiler.Compile(filterInput);
+        }
+        catch (FilterException filterError)
+        {
+            int errorStart = filterError.ErrorPosition.Start.Value;
+            int errorEnd = filterError.ErrorPosition.End.Value;
+
+            // TODO: RESTRUCTURE (current structure only for debug purpose)
+            string t0 = $"{filterInput.Substring(0, errorStart)}";
+            string t1 = $"<span class=\"error-underline\">{filterInput.Substring(errorStart, errorEnd + 1 - errorStart)}</span>";
+            string t2 = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
+
+            filterFeedback = new MarkupString(t0 + t1 + t2);
+        }
+        catch (Exception unexpectedError)
+        {
+#if DEBUG
+            ShowError("Filter Error", $"{unexpectedError.Message}\n{unexpectedError.StackTrace}");
+#endif
+        }
     }
 }

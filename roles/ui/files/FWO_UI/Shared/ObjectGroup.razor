@@ -13,7 +13,12 @@
                     <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" Class="word-wrap" />
                     <DetailTemplate TableItem="NetworkObject">
                         <Detail Title="UID" Data=@context.Uid />
-                        <Detail Title="IP" Data=@context.IP /> @* ??? (context.IP == context.IP ? context.IP.ToString() : $"{context.IP.ToString()}-{context.IP.ToString()}")*@
+                        <Detail Title="IP" Data=@context.IP />
+                        <Detail Title="Zone" Data=@context.Zone?.Name />
+                        <Detail Title="Object Groups" Data=@(String.Join("; ", context.ObjectGroups.Select(objgrp => objgrp.Object.Name))) />
+                        <Detail Title="Object Groups (flattened)" Data=@(String.Join("; ", context.ObjectGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))) />
+                        <Detail Title="Last changed" Data=@context.Create.ToString() />
+                        <Detail Title="Comment" Data=@context.Comment />
                     </DetailTemplate>
                 </Table>
             </Collapse>
@@ -24,11 +29,14 @@
                         <Detail Title="UID" Data=@context.Uid />
                         <Detail Title="Source Port" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
                         <Detail Title="Destination Port" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
+                        <Detail Title="Protocol" Data=@context.Protocol?.Name />
                         <Detail Title="Code" Data=@context.Code />
                         <Detail Title="Timeout" Data=@context.Timeout.ToString() />
                         <Detail Title="Type" Data=@context.Type.Name />
+                        <Detail Title="Service Groups" Data=@(String.Join("; ", context.ServiceGroups.Select(objgrp => objgrp.Object.Name))) />
+                        <Detail Title="Service Groups (flattened)" Data=@(String.Join("; ", context.ServiceGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))) />
+                        <Detail Title="Last changed" Data=@context.Create.ToString() />
                         <Detail Title="Comment" Data=@context.Comment />
-                        <Detail Title="Protocol" Data=@context.Protocol?.Name />
                     </DetailTemplate>
                 </Table>
             </Collapse>
@@ -38,10 +46,11 @@
                     <DetailTemplate TableItem="NetworkUser">
                         <Detail Title="UID" Data=@context.Uid />
                         <Detail Title="Real Name" Data=@($"{context.FirstName} {context.LastName}") />
-                        <Detail Title="Comment" Data=@context.Comment />
                         <Detail Title="Type" Data=@context.Type.Name />
-                        <Detail Title="Member Names" Data=@context.MemberNames />
-                        <Detail Title="Member References" Data=@context.MemberRefs />
+                        <Detail Title="User Groups" Data=@(String.Join("; ", context.UserGroups.Select(objgrp => objgrp.Object.Name))) />
+                        <Detail Title="User Groups (flattened)" Data=@(String.Join("; ", context.UserGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))) />
+                        <Detail Title="Last changed" Data=@context.Create.ToString() />
+                        <Detail Title="Comment" Data=@context.Comment />
                     </DetailTemplate>
                 </Table>
             </Collapse>

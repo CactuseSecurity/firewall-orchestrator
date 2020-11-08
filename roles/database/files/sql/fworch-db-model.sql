@@ -8,7 +8,7 @@ Database		PostgreSQL 9-12
 
 /* Create Sequences */
 
-Create sequence "public"."abs_change_id_seq"
+Create sequence if not exists "public"."abs_change_id_seq"
 Increment 1
 Minvalue 1
 Maxvalue 9223372036854775807
@@ -1003,8 +1003,6 @@ Create index "IX_Relationship128" on "changelog_rule" ("dev_id");
 Alter table "changelog_rule" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_Relationship186" on "rule" ("dev_id");
 Alter table "rule" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
-Create index "IX_Relationship192" on "device_tenant_map" ("dev_id");
-Alter table "device_tenant_map" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_Relationship205" on "report" ("dev_id");
 Alter table "report" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete restrict;
 Create index "IX_relationship7" on "device" ("tenant_id");
@@ -1295,7 +1293,6 @@ Create group "reporters";
 Create group "isoadmins";
 
 /* Create Users */
-Create user "fworch";
 Create user "dbbackup";
 Create user "isoimporter";
 CREATE ROLE textreader LOGIN

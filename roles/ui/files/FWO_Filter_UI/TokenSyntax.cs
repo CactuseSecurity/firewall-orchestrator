@@ -32,6 +32,18 @@ namespace FWO.Ui.Filter
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
+                TokenKind.Action => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "action", "act", "enforce" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.Service => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "svc", "service", "srv" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
                 TokenKind.BL => new TokenSyntax
                 {
                     WhiteSpaceRequiered = new string[] { },

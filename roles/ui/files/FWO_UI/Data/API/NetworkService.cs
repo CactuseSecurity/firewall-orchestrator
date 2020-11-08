@@ -59,7 +59,7 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("id_proto_id")]
         public int? ProtoId { get; set; }
 
-        [JsonPropertyName("protocol_name")]
+        [JsonPropertyName("protocol")]
         public NetworkProtocol Protocol { get; set; }
 
         [JsonPropertyName("svc_member_names")]

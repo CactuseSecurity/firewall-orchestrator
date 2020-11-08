@@ -106,7 +106,7 @@
                         <input id="managementImporterHostname" type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
                     </div>
                 </div>
-                
+
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" id="managementImportDisabled" type="checkbox" @bind="actManagement.ImportDisabled">
                     <label class="form-check-label" for="managementImportDisabled"><small>Import Disabled</small></label>
@@ -139,7 +139,7 @@
     <Body>
         @if (DeleteMode)
         {
-            <p>Are you sure you want to delete management "@(actManagement.Name)"?</p>
+            <p>@(deleteMessage)</p>
 
             @if (errorMessage != "")
             {
@@ -149,7 +149,10 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">Delete</button>
+            @if (DeleteAllowed)
+            {
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">Delete</button>
+            }
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
@@ -164,11 +167,13 @@
 
     private bool EditMode = false;
     private bool DeleteMode = false;
+    private bool DeleteAllowed = false;
     private bool AddMode = false;
 
     private Management newManagement;
     private Management actManagement;
 
+    private string deleteMessage = "";
     private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
@@ -186,6 +191,17 @@
     private void RequestDelete(Management management)
     {
         actManagement = management;
+        // Checks if delete possible. Todo: further checks?
+        if (actManagement.Devices.Length == 0)
+        {
+            deleteMessage = $"Are you sure you want to delete management {actManagement.Name}?";
+            DeleteAllowed = true;
+        }
+        else
+        {
+            deleteMessage = $"Deletion of management {actManagement.Name} not allowed as there are related Gateways. Delete them first if possible.";
+            DeleteAllowed = false;
+        }
         DeleteMode = true;
     }
 
@@ -193,7 +209,6 @@
     {
         try
         {
-            // Todo: checks if delete possible. Else set e.g. an archive flag?
             var Variables = new { id = management.Id };
             int delId = (await Task.Run(() => apiConnection.SendQueryAsync<Management>(FWO.ApiClient.Queries.BasicQueries.deleteManagement, Variables))).Id;
             if (delId == management.Id)

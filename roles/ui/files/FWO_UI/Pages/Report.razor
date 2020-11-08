@@ -243,20 +243,22 @@
                 query.setVariable("Offset", offset);
                 object queryVars = query.getVariables();
 
-                // managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
-                managementsReport = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
-                // managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, queryVars);
+                managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+                // with filter:
+                // managementsReport = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
                 await InvokeAsync(StateHasChanged);
 
                 bool newObjects = true;
 
                 while (newObjects)
                 {
-                    query.setVariable("Offset", Convert.ToInt32(query.getVariableValue("Offset"))+rulesPerFetch);
+                    int lastOffset = Convert.ToInt32(query.getVariableValue("Offset"));
+                    query.updateVariable("Offset", lastOffset+rulesPerFetch);
                     queryVars = query.getVariables();
                     paginationVariables.Offset += rulesPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
-                    //Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
+                    // with filter:
+                    // Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
 
                     await InvokeAsync(StateHasChanged);

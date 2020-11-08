@@ -71,7 +71,17 @@ namespace FWO.Ui.Filter
         public void setVariable(string key, object value)
         {
             // queryVariables.Add(new JProperty(key, new JValue(value)));
+            // check if variable already exists
             queryVariables.Add(new JProperty(key, value));
+            //queryVariables.Add(key, value);
+            //queryVariableDict[key] = value;
+        }
+        public void updateVariable(string key, object value)
+        {
+            // queryVariables.Add(new JProperty(key, new JValue(value)));
+            queryVariables.Remove(key);
+            setVariable(key, value);
+
             //queryVariables.Add(key, value);
             //queryVariableDict[key] = value;
         }
@@ -98,7 +108,7 @@ namespace FWO.Ui.Filter
         //     return eoDynamic;
         // }
 
-// JObject o = JObject.Parse(json);
+        // JObject o = JObject.Parse(json);
         // private object getVariablesAsJson()
         // {
         //     var jsSerializer = new JavaScriptSerializer();

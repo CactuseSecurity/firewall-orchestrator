@@ -6,16 +6,26 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Dynamic;
+using Newtonsoft.Json.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
+using FWO.Logging;
+using GraphQL;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.SystemTextJson;
+using GraphQL.Client.Abstractions;
+using System.Linq;
 //using GraphQL.SystemTextJson;
-//using Newtonsoft.Json.Linq;
 
 namespace FWO.Ui.Filter
 {
     public class DynGraphqlQuery
     {
         public string queryDeviceHeader { get; }
+        public int parameterCounter;
 
         public Dictionary<string, object> queryVariableDict { get; set; }
+        public JObject queryVariables { get; set; }
 
         public string fullQuery { get; set; }
         public string whereQueryPart { get; set; }
@@ -26,6 +36,7 @@ namespace FWO.Ui.Filter
         {
             whereQueryPart = "";
             timeFilter = "";
+            parameterCounter = 0;
             queryDeviceHeader = @"                    
                 management(
                     where: { mgm_id: { _in: $managementId } }
@@ -49,36 +60,50 @@ namespace FWO.Ui.Filter
             queryParameters.Add(" $limit: Int ");
             queryParameters.Add(" $offset: Int ");
             queryVariableDict = new Dictionary<string, object>();
+            queryVariables = new JObject();
+
         }
         public object getVariableValue(string key)
         {
-            return queryVariableDict[key];
+            return queryVariables.GetValue(key);
+            // return queryVariableDict[key];
         }
-        public void addVariable(string key, object value)
+        public void setVariable(string key, object value)
         {
-            queryVariableDict[key] = value;
+            // queryVariables.Add(new JProperty(key, new JValue(value)));
+            queryVariables.Add(new JProperty(key, value));
+            //queryVariables.Add(key, value);
+            //queryVariableDict[key] = value;
         }
-        public void setVariableObject(string key, object value)
+        public object getVariables()
         {
-            queryVariableDict[key] = value;
+            // return DictionaryToObject(queryVariableDict);
+            return queryVariables;
         }
 
-        public object getVariableObject()
-        {
-            return DictionaryToObject(queryVariableDict);
-        }
-        private static dynamic DictionaryToObject(IDictionary<string, Object> dictionary)
-        {
-            var expandoObj = new ExpandoObject();
-            var expandoObjCollection = (ICollection<KeyValuePair<string, Object>>)expandoObj;
+        // public string deserializeVariables()
+        // {
+        //     return JsonSerializer.Deserialize<string,object>(queryVariables);
+        // }
+        // private static dynamic DictionaryToObject(IDictionary<string, Object> dictionary)
+        // {
+        //     var expandoObj = new ExpandoObject();
+        //     var expandoObjCollection = (ICollection<KeyValuePair<string, Object>>)expandoObj;
 
-            foreach (var keyValuePair in dictionary)
-            {
-                expandoObjCollection.Add(keyValuePair);
-            }
-            dynamic eoDynamic = expandoObj;
-            return eoDynamic;
-        }
-    
+        //     foreach (var keyValuePair in dictionary)
+        //     {
+        //         expandoObjCollection.Add(keyValuePair);
+        //     }
+        //     dynamic eoDynamic = expandoObj;
+        //     return eoDynamic;
+        // }
+
+// JObject o = JObject.Parse(json);
+        // private object getVariablesAsJson()
+        // {
+        //     var jsSerializer = new JavaScriptSerializer();
+        //     var serialized = jsSerializer.Serialize(queryVariableDict);
+        //     var deserializedResult = jsSerializer.Deserialize<List<Person>>(serialized);
+        // }
     }
 }

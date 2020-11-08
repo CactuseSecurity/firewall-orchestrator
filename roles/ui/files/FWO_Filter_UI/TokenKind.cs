@@ -7,6 +7,8 @@ namespace FWO.Ui.Filter
         Value,
         Source,
         Destination,
+        Service,
+        Action,
         BL, // (
         BR, // )
         And,

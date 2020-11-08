@@ -14,28 +14,15 @@ namespace FWO.Ui.Filter
         public static DynGraphqlQuery ToGraphQl(AstNode ast)
         {
             DynGraphqlQuery query = new DynGraphqlQuery();
-            string fullTextFilter = "ny";
             string timeFilter = "";
             string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
 
             ast.Extract(ref query);
 
             if (query.timeFilter == "")
-                query.whereQueryPart += " active: { _eq: true } ";
+                query.whereQueryPart += ", active: { _eq: true } ";
             else
                 query.whereQueryPart += $" {timeFilter} ";
-
-            if (fullTextFilter != "")
-            {
-                query.addVariable("fullText", $"%{fullTextFilter}%");
-                query.queryParameters.Add(" $fullText: String! ");
-                query.whereQueryPart += @"
-                    _or: [
-                        { rule_src: { _ilike: $fullText} }
-                        { rule_dst: { _ilike: $fullText} }
-                        { rule_svc: { _ilike: $fullText} }
-                    ] ";
-            }
 
             string paramString = string.Join(" ", query.queryParameters.ToArray());
             query.fullQuery = $@"

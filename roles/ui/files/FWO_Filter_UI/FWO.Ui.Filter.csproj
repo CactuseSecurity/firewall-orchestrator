@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+      <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="3.2.0" />
+  </ItemGroup>
+  <ItemGroup>
       <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO.ApiClient.csproj" />
   </ItemGroup>
 </Project>

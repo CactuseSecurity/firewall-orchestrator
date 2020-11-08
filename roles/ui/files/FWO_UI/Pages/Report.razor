@@ -188,7 +188,6 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private string filterText = "";
     private MarkupString filterFeedback = new MarkupString("");
 
     [CascadingParameter]
@@ -236,25 +235,28 @@
         {
             try
             {
-               //PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
-               //managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
-                DynGraphqlQuery query = Compiler.Compile("ny");
-                query.setVariableObject("limit", rulesPerFetch);
-                query.setVariableObject("offset", 0);
-                object queryVars = query.getVariableObject();
-                
+                int limit = rulesPerFetch;
+                int offset = 0;
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
+                DynGraphqlQuery query = Compiler.Compile("action:drop");
+                query.setVariable("Limit", limit);
+                query.setVariable("Offset", offset);
+                object queryVars = query.getVariables();
+
+                // managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
                 managementsReport = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
+                // managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, queryVars);
                 await InvokeAsync(StateHasChanged);
 
                 bool newObjects = true;
 
                 while (newObjects)
                 {
-                    query.setVariableObject("offset", Convert.ToInt32(query.getVariableValue("offset"))+rulesPerFetch);
-                    queryVars = query.getVariableObject();
-                    //paginationVariables.Offset += rulesPerFetch;
-                    //Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
+                    query.setVariable("Offset", Convert.ToInt32(query.getVariableValue("Offset"))+rulesPerFetch);
+                    queryVars = query.getVariables();
+                    paginationVariables.Offset += rulesPerFetch;
+                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+                    //Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
 
                     await InvokeAsync(StateHasChanged);

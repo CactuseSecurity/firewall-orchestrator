@@ -25,10 +25,17 @@ namespace FWO.Test.Filter
         }
 
         [TestMethod]
-        public void Easy0()
+        public void AndOr()
         {
             input = "((src=123) & (dst=234)) | (src = 123)";
             Compiler.Compile(input);
         }
+
+        public void TripleOr()
+        {
+            input = "(src=cactus or dst=cactus or svc=smtps)";
+            Compiler.Compile(input);
+        }
+        
     }
 }

@@ -6,7 +6,6 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Dynamic;
-using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FWO.Logging;
@@ -15,105 +14,76 @@ using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
 using GraphQL.Client.Abstractions;
 using System.Linq;
-//using GraphQL.SystemTextJson;
+using FWO.ApiClient.Queries;
 
 namespace FWO.Ui.Filter
 {
     public class DynGraphqlQuery
     {
+        public int parameterCounter = 0;
         public string queryDeviceHeader { get; }
-        public int parameterCounter;
-
-        public Dictionary<string, object> queryVariableDict { get; set; }
-        public JObject queryVariables { get; set; }
-
-        public string fullQuery { get; set; }
-        public string whereQueryPart { get; set; }
-        public List<string> queryParameters { get; set; }
-        public string timeFilter { get; set; }
-
-        public DynGraphqlQuery()
+        public Dictionary<string, object> QueryVariables { get; set; } = new Dictionary<string, object>();
+        public string FullQuery { get; set; } = "";
+        public string WhereQueryPart { get; set; } = "";
+        public List<string> QueryParameters { get; set; } = new List<string>()
         {
-            whereQueryPart = "";
-            timeFilter = "";
-            parameterCounter = 0;
-            queryDeviceHeader = @"                    
-                management(
-                    where: { mgm_id: { _in: $managementId } }
-                    order_by: { mgm_name: asc }
-                ) 
-                {
-                    mgm_id
-                    mgm_name
-                    devices(
-                        where: { dev_id: { _in: $deviceId } }
-                        order_by: { dev_name: asc }
-                    ) {
-                        dev_id
-                        dev_name
-                    }
-                ";
+            " $managementId: [Int!] ",
+            " $deviceId: [Int!] ",
+            " $limit: Int ",
+            " $offset: Int "
+        };
+        public string TimeFilter { get; set; }
 
-            queryParameters = new List<string>();
-            queryParameters.Add(" $managementId: [Int!] ");
-            queryParameters.Add(" $deviceId: [Int!] ");
-            queryParameters.Add(" $limit: Int ");
-            queryParameters.Add(" $offset: Int ");
-            queryVariableDict = new Dictionary<string, object>();
-            queryVariables = new JObject();
+        private DynGraphqlQuery() { }
 
-        }
-        public object getVariableValue(string key)
+        public static DynGraphqlQuery Generate(AstNode ast)
         {
-            return queryVariables.GetValue(key);
-            // return queryVariableDict[key];
-        }
-        public void setVariable(string key, object value)
-        {
-            // queryVariables.Add(new JProperty(key, new JValue(value)));
-            // check if variable already exists
-            queryVariables.Add(new JProperty(key, value));
-            //queryVariables.Add(key, value);
-            //queryVariableDict[key] = value;
-        }
-        public void updateVariable(string key, object value)
-        {
-            // queryVariables.Add(new JProperty(key, new JValue(value)));
-            queryVariables.Remove(key);
-            setVariable(key, value);
+            string timeFilter = "";
+            string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
 
-            //queryVariables.Add(key, value);
-            //queryVariableDict[key] = value;
+            DynGraphqlQuery query = new DynGraphqlQuery();
+            ast.Extract(ref query);
+
+            if (query.TimeFilter == "")
+                query.WhereQueryPart += ", active: { _eq: true } ";
+            else
+                query.WhereQueryPart += $" {timeFilter} ";
+
+            string paramString = string.Join(" ", query.QueryParameters.ToArray());
+            query.FullQuery = $@"
+                {ruleOverviewFragment}
+
+                query ruleFilter ({paramString}) 
+                {{ 
+                    management(
+                        where: {{ mgm_id: {{ _in: $managementId }} }}
+                        order_by: {{ mgm_name: asc }} ) 
+                        {{
+                            mgm_id
+                            mgm_name
+                            devices (
+                                where: {{ dev_id: {{ _in: $deviceId }} }}
+                                order_by: {{ dev_name: asc }} ) 
+                                {{
+                                    dev_id
+                                    dev_name
+                                    rules(
+                                        limit: $limit 
+                                        offset: $offset
+                                        where: {{ {query.WhereQueryPart} }} 
+                                        order_by: {{ rule_num_numeric: asc }} )
+                                        {{
+                                            ...ruleOverview
+                                        }} 
+                                }}
+                        }} 
+                }}";
+
+            // remove linebreaks and multiple whitespaces
+            //query.FullQuery = Regex.Replace(query.FullQuery, "\n", " ");
+            //query.FullQuery = Regex.Replace(query.FullQuery, @"\s+", " ");
+
+            return query;
         }
-        public object getVariables()
-        {
-            // return DictionaryToObject(queryVariableDict);
-            return queryVariables;
-        }
-
-        // public string deserializeVariables()
-        // {
-        //     return JsonSerializer.Deserialize<string,object>(queryVariables);
-        // }
-        // private static dynamic DictionaryToObject(IDictionary<string, Object> dictionary)
-        // {
-        //     var expandoObj = new ExpandoObject();
-        //     var expandoObjCollection = (ICollection<KeyValuePair<string, Object>>)expandoObj;
-
-        //     foreach (var keyValuePair in dictionary)
-        //     {
-        //         expandoObjCollection.Add(keyValuePair);
-        //     }
-        //     dynamic eoDynamic = expandoObj;
-        //     return eoDynamic;
-        // }
-
-        // JObject o = JObject.Parse(json);
-        // private object getVariablesAsJson()
-        // {
-        //     var jsSerializer = new JavaScriptSerializer();
-        //     var serialized = jsSerializer.Serialize(queryVariableDict);
-        //     var deserializedResult = jsSerializer.Deserialize<List<Person>>(serialized);
-        // }
     }
 }

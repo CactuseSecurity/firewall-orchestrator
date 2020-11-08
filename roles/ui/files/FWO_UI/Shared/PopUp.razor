@@ -1,6 +1,6 @@
 ﻿<div class="modal-backdrop @(Show? "" : "d-none")" style="background-color:rgba(0,0,0,0.5);">
     <div class="@(Show? "modal-open" : "modal")" tabindex="-1">
-        <div class="modal-dialog @(Large ? "modal-lg" : "")">
+        <div class="modal-dialog @(Large ? "modal-lg" : "") @(Scrollable ? "modal-dialog-scrollable" : "")">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">@Title</h5>
@@ -44,6 +44,9 @@
 
     [Parameter]
     public bool Large { get; set; } = false;
+
+    [Parameter]
+    public bool Scrollable { get; set; } = true;
 
     [Parameter]
     public Action OnClose { get; set; } = new Action(() => { });

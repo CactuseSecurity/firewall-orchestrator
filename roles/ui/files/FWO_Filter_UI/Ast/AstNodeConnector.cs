@@ -12,29 +12,26 @@ namespace FWO.Ui.Filter.Ast
 
         public override void Extract(ref DynGraphqlQuery query)
         {
-            string operation;
-
             switch (ConnectorType)
             {
-                case TokenKind.And:
-                    operation = ""; // and is the default operator
+                case TokenKind.And: // and is the default operator
                     break;
                 case TokenKind.Or:
-                    operation = "_or: [{"; // or terms need to be enclosed in []
+                    query.WhereQueryPart += "_or: [{"; // or terms need to be enclosed in []
                     break;
                 default:
-                    throw new Exception("### Parser Error: Expected Filtername Token (and thought there is one) ###");
+                    throw new Exception("Expected Filtername Token (and thought there is one)");
             }
 
-            query.whereQueryPart += operation;
-
             Left.Extract(ref query);
+
             if (ConnectorType == TokenKind.Or)
-                query.whereQueryPart += "}, {";
+                query.WhereQueryPart += "}, {";
+
             Right.Extract(ref query);
 
             if (ConnectorType == TokenKind.Or)
-                query.whereQueryPart += "}] ";
+                query.WhereQueryPart += "}] ";
             return;
         }
     }

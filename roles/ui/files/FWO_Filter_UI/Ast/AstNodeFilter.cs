@@ -77,17 +77,17 @@ namespace FWO.Ui.Filter.Ast
             {
                 case "_ilike":
                 case "_nilike":
-                    query.setVariable(paramName, $"%{Value}%");
+                    query.QueryVariables[paramName] = $"%{Value}%";
                     break;
                 case "_eq":
                 case "_neq":
-                    query.setVariable(paramName, Value);
+                    query.QueryVariables[paramName] = Value;
                     break;
                 default:
                     throw new Exception("### Parser Error: Expected operation  ###");
             }
-            query.whereQueryPart += localQuery;
-            query.queryParameters.Add("$" + paramName + ": String! ");  // todo: also need to take of ip addresses and svc ports and protocols
+            query.WhereQueryPart += localQuery;
+            query.QueryParameters.Add("$" + paramName + ": String! ");  // todo: also need to take of ip addresses and svc ports and protocols
             return;
         }
     }

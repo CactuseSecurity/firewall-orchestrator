@@ -18,10 +18,10 @@ namespace FWO.Ui.Data
 
             foreach (Management management in Managements)
             {
-                foreach (var item in collection)
-                {
+                //foreach (var item in collection)
+                //{
 
-                }
+                //}
             }
 
 

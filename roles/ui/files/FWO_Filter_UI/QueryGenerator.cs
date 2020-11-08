@@ -19,13 +19,13 @@ namespace FWO.Ui.Filter
 
             ast.Extract(ref query);
 
-            if (query.timeFilter == "")
-                query.whereQueryPart += ", active: { _eq: true } ";
+            if (query.TimeFilter == "")
+                query.WhereQueryPart += ", active: { _eq: true } ";
             else
-                query.whereQueryPart += $" {timeFilter} ";
+                query.WhereQueryPart += $" {timeFilter} ";
 
-            string paramString = string.Join(" ", query.queryParameters.ToArray());
-            query.fullQuery = $@"
+            string paramString = string.Join(" ", query.QueryParameters.ToArray());
+            query.FullQuery = $@"
                 {ruleOverviewFragment}
 
                 query ruleFilter ({paramString}) 
@@ -34,7 +34,7 @@ namespace FWO.Ui.Filter
                         rules(
                             limit: $limit 
                             offset: $offset
-                            where: {{ {query.whereQueryPart} }} 
+                            where: {{ {query.WhereQueryPart} }} 
                             order_by: {{ rule_num_numeric: asc }}
                         ) {{
                             ...ruleOverview
@@ -43,8 +43,8 @@ namespace FWO.Ui.Filter
                 }}";
 
             // remove linebreaks and multiple whitespaces
-            query.fullQuery = Regex.Replace(query.fullQuery, "\n", " ");
-            query.fullQuery = Regex.Replace(query.fullQuery, @"\s+", " ");
+            //query.FullQuery = Regex.Replace(query.FullQuery, "\n", " ");
+            //query.FullQuery = Regex.Replace(query.FullQuery, @"\s+", " ");
             return query;
         }
     }

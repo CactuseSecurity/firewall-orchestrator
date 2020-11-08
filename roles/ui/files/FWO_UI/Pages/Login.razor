@@ -1,0 +1,136 @@
+@using FWO.Ui.Auth
+@using FWO.ApiClient
+@using FWO.Auth.Client
+@using System.Net
+@using FWO.ApiConfig
+
+@inject AuthClient AuthClient
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject AuthenticationStateProvider AuthService
+@inject APIConnection ApiConnection
+@inject IJSRuntime js
+@inject FWO.ApiConfig.UserConfigCollection userConfig
+@inject FWO.ApiConfig.ConfigCollection globalConfig
+
+@if (showLoginForm)
+{
+    <div class="row m-4 justify-content-center">
+        <div>
+            <h2 class="text-center"> Login </h2>
+            <div class="shadow-sm card p-3" style="width: 250px;">
+                <form class="d-flex flex-column">
+                    <div class="form-group">
+                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="Username" @bind="Username" @bind:event="oninput" @onkeypress="ClearInputClass">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="Password" @bind="Password" @bind:event="oninput" @onkeypress="ClearInputClass">
+                    </div>
+                    @if (loginInProgress == false)
+                    {
+                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button>
+                    }
+                    else
+                    {
+                        <div class="spinner-border text-primary align-self-center" role="status"></div>
+                    }
+                    <label class="m-2">@errorMessage</label> 
+                </form>
+            </div>          
+        </div>
+    </div>
+}
+
+
+
+@code
+{
+    // dont immediately show login page because session storage is only available after render, so there might be a immediate redirect
+    private bool showLoginForm = false;
+
+    private bool loginInProgress = false;
+
+    private string Username = "";
+    private string Password = "";
+
+    private string InputClass = "";
+
+    private string errorMessage = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // This might be a reconnect. Check if there is a jwt in session storage.
+            string jwt = await sessionStorage.GetItemAsync<string>("jwt");
+
+            if (jwt != null) // reconnect
+            {
+                // Tell api connection to use jwt as authentication
+                ApiConnection.SetAuthHeader(jwt);
+
+                // Try to auth with jwt (validates it, gets roles, ...).
+                ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+            }
+
+            else // no reconnect
+            {
+                showLoginForm = true;
+                StateHasChanged();
+                await focusInput();
+            }
+        }
+    }
+
+    private void ClearInputClass(KeyboardEventArgs e)
+    {
+        InputClass = "";
+    }
+
+    private async Task LoginSubmit()
+    {
+        if (loginInProgress == false)
+        {
+            loginInProgress = true;
+
+            // There is no jwt in session storage. Get one from auth module.
+            AuthServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
+
+            // There was an error trying to authenticate the user. Probably invalid credentials
+            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            {
+                errorMessage = apiAuthResponse.Error + " See log for details!";
+
+                // Visualisize there was an error by making border of inputboxes red
+                InputClass = "is-invalid";
+                loginInProgress = false;
+                await focusInput();
+            }
+
+            else
+            {
+                string jwt = apiAuthResponse.GetResult<string>("jwt");
+
+                // Save it in session storage.
+                await sessionStorage.SetItemAsync<string>("jwt", jwt);
+
+                // Tell api connection to use jwt as authentication
+                ApiConnection.SetAuthHeader(jwt);
+
+                // Try to auth with jwt (validates it, gets roles, ...).
+                ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+
+                // overwrite userConfig with actual userData after login (does this work?)
+                //userConfig = new ApiConfig.UserConfigCollection();
+                userConfig.ChangeLanguage("English");
+
+                loginInProgress = false;
+            }
+        }
+    }
+
+    private async Task focusInput()
+    {
+        if (showLoginForm)
+            await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
+    }
+}

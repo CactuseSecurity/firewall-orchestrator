@@ -1,0 +1,56 @@
+﻿<div class="modal-backdrop @(Show? "" : "d-none")" style="background-color:rgba(0,0,0,0.5);">
+    <div class="@(Show? "modal-open" : "modal")" tabindex="-1">
+        <div class="modal-dialog @(Large ? "modal-lg" : "")">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="close" @onclick="Close">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    @Body
+                </div>
+                <div class="modal-footer">
+                    @Footer
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@*<div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            ...
+        </div>
+    </div>
+</div>*@
+
+@code
+{
+    [Parameter]
+    public string Title { get; set; } = "EMPTY_TITLE";
+
+    [Parameter]
+    public RenderFragment Body { get; set; }
+
+    [Parameter]
+    public RenderFragment Footer { get; set; }
+
+    [Parameter]
+    public bool Show { get; set; } = false;
+
+    [Parameter]
+    public bool Large { get; set; } = false;
+
+    [Parameter]
+    public Action OnClose { get; set; } = new Action(() => { });
+
+    private void Close()
+    {
+        Show = false;
+        OnClose();
+    }
+}

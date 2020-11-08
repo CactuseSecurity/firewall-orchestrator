@@ -1,0 +1,90 @@
+﻿@using System.Collections.Generic
+@using System.Security.Claims
+@using FWO.Ui.Data
+@using FWO.ApiConfig.Data
+@using FWO.ApiConfig
+
+@inject ConfigCollection globalConfig
+@inject UserConfigCollection userConfig
+
+<nav class="navbar navbar-expand-xl navbar-dark bg-dark shadow w-100">
+    <a class="navbar-brand" href="#">
+        <!-- <img src="images/FWO_Logo.png" /> -->
+        Firewall-Orchestrator v@(globalConfig.productVersion)
+    </a>
+
+
+    <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="navbar-collapse @NavMenuCollapseClass">
+        <ul class="navbar-nav mr-auto">
+            @foreach (NavItem navItem in navItemsLeft)
+            {
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="@navItem.Link">
+                        <span class="@navItem.Symbol"></span> @navItem.Name()
+                    </NavLink>
+                </li>
+            }
+        </ul>
+
+        <ul class="navbar-nav">
+            @foreach (NavItem navItem in navItemsRight)
+            {
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="@navItem.Link">
+                        <span class="@navItem.Symbol"></span> @navItem.Name()
+                    </NavLink>
+                </li>
+            }
+        </ul>
+    </div>
+</nav>
+
+@code
+{
+    [Parameter]
+    public NavItem[] navItemsLeft { get; set; }
+
+    [Parameter]
+    public NavItem[] navItemsRight { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    bool collapseNavMenu = true;
+
+    string NavMenuCollapseClass => (collapseNavMenu ? " collapse" : "");
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState authState = await authenticationStateTask;
+        ClaimsPrincipal user = authState.User;
+
+        navItemsLeft = new NavItem[]
+        {
+            new NavItem(() => userConfig.translate["reporting"], "/report", "oi oi-spreadsheet"),
+            new NavItem(() => userConfig.translate["documentation"], "#", "oi oi-book"),
+            new NavItem(() => userConfig.translate["request"], "#", "oi oi-comment-square")
+        };
+
+        // build list of items in right navigation and turning into array in the end
+        List<NavItem> navRightList = new List<NavItem>();
+        navRightList.Add(new NavItem(() => userConfig.translate["help"], "/help", "oi oi-info"));
+        navRightList.Add(new NavItem(() => userConfig.translate["settings"], "/settings", "oi oi-cog"));
+        navRightList.Add(new NavItem(() => user.Identity.Name.ToUpper(), "/settings/personal", "oi oi-person"));
+        navRightList.Add(new NavItem(() => userConfig.translate["logout"], "/logout", "oi oi-account-logout"));
+        navItemsRight = navRightList.ToArray();
+
+        userConfig.OnChange += Update;
+    }
+
+    private async void Update(object sender, EventArgs args) => await InvokeAsync(StateHasChanged);
+
+    void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

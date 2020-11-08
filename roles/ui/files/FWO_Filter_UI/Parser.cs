@@ -50,7 +50,7 @@ namespace FWO.Ui.Filter
             AstNodeConnector rootNode = new AstNodeConnector() 
             { 
                 Left = ParseAnd(),
-                ConnectorTyp = TokenKind.Or
+                ConnectorType = TokenKind.Or
             };
 
             while (NextTokenExists() && GetNextToken().Kind == TokenKind.Or)
@@ -60,7 +60,7 @@ namespace FWO.Ui.Filter
                 rootNode = new AstNodeConnector()
                 {
                     Left = rootNode,
-                    ConnectorTyp = TokenKind.Or
+                    ConnectorType = TokenKind.Or
                 };
             }
 
@@ -80,7 +80,7 @@ namespace FWO.Ui.Filter
             AstNodeConnector rootNode = new AstNodeConnector() 
             { 
                 Left = ParseNot(),
-                ConnectorTyp = TokenKind.And
+                ConnectorType = TokenKind.And
             };
 
             while (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
@@ -90,7 +90,7 @@ namespace FWO.Ui.Filter
                 rootNode = new AstNodeConnector() 
                 { 
                     Left = rootNode,
-                    ConnectorTyp = TokenKind.And
+                    ConnectorType = TokenKind.And
                 };
             }
 
@@ -165,7 +165,7 @@ namespace FWO.Ui.Filter
 
         private TokenKind ParseFilterName()
         {
-            return CheckToken(TokenKind.Destination, TokenKind.Source).Kind;
+            return CheckToken(TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Action).Kind;
         }
 
         private Token CheckToken(params TokenKind[] Matches)

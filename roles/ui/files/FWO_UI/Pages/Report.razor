@@ -188,7 +188,6 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private string FilterText = "";
     private MarkupString filterFeedback = new MarkupString("");
 
     [CascadingParameter]
@@ -230,23 +229,36 @@
         });
     }
 
-    private void GenerateTestReport(MouseEventArgs e)
+    private void GenerateTestReport()
     {
         Task.Run(async () =>
         {
             try
             {
+                int limit = rulesPerFetch;
+                int offset = 0;
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
+                DynGraphqlQuery query = Compiler.Compile("action:drop");
+                query.setVariable("Limit", limit);
+                query.setVariable("Offset", offset);
+                object queryVars = query.getVariables();
 
                 managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+                // with filter:
+                // managementsReport = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
                 await InvokeAsync(StateHasChanged);
 
                 bool newObjects = true;
 
                 while (newObjects)
                 {
+                    int lastOffset = Convert.ToInt32(query.getVariableValue("Offset"));
+                    query.updateVariable("Offset", lastOffset+rulesPerFetch);
+                    queryVars = query.getVariables();
                     paginationVariables.Offset += rulesPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+                    // with filter:
+                    // Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.fullQuery, queryVars);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
 
                     await InvokeAsync(StateHasChanged);
@@ -280,6 +292,7 @@
     private void TryFilter(ChangeEventArgs changeArgs)
     {
         string filterInput = "";
+        DynGraphqlQuery query;
 
         try
         {
@@ -287,7 +300,7 @@
             filterFeedback = new MarkupString(filterInput);
 
             if (filterInput != "")
-                Compiler.Compile(filterInput);
+                query = Compiler.Compile(filterInput);
         }
         catch (FilterException filterError)
         {

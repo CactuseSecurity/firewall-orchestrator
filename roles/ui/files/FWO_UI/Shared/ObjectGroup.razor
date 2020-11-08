@@ -12,11 +12,25 @@
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" Class="word-wrap" />
                     <DetailTemplate TableItem="NetworkObject">
+                        <Detail Title="Type" Data=@context.Type.Name />
                         <Detail Title="UID" Data=@context.Uid />
                         <Detail Title="IP" Data=@context.IP />
                         <Detail Title="Zone" Data=@context.Zone?.Name />
-                        <Detail Title="Object Groups" Data=@(String.Join("; ", context.ObjectGroups.Select(objgrp => objgrp.Object.Name))) />
-                        <Detail Title="Object Groups (flattened)" Data=@(String.Join("; ", context.ObjectGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))) />
+                        @if (context.Type.Name == "group")
+                        {
+                            <Detail Title="Group Members">
+                                @foreach (string member in context.ObjectGroups.Select(objgrp => objgrp.Object.Name))
+                                {
+                                    @("• " + member)<br />
+                                }
+                            </Detail>
+                            <Detail Title="Group Members (flattened)">
+                                @foreach (string member in context.ObjectGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))
+                                {
+                                    @("• " + member)<br />
+                                }
+                            </Detail>
+                        }
                         <Detail Title="Last changed" Data=@context.Create.ToString() />
                         <Detail Title="Comment" Data=@context.Comment />
                     </DetailTemplate>
@@ -26,15 +40,28 @@
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkService" Title="Name" Field="@(x => x.Name)" Class="word-wrap" />
                     <DetailTemplate TableItem="NetworkService">
+                        <Detail Title="Type" Data=@context.Type.Name />
                         <Detail Title="UID" Data=@context.Uid />
                         <Detail Title="Source Port" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
                         <Detail Title="Destination Port" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
                         <Detail Title="Protocol" Data=@context.Protocol?.Name />
                         <Detail Title="Code" Data=@context.Code />
                         <Detail Title="Timeout" Data=@context.Timeout.ToString() />
-                        <Detail Title="Type" Data=@context.Type.Name />
-                        <Detail Title="Service Groups" Data=@(String.Join("; ", context.ServiceGroups.Select(objgrp => objgrp.Object.Name))) />
-                        <Detail Title="Service Groups (flattened)" Data=@(String.Join("; ", context.ServiceGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))) />
+                        @if (context.Type.Name == "group")
+                        {
+                            <Detail Title="Group Members">
+                                @foreach (string member in context.ServiceGroups.Select(objgrp => objgrp.Object.Name))
+                                {
+                                    @("• " + member)<br />
+                                }
+                            </Detail>
+                            <Detail Title="Group Members (flattened)">
+                                @foreach (string member in context.ServiceGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))
+                                {
+                                    @("• " + member)<br />
+                                }
+                            </Detail>
+                        }
                         <Detail Title="Last changed" Data=@context.Create.ToString() />
                         <Detail Title="Comment" Data=@context.Comment />
                     </DetailTemplate>
@@ -44,11 +71,24 @@
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" Class="word-wrap" />
                     <DetailTemplate TableItem="NetworkUser">
+                        <Detail Title="Type" Data=@context.Type.Name />
                         <Detail Title="UID" Data=@context.Uid />
                         <Detail Title="Real Name" Data=@($"{context.FirstName} {context.LastName}") />
-                        <Detail Title="Type" Data=@context.Type.Name />
-                        <Detail Title="User Groups" Data=@(String.Join("; ", context.UserGroups.Select(objgrp => objgrp.Object.Name))) />
-                        <Detail Title="User Groups (flattened)" Data=@(String.Join("; ", context.UserGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))) />
+                        @if (context.Type.Name == "group")
+                        {
+                            <Detail Title="Group Members">
+                                @foreach (string member in context.UserGroups.Select(objgrp => objgrp.Object.Name))
+                                {
+                                    @("• " + member)<br />
+                                }
+                            </Detail>
+                            <Detail Title="Group Members (flattened)">
+                                @foreach (string member in context.UserGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))
+                                {
+                                    @("• " + member)<br />
+                                }
+                            </Detail>
+                        }
                         <Detail Title="Last changed" Data=@context.Create.ToString() />
                         <Detail Title="Comment" Data=@context.Comment />
                     </DetailTemplate>

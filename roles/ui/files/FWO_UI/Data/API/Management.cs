@@ -88,7 +88,10 @@ namespace FWO.Ui.Data.API
             // Objects = management.Objects;
             // Services = management.Services;
             // Users = management.Users;
-            DeviceType = new DeviceType(management.DeviceType);
+            if(management.DeviceType != null)
+            {
+                DeviceType = new DeviceType(management.DeviceType);
+            }
         }
     }
 
@@ -100,7 +103,7 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("UpdatedId")]
         public int UpdatedId { get; set; }
     }
-    public class NewMgtReturning
+    public class NewReturning
     {
         [JsonPropertyName("returning")]
         public ReturnId[] ReturnIds { get; set; }

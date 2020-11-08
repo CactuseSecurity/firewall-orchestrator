@@ -18,7 +18,7 @@ fragment deviceDetails on device
     forceInitialImport: force_initial_import
     hideInUi: hide_in_gui
     # createDate: (only display this)
-    creationDate: mgm_create
+    creationDate: dev_create
     # updateDate: (only display this)
-    updateDate: mgm_update
+    updateDate: dev_update
 }

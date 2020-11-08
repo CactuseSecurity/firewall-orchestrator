@@ -94,7 +94,7 @@
                         <textarea id="managementPublicKey" class="form-control form-control-sm" @bind="actManagement.PublicKey" />
                     </div>
                 </div>
-                <div class="form-group row">
+<div class="form-group row">
                     <label for="managementConfigPath" class="col-sm-4 col-form-label col-form-label-sm">Config Path:</label>
                     <div class="col-sm-8">
                         <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
@@ -106,7 +106,7 @@
                         <input id="managementImporterHostname" type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
                     </div>
                 </div>
-
+                
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" id="managementImportDisabled" type="checkbox" @bind="actManagement.ImportDisabled">
                     <label class="form-check-label" for="managementImportDisabled"><small>Import Disabled</small></label>
@@ -248,7 +248,7 @@
                     comment = actManagement.Comment /*,
                     tenantId = actManagement.TenantId */
                 };
-                actManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewMgtReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
+                actManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
                 managements.Add(actManagement);
                 AddMode = false;
                 EditMode = false;
@@ -281,6 +281,9 @@
                 managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
             }
+            // update actManagement
+            actManagement.DeviceType.Name = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Name;
+            actManagement.DeviceType.Version = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Version;
         }
         catch (Exception exception)
         {

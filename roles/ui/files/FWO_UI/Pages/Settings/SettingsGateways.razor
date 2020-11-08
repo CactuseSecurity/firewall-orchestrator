@@ -10,8 +10,8 @@
 
 <button class="btn btn-success m-2" @onclick="Add">Add new gateway</button>
 
-<div class="d-flex flex-column m-2">
-    <Table class="table table-bordered table-responsive" TableItem="Device" Items="devices" @ref="table" PageSize="0" ColumnReorder="true">
+<div class="m-2">
+    <Table class="table table-bordered table-responsive" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
         <Column TableItem="Device" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true"/>
         <Column TableItem="Device" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
@@ -130,8 +130,6 @@
     private List<Device> devices = new List<Device>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
     private List<Management> managements = new List<Management>();
-
-    private ITable<Device> table;
 
     private bool EditMode = false;
     private bool DeleteMode = false;

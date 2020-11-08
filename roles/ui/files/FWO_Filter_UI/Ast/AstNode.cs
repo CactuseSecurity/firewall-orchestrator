@@ -6,6 +6,6 @@ namespace FWO.Ui.Filter.Ast
 {
     public abstract class AstNode
     {
-        public abstract string Extract();
+        public abstract void Extract(ref DynGraphqlQuery query);
     }
 }

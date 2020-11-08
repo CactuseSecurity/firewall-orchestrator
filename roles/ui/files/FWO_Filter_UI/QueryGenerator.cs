@@ -29,17 +29,29 @@ namespace FWO.Ui.Filter
                 {ruleOverviewFragment}
 
                 query ruleFilter ({paramString}) 
-                    {{ 
-                        {query.queryDeviceHeader} 
-                        rules(
-                            limit: $limit 
-                            offset: $offset
-                            where: {{ {query.WhereQueryPart} }} 
-                            order_by: {{ rule_num_numeric: asc }}
-                        ) {{
-                            ...ruleOverview
+                {{ 
+                    management(
+                        where: {{ mgm_id: {{ _in: $managementId }} }}
+                        order_by: {{ mgm_name: asc }} ) 
+                        {{
+                            mgm_id
+                            mgm_name
+                            devices (
+                                where: {{ dev_id: {{ _in: $deviceId }} }}
+                                order_by: {{ dev_name: asc }} ) 
+                                {{
+                                    dev_id
+                                    dev_name
+                                    rules(
+                                        limit: $limit 
+                                        offset: $offset
+                                        where: {{ {query.WhereQueryPart} }} 
+                                        order_by: {{ rule_num_numeric: asc }} )
+                                        {{
+                                            ...ruleOverview
+                                        }} 
+                                }}
                         }} 
-                    }} 
                 }}";
 
             // remove linebreaks and multiple whitespaces

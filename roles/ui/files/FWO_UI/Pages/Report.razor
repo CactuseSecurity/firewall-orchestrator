@@ -189,6 +189,7 @@
     private int sidebarRightWidth = 300;
 
     private MarkupString filterFeedback = new MarkupString("");
+    private string filterInput = "";
 
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
@@ -235,14 +236,15 @@
         {
             try
             {
+                DynGraphqlQuery query = Compiler.Compile(filterInput);
+
                 int limit = rulesPerFetch;
                 int offset = 0;
-                DynGraphqlQuery query = Compiler.Compile("action:drop");
                 query.QueryVariables["limit"] = limit;
                 query.QueryVariables["offset"] = offset;
 
-                //managementsReport = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
                 // with filter:
+                string test = System.Text.Json.JsonSerializer.Serialize(query.QueryVariables);
                 managementsReport = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
                 await InvokeAsync(StateHasChanged);
 
@@ -250,9 +252,9 @@
 
                 while (newObjects)
                 {
-                    int lastOffset = (int)query.QueryVariables["offset"];
-                    query.QueryVariables["offset"] = lastOffset + rulesPerFetch;
-                    //Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(RuleQueries.getRuleOverview, paginationVariables);
+                    offset += rulesPerFetch;
+                    query.QueryVariables["offset"] = offset;
+
                     // with filter:
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
                     newObjects = managementsReport.Merge(managementsCurrentFetch);
@@ -287,7 +289,6 @@
 
     private void TryFilter(ChangeEventArgs changeArgs)
     {
-        string filterInput = "";
         DynGraphqlQuery query;
 
         try

@@ -1,7 +1,9 @@
 ﻿using FWO.Ui.Data.API;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace FWO.Ui.Data
@@ -10,8 +12,19 @@ namespace FWO.Ui.Data
     {
         public Management[] Managements { get; set; }
 
-        public override void ToCsv()
+        public override (string name, string csv)[] ToCsv()
         {
+            StringBuilder csvBuilder = new StringBuilder();
+
+            foreach (Management management in Managements)
+            {
+                foreach (var item in collection)
+                {
+
+                }
+            }
+
+
             throw new NotImplementedException();
         }
 

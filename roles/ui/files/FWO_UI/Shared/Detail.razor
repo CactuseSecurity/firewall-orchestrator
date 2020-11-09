@@ -1,0 +1,29 @@
+﻿@if (show)
+{
+    <b>@Title</b> @Data <br />
+    @ChildContent
+}
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; } // currently there is no way to check if this is empty
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Data { get; set; }
+
+    [Parameter]
+    public bool HideIfEmpty { get; set; } = true;
+
+    private bool show = false;
+
+    protected override void OnInitialized()
+    {
+        if (HideIfEmpty && String.IsNullOrWhiteSpace(Data) && ChildContent is null)
+            show = false;
+        else
+            show = true;
+    }
+}

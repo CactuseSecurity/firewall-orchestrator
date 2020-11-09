@@ -4,7 +4,10 @@ fragment networkObjectDetails on object {
     obj_ip
     obj_ip_end
     obj_uid
-    zone_id
+    zone {
+      zone_id
+      zone_name
+    }
     active
     obj_create
     obj_last_seen
@@ -15,18 +18,17 @@ fragment networkObjectDetails on object {
     obj_member_names
     obj_member_refs
     objgrps {
-      objgrp_member_id
-      objectByObjgrpMemberId {
+      id: objgrp_member_id
+      byId: objectByObjgrpMemberId {
         obj_id
         obj_name
       }
     }
     objgrp_flats {
-      objgrp_flat_id
-      objectByObjgrpFlatMemberId {
+      id_flat: objgrp_flat_id
+      byFlatId: objectByObjgrpFlatMemberId {
         obj_id
         obj_name
       }
     }
 }
-

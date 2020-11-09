@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace FWO.Ui.Data.API
 {
-    public class Zone
+    public class NetworkZone
     {
-        [JsonPropertyName("zone_name")]
-        public string Name { get; set; }
-
         [JsonPropertyName("zone_id")]
         public int Id { get; set; }
+
+        [JsonPropertyName("zone_name")]
+        public string Name { get; set; }
     }
 }

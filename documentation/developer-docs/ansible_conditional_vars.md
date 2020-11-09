@@ -28,3 +28,8 @@ The content of ldap_conn_present is
         }
     }
     
+If you want to reference the "count" do it like this
+
+    when: ldap_conn_present.query_result.0.count == 0
+    
+Notice you can't put "" around 0 or you'll get an error

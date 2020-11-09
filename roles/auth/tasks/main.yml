@@ -67,7 +67,7 @@
 - name: insert admin tenant0 to database
   postgresql_query:
     db: "{{ fworch_db_name }}"
-    query: "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''tenant0'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''tenant0'', true, true); END IF; END $do$"
+    query: "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name='tenant0') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values ('tenant0', true, true); END IF; END $do$"
   become: yes
   become_user: postgres
 

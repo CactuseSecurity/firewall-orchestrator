@@ -33,8 +33,14 @@ insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_na
 -- insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
 -- 	VALUES (7, 'Konsistenz', 'consistency', 'Anzeige von Anomalitaeten der importierten Daten', 'show anomalies of imported data');
 
+--
+-- Data for Name: text_msg; Type: TABLE DATA; Schema: public; Owner: dbadmin
+--
+INSERT INTO language (name) VALUES('German');
+INSERT INTO language (name) VALUES('English');
 
-insert into config (config_id, language) VALUES (1, 'german');
+
+insert into config (config_id, language) VALUES (1, 'German');
 
 insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 	VALUES (0,'automated','import','autoimport');
@@ -614,12 +620,6 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 SET search_path = public, pg_catalog;
-
---
--- Data for Name: text_msg; Type: TABLE DATA; Schema: public; Owner: dbadmin
---
-INSERT INTO language (name) VALUES('German');
-INSERT INTO language (name) VALUES('English');
 
 -- import
 INSERT INTO txt VALUES ('initial_import',		'German',	'Dieses Element ist Teil der initial importierten Konfiguration.');

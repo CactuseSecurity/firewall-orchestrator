@@ -18,12 +18,6 @@ tables:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
-  - name: uiuser
-    using:
-      foreign_key_constraint_on: doku_admin
-  - name: uiuserByImportAdmin
-    using:
-      foreign_key_constraint_on: import_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -36,6 +30,12 @@ tables:
   - name: stm_change_type
     using:
       foreign_key_constraint_on: change_type_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: doku_admin
+  - name: uiuserByImportAdmin
+    using:
+      foreign_key_constraint_on: import_admin
   table:
     name: changelog_object
     schema: public
@@ -54,12 +54,6 @@ tables:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
-  - name: uiuser
-    using:
-      foreign_key_constraint_on: doku_admin
-  - name: uiuserByImportAdmin
-    using:
-      foreign_key_constraint_on: import_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -72,6 +66,12 @@ tables:
   - name: stm_change_type
     using:
       foreign_key_constraint_on: change_type_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: doku_admin
+  - name: uiuserByImportAdmin
+    using:
+      foreign_key_constraint_on: import_admin
   table:
     name: changelog_rule
     schema: public
@@ -87,12 +87,6 @@ tables:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
-  - name: uiuser
-    using:
-      foreign_key_constraint_on: doku_admin
-  - name: uiuserByImportAdmin
-    using:
-      foreign_key_constraint_on: import_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -105,6 +99,12 @@ tables:
   - name: stm_change_type
     using:
       foreign_key_constraint_on: change_type_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: doku_admin
+  - name: uiuserByImportAdmin
+    using:
+      foreign_key_constraint_on: import_admin
   table:
     name: changelog_service
     schema: public
@@ -120,18 +120,18 @@ tables:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
-  - name: uiuser
-    using:
-      foreign_key_constraint_on: doku_admin
-  - name: uiuserByImportAdmin
-    using:
-      foreign_key_constraint_on: import_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
   - name: stm_change_type
     using:
       foreign_key_constraint_on: change_type_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: doku_admin
+  - name: uiuserByImportAdmin
+    using:
+      foreign_key_constraint_on: import_admin
   - name: usr
     using:
       foreign_key_constraint_on: new_user_id
@@ -604,104 +604,19 @@ tables:
     name: import_zone
     schema: public
 - array_relationships:
-  - name: changelog_objects
-    using:
-      foreign_key_constraint_on:
-        column: doku_admin
-        table:
-          name: changelog_object
-          schema: public
-  - name: changelogObjectsByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_object
-          schema: public
-  - name: changelog_rules
-    using:
-      foreign_key_constraint_on:
-        column: doku_admin
-        table:
-          name: changelog_rule
-          schema: public
-  - name: changelogRulesByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_rule
-          schema: public
-  - name: changelog_services
-    using:
-      foreign_key_constraint_on:
-        column: doku_admin
-        table:
-          name: changelog_service
-          schema: public
-  - name: changelogServicesByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_service
-          schema: public
-  - name: changelog_users
-    using:
-      foreign_key_constraint_on:
-        column: doku_admin
-        table:
-          name: changelog_user
-          schema: public
-  - name: changelogUsersByImportAdmin
-    using:
-      foreign_key_constraint_on:
-        column: import_admin
-        table:
-          name: changelog_user
-          schema: public
-  - name: objects
-    using:
-      foreign_key_constraint_on:
-        column: last_change_admin
-        table:
-          name: object
-          schema: public
-  - name: rules
-    using:
-      foreign_key_constraint_on:
-        column: last_change_admin
-        table:
-          name: rule
-          schema: public
-  - name: services
-    using:
-      foreign_key_constraint_on:
-        column: last_change_admin
-        table:
-          name: service
-          schema: public
-  - name: usrs
-    using:
-      foreign_key_constraint_on:
-        column: last_change_admin
-        table:
-          name: usr
-          schema: public
-  object_relationships:
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  table:
-    name: uiuser
-    schema: public
-- array_relationships:
   - name: txts
     using:
       foreign_key_constraint_on:
         column: language
         table:
           name: txt
+          schema: public
+  - name: uiusers
+    using:
+      foreign_key_constraint_on:
+        column: uiuser_language
+        table:
+          name: uiuser
           schema: public
   select_permissions:
   - permission:
@@ -942,9 +857,6 @@ tables:
   - name: importControlByObjLastSeen
     using:
       foreign_key_constraint_on: obj_last_seen
-  - name: uiuser
-    using:
-      foreign_key_constraint_on: last_change_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -957,6 +869,9 @@ tables:
   - name: stm_obj_typ
     using:
       foreign_key_constraint_on: obj_typ_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: last_change_admin
   - name: zone
     using:
       foreign_key_constraint_on: zone_id
@@ -1111,7 +1026,22 @@ tables:
   table:
     name: objgrp_flat
     schema: public
-- object_relationships:
+- array_relationships:
+  - name: report_viewable_by_tenants
+    using:
+      foreign_key_constraint_on:
+        column: report_id
+        table:
+          name: report_viewable_by_tenant
+          schema: public
+  - name: report_viewable_by_users
+    using:
+      foreign_key_constraint_on:
+        column: report_id
+        table:
+          name: report_viewable_by_user
+          schema: public
+  object_relationships:
   - name: device
     using:
       foreign_key_constraint_on: dev_id
@@ -1121,6 +1051,9 @@ tables:
   - name: importControlByStopImportId
     using:
       foreign_key_constraint_on: stop_import_id
+  - name: report_file
+    using:
+      foreign_key_constraint_on: report_file_id
   - name: stm_report_typ
     using:
       foreign_key_constraint_on: report_typ_id
@@ -1144,6 +1077,37 @@ tables:
     role: reporter-viewall
   table:
     name: report
+    schema: public
+- array_relationships:
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: report_file_id
+        table:
+          name: report
+          schema: public
+  table:
+    name: report_file
+    schema: public
+- object_relationships:
+  - name: report
+    using:
+      foreign_key_constraint_on: report_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  table:
+    name: report_viewable_by_tenant
+    schema: public
+- object_relationships:
+  - name: report
+    using:
+      foreign_key_constraint_on: report_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: uiuser_id
+  table:
+    name: report_viewable_by_user
     schema: public
 - object_relationships:
   - name: stm_report_typ
@@ -1305,9 +1269,6 @@ tables:
   - name: importControlByRuleLastSeen
     using:
       foreign_key_constraint_on: rule_last_seen
-  - name: uiuser
-    using:
-      foreign_key_constraint_on: last_change_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -1317,6 +1278,9 @@ tables:
   - name: stm_track
     using:
       foreign_key_constraint_on: track_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: last_change_admin
   - name: zone
     using:
       foreign_key_constraint_on: rule_from_zone
@@ -1592,9 +1556,6 @@ tables:
   - name: importControlBySvcLastSeen
     using:
       foreign_key_constraint_on: svc_last_seen
-  - name: uiuser
-    using:
-      foreign_key_constraint_on: last_change_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -1607,6 +1568,9 @@ tables:
   - name: stm_svc_typ
     using:
       foreign_key_constraint_on: svc_typ_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: last_change_admin
   select_permissions:
   - permission:
       allow_aggregations: true
@@ -2128,13 +2092,6 @@ tables:
         table:
           name: device
           schema: public
-  - name: uiusers
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: uiuser
-          schema: public
   - name: management
     using:
       foreign_key_constraint_on:
@@ -2155,6 +2112,13 @@ tables:
         column: tenant_id
         table:
           name: reporttyp_tenant_map
+          schema: public
+  - name: report_viewable_by_tenants
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: report_viewable_by_tenant
           schema: public
   - name: requests
     using:
@@ -2204,6 +2168,13 @@ tables:
         column: tenant_id
         table:
           name: tenant_user
+          schema: public
+  - name: uiusers
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: uiuser
           schema: public
   - name: usrs
     using:
@@ -2315,6 +2286,108 @@ tables:
     role: anonymous
   table:
     name: txt
+    schema: public
+- array_relationships:
+  - name: changelog_objects
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
+        table:
+          name: changelog_object
+          schema: public
+  - name: changelogObjectsByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_object
+          schema: public
+  - name: changelog_rules
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
+        table:
+          name: changelog_rule
+          schema: public
+  - name: changelogRulesByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_rule
+          schema: public
+  - name: changelog_services
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
+        table:
+          name: changelog_service
+          schema: public
+  - name: changelogServicesByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_service
+          schema: public
+  - name: changelog_users
+    using:
+      foreign_key_constraint_on:
+        column: doku_admin
+        table:
+          name: changelog_user
+          schema: public
+  - name: changelogUsersByImportAdmin
+    using:
+      foreign_key_constraint_on:
+        column: import_admin
+        table:
+          name: changelog_user
+          schema: public
+  - name: objects
+    using:
+      foreign_key_constraint_on:
+        column: last_change_admin
+        table:
+          name: object
+          schema: public
+  - name: report_viewable_by_users
+    using:
+      foreign_key_constraint_on:
+        column: uiuser_id
+        table:
+          name: report_viewable_by_user
+          schema: public
+  - name: rules
+    using:
+      foreign_key_constraint_on:
+        column: last_change_admin
+        table:
+          name: rule
+          schema: public
+  - name: services
+    using:
+      foreign_key_constraint_on:
+        column: last_change_admin
+        table:
+          name: service
+          schema: public
+  - name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: last_change_admin
+        table:
+          name: usr
+          schema: public
+  object_relationships:
+  - name: language
+    using:
+      foreign_key_constraint_on: uiuser_language
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  table:
+    name: uiuser
     schema: public
 - object_relationships:
   - name: import_control
@@ -2446,9 +2519,6 @@ tables:
           name: usergrp
           schema: public
   object_relationships:
-  - name: uiuser
-    using:
-      foreign_key_constraint_on: last_change_admin
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -2461,6 +2531,9 @@ tables:
   - name: tenant
     using:
       foreign_key_constraint_on: tenant_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: last_change_admin
   select_permissions:
   - permission:
       allow_aggregations: true

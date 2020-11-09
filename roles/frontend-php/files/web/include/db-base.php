@@ -80,41 +80,43 @@ class DbConnection {
 		return $this->dbpw;
 	}
 	function uiuser_check_pwd_history($user, $password) {
-		$log = new LogConnection();
-		$delimiter = '%';
-		$sql_request = "SELECT uiuser_pwd_history FROM uiuser WHERE uiuser_username = '$user'; ";
-		$result = $this->fworch_db_query($sql_request);
-		if (!isset($result) or $result == '' or $result->data[0]['uiuser_pwd_history']=='') {
-//			$log->log_debug("uiuser_check_kennwort_history:: no history found");
-			return true;
-		} else {
-			$old_hash_string = $result->data[0]['uiuser_pwd_history'];
-//			$log->log_debug("uiuser_check_kennwort_history:: old_hash_string=$old_hash_string");
-			$old_hashes = preg_split("[\%]", $old_hash_string);
-			foreach ($old_hashes as $hash) {
-//				$log->log_debug("uiuser_check_kennwort_history:: hash=$hash");
-				if (password_verify($password, $hash)) {
-//					$log->log_debug("uiuser_check_kennwort_history:: kennwort_verify=YES, found kennwort reuse");
-					return false;					
-				} else {
-//					$log->log_debug("uiuser_check_kennwort_history:: kennwort_verify=NO, kennwort not reused");
-				}
-			}
-			return true;
-		}
+		return true;
+
+// 		$log = new LogConnection();
+// 		$delimiter = '%';
+// 		$sql_request = "SELECT uiuser_pwd_history FROM uiuser WHERE uiuser_username = '$user'; ";
+// 		$result = $this->fworch_db_query($sql_request);
+// 		if (!isset($result) or $result == '' or $result->data[0]['uiuser_pwd_history']=='') {
+// //			$log->log_debug("uiuser_check_kennwort_history:: no history found");
+// 			return true;
+// 		} else {
+// 			$old_hash_string = $result->data[0]['uiuser_pwd_history'];
+// //			$log->log_debug("uiuser_check_kennwort_history:: old_hash_string=$old_hash_string");
+// 			$old_hashes = preg_split("[\%]", $old_hash_string);
+// 			foreach ($old_hashes as $hash) {
+// //				$log->log_debug("uiuser_check_kennwort_history:: hash=$hash");
+// 				if (password_verify($password, $hash)) {
+// //					$log->log_debug("uiuser_check_kennwort_history:: kennwort_verify=YES, found kennwort reuse");
+// 					return false;					
+// 				} else {
+// //					$log->log_debug("uiuser_check_kennwort_history:: kennwort_verify=NO, kennwort not reused");
+// 				}
+// 			}
+// 			return true;
+// 		}
 	}
 	function uiuser_append_pwd_hash($user, $password) {
-		$delimiter = '%';
-		$sql_request = "SELECT uiuser_pwd_history FROM uiuser WHERE uiuser_username = '$user'; ";
-		$result = $this->fworch_db_query($sql_request);
-		if (!isset($result) or $result == '' or $result->data[0]['uiuser_pwd_history']=='') {
-			$old_hash_string = '';
-		} else {
-			$old_hash_string = $result->data[0]['uiuser_pwd_history'] . $delimiter;
-		}
-		$pwd_hash = password_hash($password, PASSWORD_DEFAULT);
-		$sql_request = "UPDATE uiuser SET uiuser_pwd_history='$old_hash_string$pwd_hash' WHERE uiuser_username = '$user'; ";
-		$result = $this->fworch_db_query($sql_request);
+		// $delimiter = '%';
+		// $sql_request = "SELECT uiuser_pwd_history FROM uiuser WHERE uiuser_username = '$user'; ";
+		// $result = $this->fworch_db_query($sql_request);
+		// if (!isset($result) or $result == '' or $result->data[0]['uiuser_pwd_history']=='') {
+		// 	$old_hash_string = '';
+		// } else {
+		// 	$old_hash_string = $result->data[0]['uiuser_pwd_history'] . $delimiter;
+		// }
+		// $pwd_hash = password_hash($password, PASSWORD_DEFAULT);
+		// $sql_request = "UPDATE uiuser SET uiuser_pwd_history='$old_hash_string$pwd_hash' WHERE uiuser_username = '$user'; ";
+		// $result = $this->fworch_db_query($sql_request);
 
 		// TODO: only keep last x passwords - using $old_hashes = preg_split("\%", $old_hash_string);
 	}

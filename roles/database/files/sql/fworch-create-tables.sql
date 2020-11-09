@@ -344,22 +344,17 @@ Create table "uiuser"
 	"uiuser_username" Varchar NOT NULL UNIQUE,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
-	"uiuser_password" Varchar,
 	"uiuser_start_date" Date Default now(),
 	"uiuser_end_date" Date,
 	"uiuser_email" Varchar,
 	"tenant_id" Integer,
-	"uiuser_language" Varchar,
+	"uiuser_language" Varchar Default 'English',
 	"uiuser_password_must_be_changed" Boolean NOT NULL Default TRUE,
 	"uiuser_last_login" Timestamp with time zone,
 	"uiuser_last_password_change" Timestamp with time zone,
 	"uiuser_pwd_history" Text,
  primary key ("uiuser_id")
 );
--- todo: 
--- remove pwd_history
--- add fk lanaguage
--- add upgrade file uiuser --> uiuser
 
 -- text tables ----------------------------------------
 
@@ -861,9 +856,9 @@ Create table "report_viewable_by_tenant"
 
 Create table "report_viewable_by_user"
 (
-	"tenant_id" Integer NOT NULL,
 	"report_id" Integer NOT NULL,
- primary key ("tenant_id","report_id")
+	"uiuser_id" Integer NOT NULL,
+ primary key ("uiuser_id","report_id")
 );
 
 -- not needed in 5.0?
@@ -877,6 +872,7 @@ Create table "reporttyp_tenant_map"
 Create table "report"
 (
 	"report_id" BIGSERIAL,
+	"report_filter" Varchar,
 	"report_typ_id" Integer NOT NULL,
 	"start_import_id" Integer NOT NULL,
 	"stop_import_id" Integer,
@@ -886,8 +882,17 @@ Create table "report"
 	"report_end_time" Timestamp,
 	"report_document" Text NOT NULL,
 	"tenant_id" Integer,
+	"report_file_id" Bigint,
  primary key ("report_id")
 );
+
+Create table "report_file"
+(
+	"report_file_id" bigint,
+	"report_file_content" bytea,
+ primary key ("report_file_id")
+);
+
 
 Create table "stm_report_typ"
 (
@@ -943,6 +948,6 @@ Create table "ldap_connection"
 Create table "config"
 (
 	"config_id" BIGSERIAL,
-	"language" VARCHAR Default 'english',
+	"language" VARCHAR Default 'English',
  primary key ("config_id")
 );

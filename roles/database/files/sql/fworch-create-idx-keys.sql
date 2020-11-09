@@ -6,9 +6,6 @@ Company			Cactus eSecurity GmbH
 Database		PostgreSQL 9-12
 */
 
-/* Create Tab 'Others' for Selected Tables */
-
-
 /* Create Alternate Keys */
 Alter Table "object" add Constraint "obj_altkey" UNIQUE ("mgm_id","zone_id","obj_uid","obj_create");
 Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("mgm_id","rule_uid","rule_create");
@@ -42,8 +39,14 @@ Create index "import_control_start_time_idx" on "import_control" using btree ("s
 Create index "rule_oder_idx" on "rule_order" using btree ("control_id","rule_id");
 
 
-
 /* Create Foreign Keys */
+Alter table "uiuser" add foreign key ("uiuser_language") references "language" ("name") on update restrict on delete cascade;
+Alter table "report_viewable_by_tenant" add foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
+Alter table "report_viewable_by_tenant" add foreign key ("report_id") references "report" ("report_id") on update restrict on delete cascade;
+Alter table "report_viewable_by_user" add foreign key ("uiuser_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+Alter table "report_viewable_by_user" add foreign key ("report_id") references "report" ("report_id") on update restrict on delete cascade;
+Alter table "report" add foreign key ("report_file_id") references "report_file" ("report_file_id") on update restrict on delete cascade;
+
 Alter table "txt" add foreign key ("language") references "language" ("name") on update restrict on delete cascade;
 Create index "IX_relationship11" on "object" ("obj_nat_install");
 Alter table "object" add  foreign key ("obj_nat_install") references "device" ("dev_id") on update restrict on delete cascade;

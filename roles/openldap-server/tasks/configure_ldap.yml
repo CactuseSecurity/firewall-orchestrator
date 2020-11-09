@@ -15,6 +15,32 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
+  #########################
+  - name: Generate an OpenSSL private key
+    openssl_privatekey:
+      path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+      size: 1024
+      cipher: aes256
+      type: RSA
+
+  - name: Generate an OpenSSL Certificate Signing Request with Subject information
+    openssl_csr:
+      path: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
+      privatekey_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+      country_name: "{{ openldap_server_country }}"
+      locality_name: "{{ openldap_server_location }}"
+      organization_name: "{{ openldap_server_organization }}"
+      #email_address: "{{ email_address }}"
+      common_name: "{{ ansible_hostname }}"
+
+  - name: Generate a Self Signed OpenSSL certificate
+    openssl_certificate:
+      path: "{{ openldap_server_app_path }}/certs/openldap_certificate.pem"
+      privatekey_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+      csr_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
+      provider: selfsigned
+  ############################
+
   - name: Generate the private key for certificate request
 #    From man oppenssl:
 #    pass:password
@@ -43,6 +69,23 @@
 
   - name: Create and sign the the new certificate 
     command: "openssl req -new -x509 -subj '/C={{ openldap_server_country }}/ST={{ openldap_server_state }}/L={{ openldap_server_location }}/O={{ openldap_server_organization }}/CN={{ ansible_hostname }}/' -days 3650 -key my.key -out cert.crt -extensions v3_ca chdir={{ openldap_server_app_path }}/certs/"
+    args:
+      creates: "{{ openldap_server_app_path }}/certs/cert.crt"
+
+  - name: Create and sign the the new certificate
+    #command: "openssl req -new -x509 -subj '/C={{ openldap_server_country }}/ST={{ openldap_server_state }}/L={{ openldap_server_location }}/O={{ openldap_server_organization }}/CN={{ ansible_hostname }}/' -days 3650 -key my.key -out cert.crt -extensions v3_ca chdir={{ openldap_server_app_path }}/certs/"
+    #openssl_certificate:
+    x509_certificate:
+      path: "{{ openldap_server_app_path }}/certs/"
+      privatekey_path: "{{ openldap_server_app_path }}/certs/my.key"
+      subject: {
+                'C': '{{ openldap_server_country }}',
+                'ST': '{{ openldap_server_state }}',
+                'L': '{{ openldap_server_location }}',
+                'O': '{{ openldap_server_organization }}',
+                'CN': '{{ ansible_hostname }}'
+                }
+
     args:
       creates: "{{ openldap_server_app_path }}/certs/cert.crt"
 

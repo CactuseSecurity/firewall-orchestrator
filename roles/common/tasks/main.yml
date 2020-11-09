@@ -108,8 +108,9 @@
         local6.warning                 /var/log/{{ product_name }}/error.log
         local6.=info                   /var/log/{{ product_name }}/login_info.log
         local6.debug                   /var/log/{{ product_name }}/debug.log
-        :programname, isequal, "postgres-{{ product_name }}" /var/log/fworch/database.log
-        :programname, isequal, "{{ auth_server_syslog_id }}" /var/log/fworch/auth.log
+        :msg, startwith, "Audit"  /var/log/{{ product_name }}/audit.log
+        :programname, isequal, "postgres-{{ product_name }}" /var/log/{{ product_name }}/database.log
+        :programname, isequal, "{{ auth_server_syslog_id }}" /var/log/{{ product_name }}/auth.log
         :programname, isequal, "{{ ui_syslog_id }}" /var/log/{{ product_name }}/ui.log
         :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log
         :programname, isequal, "{{ product_name }}-import" /var/log/{{ product_name }}/import.log

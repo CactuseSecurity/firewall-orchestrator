@@ -21,6 +21,10 @@ namespace FWO.ApiClient.Queries
         public static readonly string newManagement;
         public static readonly string updateManagement;
         public static readonly string deleteManagement;
+        public static readonly string getDeviceDetails;
+        public static readonly string newDevice;
+        public static readonly string updateDevice;
+        public static readonly string deleteDevice;
         public static readonly string getLanguages;
         public static readonly string getAllTexts;
         public static readonly string getTextsPerLanguage;
@@ -50,6 +54,15 @@ namespace FWO.ApiClient.Queries
 
                 deleteManagement = File.ReadAllText(QueryPath + "device/deleteManagement.graphql");
                 
+                getDeviceDetails = File.ReadAllText(QueryPath + "device/getDeviceDetails.graphql") + " " 
+                                   + File.ReadAllText(QueryPath + "device/fragments/deviceDetails.graphql");
+
+                newDevice = File.ReadAllText(QueryPath + "device/newDevice.graphql");
+
+                updateDevice = File.ReadAllText(QueryPath + "device/updateDevice.graphql");
+
+                deleteDevice = File.ReadAllText(QueryPath + "device/deleteDevice.graphql");
+
                 getLanguages = File.ReadAllText(QueryPath + "config/getLanguages.graphql");
 
                 getAllTexts = File.ReadAllText(QueryPath + "config/getTexts.graphql");

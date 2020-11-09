@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FWO.Auth.Client;
 using Microsoft.AspNetCore.Components.Authorization;
+using FWO.Logging;
 
 namespace FWO.Ui.Auth
 {

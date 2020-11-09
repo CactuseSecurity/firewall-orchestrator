@@ -14,7 +14,7 @@ namespace FWO.Ui.Filter
             List<Token> tokens = scanner.Scan();
             Parser parser = new Parser(tokens);
             AstNode root = parser.Parse();
-            DynGraphqlQuery query = QueryGenerator.ToGraphQl(root);
+            DynGraphqlQuery query = DynGraphqlQuery.Generate(root);
             return query;
         }
     }

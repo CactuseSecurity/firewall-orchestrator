@@ -16,13 +16,13 @@ namespace FWO.Ui.Filter.Ast
             switch (Kind)
             {
                 case TokenKind.Not:
-                    query.whereQueryPart += "_not: {";
+                    query.WhereQueryPart += "_not: {";
                     break;
                 default:
                     throw new Exception("### Parser Error: Expected Filtername Token (and thought there is one) ###");
             }
             Value.Extract(ref query);
-            query.whereQueryPart += "}";
+            query.WhereQueryPart += "}";
             return;
         }
     }

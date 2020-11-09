@@ -8,11 +8,31 @@ namespace FWO.Ui.Filter.Ast
     {
         public AstNode Right { get; set; }
         public AstNode Left { get; set; }
-        public TokenKind ConnectorTyp { get; set; }
+        public TokenKind ConnectorType { get; set; }
 
-        public override string Extract()
+        public override void Extract(ref DynGraphqlQuery query)
         {
-            throw new NotImplementedException();
+            switch (ConnectorType)
+            {
+                case TokenKind.And: // and is the default operator
+                    break;
+                case TokenKind.Or:
+                    query.WhereQueryPart += "_or: [{"; // or terms need to be enclosed in []
+                    break;
+                default:
+                    throw new Exception("Expected Filtername Token (and thought there is one)");
+            }
+
+            Left.Extract(ref query);
+
+            if (ConnectorType == TokenKind.Or)
+                query.WhereQueryPart += "}, {";
+
+            Right.Extract(ref query);
+
+            if (ConnectorType == TokenKind.Or)
+                query.WhereQueryPart += "}] ";
+            return;
         }
     }
 }

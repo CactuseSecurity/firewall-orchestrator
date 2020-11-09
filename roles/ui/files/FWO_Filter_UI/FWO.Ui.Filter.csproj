@@ -3,5 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
-
+  <ItemGroup>
+      <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO.ApiClient.csproj" />
+  </ItemGroup>
 </Project>

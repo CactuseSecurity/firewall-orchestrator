@@ -11,4 +11,18 @@ fragment userDetails on usr {
   }
   user_member_names
   user_member_refs
+  usergrps {
+    id: usergrp_id
+    byId: usrByUsergrpMemberId {
+      user_id
+      user_name
+    }
+  }
+  usergrp_flats {
+    flat_id: usergrp_flat_id
+    byFlatId: usrByUsergrpFlatMemberId {
+      user_id
+      user_name
+    }
+  }
 }

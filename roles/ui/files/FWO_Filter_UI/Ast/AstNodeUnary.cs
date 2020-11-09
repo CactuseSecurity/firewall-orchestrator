@@ -10,9 +10,20 @@ namespace FWO.Ui.Filter.Ast
 
         public AstNode Value { get; set; }
 
-        public override string Extract()
+        public override void Extract(ref DynGraphqlQuery query)
         {
-            throw new NotImplementedException();
+
+            switch (Kind)
+            {
+                case TokenKind.Not:
+                    query.WhereQueryPart += "_not: {";
+                    break;
+                default:
+                    throw new Exception("### Parser Error: Expected Filtername Token (and thought there is one) ###");
+            }
+            Value.Extract(ref query);
+            query.WhereQueryPart += "}";
+            return;
         }
     }
 }

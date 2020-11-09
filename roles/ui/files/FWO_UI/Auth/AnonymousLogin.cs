@@ -11,7 +11,7 @@ namespace FWO.Ui.Auth
 {
     public class AnonymousLogin
     {
-        private AuthClient authClient; // = new AuthClient();
+        private AuthClient authClient = new AuthClient("");
 
         private APIConnection apiConnection;
 

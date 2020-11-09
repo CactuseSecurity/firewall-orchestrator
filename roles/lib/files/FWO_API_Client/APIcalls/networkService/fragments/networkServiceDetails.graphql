@@ -23,4 +23,18 @@ fragment networkServiceDetails on service {
   }
   svc_member_names
   svc_member_refs
+  svcgrps {
+    id: svcgrp_member_id
+    byId: serviceBySvcgrpMemberId {
+      svc_id
+      svc_name
+    }
+  }
+  svcgrp_flats {
+    flat_id: svcgrp_flat_id
+    byFlatId: serviceBySvcgrpFlatMemberId {
+      svc_id
+      svc_name
+    }
+  }
 }

@@ -9,6 +9,8 @@ namespace FWO.Test.Filter
     [TestClass]
     public class FilterTest
     {
+        string input = "";
+
         [TestInitialize]
         public void Initialize()
         {
@@ -16,10 +18,24 @@ namespace FWO.Test.Filter
         }
 
         [TestMethod]
-        public void EasyTest()
+        public void TextOnlySearch()
         {
-            string input = "((src=123) & (dst=234)) | (src = 123)";
+            input = "teststring";
             Compiler.Compile(input);
         }
+
+        [TestMethod]
+        public void AndOr()
+        {
+            input = "((src=123) & (dst=234)) | (src = 123)";
+            Compiler.Compile(input);
+        }
+
+        public void TripleOr()
+        {
+            input = "(src=cactus or dst=cactus or svc=smtps)";
+            Compiler.Compile(input);
+        }
+        
     }
 }

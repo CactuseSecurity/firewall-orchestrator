@@ -26,6 +26,7 @@
     </div>
 </Sidebar>
 
+    
 <div style="margin-left: @($"{sidebarWidth + 20}px");">
     @Body
 </div>
@@ -41,6 +42,7 @@
         navItems = new NavItem[]
         {
             new NavItem(() => "Managements", "settings/managements", "oi oi-inbox"),
+            new NavItem(() => "Gateways", "settings/gateways", "oi oi-shield"),
             new NavItem(() => "Authorization", "settings/authorization", "oi oi-lock-locked"),
             new NavItem(() => "Personal", "settings/personal", "oi oi-person")
         };

@@ -1,4 +1,4 @@
-# Ansible conditional vatiables
+# Ansible conditional variables
 
 ## Example
 

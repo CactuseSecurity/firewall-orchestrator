@@ -133,35 +133,35 @@ class RequestTypeList {
 	}
 }
 
-class IsoAdmin {
-	var $isoadmin_username;
-	var $isoadmin_full_name;
-	var $isoadmin_id;
+class uiuser {
+	var $uiuser_username;
+	var $uiuser_full_name;
+	var $uiuser_id;
 	var $error;
 		
 	function __construct($filter, $db_connection) {
 		$this->error = new PEAR();
-		$isoadmin_name = $filter->getSessionUser();
-		$this->isoadmin_username = $isoadmin_name;
-		$sql_code = "SELECT isoadmin_id, isoadmin_first_name, isoadmin_last_name FROM isoadmin WHERE isoadmin_username='" . $isoadmin_name . "'";
+		$uiuser_name = $filter->getSessionUser();
+		$this->uiuser_username = $uiuser_name;
+		$sql_code = "SELECT uiuser_id, uiuser_first_name, uiuser_last_name FROM uiuser WHERE uiuser_username='" . $uiuser_name . "'";
 		if ($this->error->isError($db_connection))
 			$this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
-		$isoadmin_details = $db_connection->fworch_db_query ($sql_code,$filter->getLogLevel());
-		if ($this->error->isError($isoadmin_details)) $this->error->raiseError($isoadmin_details->getMessage());
-		$this->isoadmin_full_name = $isoadmin_details->data[0]['isoadmin_first_name'] . 
-			' ' . $isoadmin_details->data[0]['isoadmin_last_name'] ;
-		$this->isoadmin_id = $isoadmin_details->data[0]['isoadmin_id'];
-//		echo "found isoadmin_id: " . $this->isoadmin_id . "<br>";
-		if (!isset($this->isoadmin_id)) $this->error->raiseError("ERROR: no matching isoadmin_id found!");
+		$uiuser_details = $db_connection->fworch_db_query ($sql_code,$filter->getLogLevel());
+		if ($this->error->isError($uiuser_details)) $this->error->raiseError($uiuser_details->getMessage());
+		$this->uiuser_full_name = $uiuser_details->data[0]['uiuser_first_name'] . 
+			' ' . $uiuser_details->data[0]['uiuser_last_name'] ;
+		$this->uiuser_id = $uiuser_details->data[0]['uiuser_id'];
+//		echo "found uiuser_id: " . $this->uiuser_id . "<br>";
+		if (!isset($this->uiuser_id)) $this->error->raiseError("ERROR: no matching uiuser_id found!");
 	}
 	function getFullName() {
-		return $this->isoadmin_full_name;
+		return $this->uiuser_full_name;
 	}
 	function getId() {
-		return $this->isoadmin_id;
+		return $this->uiuser_id;
 	}
 	function getUserName() {
-		return $this->isoadmin_username;
+		return $this->uiuser_username;
 	}
 }
 

@@ -36,13 +36,13 @@ insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_na
 
 insert into config (config_id, language) VALUES (1, 'german');
 
-insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
+insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 	VALUES (0,'automated','import','autoimport');
-insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
+insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 	VALUES (1,'Check Point Security Management Server Update Process','Check Point','auto');
-insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
+insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 	VALUES (2,'Check Point R8x','System','System');
-insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) 
+insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 	VALUES (3,'Default','Admin Account','admin');
 
 insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');

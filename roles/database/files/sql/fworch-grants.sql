@@ -20,15 +20,15 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO group "db
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "reporters";
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "reporters";
 
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "isoadmins";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "isoadmins";
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "uiusers";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "uiusers";
 
 /* Group permissions on tables */
 
 -- general grants:
 
-Grant ALL on ALL tables in SCHEMA public to group isoadmins;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO group isoadmins;
+Grant ALL on ALL tables in SCHEMA public to group uiusers;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO group uiusers;
 
 Grant select on ALL TABLES in SCHEMA public to group dbbackupusers;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group dbbackupusers;
@@ -90,7 +90,7 @@ Grant ALL on "tenant_username" to group "secuadmins";
 Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
 Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
 
-Grant update on "isoadmin" to group "secuadmins";
+Grant update on "uiuser" to group "secuadmins";
 Grant update,insert on "changelog_object" to group "secuadmins";
 Grant update,insert on "changelog_service" to group "secuadmins";
 Grant update,insert on "changelog_user" to group "secuadmins";
@@ -104,7 +104,7 @@ Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "reporters";
 Grant ALL on "temp_filtered_rule_ids" to group "reporters";
 Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
 
-Grant update on "isoadmin" to group "reporters";
+Grant update on "uiuser" to group "reporters";
 Grant insert on "error_log" to group "reporters";
 Grant insert on "report" to group "reporters";
 

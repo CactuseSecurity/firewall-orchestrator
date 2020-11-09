@@ -230,12 +230,12 @@ BEGIN
 	LOOP
 		RAISE NOTICE 'change: %', r_auditlog.change_action;
 		IF r_auditlog.change_action = 'C' OR r_auditlog.change_action = 'I' OR r_auditlog.change_action = 'D' THEN	-- real changes, no log-ins/outs
-			SELECT isoadmin_id INTO i_admin_id FROM isoadmin WHERE isoadmin_username=r_auditlog.change_admin;	-- change_admin ID holen
+			SELECT uiuser_id INTO i_admin_id FROM uiuser WHERE uiuser_username=r_auditlog.change_admin;	-- change_admin ID holen
 			RAISE NOTICE '   object change, name=%', r_auditlog.changed_object_name || ', type=' || r_auditlog.changed_object_type || ', action=' || r_auditlog.change_action || '.';
 		-- now processing unnoticed user deletes (which exist for checkpoint firewalls)
 			IF r_auditlog.changed_object_type='user' AND r_auditlog.change_action='D' THEN
 				RAISE NOTICE '      user delete change found: %', r_auditlog.changed_object_name;
-				SELECT view_changes.*, isoadmin_username INTO r_changelog FROM view_changes LEFT JOIN isoadmin ON (change_admin_id=isoadmin_id)
+				SELECT view_changes.*, uiuser_username INTO r_changelog FROM view_changes LEFT JOIN uiuser ON (change_admin_id=uiuser_id)
 					WHERE unique_name=r_auditlog.changed_object_name AND change_type='D';
 				IF NOT FOUND THEN
 --					RAISE NOTICE '            found unnoticed user delete: %', r_auditlog.changed_object_name;

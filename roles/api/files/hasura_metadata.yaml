@@ -18,10 +18,10 @@ tables:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
-  - name: isoadmin
+  - name: uiuser
     using:
       foreign_key_constraint_on: doku_admin
-  - name: isoadminByImportAdmin
+  - name: uiuserByImportAdmin
     using:
       foreign_key_constraint_on: import_admin
   - name: management
@@ -54,10 +54,10 @@ tables:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
-  - name: isoadmin
+  - name: uiuser
     using:
       foreign_key_constraint_on: doku_admin
-  - name: isoadminByImportAdmin
+  - name: uiuserByImportAdmin
     using:
       foreign_key_constraint_on: import_admin
   - name: management
@@ -87,10 +87,10 @@ tables:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
-  - name: isoadmin
+  - name: uiuser
     using:
       foreign_key_constraint_on: doku_admin
-  - name: isoadminByImportAdmin
+  - name: uiuserByImportAdmin
     using:
       foreign_key_constraint_on: import_admin
   - name: management
@@ -120,10 +120,10 @@ tables:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
-  - name: isoadmin
+  - name: uiuser
     using:
       foreign_key_constraint_on: doku_admin
-  - name: isoadminByImportAdmin
+  - name: uiuserByImportAdmin
     using:
       foreign_key_constraint_on: import_admin
   - name: management
@@ -693,7 +693,7 @@ tables:
     using:
       foreign_key_constraint_on: tenant_id
   table:
-    name: isoadmin
+    name: uiuser
     schema: public
 - array_relationships:
   - name: txts
@@ -942,7 +942,7 @@ tables:
   - name: importControlByObjLastSeen
     using:
       foreign_key_constraint_on: obj_last_seen
-  - name: isoadmin
+  - name: uiuser
     using:
       foreign_key_constraint_on: last_change_admin
   - name: management
@@ -1305,7 +1305,7 @@ tables:
   - name: importControlByRuleLastSeen
     using:
       foreign_key_constraint_on: rule_last_seen
-  - name: isoadmin
+  - name: uiuser
     using:
       foreign_key_constraint_on: last_change_admin
   - name: management
@@ -1592,7 +1592,7 @@ tables:
   - name: importControlBySvcLastSeen
     using:
       foreign_key_constraint_on: svc_last_seen
-  - name: isoadmin
+  - name: uiuser
     using:
       foreign_key_constraint_on: last_change_admin
   - name: management
@@ -2128,12 +2128,12 @@ tables:
         table:
           name: device
           schema: public
-  - name: isoadmins
+  - name: uiusers
     using:
       foreign_key_constraint_on:
         column: tenant_id
         table:
-          name: isoadmin
+          name: uiuser
           schema: public
   - name: management
     using:
@@ -2446,7 +2446,7 @@ tables:
           name: usergrp
           schema: public
   object_relationships:
-  - name: isoadmin
+  - name: uiuser
     using:
       foreign_key_constraint_on: last_change_admin
   - name: management

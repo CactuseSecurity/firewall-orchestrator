@@ -1,0 +1,42 @@
+# add db users and assign groups
+
+- block:
+
+  - name: create db groups
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: 'DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ item }}'') THEN Create Role {{ item }}; END IF; END $do$'
+    loop:
+      - secuadmins
+      - dbbackupusers
+      - configimporters
+      - reporters
+      - uiusers
+        
+  - name: create db users
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: 'DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ item }}'') THEN Create Role {{ item }} LOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE; END IF; END $do$'
+    loop:
+      - dbbackup
+      - isoimporter
+      - textreader
+    # COMMENT ON ROLE textreader IS 'only used for reading from text_msg';
+
+  - name: add user dbbackup to group dbbackupusers
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: GRANT dbbackupusers TO dbbackup
+
+  - name: add user isoimporter to group configimporters
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: GRANT configimporters TO isoimporter
+
+  - name: add user fworch to group uiusers
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: GRANT uiusers TO fworch
+
+  become: yes
+  become_user: postgres

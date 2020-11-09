@@ -320,9 +320,9 @@ class UserConfig extends Config {
 	}
 	function getUserId($username,$password) {
 		$db_connection = new DbConnection(new DbConfig($username,$password));
-		$isoadmin_id = $db_connection->fworch_db_query ("SELECT isoadmin_id FROM isoadmin WHERE isoadmin_username='" . $username . "'");
-		$isoadmin_id = $isoadmin_id->data[0]['isoadmin_id'];
-		return $isoadmin_id;
+		$uiuser_id = $db_connection->fworch_db_query ("SELECT uiuser_id FROM uiuser WHERE uiuser_username='" . $username . "'");
+		$uiuser_id = $uiuser_id->data[0]['uiuser_id'];
+		return $uiuser_id;
 	}
 	function allowedToDocumentChanges () {
 		if (array_search('document-changes',$this->privileges)===false)	return false;

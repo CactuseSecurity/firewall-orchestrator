@@ -36,8 +36,8 @@ namespace FWO.Auth.Server
                 issuer: issuer,
                 audience: audience,
                 subject: subject,
-                notBefore: DateTime.UtcNow.AddMinutes(-5), // TODO: JUST FOR YANNIK
-                issuedAt: DateTime.UtcNow.AddMinutes(-5),
+                notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
+                issuedAt: DateTime.UtcNow.AddMinutes(-1),
                 expires: DateTime.UtcNow.AddHours(hoursValid),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
@@ -52,9 +52,13 @@ namespace FWO.Auth.Server
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
+            claimsIdentity.AddClaim(new Claim("UUID", user.Dn));   // UUID used for access to reports via API
             if(user.Tenant != null)
             {
                 // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
+                claimsIdentity.AddClaim(new Claim("TenantName", user.Tenant.Name));
+                claimsIdentity.AddClaim(new Claim("TenantId", user.Tenant.Id.ToString()));
+                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleDevices)} }}"));
             }
@@ -93,7 +97,7 @@ namespace FWO.Auth.Server
             }
 
             claimsIdentity.AddClaim(new Claim("x-hasura-default-role", defaultRole));
-            Log.WriteDebug("Default role assignment", $"User {user.Name} was assigned default-role {defaultRole}");
+            // Log.WriteDebug("Default role assignment", $"User {user.Name} was assigned default-role {defaultRole}");
 
             return claimsIdentity;
         }

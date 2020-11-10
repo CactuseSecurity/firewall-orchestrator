@@ -873,6 +873,7 @@ Create table "report"
 (
 	"report_id" BIGSERIAL,
 	"report_filter" Varchar,
+	"report_name" Varchar NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
 	"report_typ_id" Integer NOT NULL,
 	"start_import_id" Integer NOT NULL,
 	"stop_import_id" Integer,
@@ -880,8 +881,8 @@ Create table "report"
 	"report_generation_time" Timestamp NOT NULL Default now(),
 	"report_start_time" Timestamp,
 	"report_end_time" Timestamp,
-	"report_document" Text NOT NULL,
-	"tenant_id" Integer,
+	"report_document" Text NOT NULL,	-- has been extracted to report_file table
+	"tenant_id" Integer,	 -- can remove this
 	"report_file_id" Bigint,
  primary key ("report_id")
 );

@@ -93,6 +93,11 @@ namespace FWO.Ui.Data.API
                 DeviceType = new DeviceType(management.DeviceType);
             }
         }
+
+        public string Host()
+        {
+            return Hostname + ":" + Port;
+        }
     }
 
     public class ReturnId

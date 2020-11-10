@@ -42,12 +42,12 @@ INSERT INTO language (name) VALUES('English');
 
 insert into config (config_id, language) VALUES (1, 'German');
 
-insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
-	VALUES (0,'automated','import','autoimport');
-insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
-	VALUES (1,'Check Point Security Management Server Update Process','Check Point','auto');
-insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
-	VALUES (2,'Check Point R8x','System','System');
+-- insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
+-- 	VALUES (0,'automated','import','autoimport');
+-- insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
+-- 	VALUES (1,'Check Point Security Management Server Update Process','Check Point','auto');
+-- insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
+-- 	VALUES (2,'Check Point R8x','System','System');
 insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 	VALUES (3,'Default','Admin Account','admin');
 

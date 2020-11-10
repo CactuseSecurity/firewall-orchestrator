@@ -18,11 +18,13 @@
                 @(context.DeviceType.NameVersion())
             </Template>
         </Column>
-        <Column TableItem="Management" Title="Private Key" Field="@(x => x.PrivateKey)" Sortable="false" Filterable="false">
+        <Column TableItem="Management" Title="Host" Field="@(x => x.Hostname)" Sortable="true" Filterable="true">
             <Template>
-                <div style="max-width: 500px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"> @context.PrivateKey </div>
+                @(context.Host())
             </Template>
         </Column>
+        <Column TableItem="Management" Title="Config Path" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
+        <Column TableItem="Management" Title="Importer Host" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Import Disabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>

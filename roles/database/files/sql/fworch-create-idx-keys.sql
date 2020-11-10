@@ -1,7 +1,7 @@
 /*
 Created			29.04.2005
-Last modified	18.10.2020
-Project			IT Security Organizer
+Last modified	10.11.2020
+Project			Firewall Orchestrator
 Company			Cactus eSecurity GmbH
 Database		PostgreSQL 9-12
 */

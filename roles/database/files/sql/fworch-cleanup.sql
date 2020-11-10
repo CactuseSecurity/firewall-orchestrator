@@ -1,8 +1,5 @@
--- $Id: iso-cleanup.sql,v 1.1.2.2 2010-03-20 09:53:11 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-cleanup.sql,v $
-
 ----------------------------------------------------
--- Maintenance-Funktionen zum Aufraeumen der Datenbank
+-- Maintenance functions for db cleanup
 ----------------------------------------------------
 
 CREATE OR REPLACE FUNCTION delete_import(INTEGER) RETURNS VOID AS $$

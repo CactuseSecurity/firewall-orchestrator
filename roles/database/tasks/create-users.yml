@@ -19,7 +19,7 @@
       query: 'DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ item }}'') THEN Create Role {{ item }} LOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE; END IF; END $do$'
     loop:
       - dbbackup
-      - isoimporter
+      - fworchimporter
       - textreader
     # COMMENT ON ROLE textreader IS 'only used for reading from text_msg';
 
@@ -28,10 +28,10 @@
       db: "{{ fworch_db_name }}"
       query: GRANT dbbackupusers TO dbbackup
 
-  - name: add user isoimporter to group configimporters
+  - name: add user fworchimporter to group configimporters
     postgresql_query:
       db: "{{ fworch_db_name }}"
-      query: GRANT configimporters TO isoimporter
+      query: GRANT configimporters TO fworchimporter
 
   - name: add user fworch to group uiusers
     postgresql_query:

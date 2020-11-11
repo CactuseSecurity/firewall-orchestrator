@@ -17,9 +17,7 @@ class ReportList {
 		$db = new DbList();
 		$db->initSessionConnection();
 		$language = new Multilanguage($filter->getUser());
-		$sql_code = "SELECT get_report_typ_list_ger('report_typ'); FETCH ALL FROM report_typ";
-		if ($language->getLanguage($filter->getUser())=='eng')
-			$sql_code = "SELECT get_report_typ_list_eng('report_typ'); FETCH ALL FROM report_typ";
+		$sql_code = "SELECT get_report_typ_list('report_typ'); FETCH ALL FROM report_typ";
 		$this->report_list =$db->db_connection->fworch_db_query($sql_code);
 		if ($this->error->isError($this->report_list)) $this->error->raiseError($this->system_list->getMessage());
 	}

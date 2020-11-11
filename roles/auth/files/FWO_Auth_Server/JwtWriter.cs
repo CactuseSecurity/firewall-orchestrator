@@ -52,13 +52,14 @@ namespace FWO.Auth.Server
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-            claimsIdentity.AddClaim(new Claim("UUID", user.Dn));   // UUID used for access to reports via API
+            if (user.Dn !=  null  && user.Dn.Length>0 )
+                claimsIdentity.AddClaim(new Claim("UUID", user.Dn));   // UUID used for access to reports via API
             if(user.Tenant != null)
             {
                 // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
-                claimsIdentity.AddClaim(new Claim("TenantName", user.Tenant.Name));
+                if (user.Tenant.Name !=  null  && user.Tenant.Name.Length>0 )
+                    claimsIdentity.AddClaim(new Claim("TenantName", user.Tenant.Name));
                 claimsIdentity.AddClaim(new Claim("TenantId", user.Tenant.Id.ToString()));
-                claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", $"{{ {string.Join(",", user.Tenant.VisibleDevices)} }}"));
             }

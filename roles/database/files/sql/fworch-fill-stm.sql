@@ -1,44 +1,22 @@
 
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (1, 'Konfiguration', 'Configuration', 'Zustand der Sicherheitskonfiguration zu einem bestimmten Zeitpunkt', 'snapshot of secuity configuration at a certian time');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (2, '&Auml;nderungen', 'Changes', '&Auml;nderungen in der Sicherheitskonfiguration zwischen zwei Zeitpunkten', 'Changes in the security configuration between two dates');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (3, 'Verwendung', 'Usage', 'Verwendung von Objekten in der Konfiguration', 'Usage of objects in the configuration');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (4, 'Regelsuche', 'Rule search', 'Globale Suche nach Regeln mit bestimmten IP-Adressen oder Diensten', 'Global search for rules containing certain ip addresses or services');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (5, 'Audit-&Auml;nderungen', 'Audit changes', 'Auditorientierte &Auml;nderungsdarstellung', 'Shows changes in an audit-friendly way');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (6, 'Audit-&Auml;nderungen Details', 'Audit changes details', 'Auditorientierte &Auml;nderungsdarstellung mit unver&auml;nderten Regeln',
-	'Shows changes in an audit-friendly way including unchanged rules');
-	
-/*
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (7, 'Redundanzen', 'Duplicates', 'Anzeige von doppelten Konfigurationselementen', 'Shows duplicate objects');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (5, 'LifeCycle Regel', 'LifeCycle', '&Auml;nderungen an Regeln in deren gesamter Lebenszeit', 'Display all changes to a rule during its lifetime');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (6, 'LifeCycle NW', 'LifeCycle', '&Auml;nderungen an Netzwerkobjekten in deren gesamter Lebenszeit', 'Display all changes to a network  object during its lifetime');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (7, 'LifeCycle Svc', 'LifeCycle', '&Auml;nderungen an Netzwerkdiensten in deren gesamter Lebenszeit', 'Display all changes to a network service during its lifetime');
-insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
-	VALUES (8, 'LifeCycle User', 'LifeCycle', '&Auml;nderungen an Benutzerobjekten in deren gesamter Lebenszeit', 'Display all changes to a user object during its lifetime');
-*/
-	
--- insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
--- 	VALUES (5, 'where-used?', 'where-used?', 'Anzeige von Verwendung von Konfigurationselementen', 'display usage information of certain configuration elements');
--- insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
--- 	VALUES (6, 'Accounting', 'accounting', 'Anzeige von Accounting-Daten', 'show accounting data');
--- insert into stm_report_typ (report_typ_id, report_typ_name_german, report_typ_name_english,report_typ_comment_german,report_typ_comment_english)
--- 	VALUES (7, 'Konsistenz', 'consistency', 'Anzeige von Anomalitaeten der importierten Daten', 'show anomalies of imported data');
+insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+	VALUES (1, 'Configuration', 'snapshot of secuity configuration at a certian time');
+insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+	VALUES (2, 'Changes',  'Changes in the security configuration between two dates');
+insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+	VALUES (3, 'Usage', 'Usage of objects in the configuration');
+insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+	VALUES (4, 'Rule search', 'Global search for rules containing certain ip addresses or services');
+insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+	VALUES (5, 'Audit changes', 'Shows changes in an audit-friendly way');
+insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+	VALUES (6, 'Audit changes details', 'Shows changes in an audit-friendly way including unchanged rules');
 
 --
 -- Data for Name: text_msg; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
 INSERT INTO language (name) VALUES('German');
 INSERT INTO language (name) VALUES('English');
-
 
 insert into config (config_id, language) VALUES (1, 'German');
 
@@ -48,8 +26,9 @@ insert into config (config_id, language) VALUES (1, 'German');
 -- 	VALUES (1,'Check Point Security Management Server Update Process','Check Point','auto');
 -- insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 -- 	VALUES (2,'Check Point R8x','System','System');
-insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
-	VALUES (3,'Default','Admin Account','admin');
+-- insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
+-- 	VALUES (3,'Default','Admin Account','admin');
+insert into uiuser (uiuser_first_name,uiuser_last_name,uiuser_username) VALUES ('Admin','Account','admin');
 
 insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');

@@ -3,25 +3,22 @@
 - block:
 
   - name: create db groups
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      query: 'DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ item }}'') THEN Create Role {{ item }}; END IF; END $do$'
-    loop:
-      - secuadmins
-      - dbbackupusers
-      - configimporters
-      - reporters
-      - uiusers
-        
+    postgresql_user:
+      name: "{{ item }}"
+    loop: "{{ database_groups }}"
+       
   - name: create db users
-    postgresql_query:
-      db: "{{ fworch_db_name }}"
-      query: 'DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = ''{{ item }}'') THEN Create Role {{ item }} LOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE; END IF; END $do$'
-    loop:
-      - dbbackup
-      - fworchimporter
-      - textreader
-    # COMMENT ON ROLE textreader IS 'only used for reading from text_msg';
+    postgresql_user:
+      name: "{{ item }}"
+      role_attr_flags: LOGIN,NOSUPERUSER,INHERIT,NOCREATEDB,NOCREATEROLE
+    loop: "{{ database_users }}"
+
+  - name: create db admin user (only for old php ui)
+    postgresql_user:
+      name: admin
+      password: "{{ admin_pwd }}"
+      role_attr_flags: login,inherit
+      groups: secuadmins
 
   - name: add user dbbackup to group dbbackupusers
     postgresql_query:
@@ -33,10 +30,10 @@
       db: "{{ fworch_db_name }}"
       query: GRANT configimporters TO fworchimporter
 
-  - name: add user fworch to group uiusers
+  - name: add user fworch to group fworchadmins
     postgresql_query:
       db: "{{ fworch_db_name }}"
-      query: GRANT uiusers TO fworch
+      query: GRANT fworchadmins TO fworch
 
   become: yes
   become_user: postgres

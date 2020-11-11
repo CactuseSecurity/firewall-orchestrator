@@ -8,6 +8,7 @@ Database		PostgreSQL 9-12
 
 /* Create Sequences */
 
+-- the abs_hange_id is needed as it is incremented across 4 different tables
 Create sequence if not exists "public"."abs_change_id_seq"
 Increment 1
 Minvalue 1
@@ -340,7 +341,7 @@ Create table "rule_order"
 
 Create table "uiuser"
 (
-	"uiuser_id" Integer NOT NULL,
+	"uiuser_id" SERIAL NOT NULL,
 	"uiuser_username" Varchar NOT NULL UNIQUE,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
@@ -847,66 +848,56 @@ Create table "stm_change_type"
 
 -- reporting -------------------------------------------------------
 
-Create table "report_viewable_by_tenant"
+Create table "report_template"
+(
+	"report_template_id" SERIAL,
+	"report_filter" Varchar,
+	"report_template_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
+	"report_template_comment" TEXT,
+	"report_typ_id" Integer NOT NULL,
+	"report_template_create" Timestamp,
+	"filterline_history" Boolean Default TRUE, -- every time a filterline is sent, we save it for future usage (auto-deleted every 90 days)
+	primary key ("report_template_id")
+);
+
+Create table "report"
+(
+	"report_id" BIGSERIAL,
+	"report_template_id" Integer,
+	"start_import_id" Integer NOT NULL,
+	"stop_import_id" Integer,
+	"report_generation_time" Timestamp NOT NULL Default now(),
+	"report_start_time" Timestamp,
+	"report_end_time" Timestamp,
+	"report_document" bytea NOT NULL,
+ primary key ("report_id")
+);
+
+Create table "stm_report_typ"
+(
+	"report_typ_id" SERIAL,
+	"report_typ_name" Varchar NOT NULL,
+	"report_typ_comment" Text,
+ primary key ("report_typ_id")
+);
+
+Create table "report_template_viewable_by_tenant"
 (
 	"report_id" Integer NOT NULL,
 	"tenant_id" Integer NOT NULL,
  primary key ("tenant_id","report_id")
 );
 
-Create table "report_viewable_by_user"
+Create table "report_template_viewable_by_user"
 (
 	"report_id" Integer NOT NULL,
 	"uiuser_id" Integer NOT NULL,
  primary key ("uiuser_id","report_id")
 );
 
--- not needed in 5.0?
-Create table "reporttyp_tenant_map"
-(
-	"tenant_id" Integer NOT NULL,
-	"report_typ_id" Integer NOT NULL,
- primary key ("tenant_id","report_typ_id")
-);
-
-Create table "report"
-(
-	"report_id" BIGSERIAL,
-	"report_filter" Varchar,
-	"report_name" Varchar NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
-	"report_typ_id" Integer NOT NULL,
-	"start_import_id" Integer NOT NULL,
-	"stop_import_id" Integer,
-	"dev_id" Integer NOT NULL,
-	"report_generation_time" Timestamp NOT NULL Default now(),
-	"report_start_time" Timestamp,
-	"report_end_time" Timestamp,
-	"report_document" Text NOT NULL,	-- has been extracted to report_file table
-	"tenant_id" Integer,	 -- can remove this
-	"report_file_id" Bigint,
- primary key ("report_id")
-);
-
-Create table "report_file"
-(
-	"report_file_id" bigint,
-	"report_file_content" bytea,
- primary key ("report_file_id")
-);
-
-
-Create table "stm_report_typ"
-(
-	"report_typ_id" SERIAL,
-	"report_typ_name_german" Varchar NOT NULL,
-	"report_typ_name_english" Varchar,
-	"report_typ_comment_german" Text,
-	"report_typ_comment_english" Text,
- primary key ("report_typ_id")
-);
-
 -- temp tables reporting -------------------------------------------
 
+-- not needed for 5.0:
 Create table "temp_table_for_tenant_filtered_rule_ids"
 (
 	"rule_id" Integer NOT NULL,
@@ -914,12 +905,14 @@ Create table "temp_table_for_tenant_filtered_rule_ids"
  primary key ("rule_id","report_id")
 );
 
+-- not needed for 5.0:
 Create table "temp_filtered_rule_ids"
 (
 	"report_id" Integer NOT NULL,
 	"rule_id" Integer NOT NULL
 );
 
+-- not needed for 5.0:
 Create table "temp_mgmid_importid_at_report_time"
 (
 	"control_id" Integer,

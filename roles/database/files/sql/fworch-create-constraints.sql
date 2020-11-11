@@ -1,0 +1,22 @@
+/*
+Created			29.04.2005
+Last modified	10.11.2020
+Project			Firewall Orchestrator
+Company			Cactus eSecurity GmbH
+Database		PostgreSQL 9-12
+*/
+
+/* Create Alternate Keys */
+Alter Table "changelog_object" add Constraint "alt_key_changelog_object" UNIQUE ("abs_change_id");
+Alter Table "changelog_rule" add Constraint "alt_key_changelog_rule" UNIQUE ("abs_change_id");
+Alter Table "changelog_service" add Constraint "alt_key_changelog_service" UNIQUE ("abs_change_id");
+Alter Table "changelog_user" add Constraint "alt_key_changelog_user" UNIQUE ("abs_change_id");
+Alter Table "import_changelog" add Constraint "Alter_Key14" UNIQUE ("import_changelog_nr","control_id");
+Alter Table "object" add Constraint "obj_altkey" UNIQUE ("mgm_id","zone_id","obj_uid","obj_create");
+Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("mgm_id","rule_uid","rule_create");
+Alter Table "service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","svc_create");
+Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
+Alter Table "temp_filtered_rule_ids" add Constraint "temp_filtered_rule_ids_alt_key" UNIQUE ("report_id","rule_id");
+Alter Table "temp_mgmid_importid_at_report_time" add Constraint "Alter_Key13" UNIQUE ("control_id","mgm_id","report_id");
+Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
+Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");

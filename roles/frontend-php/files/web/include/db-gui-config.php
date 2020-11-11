@@ -378,7 +378,7 @@ class UserConfig extends Config {
 		if (array_search('ALL', $this->visible_reports)===false) {
 			foreach ($this->visible_reports as $report) {
 				$log->log_debug("getReportFilter() processing report $report");
-				$sql_statement = "SELECT report_typ_id FROM stm_report_typ WHERE lower(report_typ_name_english) like lower('%$report%')";
+				$sql_statement = "SELECT report_typ_id FROM stm_report_typ WHERE lower(report_typ_name) like lower('%$report%')";
 				$log->log_debug("sql=$sql_statement");
 				$report_id = $db_connection->fworch_db_query ($sql_statement);
 				if (isset($report_id->data[0]['report_typ_id']) && !$report_id->data[0]['report_typ_id']=='') {

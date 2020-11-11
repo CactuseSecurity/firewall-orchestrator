@@ -159,13 +159,6 @@ tables:
         table:
           name: object
           schema: public
-  - name: reports
-    using:
-      foreign_key_constraint_on:
-        column: dev_id
-        table:
-          name: report
-          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
@@ -1026,55 +1019,16 @@ tables:
   table:
     name: objgrp_flat
     schema: public
-- array_relationships:
-  - name: report_viewable_by_tenants
-    using:
-      foreign_key_constraint_on:
-        column: report_id
-        table:
-          name: report_viewable_by_tenant
-          schema: public
-  - name: report_viewable_by_users
-    using:
-      foreign_key_constraint_on:
-        column: report_id
-        table:
-          name: report_viewable_by_user
-          schema: public
-  object_relationships:
-  - name: device
-    using:
-      foreign_key_constraint_on: dev_id
+- object_relationships:
   - name: import_control
     using:
-      foreign_key_constraint_on: start_import_id
-  - name: importControlByStopImportId
-    using:
       foreign_key_constraint_on: stop_import_id
-  - name: report_file
+  - name: importControlByStartImportId
     using:
-      foreign_key_constraint_on: report_file_id
-  - name: stm_report_typ
+      foreign_key_constraint_on: start_import_id
+  - name: report_template
     using:
-      foreign_key_constraint_on: report_typ_id
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  select_permissions:
-  - permission:
-      columns:
-      - report_id
-      - report_typ_id
-      - start_import_id
-      - stop_import_id
-      - dev_id
-      - report_generation_time
-      - report_start_time
-      - report_end_time
-      - report_document
-      - tenant_id
-      filter: {}
-    role: reporter-viewall
+      foreign_key_constraint_on: report_template_id
   table:
     name: report
     schema: public
@@ -1082,42 +1036,50 @@ tables:
   - name: reports
     using:
       foreign_key_constraint_on:
-        column: report_file_id
+        column: report_template_id
         table:
           name: report
           schema: public
+  - name: report_template_viewable_by_tenants
+    using:
+      foreign_key_constraint_on:
+        column: report_id
+        table:
+          name: report_template_viewable_by_tenant
+          schema: public
+  - name: report_template_viewable_by_users
+    using:
+      foreign_key_constraint_on:
+        column: report_id
+        table:
+          name: report_template_viewable_by_user
+          schema: public
+  object_relationships:
+  - name: stm_report_typ
+    using:
+      foreign_key_constraint_on: report_typ_id
   table:
-    name: report_file
+    name: report_template
     schema: public
 - object_relationships:
-  - name: report
+  - name: report_template
     using:
       foreign_key_constraint_on: report_id
   - name: tenant
     using:
       foreign_key_constraint_on: tenant_id
   table:
-    name: report_viewable_by_tenant
+    name: report_template_viewable_by_tenant
     schema: public
 - object_relationships:
-  - name: report
+  - name: report_template
     using:
       foreign_key_constraint_on: report_id
   - name: uiuser
     using:
       foreign_key_constraint_on: uiuser_id
   table:
-    name: report_viewable_by_user
-    schema: public
-- object_relationships:
-  - name: stm_report_typ
-    using:
-      foreign_key_constraint_on: report_typ_id
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  table:
-    name: reporttyp_tenant_map
+    name: report_template_viewable_by_user
     schema: public
 - array_relationships:
   - name: request_object_changes
@@ -1883,30 +1845,13 @@ tables:
     name: stm_obj_typ
     schema: public
 - array_relationships:
-  - name: reports
+  - name: report_templates
     using:
       foreign_key_constraint_on:
         column: report_typ_id
         table:
-          name: report
+          name: report_template
           schema: public
-  - name: reporttyp_tenant_maps
-    using:
-      foreign_key_constraint_on:
-        column: report_typ_id
-        table:
-          name: reporttyp_tenant_map
-          schema: public
-  select_permissions:
-  - permission:
-      columns:
-      - report_typ_id
-      - report_typ_name_german
-      - report_typ_name_english
-      - report_typ_comment_german
-      - report_typ_comment_english
-      filter: {}
-    role: reporter
   table:
     name: stm_report_typ
     schema: public
@@ -2099,26 +2044,12 @@ tables:
         table:
           name: management
           schema: public
-  - name: reports
+  - name: report_template_viewable_by_tenants
     using:
       foreign_key_constraint_on:
         column: tenant_id
         table:
-          name: report
-          schema: public
-  - name: reporttyp_tenant_maps
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: reporttyp_tenant_map
-          schema: public
-  - name: report_viewable_by_tenants
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: report_viewable_by_tenant
+          name: report_template_viewable_by_tenant
           schema: public
   - name: requests
     using:
@@ -2351,12 +2282,12 @@ tables:
         table:
           name: object
           schema: public
-  - name: report_viewable_by_users
+  - name: report_template_viewable_by_users
     using:
       foreign_key_constraint_on:
         column: uiuser_id
         table:
-          name: report_viewable_by_user
+          name: report_template_viewable_by_user
           schema: public
   - name: rules
     using:

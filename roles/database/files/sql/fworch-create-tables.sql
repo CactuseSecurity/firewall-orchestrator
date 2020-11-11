@@ -342,7 +342,8 @@ Create table "rule_order"
 Create table "uiuser"
 (
 	"uiuser_id" SERIAL NOT NULL,
-	"uiuser_username" Varchar NOT NULL UNIQUE,
+	"uiuser_username" Varchar NOT NULL UNIQUE,	-- might drop the unique constraint later as we have a uuid now
+	"uuid" Varchar NOT NULL UNIQUE,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
 	"uiuser_start_date" Date Default now(),

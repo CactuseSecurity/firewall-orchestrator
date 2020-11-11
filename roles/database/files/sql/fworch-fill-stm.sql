@@ -28,7 +28,8 @@ insert into config (config_id, language) VALUES (1, 'German');
 -- 	VALUES (2,'Check Point R8x','System','System');
 -- insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 -- 	VALUES (3,'Default','Admin Account','admin');
-insert into uiuser (uiuser_first_name,uiuser_last_name,uiuser_username) VALUES ('Admin','Account','admin');
+
+--insert into uiuser (uiuser_first_name,uiuser_last_name,uiuser_username) VALUES ('Admin','Account','admin');
 
 insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');

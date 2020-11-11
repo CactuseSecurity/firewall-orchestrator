@@ -1,8 +1,5 @@
--- $Id: iso-report-basics.sql,v 1.1.2.4 2012-04-17 05:02:23 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-report-basics.sql,v $
-
 ----------------------------------------------------
--- Funktionen zum Generieren von Reports
+-- generate report functions
 ----------------------------------------------------
 ------- basics ------------
 -- is_obj_group (obj_id) RETURNS BOOLEAN
@@ -23,9 +20,9 @@
 
 ----------------------------------------------------
 -- FUNCTION:    get_request_str(changelog_table,log_id)
--- Zweck:       liefert String mit allen Auftraegen, die eine Aenderung erwirkt haben
--- Parameter1:  Name der Tabelle (user|object|rule|service)
--- Parameter2:  log_Id der Aenderung
+-- purpose:     return string with all requests leading to a change
+-- Parameter1:  Name of the table (user|object|rule|service)
+-- Parameter2:  log_Id of the change
 -- RETURNS:     VARCHAR
 --
 

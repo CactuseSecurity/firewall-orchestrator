@@ -13,6 +13,7 @@
       role_attr_flags: LOGIN,NOSUPERUSER,INHERIT,NOCREATEDB,NOCREATEROLE
     loop: "{{ database_users }}"
 
+  # todo: remove admin user before publishing
   - name: create db admin user (only for old php ui)
     postgresql_user:
       name: admin

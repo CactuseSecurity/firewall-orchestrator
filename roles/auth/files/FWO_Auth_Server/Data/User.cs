@@ -11,7 +11,7 @@ namespace FWO.Auth.Server.Data
         public string Name { get; set; }
 
         [JsonPropertyName("uiuser_id")]
-        public string DbId { get; set; }
+        public int DbId { get; set; }
 
         public string Password { get; set; }
 

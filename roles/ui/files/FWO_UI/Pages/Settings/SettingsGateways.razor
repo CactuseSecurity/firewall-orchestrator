@@ -165,7 +165,7 @@
         {
             // Todo: checks if delete possible. Else set e.g. an archive flag?
             var Variables = new { id = device.Id };
-            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<Device>(FWO.ApiClient.Queries.BasicQueries.deleteDevice, Variables))).Id;
+            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.deleteDevice, Variables))).DeletedId;
             if(delId == device.Id)
             {
                 devices.Remove(device);

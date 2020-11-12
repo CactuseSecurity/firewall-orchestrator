@@ -15,6 +15,9 @@ namespace FWO.ApiClient.Queries
         public static readonly string getVisibleDeviceIdsPerTenant;
         public static readonly string getVisibleManagementIdsPerTenant;
         public static readonly string getLdapConnections;
+        public static readonly string newLdapConnection;
+        public static readonly string updateLdapConnection;
+        public static readonly string deleteLdapConnection;
         public static readonly string getDevicesByManagements;
         public static readonly string getManagementsDetails;
         public static readonly string getDeviceTypeDetails;
@@ -33,6 +36,7 @@ namespace FWO.ApiClient.Queries
         {
             try
             {
+                // Auth
                 getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
 
                 getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleDeviceIdsPerTenant.graphql");
@@ -41,6 +45,13 @@ namespace FWO.ApiClient.Queries
 
                 getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
 
+                newLdapConnection = File.ReadAllText(QueryPath + "auth/newLdapConnection.graphql");
+
+                updateLdapConnection = File.ReadAllText(QueryPath + "auth/updateLdapConnection.graphql");
+
+                deleteLdapConnection = File.ReadAllText(QueryPath + "auth/deleteLdapConnection.graphql");
+
+                // Device
                 getDevicesByManagements = File.ReadAllText(QueryPath + "device/getDevicesByManagement.graphql");
 
                 getManagementsDetails = File.ReadAllText(QueryPath + "device/getManagementsDetails.graphql") + " " 
@@ -63,6 +74,7 @@ namespace FWO.ApiClient.Queries
 
                 deleteDevice = File.ReadAllText(QueryPath + "device/deleteDevice.graphql");
 
+                // Config
                 getLanguages = File.ReadAllText(QueryPath + "config/getLanguages.graphql");
 
                 getAllTexts = File.ReadAllText(QueryPath + "config/getTexts.graphql");

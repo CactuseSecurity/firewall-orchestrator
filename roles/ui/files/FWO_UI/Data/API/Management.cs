@@ -100,20 +100,6 @@ namespace FWO.Ui.Data.API
         }
     }
 
-    public class ReturnId
-    {
-        [JsonPropertyName("newId")]
-        public int NewId { get; set; }
-
-        [JsonPropertyName("UpdatedId")]
-        public int UpdatedId { get; set; }
-    }
-    public class NewReturning
-    {
-        [JsonPropertyName("returning")]
-        public ReturnId[] ReturnIds { get; set; }
-    }
-
     public static class ManagementUtility
     {
         public static bool Merge(this Management[] managements, Management[] managementsToMerge)

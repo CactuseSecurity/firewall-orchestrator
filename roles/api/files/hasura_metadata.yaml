@@ -1043,14 +1043,14 @@ tables:
   - name: report_template_viewable_by_tenants
     using:
       foreign_key_constraint_on:
-        column: report_id
+        column: report_template_id
         table:
           name: report_template_viewable_by_tenant
           schema: public
   - name: report_template_viewable_by_users
     using:
       foreign_key_constraint_on:
-        column: report_id
+        column: report_template_id
         table:
           name: report_template_viewable_by_user
           schema: public
@@ -1058,13 +1058,32 @@ tables:
   - name: stm_report_typ
     using:
       foreign_key_constraint_on: report_typ_id
+  select_permissions:
+  - permission:
+      columns:
+      - report_template_id
+      - report_filter
+      - report_template_name
+      - report_template_comment
+      - report_typ_id
+      - report_template_create
+      - filterline_history
+      filter:
+        _and:
+        - report_template_viewable_by_tenants:
+            tenant_id:
+              _eq: x-hasura-tenant-id
+        - report_template_viewable_by_users:
+            uiuser_id:
+              _eq: x-hasura-user-id
+    role: reporter
   table:
     name: report_template
     schema: public
 - object_relationships:
   - name: report_template
     using:
-      foreign_key_constraint_on: report_id
+      foreign_key_constraint_on: report_template_id
   - name: tenant
     using:
       foreign_key_constraint_on: tenant_id
@@ -1074,7 +1093,7 @@ tables:
 - object_relationships:
   - name: report_template
     using:
-      foreign_key_constraint_on: report_id
+      foreign_key_constraint_on: report_template_id
   - name: uiuser
     using:
       foreign_key_constraint_on: uiuser_id

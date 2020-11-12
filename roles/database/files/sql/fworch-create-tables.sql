@@ -884,16 +884,16 @@ Create table "stm_report_typ"
 
 Create table "report_template_viewable_by_tenant"
 (
-	"report_id" Integer NOT NULL,
+	"report_template_id" Integer NOT NULL,
 	"tenant_id" Integer NOT NULL,
- primary key ("tenant_id","report_id")
+ primary key ("tenant_id","report_template_id")
 );
 
 Create table "report_template_viewable_by_user"
 (
-	"report_id" Integer NOT NULL,
+	"report_template_id" Integer NOT NULL,
 	"uiuser_id" Integer NOT NULL,
- primary key ("uiuser_id","report_id")
+ primary key ("uiuser_id","report_template_id")
 );
 
 -- temp tables reporting -------------------------------------------

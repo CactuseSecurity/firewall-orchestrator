@@ -60,9 +60,9 @@ Alter table "report" add foreign key ("report_template_id") references "report_t
 Alter table "report" add foreign key ("start_import_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "report" add foreign key ("stop_import_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "report_template" add foreign key ("report_typ_id") references "stm_report_typ" ("report_typ_id") on update restrict on delete cascade;
-Alter table "report_template_viewable_by_tenant" add foreign key ("report_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
+Alter table "report_template_viewable_by_tenant" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
 Alter table "report_template_viewable_by_tenant" add foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
-Alter table "report_template_viewable_by_user" add foreign key ("report_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
+Alter table "report_template_viewable_by_user" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
 Alter table "report_template_viewable_by_user" add foreign key ("uiuser_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "request" add  foreign key ("request_type_id") references "request_type" ("request_type_id") on update restrict on delete cascade;
 Alter table "request" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;

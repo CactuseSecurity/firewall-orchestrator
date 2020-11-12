@@ -16,7 +16,6 @@ namespace FWO.Auth.Server
     {
         private const string issuer = "FWO Auth Module";
         private const string audience = "FWO";
-
         private readonly RsaSecurityKey jwtPrivateKey;
         private readonly int hoursValid;
 
@@ -25,41 +24,17 @@ namespace FWO.Auth.Server
             this.hoursValid = hoursValid;
             this.jwtPrivateKey = jwtPrivateKey;
         }
-        /// <summary>
-        /// Jwt creator function used within authserver that does not need: user, getClaims
-        /// necessary because this JWT needs to be used within getClaims
-        /// </summary>
-        /// <returns>JWT for auth-server role.</returns>
-
-        public string CreateJWTAuthServer()
-        {
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = new ClaimsIdentity();
-            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "auth-server" }), JsonClaimValueTypes.JsonArray));
-            subject.AddClaim(new Claim("x-hasura-default-role", "auth-server"));
-
-            JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
-            (
-                issuer: issuer,
-                audience: audience,
-                subject: subject,
-                notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
-                issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddMinutes(1),
-                signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
-            );
-            string GeneratedToken = tokenHandler.WriteToken(token);
-            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for auth-server");
-            return GeneratedToken;
-        }
 
         public string CreateJWT(User user)
         {
             Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
-            AddUserToDbAtFirstLogin(user);
-
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = GetClaims(user);
+            ClaimsIdentity subject;
+            if (user.Dn == "anonymous")
+                subject = GetClaims(user);
+            else
+                subject = GetClaims(AddUserToDbAtFirstLogin(user));
+                // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
@@ -78,47 +53,90 @@ namespace FWO.Auth.Server
             Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
             return GeneratedToken;
         }
+
+        /// <summary>
+        /// Jwt creator function used within authserver that does not need: user, getClaims
+        /// necessary because this JWT needs to be used within getClaims
+        /// </summary>
+        /// <returns>JWT for auth-server role.</returns>
+        public string CreateJWTAuthServer()
+        {
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            ClaimsIdentity subject = new ClaimsIdentity();
+            subject.AddClaim(new Claim("unique_name", "auth-server"));
+            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "auth-server" }), JsonClaimValueTypes.JsonArray));
+            subject.AddClaim(new Claim("x-hasura-default-role", "auth-server"));
+
+            JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
+            (
+                issuer: issuer,
+                audience: audience,
+                subject: subject,
+                notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
+                issuedAt: DateTime.UtcNow.AddMinutes(-1),
+                expires: DateTime.UtcNow.AddMinutes(1),
+                signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
+            );
+            string GeneratedToken = tokenHandler.WriteToken(token);
+            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for auth-server");
+            return GeneratedToken;
+        }
+
+        /// <summary>
+        /// if the user logs in for the first time, user details (excluding password) are written to DB bia API
+        /// the database id is retrieved and added to the user 
+        /// the user id is needed for allowing access to report_templates
+        /// </summary>
+        /// <returns> user including its db id </returns>
         private User AddUserToDbAtFirstLogin(User user)
         {
-            ConfigConnection config = new ConfigConnection();
-            string apiUri = config.ApiServerUri;
-            APIConnection apiConn = new APIConnection(apiUri, CreateJWTAuthServer());
-            User newlyCreatedUser = null;
             if (user.Dn != "anonymous")
             {
+                User userToBeReturned = new User();
                 try
                 {
-                    var uuidVariable = new { uuid = user.Dn };
-                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(BasicQueries.getUserByUuid, uuidVariable).Result;
+                    APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
+                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(BasicQueries.getUserByUuid, new { uuid = user.Dn }).Result;
                     if (existingUserFound.Length == 0)
                     {
                         Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
-                        var newUserVariable = new { uuid = user.Dn, uiuser_username = user.Name };
-                        try
+                        try               //    add new user to uiuser via API mutation
                         {
-                            User[] newlyCreateUsers = apiConn.SendQueryAsync<User[]>(BasicQueries.addUser, newUserVariable).Result;
-                            newlyCreatedUser = newlyCreateUsers[0];
+                            userToBeReturned = apiConn.SendQueryAsync<User[]>(BasicQueries.addUser, new { uuid = user.Dn, uiuser_username = user.Name }).Result[0];
                         }
                         catch (Exception addExeption)
                         {
                             Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", addExeption);
                         }
                     }
+                    else
+                    {
+                        if (existingUserFound.Length == 1)
+                            userToBeReturned = existingUserFound[0];
+                        else
+                            Log.WriteError("Duplicate User", $"User {user.Name} was found more than once!");
+                    }
                 }
                 catch (Exception getException) //  if user.Dn does not exist in uiuser.uuid table, add it
                 {
                     Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", getException);
                 }
-                //    add new user to uiuser via API mutation
-                // add uiuser.uiuser_id as x-hasura-user-id to JWT
+                // copy remaining fields from input user to returnUser:
+                userToBeReturned.DefaultRole = user.DefaultRole;
+                userToBeReturned.Roles = user.Roles;
+                userToBeReturned.Tenant = user.Tenant;
+                userToBeReturned.Password = user.Password;
+                return userToBeReturned;
             }
-            return newlyCreatedUser;
+            // for anonymous access, just return the unmodified user
+            return user;
         }
+
         private ClaimsIdentity GetClaims(User user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
-
+            claimsIdentity.AddClaim(new Claim("x-hasura-user-id", user.DbId.ToString()));
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("UUID", user.Dn));   // UUID used for access to reports via API
             if (user.Tenant != null)

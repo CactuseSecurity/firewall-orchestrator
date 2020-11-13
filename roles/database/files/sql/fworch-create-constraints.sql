@@ -1,10 +1,3 @@
-/*
-Created			29.04.2005
-Last modified	10.11.2020
-Project			Firewall Orchestrator
-Company			Cactus eSecurity GmbH
-Database		PostgreSQL 9-12
-*/
 
 /* Create Alternate Keys */
 Alter Table "changelog_object" add Constraint "alt_key_changelog_object" UNIQUE ("abs_change_id");

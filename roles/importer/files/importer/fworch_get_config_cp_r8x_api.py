@@ -139,13 +139,16 @@ config_json += "],\n"  # 'level': 'rulebases'
 logging.debug ( "fworch_get_config_cp_r8x_api - rulebase total:"+ str(total) )
 
 # read all objects:
-obj_types = [
-    'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'simple-gateways', 
-    'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains', 
-    'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp'
-#    'application-sites', 'application-site-categories', 'application-site-groups' 
+# obj_types = [
+#     'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'simple-gateways', 'gateways-and-servers',
+#     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains', 
+#     'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp'
 ]
-
+obj_types = [
+    'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
+    'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains',
+    'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp',
+]
 config_json += "\"object_tables\": [\n"
 show_params_objs = {'limit':limit,'details-level': details_level}
 for obj_type in obj_types:

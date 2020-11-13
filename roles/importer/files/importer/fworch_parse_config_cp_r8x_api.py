@@ -329,8 +329,8 @@ def collect_nw_objects(object_table):
     #    nw_obj_tables = [ 'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'simple-gateways',
     #                     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains' ]
     #nw_obj_tables = ['hosts', 'networks', 'simple-gateways', 'address-ranges', 'groups']
-    nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers']
-    nw_obj_type_to_host_list = [ 'simple-gateways', 'CpmiVsClusterNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'simple-cluster', 'CpmiGatewayCluster']
+    nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
+    nw_obj_type_to_host_list = [ 'simple-gateways', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host']
     if object_table['object_type'] in nw_obj_tables:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:

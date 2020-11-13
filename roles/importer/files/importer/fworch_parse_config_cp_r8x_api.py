@@ -321,7 +321,9 @@ def collect_nw_objects(object_table):
     result = ''
     #    nw_obj_tables = [ 'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'simple-gateways',
     #                     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains' ]
-    nw_obj_tables = ['hosts', 'networks', 'simple-gateways', 'address-ranges', 'groups']
+    #nw_obj_tables = ['hosts', 'networks', 'simple-gateways', 'address-ranges', 'groups']
+    nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers']
+    nw_obj_type_to_host_list = [ 'simple-gateways', 'CpmiVsClusterNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'simple-cluster', 'CpmiGatewayCluster']
     if object_table['object_type'] in nw_obj_tables:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
@@ -342,7 +344,8 @@ def collect_nw_objects(object_table):
                 obj_type = obj['type']
                 if obj_type == 'address-range':
                     obj_type = 'ip_range'  # TODO: change later?
-                if obj_type == 'simple-gateway':
+                #if obj_type == 'simple-gateway':
+                if (obj_type in nw_obj_type_to_host_list):
                     obj_type = 'host'
                 nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
                                     'obj_comment': obj['comments'],

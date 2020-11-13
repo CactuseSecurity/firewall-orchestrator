@@ -1,0 +1,37 @@
+mutation updateLdapConnection(
+  $id: bigint!
+  $address: String!
+  $port: Int!
+  $searchUser: String!
+  $tls: Boolean!
+  $tenantLevel: Int!
+  $searchUserPwd: String!
+  $searchpathForUsers: String!
+  $searchpathForRoles: String
+) {
+  update_ldap_connection_by_pk(
+    pk_columns: { ldap_connection_id: $id }
+    _set: {
+      ldap_server: $address
+      ldap_port: $port
+      ldap_search_user: $searchUser
+      ldap_tls: $tls
+      ldap_tenant_level: $tenantLevel
+      ldap_search_user_pwd: $searchUserPwd
+      ldap_searchpath_for_users: $searchpathForUsers
+      ldap_searchpath_for_roles: $searchpathForRoles
+    }
+  ) {
+    UpdatedId: ldap_connection_id
+  }
+}
+
+#{ "id": 3,
+#  "address": "1.0.0.0", 
+#  "port": 10, 
+#	 "searchUser": "ich", 
+#  "tls": true,
+#	 "tenantLevel": 1,
+#	 "searchUserPwd": "xxx",
+#	 "searchpathForUsers": "ou=yyy"}
+

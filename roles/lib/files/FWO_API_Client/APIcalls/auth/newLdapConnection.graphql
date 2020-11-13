@@ -1,0 +1,28 @@
+mutation newLdapConnection(
+  $address: String!
+  $port: Int!
+  $searchUser: String!
+  $tls: Boolean!
+  $tenantLevel: Int!
+  $searchUserPwd: String!
+  $searchpathForUsers: String!
+  $searchpathForRoles: String
+) {
+  insert_ldap_connection(
+    objects: {
+      ldap_server: $address
+      ldap_port: $port
+      ldap_search_user: $searchUser
+      ldap_tls: $tls
+      ldap_tenant_level: $tenantLevel
+      ldap_search_user_pwd: $searchUserPwd
+      ldap_searchpath_for_users: $searchpathForUsers
+      ldap_searchpath_for_roles: $searchpathForRoles
+    }
+  ) {
+    returning {
+      newId: ldap_connection_id
+    }
+  }
+}
+

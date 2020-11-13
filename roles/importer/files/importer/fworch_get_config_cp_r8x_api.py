@@ -142,7 +142,7 @@ logging.debug ( "fworch_get_config_cp_r8x_api - rulebase total:"+ str(total) )
 obj_types = [
     'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'simple-gateways', 
     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains', 
-    'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc',
+    'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp'
 #    'application-sites', 'application-site-categories', 'application-site-groups' 
 ]
 

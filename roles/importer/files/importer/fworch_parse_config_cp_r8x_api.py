@@ -213,7 +213,11 @@ def csv_dump_rules(rulebase, layer_name, any_object_uid):
         if 'rulebase' in rulebase:
             # add section header
             if rulebase['type'] == 'access-section':
-                section_name = rulebase['name']
+                section_name = ""
+                if 'name' in rulebase:
+                    section_name = rulebase['name']
+                else:
+                    print ("warning: found access-section without defined rulebase.name, rulebase uid=" + rulebase['uid'])
                 number_of_section_headers_so_far += 1
                 rule_num = rule_num + 1
                 section_header_uid = rulebase['uid'] + '-section-header-' + str(number_of_section_headers_so_far)
@@ -311,6 +315,8 @@ def get_ip_of_obj(obj):
         ip_addr = obj['subnet4'] + '/' + str(obj['mask-length4'])
     elif 'subnet6' in obj:
         ip_addr = obj['subnet6'] + '/' + str(obj['mask-length6'])
+    elif 'obj_typ' in obj and obj['obj_typ'] == 'group':
+        ip_addr = ''
     else:
         ip_addr = '0.0.0.0/0'
     return ip_addr
@@ -443,8 +449,7 @@ def collect_svc_objects(object_table):
     global svc_objects
     result = ''
     #    svc_obj_tables = [ 'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc' ]
-    svc_obj_tables = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc',
-                      'services-other']
+    svc_obj_tables = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp']
 
     if object_table['object_type'] in svc_obj_tables:
         proto = ''
@@ -464,6 +469,9 @@ def collect_svc_objects(object_table):
             typ = 'simple'
             proto = ''
         if object_table['object_type'] == 'services-other':
+            typ = 'simple'
+            proto = '0'
+        if object_table['object_type'] == 'services-icmp':
             typ = 'simple'
             proto = '0'
         for chunk in object_table['object_chunks']:
@@ -542,6 +550,7 @@ def add_member_names_for_svc_group(idx):
 
 ####################### service handling: read from rulebase ###############################################
 
+# this function is probably not needed from API v1.1 onwards
 def collect_svcs_from_rule(rule):
     global svc_objects
     if 'rule-number' in rule:  # standard rule

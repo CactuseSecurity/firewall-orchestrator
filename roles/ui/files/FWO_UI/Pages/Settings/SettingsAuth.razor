@@ -1,15 +1,264 @@
 ﻿@using BlazorTable
 @using FWO.Ui.Data.API
+@using FWO.ApiClient
 
 @page "/settings/authorization"
 
-<h3>Authorization Settings</h3>
+@inject APIConnection apiConnection
 
-<div class="d-flex flex-column">
+<h3 class="m-2">Authorization Settings</h3>
 
+<button class="btn btn-success m-2" @onclick="Add">Add new LDAP connection</button>
+
+<div class="m-2">
+    <Table class="table table-bordered table-responsive" TableItem="LdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
+        <Column TableItem="LdapConnection" Title="Host" Field="@(x => x.Address)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.Host())
+            </Template>
+        </Column>
+        <Column TableItem="LdapConnection" Title="Search User" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true" />
+        <Column TableItem="LdapConnection" Title="Role Search Path" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true" />
+        <Column TableItem="LdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
+    </Table>
 </div>
+
+<PopUp Title="Edit LDAP connection" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+    <Body>
+        @if (EditMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="ldapAddress" class="col-sm-4 col-form-label col-form-label-sm">Address:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapAddress" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Address" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapPort" class="col-sm-4 col-form-label col-form-label-sm">Port:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapPort" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapSearchUser" class="col-sm-4 col-form-label col-form-label-sm">Search User:</label>
+                    <div class="col-sm-8">
+                        <textarea id="ldapSearchUser" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapTenantLevel" class="col-sm-4 col-form-label col-form-label-sm">TenantLevel:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapTenantLevel" type="text" class="form-control form-control-sm" @bind="actLdapConnection.TenantLevel" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapSearchUserPwd" class="col-sm-4 col-form-label col-form-label-sm">Search User Pwd:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapSearchUserPwd" type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapUserSearchPath" class="col-sm-4 col-form-label col-form-label-sm">User Search Path:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapUserSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.UserSearchPath" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapRoleSearchPath" class="col-sm-4 col-form-label col-form-label-sm">Role Search Path:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapRoleSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.RoleSearchPath" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="ldapTls" type="checkbox" @bind="actLdapConnection.Tls">
+                    <label class="form-check-label" for="ldapTls"><small>Tls</small></label>
+                </div>
+
+                @if (errorMessage != "")
+                {
+                    <label class="m-2">@errorMessage</label>
+                }
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="Delete" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+    <Body>
+        @if (DeleteMode)
+        {
+            <p>@(deleteMessage)</p>
+
+            @if (errorMessage != "")
+            {
+                <label class="m-2">@errorMessage</label>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (DeleteAllowed)
+            {
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete(actLdapConnection)">Delete</button>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code 
 {
-    
+    private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+
+    private bool EditMode = false;
+    private bool DeleteMode = false;
+    private bool DeleteAllowed = false;
+    private bool AddMode = false;
+
+    private LdapConnection newLdapConnection;
+    private LdapConnection actLdapConnection;
+
+    private string deleteMessage = "";
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.BasicQueries.getLdapConnections))).ToList();
+    }
+
+    private void Edit(LdapConnection ldapConnection)
+    {
+        actLdapConnection = new LdapConnection(ldapConnection);
+        EditMode = true;
+    }
+
+    private void RequestDelete(LdapConnection ldapConnection)
+    {
+        actLdapConnection = ldapConnection;
+        // Checks if delete possible. Todo: further checks?
+        if (connectedLdaps.Count == 1)
+        {
+            deleteMessage = $"Deletion of ldapConnection {actLdapConnection.Address} not allowed as it is the last one.";
+            DeleteAllowed = false;
+        }
+        else if (actLdapConnection.RoleSearchPath != null && actLdapConnection.RoleSearchPath != "")
+        {
+            deleteMessage = $"Deletion of ldapConnection {actLdapConnection.Address} not allowed as it contains role search path. Delete it first if possible.";
+            DeleteAllowed = false;
+        }
+        else
+        {
+            deleteMessage = $"Are you sure you want to delete ldapConnection {actLdapConnection.Address}?";
+            DeleteAllowed = true;
+        }
+        DeleteMode = true;
+    }
+
+    private async Task Delete(LdapConnection ldapConnection)
+    {
+        try
+        {
+            var Variables = new { id = ldapConnection.Id };
+            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.deleteLdapConnection, Variables))).DeletedId;
+            if (delId == ldapConnection.Id)
+            {
+                connectedLdaps.Remove(ldapConnection);
+                DeleteMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Delete Ldap Connection", $"Exception occurred: {exception}");
+            errorMessage = "Something went wrong with deleting: " + exception.Message;
+        }
+    }
+
+    private void Add()
+    {
+        AddMode = true;
+        newLdapConnection = new LdapConnection();
+        Edit(newLdapConnection);
+    }
+
+    private void Clone(LdapConnection ldapConnection)
+    {
+        AddMode = true;
+        newLdapConnection = new LdapConnection(ldapConnection);
+        Edit(newLdapConnection);
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            // Todo: Value checks?
+            if (AddMode)
+            {
+                var Variables = new
+                {
+                    address = actLdapConnection.Address,
+                    port = actLdapConnection.Port,
+                    searchUser = actLdapConnection.SearchUser,
+                    tls = actLdapConnection.Tls,
+                    tenantLevel = actLdapConnection.TenantLevel,
+                    searchUserPwd = actLdapConnection.SearchUserPwd,
+                    searchpathForUsers = actLdapConnection.UserSearchPath,
+                    searchpathForRoles = actLdapConnection.RoleSearchPath
+                };
+                actLdapConnection.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.BasicQueries.newLdapConnection, Variables))).ReturnIds[0].NewId;
+                connectedLdaps.Add(actLdapConnection);
+                AddMode = false;
+                EditMode = false;
+                errorMessage = "";
+            }
+            else
+            {
+                var Variables = new
+                {
+                    id = actLdapConnection.Id,
+                    address = actLdapConnection.Address,
+                    port = actLdapConnection.Port,
+                    searchUser = actLdapConnection.SearchUser,
+                    tls = actLdapConnection.Tls,
+                    tenantLevel = actLdapConnection.TenantLevel,
+                    searchUserPwd = actLdapConnection.SearchUserPwd,
+                    searchpathForUsers = actLdapConnection.UserSearchPath,
+                    searchpathForRoles = actLdapConnection.RoleSearchPath
+                };
+                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateLdapConnection, Variables))).UpdatedId;
+                EditMode = (udId == actLdapConnection.Id ? false : true);
+                connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
+                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
+            }
+        }
+        catch (Exception exception)
+        {
+            // Todo: Error message? Ignore?
+            Log.WriteDebug("Save Ldap Connection", $"Exception occurred: {exception}");
+            errorMessage = "Something went wrong with saving: " + exception.Message;
+        }
+    }
+
+    private void Cancel()
+    {
+        AddMode = false;
+        EditMode = false;
+        DeleteMode = false;
+        errorMessage = "";
+    }
 }

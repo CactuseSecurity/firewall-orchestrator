@@ -318,7 +318,7 @@ def get_ip_of_obj(obj):
 
 # collect_nw_objects writes nw objects info into global nw_objects dict
 def collect_nw_objects(object_table):
-    result = ''
+    result = ''  # todo: delete this line
     #    nw_obj_tables = [ 'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'simple-gateways',
     #                     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains' ]
     nw_obj_tables = ['hosts', 'networks', 'simple-gateways', 'address-ranges', 'groups']
@@ -331,12 +331,11 @@ def collect_nw_objects(object_table):
                 member_names = ''
                 if 'members' in obj:
                     for member in obj['members']:
-                        if 'name' in member:
-                            member_names += member['name'] + list_delimiter
-                            member_refs += member['uid'] + list_delimiter
+                        member_refs += member + list_delimiter
+                        # member_names += member + list_delimiter
+                        # member_names += member['name'] + list_delimiter
                         # else:
                         #    print('warning: no name found for network object group ' + obj['name'])
-                    member_names = member_names[:-1]
                     member_refs = member_refs[:-1]
                 ip_addr = get_ip_of_obj(obj)
                 obj_type = obj['type']
@@ -348,6 +347,27 @@ def collect_nw_objects(object_table):
                                     'obj_comment': obj['comments'],
                                     'obj_typ': obj_type, 'obj_ip': ip_addr,
                                     'obj_member_refs': member_refs, 'obj_member_names': member_names}])
+
+
+# for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
+def resolve_nw_uid_to_name(uid):
+    # return name of nw_objects element where obj_uid = uid
+    for obj in nw_objects:
+        if obj['obj_uid'] == uid:
+            return obj['obj_name']
+    return 'ERROR: uid ' + uid + ' not found'
+
+
+def add_member_names_for_nw_group(idx):
+    member_names = ''
+    group = nw_objects.pop(idx)
+    obj_member_refs = group['obj_member_refs'].split(list_delimiter)
+    for ref in obj_member_refs:
+        member_name = resolve_nw_uid_to_name(ref)
+        # print ("found member of group " + group['obj_name'] + ": " + member_name)
+        member_names += member_name + list_delimiter
+    group['obj_member_names'] = member_names[:-1]
+    nw_objects.insert(idx, group)
 
 
 ####################### nw_obj handling: read from rulebase ###############################################
@@ -394,6 +414,7 @@ def collect_nw_objs_from_rulebase(rulebase):
 ####################### svc obj handling ###############################################
 
 def csv_dump_svc_obj(svc_obj):
+    #print("dumping svc: " + svc_obj['svc_name'] + ", svc_member_refs: " + svc_obj['svc_member_refs'])
     result_line = '"' + args.import_id + '"' + csv_delimiter  # control_id
     result_line += '"' + svc_obj['svc_name'] + '"' + csv_delimiter  # svc_name
     result_line += '"' + svc_obj['svc_typ'] + '"' + csv_delimiter  # svc_typ
@@ -455,14 +476,8 @@ def collect_svc_objects(object_table):
                 rpc_nr = ''
                 if 'members' in obj:
                     member_refs = ''
-                    member_names = ''
                     for member in obj['members']:
-                        if 'name' in member:
-                            member_names += member['name'] + list_delimiter
-                            member_refs += member['uid'] + list_delimiter
-                        # else:
-                        #    print('warning: no name found for service group ' + obj['name'])
-                    member_names = member_names[:-1]
+                        member_refs += member + list_delimiter
                     member_refs = member_refs[:-1]
                 if 'session-timeout' in obj:
                     session_timeout = str(obj['session-timeout'])
@@ -498,9 +513,31 @@ def collect_svc_objects(object_table):
                                      'svc_comment': obj['comments'],
                                      'svc_typ': typ, 'svc_port': port, 'svc_port_end': port_end,
                                      'svc_member_refs': member_refs,
-                                     'svc_member_names': member_names, 'ip_proto': proto,
+                                     'svc_member_names': '',
+                                     'ip_proto': proto,
                                      'svc_timeout': session_timeout,
                                      'rpc_nr': rpc_nr}])
+
+
+# return name of nw_objects element where obj_uid = uid
+def resolve_svc_uid_to_name(uid):
+    for obj in svc_objects:
+        if obj['svc_uid'] == uid:
+            return obj['svc_name']
+    return 'ERROR: uid ' + uid + ' not found'
+
+
+def add_member_names_for_svc_group(idx):
+    member_names = ''
+    group = svc_objects.pop(idx)
+    svc_member_refs = group['svc_member_refs'].split(list_delimiter)
+
+    for ref in svc_member_refs:
+        member_name = resolve_svc_uid_to_name(ref)
+        #print ("found member of group " + group['svc_name'] + ": " + member_name)
+        member_names += member_name + list_delimiter
+    group['svc_member_names'] = member_names[:-1]
+    svc_objects.insert(idx, group)
 
 
 ####################### service handling: read from rulebase ###############################################
@@ -608,6 +645,10 @@ if args.network_objects:
     if args.network_objects != '':
         for obj_table in config['object_tables']:
             collect_nw_objects(obj_table)
+        for idx in range(0, len(nw_objects)-1):
+            if nw_objects[idx]['obj_typ'] == 'group':
+                add_member_names_for_nw_group(idx)
+
     for rulebase in config['rulebases']:
         collect_nw_objs_from_rulebase(rulebase)
     for nw_obj in nw_objects:
@@ -618,6 +659,10 @@ if args.service_objects:
     if args.service_objects != '':
         for obj_table in config['object_tables']:
             collect_svc_objects(obj_table)
+        for idx in range(0, len(svc_objects)-1):
+            if svc_objects[idx]['svc_typ'] == 'group':
+                add_member_names_for_svc_group(idx)
+
     for svc_obj in svc_objects:
         result += csv_dump_svc_obj(svc_obj)
 

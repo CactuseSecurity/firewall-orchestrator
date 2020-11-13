@@ -138,7 +138,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.BasicQueries.getLdapConnections))).ToList();
+        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
     }
 
     private void Edit(LdapConnection ldapConnection)
@@ -174,7 +174,7 @@
         try
         {
             var Variables = new { id = ldapConnection.Id };
-            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.deleteLdapConnection, Variables))).DeletedId;
+            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteLdapConnection, Variables))).DeletedId;
             if (delId == ldapConnection.Id)
             {
                 connectedLdaps.Remove(ldapConnection);
@@ -220,7 +220,7 @@
                     searchpathForUsers = actLdapConnection.UserSearchPath,
                     searchpathForRoles = actLdapConnection.RoleSearchPath
                 };
-                actLdapConnection.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.BasicQueries.newLdapConnection, Variables))).ReturnIds[0].NewId;
+                actLdapConnection.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.newLdapConnection, Variables))).ReturnIds[0].NewId;
                 connectedLdaps.Add(actLdapConnection);
                 AddMode = false;
                 EditMode = false;
@@ -240,7 +240,7 @@
                     searchpathForUsers = actLdapConnection.UserSearchPath,
                     searchpathForRoles = actLdapConnection.RoleSearchPath
                 };
-                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateLdapConnection, Variables))).UpdatedId;
+                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateLdapConnection, Variables))).UpdatedId;
                 EditMode = (udId == actLdapConnection.Id ? false : true);
                 connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
                 errorMessage = (EditMode ? "Something went wrong with saving changes" : "");

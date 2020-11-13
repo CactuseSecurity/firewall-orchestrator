@@ -1,14 +1,17 @@
 /*
 Created			29.04.2005
-Last modified	10.11.2020
+Last modified	13.11.2020
 Project			Firewall Orchestrator
-Company			Cactus eSecurity GmbH
+Contact			https://cactus.de/fworch
 Database		PostgreSQL 9-12
 */
 
-/* Create Sequences */
+/* Create Sequence 
 
--- the abs_hange_id is needed as it is incremented across 4 different tables
+the abs_hange_id is needed as it is incremented across 4 different tables
+
+*/
+
 Create sequence if not exists "public"."abs_change_id_seq"
 Increment 1
 Minvalue 1

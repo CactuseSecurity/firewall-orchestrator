@@ -1,10 +1,3 @@
-/*
-Created			29.04.2005
-Last modified	10.11.2020
-Project			Firewall Orchestrator
-Company			Cactus eSecurity GmbH
-Database		PostgreSQL 9-12
-*/
 
 Create unique index "firewall_akey" on "device" using btree ("mgm_id","dev_id");
 Create index "kunden_akey" on "tenant" using btree ("tenant_name");

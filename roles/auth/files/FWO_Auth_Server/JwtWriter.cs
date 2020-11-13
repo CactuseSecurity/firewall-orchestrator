@@ -34,7 +34,7 @@ namespace FWO.Auth.Server
                 subject = GetClaims(user);
             else
                 subject = GetClaims(AddUserToDbAtFirstLogin(user));
-                // adding uiuser.uiuser_id as x-hasura-user-id to JWT
+            // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
@@ -95,14 +95,21 @@ namespace FWO.Auth.Server
                 User userToBeReturned = new User();
                 try
                 {
+                    // failed to get this working (seems like serializer stumbles over an extra layer)
+                    // APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
+                    // userFromLdap = apiConn.SendQueryAsync<User[]>(
+                    //         AuthQueries.assertUserExists,
+                    //         new { uuid = user.Dn, uiuser_username = user.Name, onConflictRule = new { update_columns = "uuid", constraint = "uiuser_uuid_key" } }
+                    //     ).Result[0];
+
                     APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
-                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(BasicQueries.getUserByUuid, new { uuid = user.Dn }).Result;
+                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
                     if (existingUserFound.Length == 0)
                     {
                         Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
                         try               //    add new user to uiuser via API mutation
                         {
-                            userToBeReturned = apiConn.SendQueryAsync<User[]>(BasicQueries.addUser, new { uuid = user.Dn, uiuser_username = user.Name }).Result[0];
+                            userToBeReturned = apiConn.SendQueryAsync<User[]>(AuthQueries.addUser, new { uuid = user.Dn, uiuser_username = user.Name }).Result[0];
                         }
                         catch (Exception addExeption)
                         {

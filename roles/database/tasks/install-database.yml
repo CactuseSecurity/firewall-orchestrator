@@ -25,23 +25,10 @@
     #  - name: drop database {{ fworch_db_name }}
     #    command: 'psql -c "DROP DATABASE IF EXISTS {{ fworch_db_name }}"'
 
-#  - name: create database {{ fworch_db_name }}
-#    # old
-#    command: 'psql -c "CREATE DATABASE {{ fworch_db_name }}"'
-#    when: installation_mode == "new" and db_exists.stdout == "0"
-
   - name: create database {{ fworch_db_name }}
     postgresql_db:
       name: "{{ fworch_db_name }}"
       state: present
-
-#  - name: creating {{ fworch_db_name }}-db-model and settings privileges
-#    # old
-#    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
-#    loop:
-#      - fworch-db-model.sql
-#      - fworch-change-to-delete-cascade.sql
-#    when: installation_mode == "new"
 
   - name: test module postgresql_query functionality (only works with ansible >= 2.8) in case of an error message you may run scripts/install-lastes-ansible.yml
     postgresql_query:
@@ -54,37 +41,20 @@
     debug:
       msg: "test_query result: {{ test_query }}"
 
-  - name: creating {{ fworch_db_name }}-db-model and settings privileges
+  - name: creating {{ fworch_db_name }}-db-model
     postgresql_query:
       db: "{{ fworch_db_name }}"
       path_to_script: "{{ database_install_dir }}/sql/{{ item }}"
     loop:
-      - fworch-db-model.sql
-      - fworch-change-to-delete-cascade.sql
+      - fworch-create-tables.sql
+      - fworch-create-foreign-keys.sql
+      - fworch-create-constraints.sql
+      - fworch-create-indices.sql
     when: installation_mode == "new"
 
-#  - name: (re)defines functions and views (idempotent)
-#    # old
-#    command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/sql/{{ item }}"'
-#    loop:
-#      - fworch-basic-procs.sql
-#      - fworch-import.sql
-#      - fworch-import-main.sql
-#      - fworch-obj-import.sql
-#      - fworch-obj-refs.sql
-#      - fworch-svc-import.sql
-#      - fworch-svc-refs.sql
-#      - fworch-usr-import.sql
-#      - fworch-usr-refs.sql
-#      - fworch-rule-import.sql
-#      - fworch-rule-refs.sql
-#      - fworch-zone-import.sql
-#      - fworch-report.sql
-#      - fworch-qa.sql
-#      - fworch-report-basics.sql
-#      - fworch-views.sql
-#      - fworch-pre-auth.sql
-#      - fworch-grants.sql
+  - name: create db users with group memmberships
+    import_tasks: create-users.yml
+    when: installation_mode == "new"
 
   - name: (re)defines functions and views (idempotent)
     postgresql_query:
@@ -109,16 +79,6 @@
       - fworch-views.sql
       - fworch-pre-auth.sql
       - fworch-grants.sql
-
-#  - name: add base data to the database
-#    # old
-#    command: 'psql -d {{ fworch_db_name }} -c "{{ item }}"'
-#    loop:
-#      - "\\copy stm_color (color_name,color_rgb) FROM '{{ database_install_dir }}/csv/color.csv' DELIMITER ';' CSV"
-#      - "\\copy error (error_id,error_lvl,error_txt_ger,error_txt_eng) FROM '{{ database_install_dir }}/csv/error.csv' DELIMITER ';' CSV"
-#      - "\\copy stm_ip_proto (ip_proto_id,ip_proto_name,ip_proto_comment) FROM '{{ database_install_dir }}/csv/ip-protocol-list.csv' DELIMITER ';' CSV"
-#      - "\\i {{ database_install_dir }}/sql/fworch-fill-stm.sql"
-#    when: installation_mode == "new"
 
   - name: add colors to the database
     postgresql_copy:

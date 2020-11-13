@@ -1,8 +1,8 @@
 query getDevicesByManagement {
-  management {
+  management(order_by: {mgm_name:asc}) {
     id: mgm_id
     name: mgm_name
-    devices {
+    devices(order_by: {dev_name:asc}) {
       dev_id
       dev_name
     }

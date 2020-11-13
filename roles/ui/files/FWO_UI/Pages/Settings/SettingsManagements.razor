@@ -180,8 +180,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.BasicQueries.getManagementsDetails))).ToList();
-        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceTypeDetails))).ToList();
+        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails))).ToList();
+        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails))).ToList();
     }
 
     private void Edit(Management management)
@@ -212,7 +212,7 @@
         try
         {
             var Variables = new { id = management.Id };
-            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.deleteManagement, Variables))).DeletedId;
+            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables))).DeletedId;
             if (delId == management.Id)
             {
                 managements.Remove(management);
@@ -265,7 +265,7 @@
                     comment = actManagement.Comment /*,
                     tenantId = actManagement.TenantId */
                 };
-                actManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.BasicQueries.newManagement, Variables))).ReturnIds[0].NewId;
+                actManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables))).ReturnIds[0].NewId;
                 managements.Add(actManagement);
                 AddMode = false;
                 EditMode = false;
@@ -293,7 +293,7 @@
                     comment = actManagement.Comment /*,
                     tenantId = actManagement.TenantId */
                 };
-                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateManagement, Variables))).UpdatedId;
+                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables))).UpdatedId;
                 EditMode = (udId == actManagement.Id ? false : true);
                 managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 errorMessage = (EditMode ? "Something went wrong with saving changes" : "");

@@ -41,36 +41,36 @@
 			$username			= '';	$first_name			= '';
 			$last_name			= '';	$start_date 		= '';
 			$end_date			= '';	$email				= '';
-			$is_isoadmin		= false;
+			$is_uiuser		= false;
 			break;
 		case 'save':	// user wird abgespeichert: lese die Variablen aus $request
 			$user_id	= $request['userId'];
-			if (isset($request['userId']) and $request['userId']<>'') $isoadmin = new IsoadminUser($db_connection, $user_id);
+			if (isset($request['userId']) and $request['userId']<>'') $uiuser = new uiuserUser($db_connection, $user_id);
 			$username			= $request['username'];
 			$first_name			= $request['first_name'];
 			$last_name 			= $request['last_name'];
 			$start_date			= $request['start_date'];
 			$end_date			= $request['end_date'];
 			$email				= $request['email'];
-			$is_isoadmin		= $request['is_isoadmin'];
+			$is_uiuser		= $request['is_uiuser'];
 			$input_fehler = '';
 
 			if (preg_match("/^$/", $username)) $input_fehler = 'Username darf nicht leer sein.'; 			
 			if ($input_fehler == '') {
 				if (isset($request['userId']) and $request['userId']<>'')	// Aenderung an bestehendem User
 				
-				// CREATE ROLE "username" WITH PASSWORD '1n1t1al' LOGIN IN GROUP secuadmins, isoadmins;
-				// insert into isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) VALUES (14,'Vorname','Nachname','username');
+				// CREATE ROLE "username" WITH PASSWORD '1n1t1al' LOGIN IN GROUP secuadmins, uiusers;
+				// insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) VALUES (14,'Vorname','Nachname','username');
 				
 					$sql_code = "UPDATE device SET dev_name='$dev_name', mgm_id=$dev_mgm_id, dev_rulebase='$dev_rulebase', dev_typ_id=$dev_typ, " .
 							"do_not_import=" . (($dev_do_import)?"FALSE":"TRUE") . ", dev_update='$dev_updated' WHERE dev_id=$dev_id";
 				else { // neues Device anlegen
-					$user_id_code = "SELECT MAX(user_id)+1 AS user_id FROM isoadmin";
+					$user_id_code = "SELECT MAX(user_id)+1 AS user_id FROM uiuser";
 					$next_free_user_id = $db_connection->fworch_db_query($user_id_code); $next_free_user_id_no = $next_free_user_id->data[0]['user_id'];
 					$sql_code = 'CREATE ROLE "username" WITH PASSWORD \'1n1t1al\' LOGIN IN GROUP secuadmins';
-					if ($is_isoadmin) $sql_code .= ',isoadmins';
+					if ($is_uiuser) $sql_code .= ',uiusers';
 					$sql_code .= '; ';
-					$sql_code .= "INSERT INTO isoadmin (isoadmin_id,isoadmin_first_name,isoadmin_last_name,isoadmin_username) VALUES " .
+					$sql_code .= "INSERT INTO uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) VALUES " .
 						"($next_free_user_id_no,'$first_name','$last_name','$username');";
 				}
 				echo "sql_code: $sql_code<br>";
@@ -81,16 +81,16 @@
 				$ergebnis = "<BR><B>Speichern nicht erfolgreich: $input_fehler</B>";
 			}
 			break;	
-		default: 		// isoadmin-daten aus der datenbank holen
+		default: 		// uiuser-daten aus der datenbank holen
 			$user_id			= $request['userId'];
-			$isoadmin			= new IsoadminUser($db_connection, $user_id);
-			$username			= $isoadmin->getUserName();
-			$first_name			= $isoadmin->getFirstName();
-			$last_name 			= $isoadmin->getLastName();
-			$start_date			= $isoadmin->getStartDate();
-			$end_date			= $isoadmin->getEndDate();
-			$email				= $isoadmin->getEmail();
-			$is_isoadmin		= $isoadmin->getIsIsoadmin();
+			$uiuser			= new uiuserUser($db_connection, $user_id);
+			$username			= $uiuser->getUserName();
+			$first_name			= $uiuser->getFirstName();
+			$last_name 			= $uiuser->getLastName();
+			$start_date			= $uiuser->getStartDate();
+			$end_date			= $uiuser->getEndDate();
+			$email				= $uiuser->getEmail();
+			$is_uiuser		= $uiuser->getIsuiuser();
 	}
 	$headers = array('fworch Administrator', $user_id);
 	$user_table = new DisplayTable('fworch Administrator', $headers);
@@ -114,9 +114,9 @@
 			$end_date. '" ' . $nurlesen . ' size="'  . $size . '">');
 	$form .= $user_table->displayRowSimple() . $user_table->displayColumn('Email-Adresse') . $user_table->displayColumn('<input type="text" name="email" value="' .
 			$email. '" ' . $nurlesen . ' size="'  . $size . '">');
-	$form .= $user_table->displayRowSimple() . $user_table->displayColumn('fworch-Superuser?') . $user_table->displayColumn('<SELECT ' . $select_disabled  . ' name="is_isoadmin">' .
-			'<OPTION ' . (($is_isoadmin)?'selected':'') . ' value="1">ja</OPTION>' .
-			'<OPTION ' . (($is_isoadmin)?'':'selected') . ' value="0">nein</OPTION>');
+	$form .= $user_table->displayRowSimple() . $user_table->displayColumn('fworch-Superuser?') . $user_table->displayColumn('<SELECT ' . $select_disabled  . ' name="is_uiuser">' .
+			'<OPTION ' . (($is_uiuser)?'selected':'') . ' value="1">ja</OPTION>' .
+			'<OPTION ' . (($is_uiuser)?'':'selected') . ' value="0">nein</OPTION>');
 	$form .= $user_table->displayTableClose();
 	$form .= '</FORM>';
 	echo "&nbsp;<br>$ergebnis<br><br>$form"; 

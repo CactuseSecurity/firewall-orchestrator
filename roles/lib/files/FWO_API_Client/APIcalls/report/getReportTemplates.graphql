@@ -1,0 +1,10 @@
+query getReportTemplates ($reportTemplateName: String) {
+  report_template (where: {report_template_name: {_ilike: $reportTemplateName}}){
+    report_template_name
+    report_filter
+    report_template_comment
+    report_template_create
+    report_template_id
+    filterline_history
+  }
+}

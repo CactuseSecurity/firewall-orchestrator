@@ -44,6 +44,8 @@ my $use_scp = 0;
 my $direct_from_csv = 0;
 my $no_cleanup = 0;
 my $debug_level=0;
+my $configfile="";
+
 
 $first_start_time = time; $start_time = $first_start_time;
 
@@ -59,6 +61,7 @@ if (defined(param("-use-scp"))) { $use_scp = 1; $no_md5_checks = 1; }  # assumes
 if (defined(param("-direct-from-csv"))) { $direct_from_csv = 1; $do_not_copy = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
 if (defined(param("-no-cleanup"))) { $no_cleanup = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
 if (defined(param("-debug"))) { $debug_level = param("-debug"); }
+if (defined(param("-configfile"))) { $configfile = param("-configfile"); }
 
 # set basic parameters (read from import.conf)
 my $fworch_workdir	= &read_config('fworch_workdir') . "/$mgm_id";
@@ -98,10 +101,15 @@ if (!$error_count_global) {
 		}
 		# 1) read names of rulebases of each device from database
 		# copy config data from management system to fworch import system
-		($error_count_local, $config_files_str) =
-			&CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso 
-				($ssh_user, $ssh_hostname, $mgm_name, $obj_file_base, $cfg_dir, $rule_file_base,
-					$fworch_workdir, $audit_log_file, $prev_imp_time, $ssh_port, $config_path_on_mgmt, $rulebases);	# TODO: add use_scp parameter
+		if ($configfile ne "") {
+			system ("${bin_path}scp $configfile $cfg_dir/$obj_file_base");
+		}
+		else {
+			($error_count_local, $config_files_str) =
+				&CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso 
+					($ssh_user, $ssh_hostname, $mgm_name, $obj_file_base, $cfg_dir, $rule_file_base,
+						$fworch_workdir, $audit_log_file, $prev_imp_time, $ssh_port, $config_path_on_mgmt, $rulebases);	# TODO: add use_scp parameter
+		}
 		if ($error_count_local) {
 			if ($is_netscreen) { 		# file-check wg. Netscreen-Return-Code eingebaut
 				my $file_size = -s "$cfg_dir/$obj_file_base";

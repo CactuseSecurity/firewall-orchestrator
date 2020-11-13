@@ -142,9 +142,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        devices = (await Task.Run(() => apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceDetails))).ToList();
-        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.BasicQueries.getDeviceTypeDetails))).ToList();
-        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.BasicQueries.getManagementsDetails))).ToList();
+        devices = (await Task.Run(() => apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails))).ToList();
+        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails))).ToList();
+        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails))).ToList();
     }
 
     private void Edit(Device device)
@@ -165,7 +165,7 @@
         {
             // Todo: checks if delete possible. Else set e.g. an archive flag?
             var Variables = new { id = device.Id };
-            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.deleteDevice, Variables))).DeletedId;
+            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteDevice, Variables))).DeletedId;
             if(delId == device.Id)
             {
                 devices.Remove(device);
@@ -215,7 +215,7 @@
                     hideInUi = actDevice.HideInUi,
                     comment = actDevice.Comment
                 };
-                actDevice.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.BasicQueries.newDevice, Variables))).ReturnIds[0].NewId;
+                actDevice.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables))).ReturnIds[0].NewId;
                 devices.Add(actDevice);
                 AddMode = false;
                 EditMode = false;
@@ -235,7 +235,7 @@
                     hideInUi = actDevice.HideInUi,
                     comment = actDevice.Comment
                 };
-                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.BasicQueries.updateDevice, Variables))).UpdatedId;
+                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables))).UpdatedId;
                 EditMode = (udId == actDevice.Id ? false : true);
                 devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
                 errorMessage = (EditMode ? "Something went wrong with saving changes" : "");

@@ -149,18 +149,18 @@ namespace FWO.Auth.Server.Requests
             {
                 var tenNameObj = new { tenant_name = tenant.Name };
 
-                tenant = (await ApiConn.SendQueryAsync<Tenant[]>(BasicQueries.getTenantId, tenNameObj, "getTenantId"))[0];
+                tenant = (await ApiConn.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId"))[0];
 
                 var tenIdObj = new { tenantId = tenant.Id };
 
-                DeviceId[] deviceIds = await ApiConn.SendQueryAsync<DeviceId[]>(BasicQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+                DeviceId[] deviceIds = await ApiConn.SendQueryAsync<DeviceId[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
                 tenant.VisibleDevices = new int[deviceIds.Length];
                 for(int i = 0; i < deviceIds.Length; ++i)
                 {
                     tenant.VisibleDevices[i] = deviceIds[i].Id;
                 }
                 
-                ManagementId[] managementIds = await ApiConn.SendQueryAsync<ManagementId[]>(BasicQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+                ManagementId[] managementIds = await ApiConn.SendQueryAsync<ManagementId[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
                 tenant.VisibleManagements = new int[managementIds.Length];
                 for(int i = 0; i < managementIds.Length; ++i)
                 {

@@ -96,13 +96,13 @@ namespace FWO.Auth.Server
                 try
                 {
                     APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
-                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(BasicQueries.getUserByUuid, new { uuid = user.Dn }).Result;
+                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
                     if (existingUserFound.Length == 0)
                     {
                         Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
                         try               //    add new user to uiuser via API mutation
                         {
-                            userToBeReturned = apiConn.SendQueryAsync<User[]>(BasicQueries.addUser, new { uuid = user.Dn, uiuser_username = user.Name }).Result[0];
+                            userToBeReturned = apiConn.SendQueryAsync<User[]>(AuthQueries.addUser, new { uuid = user.Dn, uiuser_username = user.Name }).Result[0];
                         }
                         catch (Exception addExeption)
                         {

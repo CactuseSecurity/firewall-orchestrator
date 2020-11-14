@@ -79,7 +79,7 @@ def login(user,password,api_host,api_port):
 def add_uids(rule):
     global svc_objects
     global nw_objects
-    global user_objects
+    #global user_objects
  
     if 'rule-number' in rule:  # standard rule, no section header
         # SOURCE refs
@@ -269,11 +269,11 @@ configfile_json.close()
 with open(config_out_filename + ".tmp", "r") as json_data:
     config = json.load(json_data)
 
-# delete tmp json file
-# if os.path.exists(config_out_filename + ".tmp"):
-#     os.remove(config_out_filename + ".tmp")
-# else:
-#     print("ERROR: tmp file " + config_out_filename + ".tmp" + " does not exist")
+#delete tmp json file
+if os.path.exists(config_out_filename + ".tmp"):
+    os.remove(config_out_filename + ".tmp")
+else:
+    print("ERROR: tmp file " + config_out_filename + ".tmp" + " does not exist")
 
 # get all object uids (together with type) from all rules in fields src, dst, svc
 for rulebase in config['rulebases']:
@@ -320,6 +320,10 @@ for missing_obj in missing_nw_object_uids:
             'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
             } ] } ] }
         config['object_tables'].append(json_obj)
+    else:
+        logging.debug ( "WARNING - get_config_cp_r8x_api - missing nw obj of unexpected type: " + missing_obj )
+        print ("missing nw obj: " + missing_obj)
+
     logging.debug ( "get_config_cp_r8x_api - missing nw obj: " + missing_obj )
     print ("missing nw obj: " + missing_obj)
 
@@ -329,6 +333,17 @@ for missing_obj in missing_svc_object_uids:
     obj = obj['object']
     print(json.dumps(obj))
     # currently no svc objects are missing
+    if (obj['type'] == 'CpmiAnyObject'):
+        json_obj = {"object_type": "services-other", "object_chunks": [ {
+                "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                    'comments': 'any svc object checkpoint (hard coded)',
+                    'type': 'service-other', 'ip-protocol': '0'
+                    } ] } ] }
+        config['object_tables'].append(json_obj)
+    else:
+        logging.debug ( "WARNING - get_config_cp_r8x_api - missing svc obj of unexpected type: " + missing_obj )
+        print ("WARNING - get_config_cp_r8x_api - missing svc obj of unexpected type: " + missing_obj)
     logging.debug ( "get_config_cp_r8x_api - missing svc obj: " + missing_obj )
     print ("missing svc obj: " + missing_obj)
 

@@ -494,20 +494,20 @@ def add_member_names_for_svc_group(idx):
     svc_objects.insert(idx, group)
 
 
-def add_any_nw_objects(any_uid):
-    global nw_objects
+# def add_any_nw_objects(any_uid):
+#     global nw_objects
 
-    any_nw_obj_found = 0
+#     any_nw_obj_found = 0
 
-    for obj in nw_objects:
-        if obj['obj_name'] == 'Any':
-            any_nw_obj_found = 1
-            break
-    if (not any_nw_obj_found):
-        nw_objects.append({'obj_uid': any_uid, 'obj_name': 'Any', 'obj_color': 'black',
-                            'obj_comment': 'any nw object from checkpoint (not available via API but hard coded)',
-                            'obj_typ': 'network', 'obj_ip': '0.0.0.0/0',
-                            'obj_member_refs': '', 'obj_member_names': ''})
+#     for obj in nw_objects:
+#         if obj['obj_name'] == 'Any':
+#             any_nw_obj_found = 1
+#             break
+#     if (not any_nw_obj_found):
+#         nw_objects.append({'obj_uid': any_uid, 'obj_name': 'Any', 'obj_color': 'black',
+#                             'obj_comment': 'any nw object from checkpoint (not available via API but hard coded)',
+#                             'obj_typ': 'network', 'obj_ip': '0.0.0.0/0',
+#                             'obj_member_refs': '', 'obj_member_names': ''})
 
 def add_any_svc_objects(any_uid):
     global svc_objects
@@ -568,11 +568,7 @@ if args.network_objects:
             if nw_objects[idx]['obj_typ'] == 'group':
                 add_member_names_for_nw_group(idx)
     
-    add_any_nw_objects(any_obj_uid)
-
-    # # the following objects cannot be seen via API and therefore have to be found in the rulebases:
-    # for rulebase in config['rulebases']:
-    #     collect_CpmiGatewayPlain_from_rulebase(rulebase)
+#    add_any_nw_objects(any_obj_uid)
 
     for nw_obj in nw_objects:
         result += csv_dump_nw_obj(nw_obj)

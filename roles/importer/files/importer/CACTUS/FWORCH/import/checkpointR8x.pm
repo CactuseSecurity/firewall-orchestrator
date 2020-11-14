@@ -197,7 +197,6 @@ sub copy_config_from_mgm_to_iso {
 	my $return_code;
 	my $fehler_count = 0;
 
-#fworch_parse_config_cp_r8x_api.py
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
 	my $pwd = `cat $workdir/$CACTUS::FWORCH::ssh_id_basename`;

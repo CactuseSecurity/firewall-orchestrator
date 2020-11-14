@@ -98,6 +98,9 @@ sub parse_config {
 	my $cmd;
 	my $return_code = 0;
 	my $parser_py = "/usr/bin/python3 ./fworch_parse_config_cp_r8x_api.py";
+	my $users_csv = "$output_dir/${mgm_name}_users.csv";
+	my $users_delimiter = "%"; # value is defined in parser_py = ./iso_parse_config_cp_r8x_api.py !!!
+
 
 # parsing rulebases
 	my $rulebase_names = get_ruleset_name_list($rulebase_name);
@@ -111,6 +114,22 @@ sub parse_config {
 # parsing users
 	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\" > \"$output_dir/${mgm_name}_users.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
+	system("ls -l $output_dir");
+	if (-r $users_csv) {
+		my $empty_flag = 0;
+		open FH, $users_csv;
+		my $firstline = <FH>;
+		print ("firstline=$firstline###\n");
+		if(index($firstline,$users_delimiter)==-1) {
+				print ("test: empty_flag=$empty_flag\n");
+				$empty_flag = 1;
+		}
+		close FH;
+		if ($empty_flag == 1){
+				print ("unlink: empty_flag=$empty_flag\n");
+				unlink $users_csv;
+		}
+	}
 	$return_code = system($cmd); 
 	if ( $return_code != 0 ) { print("ERROR in parse_config::users found: $return_code\n") }
 # parsing svc objects

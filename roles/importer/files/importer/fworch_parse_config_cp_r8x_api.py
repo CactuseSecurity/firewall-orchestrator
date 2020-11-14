@@ -213,7 +213,11 @@ def csv_dump_rules(rulebase, layer_name, any_object_uid):
         if 'rulebase' in rulebase:
             # add section header
             if rulebase['type'] == 'access-section':
-                section_name = rulebase['name']
+                section_name = ""
+                if 'name' in rulebase:
+                    section_name = rulebase['name']
+                #else:
+                #     print ("warning: found access-section without defined rulebase.name, rulebase uid=" + rulebase['uid'])
                 number_of_section_headers_so_far += 1
                 rule_num = rule_num + 1
                 section_header_uid = rulebase['uid'] + '-section-header-' + str(number_of_section_headers_so_far)
@@ -311,6 +315,8 @@ def get_ip_of_obj(obj):
         ip_addr = obj['subnet4'] + '/' + str(obj['mask-length4'])
     elif 'subnet6' in obj:
         ip_addr = obj['subnet6'] + '/' + str(obj['mask-length6'])
+    elif 'obj_typ' in obj and obj['obj_typ'] == 'group':
+        ip_addr = ''
     else:
         ip_addr = '0.0.0.0/0'
     return ip_addr
@@ -318,12 +324,13 @@ def get_ip_of_obj(obj):
 
 # collect_nw_objects writes nw objects info into global nw_objects dict
 def collect_nw_objects(object_table):
-    result = ''
+    global nw_objects
+    result = ''  # todo: delete this line
     #    nw_obj_tables = [ 'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'simple-gateways',
     #                     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains' ]
     #nw_obj_tables = ['hosts', 'networks', 'simple-gateways', 'address-ranges', 'groups']
-    nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers']
-    nw_obj_type_to_host_list = [ 'simple-gateways', 'CpmiVsClusterNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'simple-cluster', 'CpmiGatewayCluster']
+    nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
+    nw_obj_type_to_host_list = [ 'simple-gateways', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host']
     if object_table['object_type'] in nw_obj_tables:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
@@ -333,12 +340,11 @@ def collect_nw_objects(object_table):
                 member_names = ''
                 if 'members' in obj:
                     for member in obj['members']:
-                        if 'name' in member:
-                            member_names += member['name'] + list_delimiter
-                            member_refs += member['uid'] + list_delimiter
+                        member_refs += member + list_delimiter
+                        # member_names += member + list_delimiter
+                        # member_names += member['name'] + list_delimiter
                         # else:
                         #    print('warning: no name found for network object group ' + obj['name'])
-                    member_names = member_names[:-1]
                     member_refs = member_refs[:-1]
                 ip_addr = get_ip_of_obj(obj)
                 obj_type = obj['type']
@@ -353,50 +359,33 @@ def collect_nw_objects(object_table):
                                     'obj_member_refs': member_refs, 'obj_member_names': member_names}])
 
 
-####################### nw_obj handling: read from rulebase ###############################################
-
-def collect_nw_objs_from_rule(rule):
+# for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)
+def resolve_nw_uid_to_name(uid):
     global nw_objects
-    if 'rule-number' in rule:  # standard rule
-        for obj in rule["source"]:
-            if (obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'CpmiHostCkp' or obj['type'] == 'CpmiAnyObject' or obj['type'] == 'checkpoint-host'):
-                comment = 'Any network object read from rulebase' if obj['type'] == 'CpmiAnyObject' else obj['comments']
-                ip_addr = get_ip_of_obj(obj)
-                current_element = {'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
-                                   'obj_comment': comment,
-                                   'obj_typ': 'host', 'obj_ip': ip_addr,
-                                   'obj_member_refs': '', 'obj_member_names': ''}
-                if nw_objects.count(current_element) == 0:
-                    nw_objects.append(current_element)
-        for obj in rule["destination"]:
-            if (obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'CpmiHostCkp' or obj['type'] == 'CpmiAnyObject' or obj['type'] == 'checkpoint-host'):
-                comment = 'Any network object read from rulebase' if obj['type'] == 'CpmiAnyObject' else obj['comments']
-                ip_addr = get_ip_of_obj(obj)
-                current_element = {'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
-                                   'obj_comment': comment,
-                                   'obj_typ': 'host', 'obj_ip': ip_addr,
-                                   'obj_member_refs': '', 'obj_member_names': ''}
-                if nw_objects.count(current_element) == 0:
-                    nw_objects.append(current_element)
-    else:  # section
-        collect_nw_objs_from_rulebase(rule["rulebase"])
+    # return name of nw_objects element where obj_uid = uid
+    for obj in nw_objects:
+        if obj['obj_uid'] == uid:
+            return obj['obj_name']
+    return 'ERROR: uid ' + uid + ' not found'
 
 
-# collect_users writes user info into global users dict
-def collect_nw_objs_from_rulebase(rulebase):
-    result = ''
-    if 'layerchunks' in rulebase:
-        for chunk in rulebase['layerchunks']:
-            for rule in chunk['rulebase']:
-                collect_nw_objs_from_rule(rule)
-    else:
-        for rule in rulebase:
-            collect_nw_objs_from_rule(rule)
+def add_member_names_for_nw_group(idx):
+    global nw_objects
+    member_names = ''
+    group = nw_objects.pop(idx)
+    obj_member_refs = group['obj_member_refs'].split(list_delimiter)
+    for ref in obj_member_refs:
+        member_name = resolve_nw_uid_to_name(ref)
+        # print ("found member of group " + group['obj_name'] + ": " + member_name)
+        member_names += member_name + list_delimiter
+    group['obj_member_names'] = member_names[:-1]
+    nw_objects.insert(idx, group)
 
 
 ####################### svc obj handling ###############################################
 
 def csv_dump_svc_obj(svc_obj):
+    #print("dumping svc: " + svc_obj['svc_name'] + ", svc_member_refs: " + svc_obj['svc_member_refs'])
     result_line = '"' + args.import_id + '"' + csv_delimiter  # control_id
     result_line += '"' + svc_obj['svc_name'] + '"' + csv_delimiter  # svc_name
     result_line += '"' + svc_obj['svc_typ'] + '"' + csv_delimiter  # svc_typ
@@ -425,8 +414,7 @@ def collect_svc_objects(object_table):
     global svc_objects
     result = ''
     #    svc_obj_tables = [ 'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc' ]
-    svc_obj_tables = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc',
-                      'services-other']
+    svc_obj_tables = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp']
 
     if object_table['object_type'] in svc_obj_tables:
         proto = ''
@@ -448,6 +436,9 @@ def collect_svc_objects(object_table):
         if object_table['object_type'] == 'services-other':
             typ = 'simple'
             proto = '0'
+        if object_table['object_type'] == 'services-icmp':
+            typ = 'simple'
+            proto = '0'
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
                 ip_addr = ''
@@ -458,14 +449,8 @@ def collect_svc_objects(object_table):
                 rpc_nr = ''
                 if 'members' in obj:
                     member_refs = ''
-                    member_names = ''
                     for member in obj['members']:
-                        if 'name' in member:
-                            member_names += member['name'] + list_delimiter
-                            member_refs += member['uid'] + list_delimiter
-                        # else:
-                        #    print('warning: no name found for service group ' + obj['name'])
-                    member_names = member_names[:-1]
+                        member_refs += member + list_delimiter
                     member_refs = member_refs[:-1]
                 if 'session-timeout' in obj:
                     session_timeout = str(obj['session-timeout'])
@@ -501,103 +486,82 @@ def collect_svc_objects(object_table):
                                      'svc_comment': obj['comments'],
                                      'svc_typ': typ, 'svc_port': port, 'svc_port_end': port_end,
                                      'svc_member_refs': member_refs,
-                                     'svc_member_names': member_names, 'ip_proto': proto,
+                                     'svc_member_names': '',
+                                     'ip_proto': proto,
                                      'svc_timeout': session_timeout,
                                      'rpc_nr': rpc_nr}])
 
 
-####################### service handling: read from rulebase ###############################################
-
-def collect_svcs_from_rule(rule):
+# return name of nw_objects element where obj_uid = uid
+def resolve_svc_uid_to_name(uid):
     global svc_objects
-    if 'rule-number' in rule:  # standard rule
-        for obj in rule["service"]:
-            if obj['type'] == 'service-icmp':
-                current_element = {'svc_uid': obj['uid'], 'svc_name': obj['name'], 'svc_color': obj['color'],
-                                   'svc_comment': obj['comments'],
-                                   'svc_typ': 'simple', 'svc_port': '', 'svc_port_end': '', 'svc_member_refs': '',
-                                   'svc_member_names': '', 'ip_proto': '1', 'svc_timeout': '',
-                                   'rpc_nr': ''}
-                if svc_objects.count(current_element) == 0:
-                    svc_objects.append(current_element)
-            if obj['type'] == 'CpmiAnyObject':
-                current_element = {'svc_uid': obj['uid'], 'svc_name': obj['name'], 'svc_color': obj['color'],
-                                   'svc_comment': 'Any service object read from rulebase',
-                                   'svc_typ': 'simple', 'svc_port': '1', 'svc_port_end': '65535', 'svc_member_refs': '',
-                                   'svc_member_names': '', 'ip_proto': '255', 'svc_timeout': '',
-                                   'rpc_nr': ''}
-                if svc_objects.count(current_element) == 0:
-                    svc_objects.append(current_element)
-    else:  # section
-        collect_svcs_from_rulebase(rule["rulebase"])
+    for obj in svc_objects:
+        if obj['svc_uid'] == uid:
+            return obj['svc_name']
+    return 'ERROR: uid ' + uid + ' not found'
 
 
-# def svc_objs_add_any_obj(uid_any_obj):
-#    # TODO: need to parse the any-uid from rules
-#    svc_objects.extend([{ 'svc_uid': uid_any_obj, 'svc_name': 'Any', 'svc_color': 'black', 'svc_comment': 'Svc Any obj by FWORCH',
-#                          'svc_typ': 'simple', 'svc_port': '1', 'svc_port_end': '65535', 'svc_member_refs': '', 
-#                          'svc_member_names': '', 'ip_proto': '255', 'svc_timeout': '3600', 'rpc_nr': '' }])
+def add_member_names_for_svc_group(idx):
+    global svc_objects
+    member_names = ''
+    group = svc_objects.pop(idx)
+    svc_member_refs = group['svc_member_refs'].split(list_delimiter)
 
-# collect_users writes user info into global users dict
-def collect_svcs_from_rulebase(rulebase):
-    result = ''
-    if 'layerchunks' in rulebase:
-        for chunk in rulebase['layerchunks']:
-            for rule in chunk['rulebase']:
-                collect_svcs_from_rule(rule)
-    else:
-        for rule in rulebase:
-            collect_svcs_from_rule(rule)
+    for ref in svc_member_refs:
+        member_name = resolve_svc_uid_to_name(ref)
+        #print ("found member of group " + group['svc_name'] + ": " + member_name)
+        member_names += member_name + list_delimiter
+    group['svc_member_names'] = member_names[:-1]
+    svc_objects.insert(idx, group)
 
 
-def get_any_obj_uid(rulebase):
-    #    return "97aeb369-9aea-11d5-bd16-0090272ccb30"
+def add_any_nw_objects(any_uid):
     global nw_objects
-    global svc_objects
 
-    collect_nw_objs_from_rulebase(rulebase)
-    collect_svcs_from_rulebase(rulebase)
+    any_nw_obj_found = 0
+
     for obj in nw_objects:
         if obj['obj_name'] == 'Any':
-            return obj['obj_uid']
+            any_nw_obj_found = 1
+            break
+    if (not any_nw_obj_found):
+        nw_objects.append({'obj_uid': any_uid, 'obj_name': 'Any', 'obj_color': 'black',
+                            'obj_comment': 'any nw object from checkpoint (not available via API but hard coded)',
+                            'obj_typ': 'network', 'obj_ip': '0.0.0.0/0',
+                            'obj_member_refs': '', 'obj_member_names': ''})
+
+def add_any_svc_objects(any_uid):
+    global svc_objects
+
+    any_svc_obj_found = 0
     for obj in svc_objects:
-        if obj['obj_name'] == 'Any':
-            return obj['obj_uid']
-    return 'dummy any obj uid (not found in rulebase)'
-    # print "ERROR: fond no Any object in rulebase!"
+        if obj['svc_name'] == 'Any':
+            any_svc_obj_found = 1
+            break
+
+    if (not any_svc_obj_found):
+        svc_objects.append({'svc_uid': any_uid, 'svc_name': 'Any', 'svc_color': 'black',
+                            'svc_comment': 'any svc object from checkpoint (not available via API but hard coded)',
+                            'svc_typ': 'simple', 'svc_port': '0', 'svc_port_end': '0',
+                            'svc_member_refs': '',
+                            'svc_member_names': '',
+                            'ip_proto': '0',
+                            'svc_timeout': '0',
+                            'rpc_nr': ''})
 
 
 ####################### main program ###############################################
 
-# with io.open(args.config_file, "r", encoding="utf8") as json_data:
-# with open(args.config_file, "r", encoding="utf8") as json_data:
 with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
 logging.debug ("fworch_parse_config_cp_r8x_api - args"+ "\nf:" +args.config_file +"\ni: "+ args.import_id +"\nm: "+ args.management_name +"\nr: "+ args.rulebase +"\nn: "+ str(args.network_objects) +"\ns: "+ str(args.service_objects) +"\nu: "+ str(args.users) +"\nd: "+ str(args.debug))
 
-# any_obj_uid = get_any_obj_uid()
-# any_obj_uid = 'dummy any obj uid (not found in rulebase)'
-any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
-
 number_of_section_headers_so_far = 0
 rule_num = 0
-nw_objects = []  # only used for storing any obj
-svc_objects = []  # only used for storing any obj
-
-# the any objects are needed for almost all cases:
-for rulebase in config['rulebases']:
-    collect_svcs_from_rulebase(rulebase)
-    collect_nw_objs_from_rulebase(rulebase)
-
-for obj in nw_objects:
-    if obj['obj_name'] == 'Any':
-        any_obj_uid = obj['obj_uid']
-        logging.debug ("fworch_parse_config_cp_r8x_api - nw Any uid in rulebase:" + any_obj_uid)
-for obj in svc_objects:
-    if obj['svc_name'] == 'Any':
-        any_obj_uid = obj['svc_uid']
-        logging.debug ("fworch_parse_config_cp_r8x_api - svc Any uid in rulebase:" + any_obj_uid)
+nw_objects = [] 
+svc_objects = []
+any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 
 if args.rulebase != '':
     for rulebase in config['rulebases']:
@@ -611,8 +575,14 @@ if args.network_objects:
     if args.network_objects != '':
         for obj_table in config['object_tables']:
             collect_nw_objects(obj_table)
-    for rulebase in config['rulebases']:
-        collect_nw_objs_from_rulebase(rulebase)
+        for idx in range(0, len(nw_objects)-1):
+            if nw_objects[idx]['obj_typ'] == 'group':
+                add_member_names_for_nw_group(idx)
+    
+    add_any_nw_objects(any_obj_uid)
+
+    # for rulebase in config['rulebases']:
+    #     collect_nw_objs_from_rulebase(rulebase)
     for nw_obj in nw_objects:
         result += csv_dump_nw_obj(nw_obj)
 
@@ -621,6 +591,12 @@ if args.service_objects:
     if args.service_objects != '':
         for obj_table in config['object_tables']:
             collect_svc_objects(obj_table)
+        for idx in range(0, len(svc_objects)-1):
+            if svc_objects[idx]['svc_typ'] == 'group':
+                add_member_names_for_svc_group(idx)
+
+    add_any_svc_objects(any_obj_uid)
+
     for svc_obj in svc_objects:
         result += csv_dump_svc_obj(svc_obj)
 

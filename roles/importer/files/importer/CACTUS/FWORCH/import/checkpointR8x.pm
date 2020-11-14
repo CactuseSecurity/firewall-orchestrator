@@ -114,7 +114,12 @@ sub parse_config {
 # parsing users
 	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\" > \"$output_dir/${mgm_name}_users.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
+
+	$return_code = system($cmd); 
 	system("ls -l $output_dir");
+	if ( $return_code != 0 ) { print("ERROR in parse_config::users found: $return_code\n") }
+	
+	# in case of no users being returned, remove users_csv file
 	if (-r $users_csv) {
 		my $empty_flag = 0;
 		open FH, $users_csv;
@@ -130,8 +135,7 @@ sub parse_config {
 				unlink $users_csv;
 		}
 	}
-	$return_code = system($cmd); 
-	if ( $return_code != 0 ) { print("ERROR in parse_config::users found: $return_code\n") }
+	
 # parsing svc objects
 	$cmd = "$parser_py -m $mgm_name -i $import_id -s -f \"$object_file\" > \"$output_dir/${mgm_name}_services.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
@@ -198,6 +202,8 @@ sub copy_config_from_mgm_to_iso {
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
 	my $pwd = `cat $workdir/$CACTUS::FWORCH::ssh_id_basename`;
+	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
+
 	chomp($pwd);
 	my $ssl_verify;
 	if ( -r "$workdir/${CACTUS::FWORCH::ssh_id_basename}.pub" ) {
@@ -205,10 +211,10 @@ sub copy_config_from_mgm_to_iso {
 	} else {
 		$ssl_verify = '';
 	}
-	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
 	if (!defined($api_port) || $api_port eq '') { $api_port = "443"; }
-	my $api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
-	$cmd = "$api_bin $api_hostname '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify > \"$cfg_dir/$obj_file_base\"";
+	my $get_config_from_api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
+	# $cmd = "$get_config_from_api_bin $api_hostname '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify > \"$cfg_dir/$obj_file_base\"";
+	$cmd = "$get_config_from_api_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify -o '$cfg_dir/$obj_file_base'";
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 

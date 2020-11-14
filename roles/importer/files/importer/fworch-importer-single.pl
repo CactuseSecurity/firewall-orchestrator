@@ -14,17 +14,18 @@ use CACTUS::read_config;
 
 sub empty_rule_files { # deletes a rule file and creates an empty rule file instead
 	if ($File::Find::name =~ /\_rulebase\.csv$/) {
-		system("rm $File::Find::name");
-		system("touch $File::Find::name");
+		system("rm '$File::Find::name'");
+		system("touch '$File::Find::name'");
 	}
 }
+
 sub empty_config_files { # deletes a csv config file and creates an empty csv file instead
 	if ($File::Find::name =~ /\.csv$/) {
-		system("rm $File::Find::name");
-		system("touch $File::Find::name");
-		print ("emptying csv config file " . $File::Find::name . "\n");
+		system("rm '$File::Find::name'");
+		system("touch '$File::Find::name'");
+		print ("emptying csv config file '" . $File::Find::name . "'\n");
 	} else {
-		print ("leaving config file " . $File::Find::name . " untouched\n");
+		print ("leaving config file '" . $File::Find::name . "' untouched\n");
 	}
 }
 

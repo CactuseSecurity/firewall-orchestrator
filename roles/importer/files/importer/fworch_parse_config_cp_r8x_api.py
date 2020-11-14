@@ -347,7 +347,6 @@ def resolve_nw_uid_to_name(uid):
             return obj['obj_name']
     return 'ERROR: uid ' + uid + ' not found'
 
-
 def add_member_names_for_nw_group(idx):
     global nw_objects
     member_names = ''

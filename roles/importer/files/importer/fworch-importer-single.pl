@@ -107,7 +107,7 @@ if (!$error_count_global) {
 		}
 		else {
 			($error_count_local, $config_files_str) =
-				&CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso 
+				&CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_fworch 
 					($ssh_user, $ssh_hostname, $mgm_name, $obj_file_base, $cfg_dir, $rule_file_base,
 						$fworch_workdir, $audit_log_file, $prev_imp_time, $ssh_port, $config_path_on_mgmt, $rulebases);	# TODO: add use_scp parameter
 		}
@@ -202,6 +202,7 @@ if (!$error_count_global) {
 	if (defined($save_import_results_to_file) && $save_import_results_to_file && ($error_count_global || $changes ne '')) { # if changes or errors occured: move config & csv to archive
 		system ("${bin_path}mkdir -p $archive_dir; cd $fworch_workdir; ${bin_path}tar cfz $archive_dir/${current_import_id}_`${bin_path}date +%F_%T`_mgm_id_$mgm_id.tgz .");
 	}
+	#`cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
 	if (!$no_cleanup) { rmtree $fworch_workdir; }
 } else {
 	&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()

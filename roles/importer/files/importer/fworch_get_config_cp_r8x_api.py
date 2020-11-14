@@ -26,12 +26,13 @@ requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--apihost', metavar='api_host', required=True, help='Check Point R8x management server')
 parser.add_argument('-w', '--password', metavar='api_password', required=True, help='password for management server')
-parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='user for connecting to Check Point R8x management server, default=fworch')
+parser.add_argument('-u', '--user', metavar='api_user', default='itsecorg', help='user for connecting to Check Point R8x management server, default=itsecorg')
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
+parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Envireonment')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True, help='name of policy layer(s) to read (comma separated)')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
-parser.add_argument('-s', '--ssl', metavar='verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
-parser.add_argument('-i', '--limit', metavar='verification_mode', default='500', help='The maximal number of returned results per HTTPS Connection; default=500')
+parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
+parser.add_argument('-i', '--limit', metavar='api_limit', default='500', help='The maximal number of returned results per HTTPS Connection; default=500')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0') 
 parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to') 
@@ -42,6 +43,7 @@ api_host = args.apihost
 api_port = args.port
 config_out_filename = args.out
 api_password = args.password
+api_domain = args.domain
 proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 offset = 0
 limit = args.limit
@@ -71,8 +73,11 @@ def api_call(ip_addr, port, url, command, json_payload, sid):
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     return r.json()
 
-def login(user,password,api_host,api_port):
-    payload = {'user':user, 'password' : password}
+def login(user,password,api_host,api_port,domain):
+    if domain == '':
+       payload = {'user':user, 'password' : password}
+    else:
+        payload = {'user':user, 'password' : password, 'domain' :  domain}
     response = api_call(api_host, api_port, base_url, 'login', payload, '')
     return response["sid"]
 
@@ -146,20 +151,25 @@ def get_ip_of_obj(obj):
 # logging config
 debug_level = int(args.debug)
 # todo: save the initial value, reset initial value at the end
-if debug_level == 4:
+# todo: switch to native syslog
+
+if debug_level == 1:
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-elif debug_level == 41:
-    logging.basicConfig(filename='/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+elif debug_level == 2:
+    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+if debug_level == 3:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ssl_verification mode
-verification_mode = args.ssl
-if verification_mode == '':
+ssl_verification_mode = args.ssl
+if ssl_verification_mode == '':
     ssl_verification = False
 else:
-    ssl_verification = verification_mode
+    ssl_verification = ssl_verification_mode
     # todo: supplement error handling: redable file, etc
 
-sid = login(args.user,api_password,api_host,args.port)
+sid = login(args.user,api_password,api_host,args.port,api_domain)
 api_versions = api_call(api_host, args.port, base_url, 'show-api-versions', {}, sid)
 
 api_version = api_versions["current-version"]
@@ -181,13 +191,13 @@ else:
         if testmode in api_supported :
             v_url = base_url + 'v' + testmode + '/'
         else:
-            logging.debug ("iso_get_config_cp_r8x_api - api version " + testmode + " is not supported by the manager " + api_host + " - Import is canceled")
+            logging.debug ("get_config_cp_r8x_api - api version " + testmode + " is not supported by the manager " + api_host + " - Import is canceled")
             #v_url = base_url
             sys.exit("api version " + testmode +" not supported")
     else:
-        logging.debug ("iso_get_config_cp_r8x_api - not a valid version")
+        logging.debug ("get_config_cp_r8x_api - not a valid version")
         sys.exit("\"" + testmode +"\" - not a valid version")
-logging.debug ("iso_get_config_cp_r8x_api - testmode: " + testmode + " - url: "+ v_url)
+logging.debug ("get_config_cp_r8x_api - testmode: " + testmode + " - url: "+ v_url)
 
 # top level dict start
 starttime = int(time.time())

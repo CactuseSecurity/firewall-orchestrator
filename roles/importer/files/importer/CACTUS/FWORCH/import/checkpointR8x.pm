@@ -1,4 +1,4 @@
-package CACTUS::FWORCH::import::parser;
+package CACTUS::FRWORCH::import::parser;
 
 use strict;
 use warnings;
@@ -7,21 +7,21 @@ use Getopt::Long;
 use File::Basename;
 use Time::HiRes qw(time);    # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
 use Net::CIDR;
-use CACTUS::FWORCH;
-use CACTUS::FWORCH::import;
+use CACTUS::FRWORCH;
+use CACTUS::FRWORCH::import;
 use Date::Calc qw(Add_Delta_DHMS);
 
 require Exporter;
 our @ISA = qw(Exporter);
 
-our %EXPORT_TAGS = ( 'basic' => [ qw( &copy_config_from_mgm_to_iso &parse_config ) ] );
+our %EXPORT_TAGS = ( 'basic' => [ qw( &copy_config_from_mgm_to_fworch &parse_config ) ] );
 
 our @EXPORT  = ( @{ $EXPORT_TAGS{'basic'} } );
 our $VERSION = '0.3';
 
 # variblendefinition check point parser - global
 # -------------------------------------------------------------------------------------------
-my $GROUPSEP = $CACTUS::FWORCH::group_delimiter; 
+my $GROUPSEP = $CACTUS::FRWORCH::group_delimiter; 
 
 my $UID      = "UID";    # globale konstante UID
 
@@ -99,7 +99,7 @@ sub parse_config {
 	my $return_code = 0;
 	my $parser_py = "/usr/bin/python3 ./fworch_parse_config_cp_r8x_api.py";
 	my $users_csv = "$output_dir/${mgm_name}_users.csv";
-	my $users_delimiter = "%"; # value is defined in parser_py = ./iso_parse_config_cp_r8x_api.py !!!
+	my $users_delimiter = "%"; # value is defined in parser_py = ./fworch_parse_config_cp_r8x_api.py !!!
 
 
 # parsing rulebases
@@ -125,12 +125,12 @@ sub parse_config {
 		my $firstline = <FH>;
 		print ("firstline=$firstline###\n");
 		if(index($firstline,$users_delimiter)==-1) {
-				print ("test: empty_flag=$empty_flag\n");
+				#print ("test: empty_flag=$empty_flag\n");
 				$empty_flag = 1;
 		}
 		close FH;
 		if ($empty_flag == 1){
-				print ("unlink: empty_flag=$empty_flag\n");
+				print ("unlink users_csv file $empty_flag\n");
 				unlink $users_csv;
 		}
 	}
@@ -177,10 +177,10 @@ sub get_ruleset_name_list {
 
 
 ############################################################
-# copy_config_from_mgm_to_iso($ssh_private_key, $ssh_user, $ssh_hostname, $management_name, $obj_file_base, $cfg_dir, $rule_file_base)
+# copy_config_from_mgm_to_fworch($ssh_private_key, $ssh_user, $ssh_hostname, $management_name, $obj_file_base, $cfg_dir, $rule_file_base)
 # Kopieren der Config-Daten vom Management-System zum ITSecorg-Server
 ############################################################
-sub copy_config_from_mgm_to_iso {
+sub copy_config_from_mgm_to_fworch {
 	my $api_user        = shift;
 	my $api_hostname    = shift;
 	my $management_name = shift; # not used
@@ -199,19 +199,19 @@ sub copy_config_from_mgm_to_iso {
 
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
-	my $pwd = `cat $workdir/$CACTUS::FWORCH::ssh_id_basename`;
+	my $pwd = `cat $workdir/$CACTUS::FRWORCH::ssh_id_basename`;
 	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
 
 	chomp($pwd);
 	my $ssl_verify;
-	if ( -r "$workdir/${CACTUS::FWORCH::ssh_id_basename}.pub" ) {
-		$ssl_verify = "-s $workdir/${CACTUS::FWORCH::ssh_id_basename}.pub";
+	if ( -r "$workdir/${CACTUS::FRWORCH::ssh_id_basename}.pub" ) {
+		$ssl_verify = "-s $workdir/${CACTUS::FRWORCH::ssh_id_basename}.pub";
 	} else {
 		$ssl_verify = '';
 	}
 	if (!defined($api_port) || $api_port eq '') { $api_port = "443"; }
 	my $get_config_from_api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
-	$cmd = "$get_config_from_api_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify -o '$cfg_dir/$obj_file_base'";
+	$cmd = "$get_config_from_api_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify -D $config_path_on_mgmt -o '$cfg_dir/$obj_file_base'";
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 
@@ -229,7 +229,7 @@ parser - Perl extension for check point R8x API get and parse config
 
 =head1 SYNOPSIS
 
-  use CACTUS::FWORCH::import::checkpointR8x;
+  use CACTUS::FRWORCH::import::checkpointR8x;
 
 =head1 DESCRIPTION
 

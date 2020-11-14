@@ -12,8 +12,10 @@ namespace FWO.ApiClient.Queries
     public class AuthQueries : Queries
     {
         public static readonly string getTenantId;
+        public static readonly string getUsers;
         public static readonly string getUserByUuid;
         public static readonly string addUser;
+        public static readonly string deleteUser;
         public static readonly string assertUserExists;
         public static readonly string getVisibleDeviceIdsPerTenant;
         public static readonly string getVisibleManagementIdsPerTenant;
@@ -30,8 +32,10 @@ namespace FWO.ApiClient.Queries
                 getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleDeviceIdsPerTenant.graphql");
                 getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleManagementIdsPerTenant.graphql");
                 getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");
+                getUsers = File.ReadAllText(QueryPath + "auth/getUsers.graphql");
                 getUserByUuid = File.ReadAllText(QueryPath + "auth/getUserByUuid.graphql");
                 addUser = File.ReadAllText(QueryPath + "auth/addUser.graphql");
+                deleteUser = File.ReadAllText(QueryPath + "auth/deleteUser.graphql");
                 assertUserExists = File.ReadAllText(QueryPath + "auth/assertUserExists.graphql");
                 newLdapConnection = File.ReadAllText(QueryPath + "auth/newLdapConnection.graphql");
                 updateLdapConnection = File.ReadAllText(QueryPath + "auth/updateLdapConnection.graphql");

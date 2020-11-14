@@ -8,6 +8,8 @@
 
 <h3 class="m-2">Authorization Settings</h3>
 
+<h4 class="m-2">LDAP Connections</h4>
+
 <button class="btn btn-success m-2" @onclick="Add">Add new LDAP connection</button>
 
 <div class="m-2">
@@ -25,6 +27,21 @@
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
+    </Table>
+</div>
+
+<h4 class="m-2">UI Users</h4>
+<div class="m-2">
+    <Table class="table table-bordered table-responsive" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
+        <Column TableItem="UiUser" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Dn" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Action" Field="(x => x.DbId)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(context)">Delete</button>
                 </div>
             </Template>
         </Column>
@@ -134,6 +151,7 @@
 @code 
 {
     private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+    private List<UiUser> uiUsers = new List<UiUser>();
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -149,6 +167,7 @@
     protected override async Task OnInitializedAsync()
     {
         connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+        uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
     }
 
     private void Edit(LdapConnection ldapConnection)
@@ -275,4 +294,22 @@
         DeleteMode = false;
         errorMessage = "";
     }
+
+    private async Task DeleteUser(UiUser user)
+    {
+        try
+        {
+            var Variables = new { id = user.DbId };
+            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteUser, Variables))).DeletedId;
+            if (delId == user.DbId)
+            {
+                uiUsers.Remove(user);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Delete UIUser", $"Exception occurred: {exception}");
+        }
+    }
+
 }

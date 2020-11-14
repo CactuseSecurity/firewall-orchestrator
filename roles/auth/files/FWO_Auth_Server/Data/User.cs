@@ -23,5 +23,20 @@ namespace FWO.Auth.Server.Data
         public string DefaultRole { get; set; }
         
         public string[] Roles { get; set; }
+
+        
+        public User()
+        {}
+        
+        public User(User user)
+        {
+            Name = user.Name;
+            DbId = user.DbId;
+            Password = user.Password;
+            Dn = user.Dn;
+            Tenant = user.Tenant;
+            DefaultRole = user.DefaultRole;
+            Roles = user.Roles;
+        }
     }
 }

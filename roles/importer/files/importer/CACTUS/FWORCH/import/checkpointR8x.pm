@@ -211,7 +211,6 @@ sub copy_config_from_mgm_to_iso {
 	}
 	if (!defined($api_port) || $api_port eq '') { $api_port = "443"; }
 	my $get_config_from_api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
-	# $cmd = "$get_config_from_api_bin $api_hostname '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify > \"$cfg_dir/$obj_file_base\"";
 	$cmd = "$get_config_from_api_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify -o '$cfg_dir/$obj_file_base'";
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
@@ -226,7 +225,7 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point R8x API access to config
+parser - Perl extension for check point R8x API get and parse config
 
 =head1 SYNOPSIS
 
@@ -234,7 +233,7 @@ CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point R8
 
 =head1 DESCRIPTION
 
-fworch Perl Module support for importing configs into fworch Database
+Perl Module support for importing configs into database
 
 =head2 EXPORT
 

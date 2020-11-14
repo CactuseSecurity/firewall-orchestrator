@@ -149,7 +149,7 @@ debug_level = int(args.debug)
 if debug_level == 4:
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 elif debug_level == 41:
-    logging.basicConfig(filename='/var/tmp/fworch_get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ssl_verification mode
 verification_mode = args.ssl
@@ -165,11 +165,11 @@ api_versions = api_call(api_host, args.port, base_url, 'show-api-versions', {}, 
 api_version = api_versions["current-version"]
 api_supported = api_versions["supported-versions"]
 
-logging.debug ("fworch_get_config_cp_r8x_api - current version: "+ api_version )
-logging.debug ("fworch_get_config_cp_r8x_api - supported versions: "+ ', '.join(api_supported) )
-logging.debug ("fworch_get_config_cp_r8x_api - limit:"+ limit )
-logging.debug ("fworch_get_config_cp_r8x_api - login:"+ args.user )
-logging.debug ("fworch_get_config_cp_r8x_api - sid:"+ sid )
+logging.debug ("get_config_cp_r8x_api - current version: "+ api_version )
+logging.debug ("get_config_cp_r8x_api - supported versions: "+ ', '.join(api_supported) )
+logging.debug ("get_config_cp_r8x_api - limit:"+ limit )
+logging.debug ("get_config_cp_r8x_api - login:"+ args.user )
+logging.debug ("get_config_cp_r8x_api - sid:"+ sid )
 
 #testmode = '1.5'
 # v_url definiton - version dependent
@@ -191,7 +191,7 @@ logging.debug ("iso_get_config_cp_r8x_api - testmode: " + testmode + " - url: "+
 
 # top level dict start
 starttime = int(time.time())
-logging.debug ("fworch_get_config_cp_r8x_api - top level dict start" )
+logging.debug ("get_config_cp_r8x_api - top level dict start" )
 config_json = "{\n"
 config_json += "\"rulebases\": [\n"
 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
@@ -202,7 +202,7 @@ for layer in args.layer.split(','):
     config_json +=  "\"layerchunks\": [\n"
     current=0
     total=current+1
-    logging.debug ( "fworch_get_config_cp_r8x_api - layer:"+ layer )
+    logging.debug ( "get_config_cp_r8x_api - layer:"+ layer )
     while (current<total) :
 #        show_params_rules = {'name':layer,'offset':current,'limit':limit,'use-object-dictionary':'false','details-level':'full'}
         show_params_rules['offset']=current
@@ -211,12 +211,12 @@ for layer in args.layer.split(','):
         config_json +=  ",\n"
         total=rulebase['total']
         current=rulebase['to']
-        logging.debug ( "fworch_get_config_cp_r8x_api - rulebase current:"+ str(current) )
+        logging.debug ( "get_config_cp_r8x_api - rulebase current:"+ str(current) )
     config_json = config_json[:-2]
     config_json +=  "]\n},\n"
 config_json = config_json[:-2]
 config_json += "],\n"  # 'level': 'rulebases'
-logging.debug ( "fworch_get_config_cp_r8x_api - rulebase total:"+ str(total) )
+logging.debug ( "get_config_cp_r8x_api - rulebase total:"+ str(total) )
 
 config_json += "\"object_tables\": [\n"
 show_params_objs = {'limit':limit,'details-level': details_level}
@@ -226,7 +226,7 @@ for obj_type in obj_types:
     current=0
     total=current+1
     show_cmd = 'show-' + obj_type
-    logging.debug ( "fworch_get_config_cp_r8x_api - obj_type: "+ obj_type )
+    logging.debug ( "get_config_cp_r8x_api - obj_type: "+ obj_type )
     while (current<total) :
 #        show_params_objs = {'offset':current,'limit':limit,'details-level':'full'}
         show_params_objs['offset']=current
@@ -236,11 +236,11 @@ for obj_type in obj_types:
         if 'total' in objects  and 'to' in objects:
             total=objects['total']
             current=objects['to']
-            logging.debug ( "fworch_get_config_cp_r8x_api - "+ obj_type +" current:"+ str(current) )
-            logging.debug ( "fworch_get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
+            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" current:"+ str(current) )
+            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
         else :
             current = total
-            logging.debug ( "fworch_get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
+            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
     config_json = config_json[:-2]
     config_json += "]\n},\n" # 'level': 'top::object'\n"
 config_json = config_json[:-2]
@@ -320,7 +320,7 @@ for missing_obj in missing_nw_object_uids:
             'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
             } ] } ] }
         config['object_tables'].append(json_obj)
-    logging.debug ( "fworch_get_config_cp_r8x_api - missing nw obj: " + missing_obj )
+    logging.debug ( "get_config_cp_r8x_api - missing nw obj: " + missing_obj )
     print ("missing nw obj: " + missing_obj)
 
 for missing_obj in missing_svc_object_uids:
@@ -329,7 +329,7 @@ for missing_obj in missing_svc_object_uids:
     obj = obj['object']
     print(json.dumps(obj))
     # currently no svc objects are missing
-    logging.debug ( "fworch_get_config_cp_r8x_api - missing svc obj: " + missing_obj )
+    logging.debug ( "get_config_cp_r8x_api - missing svc obj: " + missing_obj )
     print ("missing svc obj: " + missing_obj)
 
 
@@ -340,6 +340,6 @@ with open(config_out_filename, "w") as json_data:
 logout_result = api_call(api_host, args.port, base_url, 'logout', {}, sid)
 endtime = int(time.time())
 duration = endtime - starttime
-logging.debug ( "fworch_get_config_cp_r8x_api - duration: "+ str(duration) )
+logging.debug ( "get_config_cp_r8x_api - duration: "+ str(duration) )
 
-# sys.exit(1)
+sys.exit(0)

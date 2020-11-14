@@ -1,4 +1,4 @@
-package CACTUS::FRWORCH::import::parser;
+package CACTUS::FWORCH::import::parser;
 
 use strict;
 use warnings;
@@ -7,21 +7,21 @@ use Getopt::Long;
 use File::Basename;
 use Time::HiRes qw(time);    # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
 use Net::CIDR;
-use CACTUS::FRWORCH;
-use CACTUS::FRWORCH::import;
+use CACTUS::FWORCH;
+use CACTUS::FWORCH::import;
 use Date::Calc qw(Add_Delta_DHMS);
 
 require Exporter;
 our @ISA = qw(Exporter);
 
-our %EXPORT_TAGS = ( 'basic' => [ qw( &copy_config_from_mgm_to_fworch &parse_config ) ] );
+our %EXPORT_TAGS = ( 'basic' => [ qw( &copy_config_from_mgm_to_iso &parse_config ) ] );
 
 our @EXPORT  = ( @{ $EXPORT_TAGS{'basic'} } );
 our $VERSION = '0.3';
 
 # variblendefinition check point parser - global
 # -------------------------------------------------------------------------------------------
-my $GROUPSEP = $CACTUS::FRWORCH::group_delimiter; 
+my $GROUPSEP = $CACTUS::FWORCH::group_delimiter; 
 
 my $UID      = "UID";    # globale konstante UID
 
@@ -130,7 +130,7 @@ sub parse_config {
 		}
 		close FH;
 		if ($empty_flag == 1){
-				print ("unlink users_csv file $empty_flag\n");
+				print ("unlink users_csv file $users_csv\n");
 				unlink $users_csv;
 		}
 	}
@@ -177,10 +177,10 @@ sub get_ruleset_name_list {
 
 
 ############################################################
-# copy_config_from_mgm_to_fworch($ssh_private_key, $ssh_user, $ssh_hostname, $management_name, $obj_file_base, $cfg_dir, $rule_file_base)
+# copy_config_from_mgm_to_iso($ssh_private_key, $ssh_user, $ssh_hostname, $management_name, $obj_file_base, $cfg_dir, $rule_file_base)
 # Kopieren der Config-Daten vom Management-System zum ITSecorg-Server
 ############################################################
-sub copy_config_from_mgm_to_fworch {
+sub copy_config_from_mgm_to_iso {
 	my $api_user        = shift;
 	my $api_hostname    = shift;
 	my $management_name = shift; # not used
@@ -199,13 +199,13 @@ sub copy_config_from_mgm_to_fworch {
 
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
-	my $pwd = `cat $workdir/$CACTUS::FRWORCH::ssh_id_basename`;
+	my $pwd = `cat $workdir/$CACTUS::FWORCH::ssh_id_basename`;
 	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
 
 	chomp($pwd);
 	my $ssl_verify;
-	if ( -r "$workdir/${CACTUS::FRWORCH::ssh_id_basename}.pub" ) {
-		$ssl_verify = "-s $workdir/${CACTUS::FRWORCH::ssh_id_basename}.pub";
+	if ( -r "$workdir/${CACTUS::FWORCH::ssh_id_basename}.pub" ) {
+		$ssl_verify = "-s $workdir/${CACTUS::FWORCH::ssh_id_basename}.pub";
 	} else {
 		$ssl_verify = '';
 	}
@@ -229,7 +229,7 @@ parser - Perl extension for check point R8x API get and parse config
 
 =head1 SYNOPSIS
 
-  use CACTUS::FRWORCH::import::checkpointR8x;
+  use CACTUS::FWORCH::import::checkpointR8x;
 
 =head1 DESCRIPTION
 

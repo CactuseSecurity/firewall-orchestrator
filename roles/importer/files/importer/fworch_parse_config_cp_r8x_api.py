@@ -572,7 +572,7 @@ if args.network_objects:
             if nw_objects[idx]['obj_typ'] == 'group':
                 add_member_names_for_nw_group(idx)
     
-#    add_any_nw_objects(any_obj_uid)
+    add_any_nw_objects(any_obj_uid)
 
     for nw_obj in nw_objects:
         result += csv_dump_nw_obj(nw_obj)

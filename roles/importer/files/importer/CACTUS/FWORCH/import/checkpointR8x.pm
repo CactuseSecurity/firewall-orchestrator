@@ -115,7 +115,7 @@ sub parse_config {
 	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\" > \"$output_dir/${mgm_name}_users.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); 
-	system("ls -l $output_dir");
+	# system("ls -l $output_dir");
 	if ( $return_code != 0 ) { print("ERROR in parse_config::users found: $return_code\n") }
 	
 	# in case of no users being returned, remove users_csv file
@@ -123,7 +123,7 @@ sub parse_config {
 		my $empty_flag = 0;
 		open FH, $users_csv;
 		my $firstline = <FH>;
-		print ("firstline=$firstline###\n");
+		# print ("firstline=$firstline###\n");
 		if(index($firstline,$users_delimiter)==-1) {
 				#print ("test: empty_flag=$empty_flag\n");
 				$empty_flag = 1;
@@ -219,10 +219,10 @@ sub copy_config_from_mgm_to_iso {
 
 	my $get_config_from_api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
 	$cmd = "$get_config_from_api_bin -m get -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-	print("DEBUG - cmd = $cmd\n");
+	# print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 	$cmd = "$get_config_from_api_bin -m enrich -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-	print("DEBUG - cmd = $cmd\n");
+	# print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 
 	return ( $fehler_count, "$cfg_dir/$obj_file_base,$cfg_dir/$layer_name");

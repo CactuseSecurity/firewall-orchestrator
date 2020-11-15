@@ -293,7 +293,6 @@ def csv_dump_nw_obj(nw_obj):
     result_line += line_delimiter
     return result_line
 
-
 def get_ip_of_obj(obj):
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
@@ -348,7 +347,6 @@ def resolve_nw_uid_to_name(uid):
             return obj['obj_name']
     return 'ERROR: uid ' + uid + ' not found'
 
-
 def add_member_names_for_nw_group(idx):
     global nw_objects
     member_names = ''
@@ -361,6 +359,8 @@ def add_member_names_for_nw_group(idx):
     group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)
 
+# # "type": "CpmiGatewayPlain",
+# def collect_CpmiGatewayPlain_from_rulebase(rulebase)
 
 ####################### svc obj handling ###############################################
 
@@ -537,13 +537,15 @@ def add_any_svc_objects(any_uid):
 # logging config
 debug_level = int(args.debug)
 # todo: save the initial value, reset initial value at the end
+# todo: switch to native syslog
+
 if debug_level == 1:
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 elif debug_level == 2:
-    logging.basicConfig(filename='/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 elif debug_level == 3:
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    logging.basicConfig(filename='/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
@@ -572,7 +574,7 @@ if args.network_objects:
             if nw_objects[idx]['obj_typ'] == 'group':
                 add_member_names_for_nw_group(idx)
     
-    add_any_nw_objects(any_obj_uid)
+#    add_any_nw_objects(any_obj_uid)
 
     for nw_obj in nw_objects:
         result += csv_dump_nw_obj(nw_obj)

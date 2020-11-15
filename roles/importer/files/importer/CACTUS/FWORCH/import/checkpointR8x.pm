@@ -200,6 +200,7 @@ sub copy_config_from_mgm_to_iso {
 	my $api_port_setting = "";
 	my $ssl_verify = "";
 
+
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
 	my $pwd = `cat $workdir/$CACTUS::FWORCH::ssh_id_basename`;
@@ -221,7 +222,8 @@ sub copy_config_from_mgm_to_iso {
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 	$cmd = "$get_config_from_api_bin -m enrich -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-	print("DEBUG - cmd = $cmd\n");
+
+  print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 
 	return ( $fehler_count, "$cfg_dir/$obj_file_base,$cfg_dir/$layer_name");

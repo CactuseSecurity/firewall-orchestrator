@@ -87,16 +87,15 @@ def login(user,password,api_host,api_port,domain):
         payload = {'user':user, 'password' : password, 'domain' :  domain}
     response = api_call(api_host, api_port, base_url, 'login', payload, '')
     return response["sid"]
+    
 
 
 def collect_uids_from_rule(rule, debug_text):
     global svc_objects
     global nw_objects
  
-    print ("entering RULE parsing: " + debug_text)
-
     if 'rule-number' in rule:  # standard rule, no section header (layered rules)
-        for src in rule["source"]:
+    for src in rule["source"]:
             if src['type'] == 'LegacyUserAtLocation':
                 user_objects.append(src["userGroup"])
                 #print ("Legacy found user uid: " + src["userGroup"] + ", " + debug_text)
@@ -373,6 +372,7 @@ elif (mode=='enrich'):
             config['object_tables'].append(json_obj)
         elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
+
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                 'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),

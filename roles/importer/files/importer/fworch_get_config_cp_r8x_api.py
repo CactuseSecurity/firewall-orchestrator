@@ -361,4 +361,4 @@ endtime = int(time.time())
 duration = endtime - starttime
 logging.debug ( "get_config_cp_r8x_api - duration: "+ str(duration) )
 
-sys.exit(1)
+sys.exit(0)

@@ -588,7 +588,7 @@ if args.service_objects:
             if svc_objects[idx]['svc_typ'] == 'group':
                 add_member_names_for_svc_group(idx)
 
-    add_any_svc_objects(any_obj_uid)
+#    add_any_svc_objects(any_obj_uid)
 
     for svc_obj in svc_objects:
         result += csv_dump_svc_obj(svc_obj)

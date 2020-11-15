@@ -52,7 +52,7 @@ testmode = args.testing
 base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
 
 # all obj table names to look at:
-obj_types = [
+api_obj_types = [
     'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains',
     'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp', 'services-icmp6' ]
@@ -64,6 +64,7 @@ svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'servic
 
 use_object_dictionary = 'false'
 
+
 def api_call(ip_addr, port, url, command, json_payload, sid):
     url = url + command
     if sid == '':
@@ -73,6 +74,7 @@ def api_call(ip_addr, port, url, command, json_payload, sid):
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     return r.json()
 
+
 def login(user,password,api_host,api_port,domain):
     if domain == '':
        payload = {'user':user, 'password' : password}
@@ -80,6 +82,7 @@ def login(user,password,api_host,api_port,domain):
         payload = {'user':user, 'password' : password, 'domain' :  domain}
     response = api_call(api_host, api_port, base_url, 'login', payload, '')
     return response["sid"]
+    
 
 def add_uids(rule):
     global svc_objects
@@ -87,8 +90,6 @@ def add_uids(rule):
     #global user_objects
  
     if 'rule-number' in rule:  # standard rule, no section header
-        # SOURCE refs
-        rule_src_ref = ''
         for src in rule["source"]:
             if src['type'] == 'LegacyUserAtLocation':
                 user_objects.append(src["userGroup"])
@@ -117,10 +118,11 @@ def get_all_uids_of_a_type(object_table, obj_table_names):
     if object_table['object_type'] in obj_table_names:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
-                if 'members' in obj:
+                if 'members' in obj:   # add group member refs
                     for member in obj['members']:
                         all_uids.append(member)
-                all_uids.append(obj['uid'])
+                all_uids.append(obj['uid'])  # add non-group (simple) refs
+    all_uids = list(set(all_uids)) # remove duplicates
     return all_uids
 
     
@@ -129,7 +131,7 @@ def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
     for uid in all_uids_from_rules:
         if not uid in all_uids_from_obj_tables:
             broken_uids.append(uid)
-    return broken_uids
+    return list(set(broken_uids))
 
 
 def get_ip_of_obj(obj):
@@ -230,7 +232,8 @@ logging.debug ( "get_config_cp_r8x_api - rulebase total:"+ str(total) )
 
 config_json += "\"object_tables\": [\n"
 show_params_objs = {'limit':limit,'details-level': details_level}
-for obj_type in obj_types:
+
+for obj_type in api_obj_types:
     config_json += "{\n\"object_type\": \"" + obj_type + "\",\n"
     config_json += "\"object_chunks\": [\n"
     current=0
@@ -238,7 +241,6 @@ for obj_type in obj_types:
     show_cmd = 'show-' + obj_type
     logging.debug ( "get_config_cp_r8x_api - obj_type: "+ obj_type )
     while (current<total) :
-#        show_params_objs = {'offset':current,'limit':limit,'details-level':'full'}
         show_params_objs['offset']=current
         objects = api_call(api_host, args.port, v_url, show_cmd, show_params_objs, sid)
         config_json += json.dumps(objects, indent=4)
@@ -258,9 +260,11 @@ config_json += "]\n" # 'level': 'objects'\n"
 config_json += "}\n" # 'level': 'top'"
 
 
-#################################################
-## now fixing missing object refs in rulebases ##
-#################################################
+######################################################
+## fixing missing object refs in rulebases          ##
+## deals with "ungettable" objects like             ##
+## CpmiAnyObject, CpmiGatewayPlain, simple-gateway  ##
+######################################################
 svc_objects = []
 nw_objects = []
 user_objects = []
@@ -282,8 +286,6 @@ with open(config_out_filename + ".tmp", "r") as json_data:
 #delete tmp json file
 if os.path.exists(config_out_filename + ".tmp"):
     os.remove(config_out_filename + ".tmp")
-else:
-    print("ERROR: tmp file " + config_out_filename + ".tmp" + " does not exist")
 
 # get all object uids (together with type) from all rules in fields src, dst, svc
 for rulebase in config['rulebases']:
@@ -296,15 +298,17 @@ for rulebase in config['rulebases']:
             for rule in rulebase['rulebase']:
                 add_uids(rule)
 
+# remove duplicates from uid lists
+svc_objects = list(set(svc_objects))
+nw_objects = list(set(nw_objects))
+
 # check if all objects are in their respective section of the config file (svc, nw_obj)
 for obj_table in config['object_tables']:
     nw_objs_from_obj_tables.extend(get_all_uids_of_a_type(obj_table, nw_obj_table_names))
     svc_objs_from_obj_tables.extend(get_all_uids_of_a_type(obj_table, svc_obj_table_names))
-    # user_objs_from_obj_tables.extend(get_all_uids_of_a_type(obj_table, nw_obj_table_names))
 
 missing_nw_object_uids.extend(get_broken_object_uids(nw_objs_from_obj_tables, nw_objects))
 missing_svc_object_uids.extend(get_broken_object_uids(svc_objs_from_obj_tables, svc_objects))
-# missing_user_object_uids.extend(get_broken_nw_object_uids(nw_objs_from_obj_tables, nw_objects))
 
 # if an object is not there:
 #     make api call: show object details-level full uid "<uid>"
@@ -342,7 +346,7 @@ for missing_obj in missing_svc_object_uids:
     obj = api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid)
     obj = obj['object']
     print(json.dumps(obj))
-    # currently no svc objects are missing
+    # currently no svc objects are found missing, not even the any obj?
     if (obj['type'] == 'CpmiAnyObject'):
         json_obj = {"object_type": "services-other", "object_chunks": [ {
                 "objects": [ {

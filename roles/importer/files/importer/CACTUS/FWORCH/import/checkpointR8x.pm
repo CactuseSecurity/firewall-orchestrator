@@ -222,8 +222,7 @@ sub copy_config_from_mgm_to_iso {
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 	$cmd = "$get_config_from_api_bin -m enrich -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-
-  print("DEBUG - cmd = $cmd\n");
+	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 
 	return ( $fehler_count, "$cfg_dir/$obj_file_base,$cfg_dir/$layer_name");

@@ -75,11 +75,14 @@ def api_call(ip_addr, port, url, command, json_payload, sid):
     return r.json()
 
 
-def login(user,password,api_host,api_port):
-    payload = {'user':user, 'password' : password}
+def login(user,password,api_host,api_port,domain):
+    if domain == '':
+       payload = {'user':user, 'password' : password}
+    else:
+        payload = {'user':user, 'password' : password, 'domain' :  domain}
     response = api_call(api_host, api_port, base_url, 'login', payload, '')
     return response["sid"]
-
+    
 
 def add_uids(rule):
     global svc_objects

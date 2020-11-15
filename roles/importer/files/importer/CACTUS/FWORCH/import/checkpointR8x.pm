@@ -196,6 +196,7 @@ sub copy_config_from_mgm_to_iso {
 	my $cmd;
 	my $return_code;
 	my $fehler_count = 0;
+	my $domain_setting = "";
 
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
@@ -209,9 +210,14 @@ sub copy_config_from_mgm_to_iso {
 	} else {
 		$ssl_verify = '';
 	}
+
+	if ($config_path_on_mgmt ne '') {
+		$domain_setting = "-D " . $config_path_on_mgmt;
+	}
+
 	if (!defined($api_port) || $api_port eq '') { $api_port = "443"; }
 	my $get_config_from_api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
-	$cmd = "$get_config_from_api_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify -D $config_path_on_mgmt -o '$cfg_dir/$obj_file_base'";
+	$cmd = "$get_config_from_api_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 

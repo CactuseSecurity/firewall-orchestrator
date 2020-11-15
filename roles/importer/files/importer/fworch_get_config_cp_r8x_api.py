@@ -127,7 +127,7 @@ def collect_uids_from_rulebase(rulebase, debug_text):
     global nw_objects
     global svc_objects
 
-    print ("entering RULEBASE parsing: " + debug_text)
+    #print ("entering RULEBASE parsing: " + debug_text)
     if 'layerchunks' in rulebase:
         #print (debug_text + ", found layerchanks in layered rulebase , " + debug_text)
         for layer_chunk in rulebase['layerchunks']:
@@ -136,7 +136,7 @@ def collect_uids_from_rulebase(rulebase, debug_text):
                 #print ("found rules_chunk in rulebase with uid " + layer_chunk['uid'] + ', ' + debug_text)
                 collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
     else:
-        print ("else: found no layerchunks in rulebase")
+        #print ("else: found no layerchunks in rulebase")
         for rule in rulebase:
             collect_uids_from_rule(rule, debug_text)
             # print ("rule found: " + str(rule))
@@ -334,12 +334,12 @@ elif (mode=='enrich'):
 
     # get all object uids (together with type) from all rules in fields src, dst, svc
     for rulebase in config['rulebases']:
-        print ("\n\nsearching for all uids in rulebase: " + rulebase['layername'])
+        #print ("\n\nsearching for all uids in rulebase: " + rulebase['layername'])
         collect_uids_from_rulebase(rulebase, "top_level")
 
-    print("found nw uids in rules: " + str(nw_objects))
-    print("\n\n\n")
-    print("found svc uids in rules: " + str(svc_objects))
+    # print("found nw uids in rules: " + str(nw_objects))
+    # print("\n\n\n")
+    # print("found svc uids in rules: " + str(svc_objects))
 
     # remove duplicates from uid lists
     svc_objects = list(set(svc_objects))
@@ -361,7 +361,7 @@ elif (mode=='enrich'):
         show_params_host = {'details-level':details_level,'uid':missing_obj}
         obj = api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid)
         obj = obj['object']
-        print(json.dumps(obj, indent=2))
+        #print(json.dumps(obj, indent=2))
         if (obj['type'] == 'CpmiAnyObject'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
                     "objects": [ {
@@ -380,10 +380,10 @@ elif (mode=='enrich'):
             config['object_tables'].append(json_obj)
         else:
             logging.debug ( "WARNING - get_config_cp_r8x_api - missing nw obj of unexpected type: " + missing_obj )
-            print ("missing nw obj: " + missing_obj)
+            #print ("missing nw obj: " + missing_obj)
 
         logging.debug ( "get_config_cp_r8x_api - missing nw obj: " + missing_obj )
-        print ("missing nw obj: " + missing_obj)
+        #print ("missing nw obj: " + missing_obj)
 
     for missing_obj in missing_svc_object_uids:
         show_params_host = {'details-level':details_level,'uid':missing_obj}
@@ -403,7 +403,7 @@ elif (mode=='enrich'):
             logging.debug ( "WARNING - get_config_cp_r8x_api - missing svc obj of unexpected type: " + missing_obj )
             print ("WARNING - get_config_cp_r8x_api - missing svc obj of unexpected type: " + missing_obj)
         logging.debug ( "get_config_cp_r8x_api - missing svc obj: " + missing_obj )
-        print ("missing svc obj: " + missing_obj)
+        #print ("missing svc obj: " + missing_obj)
 
     # dump new json file
     with open(config_out_filename, "w") as json_data:

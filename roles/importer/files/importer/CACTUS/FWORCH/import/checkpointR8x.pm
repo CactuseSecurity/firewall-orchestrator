@@ -99,7 +99,7 @@ sub parse_config {
 	my $return_code = 0;
 	my $parser_py = "/usr/bin/python3 ./fworch_parse_config_cp_r8x_api.py";
 	my $users_csv = "$output_dir/${mgm_name}_users.csv";
-	my $users_delimiter = "%"; # value is defined in parser_py = ./iso_parse_config_cp_r8x_api.py !!!
+	my $users_delimiter = "%"; # value is defined in parser_py = ./fworch_parse_config_cp_r8x_api.py !!!
 
 
 # parsing rulebases
@@ -125,12 +125,12 @@ sub parse_config {
 		my $firstline = <FH>;
 		print ("firstline=$firstline###\n");
 		if(index($firstline,$users_delimiter)==-1) {
-				print ("test: empty_flag=$empty_flag\n");
+				#print ("test: empty_flag=$empty_flag\n");
 				$empty_flag = 1;
 		}
 		close FH;
 		if ($empty_flag == 1){
-				print ("unlink: empty_flag=$empty_flag\n");
+				print ("unlink users_csv file $users_csv\n");
 				unlink $users_csv;
 		}
 	}
@@ -211,7 +211,7 @@ sub copy_config_from_mgm_to_iso {
 	}
 	if (!defined($api_port) || $api_port eq '') { $api_port = "443"; }
 	my $get_config_from_api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
-	$cmd = "$get_config_from_api_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify -o '$cfg_dir/$obj_file_base'";
+	$cmd = "$get_config_from_api_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify -D $config_path_on_mgmt -o '$cfg_dir/$obj_file_base'";
 	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 

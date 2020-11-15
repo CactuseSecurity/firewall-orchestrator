@@ -281,7 +281,10 @@ def csv_dump_nw_obj(nw_obj):
     result_line += '"' + nw_obj['obj_member_names'] + '"' + csv_delimiter  # obj_member_names
     result_line += '"' + nw_obj['obj_member_refs'] + '"' + csv_delimiter  # obj_member_refs
     result_line += csv_delimiter  # obj_sw
-    result_line += '"' + nw_obj['obj_ip'] + '"' + csv_delimiter  # obj_ip
+    if nw_obj['obj_typ'] == 'group':
+        result_line += csv_delimiter  # obj_ip for groups = null
+    else:
+        result_line += '"' + nw_obj['obj_ip'] + '"' + csv_delimiter  # obj_ip
     result_line += csv_delimiter  # result_line += '"' + nw_obj['obj_ip_end'] + '"' + csv_delimiter         # obj_ip_end
     result_line += '"' + nw_obj['obj_color'] + '"' + csv_delimiter  # obj_color
     result_line += '"' + nw_obj['obj_comment'] + '"' + csv_delimiter  # obj_comment
@@ -292,6 +295,7 @@ def csv_dump_nw_obj(nw_obj):
     # add last_change_time
     result_line += line_delimiter
     return result_line
+
 
 def get_ip_of_obj(obj):
     if 'ipv4-address' in obj:

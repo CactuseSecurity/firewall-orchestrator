@@ -19,17 +19,10 @@ list_delimiter = '|'
 line_delimiter = "\n"
 found_rulebase = False
 
-# logging config
-debug_level = int(args.debug)
-# todo: save the initial value, reset initial value at the end
-if debug_level == 1:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-elif debug_level == 2:
-    logging.basicConfig(filename='/var/tmp/fworch_get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-elif debug_level == 3:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    logging.basicConfig(filename='/var/tmp/fworch_get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
+# the following is the static across all installations unique any obj uid 
+# cannot fetch the Any object via API (<=1.7) at the moment
+# therefore we have a workaround adding the object manually (as svc and nw)
+any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 
 # ###################### rule handling ###############################################
 
@@ -300,12 +293,6 @@ def csv_dump_nw_obj(nw_obj):
     result_line += line_delimiter
     return result_line
 
-
-# def nw_objs_add_any_obj(uid_any_obj):
-#    nw_objects.extend([{ 'obj_uid': uid_any_obj, 'obj_name': 'Any', 'obj_color': 'black', 
-#                            'obj_comment': 'Any obj added by fworch',
-#                            'obj_typ': 'network', 'obj_ip': '0.0.0.0/0', 'obj_member_refs': '', 'obj_member_names': '' }])
-
 def get_ip_of_obj(obj):
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
@@ -326,11 +313,8 @@ def get_ip_of_obj(obj):
 def collect_nw_objects(object_table):
     global nw_objects
     result = ''  # todo: delete this line
-    #    nw_obj_tables = [ 'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'simple-gateways',
-    #                     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains' ]
-    #nw_obj_tables = ['hosts', 'networks', 'simple-gateways', 'address-ranges', 'groups']
     nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
-    nw_obj_type_to_host_list = [ 'simple-gateways', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host']
+    nw_obj_type_to_host_list = [ 'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host']
     if object_table['object_type'] in nw_obj_tables:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
@@ -341,16 +325,11 @@ def collect_nw_objects(object_table):
                 if 'members' in obj:
                     for member in obj['members']:
                         member_refs += member + list_delimiter
-                        # member_names += member + list_delimiter
-                        # member_names += member['name'] + list_delimiter
-                        # else:
-                        #    print('warning: no name found for network object group ' + obj['name'])
                     member_refs = member_refs[:-1]
                 ip_addr = get_ip_of_obj(obj)
                 obj_type = obj['type']
                 if obj_type == 'address-range':
                     obj_type = 'ip_range'  # TODO: change later?
-                #if obj_type == 'simple-gateway':
                 if (obj_type in nw_obj_type_to_host_list):
                     obj_type = 'host'
                 nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
@@ -368,7 +347,6 @@ def resolve_nw_uid_to_name(uid):
             return obj['obj_name']
     return 'ERROR: uid ' + uid + ' not found'
 
-
 def add_member_names_for_nw_group(idx):
     global nw_objects
     member_names = ''
@@ -381,6 +359,8 @@ def add_member_names_for_nw_group(idx):
     group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)
 
+# # "type": "CpmiGatewayPlain",
+# def collect_CpmiGatewayPlain_from_rulebase(rulebase)
 
 ####################### svc obj handling ###############################################
 
@@ -409,12 +389,11 @@ def csv_dump_svc_obj(svc_obj):
     return result_line
 
 
-# collect_users writes user info into global users dict
+# collect_svcobjects writes svc info into global users dict
 def collect_svc_objects(object_table):
     global svc_objects
     result = ''
-    #    svc_obj_tables = [ 'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc' ]
-    svc_obj_tables = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp']
+    svc_obj_tables = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
 
     if object_table['object_type'] in svc_obj_tables:
         proto = ''
@@ -436,9 +415,9 @@ def collect_svc_objects(object_table):
         if object_table['object_type'] == 'services-other':
             typ = 'simple'
             proto = '0'
-        if object_table['object_type'] == 'services-icmp':
+        if object_table['object_type'] == 'services-icmp' or object_table['object_type'] == 'services-icmp6':
             typ = 'simple'
-            proto = '0'
+            proto = '1'
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
                 ip_addr = ''
@@ -515,6 +494,7 @@ def add_member_names_for_svc_group(idx):
     svc_objects.insert(idx, group)
 
 
+# TODO: the following func is a hack that needs to be replaced!
 def add_any_nw_objects(any_uid):
     global nw_objects
 
@@ -530,6 +510,8 @@ def add_any_nw_objects(any_uid):
                             'obj_typ': 'network', 'obj_ip': '0.0.0.0/0',
                             'obj_member_refs': '', 'obj_member_names': ''})
 
+
+# TODO: the following func is a hack that needs to be replaced!
 def add_any_svc_objects(any_uid):
     global svc_objects
 
@@ -552,16 +534,29 @@ def add_any_svc_objects(any_uid):
 
 ####################### main program ###############################################
 
+# logging config
+debug_level = int(args.debug)
+# todo: save the initial value, reset initial value at the end
+# todo: switch to native syslog
+
+if debug_level == 1:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+elif debug_level == 2:
+    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+elif debug_level == 3:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
-logging.debug ("fworch_parse_config_cp_r8x_api - args"+ "\nf:" +args.config_file +"\ni: "+ args.import_id +"\nm: "+ args.management_name +"\nr: "+ args.rulebase +"\nn: "+ str(args.network_objects) +"\ns: "+ str(args.service_objects) +"\nu: "+ str(args.users) +"\nd: "+ str(args.debug))
+logging.debug ("get_config_cp_r8x_api - args"+ "\nf:" +args.config_file +"\ni: "+ args.import_id +"\nm: "+ args.management_name +"\nr: "+ args.rulebase +"\nn: "+ str(args.network_objects) +"\ns: "+ str(args.service_objects) +"\nu: "+ str(args.users) +"\nd: "+ str(args.debug))
 
 number_of_section_headers_so_far = 0
 rule_num = 0
 nw_objects = [] 
 svc_objects = []
-any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
+result = ""
 
 if args.rulebase != '':
     for rulebase in config['rulebases']:
@@ -579,10 +574,8 @@ if args.network_objects:
             if nw_objects[idx]['obj_typ'] == 'group':
                 add_member_names_for_nw_group(idx)
     
-    add_any_nw_objects(any_obj_uid)
+#    add_any_nw_objects(any_obj_uid)
 
-    # for rulebase in config['rulebases']:
-    #     collect_nw_objs_from_rulebase(rulebase)
     for nw_obj in nw_objects:
         result += csv_dump_nw_obj(nw_obj)
 

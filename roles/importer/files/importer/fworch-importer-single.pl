@@ -14,17 +14,18 @@ use CACTUS::read_config;
 
 sub empty_rule_files { # deletes a rule file and creates an empty rule file instead
 	if ($File::Find::name =~ /\_rulebase\.csv$/) {
-		system("rm $File::Find::name");
-		system("touch $File::Find::name");
+		system("rm '$File::Find::name'");
+		system("touch '$File::Find::name'");
 	}
 }
+
 sub empty_config_files { # deletes a csv config file and creates an empty csv file instead
 	if ($File::Find::name =~ /\.csv$/) {
-		system("rm $File::Find::name");
-		system("touch $File::Find::name");
-		print ("emptying csv config file " . $File::Find::name . "\n");
+		system("rm '$File::Find::name'");
+		system("touch '$File::Find::name'");
+		print ("emptying csv config file '" . $File::Find::name . "'\n");
 	} else {
-		print ("leaving config file " . $File::Find::name . " untouched\n");
+		print ("leaving config file '" . $File::Find::name . "' untouched\n");
 	}
 }
 
@@ -201,6 +202,7 @@ if (!$error_count_global) {
 	if (defined($save_import_results_to_file) && $save_import_results_to_file && ($error_count_global || $changes ne '')) { # if changes or errors occured: move config & csv to archive
 		system ("${bin_path}mkdir -p $archive_dir; cd $fworch_workdir; ${bin_path}tar cfz $archive_dir/${current_import_id}_`${bin_path}date +%F_%T`_mgm_id_$mgm_id.tgz .");
 	}
+	#`cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
 	if (!$no_cleanup) { rmtree $fworch_workdir; }
 } else {
 	&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()

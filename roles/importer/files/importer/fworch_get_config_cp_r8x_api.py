@@ -95,7 +95,7 @@ def collect_uids_from_rule(rule, debug_text):
     global nw_objects
  
     if 'rule-number' in rule:  # standard rule, no section header (layered rules)
-    for src in rule["source"]:
+        for src in rule["source"]:
             if src['type'] == 'LegacyUserAtLocation':
                 user_objects.append(src["userGroup"])
                 #print ("Legacy found user uid: " + src["userGroup"] + ", " + debug_text)

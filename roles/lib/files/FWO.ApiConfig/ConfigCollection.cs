@@ -51,7 +51,7 @@ namespace FWO.ApiConfig
             // get languages defined 
             try
             {
-                uiLanguages = apiConnection.SendQueryAsync<Language[]>(BasicQueries.getLanguages).Result;
+                uiLanguages = apiConnection.SendQueryAsync<Language[]>(ConfigQueries.getLanguages).Result;
             }
             catch (Exception exception)
             {
@@ -67,7 +67,7 @@ namespace FWO.ApiConfig
                 {
                     var languageVariable = new { language = lang.Name };
                     Dictionary<string, string> dict = new Dictionary<string, string>();
-                    uiTexts = apiConnection.SendQueryAsync<UiText[]>(BasicQueries.getTextsPerLanguage, languageVariable).Result;
+                    uiTexts = apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getTextsPerLanguage, languageVariable).Result;
                     foreach (UiText text in uiTexts)
                         dict.Add(text.Id, text.Txt); // add "word" to dictionary
 

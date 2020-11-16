@@ -49,7 +49,7 @@ das eventuell auch anderen Personen als dem Benutzer selbst bekannt sein kann.
 <br>
 Administratoren, die nach Inbetriebnahme des fworch-Systems das Team der Sicherheitsadministratoren verlassen,
 d&uuml;rfen nicht gel&ouml;scht werden, da sonst das Reporting der von diesem Administrator durchgef&uml;hrten
-&Auml;nderungen nicht mehr sauber dargestellt w&uuml;rde. Stattdessen ist Das Austrittsdatum (isoadmin_end_date) einzutragen, um
+&Auml;nderungen nicht mehr sauber dargestellt w&uuml;rde. Stattdessen ist Das Austrittsdatum (uiuser_end_date) einzutragen, um
 den Login zu unterbinden.
 <br><br><br>
 Folgende weitere Konfigurations&auml;nderungen werden derzeit noch per SQL-Kommando durchgef&uuml;hrt:<br>

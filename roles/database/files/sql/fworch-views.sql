@@ -22,10 +22,10 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 		management.mgm_id AS mgm_id,
 		CAST(NULL AS VARCHAR) as dev_name,		
 		CAST(NULL AS INTEGER) as dev_id,		
-		t_change_admin.isoadmin_first_name || ' ' || t_change_admin.isoadmin_last_name AS change_admin,
-		t_change_admin.isoadmin_id AS change_admin_id,
-		t_doku_admin.isoadmin_first_name || ' ' || t_doku_admin.isoadmin_last_name AS doku_admin,
-		t_doku_admin.isoadmin_id AS doku_admin_id,
+		t_change_admin.uiuser_first_name || ' ' || t_change_admin.uiuser_last_name AS change_admin,
+		t_change_admin.uiuser_id AS change_admin_id,
+		t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS doku_admin,
+		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
 		object.obj_name AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
@@ -34,8 +34,8 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 		changelog_object
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
 		LEFT JOIN object ON (old_obj_id=obj_id)
-		LEFT JOIN isoadmin AS t_change_admin ON (changelog_object.import_admin=t_change_admin.isoadmin_id)
-		LEFT JOIN isoadmin AS t_doku_admin ON (changelog_object.doku_admin=t_doku_admin.isoadmin_id)
+		LEFT JOIN uiuser AS t_change_admin ON (changelog_object.import_admin=t_change_admin.uiuser_id)
+		LEFT JOIN uiuser AS t_doku_admin ON (changelog_object.doku_admin=t_doku_admin.uiuser_id)
 	WHERE change_type_id = 3 AND security_relevant AND change_action='D' AND successful_import
 
 	UNION
@@ -58,10 +58,10 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 		management.mgm_id AS mgm_id,
 		CAST(NULL AS VARCHAR) as dev_name,		
 		CAST(NULL AS INTEGER) as dev_id,		
-		t_change_admin.isoadmin_first_name || ' ' || t_change_admin.isoadmin_last_name AS change_admin,
-		t_change_admin.isoadmin_id AS change_admin_id,
-		t_doku_admin.isoadmin_first_name || ' ' || t_doku_admin.isoadmin_last_name AS doku_admin,
-		t_doku_admin.isoadmin_id AS doku_admin_id,
+		t_change_admin.uiuser_first_name || ' ' || t_change_admin.uiuser_last_name AS change_admin,
+		t_change_admin.uiuser_id AS change_admin_id,
+		t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS doku_admin,
+		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
 		object.obj_name AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
@@ -70,8 +70,8 @@ CREATE OR REPLACE VIEW view_obj_changes AS
 		changelog_object
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
 		LEFT JOIN object ON (new_obj_id=obj_id)
-		LEFT JOIN isoadmin AS t_change_admin ON (changelog_object.import_admin=t_change_admin.isoadmin_id)
-		LEFT JOIN isoadmin AS t_doku_admin ON (changelog_object.doku_admin=t_doku_admin.isoadmin_id)
+		LEFT JOIN uiuser AS t_change_admin ON (changelog_object.import_admin=t_change_admin.uiuser_id)
+		LEFT JOIN uiuser AS t_doku_admin ON (changelog_object.doku_admin=t_doku_admin.uiuser_id)
 		WHERE change_type_id = 3 AND security_relevant AND change_action<>'D' AND successful_import;
 
 
@@ -98,10 +98,10 @@ CREATE OR REPLACE VIEW view_user_changes AS
 		management.mgm_id AS mgm_id,
 		CAST(NULL AS VARCHAR) as dev_name,		
 		CAST(NULL AS INTEGER) as dev_id,		
-		t_change_admin.isoadmin_first_name || ' ' || t_change_admin.isoadmin_last_name AS change_admin,
-		t_change_admin.isoadmin_id AS change_admin_id,
-		t_doku_admin.isoadmin_first_name || ' ' || t_doku_admin.isoadmin_last_name AS doku_admin,
-		t_doku_admin.isoadmin_id AS doku_admin_id,
+		t_change_admin.uiuser_first_name || ' ' || t_change_admin.uiuser_last_name AS change_admin,
+		t_change_admin.uiuser_id AS change_admin_id,
+		t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS doku_admin,
+		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
 		usr.user_name AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
@@ -110,8 +110,8 @@ CREATE OR REPLACE VIEW view_user_changes AS
 		changelog_user
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
 		LEFT JOIN usr ON (old_user_id=user_id)
-		LEFT JOIN isoadmin AS t_change_admin ON (changelog_user.import_admin=t_change_admin.isoadmin_id)
-		LEFT JOIN isoadmin AS t_doku_admin ON (changelog_user.doku_admin=t_doku_admin.isoadmin_id)
+		LEFT JOIN uiuser AS t_change_admin ON (changelog_user.import_admin=t_change_admin.uiuser_id)
+		LEFT JOIN uiuser AS t_doku_admin ON (changelog_user.doku_admin=t_doku_admin.uiuser_id)
 	WHERE change_type_id = 3 AND security_relevant AND change_action='D' AND successful_import
 	UNION
 	SELECT
@@ -132,10 +132,10 @@ CREATE OR REPLACE VIEW view_user_changes AS
 		management.mgm_id AS mgm_id,
 		CAST(NULL AS VARCHAR) as dev_name,		
 		CAST(NULL AS INTEGER) as dev_id,		
-		t_change_admin.isoadmin_first_name || ' ' || t_change_admin.isoadmin_last_name AS change_admin,
-		t_change_admin.isoadmin_id AS change_admin_id,
-		t_doku_admin.isoadmin_first_name || ' ' || t_doku_admin.isoadmin_last_name AS doku_admin,
-		t_doku_admin.isoadmin_id AS doku_admin_id,
+		t_change_admin.uiuser_first_name || ' ' || t_change_admin.uiuser_last_name AS change_admin,
+		t_change_admin.uiuser_id AS change_admin_id,
+		t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS doku_admin,
+		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
 		usr.user_name AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
@@ -144,8 +144,8 @@ CREATE OR REPLACE VIEW view_user_changes AS
 		changelog_user
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
 		LEFT JOIN usr ON (new_user_id=user_id)
-		LEFT JOIN isoadmin AS t_change_admin ON (changelog_user.import_admin=t_change_admin.isoadmin_id)
-		LEFT JOIN isoadmin AS t_doku_admin ON (changelog_user.doku_admin=t_doku_admin.isoadmin_id)
+		LEFT JOIN uiuser AS t_change_admin ON (changelog_user.import_admin=t_change_admin.uiuser_id)
+		LEFT JOIN uiuser AS t_doku_admin ON (changelog_user.doku_admin=t_doku_admin.uiuser_id)
 	WHERE change_type_id = 3 AND security_relevant AND change_action<>'D' AND successful_import;
 
 ---------------------------------------------------------------------------------------------
@@ -171,10 +171,10 @@ CREATE OR REPLACE VIEW view_svc_changes AS
 		management.mgm_id AS mgm_id,
 		CAST(NULL AS VARCHAR) as dev_name,		
 		CAST(NULL AS INTEGER) as dev_id,		
-		t_change_admin.isoadmin_first_name || ' ' || t_change_admin.isoadmin_last_name AS change_admin,
-		t_change_admin.isoadmin_id AS change_admin_id,
-		t_doku_admin.isoadmin_first_name || ' ' || t_doku_admin.isoadmin_last_name AS doku_admin,
-		t_doku_admin.isoadmin_id AS doku_admin_id,
+		t_change_admin.uiuser_first_name || ' ' || t_change_admin.uiuser_last_name AS change_admin,
+		t_change_admin.uiuser_id AS change_admin_id,
+		t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS doku_admin,
+		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
 		service.svc_name AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
@@ -183,8 +183,8 @@ CREATE OR REPLACE VIEW view_svc_changes AS
 			changelog_service
 			LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
 			LEFT JOIN service ON (old_svc_id=svc_id)
-			LEFT JOIN isoadmin AS t_change_admin ON (changelog_service.import_admin=t_change_admin.isoadmin_id)
-			LEFT JOIN isoadmin AS t_doku_admin ON (changelog_service.doku_admin=t_doku_admin.isoadmin_id)
+			LEFT JOIN uiuser AS t_change_admin ON (changelog_service.import_admin=t_change_admin.uiuser_id)
+			LEFT JOIN uiuser AS t_doku_admin ON (changelog_service.doku_admin=t_doku_admin.uiuser_id)
 		WHERE change_type_id = 3 AND security_relevant AND change_action='D' AND successful_import
 	UNION
 	SELECT	
@@ -205,10 +205,10 @@ CREATE OR REPLACE VIEW view_svc_changes AS
 		management.mgm_id AS mgm_id,
 		CAST(NULL AS VARCHAR) as dev_name,		
 		CAST(NULL AS INTEGER) as dev_id,		
-		t_change_admin.isoadmin_first_name || ' ' || t_change_admin.isoadmin_last_name AS change_admin,
-		t_change_admin.isoadmin_id AS change_admin_id,
-		t_doku_admin.isoadmin_first_name || ' ' || t_doku_admin.isoadmin_last_name AS doku_admin,
-		t_doku_admin.isoadmin_id AS doku_admin_id,
+		t_change_admin.uiuser_first_name || ' ' || t_change_admin.uiuser_last_name AS change_admin,
+		t_change_admin.uiuser_id AS change_admin_id,
+		t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS doku_admin,
+		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
 		service.svc_name AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
@@ -217,8 +217,8 @@ CREATE OR REPLACE VIEW view_svc_changes AS
 			changelog_service
 			LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
 			LEFT JOIN service ON (new_svc_id=svc_id)
-			LEFT JOIN isoadmin AS t_change_admin ON (changelog_service.import_admin=t_change_admin.isoadmin_id)
-			LEFT JOIN isoadmin AS t_doku_admin ON (changelog_service.doku_admin=t_doku_admin.isoadmin_id)
+			LEFT JOIN uiuser AS t_change_admin ON (changelog_service.import_admin=t_change_admin.uiuser_id)
+			LEFT JOIN uiuser AS t_doku_admin ON (changelog_service.doku_admin=t_doku_admin.uiuser_id)
 		WHERE change_type_id = 3 AND security_relevant AND change_action<>'D' AND successful_import;
 
 ---------------------------------------------------------------------------------------------
@@ -245,10 +245,10 @@ CREATE OR REPLACE VIEW view_rule_changes AS
 		management.mgm_id AS mgm_id,
 		device.dev_name,		
 		device.dev_id,		
-		CAST(t_change_admin.isoadmin_first_name || ' ' || t_change_admin.isoadmin_last_name AS VARCHAR) AS change_admin,
-		t_change_admin.isoadmin_id AS change_admin_id,
-		CAST (t_doku_admin.isoadmin_first_name || ' ' || t_doku_admin.isoadmin_last_name AS VARCHAR) AS doku_admin,
-		t_doku_admin.isoadmin_id AS doku_admin_id,
+		CAST(t_change_admin.uiuser_first_name || ' ' || t_change_admin.uiuser_last_name AS VARCHAR) AS change_admin,
+		t_change_admin.uiuser_id AS change_admin_id,
+		CAST (t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS VARCHAR) AS doku_admin,
+		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
 		CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.dev_rulebase) AS VARCHAR) AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
@@ -258,8 +258,8 @@ CREATE OR REPLACE VIEW view_rule_changes AS
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
 		LEFT JOIN rule ON (old_rule_id=rule_id)
 		LEFT JOIN device ON (changelog_rule.dev_id=device.dev_id)
-		LEFT JOIN isoadmin AS t_change_admin ON (t_change_admin.isoadmin_id=changelog_rule.import_admin)
-		LEFT JOIN isoadmin AS t_doku_admin ON (changelog_rule.doku_admin=t_doku_admin.isoadmin_id)
+		LEFT JOIN uiuser AS t_change_admin ON (t_change_admin.uiuser_id=changelog_rule.import_admin)
+		LEFT JOIN uiuser AS t_doku_admin ON (changelog_rule.doku_admin=t_doku_admin.uiuser_id)
 	WHERE changelog_rule.change_action='D' AND change_type_id = 3 AND security_relevant AND successful_import
 
 	UNION
@@ -282,10 +282,10 @@ CREATE OR REPLACE VIEW view_rule_changes AS
 		management.mgm_id AS mgm_id,
 		device.dev_name,		
 		device.dev_id,		
-		CAST(t_change_admin.isoadmin_first_name || ' ' || t_change_admin.isoadmin_last_name AS VARCHAR) AS change_admin,
-		t_change_admin.isoadmin_id AS change_admin_id,
-		CAST (t_doku_admin.isoadmin_first_name || ' ' || t_doku_admin.isoadmin_last_name AS VARCHAR) AS doku_admin,
-		t_doku_admin.isoadmin_id AS doku_admin_id,
+		CAST(t_change_admin.uiuser_first_name || ' ' || t_change_admin.uiuser_last_name AS VARCHAR) AS change_admin,
+		t_change_admin.uiuser_id AS change_admin_id,
+		CAST (t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS VARCHAR) AS doku_admin,
+		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
 		CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.dev_rulebase) AS VARCHAR) AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
@@ -295,8 +295,8 @@ CREATE OR REPLACE VIEW view_rule_changes AS
 		LEFT JOIN (import_control LEFT JOIN management using (mgm_id)) using (control_id)
 		LEFT JOIN rule ON (new_rule_id=rule_id)
 		LEFT JOIN device ON (changelog_rule.dev_id=device.dev_id)
-		LEFT JOIN isoadmin AS t_change_admin ON (t_change_admin.isoadmin_id=changelog_rule.import_admin)
-		LEFT JOIN isoadmin AS t_doku_admin ON (changelog_rule.doku_admin=t_doku_admin.isoadmin_id)
+		LEFT JOIN uiuser AS t_change_admin ON (t_change_admin.uiuser_id=changelog_rule.import_admin)
+		LEFT JOIN uiuser AS t_doku_admin ON (changelog_rule.doku_admin=t_doku_admin.uiuser_id)
 	WHERE changelog_rule.change_action<>'D' AND change_type_id = 3 AND security_relevant AND successful_import;
 
 ---------------------------------------------------------------------------------------------

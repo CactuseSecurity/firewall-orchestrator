@@ -87,8 +87,8 @@
 		$logtarget = $cleaner->clean($_SESSION["logtarget"],200);
 		if (isset($user)) { // only in index2, login just took place, otherwise valid session is signalled by $_SESSION["auth"] set
 			$log->log_login("fworch User $user successfully logged in.");
-			// write last login date to isoadmin
-			$sql_code = "UPDATE isoadmin SET isoadmin_last_login = now() WHERE isoadmin_username='$user'";
+			// write last login date to uiuser
+			$sql_code = "UPDATE uiuser SET uiuser_last_login = now() WHERE uiuser_username='$user'";
 			$conn->fworch_db_query($sql_code);
 		}
 	} elseif (isset($fehler))  {	// only failed login, when $fehler is set (this accepts cli logins via fworch-user)

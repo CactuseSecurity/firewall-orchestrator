@@ -79,42 +79,44 @@ class DbConnection {
 	function getPw() {
 		return $this->dbpw;
 	}
-	function isoadmin_check_pwd_history($user, $password) {
-		$log = new LogConnection();
-		$delimiter = '%';
-		$sql_request = "SELECT isoadmin_pwd_history FROM isoadmin WHERE isoadmin_username = '$user'; ";
-		$result = $this->fworch_db_query($sql_request);
-		if (!isset($result) or $result == '' or $result->data[0]['isoadmin_pwd_history']=='') {
-//			$log->log_debug("isoadmin_check_kennwort_history:: no history found");
-			return true;
-		} else {
-			$old_hash_string = $result->data[0]['isoadmin_pwd_history'];
-//			$log->log_debug("isoadmin_check_kennwort_history:: old_hash_string=$old_hash_string");
-			$old_hashes = preg_split("[\%]", $old_hash_string);
-			foreach ($old_hashes as $hash) {
-//				$log->log_debug("isoadmin_check_kennwort_history:: hash=$hash");
-				if (password_verify($password, $hash)) {
-//					$log->log_debug("isoadmin_check_kennwort_history:: kennwort_verify=YES, found kennwort reuse");
-					return false;					
-				} else {
-//					$log->log_debug("isoadmin_check_kennwort_history:: kennwort_verify=NO, kennwort not reused");
-				}
-			}
-			return true;
-		}
+	function uiuser_check_pwd_history($user, $password) {
+		return true;
+
+// 		$log = new LogConnection();
+// 		$delimiter = '%';
+// 		$sql_request = "SELECT uiuser_pwd_history FROM uiuser WHERE uiuser_username = '$user'; ";
+// 		$result = $this->fworch_db_query($sql_request);
+// 		if (!isset($result) or $result == '' or $result->data[0]['uiuser_pwd_history']=='') {
+// //			$log->log_debug("uiuser_check_kennwort_history:: no history found");
+// 			return true;
+// 		} else {
+// 			$old_hash_string = $result->data[0]['uiuser_pwd_history'];
+// //			$log->log_debug("uiuser_check_kennwort_history:: old_hash_string=$old_hash_string");
+// 			$old_hashes = preg_split("[\%]", $old_hash_string);
+// 			foreach ($old_hashes as $hash) {
+// //				$log->log_debug("uiuser_check_kennwort_history:: hash=$hash");
+// 				if (password_verify($password, $hash)) {
+// //					$log->log_debug("uiuser_check_kennwort_history:: kennwort_verify=YES, found kennwort reuse");
+// 					return false;					
+// 				} else {
+// //					$log->log_debug("uiuser_check_kennwort_history:: kennwort_verify=NO, kennwort not reused");
+// 				}
+// 			}
+// 			return true;
+// 		}
 	}
-	function isoadmin_append_pwd_hash($user, $password) {
-		$delimiter = '%';
-		$sql_request = "SELECT isoadmin_pwd_history FROM isoadmin WHERE isoadmin_username = '$user'; ";
-		$result = $this->fworch_db_query($sql_request);
-		if (!isset($result) or $result == '' or $result->data[0]['isoadmin_pwd_history']=='') {
-			$old_hash_string = '';
-		} else {
-			$old_hash_string = $result->data[0]['isoadmin_pwd_history'] . $delimiter;
-		}
-		$pwd_hash = password_hash($password, PASSWORD_DEFAULT);
-		$sql_request = "UPDATE isoadmin SET isoadmin_pwd_history='$old_hash_string$pwd_hash' WHERE isoadmin_username = '$user'; ";
-		$result = $this->fworch_db_query($sql_request);
+	function uiuser_append_pwd_hash($user, $password) {
+		// $delimiter = '%';
+		// $sql_request = "SELECT uiuser_pwd_history FROM uiuser WHERE uiuser_username = '$user'; ";
+		// $result = $this->fworch_db_query($sql_request);
+		// if (!isset($result) or $result == '' or $result->data[0]['uiuser_pwd_history']=='') {
+		// 	$old_hash_string = '';
+		// } else {
+		// 	$old_hash_string = $result->data[0]['uiuser_pwd_history'] . $delimiter;
+		// }
+		// $pwd_hash = password_hash($password, PASSWORD_DEFAULT);
+		// $sql_request = "UPDATE uiuser SET uiuser_pwd_history='$old_hash_string$pwd_hash' WHERE uiuser_username = '$user'; ";
+		// $result = $this->fworch_db_query($sql_request);
 
 		// TODO: only keep last x passwords - using $old_hashes = preg_split("\%", $old_hash_string);
 	}
@@ -145,29 +147,29 @@ class DbConnection {
 						$return_value = 'wrong_creds2';
 					} else {
 						$log->log_debug("checking whether Kennwort for user $user_in must be changed");
-						$testrequest = "SELECT isoadmin_username, isoadmin_last_name, isoadmin_password_must_be_changed " . 
-							"FROM isoadmin WHERE isoadmin_username='" . $user_in . "';";
+						$testrequest = "SELECT uiuser_username, uiuser_last_name, uiuser_password_must_be_changed " . 
+							"FROM uiuser WHERE uiuser_username='" . $user_in . "';";
 						$result = $this->fworch_db_query($testrequest);
-//						if (is_null($isoadmin_username) or $isoadmin_username=='') {
+//						if (is_null($uiuser_username) or $uiuser_username=='') {
 //						if ($this->error->isError($result)) {
 						if (!$result) {
-							$log->log_debug("User $user_in does not exist in database table isoadmin");
+							$log->log_debug("User $user_in does not exist in database table uiuser");
 							$return_value = 'wrong_creds3';
 						} else {
-							$isoadmin_username = $result->data[0]["isoadmin_username"];
-							$isoadmin_change_kennwort = $result->data[0]["isoadmin_password_must_be_changed"];
-							$log->log_debug("Found user $isoadmin_username with kennwort_change: " . $isoadmin_change_kennwort);
-							if (!is_null($isoadmin_change_kennwort) and $isoadmin_change_kennwort=='f') {
+							$uiuser_username = $result->data[0]["uiuser_username"];
+							$uiuser_change_kennwort = $result->data[0]["uiuser_password_must_be_changed"];
+							$log->log_debug("Found user $uiuser_username with kennwort_change: " . $uiuser_change_kennwort);
+							if (!is_null($uiuser_change_kennwort) and $uiuser_change_kennwort=='f') {
 								$log->log_debug("Kennwort for user $user_in must not be changed");
 							} else {
 								$log->log_debug("Kennwort for user $user_in must be changed");
 								$return_value = 'password_must_be_changed';
 							}
 						}
-						$testrequest = "SELECT isoadmin_end_date FROM isoadmin WHERE isoadmin_username='" . $user_in . "'";
+						$testrequest = "SELECT uiuser_end_date FROM uiuser WHERE uiuser_username='" . $user_in . "'";
 						$result = pg_query($link, $testrequest);
 						if (!($this->error->isError($result))) {
-							$end_date = $result->data[0]['isoadmin_end_date'];
+							$end_date = $result->data[0]['uiuser_end_date'];
 							if (!is_null($end_date) and $end_date < date('Y-m-d H:i')) {
 								$log->log_debug("Account for user $user_in expired");
 								$return_value = 'expired';

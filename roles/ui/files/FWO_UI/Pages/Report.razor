@@ -225,7 +225,7 @@
 
         Task.Run(async () =>
         {
-            managementsOverview = await Connection.SendQueryAsync<Management[]>(BasicQueries.getDevicesByManagements);
+            managementsOverview = await Connection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getDevicesByManagements);
             await InvokeAsync(StateHasChanged);
         });
     }

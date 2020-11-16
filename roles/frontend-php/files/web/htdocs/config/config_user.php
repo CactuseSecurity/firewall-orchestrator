@@ -17,7 +17,7 @@
 	<script language="javascript" type="text/javascript">
 		if(is_ie) document.write("<link rel='stylesheet' type='text/css' href='<?php echo $stamm ?>css/firewall_ie.css'>");
 		
-		function changeIsoadmin(User,UserId) {
+		function changeuiuser(User,UserId) {
 			document.getElementById("headlineSys").innerHTML = User;
 			document.forms.configuration.userId.value=UserId;
 		}
@@ -44,7 +44,7 @@
 						document.forms.configuration.start_date.value		= top.Change_Config_Frame.document.forms.user_form.start_date.value;							
 						document.forms.configuration.end_date.value			= top.Change_Config_Frame.document.forms.user_form.end_date.value;							
 						document.forms.configuration.email.value			= top.Change_Config_Frame.document.forms.user_form.email.value;							
-						document.forms.configuration.is_isoadmin.value		= top.Change_Config_Frame.document.forms.user_form.is_isoadmin.value;							
+						document.forms.configuration.is_uiuser.value		= top.Change_Config_Frame.document.forms.user_form.is_uiuser.value;							
 					}
 					document.forms.configuration.target="Change_Config_Frame";
 					document.forms.configuration.method="post";
@@ -77,7 +77,7 @@
 		<input type="hidden" name="start_date" value=""/>
 		<input type="hidden" name="end_date" value=""/>
 		<input type="hidden" name="email" value=""/>
-		<input type="hidden" name="is_isoadmin" value=""/>
+		<input type="hidden" name="is_uiuser" value=""/>
 		<div id="inhalt">&nbsp;
 			<table>
 			<tr><td>

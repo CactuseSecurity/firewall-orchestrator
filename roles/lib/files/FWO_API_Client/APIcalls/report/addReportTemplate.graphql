@@ -1,0 +1,17 @@
+mutation addReportTemplate(
+  $reportTemplateName: String!
+  $reportFilterLine: String!
+  $reportTypeId:Int!
+) {
+  insert_report_template(
+    objects: {
+      report_template_name: $reportTemplateName
+      report_filter: $reportFilterLine
+      report_typ_id:$reportTypeId
+    }
+  ) {
+    returning {
+      report_template_id
+    }
+  }
+}

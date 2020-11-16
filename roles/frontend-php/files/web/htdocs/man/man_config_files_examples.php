@@ -39,41 +39,41 @@ display undocumented_rule_changes maxrows 2
 
 ###################### User-Berechtigungen ##############################
 # group memberships
-usergroup isoadmins members: ralf tim hugo
+usergroup uiusers members: ralf tim hugo
 usergroup demo members: demo2 demo7 dem8
 usergroup testminimum members: demo1
 
 # group privileges
 usergroup demo privileges:              view-reports document-changes view-change-admin-names change-documentation
 usergroup testminimum privileges:       view-reports
-usergroup isoadmins privileges:         view-all-objects-filter view-reports document-changes admin-users admin-devices admin-tenants change-documentation view-import-status
+usergroup uiusers privileges:         view-all-objects-filter view-reports document-changes admin-users admin-devices admin-tenants change-documentation view-import-status
 
 # tenant visibility (separator is here ',' not space!)
 # usergroup demo visible-tenants:                       'tenant 1', 'tenant 2'
 usergroup demo visible-tenants:                         ALL
 usergroup testminimum visible-tenants:                  ALL
-usergroup isoadmins visible-tenants:                    ALL
+usergroup uiusers visible-tenants:                    ALL
 
 # device and management systems visible in the GUI
 usergroup demo visible-managements:                     ALL
 usergroup demo visible-devices:                         ALL
 usergroup testminimum visible-managements:              sting
 usergroup testminimum visible-devices:                  ALL
-usergroup isoadmins visible-managements:                ALL
-usergroup isoadmins visible-devices:                    ALL
+usergroup uiusers visible-managements:                ALL
+usergroup uiusers visible-devices:                    ALL
 
 # report visibility
 usergroup demo visible-reports:                         changes rule
 # possible values: changes (Aenderungen), usage (Verwendung), rule (Regelsuche), config (Konfiguration)
 
 usergroup testminimum visible-reports:                  config 
-usergroup isoadmins visible-reports:                    ALL
+usergroup uiusers visible-reports:                    ALL
 
 # parameters for document changes
 docu-changes default-tenant demo: Revi
 docu-changes default-tenant demo-minimum: Revi
-docu-changes default-tenant isoadmins: Gold
-docu-changes default-request-type isoadmins: ARS
+docu-changes default-tenant uiusers: Gold
+docu-changes default-request-type uiusers: ARS
 docu-changes number-of-requests 1
 docu-changes display-approver 0
 docu-changes request-type 0
@@ -99,7 +99,7 @@ csv_delimiter           %
 csv_user_delimiter      ;
 group_delimiter      	|
 
-fworch_srv_user            isoimporter
+fworch_srv_user            fworchimporter
 output_method           text
 
 echo_bin                /bin/echo

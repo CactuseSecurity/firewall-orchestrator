@@ -320,9 +320,9 @@ class UserConfig extends Config {
 	}
 	function getUserId($username,$password) {
 		$db_connection = new DbConnection(new DbConfig($username,$password));
-		$isoadmin_id = $db_connection->fworch_db_query ("SELECT isoadmin_id FROM isoadmin WHERE isoadmin_username='" . $username . "'");
-		$isoadmin_id = $isoadmin_id->data[0]['isoadmin_id'];
-		return $isoadmin_id;
+		$uiuser_id = $db_connection->fworch_db_query ("SELECT uiuser_id FROM uiuser WHERE uiuser_username='" . $username . "'");
+		$uiuser_id = $uiuser_id->data[0]['uiuser_id'];
+		return $uiuser_id;
 	}
 	function allowedToDocumentChanges () {
 		if (array_search('document-changes',$this->privileges)===false)	return false;
@@ -378,7 +378,7 @@ class UserConfig extends Config {
 		if (array_search('ALL', $this->visible_reports)===false) {
 			foreach ($this->visible_reports as $report) {
 				$log->log_debug("getReportFilter() processing report $report");
-				$sql_statement = "SELECT report_typ_id FROM stm_report_typ WHERE lower(report_typ_name_english) like lower('%$report%')";
+				$sql_statement = "SELECT report_typ_id FROM stm_report_typ WHERE lower(report_typ_name) like lower('%$report%')";
 				$log->log_debug("sql=$sql_statement");
 				$report_id = $db_connection->fworch_db_query ($sql_statement);
 				if (isset($report_id->data[0]['report_typ_id']) && !$report_id->data[0]['report_typ_id']=='') {

@@ -204,7 +204,7 @@ class DisplayDevTypes {
 	}
 }
 
-class IsoadminUser {
+class uiuserUser {
 	var $user_id;
 	var $username;
 	var $first_name;
@@ -212,23 +212,23 @@ class IsoadminUser {
 	var $start_date;
 	var $end_date;
 	var $email;
-	var $is_isoadmin;
+	var $is_uiuser;
 	var $error;
 		
 	function __construct ($db_connection, $user_id) {
 		$this->error = new PEAR();
-		$sql_code = "SELECT * FROM isoadmin WHERE isoadmin_id=$user_id";
+		$sql_code = "SELECT * FROM uiuser WHERE uiuser_id=$user_id";
 		if ($this->error->isError($db_connection)) $this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
 		$user_details = $db_connection->fworch_db_query ($sql_code,0);
 		if ($this->error->isError($user_details)) $this->error->raiseError($dev_details->getMessage());
 		$this->user_id		= $user_id;
-		$this->username		= $user_details->data[0]['isoadmin_username'];
-		$this->first_name	= $user_details->data[0]['isoadmin_first_name'];
-		$this->last_name	= $user_details->data[0]['isoadmin_last_name'];
-		$this->start_date	= $user_details->data[0]['isoadmin_start_date'];
-		$this->end_date		= $user_details->data[0]['isoadmin_end_date'];
-		$this->email		= $user_details->data[0]['isoadmin_email'];
-//	TODO:		$this->is_isoadmin	= $user_details->data[0]['ssh_user'];
+		$this->username		= $user_details->data[0]['uiuser_username'];
+		$this->first_name	= $user_details->data[0]['uiuser_first_name'];
+		$this->last_name	= $user_details->data[0]['uiuser_last_name'];
+		$this->start_date	= $user_details->data[0]['uiuser_start_date'];
+		$this->end_date		= $user_details->data[0]['uiuser_end_date'];
+		$this->email		= $user_details->data[0]['uiuser_email'];
+//	TODO:		$this->is_uiuser	= $user_details->data[0]['ssh_user'];
 		
 		if (!isset($this->username)) $this->error->raiseError("ERROR: no matching management for ID $user_id found!");		
 	}
@@ -250,13 +250,13 @@ class IsoadminUser {
 	function getEmail() {
 		return $this->email;
 	}
-	function getIsIsoadmin() {
-		return $this->is_isoadmin;
+	function getIsuiuser() {
+		return $this->is_uiuser;
 	}
 }
 
-class IsoadminList {
-	var $isoadmin_list;
+class uiuserList {
+	var $uiuser_list;
 	var $error;
 	
 	function __construct() {
@@ -265,12 +265,12 @@ class IsoadminList {
 			$this->error->raiseError("F-RCF: Connection not initialized. " . $db_connection->getMessage());
 		$db = new DbList();
 		$db->initSessionConnection();
-		$sql_code = "SELECT * FROM isoadmin ORDER BY isoadmin_username"; 
-		$this->isoadmin_list =$db->db_connection->fworch_db_query($sql_code);
-		if ($this->error->isError($this->isoadmin_list)) $this->error->raiseError($this->isoadmin_list->getMessage());
+		$sql_code = "SELECT * FROM uiuser ORDER BY uiuser_username"; 
+		$this->uiuser_list =$db->db_connection->fworch_db_query($sql_code);
+		if ($this->error->isError($this->uiuser_list)) $this->error->raiseError($this->uiuser_list->getMessage());
 	}
 	function GetUsers() {
-		return $this->isoadmin_list;
+		return $this->uiuser_list;
 	}
 }
 ?>

@@ -1,0 +1,7 @@
+query getUsers{
+  uiuser {
+    uiuser_id
+    uuid
+    uiuser_username
+  }
+}

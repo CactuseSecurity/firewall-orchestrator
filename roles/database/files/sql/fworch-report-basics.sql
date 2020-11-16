@@ -1,8 +1,5 @@
--- $Id: iso-report-basics.sql,v 1.1.2.4 2012-04-17 05:02:23 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-report-basics.sql,v $
-
 ----------------------------------------------------
--- Funktionen zum Generieren von Reports
+-- generate report functions
 ----------------------------------------------------
 ------- basics ------------
 -- is_obj_group (obj_id) RETURNS BOOLEAN
@@ -23,9 +20,9 @@
 
 ----------------------------------------------------
 -- FUNCTION:    get_request_str(changelog_table,log_id)
--- Zweck:       liefert String mit allen Auftraegen, die eine Aenderung erwirkt haben
--- Parameter1:  Name der Tabelle (user|object|rule|service)
--- Parameter2:  log_Id der Aenderung
+-- purpose:     return string with all requests leading to a change
+-- Parameter1:  Name of the table (user|object|rule|service)
+-- Parameter2:  log_Id of the change
 -- RETURNS:     VARCHAR
 --
 
@@ -205,51 +202,38 @@ $$ LANGUAGE plpgsql;
 -- FUNCTION:    get_report_typ_list(name-of-refcursor)
 -- Zweck:       liefert Cursor mit allen Reporttypen zurueck (Name u. ID)
 -- Parameter1:  Name des zurueckzuliefernden Pointers
--- RETURNS:     Cursor mit Tabelle (report_typ_id,report_typ_name_german,report_typ_name_english)
+-- RETURNS:     Cursor mit Tabelle (report_typ_id,report_typ_name)
 --
 -- DROP FUNCTION get_report_typ_list(REFCURSOR);
+-- CREATE OR REPLACE FUNCTION get_report_typ_list(REFCURSOR) RETURNS REFCURSOR AS $$
+-- DECLARE
+-- 	r_config RECORD;
+-- BEGIN
+-- 	SELECT INTO r_config * FROM config;
+-- 	IF r_config.language='german' THEN
+-- 		OPEN $1 FOR
+-- 			SELECT report_typ_id, report_typ_name
+-- 				FROM stm_report_typ
+-- 				ORDER BY report_typ_id;
+-- --				ORDER BY report_typ_name;
+-- 	ELSE
+-- 		OPEN $1 FOR
+-- 			SELECT report_typ_id, report_typ_name
+-- 				FROM stm_report_typ
+-- 				ORDER BY report_typ_id;
+-- --				ORDER BY report_typ_name;
+-- 	END IF;
+--     RETURN $1;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION get_report_typ_list(REFCURSOR) RETURNS REFCURSOR AS $$
 DECLARE
 	r_config RECORD;
 BEGIN
 	SELECT INTO r_config * FROM config;
-	IF r_config.language='german' THEN
-		OPEN $1 FOR
-			SELECT report_typ_id,report_typ_name_german as report_typ_name
-				FROM stm_report_typ
-				ORDER BY report_typ_id;
---				ORDER BY report_typ_name;
-	ELSE
-		OPEN $1 FOR
-			SELECT report_typ_id,report_typ_name_english as report_typ_name
-				FROM stm_report_typ
-				ORDER BY report_typ_id;
---				ORDER BY report_typ_name;
-	END IF;
-    RETURN $1;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION get_report_typ_list_eng(REFCURSOR) RETURNS REFCURSOR AS $$
-DECLARE
-	r_config RECORD;
-BEGIN
-	SELECT INTO r_config * FROM config;
 	OPEN $1 FOR
-		SELECT report_typ_id,report_typ_name_english as report_typ_name
-			FROM stm_report_typ
-			ORDER BY report_typ_id;
-    RETURN $1;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION get_report_typ_list_ger(REFCURSOR) RETURNS REFCURSOR AS $$
-DECLARE
-	r_config RECORD;
-BEGIN
-	SELECT INTO r_config * FROM config;
-	OPEN $1 FOR
-		SELECT report_typ_id,report_typ_name_german as report_typ_name
+		SELECT report_typ_id,report_typ_name as report_typ_name
 			FROM stm_report_typ
 			ORDER BY report_typ_id;
     RETURN $1;

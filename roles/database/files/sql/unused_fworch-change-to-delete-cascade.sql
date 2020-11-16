@@ -56,12 +56,12 @@ ALTER TABLE changelog_object
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_object_doku_admin_fkey,
     ADD CONSTRAINT changelog_object_doku_admin_fkey FOREIGN KEY (doku_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_object_import_admin_fkey,
     ADD CONSTRAINT changelog_object_import_admin_fkey FOREIGN KEY (import_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_object_mgm_id_fkey,
@@ -98,12 +98,12 @@ ALTER TABLE changelog_rule
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_rule_doku_admin_fkey,
     ADD CONSTRAINT changelog_rule_doku_admin_fkey FOREIGN KEY (doku_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_rule_import_admin_fkey,
     ADD CONSTRAINT changelog_rule_import_admin_fkey FOREIGN KEY (import_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_rule_mgm_id_fkey,
@@ -135,12 +135,12 @@ ALTER TABLE changelog_rule
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_service_doku_admin_fkey,
     ADD CONSTRAINT changelog_service_doku_admin_fkey FOREIGN KEY (doku_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_service_import_admin_fkey,
     ADD CONSTRAINT changelog_service_import_admin_fkey FOREIGN KEY (import_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_service_mgm_id_fkey,
@@ -172,12 +172,12 @@ ALTER TABLE changelog_user
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_user_doku_admin_fkey,
     ADD CONSTRAINT changelog_user_doku_admin_fkey FOREIGN KEY (doku_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_user_import_admin_fkey,
     ADD CONSTRAINT changelog_user_import_admin_fkey FOREIGN KEY (import_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT changelog_user_mgm_id_fkey,
@@ -217,7 +217,7 @@ ALTER TABLE device
 ALTER TABLE object
     DROP CONSTRAINT object_last_change_admin_fkey,
     ADD CONSTRAINT object_last_change_admin_fkey FOREIGN KEY (last_change_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT object_mgm_id_fkey,
@@ -269,7 +269,7 @@ ALTER TABLE usr
         ON DELETE CASCADE,
     DROP CONSTRAINT usr_last_change_admin_fkey,
     ADD CONSTRAINT usr_last_change_admin_fkey FOREIGN KEY (last_change_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT usr_mgm_id_fkey,
@@ -301,7 +301,7 @@ ALTER TABLE rule
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_last_change_admin_fkey,
     ADD CONSTRAINT rule_last_change_admin_fkey FOREIGN KEY (last_change_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT rule_mgm_id_fkey,
@@ -343,7 +343,7 @@ ALTER TABLE service
         ON DELETE CASCADE,
     DROP CONSTRAINT service_last_change_admin_fkey,
     ADD CONSTRAINT service_last_change_admin_fkey FOREIGN KEY (last_change_admin)
-        REFERENCES public.isoadmin (isoadmin_id) MATCH SIMPLE
+        REFERENCES public.admin (admin_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
     DROP CONSTRAINT service_mgm_id_fkey,

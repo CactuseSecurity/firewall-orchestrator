@@ -69,7 +69,7 @@ nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways
 # do not consider: CpmiAnyObject, CpmiGatewayPlain, external 
 svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
 
-# usr_obj_table_names : do net exist yet - not fetchable via API
+# usr_obj_table_names : do not exist yet - not fetchable via API
 
 
 def api_call(ip_addr, port, url, command, json_payload, sid):

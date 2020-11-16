@@ -54,6 +54,7 @@ limit = args.limit
 details_level = "full"    # 'standard'
 testmode = args.testing
 base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
+json_indent=2
 #limit="5"
 
 # all obj table names to look at:
@@ -265,7 +266,7 @@ if (mode=='get'):
     #        show_params_rules = {'name':layer,'offset':current,'limit':limit,'use-object-dictionary':'false','details-level':'full'}
             show_params_rules['offset']=current
             rulebase = api_call(api_host, args.port, v_url, 'show-access-rulebase', show_params_rules, sid)
-            config_json +=  json.dumps(rulebase, indent=4)
+            config_json +=  json.dumps(rulebase, indent=json_indent)
             config_json +=  ",\n"
             total=rulebase['total']
             current=rulebase['to']
@@ -289,7 +290,7 @@ if (mode=='get'):
         while (current<total) :
             show_params_objs['offset']=current
             objects = api_call(api_host, args.port, v_url, show_cmd, show_params_objs, sid)
-            config_json += json.dumps(objects, indent=4)
+            config_json += json.dumps(objects, indent=json_indent)
             config_json += ",\n"
             if 'total' in objects  and 'to' in objects:
                 total=objects['total']
@@ -361,7 +362,7 @@ elif (mode=='enrich'):
         show_params_host = {'details-level':details_level,'uid':missing_obj}
         obj = api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid)
         obj = obj['object']
-        #print(json.dumps(obj, indent=2))
+        #print(json.dumps(obj, indent=json_indent))
         if (obj['type'] == 'CpmiAnyObject'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
                     "objects": [ {
@@ -407,7 +408,7 @@ elif (mode=='enrich'):
 
     # dump new json file
     with open(config_out_filename, "w") as json_data:
-        json_data.write(json.dumps(config,indent=2))
+        json_data.write(json.dumps(config,indent=json_indent))
 
 else:
     logging.debug ( "get_config_cp_r8x_api - called with wrong mode parameter: " + mode )

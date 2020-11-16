@@ -29,11 +29,7 @@ namespace FWO.Auth.Server
         {
             Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject;
-            if (user.Dn == "anonymous")
-                subject = GetClaims(user);
-            else
-                subject = GetClaims(AddUserToDbAtFirstLogin(user));
+            ClaimsIdentity subject = GetClaims(AddUserToDbAtFirstLogin(user));
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -92,47 +88,51 @@ namespace FWO.Auth.Server
         {
             if (user.Dn != "anonymous")
             {
-                User userToBeReturned = new User();
+                User userToBeReturned = new User(user);
+                // failed to get this working (seems like serializer stumbles over an extra layer)
+                // APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
+                // userFromLdap = apiConn.SendQueryAsync<User[]>(
+                //         AuthQueries.assertUserExists,
+                //         new { uuid = user.Dn, uiuser_username = user.Name, onConflictRule = new { update_columns = "uuid", constraint = "uiuser_uuid_key" } }
+                //     ).Result[0];
+
+                APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
+                User[] existingUserFound = null;
+                bool userSetInDb = false;
                 try
                 {
-                    // failed to get this working (seems like serializer stumbles over an extra layer)
-                    // APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
-                    // userFromLdap = apiConn.SendQueryAsync<User[]>(
-                    //         AuthQueries.assertUserExists,
-                    //         new { uuid = user.Dn, uiuser_username = user.Name, onConflictRule = new { update_columns = "uuid", constraint = "uiuser_uuid_key" } }
-                    //     ).Result[0];
-
-                    APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
-                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
-                    if (existingUserFound.Length == 0)
-                    {
-                        Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
-                        try               //    add new user to uiuser via API mutation
-                        {
-                            userToBeReturned = apiConn.SendQueryAsync<User[]>(AuthQueries.addUser, new { uuid = user.Dn, uiuser_username = user.Name }).Result[0];
-                        }
-                        catch (Exception addExeption)
-                        {
-                            Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", addExeption);
-                        }
-                    }
-                    else
+                    existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
+                    if (existingUserFound != null)
                     {
                         if (existingUserFound.Length == 1)
-                            userToBeReturned = existingUserFound[0];
+                        {
+                            userToBeReturned.DbId = existingUserFound[0].DbId;
+                            userSetInDb = true;
+                        }
                         else
-                            Log.WriteError("Duplicate User", $"User {user.Name} was found more than once!");
+                        {
+                            Log.WriteError("Duplicate User", $"Couldn't find {user.Name} exactly once!");
+                        }
                     }
                 }
-                catch (Exception getException) //  if user.Dn does not exist in uiuser.uuid table, add it
+                catch(Exception Exception)
                 {
-                    Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", getException);
+                    Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", Exception);
                 }
-                // copy remaining fields from input user to returnUser:
-                userToBeReturned.DefaultRole = user.DefaultRole;
-                userToBeReturned.Roles = user.Roles;
-                userToBeReturned.Tenant = user.Tenant;
-                userToBeReturned.Password = user.Password;
+
+                if(!userSetInDb)
+                {
+                    Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
+                    try          
+                    {
+                        // add new user to uiuser via API mutation
+                        userToBeReturned.DbId = apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, new { uuid = user.Dn, uiuser_username = user.Name }).Result.ReturnIds[0].NewId;
+                    }
+                    catch (Exception addExeption)
+                    {
+                        Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", addExeption);
+                    }
+                }
                 return userToBeReturned;
             }
             // for anonymous access, just return the unmodified user

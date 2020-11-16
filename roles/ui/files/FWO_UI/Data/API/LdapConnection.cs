@@ -35,6 +35,12 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
 
+        [JsonPropertyName("ldap_write_user")]
+        public string WriteUser { get; set; }
+
+        [JsonPropertyName("ldap_write_user_pwd")]
+        public string WriteUserPwd { get; set; }
+
         public LdapConnection()
         {}
         
@@ -49,6 +55,8 @@ namespace FWO.Ui.Data.API
             SearchUserPwd = ldapConnection.SearchUserPwd;
             UserSearchPath = ldapConnection.UserSearchPath;
             RoleSearchPath = ldapConnection.RoleSearchPath;
+            WriteUser = ldapConnection.WriteUser;
+            WriteUserPwd = ldapConnection.WriteUserPwd;
         }
 
         public string Host()

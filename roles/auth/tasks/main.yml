@@ -26,13 +26,6 @@
 - name: create auth secrets (jwt key, ldap)
   include_tasks: create_auth_secrets.yml
 
-#- name: check if there already is an ldap connection in DB
-#  command: psql -qtAX -d {{ fworch_db_name | quote }} -c "SELECT COUNT(*) FROM ldap_connection"
-#  become: yes
-#  become_user: postgres
-#  register: ldap_conn_present
-
-  # neu
 - name: check if there already is an ldap connection in DB
   postgresql_query:
     db: "{{ fworch_db_name }}"

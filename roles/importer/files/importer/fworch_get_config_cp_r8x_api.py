@@ -333,7 +333,7 @@ elif (mode=='enrich'):
         v_url = get_api_url (sid)
 
     # if an object is not there:
-    #     make api call: show object details-level full uid "<uid>" and add object to their respective section
+    #   make api call: show object details-level full uid "<uid>" and add object to respective json
     for missing_obj in missing_nw_object_uids:
         if args.noapi == 'false':
             show_params_host = {'details-level':details_level,'uid':missing_obj}
@@ -361,7 +361,7 @@ elif (mode=='enrich'):
                 #print ("missing nw obj: " + missing_obj)
 
         logging.debug ( "get_config_cp_r8x_api - missing nw obj: " + missing_obj )
-        print ("adding nw  obj missing from standard api call results: " + missing_obj)
+        print ("INFO: adding nw  obj missing from standard api call results: " + missing_obj)
 
     for missing_obj in missing_svc_object_uids:
         if args.noapi == 'false':
@@ -382,7 +382,7 @@ elif (mode=='enrich'):
                 logging.debug ( "WARNING - get_config_cp_r8x_api - missing svc obj of unexpected type: " + missing_obj )
                 print ("WARNING - get_config_cp_r8x_api - missing svc obj of unexpected type: " + missing_obj)
         logging.debug ( "get_config_cp_r8x_api - missing svc obj: " + missing_obj )
-        print ("adding svc obj missing from standard api call results: " + missing_obj)
+        print ("INFO: adding svc obj missing from standard api call results: " + missing_obj)
 
     # dump new json file
     if args.noapi == 'false':

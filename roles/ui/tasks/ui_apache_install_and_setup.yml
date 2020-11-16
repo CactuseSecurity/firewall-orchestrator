@@ -25,7 +25,10 @@
       script: "apache_create_server_cert.sh" 
 
     - name: enable {{ product_name }} web site
-      command: "a2ensite {{ product_name }}"
+      #command: "a2ensite {{ product_name }}"
+      apache2_module:
+        state: present
+        name: "{{ product_name }}"
 
     - name: increase apache timeout to 900 seconds
       lineinfile:

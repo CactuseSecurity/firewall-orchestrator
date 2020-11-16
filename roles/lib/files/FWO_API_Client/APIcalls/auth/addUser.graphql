@@ -9,9 +9,7 @@ mutation addUser(
     }
   ) {
     returning {
-       uiuser_id
-       uiuser_username
-       uuid
+       newId: uiuser_id
     }
   }
 }

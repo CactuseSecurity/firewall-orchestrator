@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace FWO.Auth.Server.Data
+namespace FWO.Ui.Data.API
 {
-    public class User
+    public class UiUser
     {
         [JsonPropertyName("uiuser_username")]
         public string Name { get; set; }
@@ -13,30 +13,18 @@ namespace FWO.Auth.Server.Data
         [JsonPropertyName("uiuser_id")]
         public int DbId { get; set; }
 
-        public string Password { get; set; }
-
         [JsonPropertyName("uuid")]
         public string Dn { get; set; }
 
-        public Tenant Tenant { get; set; }
-        
-        public string DefaultRole { get; set; }
-        
-        public string[] Roles { get; set; }
-
-        
-        public User()
+            
+        public UiUser()
         {}
         
-        public User(User user)
+        public UiUser(UiUser user)
         {
             Name = user.Name;
             DbId = user.DbId;
-            Password = user.Password;
             Dn = user.Dn;
-            Tenant = user.Tenant;
-            DefaultRole = user.DefaultRole;
-            Roles = user.Roles;
         }
     }
 }

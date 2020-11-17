@@ -1,0 +1,40 @@
+# add db users and assign groups
+
+- block:
+
+  - name: create db groups
+    postgresql_user:
+      name: "{{ item }}"
+    loop: "{{ database_groups }}"
+       
+  - name: create db users
+    postgresql_user:
+      name: "{{ item }}"
+      role_attr_flags: LOGIN,NOSUPERUSER,INHERIT,NOCREATEDB,NOCREATEROLE
+    loop: "{{ database_users }}"
+
+  # todo: remove admin user before publishing
+  - name: create db admin user (only for old php ui)
+    postgresql_user:
+      name: admin
+      password: "{{ admin_pwd }}"
+      role_attr_flags: login,inherit
+      groups: secuadmins
+
+  - name: add user dbbackup to group dbbackupusers
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: GRANT dbbackupusers TO dbbackup
+
+  - name: add user fworchimporter to group configimporters
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: GRANT configimporters TO fworchimporter
+
+  - name: add user fworch to group fworchadmins
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: GRANT fworchadmins TO fworch
+
+  become: yes
+  become_user: postgres

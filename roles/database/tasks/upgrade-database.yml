@@ -24,9 +24,15 @@
   when: |
     installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') 
     and 
-    current_version >= installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1')
+    current_version >= item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1')
   with_fileglob:
     - "upgrade/*.sql"
+
+- debug: 
+    msg:
+      - "installed_version: {{ installed_version }}"
+      - "current_version: {{ current_version }}"
+      - "all_upgrades_available: {{ all_upgrades_available }}"
 
 - name: Copy relevant upgrade files
   copy:
@@ -34,12 +40,6 @@
     dest: "{{ database_install_dir }}/upgrade/"
   loop: "{{ upgrade_files }}"
   become: yes
-
-#- name: install upgrades
-#  command: 'psql -d {{ fworch_db_name }} -c "\i {{ database_install_dir }}/upgrade/{{ item }}.sql"'
-#  loop: "{{ upgrade_files | sort }}"
-#  become: yes
-#  become_user: postgres
 
 - name: install upgrades
   postgresql_query:

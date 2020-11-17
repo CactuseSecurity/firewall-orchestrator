@@ -8,8 +8,8 @@
 	require_once ("display_menus.php");
 	if (!$allowedToConfigureUsers) { header("Location: ".$stamm."index2.php"); }
 	
-	$isoadmin_list	= new IsoadminList();	
-	$displ_users	= new DisplayIsoadmins($isoadmin_list->GetUsers());
+	$uiuser_list	= new uiuserList();	
+	$displ_users	= new Displayuiusers($uiuser_list->GetUsers());
 	
 	echo '<form name="navirep">';
 	echo '<div id="menu">Administratoren';

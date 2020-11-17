@@ -98,6 +98,9 @@ sub parse_config {
 	my $cmd;
 	my $return_code = 0;
 	my $parser_py = "/usr/bin/python3 ./fworch_parse_config_cp_r8x_api.py";
+	my $users_csv = "$output_dir/${mgm_name}_users.csv";
+	my $users_delimiter = "%"; # value is defined in parser_py = ./fworch_parse_config_cp_r8x_api.py !!!
+
 
 # parsing rulebases
 	my $rulebase_names = get_ruleset_name_list($rulebase_name);
@@ -112,7 +115,26 @@ sub parse_config {
 	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\" > \"$output_dir/${mgm_name}_users.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); 
+	# system("ls -l $output_dir");
 	if ( $return_code != 0 ) { print("ERROR in parse_config::users found: $return_code\n") }
+	
+	# in case of no users being returned, remove users_csv file
+	if (-r $users_csv) {
+		my $empty_flag = 0;
+		open FH, $users_csv;
+		my $firstline = <FH>;
+		# print ("firstline=$firstline###\n");
+		if(index($firstline,$users_delimiter)==-1) {
+				#print ("test: empty_flag=$empty_flag\n");
+				$empty_flag = 1;
+		}
+		close FH;
+		if ($empty_flag == 1){
+				print ("unlink users_csv file $users_csv\n");
+				unlink $users_csv;
+		}
+	}
+	
 # parsing svc objects
 	$cmd = "$parser_py -m $mgm_name -i $import_id -s -f \"$object_file\" > \"$output_dir/${mgm_name}_services.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
@@ -174,23 +196,33 @@ sub copy_config_from_mgm_to_iso {
 	my $cmd;
 	my $return_code;
 	my $fehler_count = 0;
+	my $domain_setting = "";
+	my $api_port_setting = "";
+	my $ssl_verify = "";
 
-#fworch_parse_config_cp_r8x_api.py
+
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
 	my $pwd = `cat $workdir/$CACTUS::FWORCH::ssh_id_basename`;
+	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
+
 	chomp($pwd);
-	my $ssl_verify;
 	if ( -r "$workdir/${CACTUS::FWORCH::ssh_id_basename}.pub" ) {
 		$ssl_verify = "-s $workdir/${CACTUS::FWORCH::ssh_id_basename}.pub";
-	} else {
-		$ssl_verify = '';
 	}
-	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
-	if (!defined($api_port) || $api_port eq '') { $api_port = "443"; }
-	my $api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
-	$cmd = "$api_bin $api_hostname '$pwd' -l '$rulebase_names' -u $api_user -p $api_port $ssl_verify > \"$cfg_dir/$obj_file_base\"";
-	print("DEBUG - cmd = $cmd\n");
+	if ($config_path_on_mgmt ne '') {
+		$domain_setting = "-D " . $config_path_on_mgmt;
+	}
+	if (defined($api_port) && $api_port ne '') {
+		$api_port_setting = "-p $api_port"; 
+	}
+
+	my $get_config_from_api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
+	$cmd = "$get_config_from_api_bin -m get -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
+	# print("DEBUG - cmd = $cmd\n");
+	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
+	$cmd = "$get_config_from_api_bin -m enrich -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
+	# print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 
 	return ( $fehler_count, "$cfg_dir/$obj_file_base,$cfg_dir/$layer_name");
@@ -203,7 +235,7 @@ __END__
 
 =head1 NAME
 
-CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point R8x API access to config
+parser - Perl extension for check point R8x API get and parse config
 
 =head1 SYNOPSIS
 
@@ -211,7 +243,7 @@ CACTUS::FWORCH::parser - Perl extension for IT Security Organizer check point R8
 
 =head1 DESCRIPTION
 
-fworch Perl Module support for importing configs into fworch Database
+Perl Module support for importing configs into database
 
 =head2 EXPORT
 

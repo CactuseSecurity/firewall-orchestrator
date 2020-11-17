@@ -16,6 +16,6 @@
 
 5. allow login without pwd change for users
 
-        sudo -u postgres psql -d fworchdb -c "update isoadmin set isoadmin_password_must_be_changed=false"
+        sudo -u postgres psql -d fworchdb -c "update uiuser set uiuser_password_must_be_changed=false"
 
 6. Lock firewall

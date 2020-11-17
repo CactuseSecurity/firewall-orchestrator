@@ -46,6 +46,16 @@ namespace FWO.ApiClient
             Client.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); // Change jwt in auth header
         }
 
+        /// <summary>
+        /// Sends an APICall (query, mutation)
+        /// NB: SendQueryAsync always returns an array of objects (even if the result is a single element)
+        ///     so QueryResponseType always needs to be an array
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="variables"></param>
+        /// <param name="operationName"></param>
+        /// <returns>object of specified type</returns>
+
         public async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object variables = null, string operationName = null)
         {
             try
@@ -64,7 +74,6 @@ namespace FWO.ApiClient
 
                     throw new Exception(errorMessage);
                 }
-
                 else
                 {
                     // DEBUG
@@ -73,8 +82,8 @@ namespace FWO.ApiClient
 
                     JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
                     responseObjectEnumerator.MoveNext();
-                              
-                    return JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText());
+                    QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText());
+                    return returnValue;
                 }
             }
 

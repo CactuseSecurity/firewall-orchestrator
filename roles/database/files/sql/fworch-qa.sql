@@ -104,7 +104,7 @@ BEGIN
 						ELSE
 							SELECT INTO r_debug rule_id,user_id FROM rule_from WHERE rule_id=r_rule.rule_id AND user_id=r_obj.user_id AND active;
 							IF NOT FOUND THEN
-								v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 3 (src user not found in rule_from): ' || CAST(r_obj.user_id AS VARCHAR);
+								v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 3 (src user not found in rule_from), id=' || CAST(r_obj.user_id AS VARCHAR) || ', uid=' || v_current_obj;
 								v_result := v_result || v_result_single || '; ';
 								RAISE NOTICE '%', v_result_single;
 							END IF;
@@ -137,7 +137,7 @@ BEGIN
 					ELSE
 						SELECT INTO r_debug rule_id,obj_id FROM rule_from WHERE rule_id=r_rule.rule_id AND obj_id=r_obj.obj_id AND active;
 						IF NOT FOUND THEN
-							v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 6 (src obj not found in rule_from): ' || CAST(r_obj.obj_id AS VARCHAR);
+							v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 6 (src obj not found in rule_from), id=' || CAST(r_obj.obj_id AS VARCHAR) || ', uid=' ||  v_current_obj;
 							v_result := v_result || v_result_single || '; ';
 							RAISE NOTICE '%', v_result_single;
 							IF b_heal THEN	-- healing:
@@ -270,13 +270,13 @@ BEGIN
 					RAISE NOTICE '%', v_result_single;
 				ELSE		-- check if exactly one object is returned
 					IF (NOT COUNT(r_obj)=1) THEN 
-						v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || 'fail 11 (not exactly one svc found): ' || CAST(r_obj.obj_id AS VARCHAR) || ', COUNT=' || CAST(count(r_obj) AS VARCHAR);
+						v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 11 (not exactly one svc found): ' || CAST(r_obj.obj_id AS VARCHAR) || ', COUNT=' || CAST(count(r_obj) AS VARCHAR);
 						v_result := v_result || v_result_single || '; ';
 						RAISE NOTICE '%', v_result_single;
 					ELSE
 						SELECT INTO r_debug rule_id,svc_id FROM rule_service WHERE rule_id=r_rule.rule_id AND svc_id=r_obj.svc_id AND active;
 						IF NOT FOUND THEN
-							v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || 'fail 12 (svc not found): ' || CAST(r_obj.svc_id AS VARCHAR);
+							v_result_single := 'mgmt ' || CAST(i_mgm_id AS VARCHAR) || ', dev ' || CAST(i_dev_id AS VARCHAR) || ', fail 12 "svc not found": id=' || CAST(r_obj.svc_id AS VARCHAR) || ', uid=' || v_current_obj;
 							v_result := v_result || v_result_single || '; ';
 							RAISE NOTICE '%', v_result_single;
 							IF b_heal THEN	-- healing:

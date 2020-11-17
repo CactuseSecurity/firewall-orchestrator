@@ -220,21 +220,21 @@ class DisplayManagements {
 	}
 }
 
-class DisplayIsoadmins {
-	var $isoadmin_list;
+class Displayuiusers {
+	var $uiuser_list;
 
-	function DisplayIsoadmins($userlist) {
-		$this->isoadmin_list = $userlist;
+	function Displayuiusers($userlist) {
+		$this->uiuser_list = $userlist;
 	}
 
 	function show_users() {
-		$admlist = $this->isoadmin_list;
+		$admlist = $this->uiuser_list;
 		$anz = $admlist->rows;
 		$menu = '<ul>'; 
 		for ($zi=0; $zi<$anz; $zi++) {
-			$adm_name	= $admlist->data[$zi]['isoadmin_username'];
-			$adm_id		= $admlist->data[$zi]['isoadmin_id'];
-			$menu		.= "<li><a href=\"javascript:changeIsoadmin('$adm_name',$adm_id);\" class=\"baum\">$adm_name</a></li>"; 
+			$adm_name	= $admlist->data[$zi]['uiuser_username'];
+			$adm_id		= $admlist->data[$zi]['uiuser_id'];
+			$menu		.= "<li><a href=\"javascript:changeuiuser('$adm_name',$adm_id);\" class=\"baum\">$adm_name</a></li>"; 
 		} // for 		
 		$menu .= '</ul></li></ul>';
 		echo $menu;

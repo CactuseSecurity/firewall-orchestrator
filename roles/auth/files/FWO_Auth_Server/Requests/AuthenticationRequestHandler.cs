@@ -17,6 +17,9 @@ namespace FWO.Auth.Server.Requests
         private APIConnection ApiConn;
         private int tenantLevel = 1;
 
+        private object rolesLock = new object();
+        private object dnLock = new object();
+
         /// <summary>
         /// Connected Ldaps to handle requests
         /// </summary>
@@ -54,12 +57,12 @@ namespace FWO.Auth.Server.Requests
         private async Task<string> AuthorizeUserAsync(User user)
         {
             // Validate user credentials and get ldap distinguish name
-            user.Dn = GetLdapDistinguishName(user);
+            user.Dn = await GetLdapDistinguishName(user);
 
             // User has valid credentials / is anonymous user. Otherwise exception would have been thrown and handled in base class
 
             // Get roles of user
-            user.Roles = GetRoles(user);
+            user.Roles = await GetRoles(user);
 
             // Get tenant of user
             user.Tenant = await GetTenantAsync(user);
@@ -68,7 +71,7 @@ namespace FWO.Auth.Server.Requests
             return tokenGenerator.CreateJWT(user);
         }
 
-        public string GetLdapDistinguishName(User user)
+        public async Task<string> GetLdapDistinguishName(User user)
         {
             Log.WriteDebug("User validation", $"Trying to validate {user.Name}...");
 
@@ -81,19 +84,39 @@ namespace FWO.Auth.Server.Requests
 
             else
             {
+                string userDn = null;
+                List<Task> ldapDnRequests = new List<Task>();
+
                 foreach (Ldap currentLdap in Ldaps)
                 {
-                    Log.WriteDebug("User Authentication", $"Trying to authenticate {user} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
-
-                    string UserDn = currentLdap.ValidateUser(user);
-
-                    if (UserDn != "")
+                    ldapDnRequests.Add(Task.Run(() =>
                     {
-                        // User was successfully authenticated via LDAP
-                        Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {UserDn}");
-                        tenantLevel = currentLdap.TenantLevel;
-                        return UserDn;
-                    }
+                        Log.WriteDebug("User Authentication", $"Trying to authenticate {user} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
+
+                        string currentDn = currentLdap.ValidateUser(user);
+
+                        if (currentDn != "")
+                        {
+                            // User was successfully authenticated via LDAP
+                            Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {currentDn}");
+
+                            lock(dnLock)
+                            {
+                                tenantLevel = currentLdap.TenantLevel;
+                                userDn = currentDn;
+                            }
+                        }
+                    }));
+                }
+
+                while (ldapDnRequests.Count > 0)
+                {
+                    Task finishedDnRequest = await Task.WhenAny(ldapDnRequests);
+
+                    if (userDn != null)
+                        return userDn;
+
+                    ldapDnRequests.Remove(finishedDnRequest);
                 }
             }
 
@@ -101,7 +124,7 @@ namespace FWO.Auth.Server.Requests
             throw new Exception("Invalid credentials.");
         }
 
-        public string[] GetRoles(User user)
+        public async Task<string[]> GetRoles(User user)
         {
             string UserDn = user.Dn;
 
@@ -115,15 +138,27 @@ namespace FWO.Auth.Server.Requests
             }
             else
             {
+                List<Task> ldapRoleRequests = new List<Task>();
+
                 foreach (Ldap currentLdap in Ldaps)
                 {
-                    // if current Ldap has roles stored
-                    if (currentLdap.RoleSearchPath != "")
+                    ldapRoleRequests.Add(Task.Run(() =>
                     {
-                        // Get roles from current Ldap
-                        UserRoles.AddRange(currentLdap.GetRoles(UserDn));
-                    }
+                        // if current Ldap has roles stored
+                        if (currentLdap.RoleSearchPath != "")
+                        {
+                            // Get roles from current Ldap
+                            string[] currentRoles = currentLdap.GetRoles(UserDn);
+
+                            lock(rolesLock)
+                            {
+                                UserRoles.AddRange(currentRoles);
+                            }
+                        }
+                    }));
                 }
+
+                await Task.WhenAll(ldapRoleRequests);
             }
 
             // If no roles found

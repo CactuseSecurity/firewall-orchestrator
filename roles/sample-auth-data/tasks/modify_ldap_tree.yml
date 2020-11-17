@@ -2,7 +2,7 @@
 - name: change value for auth_change_local_ldap if ldap conn already exists to prevent re-creation errors
   set_fact:
     auth_change_local_ldap: "no"
-  when: ldap_conn_present.query_result.0.count >= 1
+  when: ldap_conn_present.stdout >= "1"
 
 - debug:
     var:

@@ -22,12 +22,12 @@ namespace FWO.Auth.Server
 
         private List<Ldap> connectedLdaps;
 
-        private readonly object pendingChanges = new object(); // LOCK
+        // private readonly object pendingChanges = new object(); // LOCK
 
         private readonly ConfigConnection config;
 
         private readonly RsaSecurityKey privateJWTKey;
-        private readonly int hoursValid = 2;  // TODO: MOVE TO API    
+        private readonly int hoursValid = 4;  // TODO: MOVE TO API/Config    
 
         private readonly string apiUri;
 
@@ -49,11 +49,11 @@ namespace FWO.Auth.Server
             // Create Token Generator
             JwtWriter jwtWriter = GetNewJwtWriter();
 
-            // Create JWT for auth-server API (relevant part is the role auth-server) calls and add it to the Api connection header. 
+            // Create JWT for auth-server API calls (relevant part is the role auth-server) and add it to the Api connection header. 
             APIConnection apiConn = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriter));
 
             // Fetch all connectedLdaps via API (blocking).
-            connectedLdaps = apiConn.SendQueryAsync<Ldap[]>(BasicQueries.getLdapConnections).Result.ToList();
+            connectedLdaps = apiConn.SendQueryAsync<Ldap[]>(AuthQueries.getLdapConnections).Result.ToList();
             Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
             // Start Http Listener, todo: move to https
@@ -170,7 +170,8 @@ namespace FWO.Auth.Server
 
         private string GetNewSelfSignedJwt(JwtWriter jwtWriter)
         {
-            return jwtWriter.CreateJWT(new User { Name = "auth-server", Password = "", Roles = new string[] { "auth-server" } });
+            // return jwtWriter.CreateJWT(new User { Name = "auth-server", Password = "", Roles = new string[] { "auth-server" } });
+            return jwtWriter.CreateJWTAuthServer();
         }
 
         private APIConnection GetNewApiConnection(string jwt)

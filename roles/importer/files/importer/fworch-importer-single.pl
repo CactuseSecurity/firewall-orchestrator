@@ -14,17 +14,18 @@ use CACTUS::read_config;
 
 sub empty_rule_files { # deletes a rule file and creates an empty rule file instead
 	if ($File::Find::name =~ /\_rulebase\.csv$/) {
-		system("rm $File::Find::name");
-		system("touch $File::Find::name");
+		system("rm '$File::Find::name'");
+		system("touch '$File::Find::name'");
 	}
 }
+
 sub empty_config_files { # deletes a csv config file and creates an empty csv file instead
 	if ($File::Find::name =~ /\.csv$/) {
-		system("rm $File::Find::name");
-		system("touch $File::Find::name");
-		print ("emptying csv config file " . $File::Find::name . "\n");
+		system("rm '$File::Find::name'");
+		system("touch '$File::Find::name'");
+		print ("emptying csv config file '" . $File::Find::name . "'\n");
 	} else {
-		print ("leaving config file " . $File::Find::name . " untouched\n");
+		print ("leaving config file '" . $File::Find::name . "' untouched\n");
 	}
 }
 
@@ -44,6 +45,8 @@ my $use_scp = 0;
 my $direct_from_csv = 0;
 my $no_cleanup = 0;
 my $debug_level=0;
+my $configfile="";
+
 
 $first_start_time = time; $start_time = $first_start_time;
 
@@ -59,6 +62,7 @@ if (defined(param("-use-scp"))) { $use_scp = 1; $no_md5_checks = 1; }  # assumes
 if (defined(param("-direct-from-csv"))) { $direct_from_csv = 1; $do_not_copy = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
 if (defined(param("-no-cleanup"))) { $no_cleanup = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
 if (defined(param("-debug"))) { $debug_level = param("-debug"); }
+if (defined(param("-configfile"))) { $configfile = param("-configfile"); }
 
 # set basic parameters (read from import.conf)
 my $fworch_workdir	= &read_config('fworch_workdir') . "/$mgm_id";
@@ -98,10 +102,15 @@ if (!$error_count_global) {
 		}
 		# 1) read names of rulebases of each device from database
 		# copy config data from management system to fworch import system
-		($error_count_local, $config_files_str) =
-			&CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso 
-				($ssh_user, $ssh_hostname, $mgm_name, $obj_file_base, $cfg_dir, $rule_file_base,
-					$fworch_workdir, $audit_log_file, $prev_imp_time, $ssh_port, $config_path_on_mgmt, $rulebases);	# TODO: add use_scp parameter
+		if ($configfile ne "") {
+			system ("${bin_path}scp $configfile $cfg_dir/$obj_file_base");
+		}
+		else {
+			($error_count_local, $config_files_str) =
+				&CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso 
+					($ssh_user, $ssh_hostname, $mgm_name, $obj_file_base, $cfg_dir, $rule_file_base,
+						$fworch_workdir, $audit_log_file, $prev_imp_time, $ssh_port, $config_path_on_mgmt, $rulebases);	# TODO: add use_scp parameter
+		}
 		if ($error_count_local) {
 			if ($is_netscreen) { 		# file-check wg. Netscreen-Return-Code eingebaut
 				my $file_size = -s "$cfg_dir/$obj_file_base";
@@ -193,6 +202,7 @@ if (!$error_count_global) {
 	if (defined($save_import_results_to_file) && $save_import_results_to_file && ($error_count_global || $changes ne '')) { # if changes or errors occured: move config & csv to archive
 		system ("${bin_path}mkdir -p $archive_dir; cd $fworch_workdir; ${bin_path}tar cfz $archive_dir/${current_import_id}_`${bin_path}date +%F_%T`_mgm_id_$mgm_id.tgz .");
 	}
+	#`cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
 	if (!$no_cleanup) { rmtree $fworch_workdir; }
 } else {
 	&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()

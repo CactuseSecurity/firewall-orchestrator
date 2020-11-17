@@ -133,13 +133,13 @@
 			$db_connection	= new DbConnection(new DbConfig($_SESSION["dbuser"],$_SESSION["dbpw"]));
 			$clist			= new tenantList($filter,$db_connection);  // filter schon in navi_vert_document.inc.php gesetzt
 			$rtlist			= new RequestTypeList($filter,$db_connection);  
-			$isoadmin		= new IsoAdmin($filter,$db_connection);
-			$isoadmin_id	= $isoadmin->getId();
-			$isoadmin_fullname = $isoadmin->getFullName();
+			$uiuser		= new uiuser($filter,$db_connection);
+			$uiuser_id	= $uiuser->getId();
+			$uiuser_fullname = $uiuser->getFullName();
 			$headers = '';
 			$changeTable = new DisplayChangeTable($headers, $changes);
-				echo "<INPUT type=\"hidden\" value=\"" . $isoadmin_id . "\" name=\"doku_admin_id\">";
-				echo '<INPUT type="hidden" value="' . $isoadmin_fullname . '" name="doku_admin">';	
+				echo "<INPUT type=\"hidden\" value=\"" . $uiuser_id . "\" name=\"doku_admin_id\">";
+				echo '<INPUT type="hidden" value="' . $uiuser_fullname . '" name="doku_admin">';	
 				if ($page=='doc') $page_title = $language->get_text_msg ('documentation_title', 'html');
 				else $page_title = $language->get_text_msg ('change_documentation_title', 'html');
 				echo '<b class="headlinemain">' . $page_title . '</b>' .

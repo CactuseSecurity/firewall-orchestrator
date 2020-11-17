@@ -1,0 +1,23 @@
+mutation addReportTemplateWithPermissions(
+  $reportTemplateName: String!
+  $reportFilterLine: String!
+  $reportTypeId: Int!
+  $userId: Int
+  $tenantId: Int
+) {
+  insert_report_template(
+    objects: [
+      {
+        report_template_name: $reportTemplateName
+        report_filter: $reportFilterLine
+        report_typ_id: $reportTypeId
+        report_template_viewable_by_users: { data: { uiuser_id: $userId } }
+        report_template_viewable_by_tenants: { data: { tenant_id: $tenantId } }
+      }
+    ]
+  ) {
+    returning {
+      report_template_id
+    }
+  }
+}

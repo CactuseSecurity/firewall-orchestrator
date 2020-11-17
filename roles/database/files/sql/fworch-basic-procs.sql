@@ -1,7 +1,4 @@
--- $Id: iso-basic-procs.sql,v 1.1.2.3 2012-10-08 07:16:28 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-basic-procs.sql,v $
-
----------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------
 -- BASIC FUNCTIONS
 
 ----------------------------------------------------
@@ -158,9 +155,9 @@ $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:  get_admin_id_from_name
--- Zweck:     liefert zu einem admin-namen die zugehoerige isoadmin_id zurueck
+-- Zweck:     liefert zu einem admin-namen die zugehoerige uiuser_id zurueck
 -- Parameter: name des admins
--- RETURNS:   INTEGER isoadmin_id
+-- RETURNS:   INTEGER uiuser_id
 --
 CREATE OR REPLACE FUNCTION get_admin_id_from_name(VARCHAR) RETURNS INTEGER AS $$
 DECLARE
@@ -170,7 +167,7 @@ BEGIN
 	IF v_admin_name IS NULL OR v_admin_name = '' THEN
 		RETURN NULL;
 	END IF;
-    SELECT INTO r_admin * FROM isoadmin WHERE isoadmin_username = v_admin_name;
+    SELECT INTO r_admin * FROM uiuser WHERE uiuser_username = v_admin_name;
     IF NOT FOUND THEN
     	IF	v_admin_name <> 'CheckPoint' AND
     		v_admin_name <> 'Upgrade Process' AND
@@ -179,7 +176,7 @@ BEGIN
 		END IF;
 		RETURN NULL;
     END IF;
-    RETURN r_admin.isoadmin_id;
+    RETURN r_admin.uiuser_id;
 END;
 $$ LANGUAGE plpgsql;
 

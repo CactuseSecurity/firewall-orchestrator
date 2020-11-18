@@ -6,7 +6,7 @@ api_user_password: "{{ dbadmin_pwd }}"
 api_user_email: "{{ api_user }}@{{ api_ip_address }}"
 api_home: "{{ fworch_home }}/api"
 api_hasura_cli_bin: "/usr/local/bin/hasura"
-api_hasura_version: "v1.3.2"
+api_hasura_version: "v1.3.3"
 api_project_name: api
 api_server_admin: "root@{{ api_ip_address }}"
 # debug > info > warn > error

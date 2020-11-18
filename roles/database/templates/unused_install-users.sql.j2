@@ -1,3 +1,0 @@
-
-DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = 'dbadmin') THEN CREATE ROLE dbadmin PASSWORD '{{ dbadmin_pwd }}' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN; END IF; END $do$
-DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM pg_catalog.pg_roles WHERE rolname = '{{ fworch_user }}') THEN CREATE ROLE {{ fworch_user }} PASSWORD '{{ fworch_pwd }}' LOGIN; END IF; END $do$

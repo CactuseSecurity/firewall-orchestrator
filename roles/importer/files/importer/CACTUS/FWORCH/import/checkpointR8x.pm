@@ -162,20 +162,6 @@ sub filename_escape_chars {
 	return 
 }
 
-sub get_ruleset_name_list {
-	my $href_rulesetname = shift;
-	my $result = '';
-	
-	while ( (my $key, my $value) = each %{$href_rulesetname}) {
-		$result .= $value->{'dev_rulebase'} . ',';
-    }
-    if ($result =~ /^(.+?)\,$/) {
-    	return $1;
-    }
-    return $result;
-}
-
-
 ############################################################
 # copy_config_from_mgm_to_iso($ssh_private_key, $ssh_user, $ssh_hostname, $management_name, $obj_file_base, $cfg_dir, $rule_file_base)
 # Kopieren der Config-Daten vom Management-System zum ITSecorg-Server
@@ -193,13 +179,18 @@ sub copy_config_from_mgm_to_iso {
 	my $api_port		= shift;
 	my $config_path_on_mgmt		= shift;
 	my $rulebase_names_hash_ref	= shift;
-	my $cmd;
 	my $return_code;
 	my $fehler_count = 0;
 	my $domain_setting = "";
 	my $api_port_setting = "";
 	my $ssl_verify = "";
-
+	my $python_bin = "/usr/bin/python3";
+	my $base_path = "/usr/local/fworch/importer";
+	my $lib_path;
+	my $get_config_bin;
+	my $enrich_config_bin;
+	my $get_cmd;
+	my $enrich_cmd;
 
 	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
 	# first extract password from $ssh_id_basename (normally containing ssh priv key)
@@ -217,14 +208,25 @@ sub copy_config_from_mgm_to_iso {
 		$api_port_setting = "-p $api_port"; 
 	}
 
-	my $get_config_from_api_bin = "/usr/bin/python3 ./fworch_get_config_cp_r8x_api.py";
-	$cmd = "$get_config_from_api_bin -m get -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-	# print("DEBUG - cmd = $cmd\n");
-	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
-	$cmd = "$get_config_from_api_bin -m enrich -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-	# print("DEBUG - cmd = $cmd\n");
-	$return_code = system($cmd); if ( $return_code != 0 ) { $fehler_count++; }
 
+	############### new ##################
+	# $lib_path = "$base_path/checkpointR8x";
+	# $get_config_bin = "$lib_path/get_config.py";
+	# $enrich_config_bin = "$lib_path/enrich_config.py";
+	# $get_cmd = "$python_bin $get_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
+	# $enrich_cmd = "$python_bin $enrich_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -c '$cfg_dir/$obj_file_base'";
+
+	############### old ##################
+	$lib_path = $base_path;
+	$get_config_bin = "$lib_path/fworch_get_config_cp_r8x_api.py";
+	$enrich_config_bin = "$lib_path/fworch_get_config_cp_r8x_api.py";
+	$get_cmd = "$python_bin $get_config_bin -m get -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
+	$enrich_cmd = "$python_bin $enrich_config_bin -m enrich -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
+
+	print("getting config with command: $get_cmd\n");
+	$return_code = system($get_cmd); if ( $return_code != 0 ) { $fehler_count++; }
+	print("enriching config with command:   $enrich_cmd\n");
+	$return_code = system($enrich_cmd); if ( $return_code != 0 ) { $fehler_count++; }
 	return ( $fehler_count, "$cfg_dir/$obj_file_base,$cfg_dir/$layer_name");
 }
 

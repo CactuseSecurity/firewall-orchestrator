@@ -8,6 +8,11 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
+  - name: delete the directory for ldap certificates
+    file:
+      state: absent
+      path: "{{ openldap_server_app_path }}/certs/"
+
   - name: Create the directory for ldap certificates
     file: 
       path: "{{ openldap_server_app_path }}/certs/"
@@ -22,12 +27,14 @@
       size: 1024
       #cipher: aes256
       type: RSA
+    when:
 
   - name: Generate an OpenSSL Certificate Signing Request with Subject information
     openssl_csr:
       path: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
       privatekey_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
       country_name: "{{ openldap_server_country }}"
+      state_or_province_name: "{{ openldap_server_state }}"
       locality_name: "{{ openldap_server_location }}"
       organization_name: "{{ openldap_server_organization }}"
       #email_address: "{{ email_address }}"

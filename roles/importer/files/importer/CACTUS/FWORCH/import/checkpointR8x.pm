@@ -162,20 +162,6 @@ sub filename_escape_chars {
 	return 
 }
 
-sub get_ruleset_name_list {
-	my $href_rulesetname = shift;
-	my $result = '';
-	
-	while ( (my $key, my $value) = each %{$href_rulesetname}) {
-		$result .= $value->{'dev_rulebase'} . ',';
-    }
-    if ($result =~ /^(.+?)\,$/) {
-    	return $1;
-    }
-    return $result;
-}
-
-
 ############################################################
 # copy_config_from_mgm_to_iso($ssh_private_key, $ssh_user, $ssh_hostname, $management_name, $obj_file_base, $cfg_dir, $rule_file_base)
 # Kopieren der Config-Daten vom Management-System zum ITSecorg-Server

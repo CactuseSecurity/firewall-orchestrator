@@ -42,10 +42,10 @@ my $prev_imp_id;
 my $prev_imp_time = "2000-01-01 00:00:00";	# management has never been imported --> default value
 my $do_not_copy = 0;
 my $use_scp = 0;
-my $direct_from_csv = 0;
 my $no_cleanup = 0;
 my $debug_level=0;
 my $configfile="";
+my $csvonly = 0;
 
 
 $first_start_time = time; $start_time = $first_start_time;
@@ -59,10 +59,10 @@ if (defined(param("-clear-management"))) { $clear_whole_mgm_config = 1; } else {
 if (defined(param("-no-md5-checks"))) { $no_md5_checks = 1; } else { $no_md5_checks = 0; }
 if (defined(param("-do-not-copy"))) { $do_not_copy = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
 if (defined(param("-use-scp"))) { $use_scp = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
-if (defined(param("-direct-from-csv"))) { $direct_from_csv = 1; $do_not_copy = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
 if (defined(param("-no-cleanup"))) { $no_cleanup = 1; $no_md5_checks = 1; }  # assumes that config has already been copied to fworch importer
 if (defined(param("-debug"))) { $debug_level = param("-debug"); }
 if (defined(param("-configfile"))) { $configfile = param("-configfile"); }
+if (defined(param("-csvonly"))) { $csvonly = 1; $do_not_copy = 1; $no_md5_checks = 1; }	# for testing - only run db import from existing csv files
 
 # set basic parameters (read from import.conf)
 my $fworch_workdir	= &read_config('fworch_workdir') . "/$mgm_id";
@@ -85,6 +85,8 @@ $error_count_global = &error_handler_add(undef, $error_level = 5, "mgm-id-not-fo
 my $import_was_already_running = (&is_import_running($mgm_id))?1:0;
 my $initial_import_flag = &is_initial_import($mgm_id);
 $current_import_id  = &insert_control_entry($initial_import_flag,$mgm_id);	# set import lock
+
+print ("current_import_id=$current_import_id\n");
 $error_count_global = &error_handler_add($current_import_id, $error_level = 3, "set-import-lock-failed", !defined($current_import_id), $error_count_global);
 $error_count_global = &error_handler_add($current_import_id, $error_level = 2, "import-already-running: $mgm_name (ID: $mgm_id)",
 	$import_was_already_running, $error_count_global);
@@ -92,7 +94,7 @@ $error_count_global = &error_handler_add($current_import_id, $error_level = 2, "
 if (!$error_count_global) {
 	require "CACTUS/FWORCH/import/$hersteller.pm"; 	# load the matching parser at run time
 	$rulebases = &get_rulebase_names($mgm_id, $CACTUS::FWORCH::dbdriver, $fworch_database, $fworch_srv_host, $fworch_srv_port, $fworch_srv_user, $fworch_srv_pw);
-	if (!$do_not_copy) {
+	if (!$do_not_copy && !$csvonly) {
 		rmtree($fworch_workdir); make_path($fworch_workdir,{mode => 0700}); make_path($cfg_dir,{mode => 0700});
 		$error_count_global = &error_handler_add($current_import_id, $error_level = 2, "copy-ssh-keys-failed",
 				$error_count_local = &put_ssh_keys_in_place ($fworch_workdir, $ssh_public_key, $ssh_private_key), $error_count_global);
@@ -132,13 +134,14 @@ if (!$error_count_global) {
 		
 		$new_md5sum = &calc_md5_of_files($config_files_str, $fworch_workdir); # fworch_workdir is here tmpdir
 		$error_count_global = &error_handler_add ($current_import_id, $error_level = 3, "calc-md5sum-failed", (defined($new_md5sum))?0:1, $error_count_global);
-	} # end of do_not_copy
+	} # end of do_not_copy / $csvonly
 	if (!$error_count_global) {
 		if ($new_md5sum ne $stored_md5sum_of_last_import || $no_md5_checks) {
-			$start_time = time(); # parse start time
-			output_txt("---------------------------------------------------------------------------\n"); output_txt("Starting import of management: $mgm_name\n");
-			# 2) parse config
-			if (!$direct_from_csv) {
+			if (!$csvonly) 
+			{
+				$start_time = time(); # parse start time
+				output_txt("---------------------------------------------------------------------------\n"); output_txt("Starting import of management: $mgm_name\n");
+				# 2) parse config
 				$error_count_local = &CACTUS::FWORCH::import::parser::parse_config ($obj_file, $rule_file, $user_file, $rulebases, $fworch_workdir, $debug_level, $mgm_name, $cfg_dir,
 										$current_import_id, "$cfg_dir/$audit_log_file", $prev_imp_time, $fullauditlog);
 				if ($error_count_local) { 
@@ -147,23 +150,56 @@ if (!$error_count_global) {
 					$error_count_global = &error_handler_add
 						($current_import_id, $error_level = 3, "remove-import-lock-failed: $error_count_local", $error_count_local, $error_count_global);
 				}
+				output_txt("Parsing done in " . sprintf("%.2f",(time() - $start_time)) . " seconds");
 			}
 			if (!$error_count_global) {
-				&set_last_change_time($last_change_time_of_config, $current_import_id); # Zeit eintragen, zu der die letzte Aenderung an der Config vorgenommen wurde (tuning)
-				output_txt("Parsing done in " . sprintf("%.2f",(time() - $start_time)) . " seconds");
-				# 3) Import_Tabellen fuellen
-				if ($clear_all_rules) { find(\&empty_rule_files,$fworch_workdir); } # rule csv files leeren, wenn initial import eines Devices erzwungen werden soll
-				if ($clear_whole_mgm_config) { find(\&empty_config_files,$fworch_workdir); } # alle csv files leeren, wenn initial import eines Managements erzwungen werden soll
+				if (!$csvonly) 
+				{
+					&set_last_change_time($last_change_time_of_config, $current_import_id); # Zeit eintragen, zu der die letzte Aenderung an der Config vorgenommen wurde (tuning)
+				}
+				# starting import from csv to database
+				# 3a) fill import tables with bulk copy cmd from csv
+				if ($clear_all_rules) # clear rule csv files, if we want to enforce an initial import
+				{ 
+					find(\&empty_rule_files,$fworch_workdir); 
+					print("clearing rule files\n");
+				} 
+				if ($clear_whole_mgm_config)  # clear all data to force initial import
+				{
+					find(\&empty_config_files,$fworch_workdir); 
+					print("clearing all csv files\n");
+				}
 				if (-e $csv_usr_file) { &iconv_2_utf8($csv_usr_file, $fworch_workdir); }		# utf-8 conversion of user data
+
+				# if $csvonly is set: replace import id in all csv files with $current_import_id
+				if ($csvonly) 
+				{
+					my @rulebase_basenames = split(/,/, get_ruleset_name_list($rulebases));
+					my @rulebase_fullnames = ();
+					for my $filename (@rulebase_basenames) {
+						@rulebase_fullnames = (@rulebase_fullnames, $fworch_workdir . '/' . $filename . '_rulebase.csv' );
+					}
+					for my $csvfile (($csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, @rulebase_fullnames)) {
+						# print ("replacing import_id in csvfile=$csvfile\n");
+						if (-e $csvfile) {
+							replace_import_id_in_csv($csvfile, $current_import_id);
+						}
+					}
+				}
+
 				$error_count_local = &fill_import_tables_from_csv($dev_typ_id,$csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, $rulebases, $fworch_workdir, $csv_auditlog_file);
-				if ($error_count_local) { # wenn ein Fehler beim csv-Import auftritt: einzeln parsen um alle Fehler zu sehen
+
+				# 3b) if an error occured, import everything in single sql statement steps to be able to spot the error
+				if ($error_count_local) { 
 					$error_count_global = &error_handler_add ($current_import_id, $error_level = 3, "first problems while filling database: $error_count_local",
 						$error_count_local, $error_count_global);
 					if ($show_all_import_errors) {
+
 						&fill_import_tables_from_csv_with_sql ($dev_typ_id,$csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, $rulebases, $fworch_workdir, $csv_auditlog_file);
+
 					}
 				}
-				# 4) now transfering data from import_ tables to final tables:
+				# 4) wrapping up
 				if (!$error_count_global) {  # import ony when no previous errors occured
 					$error_count_local = 0;						
 					if (!&exec_pgsql_cmd_return_value("SET client_min_messages TO NOTICE; SELECT import_all_main($current_import_id)")) {

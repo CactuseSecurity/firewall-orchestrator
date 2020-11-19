@@ -944,8 +944,7 @@ Create table "ldap_connection"
 
 Create table "config"
 (
-	"config_id" SERIAL,
-	"config_key" VARCHAR,
-	"config_value" VARCHAR,
- primary key ("config_id")
+"config_key" VARCHAR NOT NULL,
+"config_value" VARCHAR,
+primary key ("config_key")
 );

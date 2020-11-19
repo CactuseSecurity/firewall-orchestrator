@@ -2375,6 +2375,46 @@ tables:
       - uiuser_pwd_history
       filter: {}
     role: auth-server
+  - permission:
+      columns:
+      - uiuser_id
+      - uiuser_username
+      - uuid
+      - uiuser_first_name
+      - uiuser_last_name
+      - uiuser_start_date
+      - uiuser_end_date
+      - uiuser_email
+      - tenant_id
+      - uiuser_language
+      - uiuser_password_must_be_changed
+      - uiuser_last_login
+      - uiuser_last_password_change
+      - uiuser_pwd_history
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
+    role: reporter
+  - permission:
+      columns:
+      - uiuser_password_must_be_changed
+      - uiuser_end_date
+      - uiuser_start_date
+      - tenant_id
+      - uiuser_id
+      - uiuser_pwd_history
+      - uiuser_last_login
+      - uiuser_last_password_change
+      - uiuser_email
+      - uiuser_first_name
+      - uiuser_language
+      - uiuser_last_name
+      - uiuser_username
+      - uuid
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
+    role: reporter-viewall
   table:
     name: uiuser
     schema: public
@@ -2398,6 +2438,22 @@ tables:
       - uuid
       filter: {}
     role: auth-server
+  - permission:
+      check: null
+      columns:
+      - uiuser_language
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
+    role: reporter
+  - permission:
+      check: null
+      columns:
+      - uiuser_language
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
+    role: reporter-viewall
 - object_relationships:
   - name: import_control
     using:

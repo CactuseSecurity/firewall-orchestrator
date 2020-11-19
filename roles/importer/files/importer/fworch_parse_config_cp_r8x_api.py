@@ -18,18 +18,22 @@ csv_delimiter = '%'
 list_delimiter = '|'
 line_delimiter = "\n"
 found_rulebase = False
+section_header_uids=[]
 
 # the following is the static across all installations unique any obj uid 
 # cannot fetch the Any object via API (<=1.7) at the moment
 # therefore we have a workaround adding the object manually (as svc and nw)
 any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
+# todo: read this from config (vom API 1.6 on it is fetched)
 
 # ###################### rule handling ###############################################
 
 
-def create_section_header(section_name, layer_name, any_object_uid, rule_uid):
+def create_section_header(section_name, layer_name, rule_uid):
     global rule_num
-    global number_of_section_headers_so_far
+    global any_obj_uid
+
+    section_header_uids.append(rule_uid)
     header_rule_csv = '"' + args.import_id + '"' + csv_delimiter  # control_id
     header_rule_csv += '"' + str(rule_num) + '"' + csv_delimiter  # rule_num
     header_rule_csv += '"' + layer_name + '"' + csv_delimiter  # rulebase_name
@@ -37,13 +41,13 @@ def create_section_header(section_name, layer_name, any_object_uid, rule_uid):
     header_rule_csv += '"' + 'false' + '"' + csv_delimiter  # rule_disabled
     header_rule_csv += '"' + 'False' + '"' + csv_delimiter  # rule_src_neg
     header_rule_csv += '"' + 'Any' + '"' + csv_delimiter  # src
-    header_rule_csv += '"' + any_object_uid + '"' + csv_delimiter  # src_refs
+    header_rule_csv += '"' + any_obj_uid + '"' + csv_delimiter  # src_refs
     header_rule_csv += '"' + 'False' + '"' + csv_delimiter  # rule_dst_neg
     header_rule_csv += '"' + 'Any' + '"' + csv_delimiter  # dst
-    header_rule_csv += '"' + any_object_uid + '"' + csv_delimiter  # dst_refs
+    header_rule_csv += '"' + any_obj_uid + '"' + csv_delimiter  # dst_refs
     header_rule_csv += '"' + 'False' + '"' + csv_delimiter  # rule_svc_neg
     header_rule_csv += '"' + 'Any' + '"' + csv_delimiter  # svc
-    header_rule_csv += '"' + any_object_uid + '"' + csv_delimiter  # svc_refs
+    header_rule_csv += '"' + any_obj_uid + '"' + csv_delimiter  # svc_refs
     header_rule_csv += '"' + 'Accept' + '"' + csv_delimiter  # action
     header_rule_csv += '"' + 'Log' + '"' + csv_delimiter  # track
     header_rule_csv += '"' + 'Policy Targets' + '"' + csv_delimiter  # install-on
@@ -69,6 +73,7 @@ def csv_add_field(content, csv_del, apostrophe):
 def csv_dump_rule(rule, layer_name):
     global rule_num
     global number_of_section_headers_so_far
+    global any_obj_uid
     apostrophe = '"'
     rule_csv = ''
 
@@ -114,10 +119,7 @@ def csv_dump_rule(rule, layer_name):
             elif src['type'] == 'access-role':
                 if isinstance(src['networks'], str):  # just a single source
                     if src['networks'] == 'any':
-                        # TODO: this is a hack with a hard-coded any obj uid -->
-                        any_object_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
-                        # need to properly fix this as the Any obj uid is probylby differend on every mgmt
-                        rule_src_ref += src['uid'] + '@' + any_object_uid + list_delimiter
+                        rule_src_ref += src['uid'] + '@' + any_obj_uid + list_delimiter
                     else:
                         rule_src_ref += src['uid'] + '@' + src['networks'] + list_delimiter
                 else:  # more than one source
@@ -194,27 +196,26 @@ def csv_dump_rule(rule, layer_name):
     return rule_csv
 
 
-def csv_dump_rules(rulebase, layer_name, any_object_uid):
+def csv_dump_rules(rulebase, layer_name):
     global rule_num
-    global number_of_section_headers_so_far
+    global section_header_uids
     result = ''
+
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
             for rules_chunk in chunk['rulebase']:
-                result += csv_dump_rules(rules_chunk, layer_name, any_obj_uid)
+                result += csv_dump_rules(rules_chunk, layer_name)
     else:
         if 'rulebase' in rulebase:
-            # add section header
-            if rulebase['type'] == 'access-section':
+            # add section header, but only if it does not exist yet (can happen by chunking a section)
+            if rulebase['type'] == 'access-section' and not rulebase['uid'] in section_header_uids:
                 section_name = ""
                 if 'name' in rulebase:
                     section_name = rulebase['name']
                 #else:
                 #     print ("warning: found access-section without defined rulebase.name, rulebase uid=" + rulebase['uid'])
-                number_of_section_headers_so_far += 1
                 rule_num = rule_num + 1
-                section_header_uid = rulebase['uid'] + '-section-header-' + str(number_of_section_headers_so_far)
-                section_header = create_section_header(section_name, layer_name, any_obj_uid, section_header_uid)
+                section_header = create_section_header(section_name, layer_name, rulebase['uid'])
                 result += section_header
             for rule in rulebase['rulebase']:
                 result += csv_dump_rule(rule, layer_name)
@@ -318,7 +319,11 @@ def collect_nw_objects(object_table):
     global nw_objects
     result = ''  # todo: delete this line
     nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
-    nw_obj_type_to_host_list = [ 'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host']
+    nw_obj_type_to_host_list = [
+        'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 
+        'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
+    ]
+
     if object_table['object_type'] in nw_obj_tables:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
@@ -397,7 +402,10 @@ def csv_dump_svc_obj(svc_obj):
 def collect_svc_objects(object_table):
     global svc_objects
     result = ''
-    svc_obj_tables = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
+    svc_obj_tables = [
+        'services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc',
+        'services-other', 'services-icmp', 'services-icmp6' 
+    ]
 
     if object_table['object_type'] in svc_obj_tables:
         proto = ''
@@ -498,44 +506,6 @@ def add_member_names_for_svc_group(idx):
     svc_objects.insert(idx, group)
 
 
-# TODO: the following func is a hack that needs to be replaced!
-def add_any_nw_objects(any_uid):
-    global nw_objects
-
-    any_nw_obj_found = 0
-
-    for obj in nw_objects:
-        if obj['obj_name'] == 'Any':
-            any_nw_obj_found = 1
-            break
-    if (not any_nw_obj_found):
-        nw_objects.append({'obj_uid': any_uid, 'obj_name': 'Any', 'obj_color': 'black',
-                            'obj_comment': 'any nw object from checkpoint (not available via API but hard coded)',
-                            'obj_typ': 'network', 'obj_ip': '0.0.0.0/0',
-                            'obj_member_refs': '', 'obj_member_names': ''})
-
-
-# TODO: the following func is a hack that needs to be replaced!
-def add_any_svc_objects(any_uid):
-    global svc_objects
-
-    any_svc_obj_found = 0
-    for obj in svc_objects:
-        if obj['svc_name'] == 'Any':
-            any_svc_obj_found = 1
-            break
-
-    if (not any_svc_obj_found):
-        svc_objects.append({'svc_uid': any_uid, 'svc_name': 'Any', 'svc_color': 'black',
-                            'svc_comment': 'any svc object from checkpoint (not available via API but hard coded)',
-                            'svc_typ': 'simple', 'svc_port': '0', 'svc_port_end': '0',
-                            'svc_member_refs': '',
-                            'svc_member_names': '',
-                            'ip_proto': '0',
-                            'svc_timeout': '0',
-                            'rpc_nr': ''})
-
-
 ####################### main program ###############################################
 
 # logging config
@@ -567,7 +537,7 @@ if args.rulebase != '':
         current_layer_name = rulebase['layername']
         if current_layer_name == args.rulebase:
             found_rulebase = True
-            result = csv_dump_rules(rulebase, args.rulebase, any_obj_uid)
+            result = csv_dump_rules(rulebase, args.rulebase)
 
 if args.network_objects:
     result = ''
@@ -578,8 +548,6 @@ if args.network_objects:
             if nw_objects[idx]['obj_typ'] == 'group':
                 add_member_names_for_nw_group(idx)
     
-#    add_any_nw_objects(any_obj_uid)
-
     for nw_obj in nw_objects:
         result += csv_dump_nw_obj(nw_obj)
 
@@ -591,8 +559,6 @@ if args.service_objects:
         for idx in range(0, len(svc_objects)-1):
             if svc_objects[idx]['svc_typ'] == 'group':
                 add_member_names_for_svc_group(idx)
-
-#    add_any_svc_objects(any_obj_uid)
 
     for svc_obj in svc_objects:
         result += csv_dump_svc_obj(svc_obj)
@@ -609,5 +575,4 @@ if args.rulebase != '' and not found_rulebase:
     print("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")
 else:
     result = result[:-1]  # strip off final line break to avoid empty last line
-    # print(result.encode('utf-8'))
     print(result)

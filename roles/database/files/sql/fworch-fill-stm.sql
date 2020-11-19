@@ -18,7 +18,7 @@ insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
 INSERT INTO language (name) VALUES('German');
 INSERT INTO language (name) VALUES('English');
 
-insert into config (config_id, language) VALUES (1, 'German');
+insert into config (config_key, config_value) VALUES ('DefaultLanguage', 'English');
 
 -- insert into uiuser (uiuser_id,uiuser_first_name,uiuser_last_name,uiuser_username) 
 -- 	VALUES (0,'automated','import','autoimport');

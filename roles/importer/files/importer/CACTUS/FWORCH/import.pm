@@ -1129,12 +1129,12 @@ sub fill_import_tables_from_csv {
 	my ($csv_rule_file,$fehler, $fields, $sqlcode, $psql_cmd, $start_time);
 
 	$start_time = time();
-	if (file_exists($csv_zone_file)) { # optional nur fuer Netscreen
+	if (file_exists($csv_zone_file)) { # optional (netscreen, fortigate)
 		$fields = "(" . join(',',@zone_import_fields) . ")";
 		$sqlcode = "COPY import_zone $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
 		$fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_zone_file);
 	}
-	if (defined($csv_audit_log_file) && file_exists($csv_audit_log_file)) { # optional nur wenn auditlog existiert
+	if (defined($csv_audit_log_file) && file_exists($csv_audit_log_file)) { # optional if audit log exists
 		$fields = "(" . join(',',@auditlog_import_fields) . ")";
 		$sqlcode = "COPY import_changelog $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
 		$fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_audit_log_file);
@@ -1161,15 +1161,15 @@ sub fill_import_tables_from_csv {
 		if ( !grep( /^$rb$/, @rulebase_ar ) ) {
 			@rulebase_ar = (@rulebase_ar, $rb);
 			$csv_rule_file = $fworch_workdir . '/' . $rb . '_rulebase.csv';
-			print ("\nrulebase found: $rb, rule_file: $csv_rule_file, device: $d  ");
+			print ("rulebase found: $rb, rule_file: $csv_rule_file, device: $d\n");
 			$sqlcode = "COPY import_rule $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
 			if ($fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_rule_file)) {
 				print_error("dbimport: $fehler"); print_linebreak(); $fehler_count += 1;
 			}
 		} else {
-			print ("\nignoring another device ($d) with rulebase $rb");
+			print ("ignoring another device ($d) with rulebase $rb\n");
 		}
-	}	print_bold(" - Database Import ... done in " . sprintf("%.2f",(time() - $start_time)) . " seconds"); print_linebreak();
+	}	print_bold("Database Import ... done in " . sprintf("%.2f",(time() - $start_time)) . " seconds"); print_linebreak();
 	return $fehler_count;
 }
 

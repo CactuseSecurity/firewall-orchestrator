@@ -19,8 +19,8 @@ URI     ldap://localhost
 #DEREF          never
 TLS_CACERTDIR /etc/openldap/cacerts
 {% if ansible_os_family == 'RedHat' %}
-TLS_CACERT /etc/openldap/certs/openldap_certificate.pem
+TLS_CACERT /etc/openldap/certs/cert.crt
 {% endif %}
 {% if ansible_os_family == 'Debian' %}
-TLS_CACERT /etc/ldap/certs/openldap_certificate.pem
+TLS_CACERT /etc/ldap/certs/cert.crt
 {% endif %}

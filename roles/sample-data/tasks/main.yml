@@ -22,6 +22,11 @@
 - name: create sample devices in database
   import_tasks: create-devices.yml
 
+- name: scan localhost ssh keys
+  shell: "ssh-keyscan -H 127.0.0.1 >> ~/.ssh/known_hosts"
+  become: yes
+  become_user: "{{ fworch_user }}" 
+
 - name: establish cron job to simulate hourly changes to configs
   import_tasks: setup-config-changes.yml
 

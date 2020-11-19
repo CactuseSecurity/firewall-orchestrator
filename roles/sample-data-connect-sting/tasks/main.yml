@@ -9,6 +9,10 @@
         mode: "0600"
         line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
 
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- block:
     # todo: convert the following into a single \i file.sql command:
     - name: insert sting-mgmt
       postgresql_query:
@@ -28,6 +32,10 @@
         query: "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=4) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (4,3,''layered-test-gw'',''FirstLayer shared with inline layer'',9); END IF; END $do$"
       #command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=4) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (4,3,''layered-test-gw'',''FirstLayer shared with inline layer'',9); END IF; END $do$"'
 
+  become: yes
+  become_user: postgres
+
+- block:
     - name: clean up .pgpass file
       file:
         path: "{{ fworch_home }}/.pgpass"

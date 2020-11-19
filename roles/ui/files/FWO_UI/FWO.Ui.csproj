@@ -1,11 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blazored.SessionStorage" Version="1.0.12" />
+    <Compile Remove="wwwroot\downloads\**" />
+    <Content Remove="wwwroot\downloads\**" />
+    <EmbeddedResource Remove="wwwroot\downloads\**" />
+    <None Remove="wwwroot\downloads\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BlazorTable" Version="1.13.1" />
     <PackageReference Include="HtmlRendererCore.PdfSharpCore" Version="1.0.1" />
     <PackageReference Include="PdfSharpCore" Version="1.2.8" />
@@ -21,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\downloads" />
+    <Folder Include="wwwroot\js\" />
   </ItemGroup>
 
 </Project>

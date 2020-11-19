@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
-using Blazored.SessionStorage;
 using FWO.ApiClient;
 using FWO.Ui.Auth;
 using FWO.Auth.Client;
@@ -72,8 +71,6 @@ namespace FWO.Ui
 
             DownloadManagerService downloadManagerService = new DownloadManagerService();
             services.AddScoped<DownloadManagerService>(_ => downloadManagerService);
-
-            services.AddBlazoredSessionStorage();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

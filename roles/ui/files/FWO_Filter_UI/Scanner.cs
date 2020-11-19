@@ -13,34 +13,29 @@ namespace FWO.Ui.Filter
 
         public Scanner(string input)
         {
-            if (input == null)
-                throw new ArgumentNullException("Filter input is null");
-
-            if (input == "")
-                throw new ArgumentException("Filter input is empty");
-
-            this.input = input;
+            this.input = input ?? throw new ArgumentNullException(nameof(input));
         }
 
         public List<Token> Scan()
         {
-            List<Token> Tokens = new List<Token>();
+            List<Token> tokens = new List<Token>();
 
             for (position = 0; position < input.Length; position++)
             {
-                while ((position < input.Length && (input[position] == ' ' || input[position] == '\t' || input[position] == '\n')) == true)
+                while ((position < input.Length && (input[position] == ' ' || input[position] == '\t' || input[position] == '\n' || input[position] == '\r')) == true)
                 {
                     position++;
                 }
 
-                Tokens.AddRange(ReadToken());
+                tokens.AddRange(ReadToken());
             }
-            return Tokens;
+
+            return tokens;
         }
 
         private bool IsWhitespaceOrEnd(int currentPosition)
         {
-            if (currentPosition >= input.Length || input[currentPosition] == ' ' || input[currentPosition] == '\t' || input[currentPosition] == '\n')
+            if (currentPosition >= input.Length || input[currentPosition] == ' ' || input[currentPosition] == '\t' || input[currentPosition] == '\n' || input[position] == '\r')
             {
                 return true;
             }

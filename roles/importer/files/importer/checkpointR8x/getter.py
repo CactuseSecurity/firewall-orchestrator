@@ -47,53 +47,58 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
 
 
 def collect_uids_from_rule(rule, debug_text):
-    global svc_objects
-    global nw_objects
+    nw_uids_found = []
+    svc_uids_found = []
  
     if 'rule-number' in rule:  # standard rule, no section header (layered rules)
         for src in rule["source"]:
             if src['type'] == 'LegacyUserAtLocation':
                 # user_objects.append(src["userGroup"])
                 #print ("Legacy found user uid: " + src["userGroup"] + ", " + debug_text)
-                nw_objects.append(src["location"])
+                nw_uids_found.append(src["location"])
                 #print ("Legacy found nw uid: " + src["location"] + ", " + debug_text)
             elif src['type'] == 'access-role':
                 # user_objects.append(src['uid'])
                 if isinstance(src['networks'], str):  # just a single source
                     if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
-                       nw_objects.append(src['networks'])
+                       nw_uids_found.append(src['networks'])
                 else:  # more than one source
                     for nw in src['networks']:
-                        nw_objects.append(nw)
+                        nw_uids_found.append(nw)
             else:  # standard network objects as source
                 #print ("found nw uid (standard, no usr rule): " + src["uid"] + ", " + debug_text)
-                nw_objects.append(src['uid'])
+                nw_uids_found.append(src['uid'])
         for dst in rule["destination"]:
-            nw_objects.append(dst['uid'])
+            nw_uids_found.append(dst['uid'])
         for svc in rule["service"]:
-            svc_objects.append(svc['uid'])
+            svc_uids_found.append(svc['uid'])
     else: # recurse into rulebase within rule
         #print ("rule - else zweig - collect_uids_from_rule: " + debug_text)
-        collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
+        (nw_uids_from_sub_rulebase, svc_uids_from_sub_rulebase) = collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
+    return (nw_uids_found.extend(nw_uids_from_sub_rulebase), svc_uids_found.extend(svc_uids_from_sub_rulebase))
 
 
 def collect_uids_from_rulebase(rulebase, debug_text):
-    global nw_objects
-    global svc_objects
+    nw_uids_found = []
+    svc_uids_found = []
 
-    #print ("entering RULEBASE parsing: " + debug_text)
     if 'layerchunks' in rulebase:
         #print (debug_text + ", found layerchanks in layered rulebase , " + debug_text)
         for layer_chunk in rulebase['layerchunks']:
             #print ("found chunk in layerchanks with name " + layer_chunk['name'] + ' , '+ debug_text)
             for rule in layer_chunk['rulebase']:
                 #print ("found rules_chunk in rulebase with uid " + layer_chunk['uid'] + ', ' + debug_text)
-                collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
+                (nw_uids_from_sub_rulebase, svc_uids_from_sub_rulebase) = collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
+                nw_uids_found.extend(nw_uids_from_sub_rulebase)
+                svc_uids_found.extend(svc_uids_from_sub_rulebase)
     else:
         #print ("else: found no layerchunks in rulebase")
         for rule in rulebase:
-            collect_uids_from_rule(rule, debug_text)
+            (nw_uids_from_sub_rulebase, svc_uids_from_sub_rulebase) = collect_uids_from_rule(rule, debug_text)
             # print ("rule found: " + str(rule))
+            nw_uids_found.extend(nw_uids_from_sub_rulebase)
+            svc_uids_found.extend(svc_uids_from_sub_rulebase)
+    return (nw_uids_found, svc_uids_found)
 
 
 def get_all_uids_of_a_type(object_table, obj_table_names):

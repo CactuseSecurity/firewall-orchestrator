@@ -140,7 +140,8 @@ if (!$error_count_global) {
 			if (!$csvonly) 
 			{
 				$start_time = time(); # parse start time
-				output_txt("---------------------------------------------------------------------------\n"); output_txt("Starting import of management: $mgm_name\n");
+				output_txt("---------------------------------------------------------------------------\n"); 
+				output_txt("Starting import of management: $mgm_name\n");
 				# 2) parse config
 				$error_count_local = &CACTUS::FWORCH::import::parser::parse_config ($obj_file, $rule_file, $user_file, $rulebases, $fworch_workdir, $debug_level, $mgm_name, $cfg_dir,
 										$current_import_id, "$cfg_dir/$audit_log_file", $prev_imp_time, $fullauditlog);

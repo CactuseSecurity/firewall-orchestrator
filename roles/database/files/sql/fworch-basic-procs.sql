@@ -214,20 +214,20 @@ DECLARE
     r_message RECORD;
 BEGIN
 	v_result := 'leeeeer';
-	SELECT INTO r_lang language FROM config;
+	SELECT INTO r_lang config_value FROM config WHERE config_key='DefaultLanguage';
 	IF NOT FOUND THEN
 		RAISE EXCEPTION 'language settings not found';
 	END IF;
-	IF r_lang.language = 'german' THEN
+	IF r_lang.config_value = 'German' THEN
 		SELECT INTO r_message text_msg_ger FROM text_msg WHERE text_msg_id = v_textid;
 		IF NOT FOUND THEN
-			PERFORM error_handling('DEBUG_GENERAL_INFO', 'german' || v_textid);
+			PERFORM error_handling('DEBUG_GENERAL_INFO', 'German' || v_textid);
 		END IF;
 		v_result := r_message.text_msg_ger;
-	ELSIF r_lang.language = 'english' THEN
+	ELSIF r_lang.config_value = 'English' THEN
 		SELECT INTO r_message text_msg_eng FROM text_msg WHERE text_msg_id = v_textid;
 		IF NOT FOUND THEN
-			PERFORM error_handling('DEBUG_GENERAL_INFO', 'english' || v_textid);
+			PERFORM error_handling('DEBUG_GENERAL_INFO', 'English' || v_textid);
 		END IF;
 		v_result := r_message.text_msg_eng;
 	ELSE
@@ -265,11 +265,11 @@ BEGIN
     IF NOT FOUND THEN
 		RAISE EXCEPTION 'errorid not found %', errid;
     END IF;
-    SELECT INTO lang language FROM config;
+    SELECT INTO lang config_value FROM config WHERE config_key='DefaultLanguage';
     IF NOT FOUND THEN
 		RAISE EXCEPTION 'config not found, %', errid;
     END IF;
-    IF lang.language = 'german' THEN
+    IF lang.config_value = 'German' THEN
 		err_txt := err.error_txt_ger;
 		IF err.error_lvl = 1 THEN
 		    err_prefix := 'FEHLER: ';

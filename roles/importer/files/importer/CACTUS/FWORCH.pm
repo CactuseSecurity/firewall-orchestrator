@@ -911,9 +911,9 @@ sub get_ruleset_name_list {
 	my $result = '';
 	
 	while ( (my $key, my $value) = each %{$href_rulesetname}) {
-		$result .= $value->{'dev_rulebase'} . ',';
+        $result .= $value->{'dev_rulebase'} . ',';
     }
-    if ($result =~ /^(.+?)\,$/) {
+    if ($result =~ /^(.+?)\,$/) {   # stripping off last comma
     	return $1;
     }
     return $result;

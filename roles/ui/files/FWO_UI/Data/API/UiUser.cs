@@ -16,6 +16,9 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("uuid")]
         public string Dn { get; set; }
 
+        [JsonPropertyName("uiuser_language")]
+        public string Language { get; set; }
+
             
         public UiUser()
         {}
@@ -25,6 +28,7 @@ namespace FWO.Ui.Data.API
             Name = user.Name;
             DbId = user.DbId;
             Dn = user.Dn;
+            Language = user.Language;
         }
     }
 }

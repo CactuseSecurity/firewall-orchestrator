@@ -11,6 +11,10 @@
   become: yes
 
 - name: add localhost hostkey to known_hosts - remove before adding to stay idempotent
+  # todo:
+  # I don't dare to change this, but my tests produce an error for "$ ssh-keygen -R localhost":
+  # "Host localhost not found in /home/alf/.ssh/known_hosts"
+  # Maybe localhost is added to known_hosts earlier?
   shell: "ssh-keygen -R localhost; ssh-keyscan localhost >> ~/.ssh/known_hosts"
   become: yes
   become_user: "{{ fworch_user }}"

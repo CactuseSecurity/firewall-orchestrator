@@ -3,6 +3,8 @@
 @using FWO.Auth.Client
 @using System.Net
 @using FWO.ApiConfig
+@using FWO.Ui.Data.API
+@using FWO.Ui.Services
 
 @inject AuthClient AuthClient
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
@@ -55,6 +57,9 @@
     private string InputClass = "";
 
     private string errorMessage = "";
+    
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -121,7 +126,12 @@
 
                 // overwrite userConfig with actual userData after login (does this work?)
                 //userConfig = new ApiConfig.UserConfigCollection();
-                userConfig.ChangeLanguage("English");
+
+                // currently we change the language for all active users because of central userConfig :-(
+                AuthenticationState authState = await authenticationStateTask;
+                UiUsersDbAccess uiUser = new UiUsersDbAccess();
+                await uiUser.getLanguage(authState, ApiConnection);
+                userConfig.ChangeLanguage((uiUser.Language != "") ? uiUser.Language : "English");
 
                 loginInProgress = false;
             }

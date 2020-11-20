@@ -25,10 +25,10 @@ namespace FWO.Ui.Filter
         public Dictionary<string, object> QueryVariables { get; set; } = new Dictionary<string, object>();
         public string FullQuery { get; set; } = "";
         public string WhereQueryPart { get; set; } = "";
+        public string ManagementQueryPart { get; set; } = "";
+        public string DeviceQueryPart { get; set; } = "";
         public List<string> QueryParameters { get; set; } = new List<string>()
         {
-            " $managementId: [Int!] ",
-            " $deviceId: [Int!] ",
             " $limit: Int ",
             " $offset: Int "
         };
@@ -49,6 +49,8 @@ namespace FWO.Ui.Filter
             //else
             //    query.WhereQueryPart += $" {timeFilter} ";
 
+            // if any filter is set, leave out all header texts
+
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
             query.FullQuery = $@"
                 {ruleOverviewFragment}
@@ -56,13 +58,13 @@ namespace FWO.Ui.Filter
                 query ruleFilter ({paramString}) 
                 {{ 
                     management(
-                        where: {{ mgm_id: {{ _in: $managementId }} }}
+                        where: {{ {query.ManagementQueryPart} }}
                         order_by: {{ mgm_name: asc }} ) 
                         {{
                             id: mgm_id
                             name: mgm_name
                             devices (
-                                where: {{ dev_id: {{ _in: $deviceId }} }}
+                                where: {{ {query.DeviceQueryPart} }}
                                 order_by: {{ dev_name: asc }} ) 
                                 {{
                                     id: dev_id

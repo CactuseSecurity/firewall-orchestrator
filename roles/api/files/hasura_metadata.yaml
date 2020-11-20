@@ -558,6 +558,48 @@ tables:
         table:
           name: zone
           schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - control_id
+      - start_time
+      - stop_time
+      - config_name
+      - mgm_product
+      - mgm_version
+      - is_initial_import
+      - delimiter_group
+      - delimiter_zone
+      - delimiter_user
+      - delimiter_list
+      - mgm_id
+      - last_change_in_config
+      - successful_import
+      - import_errors
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - control_id
+      - start_time
+      - stop_time
+      - config_name
+      - mgm_product
+      - mgm_version
+      - is_initial_import
+      - delimiter_group
+      - delimiter_zone
+      - delimiter_user
+      - delimiter_list
+      - mgm_id
+      - last_change_in_config
+      - successful_import
+      - import_errors
+      filter: {}
+    role: reporter-viewall
   table:
     name: import_control
     schema: public

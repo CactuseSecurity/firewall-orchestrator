@@ -44,6 +44,18 @@ namespace FWO.Ui.Filter
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
+                TokenKind.Management => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "management", "mgmt", "manager" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.Gateway => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "gateway", "gw", "firewall", "fw" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
                 TokenKind.Service => new TokenSyntax
                 {
                     WhiteSpaceRequiered = new string[] { "svc", "service", "srv" },

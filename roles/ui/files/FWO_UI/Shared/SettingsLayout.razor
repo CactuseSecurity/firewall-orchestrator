@@ -7,30 +7,63 @@
 @inject UserConfigCollection userConfig
 
 <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" InitialWidth="sidebarWidth" @bind-Width="sidebarWidth">
-    <div class="m-2">
+    <div class="m-2 mt-4">
         <ul class="navbar-nav flex-column">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    @foreach (NavItem navItem in adminNavItems)
-                    {
-                        <li class="nav-item px-2">
-                            <NavLink class="nav-link" href="@navItem.Link">
-                                @navItem.Name() <span class="@navItem.Symbol"></span>
-                            </NavLink>
-                        </li>
-                    }
+                    <li class="nav-item px-2">
+                        <h5>Devices</h5>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/managements">
+                            Managements <span class="oi oi-inbox"></span>
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/gateways">
+                            Gateways <span class="oi oi-shield"></span>
+                        </NavLink>
+                    </li>
+                    <hr />
+                    <li class="nav-item px-2">
+                        <h5>Authorization</h5>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/authorization">
+                            LDAP <span class="oi oi-key"></span>
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/authorization">
+                            Tenants <span class="oi oi-command"></span>
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/authorization">
+                            Users <span class="oi oi-people"></span>
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/authorization">
+                            Roles <span class="oi oi-tags"></span>
+                        </NavLink>
+                    </li>
+                    <hr />
                 </Authorized>
             </AuthorizeView>
             <AuthorizeView Roles="admin, reporter, reporter-viewall, workflow-user, workflow-admin">
                 <Authorized>
-                    @foreach (NavItem navItem in userNavItems)
-                    {
-                        <li class="nav-item px-2">
-                            <NavLink class="nav-link" href="@navItem.Link">
-                                @navItem.Name() <span class="@navItem.Symbol"></span>
-                            </NavLink>
-                        </li>
-                    }
+                    <li class="nav-item px-2">
+                        <h5>Personal</h5>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="settings/personal">
+                            Language <span class="oi oi-comment-square"></span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="settings/personal">
+                            Reporting <span class="oi oi-list"></span>
+                        </NavLink>
+                    </li>
                 </Authorized>
             </AuthorizeView>
         </ul>
@@ -51,17 +84,17 @@
 
     protected override void OnInitialized()
     {
-        adminNavItems = new NavItem[]
-        {
-            new NavItem(() => "Managements", "settings/managements", "oi oi-inbox"),
-            new NavItem(() => "Gateways", "settings/gateways", "oi oi-shield"),
-            new NavItem(() => "Authorization", "settings/authorization", "oi oi-lock-locked"),
-        };
+        //adminNavItems = new NavItem[]
+        //{
+        //    new NavItem(() => "Managements", "settings/managements", "oi oi-inbox"),
+        //    new NavItem(() => "Gateways", "settings/gateways", "oi oi-shield"),
+        //    new NavItem(() => "Authorization", "settings/authorization", "oi oi-lock-locked"),
+        //};
 
-        userNavItems = new NavItem[]
-        {
-            new NavItem(() => "Personal", "settings/personal", "oi oi-person")
-        };
+        //userNavItems = new NavItem[]
+        //{
+        //    new NavItem(() => "Personal", "settings/personal", "oi oi-person")
+        //};
 
         userConfig.OnChange += Update;
     }

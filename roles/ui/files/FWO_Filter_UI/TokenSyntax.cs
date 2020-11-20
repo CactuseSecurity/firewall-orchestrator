@@ -20,6 +20,12 @@ namespace FWO.Ui.Filter
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
+                TokenKind.Time => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "time" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
                 TokenKind.Source => new TokenSyntax
                 {
                     WhiteSpaceRequiered = new string[] { "src", "source" },

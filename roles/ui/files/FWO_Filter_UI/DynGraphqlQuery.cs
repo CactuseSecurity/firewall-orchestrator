@@ -44,10 +44,10 @@ namespace FWO.Ui.Filter
             DynGraphqlQuery query = new DynGraphqlQuery();
             ast.Extract(ref query);
 
-            if (query.TimeFilter == "")
-                query.WhereQueryPart += ", active: { _eq: true } ";
-            else
-                query.WhereQueryPart += $" {timeFilter} ";
+            //if (query.TimeFilter == "")
+            //    query.WhereQueryPart += ", active: { _eq: true } ";
+            //else
+            //    query.WhereQueryPart += $" {timeFilter} ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
             query.FullQuery = $@"
@@ -59,14 +59,14 @@ namespace FWO.Ui.Filter
                         where: {{ mgm_id: {{ _in: $managementId }} }}
                         order_by: {{ mgm_name: asc }} ) 
                         {{
-                            mgm_id
-                            mgm_name
+                            id: mgm_id
+                            name: mgm_name
                             devices (
                                 where: {{ dev_id: {{ _in: $deviceId }} }}
                                 order_by: {{ dev_name: asc }} ) 
                                 {{
-                                    dev_id
-                                    dev_name
+                                    id: dev_id
+                                    name: dev_name
                                     rules(
                                         limit: $limit 
                                         offset: $offset

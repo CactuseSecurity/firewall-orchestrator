@@ -42,6 +42,10 @@ namespace FWO.Ui.Filter.Ast
                     fieldNames.Add("rule_action");
                     paramName = "fullTextFilter" + query.parameterCounter++;
                     break;
+                case TokenKind.Time:
+                    fieldNames.Add("active");
+                    paramName = "active" + query.parameterCounter++;
+                    break;
                 default:
                     throw new Exception("### Parser Error: Expected Filtername Token (and thought there is one) ###");
             }
@@ -51,6 +55,8 @@ namespace FWO.Ui.Filter.Ast
                 case TokenKind.EQ:
                     //localQuery += "{_ilike: $" + paramName + "}} ";
                     operation = "_ilike";
+                    if (Name == TokenKind.Time)
+                        operation = "_eq";
                     break;
                 case TokenKind.NEQ:
                     operation = "_nilike";
@@ -87,7 +93,11 @@ namespace FWO.Ui.Filter.Ast
                     throw new Exception("### Parser Error: Expected operation  ###");
             }
             query.WhereQueryPart += localQuery;
-            query.QueryParameters.Add("$" + paramName + ": String! ");  // todo: also need to take of ip addresses and svc ports and protocols
+
+            if (Name != TokenKind.Time)
+                query.QueryParameters.Add("$" + paramName + ": String! ");  // todo: also need to take of ip addresses and svc ports and protocols
+            else
+                query.QueryParameters.Add("$" + paramName + ": Boolean! ");
             return;
         }
     }

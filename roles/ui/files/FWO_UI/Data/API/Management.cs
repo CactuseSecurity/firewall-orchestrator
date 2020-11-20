@@ -88,22 +88,16 @@ namespace FWO.Ui.Data.API
             // Objects = management.Objects;
             // Services = management.Services;
             // Users = management.Users;
-            DeviceType = new DeviceType(management.DeviceType);
+            if(management.DeviceType != null)
+            {
+                DeviceType = new DeviceType(management.DeviceType);
+            }
         }
-    }
 
-    public class ReturnId
-    {
-        [JsonPropertyName("newId")]
-        public int NewId { get; set; }
-
-        [JsonPropertyName("UpdatedId")]
-        public int UpdatedId { get; set; }
-    }
-    public class NewMgtReturning
-    {
-        [JsonPropertyName("returning")]
-        public ReturnId[] ReturnIds { get; set; }
+        public string Host()
+        {
+            return Hostname + ":" + Port;
+        }
     }
 
     public static class ManagementUtility

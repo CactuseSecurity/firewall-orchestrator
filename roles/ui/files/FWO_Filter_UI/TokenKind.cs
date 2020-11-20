@@ -9,6 +9,7 @@ namespace FWO.Ui.Filter
         Destination,
         Service,
         Action,
+        Time,
         BL, // (
         BR, // )
         And,

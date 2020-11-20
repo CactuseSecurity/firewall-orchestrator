@@ -18,13 +18,72 @@ namespace FWO.Ui.Filter
 
         public AstNode Parse()
         {
-            AstNode root = ParseStart();
+            AstNode root = ParseTime();
 
             if (NextTokenExists() == true)
             {
-                throw new SyntaxException($"Unexpected token ({GetNextToken()}). Expected token: none.", tokens[position].Position); // Wrong token
+                throw new SyntaxException($"Unexpected token ({GetNextToken()}). Expected token: none.", tokens[position].Position); // Unexpected token
             }
-            return root;
+
+            else
+            {
+                return root;
+            }
+        }
+
+        private AstNode ParseTime()
+        {
+            if (NextTokenExists() == false)
+            {
+                return new AstNodeFilter()
+                {
+                    Name = TokenKind.Time,
+                    Operator = TokenKind.EQ,
+                    Value = "true" //DateTime.Now.ToString()
+                };
+            }
+
+            else if (GetNextToken().Kind != TokenKind.Time)
+            {
+                return new AstNodeConnector
+                {
+                    Left = new AstNodeFilter()
+                    {
+                        Name = TokenKind.Time,
+                        Operator = TokenKind.EQ,
+                        Value = "true" //DateTime.Now.ToString()
+                    },
+
+                    ConnectorType = TokenKind.And,
+
+                    Right = ParseStart()
+                };
+            }
+
+            else
+            {
+                AstNodeConnector root = new AstNodeConnector
+                {
+                    Left = new AstNodeFilter()
+                    {
+                        Name = CheckToken(TokenKind.Time).Kind,
+                        Operator = CheckToken(TokenKind.EQ).Kind,
+                        Value = ParseValue()
+                    }
+                };
+
+                if (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
+                {
+                    root.ConnectorType = CheckToken(TokenKind.And).Kind;
+                    root.Right = ParseStart();
+                    return root;
+                }
+
+                else
+                {
+                    return root.Left;
+                }
+            }
         }
 
         private AstNode ParseStart()
@@ -47,8 +106,8 @@ namespace FWO.Ui.Filter
 
         private AstNode ParseOr()
         {
-            AstNodeConnector rootNode = new AstNodeConnector() 
-            { 
+            AstNodeConnector rootNode = new AstNodeConnector()
+            {
                 Left = ParseAnd(),
                 ConnectorType = TokenKind.Or
             };
@@ -77,8 +136,8 @@ namespace FWO.Ui.Filter
 
         private AstNode ParseAnd()
         {
-            AstNodeConnector rootNode = new AstNodeConnector() 
-            { 
+            AstNodeConnector rootNode = new AstNodeConnector()
+            {
                 Left = ParseNot(),
                 ConnectorType = TokenKind.And
             };
@@ -87,8 +146,8 @@ namespace FWO.Ui.Filter
             {
                 CheckToken(TokenKind.And);
                 rootNode.Right = ParseNot();
-                rootNode = new AstNodeConnector() 
-                { 
+                rootNode = new AstNodeConnector()
+                {
                     Left = rootNode,
                     ConnectorType = TokenKind.And
                 };
@@ -144,13 +203,12 @@ namespace FWO.Ui.Filter
 
         private AstNode ParseFilter()
         {
-            AstNodeFilter filterNode = new AstNodeFilter();
-
-            filterNode.Name = ParseFilterName();
-            filterNode.Operator = ParseOperator();
-            filterNode.Value = ParseValue();
-
-            return filterNode;
+            return new AstNodeFilter
+            {
+                Name = ParseFilterName(),
+                Operator = ParseOperator(),
+                Value = ParseValue()
+            };
         }
 
         private TokenKind ParseOperator()
@@ -178,7 +236,7 @@ namespace FWO.Ui.Filter
                 {
                     position++;
                     return TokenToCheck;
-                }                   
+                }
             }
 
             throw new SyntaxException($"Unexpected token ({TokenToCheck}). Expected tokens of type: {string.Join(", ", Matches)}.", TokenToCheck.Position); // Wrong token
@@ -188,7 +246,7 @@ namespace FWO.Ui.Filter
         {
             if (position >= tokens.Count)
             {
-                throw new SyntaxException("No token but one was expected", tokens[tokens.Count-1].Position); // No token but one was expected
+                throw new SyntaxException("No token but one was expected", tokens[tokens.Count - 1].Position); // No token but one was expected
             }
 
             else

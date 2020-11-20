@@ -49,7 +49,3 @@ query showManufacturers {
     dev_typ_version
   }
 }
-
-#############################
-## mutations
-#############################

@@ -29,7 +29,7 @@
   #   become_user: postgres
   #   ignore_errors: true
 
-  - name: remove database using postgresql_db
+  - name: remove database
     postgresql_db:
       name: fworchdb
       state: absent
@@ -37,14 +37,24 @@
     register: drop_db
     ignore_errors: true
 
-  # - name: show result of drop db
-  #   debug:
-  #     msg: drop_db = {{ drop_db }}
-
   - name: fail when drop db failed
     fail:
       msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
     when: drop_db.failed
+
+  - name: remove db groups
+    postgresql_user:
+      name: "{{ item }}"
+      state: absent
+    loop: "{{ database_groups }}"
+    become_user: postgres
+
+  - name: remove db users
+    postgresql_user:
+      name: "{{ item }}"
+      state: absent
+    loop: "{{ database_users }}"
+    become_user: postgres
 
   - name: stop and disable slapd
     service:

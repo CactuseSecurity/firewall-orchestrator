@@ -45,7 +45,7 @@ namespace FWO.Ui.Data.API
         public string Source { get; set; }
 
         [JsonPropertyName("src_zone")]
-        public Zone SourceZone { get; set; }
+        public NetworkZone SourceZone { get; set; }
 
         [JsonPropertyName("rule_froms")]
         public NetworkLocation[] Froms { get; set; }
@@ -57,7 +57,7 @@ namespace FWO.Ui.Data.API
         public string Destination { get; set; }
 
         [JsonPropertyName("dst_zone")]
-        public Zone DestinationZone { get; set; }
+        public NetworkZone DestinationZone { get; set; }
 
         [JsonPropertyName("rule_tos")]
         public NetworkLocation[] Tos { get; set; }

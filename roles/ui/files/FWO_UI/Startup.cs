@@ -64,7 +64,7 @@ namespace FWO.Ui
             
             // get all non-confidential configuration settings and add to a global service (for all users)
             ConfigCollection configCollection = new ConfigCollection(jwt);
-            services.AddSingleton<ConfigCollection>(_ => configCollection);  
+            services.AddSingleton<ConfigCollection>(_ => configCollection);
             
             services.AddScoped<UserConfigCollection>(_ => new UserConfigCollection(configCollection));
 

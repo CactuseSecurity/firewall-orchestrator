@@ -942,10 +942,9 @@ Create table "ldap_connection"
 	primary key ("ldap_connection_id")
 );
 
--- drop or rebuild this in 5.0
 Create table "config"
 (
-	"config_id" BIGSERIAL,
-	"language" VARCHAR Default 'English',
- primary key ("config_id")
+"config_key" VARCHAR NOT NULL,
+"config_value" VARCHAR,
+primary key ("config_key")
 );

@@ -29,7 +29,7 @@ our %EXPORT_TAGS = (
         &get_client_filter &get_device_ids_for_mgm
         &eval_boolean_sql &exec_pgsql_file &exec_pgsql_cmd &exec_pgsql_cmd_no_result
         &exec_pgsql_cmd_return_value &exec_pgsql_cmd_return_array_ref &exec_pgsql_cmd_return_table_ref
-        &copy_file_to_db &read_user_client_classification_from_ldap &get_rulebase_names &evaluate_parameters
+        &copy_file_to_db &read_user_client_classification_from_ldap &get_rulebase_names &get_ruleset_name_list &evaluate_parameters &replace_import_id_in_csv
     ) ]);
 
 our @EXPORT = (@{$EXPORT_TAGS{'basic'}});
@@ -559,6 +559,39 @@ sub get_client_id_for_user_via_ldap {
     return $result;
 }
 
+
+############################################################
+# replace_import_id_in_csv
+# 
+############################################################
+sub replace_import_id_in_csv {
+    my $csv_file = shift;
+    my $import_id = shift;
+    my $result = 0; 
+    my $line;
+
+    # s/^\"(\d+)\"/\"$import_id\"/g' $csv_file;
+    my $CSVFILE = new IO::File("< $csv_file");
+    my $NEWCSVFILE = new IO::File("> $csv_file.tmp");
+    if ($CSVFILE && $NEWCSVFILE)
+    {
+        while (<$CSVFILE>) {
+            $line = $_;
+            $line =~ s/^\"(\d+)\"/\"$import_id\"/;
+            #print ("line=$line");
+            print $NEWCSVFILE $line;
+        }
+        $CSVFILE->close;
+        $NEWCSVFILE->close;
+        system("mv '$csv_file.tmp' '$csv_file'");
+    } 
+    else 
+    {
+        output_txt("Cannot open file $csv_file for reading: $!", 3);
+    }
+    return (!$result);
+}
+
 ############################################################
 # copy_file_to_db
 # 
@@ -870,6 +903,20 @@ sub get_rulebase_names {
     $sth->finish;
     $dbh->disconnect;
     return $rulebases;
+}
+
+#  convert hash to comma separated string
+sub get_ruleset_name_list {
+	my $href_rulesetname = shift;
+	my $result = '';
+	
+	while ( (my $key, my $value) = each %{$href_rulesetname}) {
+        $result .= $value->{'dev_rulebase'} . ',';
+    }
+    if ($result =~ /^(.+?)\,$/) {   # stripping off last comma
+    	return $1;
+    }
+    return $result;
 }
 
 # falls LDAP vorhanden: Benutzer im LDAP nachschlagen und die Tenant-Zuordnung machen

@@ -1,22 +1,22 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FWO.ApiClient;
+using NUnit.Framework;
 
 namespace FWO.Test.Api
 {
-    [TestClass]
+    [TestFixture]
     public class ApiTest
     {
         APIConnection Connection;
 
-        [TestInitialize]
+        [SetUp]
         public void EtablishConnectionToServer()
         {
             //Connection = new APIConnection();
         }
 
-        [TestMethod]
+        [Test]
         public async Task QueryTestRules()
         {
             // Query syntax:

@@ -1,43 +1,45 @@
 ﻿using FWO.Ui.Filter;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace FWO.Test.Filter
 {
-    [TestClass]
+    [TestFixture]
     public class FilterTest
     {
-        [TestInitialize]
+        [SetUp]
         public void Initialize()
         {
 
         }
 
-        [TestMethod]
+        [Test]
         public void EmptySearch()
         {
             Compiler.Compile("");
         }
 
-        [TestMethod]
+        [Test]
         public void WhitespaceSearch()
         {
             Compiler.Compile("\t\n  \r  \t \n");
         }
 
-        [TestMethod]
+        [Test]
         public void TextOnlySearch()
         {
             Compiler.Compile("teststring");
         }
 
-        [TestMethod]
+        [Test]
         public void AndOr()
         {
             Compiler.Compile("((src=123) & (dst=234)) | (src = 123)");
         }
 
+        [Test]
         public void TripleOr()
         {
             Compiler.Compile("(src=cactus or dst=cactus or svc=smtps)");

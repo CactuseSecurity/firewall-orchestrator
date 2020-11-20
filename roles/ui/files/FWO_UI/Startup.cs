@@ -66,11 +66,9 @@ namespace FWO.Ui
             ConfigCollection configCollection = new ConfigCollection(jwt);
             services.AddSingleton<ConfigCollection>(_ => configCollection);
             
-            UserConfigCollection userConfig = new UserConfigCollection(configCollection);
-            services.AddScoped<UserConfigCollection>(_ => userConfig);
+            services.AddScoped<UserConfigCollection>(_ => new UserConfigCollection(configCollection));
 
-            DownloadManagerService downloadManagerService = new DownloadManagerService();
-            services.AddScoped<DownloadManagerService>(_ => downloadManagerService);
+            services.AddScoped<DownloadManagerService>(_ => new DownloadManagerService());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

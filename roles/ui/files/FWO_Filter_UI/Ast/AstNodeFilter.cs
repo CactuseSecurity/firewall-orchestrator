@@ -10,7 +10,31 @@ namespace FWO.Ui.Filter.Ast
         public TokenKind Operator { get; set; }
         public string Value { get; set; }
 
-        private string getFieldsAndParamName(ref List<string> ruleFieldNames, ref string devField, ref string mgmField, ref int paramCounter)
+        public override void Extract(ref DynGraphqlQuery query)
+        {
+            List<string> ruleFieldNames = new List<string>();
+            string operation = defineOperator();
+            string paramName = getFieldsAndParamName(ref ruleFieldNames, ref query.parameterCounter);
+            query.RuleWhereQuery += buildLocalQuery(ruleFieldNames, paramName, operation);
+
+            if (paramName != "active")
+            {
+                query.QueryVariables[paramName] = Value;
+                if (operation == "_ilike" || operation == "_nilike")  /// in case of like operators, add leading and trailing % to the variables
+                    query.QueryVariables[paramName] = $"%{query.QueryVariables[paramName]}%";
+            }
+
+            if (Name != TokenKind.Time)
+                query.QueryParameters.Add("$" + paramName + ": String! ");  // todo: also need to take of ip addresses and svc ports and protocols
+            else
+            {
+                if (paramName != "active")
+                    query.QueryParameters.Add("$" + paramName + ": timestamp ");
+            }
+            return;
+        }
+        
+        private string getFieldsAndParamName(ref List<string> ruleFieldNames, ref int paramCounter)
         {
             string paramName = "";
 
@@ -33,12 +57,12 @@ namespace FWO.Ui.Filter.Ast
                     paramName = "action" + paramCounter++;
                     break;
                 case TokenKind.Management:
-                    mgmField = "mgm_name";
-                    paramName = "mgm" + paramCounter++;
+                    ruleFieldNames.Add("management: {mgm_name");
+                    paramName = "mgmName" + paramCounter++;
                     break;
                 case TokenKind.Gateway:
-                    devField = "dev_name";
-                    paramName = "gw" + paramCounter++;
+                    ruleFieldNames.Add("device: {dev_name");
+                    paramName = "gwName" + paramCounter++;
                     break;
                 case TokenKind.Value:   // in case of missing operation, assume full text search across the following fields
                     ruleFieldNames.Add("rule_src");
@@ -65,31 +89,9 @@ namespace FWO.Ui.Filter.Ast
             }
             return paramName;
         }
-
-        public override void Extract(ref DynGraphqlQuery query)
+        private string buildLocalQuery(List<string> ruleFieldNames, string paramName, string operation)
         {
             string localQuery = "";
-            List<string> ruleFieldNames = new List<string>();
-            string devFieldName = "";
-            string mgmFieldName = "";
-            string operation;
-
-            string paramName = getFieldsAndParamName(ref ruleFieldNames, ref devFieldName, ref mgmFieldName, ref query.parameterCounter);
-
-            switch (Operator)
-            {
-                case TokenKind.EQ:
-                    if (Name == TokenKind.Time)
-                        operation = "_eq";
-                    else
-                        operation = "_ilike";
-                    break;
-                case TokenKind.NEQ:
-                    operation = "_nilike";
-                    break;
-                default:
-                    throw new Exception("### Parser Error: Expected Operator Token (and thought there is one) ###");
-            }
             if (ruleFieldNames.Count > 1)  // full search across all fields
             {
                 if (Name == TokenKind.Time)
@@ -118,36 +120,32 @@ namespace FWO.Ui.Filter.Ast
                     localQuery = " active: {_eq: true } ";
                 else
                 {
-                    if (Name != TokenKind.Management && Name != TokenKind.Gateway)
-                        localQuery = $" {ruleFieldNames[0]}: {{{operation}:${paramName}}} ";
+                    localQuery = $" {ruleFieldNames[0]}: {{{operation}:${paramName}}} ";
+                    if (Name == TokenKind.Management || Name == TokenKind.Gateway)
+                        localQuery += "}";  // these queries go one level deeper, need to add an extra closing bracket
                 }
             }
+            return localQuery;
+        }
 
-            /// in case of like operators, add leading and trailing %
-            if (paramName != "active")
+        private string defineOperator()
+        {
+            string operation = "";
+            switch (Operator)
             {
-                if (operation == "_ilike" || operation == "_nilike")
-                    query.QueryVariables[paramName] = $"%{Value}%";
-                else
-                    query.QueryVariables[paramName] = Value;
+                case TokenKind.EQ:
+                    if (Name == TokenKind.Time)
+                        operation = "_eq";
+                    else
+                        operation = "_ilike";
+                    break;
+                case TokenKind.NEQ:
+                    operation = "_nilike";
+                    break;
+                default:
+                    throw new Exception("### Parser Error: Expected Operator Token (and thought there is one) ###");
             }
-
-            query.WhereQueryPart += localQuery;
-
-            if (devFieldName != "")  // filter for device name set
-                query.DeviceQueryPart = $" dev_name: {{{operation}:${paramName}}} ";
-
-            if (mgmFieldName != "")  // filter for management name set
-                query.ManagementQueryPart = $" mgm_name: {{{operation}:${paramName}}} ";
-
-            if (Name != TokenKind.Time)
-                query.QueryParameters.Add("$" + paramName + ": String! ");  // todo: also need to take of ip addresses and svc ports and protocols
-            else
-            {
-                if (paramName != "active")
-                    query.QueryParameters.Add("$" + paramName + ": timestamp ");
-            }
-            return;
+            return operation;
         }
     }
 }

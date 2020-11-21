@@ -17,7 +17,7 @@ namespace FWO.Ui.Filter.Ast
                 case TokenKind.And: // and is the default operator
                     break;
                 case TokenKind.Or:
-                    query.WhereQueryPart += "_or: [{"; // or terms need to be enclosed in []
+                    query.RuleWhereQuery += "_or: [{"; // or terms need to be enclosed in []
                     break;
                 default:
                     throw new Exception("Expected Filtername Token (and thought there is one)");
@@ -26,12 +26,12 @@ namespace FWO.Ui.Filter.Ast
             Left.Extract(ref query);
 
             if (ConnectorType == TokenKind.Or)
-                query.WhereQueryPart += "}, {";
+                query.RuleWhereQuery += "}, {";
 
             Right.Extract(ref query);
 
             if (ConnectorType == TokenKind.Or)
-                query.WhereQueryPart += "}] ";
+                query.RuleWhereQuery += "}] ";
             return;
         }
     }

@@ -19,15 +19,19 @@
                         @if (context.Type.Name == "group")
                         {
                             <Detail Title="Group Members">
-                                @foreach (string member in context.ObjectGroups.Select(objgrp => objgrp.Object.Name))
+                                @foreach (Group<NetworkObject> member in context.ObjectGroups)
                                 {
-                                    @("• " + member)<br />
+                                    @($"• ({member.Object.Type.Name}) {member.Object.Name}")<br />
                                 }
                             </Detail>
                             <Detail Title="Group Members (flattened)">
-                                @foreach (string member in context.ObjectGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))
+                                @{ List<int> shownMemberIds = new List<int>(); }
+                                @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
                                 {
-                                    @("• " + member)<br />
+                                    if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                        continue;
+                                    shownMemberIds.Add(member.Object.Id);
+                                    @($"• ({member.Object.Type.Name}) {member.Object.Name}")<br />
                                 }
                             </Detail>
                         }
@@ -50,15 +54,18 @@
                         @if (context.Type.Name == "group")
                         {
                             <Detail Title="Group Members">
-                                @foreach (string member in context.ServiceGroups.Select(objgrp => objgrp.Object.Name))
+                                @foreach (Group<NetworkService> member in context.ServiceGroups)
                                 {
-                                    @("• " + member)<br />
+                                    @($"• ({member.Object.Type.Name}) {member.Object.Name}")<br />
                                 }
                             </Detail>
                             <Detail Title="Group Members (flattened)">
-                                @foreach (string member in context.ServiceGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))
+                                @{ List<int> shownMemberIds = new List<int>(); }
+                                @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
                                 {
-                                    @("• " + member)<br />
+                                    if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                        continue;
+                                    shownMemberIds.Add(member.Object.Id);
                                 }
                             </Detail>
                         }
@@ -77,15 +84,18 @@
                         @if (context.Type.Name == "group")
                         {
                             <Detail Title="Group Members">
-                                @foreach (string member in context.UserGroups.Select(objgrp => objgrp.Object.Name))
+                                @foreach (Group<NetworkUser> member in context.UserGroups)
                                 {
-                                    @("• " + member)<br />
+                                    @($"• ({member.Object.Type.Name}) {member.Object.Name}")<br />
                                 }
                             </Detail>
                             <Detail Title="Group Members (flattened)">
-                                @foreach (string member in context.UserGroupFlats.Select(objgrpflat => objgrpflat.Object.Name))
+                                @{ List<string> shownMemberIds = new List<string>(); }
+                                @foreach (GroupFlat<NetworkUser> member in context.UserGroupFlats)
                                 {
-                                    @("• " + member)<br />
+                                    if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                        continue;
+                                    shownMemberIds.Add(member.Object.Id);
                                 }
                             </Detail>
                         }

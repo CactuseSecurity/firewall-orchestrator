@@ -29,7 +29,7 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("usr_typ_id")]
         public int TypeId { get; set; }
 
-        [JsonPropertyName("stm_usr_typ")]
+        [JsonPropertyName("type")]
         public NetworkUserType Type { get; set; }
 
         [JsonPropertyName("user_create")]

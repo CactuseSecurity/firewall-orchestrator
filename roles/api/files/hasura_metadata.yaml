@@ -558,15 +558,16 @@ tables:
         table:
           name: zone
           schema: public
+  object_relationships:
+  - name: management
+    using:
+      foreign_key_constraint_on: mgm_id
   select_permissions:
   - permission:
       columns:
       - control_id
       - start_time
       - stop_time
-      - config_name
-      - mgm_product
-      - mgm_version
       - is_initial_import
       - delimiter_group
       - delimiter_zone
@@ -586,9 +587,6 @@ tables:
       - control_id
       - start_time
       - stop_time
-      - config_name
-      - mgm_product
-      - mgm_version
       - is_initial_import
       - delimiter_group
       - delimiter_zone
@@ -717,6 +715,13 @@ tables:
         column: mgm_id
         table:
           name: device
+          schema: public
+  - name: import_controls
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table:
+          name: import_control
           schema: public
   - name: objects
     using:

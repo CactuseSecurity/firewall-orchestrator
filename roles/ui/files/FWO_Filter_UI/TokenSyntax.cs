@@ -52,7 +52,7 @@ namespace FWO.Ui.Filter
 
                 TokenKind.Gateway => new TokenSyntax
                 {
-                    WhiteSpaceRequiered = new string[] { "gateway", "gw", "firewall", "fw", "ep" },
+                    WhiteSpaceRequiered = new string[] { "gateway", "gw", "firewall", "fw", "dev" },
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 

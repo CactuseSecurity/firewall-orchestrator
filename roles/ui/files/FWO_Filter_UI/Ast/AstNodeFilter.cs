@@ -16,24 +16,31 @@ namespace FWO.Ui.Filter.Ast
             string operation = defineOperator();
             string paramName = getFieldsAndParamName(ref ruleFieldNames, ref query.parameterCounter);
             query.RuleWhereQuery += buildLocalQuery(ruleFieldNames, paramName, operation);
-
-            if (paramName != "active")
+            if (paramName != "active") // no need for a parameter if we just want the current config
             {
-                query.QueryVariables[paramName] = Value;
-                if (operation == "_ilike" || operation == "_nilike")  /// in case of like operators, add leading and trailing % to the variables
-                    query.QueryVariables[paramName] = $"%{query.QueryVariables[paramName]}%";
-            }
-
-            if (Name != TokenKind.Time)
-                query.QueryParameters.Add("$" + paramName + ": String! ");  // todo: also need to take of ip addresses and svc ports and protocols
-            else
-            {
-                if (paramName != "active")
-                    query.QueryParameters.Add("$" + paramName + ": timestamp ");
+                query.QueryParameters.Add(buildQueryParameter(paramName));
+                query.QueryVariables[paramName] = buildQueryVariable(operation);
             }
             return;
         }
-        
+        private string buildQueryVariable(string operation)
+        {
+                string queryVariable = Value;
+                if (operation == "_ilike" || operation == "_nilike")  /// in case of like operators, add leading and trailing % to the variables
+                    queryVariable = $"%{queryVariable}%";
+                return queryVariable;
+        }
+
+        private string buildQueryParameter(string paramName)
+        {
+            if (Name != TokenKind.Time)
+                return "$" + paramName + ": String! ";  // todo: also need to take of ip addresses and svc ports and protocols
+            else
+            {
+                return "$" + paramName + ": timestamp ";
+            }
+        }
+
         private string getFieldsAndParamName(ref List<string> ruleFieldNames, ref int paramCounter)
         {
             string paramName = "";
@@ -80,7 +87,8 @@ namespace FWO.Ui.Filter.Ast
                     else
                     {
                         ruleFieldNames.Add("import_control: { stop_time: {_lte: ");
-                        ruleFieldNames.Add("importControlByRuleLastSeen: { stop_time: {_gt:");
+                        ruleFieldNames.Add("importControlByRuleLastSeen: { stop_time: {_gte:");
+                        // TODO: missing case: if reportTime > last import, take the rules from the last successul import (max)
                         paramName = "reportTime";
                     }
                     break;
@@ -120,7 +128,7 @@ namespace FWO.Ui.Filter.Ast
                     localQuery = " active: {_eq: true } ";
                 else
                 {
-                    localQuery = $" {ruleFieldNames[0]}: {{{operation}:${paramName}}} ";
+                    localQuery = $" {ruleFieldNames[0]}: {{{operation}: ${paramName}}} ";
                     if (Name == TokenKind.Management || Name == TokenKind.Gateway)
                         localQuery += "}";  // these queries go one level deeper, need to add an extra closing bracket
                 }

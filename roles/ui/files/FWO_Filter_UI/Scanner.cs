@@ -58,45 +58,32 @@ namespace FWO.Ui.Filter
             // Token kind
             TokenKind tokenKind = TokenKind.Value;
 
-            // Detect Keywordss
-            bool detectKeywords = true;
-
             while (IsWhitespaceOrEnd(position) == false)
-            { 
+            {             
                 switch (input[position])
                 {
                     case '\\':
-                        tokenText += HandleEscapeSequence(input[position]);
-                        position++;
+                        tokenText += ScanEscapeSequence();
                         break;
 
                     case '\'':
                     case '\"':
-                        detectKeywords = !detectKeywords;
-                        position++;
-                        break;
-                }
-
-                if (IsWhitespaceOrEnd(position))
-                    break;
-
-                tokenText += input[position];
-
-                if (detectKeywords == true)
-                {
-                    bool surroundedByWhitespace = false;
-
-                    if (IsWhitespaceOrEnd(position + 1))
-                        surroundedByWhitespace = true;
-
-                    List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText, surroundedByWhitespace);
-
-                    if (newTokens.Count > 0)
-                    {
-                        tokens.AddRange(newTokens);
+                        tokens.Add(ScanQuoted(input[position]));
                         tokenBeginPosition = position + 1;
-                        tokenText = "";
-                    }
+                        break;
+
+                    default:
+                        tokenText += input[position];
+
+                        List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText, IsWhitespaceOrEnd(position + 1));
+
+                        if (newTokens.Count > 0)
+                        {
+                            tokens.AddRange(newTokens);
+                            tokenBeginPosition = position + 1;
+                            tokenText = "";
+                        }
+                        break;
                 }
 
                 position++;
@@ -104,44 +91,10 @@ namespace FWO.Ui.Filter
 
             if (tokenText != "")
             {
-                tokens.Add(new Token(tokenBeginPosition, tokenText, tokenKind));
+                tokens.Add(new Token(tokenBeginPosition..^(position-1), tokenText, tokenKind));
             }
 
             return tokens;
-        }
-
-        private char HandleEscapeSequence(char characterCode)
-        {
-            position++;
-
-            if (IsWhitespaceOrEnd(position))
-            {
-                throw new SyntaxException("Expected escape sequence got whitespace or end.", (position-1)..^(position - 1));
-            }
-
-            switch (characterCode)
-            {
-                // Marks \ " ' as non keywords
-                case '\\':
-                case '\"':
-                case '\'':
-                    return characterCode;
-
-                // tab
-                case 't':
-                    return '\t';
-
-                // new line
-                case 'n':
-                    return '\n';
-                
-                // carriage return
-                case 'r':
-                    return '\r';
-
-                default:
-                    throw new SyntaxException($"Escape Sequence \"\\{characterCode}\" is unknown.", (position-1)..^position);
-            }
         }
 
         private List<Token> TryExtractToken(int beginPosition, string potentialToken, bool surroundedByWhitespace = false)
@@ -158,7 +111,7 @@ namespace FWO.Ui.Filter
                     {
                         if (potentialToken == validToken)
                         {
-                            tokens.Add(new Token(beginPosition, potentialToken, tokenKind));
+                            tokens.Add(new Token(beginPosition..^position, potentialToken, tokenKind));
                             return tokens;
                         }
                     }
@@ -173,12 +126,12 @@ namespace FWO.Ui.Filter
                             List<Token> potentialTokens = TryExtractToken(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), true);
                             if (potentialTokens.Count == 0)
                             {
-                                potentialTokens.Add(new Token(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
+                                potentialTokens.Add(new Token(beginPosition..^(beginPosition + potentialToken.Length - validToken.Length), potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
                             }
                             tokens.AddRange(potentialTokens);
                         }
 
-                        tokens.Add(new Token(beginPosition + potentialToken.Length - validToken.Length, validToken, tokenKind));
+                        tokens.Add(new Token((beginPosition + potentialToken.Length - validToken.Length)..^position, validToken, tokenKind));
 
                         return tokens;
                     }
@@ -186,6 +139,62 @@ namespace FWO.Ui.Filter
             }
 
             return tokens;
+        }
+
+        private Token ScanQuoted(char quoteChar)
+        {
+            int tokenBeginPosition = position;
+            string tokenText = "";
+
+            position++;
+
+            while (position < input.Length)
+            {
+                if (input[position] == '\\')
+                {
+                    tokenText += ScanEscapeSequence();
+                    position++;
+                }
+
+                else if (input[position] == quoteChar)
+                {
+                    return new Token(tokenBeginPosition..^(position), tokenText, TokenKind.Value);
+                }
+
+                else
+                {
+                    tokenText += input[position];
+                    position++;
+                }
+            }
+
+            throw new SyntaxException($"Expected {quoteChar} got end.", (tokenBeginPosition)..^(position-1));
+        }
+
+        private char ScanEscapeSequence()
+        {
+            position++;
+
+            if (IsWhitespaceOrEnd(position))
+            {
+                throw new SyntaxException("Expected escape sequence got whitespace or end.", (position - 1)..^(position - 1));
+            }
+
+            char characterCode = input[position];
+
+            return characterCode switch
+            {
+                // Marks \ " ' as non keywords
+                '\\' or '\"' or '\'' => characterCode,
+                // tab
+                't' => '\t',
+                // new line
+                'n' => '\n',                 
+                // carriage return
+                'r' => '\r',
+                // default case
+                _ => throw new SyntaxException($"Escape Sequence \"\\{characterCode}\" is unknown.", (position - 1)..^position),
+            };
         }
     }
 }

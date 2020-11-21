@@ -568,6 +568,9 @@ tables:
       - control_id
       - start_time
       - stop_time
+      - config_name
+      - mgm_product
+      - mgm_version
       - is_initial_import
       - delimiter_group
       - delimiter_zone
@@ -587,6 +590,9 @@ tables:
       - control_id
       - start_time
       - stop_time
+      - config_name
+      - mgm_product
+      - mgm_version
       - is_initial_import
       - delimiter_group
       - delimiter_zone
@@ -601,35 +607,156 @@ tables:
   table:
     name: import_control
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - obj_id
+      - obj_zone
+      - obj_name
+      - obj_typ
+      - obj_member_names
+      - obj_member_refs
+      - obj_member_excludes
+      - obj_sw
+      - obj_ip
+      - obj_ip_end
+      - obj_color
+      - obj_comment
+      - obj_location
+      - control_id
+      - obj_uid
+      - last_change_admin
+      - last_change_time
+      - obj_scope
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
   table:
     name: import_object
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - control_id
+      - rule_id
+      - rulebase_name
+      - rule_num
+      - rule_uid
+      - rule_ruleid
+      - rule_name
+      - rule_sysid
+      - rule_disabled
+      - rule_src_neg
+      - rule_dst_neg
+      - rule_svc_neg
+      - rule_implied
+      - rule_src
+      - rule_dst
+      - rule_from_zone
+      - rule_to_zone
+      - rule_svc
+      - rule_action
+      - rule_track
+      - rule_installon
+      - rule_time
+      - rule_comment
+      - rule_head_text
+      - last_change_admin
+      - last_change_time
+      - rule_scope
+      - rule_src_refs
+      - rule_dst_refs
+      - rule_svc_refs
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
   table:
     name: import_rule
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      check: {}
+      columns:
+      - svc_id
+      - control_id
+      - svc_typ
+      - svc_name
+      - svc_comment
+      - svc_color
+      - ip_proto
+      - svc_prod_specific
+      - rpc_nr
+      - svc_uid
+      - svc_port
+      - svc_port_end
+      - svc_source_port
+      - svc_source_port_end
+      - svc_timeout_std
+      - svc_timeout
+      - svc_member_names
+      - svc_member_refs
+      - last_change_admin
+      - last_change_time
+      - svc_scope
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
   table:
     name: import_service
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - user_id
+      - control_id
+      - user_color
+      - user_name
+      - user_typ
+      - user_comment
+      - user_authmethod
+      - user_valid_from
+      - user_valid_until
+      - user_member_names
+      - user_member_refs
+      - user_uid
+      - user_firstname
+      - user_lastname
+      - src_restrict
+      - dst_restrict
+      - time_restrict
+      - last_change_admin
+      - last_change_time
+      - user_scope
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
   table:
     name: import_user
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - control_id
+      - zone_name
+      - last_change_time
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id

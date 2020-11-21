@@ -78,8 +78,8 @@
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
                class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" />
         <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
-             class="form-control position-absolute" spellcheck="false">
-            @filterFeedback
+             class="form-control position-absolute whitespace-div" spellcheck="false">
+            <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
         </div>
     </form>
 
@@ -192,7 +192,9 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private MarkupString filterFeedback = new MarkupString("");
+    private string filterFeedbackStart = "";
+    private string filterFeedbackError = "";
+    private string filterFeedbackEnd = "";
     private string filterInput = "";
 
     [CascadingParameter]
@@ -298,10 +300,12 @@
         try
         {
             filterInput = changeArgs.Value.ToString();
-            filterFeedback = new MarkupString(filterInput);
 
-            if (filterInput != "")
-                query = Compiler.Compile(filterInput);
+            query = Compiler.Compile(filterInput);
+
+            filterFeedbackStart = filterInput;
+            filterFeedbackError = "";
+            filterFeedbackEnd = "";
         }
         catch (FilterException filterError)
         {
@@ -309,11 +313,9 @@
             int errorEnd = filterError.ErrorPosition.End.Value;
 
             // TODO: RESTRUCTURE (current structure only for debug purpose)
-            string t0 = $"{filterInput.Substring(0, errorStart)}";
-            string t1 = $"<span class=\"error-underline\">{filterInput.Substring(errorStart, errorEnd + 1 - errorStart)}</span>";
-            string t2 = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
-
-            filterFeedback = new MarkupString(t0 + t1 + t2);
+            filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
+            filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
+            filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
         }
         catch (Exception unexpectedError)
         {

@@ -32,6 +32,7 @@ Alter table "device" add  foreign key ("mgm_id") references "management" ("mgm_i
 Alter table "device" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "error_log" add  foreign key ("error_id") references "error" ("error_id") on update restrict on delete cascade;
 Alter table "import_changelog" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "import_control" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "import_object" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "import_rule" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "import_service" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;

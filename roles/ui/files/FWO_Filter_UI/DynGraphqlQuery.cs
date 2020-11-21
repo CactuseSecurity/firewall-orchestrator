@@ -21,12 +21,9 @@ namespace FWO.Ui.Filter
     public class DynGraphqlQuery
     {
         public int parameterCounter = 0;
-        public string queryDeviceHeader { get; }
         public Dictionary<string, object> QueryVariables { get; set; } = new Dictionary<string, object>();
         public string FullQuery { get; set; } = "";
         public string RuleWhereQuery { get; set; } = "";
-        public string ManagementQueryPart { get; set; } = "";
-        public string DeviceQueryPart { get; set; } = "";
         public List<string> QueryParameters { get; set; } = new List<string>()
         {
             " $limit: Int ",

@@ -43,49 +43,49 @@
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         line: log_destination = 'syslog'
-        regexp: "\s*log_destination"
+        regexp: '\s*log_destination'
         backup: yes
 
     - name: edit postgresql.conf client_min_messages
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         line: client_min_messages = log
-        regexp: "\s*client_min_messages"
+        regexp: '\s*client_min_messages'
         backup: yes
           
     - name: edit postgresql.conf log_min_messages
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         line: log_min_messages = WARNING
-        regexp: "\s*log_min_messages"
+        regexp: '\s*log_min_messages'
         backup: yes
           
     - name: edit postgresql.conf application_name
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         line: application_name = {{ product_name }}-database
-        regexp: "\s*application_name"
+        regexp: '\s*application_name'
         backup: yes
 
     - name: edit postgresql.conf log_error_verbosity
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         line: log_error_verbosity = DEFAULT
-        regexp: "\s*log_error_verbosity"
+        regexp: '\s*log_error_verbosity'
         backup: yes
 
     - name: edit postgresql.conf log_min_error_statement
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         line: log_min_error_statement = DEBUG2
-        regexp: "\s*log_min_error_statement"
+        regexp: '\s*log_min_error_statement'
         backup: yes
 
     - name: edit postgresql.conf log_line_prefix
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
         line: log_line_prefix = '%d '
-        regexp: "\s*log_line_prefix"
+        regexp: '\s*log_line_prefix'
         backup: yes
 
     - name: edit pg_hba.conf

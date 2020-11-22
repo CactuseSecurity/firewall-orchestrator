@@ -1200,6 +1200,90 @@ tables:
   table:
     name: report
     schema: public
+- delete_permissions:
+  - permission:
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
+  insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_schedule_id
+      - report_template_id
+      - report_schedule_owner
+      - report_schedule_start_time
+    role: reporter
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+    role: reporter-viewall
+  object_relationships:
+  - name: report_template
+    using:
+      foreign_key_constraint_on: report_template_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: report_schedule_owner
+  select_permissions:
+  - permission:
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
+  table:
+    name: report_schedule
+    schema: public
+  update_permissions:
+  - permission:
+      check: null
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      check: null
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
 - array_relationships:
   - name: reports
     using:
@@ -1207,6 +1291,13 @@ tables:
         column: report_template_id
         table:
           name: report
+          schema: public
+  - name: report_schedules
+    using:
+      foreign_key_constraint_on:
+        column: report_template_id
+        table:
+          name: report_schedule
           schema: public
   - name: report_template_viewable_by_tenants
     using:
@@ -2468,6 +2559,13 @@ tables:
         column: last_change_admin
         table:
           name: object
+          schema: public
+  - name: report_schedules
+    using:
+      foreign_key_constraint_on:
+        column: report_schedule_owner
+        table:
+          name: report_schedule
           schema: public
   - name: report_template_viewable_by_users
     using:

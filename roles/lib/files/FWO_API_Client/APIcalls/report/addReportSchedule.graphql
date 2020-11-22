@@ -1,0 +1,22 @@
+mutation addReportSchedule(
+  $report_template_id: Int!
+  $report_schedule_owner: Int!
+  $report_schedule_start_time: timestamp!
+  $report_schedule_repeat: Int # 0 do not repeat, 2 daily, 2 weekly, 3 monthly, 4 yearly
+  $report_schedule_every: Int # every x days/weeks/months/years
+
+) {
+  insert_report_schedule(
+    objects: {
+      report_template_id: $report_template_id
+      report_schedule_owner: $report_schedule_owner
+      report_schedule_start_time: $report_schedule_start_time
+      report_schedule_repeat: $report_schedule_repeat
+      report_schedule_every: $report_schedule_every
+    }
+  ) {
+    returning {
+      report_schedule_id
+    }
+  }
+}

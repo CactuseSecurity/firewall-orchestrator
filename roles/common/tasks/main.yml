@@ -109,7 +109,8 @@
         local6.=info                   /var/log/{{ product_name }}/login_info.log
         local6.debug                   /var/log/{{ product_name }}/debug.log
         :msg, startwith, "Audit"  /var/log/{{ product_name }}/audit.log
-        :programname, isequal, "postgres-{{ product_name }}" /var/log/{{ product_name }}/database.log
+        #:programname, isequal, "postgres-{{ product_name }}" /var/log/{{ product_name }}/database.log
+        :programname, isequal, "{{ product_name }}-database" /var/log/{{ product_name }}/database.log
         :programname, isequal, "{{ auth_server_syslog_id }}" /var/log/{{ product_name }}/auth.log
         :programname, isequal, "{{ ui_syslog_id }}" /var/log/{{ product_name }}/ui.log
         :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log

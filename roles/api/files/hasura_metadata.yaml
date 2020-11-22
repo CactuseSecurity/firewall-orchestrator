@@ -568,9 +568,6 @@ tables:
       - control_id
       - start_time
       - stop_time
-      - config_name
-      - mgm_product
-      - mgm_version
       - is_initial_import
       - delimiter_group
       - delimiter_zone
@@ -590,9 +587,6 @@ tables:
       - control_id
       - start_time
       - stop_time
-      - config_name
-      - mgm_product
-      - mgm_version
       - is_initial_import
       - delimiter_group
       - delimiter_zone

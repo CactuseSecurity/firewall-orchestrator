@@ -1,40 +1,48 @@
 ﻿using FWO.Ui.Filter;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace FWO.Test.Filter
 {
-    [TestClass]
+    [TestFixture]
     public class FilterTest
     {
-        string input = "";
-
-        [TestInitialize]
+        [SetUp]
         public void Initialize()
         {
 
         }
 
-        [TestMethod]
+        [Test]
+        public void EmptySearch()
+        {
+            Compiler.Compile("");
+        }
+
+        [Test]
+        public void WhitespaceSearch()
+        {
+            Compiler.Compile("\t\n  \r  \t \n");
+        }
+
+        [Test]
         public void TextOnlySearch()
         {
-            input = "teststring";
-            Compiler.Compile(input);
+            Compiler.Compile("teststring");
         }
 
-        [TestMethod]
+        [Test]
         public void AndOr()
         {
-            input = "((src=123) & (dst=234)) | (src = 123)";
-            Compiler.Compile(input);
+            Compiler.Compile("((src=123) & (dst=234)) | (src = 123)");
         }
 
+        [Test]
         public void TripleOr()
         {
-            input = "(src=cactus or dst=cactus or svc=smtps)";
-            Compiler.Compile(input);
+            Compiler.Compile("(src=cactus or dst=cactus or svc=smtps)");
         }
         
     }

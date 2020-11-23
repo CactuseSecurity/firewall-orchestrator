@@ -40,8 +40,13 @@
         mode: "0644"
         owner: "root"
 
+#    - name: make auth service run at host startup
+#      command: "systemctl enable {{ auth_service_name }}"
+
     - name: make auth service run at host startup
-      command: "systemctl enable {{ auth_service_name }}"
+      systemd:
+        name: "{{ auth_service_name }}"
+        enabled: yes
 
   become: yes
   environment: "{{ proxy_env }}"

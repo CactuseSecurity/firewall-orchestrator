@@ -15,9 +15,9 @@ namespace FWO.Ui.Filter
             return $"Text: \"{Text}\" Kind: \"{Kind}\"";
         }
 
-        public Token(int position, string text, TokenKind kind)
+        public Token(Range position, string text, TokenKind kind)
         {
-            Position = position..^(position + text.Length-1);
+            Position = position;
             Text = text;
             Kind = kind;
         }

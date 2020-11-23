@@ -1,13 +1,15 @@
 ﻿@using BlazorTable
 @using FWO.ApiConfig;
 @using FWO.ApiConfig.Data;
-@using FWO.Ui.Data
+@using FWO.Ui.Data.API
 @using FWO.ApiClient
+@using FWO.Ui.Services
 
 @page "/settings/personal"
 
 @inject ConfigCollection configCollection
 @inject UserConfigCollection userConfigCollection
+@inject APIConnection apiConnection
 
 <h3>Personal Settings</h3>
 <hr />
@@ -17,18 +19,32 @@
     <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedLanguage">
         @foreach (Language language in configCollection.uiLanguages)
         {
-            <option selected="@(userConfigCollection.CurrentLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
+            <option selected="@(selectedLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
         }
     </select>
-    <button class="btn btn-sm btn-success" @onclick="() => { userConfigCollection.ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
+    <button class="btn btn-sm btn-success" @onclick="() => { ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
 </form>
 
 @code
 {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    UiUsersDbAccess uiUser = new UiUsersDbAccess();
+
     string selectedLanguage;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        selectedLanguage = userConfigCollection.CurrentLanguage;
+        AuthenticationState authState = await authenticationStateTask;
+        await uiUser.getLanguage(authState, apiConnection);
+        selectedLanguage = ((uiUser.Language != "") ? uiUser.Language : userConfigCollection.CurrentLanguage);
+    }
+
+    private async Task ChangeLanguage(string language)
+    {
+        Log.WriteDebug("Change language", $"new language: {language}");
+        userConfigCollection.ChangeLanguage(language);
+        await uiUser.ChangeLanguage(language, apiConnection);
     }
 }

@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
-import checkpointR8x.common
-import checkpointR8x.getter
+import common, getter
 import requests, json, argparse, pdb
 import requests.packages.urllib3, time, logging, re, sys
 import os
@@ -25,7 +24,7 @@ parser.add_argument('-n', '--noapi', metavar='mode', default='false', help='if s
 args = parser.parse_args()
 api_host = args.apihost
 api_port = args.port
-config_filename = args.out
+config_filename = args.configfile
 api_password = args.password
 api_domain = args.domain
 proxy_string = { "http"  : args.proxy, "https" : args.proxy }
@@ -36,6 +35,11 @@ testmode = args.testing
 base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
 json_indent=2
 use_object_dictionary = 'false'
+svc_objects = []
+nw_objects = []
+nw_objs_from_obj_tables = []
+svc_objs_from_obj_tables = []
+
 #limit="25"
 
 # logging config
@@ -60,12 +64,6 @@ else:
     # todo: supplement error handling: redable file, etc
 
 starttime = int(time.time())
-logging.debug ("get_config_cp_r8x_api - starting in " + mode + " mode" )
-
-svc_objects = []
-nw_objects = []
-nw_objs_from_obj_tables = []
-svc_objs_from_obj_tables = []
 
 # read json config data
 with open(config_filename, "r") as json_data:
@@ -74,7 +72,9 @@ with open(config_filename, "r") as json_data:
 # get all object uids (together with type) from all rules in fields src, dst, svc
 for rulebase in config['rulebases']:
     #print ("\n\nsearching for all uids in rulebase: " + rulebase['layername'])
-    collect_uids_from_rulebase(rulebase, "top_level")
+    (nw_uids, svc_uids) = getter.collect_uids_from_rulebase(rulebase, "top_level")
+    nw_objects.extend(nw_uids)
+    svc_objects.extend(svc_uids)
 
 # remove duplicates from uid lists
 svc_objects = list(set(svc_objects))

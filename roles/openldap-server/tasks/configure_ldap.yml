@@ -12,6 +12,7 @@
     file:
       state: absent
       path: "{{ openldap_server_app_path }}/certs/"
+    when: generate_new_crypto == true
 
   - name: Create the directory for ldap certificates
     file: 
@@ -20,14 +21,12 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
-  #########################
   - name: Generate an OpenSSL private key
     openssl_privatekey:
       path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
       size: 1024
       #cipher: aes256
       type: RSA
-    when:
 
   - name: Generate an OpenSSL Certificate Signing Request with Subject information
     openssl_csr:
@@ -40,21 +39,23 @@
       #email_address: "{{ email_address }}"
       common_name: "{{ ansible_hostname }}"
 
-  - name: Create and sign the the new certificate 
-    command: "openssl req -new -x509 -subj '/C={{ openldap_server_country }}/ST={{ openldap_server_state }}/L={{ openldap_server_location }}/O={{ openldap_server_organization }}/CN={{ ansible_hostname }}/' -days 3650 -key my.key -out cert.crt -extensions v3_ca chdir={{ openldap_server_app_path }}/certs/"
-    args:
-      creates: "{{ openldap_server_app_path }}/certs/cert.crt"
+  - name: Generate a self signed OpenSSL Certificate
+    x509_certificate:
+      path: "{{ openldap_server_app_path }}/certs/openldap_cert.crt"
+      privatekey_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+      csr_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
+      provider: selfsigned
 
   - name: set permissions on key
     file: 
-      path: "{{ openldap_server_app_path }}/certs/my.key"
+      path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
       state: file
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
   - name: set permissions on cert
     file: 
-      path: "{{ openldap_server_app_path }}/certs/cert.crt"
+      path: "{{ openldap_server_app_path }}/certs/openldap_cert.crt"
       state: file
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"

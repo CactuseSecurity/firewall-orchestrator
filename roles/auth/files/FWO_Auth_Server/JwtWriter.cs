@@ -145,7 +145,7 @@ namespace FWO.Auth.Server
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
             claimsIdentity.AddClaim(new Claim("x-hasura-user-id", user.DbId.ToString()));
             if (user.Dn != null && user.Dn.Length > 0)
-                claimsIdentity.AddClaim(new Claim("UUID", user.Dn));   // UUID used for access to reports via API
+                claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
             if (user.Tenant != null)
             {
                 // Hasura needs object {} instead of array [] notation      (TODO: Changable?)

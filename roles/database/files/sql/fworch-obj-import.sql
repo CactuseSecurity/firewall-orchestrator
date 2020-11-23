@@ -157,6 +157,7 @@ BEGIN
     -- color_id holen (normalisiert ohne SPACES und in Kleinbuchstaben)
 	RAISE DEBUG 'processing import_nwobj_single 3';
     SELECT INTO i_farbe color_id FROM stm_color WHERE color_name = LOWER(remove_spaces(to_import.obj_color));
+	RAISE DEBUG 'processing import_nwobj_single 4';
     IF NOT FOUND THEN -- TODO: Fehlerbehandlung bzw. automat. Neuanlegen einer Farbe?
 		i_farbe := NULL;
 --       PERFORM error_handling('ERR_COLOR_MISS', to_import.obj_color);
@@ -171,6 +172,7 @@ BEGIN
 	    SELECT INTO existing_obj * FROM object
 		WHERE (obj_uid=to_import.obj_uid AND mgm_id=i_mgm_id AND (zone_id=zoneID OR (zone_id IS NULL AND zoneID IS NULL)) AND active);
 	END IF;
+	RAISE DEBUG 'processing import_nwobj_single 5';
 	IF FOUND THEN  -- object schon vorhanden
 		IF (NOT ( 
 			are_equal(existing_obj.obj_uid, to_import.obj_uid) AND
@@ -185,12 +187,12 @@ BEGIN
 			b_change := TRUE;
 			b_change_security_relevant := TRUE;
 		END IF;
-		IF (NOT( -- ab hier die nicht sicherheitsrelevanten Aenderungen
+		IF (NOT( -- from here on non-security relevant changes
 			are_equal(existing_obj.obj_comment, to_import.obj_comment) AND
 			are_equal(existing_obj.obj_color_id, i_farbe) AND
 			are_equal(existing_obj.obj_location, to_import.obj_location)
 		))
-		THEN -- object unveraendert
+		THEN -- object unchanged
 			b_change := TRUE;
 		END IF;
 		IF (b_change) THEN
@@ -212,7 +214,7 @@ BEGIN
     	   VALUES (i_mgm_id,to_import.obj_name,to_import.obj_ip,to_import.obj_ip_end,zoneID,i_typ,
                to_import.obj_comment,to_import.obj_member_names,to_import.obj_member_refs,to_import.obj_location,i_farbe,to_import.obj_uid,
                	i_admin_id, i_control_id, i_control_id);
-        
+		RAISE DEBUG '2 - nw_obj_single: %', to_import.obj_name;
         -- changelog-Eintrag
         SELECT INTO i_new_obj_id MAX(obj_id) FROM object WHERE mgm_id=i_mgm_id; -- ein bisschen fragwuerdig
 		IF (b_insert) THEN  -- das nw-objekt wurde neu angelegt
@@ -225,6 +227,7 @@ BEGIN
 			INSERT INTO changelog_object
 				(control_id,new_obj_id,old_obj_id,change_action,import_admin,documented,changelog_obj_comment,mgm_id,change_type_id)
 				VALUES (i_control_id,i_new_obj_id,NULL,'I',i_admin_id,b_is_documented,t_outtext,i_mgm_id,i_change_type);
+			RAISE DEBUG '3 - nw_obj_single: %', to_import.obj_name;
 		ELSE -- change
 			IF (b_change_security_relevant) THEN
 				v_comment := NULL;
@@ -238,6 +241,7 @@ BEGIN
 				VALUES (i_control_id,i_new_obj_id,existing_obj.obj_id,'C',i_admin_id,b_is_documented,i_mgm_id,b_change_security_relevant,v_comment);
 			-- erst jetzt kann active beim alten object auf FALSE gesetzt werden
 			UPDATE object SET active = FALSE WHERE obj_id = existing_obj.obj_id; -- altes Objekt auf not active setzen
+			RAISE DEBUG '4 - nw_obj_single: %', to_import.obj_name;
 		END IF;
 	END IF;
     RETURN;

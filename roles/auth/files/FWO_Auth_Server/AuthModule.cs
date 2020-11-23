@@ -70,7 +70,7 @@ namespace FWO.Auth.Server
             listener.Start();
             Log.WriteInfo("Listener started", "Auth server http listener started.");
 
-            Task[] connections = new Task[maxConnectionsCount];
+            List<Task> connections = new List<Task>(maxConnectionsCount);
 
             // Handle maxConnectionsCount connections at the same time
             for (int i = 0; i < maxConnectionsCount; i++)
@@ -79,18 +79,19 @@ namespace FWO.Auth.Server
                 HttpListenerContext context = await listener.GetContextAsync();
 
                 // Handle incoming connection in new task.
-                connections[i] = Task.Run(() => HandleConnectionAsync(context));
+                connections.Add(Task.Run(() => HandleConnectionAsync(context)));
             }
 
             // Never stop listening to new incoming connections
             while (true)
             {
                 // Wait for connection to be finished (One)
-                int finishedTaskIndex = Task.WaitAny(connections.ToArray());
+                Task finishedTask = await Task.WhenAny(connections.ToArray());
+                connections.Remove(finishedTask);
 
                 // Add new incoming connection listener (One)
                 HttpListenerContext context = await listener.GetContextAsync();
-                connections[finishedTaskIndex] = Task.Run(() => HandleConnectionAsync(context));
+                connections.Add(Task.Run(() => HandleConnectionAsync(context)));
             }
         }
 

@@ -63,7 +63,7 @@
         </Footer>
     </PopUp>
 
-    <form class="form-inline m-1">
+    <div class="form-inline m-1">
         <div class="form-group mt-1 mb-1 mr-2">
             <label for="rulesPerDeviceHtml" class="mr-1">Load rules per fetch: </label>
             <input id="rulesPerDeviceHtml" type="number" class="form-control-sm" @bind="rulesPerFetch" />
@@ -72,12 +72,16 @@
             <label for="rulesPerPageHtml" class="mr-1">Show rules per page: </label>
             <input id="rulesPerPageHtml" type="number" class="form-control-sm" @bind="rulesPerPage" />
         </div>
-    </form>
-
-    <div class="mr-1 ml-1 position-relative">
-        <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off" class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" />
-        <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off" class="form-control position-absolute" spellcheck="false">@filterFeedback</div>
     </div>
+
+    <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateTestReport">
+        <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
+               class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" />
+        <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
+             class="form-control position-absolute whitespace-div" spellcheck="false">
+            <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
+        </div>
+    </form>
 
     <div class="card m-1 shadow">
         <div class="card-body">
@@ -188,7 +192,9 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private MarkupString filterFeedback = new MarkupString("");
+    private string filterFeedbackStart = "";
+    private string filterFeedbackError = "";
+    private string filterFeedbackEnd = "";
     private string filterInput = "";
 
     [CascadingParameter]
@@ -294,10 +300,12 @@
         try
         {
             filterInput = changeArgs.Value.ToString();
-            filterFeedback = new MarkupString(filterInput);
 
-            if (filterInput != "")
-                query = Compiler.Compile(filterInput);
+            query = Compiler.Compile(filterInput);
+
+            filterFeedbackStart = filterInput;
+            filterFeedbackError = "";
+            filterFeedbackEnd = "";
         }
         catch (FilterException filterError)
         {
@@ -305,11 +313,9 @@
             int errorEnd = filterError.ErrorPosition.End.Value;
 
             // TODO: RESTRUCTURE (current structure only for debug purpose)
-            string t0 = $"{filterInput.Substring(0, errorStart)}";
-            string t1 = $"<span class=\"error-underline\">{filterInput.Substring(errorStart, errorEnd + 1 - errorStart)}</span>";
-            string t2 = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
-
-            filterFeedback = new MarkupString(t0 + t1 + t2);
+            filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
+            filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
+            filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
         }
         catch (Exception unexpectedError)
         {

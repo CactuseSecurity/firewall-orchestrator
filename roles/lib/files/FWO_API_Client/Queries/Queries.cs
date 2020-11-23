@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FWO.Config;
-using GraphQL;
-using GraphQL.Types;
 
 
 namespace FWO.ApiClient.Queries

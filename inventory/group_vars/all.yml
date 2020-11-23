@@ -3,7 +3,7 @@
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
-product_version: "5.0"
+product_version: "5.0.1"
 
 # installation_mode options:
 #   new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
@@ -58,7 +58,7 @@ api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
-dotnet_version: "3.1"
+dotnet_version: "5.0"
 dotnet_mode: "Release"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"

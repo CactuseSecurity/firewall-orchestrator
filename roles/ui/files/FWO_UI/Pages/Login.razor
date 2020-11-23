@@ -1,16 +1,18 @@
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using System.Net
 @using FWO.Ui.Auth
 @using FWO.ApiClient
 @using FWO.Auth.Client
-@using System.Net
 @using FWO.ApiConfig
+@using FWO.Ui.Data.API
+@using FWO.Ui.Services
 
 @inject AuthClient AuthClient
-@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
-@inject IJSRuntime js
-@inject FWO.ApiConfig.UserConfigCollection userConfig
-@inject FWO.ApiConfig.ConfigCollection globalConfig
+@inject UserConfigCollection userConfig
+@inject ConfigCollection globalConfig
 
 @if (showLoginForm)
 {
@@ -20,7 +22,7 @@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
-                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="Username" @bind="Username" @bind:event="oninput" @onkeypress="ClearInputClass">
+                        <input type="text" class="form-control @InputClass" id="UsernameInput" placeholder="Username" @bind="Username" @bind:event="oninput" @onkeypress="ClearInputClass" @ref="usernameInput">
                     </div>
                     <div class="form-group">
                         <input type="password" class="form-control @InputClass" id="PasswordInput" placeholder="Password" @bind="Password" @bind:event="oninput" @onkeypress="ClearInputClass">
@@ -33,9 +35,9 @@
                     {
                         <div class="spinner-border text-primary align-self-center" role="status"></div>
                     }
-                    <label class="m-2">@errorMessage</label> 
+                    <label class="m-2">@errorMessage</label>
                 </form>
-            </div>          
+            </div>
         </div>
     </div>
 }
@@ -55,16 +57,23 @@
     private string InputClass = "";
 
     private string errorMessage = "";
+    
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    private ElementReference usernameInput;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             // This might be a reconnect. Check if there is a jwt in session storage.
-            string jwt = await sessionStorage.GetItemAsync<string>("jwt");
+            ProtectedBrowserStorageResult<string> jwtLoadRequest = await sessionStorage.GetAsync<string>("jwt");
 
-            if (jwt != null) // reconnect
+            if (jwtLoadRequest.Success) // reconnect
             {
+                string jwt = jwtLoadRequest.Value;
+
                 // Tell api connection to use jwt as authentication
                 ApiConnection.SetAuthHeader(jwt);
 
@@ -111,7 +120,7 @@
                 string jwt = apiAuthResponse.GetResult<string>("jwt");
 
                 // Save it in session storage.
-                await sessionStorage.SetItemAsync<string>("jwt", jwt);
+                await sessionStorage.SetAsync("jwt", jwt);
 
                 // Tell api connection to use jwt as authentication
                 ApiConnection.SetAuthHeader(jwt);
@@ -121,7 +130,12 @@
 
                 // overwrite userConfig with actual userData after login (does this work?)
                 //userConfig = new ApiConfig.UserConfigCollection();
-                userConfig.ChangeLanguage("English");
+
+                // currently we change the language for all active users because of central userConfig :-(
+                AuthenticationState authState = await authenticationStateTask;
+                UiUsersDbAccess uiUser = new UiUsersDbAccess();
+                await uiUser.getLanguage(authState, ApiConnection);
+                userConfig.ChangeLanguage((uiUser.Language != "") ? uiUser.Language : "English");
 
                 loginInProgress = false;
             }
@@ -131,6 +145,6 @@
     private async Task focusInput()
     {
         if (showLoginForm)
-            await js.InvokeVoidAsync("jsfunction.focusElement", "UsernameInput"); // focus userinput field
+            await usernameInput.FocusAsync();
     }
 }

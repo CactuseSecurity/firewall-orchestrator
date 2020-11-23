@@ -558,38 +558,199 @@ tables:
         table:
           name: zone
           schema: public
+  object_relationships:
+  - name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  select_permissions:
+  - permission:
+      columns:
+      - control_id
+      - start_time
+      - stop_time
+      - is_initial_import
+      - delimiter_group
+      - delimiter_zone
+      - delimiter_user
+      - delimiter_list
+      - mgm_id
+      - last_change_in_config
+      - successful_import
+      - import_errors
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - control_id
+      - start_time
+      - stop_time
+      - is_initial_import
+      - delimiter_group
+      - delimiter_zone
+      - delimiter_user
+      - delimiter_list
+      - mgm_id
+      - last_change_in_config
+      - successful_import
+      - import_errors
+      filter: {}
+    role: reporter-viewall
   table:
     name: import_control
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - obj_id
+      - obj_zone
+      - obj_name
+      - obj_typ
+      - obj_member_names
+      - obj_member_refs
+      - obj_member_excludes
+      - obj_sw
+      - obj_ip
+      - obj_ip_end
+      - obj_color
+      - obj_comment
+      - obj_location
+      - control_id
+      - obj_uid
+      - last_change_admin
+      - last_change_time
+      - obj_scope
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
   table:
     name: import_object
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - control_id
+      - rule_id
+      - rulebase_name
+      - rule_num
+      - rule_uid
+      - rule_ruleid
+      - rule_name
+      - rule_sysid
+      - rule_disabled
+      - rule_src_neg
+      - rule_dst_neg
+      - rule_svc_neg
+      - rule_implied
+      - rule_src
+      - rule_dst
+      - rule_from_zone
+      - rule_to_zone
+      - rule_svc
+      - rule_action
+      - rule_track
+      - rule_installon
+      - rule_time
+      - rule_comment
+      - rule_head_text
+      - last_change_admin
+      - last_change_time
+      - rule_scope
+      - rule_src_refs
+      - rule_dst_refs
+      - rule_svc_refs
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
   table:
     name: import_rule
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      check: {}
+      columns:
+      - svc_id
+      - control_id
+      - svc_typ
+      - svc_name
+      - svc_comment
+      - svc_color
+      - ip_proto
+      - svc_prod_specific
+      - rpc_nr
+      - svc_uid
+      - svc_port
+      - svc_port_end
+      - svc_source_port
+      - svc_source_port_end
+      - svc_timeout_std
+      - svc_timeout
+      - svc_member_names
+      - svc_member_refs
+      - last_change_admin
+      - last_change_time
+      - svc_scope
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
   table:
     name: import_service
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - user_id
+      - control_id
+      - user_color
+      - user_name
+      - user_typ
+      - user_comment
+      - user_authmethod
+      - user_valid_from
+      - user_valid_until
+      - user_member_names
+      - user_member_refs
+      - user_uid
+      - user_firstname
+      - user_lastname
+      - src_restrict
+      - dst_restrict
+      - time_restrict
+      - last_change_admin
+      - last_change_time
+      - user_scope
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
   table:
     name: import_user
     schema: public
-- object_relationships:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - control_id
+      - zone_name
+      - last_change_time
+    role: importer
+  object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: control_id
@@ -675,6 +836,13 @@ tables:
         column: mgm_id
         table:
           name: device
+          schema: public
+  - name: import_controls
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table:
+          name: import_control
           schema: public
   - name: objects
     using:
@@ -1032,6 +1200,90 @@ tables:
   table:
     name: report
     schema: public
+- delete_permissions:
+  - permission:
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
+  insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_schedule_id
+      - report_template_id
+      - report_schedule_owner
+      - report_schedule_start_time
+    role: reporter
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+    role: reporter-viewall
+  object_relationships:
+  - name: report_template
+    using:
+      foreign_key_constraint_on: report_template_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: report_schedule_owner
+  select_permissions:
+  - permission:
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
+  table:
+    name: report_schedule
+    schema: public
+  update_permissions:
+  - permission:
+      check: null
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      check: null
+      columns:
+      - report_schedule_owner
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
 - array_relationships:
   - name: reports
     using:
@@ -1039,6 +1291,13 @@ tables:
         column: report_template_id
         table:
           name: report
+          schema: public
+  - name: report_schedules
+    using:
+      foreign_key_constraint_on:
+        column: report_template_id
+        table:
+          name: report_schedule
           schema: public
   - name: report_template_viewable_by_tenants
     using:
@@ -2301,6 +2560,13 @@ tables:
         table:
           name: object
           schema: public
+  - name: report_schedules
+    using:
+      foreign_key_constraint_on:
+        column: report_schedule_owner
+        table:
+          name: report_schedule
+          schema: public
   - name: report_template_viewable_by_users
     using:
       foreign_key_constraint_on:
@@ -2375,6 +2641,46 @@ tables:
       - uiuser_pwd_history
       filter: {}
     role: auth-server
+  - permission:
+      columns:
+      - uiuser_id
+      - uiuser_username
+      - uuid
+      - uiuser_first_name
+      - uiuser_last_name
+      - uiuser_start_date
+      - uiuser_end_date
+      - uiuser_email
+      - tenant_id
+      - uiuser_language
+      - uiuser_password_must_be_changed
+      - uiuser_last_login
+      - uiuser_last_password_change
+      - uiuser_pwd_history
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
+    role: reporter
+  - permission:
+      columns:
+      - uiuser_password_must_be_changed
+      - uiuser_end_date
+      - uiuser_start_date
+      - tenant_id
+      - uiuser_id
+      - uiuser_pwd_history
+      - uiuser_last_login
+      - uiuser_last_password_change
+      - uiuser_email
+      - uiuser_first_name
+      - uiuser_language
+      - uiuser_last_name
+      - uiuser_username
+      - uuid
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
+    role: reporter-viewall
   table:
     name: uiuser
     schema: public
@@ -2398,6 +2704,22 @@ tables:
       - uuid
       filter: {}
     role: auth-server
+  - permission:
+      check: null
+      columns:
+      - uiuser_language
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
+    role: reporter
+  - permission:
+      check: null
+      columns:
+      - uiuser_language
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
+    role: reporter-viewall
 - object_relationships:
   - name: import_control
     using:

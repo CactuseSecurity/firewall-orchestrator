@@ -7,6 +7,7 @@
 @inject APIConnection apiConnection
 
 <h3 class="m-2">Gateways</h3>
+<hr />
 
 <button class="btn btn-success m-2" @onclick="Add">Add new gateway</button>
 
@@ -50,7 +51,7 @@
                 <div class="form-group row">
                     <label for="deviceComment" class="col-sm-3 col-form-label col-form-label-sm">Comment:</label>
                     <div class="col-sm-8">
-                        <textarea id="deviceComment" class="form-control form-control-sm" @bind="actDevice.Comment" />
+                        <input id="deviceComment" type="text" class="form-control form-control-sm" @bind="actDevice.Comment" />
                     </div>
                 </div>
                 <div class="form-group row">

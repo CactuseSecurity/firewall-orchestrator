@@ -1,37 +1,37 @@
 # this playbook sets up a connection to cactus test firewall sting
+- set_fact: importer_hostname="{{ ansible_hostname }}"          #  this only works for importer = backend
+
 - block:
-    - set_fact: importer_hostname="{{ ansible_hostname }}"          #  this only works for importer = backend
-
-    - name: create .pgpass file
-      lineinfile:
-        path: "{{ fworch_home }}/.pgpass"
-        create: yes
-        mode: "0600"
-        line: "{{ fworch_db_host }}:{{ fworch_db_port }}:{{ fworch_db_name }}:{{ fworch_dbadmin_name }}:{{ dbadmin_pwd }}"
-
-# todo: convert the following into a single \i file.sql command:
+    # todo: convert the following into a single \i file.sql command:
     - name: insert sting-mgmt
       postgresql_query:
         db: "{{ fworch_db_name }}"
-        query: "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM management WHERE mgm_id=3) THEN insert into management (mgm_id,dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_port,ssh_user,do_not_import,config_path,importer_hostname) VALUES (3,9,''sting-mgmt'',''{{ dbadmin_pwd }}'','''',''{{ sting_ip }}'',''{{ sting_port }}'',''{{ sting_fworch_user }}'',false, '''',''{{ importer_hostname }}'');  END IF; END $do$"
-      #command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM management WHERE mgm_id=3) THEN insert into management (mgm_id,dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_port,ssh_user,do_not_import,config_path,importer_hostname) VALUES (3,9,''sting-mgmt'',''{{ dbadmin_pwd }}'','''',''{{ sting_ip }}'',''{{ sting_port }}'',''{{ sting_fworch_user }}'',false, '''',''{{ importer_hostname }}'');  END IF; END $do$"'
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='sting-mgmt') THEN 
+          insert into management (dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_port,ssh_user,do_not_import,config_path,importer_hostname)
+          VALUES (9,'sting-mgmt','{{ dbadmin_pwd }}','','{{ sting_ip }}','{{ sting_port }}','{{ sting_fworch_user }}',false, '','{{ importer_hostname }}');
+          END IF; END $do$ 
 
     - name: insert sting-gw
       postgresql_query:
         db: "{{ fworch_db_name }}"
-        query: "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=3) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (3,3,''sting-gateway'',''cactus_Security_neu'',9); END IF; END $do$"
-      #command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=3) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (3,3,''sting-gateway'',''cactus_Security_neu'',9); END IF; END $do$"'
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='sting-gateway') THEN
+          insert into device (mgm_id,dev_name,dev_rulebase,dev_typ_id) 
+          VALUES ((SELECT mgm_id FROM management WHERE mgm_name='sting-mgmt'),'sting-gateway','cactus_Security_neu',9);
+          END IF; END $do$ 
 
     - name: insert layered test gw
       postgresql_query:
         db: "{{ fworch_db_name }}"
-        query: "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=4) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (4,3,''layered-test-gw'',''FirstLayer shared with inline layer'',9); END IF; END $do$"
-      #command: 'psql -h {{ fworch_db_host }} -U {{ fworch_dbadmin_name }} -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM device WHERE dev_id=4) THEN insert into device (dev_id,mgm_id,dev_name,dev_rulebase,dev_typ_id) VALUES (4,3,''layered-test-gw'',''FirstLayer shared with inline layer'',9); END IF; END $do$"'
-
-    - name: clean up .pgpass file
-      file:
-        path: "{{ fworch_home }}/.pgpass"
-        state: absent
+        query: >
+          DO $do$ BEGIN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='layered-test-gw') THEN 
+          insert into device (mgm_id,dev_name,dev_rulebase,dev_typ_id) 
+          VALUES ((SELECT mgm_id FROM management WHERE mgm_name='sting-mgmt'),'layered-test-gw','FirstLayer shared with inline layer',9);
+          END IF; END $do$ 
 
   become: yes
-  become_user: "{{ fworch_user }}"
+  become_user: postgres

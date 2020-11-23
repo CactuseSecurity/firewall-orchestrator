@@ -21,7 +21,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_FWO",
-            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/netcoreapp3.1/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/net5.0/FWO.Ui.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
             "stopAtEntry": false,
@@ -49,7 +49,7 @@
             "preLaunchTask": "build",
             "enableStepFiltering": false,
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/roles/auth/files/FWO_Auth_Server/bin/Debug/netcoreapp3.1/FWO.Auth.Server.dll",
+            "program": "${workspaceFolder}/roles/auth/files/FWO_Auth_Server/bin/Debug/net5.0/FWO.Auth.Server.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/auth/files/FWO_Auth_Server",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console

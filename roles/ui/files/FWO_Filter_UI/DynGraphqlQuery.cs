@@ -21,33 +21,24 @@ namespace FWO.Ui.Filter
     public class DynGraphqlQuery
     {
         public int parameterCounter = 0;
-        public string queryDeviceHeader { get; }
         public Dictionary<string, object> QueryVariables { get; set; } = new Dictionary<string, object>();
         public string FullQuery { get; set; } = "";
-        public string WhereQueryPart { get; set; } = "";
+        public string RuleWhereQuery { get; set; } = "";
         public List<string> QueryParameters { get; set; } = new List<string>()
         {
-            " $managementId: [Int!] ",
-            " $deviceId: [Int!] ",
             " $limit: Int ",
             " $offset: Int "
         };
-        public string TimeFilter { get; set; }
-
         private DynGraphqlQuery() { }
 
         public static DynGraphqlQuery Generate(AstNode ast)
         {
-            string timeFilter = "";
             string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
 
             DynGraphqlQuery query = new DynGraphqlQuery();
             ast.Extract(ref query);
 
-            //if (query.TimeFilter == "")
-            //    query.WhereQueryPart += ", active: { _eq: true } ";
-            //else
-            //    query.WhereQueryPart += $" {timeFilter} ";
+            // if any filter is set, optionally leave out all header texts
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
             query.FullQuery = $@"
@@ -55,22 +46,18 @@ namespace FWO.Ui.Filter
 
                 query ruleFilter ({paramString}) 
                 {{ 
-                    management(
-                        where: {{ mgm_id: {{ _in: $managementId }} }}
-                        order_by: {{ mgm_name: asc }} ) 
+                    management( order_by: {{ mgm_name: asc }} ) 
                         {{
                             id: mgm_id
                             name: mgm_name
-                            devices (
-                                where: {{ dev_id: {{ _in: $deviceId }} }}
-                                order_by: {{ dev_name: asc }} ) 
+                            devices ( order_by: {{ dev_name: asc }} ) 
                                 {{
                                     id: dev_id
                                     name: dev_name
                                     rules(
                                         limit: $limit 
                                         offset: $offset
-                                        where: {{ {query.WhereQueryPart} }} 
+                                        where: {{ {query.RuleWhereQuery} }} 
                                         order_by: {{ rule_num_numeric: asc }} )
                                         {{
                                             ...ruleOverview
@@ -78,11 +65,6 @@ namespace FWO.Ui.Filter
                                 }}
                         }} 
                 }}";
-
-            // remove linebreaks and multiple whitespaces
-            //query.FullQuery = Regex.Replace(query.FullQuery, "\n", " ");
-            //query.FullQuery = Regex.Replace(query.FullQuery, @"\s+", " ");
-
             return query;
         }
     }

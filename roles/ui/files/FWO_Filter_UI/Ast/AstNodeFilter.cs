@@ -35,17 +35,11 @@ namespace FWO.Ui.Filter.Ast
         private string buildQueryParameter(string paramName)
         {
             if (Name == TokenKind.DestinationPort)
-            {
                 return "$" + paramName + ": Int! ";
-            }
             else if (Name == TokenKind.Time)
-            {
                 return "$" + paramName + ": timestamp "; // not mandatory because of active filtering
-            }
             else
-            {
                 return "$" + paramName + ": String! ";
-            }
         }
 
         private string getFieldsAndParamName(out List<string> ruleFieldNames, ref int paramCounter, out int level)
@@ -56,27 +50,36 @@ namespace FWO.Ui.Filter.Ast
             switch (Name)
             {
                 case TokenKind.Source:
-                    ruleFieldNames.Add("rule_src");
+                    // ruleFieldNames.Add("rule_src");
+                    ruleFieldNames.Add("rule_froms: { object: { objgrp_flats: { objectByObjgrpFlatMemberId: { obj_name");
+                    level = 5;
                     paramName = "src" + paramCounter++;
                     break;
                 case TokenKind.Destination:
-                    ruleFieldNames.Add("rule_dst");
+                    //ruleFieldNames.Add("rule_dst");
+                    ruleFieldNames.Add("rule_tos: {object: {objgrp_flats: {objectByObjgrpFlatMemberId: {obj_name");
+                    level = 5;
                     paramName = "dst" + paramCounter++;
                     break;
                 case TokenKind.Service:
-                    ruleFieldNames.Add("rule_svc");
+                    // ruleFieldNames.Add("rule_svc");
+                    ruleFieldNames.Add("rule_services: {service: {svcgrp_flats: {serviceBySvcgrpFlatMemberId: {svc_name");
+                    level = 5;
                     paramName = "svc" + paramCounter++;
                     break;
                 case TokenKind.Protocol:
-                    ruleFieldNames.Add("rule_services: {service: {stm_ip_proto: {ip_proto_name:");
+                    ruleFieldNames.Add("rule_services: {service: {stm_ip_proto: {ip_proto_name");
                     paramName = "proto" + paramCounter++;
                     level = 4;
                     break;
                 case TokenKind.DestinationPort:
-                    ruleFieldNames.Add("rule_services: {service: {svc_port:{_lte:");
-                    ruleFieldNames.Add("svc_port_end:{_gte:");
+                    //  without searching into groups:
+                    //     ruleFieldNames.Add("rule_services: {service: {svc_port:{_lte:");
+                    //     level = 3;
+                    ruleFieldNames.Add(" rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte");
+                    level = 5;
+                    ruleFieldNames.Add("svc_port_end:{_gte");
                     paramName = "dport" + paramCounter++;
-                    level = 4;
                     break;
                 case TokenKind.Action:
                     ruleFieldNames.Add("rule_action");
@@ -109,8 +112,8 @@ namespace FWO.Ui.Filter.Ast
                     }
                     else
                     {
-                        ruleFieldNames.Add("import_control: { stop_time: {_lte: ");
-                        ruleFieldNames.Add("importControlByRuleLastSeen: { stop_time: {_gte:");
+                        ruleFieldNames.Add("import_control: { stop_time: {_lte");
+                        ruleFieldNames.Add("importControlByRuleLastSeen: { stop_time: {_gte");
                         // TODO: missing case: if reportTime > last import, take the rules from the last successul import (max)
                         paramName = "reportTime";
                         level = 2;
@@ -128,20 +131,18 @@ namespace FWO.Ui.Filter.Ast
             {
                 if (Name == TokenKind.Time)
                 {
-                    localQuery = ruleFieldNames[0] + "$" + paramName + "} }," + ruleFieldNames[1] + "$" + paramName + " } }";
+                    localQuery = ruleFieldNames[0] + ": $" + paramName + "} }," + ruleFieldNames[1] + "$" + paramName;
                 }
                 else if (Name == TokenKind.DestinationPort)
                 {
-                    localQuery = ruleFieldNames[0] + "$" + paramName + "}," + ruleFieldNames[1] + "$" + paramName + "}}}";
+                    localQuery = ruleFieldNames[0] + ": $" + paramName + "}," + ruleFieldNames[1] + "$" + paramName;
                 }
                 else if (Name == TokenKind.Value || Name == TokenKind.FullText)
                 {
                     localQuery = "_or: [";
                     List<string> searchParts = new List<string>();
                     foreach (string field in ruleFieldNames)
-                    {
-                        searchParts.Add($"{{{field}: {{{operation}:${paramName}}}}} ");
-                    }
+                        searchParts.Add($"{{{field}: {{{operation}:${paramName} }}}} ");
                     localQuery += string.Join(", ", searchParts);
                     localQuery += "]";
                 }
@@ -155,18 +156,15 @@ namespace FWO.Ui.Filter.Ast
                 if (Name == TokenKind.Time && paramName == "active")   // no real time parameter, settting search to "now"
                     localQuery = " active: {_eq: true }";
                 else if (Name == TokenKind.Protocol)
-                {
-                    localQuery += $"{ruleFieldNames[0]} {{ {operation}:${paramName} ";
-                }
+                    localQuery += $"{ruleFieldNames[0]}: {{ {operation}:${paramName} ";
                 else
-                {
                     localQuery = $" {ruleFieldNames[0]}: {{{operation}: ${paramName} ";
-                    // if (Name == TokenKind.Management || Name == TokenKind.Gateway)
-                    //     localQuery += "}";  // these queries go one level deeper, need to add an extra closing bracket
-                }
-                for (int i=0; i<level; ++i)
-                    localQuery += "}";
             }
+
+            // add closing brackets depending on query level
+            if (Name != TokenKind.Value && Name != TokenKind.FullText)  // due to or statement, we do not need closing brackets in these cases
+                for (int i = 0; i < level; ++i)
+                    localQuery += "}";
             return localQuery;
         }
 

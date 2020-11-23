@@ -40,7 +40,7 @@
       common_name: "{{ ansible_hostname }}"
 
   - name: Generate a self signed OpenSSL Certificate
-    x509_certificate:
+    openssl_certificate:
       path: "{{ openldap_server_app_path }}/certs/openldap_cert.crt"
       privatekey_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
       csr_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"

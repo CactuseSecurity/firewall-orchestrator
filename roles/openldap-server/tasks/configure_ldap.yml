@@ -8,6 +8,11 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
+  - name: delete the directory for ldap certificates
+    file:
+      state: absent
+      path: "{{ openldap_server_app_path }}/certs/"
+
   - name: Create the directory for ldap certificates
     file: 
       path: "{{ openldap_server_app_path }}/certs/"
@@ -15,15 +20,25 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
-  - name: Generate the private key for certificate request
-    command: "openssl genrsa -des3 -passout pass:password -out my1.key 1024 chdir={{ openldap_server_app_path }}/certs/"
-    args:
-      creates: "{{ openldap_server_app_path }}/certs/my1.key"
+  #########################
+  - name: Generate an OpenSSL private key
+    openssl_privatekey:
+      path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+      size: 1024
+      #cipher: aes256
+      type: RSA
+    when:
 
-  - name: Strip the passphrase from the key 
-    command: "openssl rsa -in my1.key -passin pass:password -out my.key chdir={{ openldap_server_app_path }}/certs/"
-    args:
-      creates: "{{ openldap_server_app_path }}/certs/my.key"
+  - name: Generate an OpenSSL Certificate Signing Request with Subject information
+    openssl_csr:
+      path: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
+      privatekey_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+      country_name: "{{ openldap_server_country }}"
+      state_or_province_name: "{{ openldap_server_state }}"
+      locality_name: "{{ openldap_server_location }}"
+      organization_name: "{{ openldap_server_organization }}"
+      #email_address: "{{ email_address }}"
+      common_name: "{{ ansible_hostname }}"
 
   - name: Create and sign the the new certificate 
     command: "openssl req -new -x509 -subj '/C={{ openldap_server_country }}/ST={{ openldap_server_state }}/L={{ openldap_server_location }}/O={{ openldap_server_organization }}/CN={{ ansible_hostname }}/' -days 3650 -key my.key -out cert.crt -extensions v3_ca chdir={{ openldap_server_app_path }}/certs/"

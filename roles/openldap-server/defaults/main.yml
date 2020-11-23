@@ -3,9 +3,6 @@
 #The domain prefix for ldap
 openldap_server_domain_name: fworch.internal
 
-#This creates a random password. Used for admin for openldap
-random_generated_pw: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
-
 #The self signed ssl parameters
 openldap_server_country: US
 openldap_server_state: oregon

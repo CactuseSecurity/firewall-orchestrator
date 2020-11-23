@@ -46,19 +46,37 @@ namespace FWO.Ui.Filter
 
                 TokenKind.Management => new TokenSyntax
                 {
-                    WhiteSpaceRequiered = new string[] { "management", "mgmt", "manager" },
+                    WhiteSpaceRequiered = new string[] { "management", "mgmt", "manager", "mgm", "mgr" },
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
                 TokenKind.Gateway => new TokenSyntax
                 {
-                    WhiteSpaceRequiered = new string[] { "gateway", "gw", "firewall", "fw" },
+                    WhiteSpaceRequiered = new string[] { "gateway", "gw", "firewall", "fw", "dev" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.FullText => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "fulltext", "full", "fulltextsearch", "fts", "text", "textsearch" },
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
                 TokenKind.Service => new TokenSyntax
                 {
                     WhiteSpaceRequiered = new string[] { "svc", "service", "srv" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.DestinationPort => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "port", "dport", "dst_port", "dst-port", "dest-port", "destination-port", "dest_port", "destination_port" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.Protocol => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "proto", "protocol" },
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 

@@ -1,0 +1,9 @@
+query getReportSchedules ($report_schedule_id: bigint) {
+  report_schedule (where: {report_schedule_id: {_eq: $report_schedule_id}}){
+    report_template_id
+    report_schedule_owner
+    report_schedule_start_time
+    report_schedule_repeat
+    report_schedule_every
+  }
+}

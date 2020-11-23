@@ -223,7 +223,10 @@ namespace FWO.Ui.Filter
 
         private TokenKind ParseFilterName()
         {
-            return CheckToken(TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Action, TokenKind.Gateway, TokenKind.Management).Kind;
+            return CheckToken(
+                TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol, 
+                TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
+                TokenKind.Management).Kind;
         }
 
         private Token CheckToken(params TokenKind[] Matches)

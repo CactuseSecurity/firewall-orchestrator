@@ -552,9 +552,6 @@ Create table "import_control"
 	"control_id" BIGSERIAL,
 	"start_time" Timestamp NOT NULL Default now(),
 	"stop_time" Timestamp,
-	"config_name" Text,
-	"mgm_product" Text,
-	"mgm_version" Text,
 	"is_initial_import" Boolean NOT NULL Default FALSE,
 	"delimiter_group" Varchar(3) NOT NULL Default '|',
 	"delimiter_zone" Varchar(3) Default '%',
@@ -877,6 +874,17 @@ Create table "report"
  primary key ("report_id")
 );
 
+Create table if not exists "report_schedule"
+(
+	"report_schedule_id" BIGSERIAL,
+	"report_template_id" Integer, --FK
+	"report_schedule_owner" Integer, --FK
+	"report_schedule_start_time" Timestamp NOT NULL,
+	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 2 daily, 2 weekly, 3 monthly, 4 yearly 
+	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years
+ primary key ("report_schedule_id")
+);
+
 Create table "stm_report_typ"
 (
 	"report_typ_id" SERIAL,
@@ -898,6 +906,8 @@ Create table "report_template_viewable_by_user"
 	"uiuser_id" Integer NOT NULL,
  primary key ("uiuser_id","report_template_id")
 );
+
+
 
 -- temp tables reporting -------------------------------------------
 

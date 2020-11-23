@@ -8,10 +8,13 @@ namespace FWO.Ui.Filter
         Source,
         Destination,
         Service,
+        Protocol,
+        DestinationPort,
         Action,
         Management,
         Gateway,
         Time,
+        FullText,
         BL, // (
         BR, // )
         And,

@@ -70,12 +70,7 @@ namespace FWO.Ui.Data.API
             {
                 if (devices[i].Id == devicesToMerge[i].Id)
                 {
-                    if (devices[i].Rules == null)
-                    {
-                        devices[i].Rules = devicesToMerge[i].Rules.ToArray();
-                        newObjects = true;
-                    }
-                    else if (devicesToMerge[i].Rules != null && devicesToMerge[i].Rules.Length > 0)
+                    if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules.Length > 0)
                     {
                         devices[i].Rules = devices[i].Rules.Concat(devicesToMerge[i].Rules).ToArray();
                         newObjects = true;

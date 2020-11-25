@@ -106,52 +106,35 @@ namespace FWO.Ui.Data.API
         public static bool Merge(this Management[] managements, Management[] managementsToMerge)
         {
             bool newObjects = false;
-            try
+
+            for (int i = 0; i < managementsToMerge.Length; i++)
             {
-                // if this is the first time we fetch rules, define managements array
-                if (managements.Length == 0)
-                    managements = new Management[managementsToMerge.Length];
-
-                for (int i = 0; i < managementsToMerge.Length; i++)
+                if (managements[i].Objects != null && managementsToMerge[i].Objects != null && managementsToMerge[i].Objects.Length > 0)
                 {
-                    if (managementsToMerge[i].Objects != null && managementsToMerge[i].Objects.Length > 0)
-                    {
-                        if (managements[i].Objects != null)
-                            managements[i].Objects = managements[i].Objects.Concat(managementsToMerge[i].Objects).ToArray();
-                        else
-                            managements[i].Objects = managementsToMerge[i].Objects.ToArray();
-                        newObjects = true;
-                    }
+                    managements[i].Objects = managements[i].Objects.Concat(managementsToMerge[i].Objects).ToArray();
+                    newObjects = true;
+                }
 
-                    if (managementsToMerge[i].Services != null && managementsToMerge[i].Services.Length > 0)
-                    {
-                        if (managements[i].Services != null)
-                            managements[i].Services = managements[i].Services.Concat(managementsToMerge[i].Services).ToArray();
-                        else
-                            managements[i].Services = managementsToMerge[i].Services.ToArray();
-                        newObjects = true;
-                    }
+                if (managements[i].Services != null && managementsToMerge[i].Services != null && managementsToMerge[i].Services.Length > 0)
+                {
+                    managements[i].Services = managements[i].Services.Concat(managementsToMerge[i].Services).ToArray();
+                    newObjects = true;
+                }
 
-                    if (managementsToMerge[i].Users != null && managementsToMerge[i].Users.Length > 0)
-                    {
-                        if (managements[i].Users != null)
-                            managements[i].Users = managements[i].Users.Concat(managementsToMerge[i].Users).ToArray();
-                        else
-                            managements[i].Users = managementsToMerge[i].Users.ToArray();
-                        newObjects = true;
-                    }
+                if (managements[i].Users != null && managementsToMerge[i].Users != null && managementsToMerge[i].Users.Length > 0)
+                {
+                    managements[i].Users = managements[i].Users.Concat(managementsToMerge[i].Users).ToArray();
+                    newObjects = true;
+                }
 
-                    if (managementsToMerge[i].Devices != null && managementsToMerge[i].Devices.Length > 0)
-                    {
-                        if (managements[i].Devices != null)
-                            newObjects = newObjects || managements[i].Devices.Merge(managementsToMerge[i].Devices);
-                    }
+                if (managements[i].Devices != null && managementsToMerge[i].Devices != null && managementsToMerge[i].Devices.Length > 0)
+                {
+                    // important: if any management still returns rules, newObjects is set to true
+                    if(managements[i].Devices.Merge(managementsToMerge[i].Devices) == true)  
+                        newObjects = true;
                 }
             }
-            catch (Exception mgmtException)
-            {
-                Log.WriteError("ManagementUtility", "Error while fetching rules", mgmtException);
-            }
+
             return newObjects;
         }
     }

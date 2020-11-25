@@ -242,25 +242,20 @@
         {
             try
             {
-                int offset = 0;
+                DynGraphqlQuery query = Compiler.Compile(filterInput);
+
                 query.QueryVariables["limit"] = rulesPerFetch;
                 query.QueryVariables["offset"] = 0;
                 bool gotNewObjects = true;
 
-                DynGraphqlQuery query = Compiler.Compile(filterInput);
+                managementsReport = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
 
                 while (gotNewObjects)
                 {
-                    query.QueryVariables["offset"] = offset;
-
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
-                    if (managementsReport.Length == 0)
-                        managementsReport = managementsCurrentFetch; // does this work?
-                    else 
-                        gotNewObjects = managementsReport.Merge(managementsCurrentFetch);
-
+                    query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
+                    Management[] test = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
+                    gotNewObjects = managementsReport.Merge(test);
                     await InvokeAsync(StateHasChanged);
-                    offset += rulesPerFetch;
                 }
             }
             catch (Exception exception)

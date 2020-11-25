@@ -273,7 +273,7 @@ sub iconv_config_files_2_utf8 {
     my $file;
     my @file_ar;
 
-    if (defined(@file_ar)) {
+    if (@file_ar) {
     @file_ar = split(/,/, $str_of_files_to_sum);
         foreach $file (@file_ar) {
             if ($file !~ /^fwauth\.NDB/) {
@@ -310,7 +310,7 @@ sub calc_md5_of_files {
     my $total = '';
     my @file_ar;
 
-    if (defined(@file_ar)) {
+    if (@file_ar) {
         @file_ar = split(/,/, $str_of_files_to_sum);
         foreach $file (@file_ar) {
             $total .= calc_md5_of_file($file, $tmpdir);

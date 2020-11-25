@@ -92,7 +92,7 @@ namespace FWO.Ui.Filter.Ast
                     //     level = 3;
                     ruleFieldNames.Add(" rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte");
                     queryLevel = 5;
-                    ruleFieldNames.Add("svc_port_end:{_gte");
+                    ruleFieldNames.Add("svc_port_end:{_gte: ");
                     paramName = "dport" + paramCounter++;
                     break;
                 case TokenKind.Action:

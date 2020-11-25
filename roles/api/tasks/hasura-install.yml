@@ -51,12 +51,6 @@
       hasura_env
   when: debug_level > '1'
 
-- name: Create docker network 
-  docker_network:
-    name: "{{ api_container_name }}"
-  become: yes
-  become_user: "{{ fworch_user }}"
-
 - name: start hasura container
   docker_container:
     name: "{{ api_container_name }}"
@@ -91,10 +85,6 @@
   register: result
   become: yes
   become_user: "{{ fworch_user }}"
-
-# - name: Does container exist?
-#   debug:
-#     msg: "The container {{ 'exists' if result.exists else 'does not exist' }}"
 
 - name: Print the status of the container
   fail: 

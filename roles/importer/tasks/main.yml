@@ -19,19 +19,20 @@
         group: "{{ fworch_user }}"
         mode: "0755"
 
-#    - name: set x-flag for importer executables
-#      file:
-#        path: "{{ fworch_home }}/importer/*"
-#        state: file
-#        mode: "0755"
-
-    - name: copy importer bin
-      copy:
-        src: "bin/"
-        dest: "{{ fworch_home }}/bin/"
+    - name: set x-flag for importer executables (top level only)
+      file:
+        path: "{{ item }}"
+        state: file
         mode: "0755"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_user }}"
+      with_fileglob: "{{ fworch_home }}/importer/*"
+
+    # - name: copy importer bin
+    #   copy:
+    #     src: "bin/"
+    #     dest: "{{ fworch_home }}/bin/"
+    #     mode: "0755"
+    #     owner: "{{ fworch_user }}"
+    #     group: "{{ fworch_user }}"
 
     - name: copy import.conf
       copy:

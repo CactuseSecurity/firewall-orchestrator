@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 
 namespace FWO.Ui.Filter.Ast
@@ -10,13 +11,15 @@ namespace FWO.Ui.Filter.Ast
         public TokenKind Operator { get; set; }
         public string Value { get; set; }
 
+        private List<string> ruleFieldNames { get; set; }
+        private int queryLevel { get; set; }
+
         public override void Extract(ref DynGraphqlQuery query)
         {
-            List<string> ruleFieldNames = new List<string>();
-            int level;
+            ruleFieldNames = new List<string>();
             string operation = defineOperator();
-            string paramName = getFieldsAndParamName(out ruleFieldNames, ref query.parameterCounter, out level);
-            query.RuleWhereQuery += buildLocalQuery(ruleFieldNames, paramName, operation, level);
+            string paramName = getFieldsAndParamName(query.parameterCounter++);
+            query.RuleWhereQuery += buildLocalQuery(paramName, operation);
             if (paramName != "active") // no need for a parameter if we just want the current config
             {
                 query.QueryParameters.Add(buildQueryParameter(paramName));
@@ -38,46 +41,57 @@ namespace FWO.Ui.Filter.Ast
                 return "$" + paramName + ": Int! ";
             else if (Name == TokenKind.Time)
                 return "$" + paramName + ": timestamp "; // not mandatory because of active filtering
+            else if ((Name == TokenKind.Source || Name == TokenKind.DestinationPort) && isCidr(Value))
+                return "$" + paramName + ": cidr! "; // filtering cidr
             else
                 return "$" + paramName + ": String! ";
         }
 
-        private string getFieldsAndParamName(out List<string> ruleFieldNames, ref int paramCounter, out int level)
+        private string getFieldsAndParamName(int paramCounter)
         {
             string paramName = "";
-            level = 1; // how many levels do we have (equals number of closing brackets)
+            queryLevel = 1; // how many levels do we have (equals number of closing brackets)
             ruleFieldNames = new List<string>();
             switch (Name)
             {
                 case TokenKind.Source:
                     // ruleFieldNames.Add("rule_src");
-                    ruleFieldNames.Add("rule_froms: { object: { objgrp_flats: { objectByObjgrpFlatMemberId: { obj_name");
-                    level = 5;
+                    if (isCidr(Value))
+                    {
+                        ruleFieldNames.Add("rule_froms: { object: { objgrp_flats: { objectByObjgrpFlatMemberId: { obj_ip");
+                        // TODO: deal with ip ranges
+                        queryLevel = 5;
+                    }
+                    else
+                    {
+                        ruleFieldNames.Add("rule_froms: { object: { objgrp_flats: { objectByObjgrpFlatMemberId: { obj_name");
+                        queryLevel = 5;
+                    }
                     paramName = "src" + paramCounter++;
                     break;
                 case TokenKind.Destination:
                     //ruleFieldNames.Add("rule_dst");
                     ruleFieldNames.Add("rule_tos: {object: {objgrp_flats: {objectByObjgrpFlatMemberId: {obj_name");
-                    level = 5;
+                    queryLevel = 5;
                     paramName = "dst" + paramCounter++;
                     break;
                 case TokenKind.Service:
                     // ruleFieldNames.Add("rule_svc");
                     ruleFieldNames.Add("rule_services: {service: {svcgrp_flats: {serviceBySvcgrpFlatMemberId: {svc_name");
-                    level = 5;
+                    queryLevel = 5;
                     paramName = "svc" + paramCounter++;
                     break;
                 case TokenKind.Protocol:
                     ruleFieldNames.Add("rule_services: {service: {stm_ip_proto: {ip_proto_name");
                     paramName = "proto" + paramCounter++;
-                    level = 4;
+                    queryLevel = 4;
                     break;
                 case TokenKind.DestinationPort:
                     //  without searching into groups:
                     //     ruleFieldNames.Add("rule_services: {service: {svc_port:{_lte:");
                     //     level = 3;
                     ruleFieldNames.Add(" rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte");
-                    level = 5;
+                    queryLevel = 5;
                     ruleFieldNames.Add("svc_port_end:{_gte");
                     paramName = "dport" + paramCounter++;
                     break;
@@ -88,12 +102,12 @@ namespace FWO.Ui.Filter.Ast
                 case TokenKind.Management:
                     ruleFieldNames.Add("management: {mgm_name");
                     paramName = "mgmName" + paramCounter++;
-                    level = 2;
+                    queryLevel = 2;
                     break;
                 case TokenKind.Gateway:
                     ruleFieldNames.Add("device: {dev_name");
                     paramName = "gwName" + paramCounter++;
-                    level = 2;
+                    queryLevel = 2;
                     break;
                 case TokenKind.FullText:
                 case TokenKind.Value:   // in case of missing operation, assume full text search across the following fields
@@ -102,21 +116,22 @@ namespace FWO.Ui.Filter.Ast
                     ruleFieldNames.Add("rule_svc");
                     ruleFieldNames.Add("rule_action");
                     paramName = "fullTextFilter" + paramCounter++;
-                    level = 2;
+                    queryLevel = 2;
                     break;
                 case TokenKind.Time:
                     if (Value == "true")    // filtering "now"
                     {
                         paramName = "active";
-                        level = 0;
+                        queryLevel = 0;
                     }
                     else
                     {
                         ruleFieldNames.Add("import_control: { stop_time: {_lte");
                         ruleFieldNames.Add("importControlByRuleLastSeen: { stop_time: {_gte");
+                        // ruleFieldNames.Add("_or: [{active: {_eq: true}, {importControlByRuleLastSeen: { stop_time: {_gte");
                         // TODO: missing case: if reportTime > last import, take the rules from the last successul import (max)
                         paramName = "reportTime";
-                        level = 2;
+                        queryLevel = 2;
                     }
                     break;
                 default:
@@ -124,7 +139,7 @@ namespace FWO.Ui.Filter.Ast
             }
             return paramName;
         }
-        private string buildLocalQuery(List<string> ruleFieldNames, string paramName, string operation, int level)
+        private string buildLocalQuery(string paramName, string operation)
         {
             string localQuery = "";
             if (ruleFieldNames.Count > 1)  // more complicated query cases
@@ -163,9 +178,48 @@ namespace FWO.Ui.Filter.Ast
 
             // add closing brackets depending on query level
             if (Name != TokenKind.Value && Name != TokenKind.FullText)  // due to or statement, we do not need closing brackets in these cases
-                for (int i = 0; i < level; ++i)
+                for (int i = 0; i < queryLevel; ++i)
                     localQuery += "}";
             return localQuery;
+        }
+
+        // private bool isCidr(string cidr)
+        // {
+        //     if (IPAddress.TryParse(cidr, out _))
+        //         return true;
+        //     else
+        //         return false;
+        // }
+
+        private bool isCidr(string cidr)
+        {
+            // IPV4 only:
+            string[] IPA = cidr.Split('/');
+            if (IPA.Length == 2)
+            {
+                if (IPAddress.TryParse(IPA[0], out _))
+                {
+                    int bitsInMask = Int16.Parse(IPA[1]);
+                    if (bitsInMask >= 0 && bitsInMask <= 32)
+                        return true;
+                }
+            }
+            // TODO: IPv6 handling
+            return false;
+        }
+
+        private (string, int) toCidr(string cidr)
+        {
+            // IPV4 only:
+            if (isCidr(cidr))
+            {
+                string[] IPA = cidr.Split('/');
+                string net = IPA[0];
+                int bitsInMask = Int16.Parse(IPA[1]);
+                return (net, bitsInMask);
+            }
+            // TODO: IPv6 handling
+            return ("",-1);
         }
 
         private string defineOperator()
@@ -175,6 +229,8 @@ namespace FWO.Ui.Filter.Ast
             {
                 case TokenKind.EQ:
                     if (Name == TokenKind.Time || Name == TokenKind.DestinationPort)
+                        operation = "_eq";
+                    else if ((Name == TokenKind.Source || Name == TokenKind.DestinationPort) && isCidr(Value))
                         operation = "_eq";
                     else
                         operation = "_ilike";

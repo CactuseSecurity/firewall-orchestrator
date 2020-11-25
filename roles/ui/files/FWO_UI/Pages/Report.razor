@@ -71,6 +71,10 @@
             <label for="rulesPerPageHtml" class="mr-1">Show rules per page: </label>
             <input id="rulesPerPageHtml" type="number" class="form-control-sm" @bind="rulesPerPage" />
         </div>
+        <div class="form-group mt-1 mb-1">
+            <input id="generationTime" type="text" class="form-control-sm" @bind="reportGenerationTimeLine" />
+        </div>
+        
     </div>
 
     <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateTestReport">
@@ -196,6 +200,8 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
+    private string reportGenerationTimeLine = "";
+
 
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
@@ -242,6 +248,7 @@
         {
             try
             {
+                DateTime startTime = DateTime.Now;
                 DynGraphqlQuery query = Compiler.Compile(filterInput);
 
                 query.QueryVariables["limit"] = rulesPerFetch;
@@ -257,6 +264,7 @@
                     gotNewObjects = managementsReport.Merge(test);
                     await InvokeAsync(StateHasChanged);
                 }
+                reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
             }
             catch (Exception exception)
             {

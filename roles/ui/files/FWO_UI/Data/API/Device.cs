@@ -36,8 +36,8 @@ namespace FWO.Ui.Data.API
         public Rule[] Rules { get; set; }
 
         public Device()
-        {}
-        
+        { }
+
         public Device(Device device)
         {
             Id = device.Id;
@@ -58,8 +58,10 @@ namespace FWO.Ui.Data.API
         }
     }
 
+
     public static class DeviceUtility
     {
+        // adding rules fetched in slices
         public static bool Merge(this Device[] devices, Device[] devicesToMerge)
         {
             bool newObjects = false;
@@ -68,7 +70,12 @@ namespace FWO.Ui.Data.API
             {
                 if (devices[i].Id == devicesToMerge[i].Id)
                 {
-                    if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules.Length > 0)
+                    if (devices[i].Rules == null)
+                    {
+                        devices[i].Rules = devicesToMerge[i].Rules.ToArray();
+                        newObjects = true;
+                    }
+                    else if (devicesToMerge[i].Rules != null && devicesToMerge[i].Rules.Length > 0)
                     {
                         devices[i].Rules = devices[i].Rules.Concat(devicesToMerge[i].Rules).ToArray();
                         newObjects = true;
@@ -79,7 +86,6 @@ namespace FWO.Ui.Data.API
                     throw new NotSupportedException("Devices have to be in the same order in oder to merge.");
                 }
             }
-
             return newObjects;
         }
     }

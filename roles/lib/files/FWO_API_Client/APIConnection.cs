@@ -60,6 +60,7 @@ namespace FWO.ApiClient
         {
             try
             {
+                // Log.WriteDebug("API Response", $"API Call variables: { variables }");
                 GraphQLResponse<dynamic> response = await Client.SendQueryAsync<dynamic>(query, variables, operationName);
 
                 if (response.Errors != null)
@@ -78,7 +79,7 @@ namespace FWO.ApiClient
                 {
                     // DEBUG
                     string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
-                    Log.WriteDebug("API Response", $"API response: { JsonResponse }");
+                    // Log.WriteDebug("API Response", $"API response: { JsonResponse }");
 
                     JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
                     responseObjectEnumerator.MoveNext();

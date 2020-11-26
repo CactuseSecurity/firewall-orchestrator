@@ -1,7 +1,7 @@
 ---
 
 #The domain prefix for ldap
-openldap_server_domain_name: fworch.internal
+openldap_server_domain_name: example.com
 
 #The paths to key, csr and cert
 openldap_server_private_key: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"

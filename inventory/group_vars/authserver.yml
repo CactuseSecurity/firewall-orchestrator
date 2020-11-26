@@ -16,6 +16,9 @@ auth_change_local_ldap: "yes"
 # use static jwt generation test key if set to 1 - only for testing, not for production environment
 testkey: "no"
 
+#The decision to generate new certificates and keys in openldapserver
+generate_new_crypto: false
+
 ########## test data only ##############
 
 test_ldap_external_server: 192.168.100.8

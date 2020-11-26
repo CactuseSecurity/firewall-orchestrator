@@ -11,12 +11,21 @@
         ssh_key_bits: 4096
         ssh_key_file: "{{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}"
 
+    - name: create file authorized_keys if not existing
+      file:
+        path: "{{ sample_config_user_home }}/.ssh/authorized_keys"
+        state: touch
+
+    - name: slurp sample-data user pub key
+      slurp:
+        src: "{{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}.pub"
+      register: user_pub_key
+
     - name: add sample-data user pub key to its authorized_keys
-      shell: "cat {{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}.pub >> {{ sample_config_user_home }}/.ssh/authorized_keys"
-# todo: Ich bekomme die permissions einfach nicht hin. Das unten funktioniert nichtmal wenn ich allen ordnern read rechte für alle gebe
-#      copy:
-#        src: "{{ sample_config_user_home }}/.ssh/id_rsa.{{ sample_config_user }}.pub"
-#        dest: "{{ sample_config_user_home }}/.ssh/authorized_keys"
+      blockinfile:
+        path: "{{ sample_config_user_home }}/.ssh/authorized_keys"
+        marker: ""
+        block: "{{ user_pub_key['content'] | b64decode }}"
         
     - name: correct sample-data users authorized_keys file acls
       file:

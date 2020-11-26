@@ -70,16 +70,6 @@
     chdir: "{{ fworch_home }}/install/database/pgjwt"
   become: yes
 
-# todo: decide if we also need updates for extensions (or simply drop and re-create?)
-- name: create pgjwt extension in iso database
-  #command: 'psql -d {{ fworch_db_name }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgjwt'') THEN CREATE EXTENSION pgjwt; END IF; END \$do\$"'
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: "DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM pg_extension WHERE extname = ''pgjwt'') THEN CREATE EXTENSION pgjwt; END IF; END $do$"
-  become: yes
-  become_user: postgres
-
-# todo: the file test_pgjwt.sql doesn't seem to exist
 - name: test pgjwt extension
   command: 'psql -d {{ fworch_db_name }} -c "\i test_pgjwt.sql"'
   args:

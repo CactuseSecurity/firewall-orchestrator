@@ -3,6 +3,11 @@
 #The domain prefix for ldap
 openldap_server_domain_name: fworch.internal
 
+#The paths to key, csr and cert
+openldap_server_private_key: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+openldap_server_csr: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
+openldap_server_cert: "{{ openldap_server_app_path }}/certs/openldap_cert.crt"
+
 #The self signed ssl parameters
 openldap_server_country: US
 openldap_server_state: oregon
@@ -13,6 +18,3 @@ openldap_server_enable_ssl: true
 
 #The ldif file
 openldap_server_ldif: domain.ldif
-
-#The decision to generate new certificates and keys
-generate_new_crypto: false

@@ -23,15 +23,14 @@
 
   - name: Generate an OpenSSL private key
     openssl_privatekey:
-      path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
-      size: 1024
-      #cipher: aes256
+      path: "{{ openldap_server_private_key }}"
+      size: 3072
       type: RSA
 
   - name: Generate an OpenSSL Certificate Signing Request with Subject information
     openssl_csr:
-      path: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
-      privatekey_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+      path: "{{ openldap_server_csr }}"
+      privatekey_path: "{{ openldap_server_private_key }}"
       country_name: "{{ openldap_server_country }}"
       state_or_province_name: "{{ openldap_server_state }}"
       locality_name: "{{ openldap_server_location }}"
@@ -41,21 +40,21 @@
 
   - name: Generate a self signed OpenSSL Certificate
     openssl_certificate:
-      path: "{{ openldap_server_app_path }}/certs/openldap_cert.crt"
-      privatekey_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
-      csr_path: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
+      path: "{{ openldap_server_cert }}"
+      privatekey_path: "{{ openldap_server_private_key }}"
+      csr_path: "{{ openldap_server_csr }}"
       provider: selfsigned
 
   - name: set permissions on key
     file: 
-      path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
+      path: "{{ openldap_server_private_key }}"
       state: file
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
   - name: set permissions on cert
     file: 
-      path: "{{ openldap_server_app_path }}/certs/openldap_cert.crt"
+      path: "{{ openldap_server_cert }}"
       state: file
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"

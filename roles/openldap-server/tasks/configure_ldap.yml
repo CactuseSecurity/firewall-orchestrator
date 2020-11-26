@@ -24,8 +24,7 @@
   - name: Generate an OpenSSL private key
     openssl_privatekey:
       path: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
-      size: 1024
-      #cipher: aes256
+      size: 3072
       type: RSA
 
   - name: Generate an OpenSSL Certificate Signing Request with Subject information

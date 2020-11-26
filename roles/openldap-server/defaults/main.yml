@@ -13,6 +13,3 @@ openldap_server_enable_ssl: true
 
 #The ldif file
 openldap_server_ldif: domain.ldif
-
-#The decision to generate new certificates and keys
-generate_new_crypto: false

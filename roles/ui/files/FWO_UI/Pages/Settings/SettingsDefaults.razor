@@ -1,0 +1,76 @@
+﻿@using BlazorTable
+@using FWO.ApiClient
+@using FWO.ApiConfig
+@using FWO.ApiConfig.Data
+@using FWO.Ui.Data.API
+@using FWO.Ui.Services
+
+@page "/settings/defaults"
+
+@inject APIConnection apiConnection
+@inject ConfigCollection configCollection
+
+<h3>Default Settings</h3>
+<hr />
+
+<form class="form-inline">
+    <label for="languageSelect" class="col-form-label mr-2">Default Language:</label>
+    <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedDefaultLanguage">
+        @foreach (Language language in configCollection.uiLanguages)
+        {
+            <option selected="@(selectedDefaultLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
+        }
+    </select>
+    <button class="btn btn-sm btn-primary" @onclick="async () => { await SaveDefaultLanguage(selectedDefaultLanguage); StateHasChanged(); }" @onclick:preventDefault>Save</button>
+</form>
+<form class="form-inline">
+    <label for="rulesPerFetch" class="col-form-label mr-2">Rules per fetch:</label>
+    <div class="col-sm-2">
+        <input id="rulesPerFetch" type="text" class="form-control form-control-sm" @bind="rulesPerFetch" />
+    </div>
+    <button class="btn btn-sm btn-primary" @onclick="SaveRulesPerFetch">Save</button>
+</form>
+
+@code
+{
+    ConfigDbAccess config;
+    int rulesPerFetch;
+    string selectedDefaultLanguage;
+
+    protected override void OnInitialized()
+    {
+        config = new ConfigDbAccess(apiConnection, 0);
+        try
+        {
+            selectedDefaultLanguage = config.Get(ConfigDbAccess.kDefaultLanguage);
+            Log.WriteDebug("Default language", $"got language: {selectedDefaultLanguage}");
+        }
+        catch(Exception exception)
+        {
+            Log.WriteError("Read Config", $"Key not found: taking English ", exception);
+            selectedDefaultLanguage = "English";
+        }
+
+        try
+        {
+            rulesPerFetch = Int32.Parse(config.Get(ConfigDbAccess.kRulesPerFetch));
+        }
+        catch(Exception exception)
+        {
+            Log.WriteError("Read Config", $"Key not found or could not convert value to int: taking value 10 ", exception);
+            rulesPerFetch = 10;
+        }
+    }
+
+    private async Task SaveDefaultLanguage(string language)
+    {
+        Log.WriteDebug("Set Default language", $"set language: {language}");
+        await config.Set(ConfigDbAccess.kDefaultLanguage, language);
+        selectedDefaultLanguage = language;
+    }
+    
+    private async Task SaveRulesPerFetch()
+    {
+        await config.Set(ConfigDbAccess.kRulesPerFetch, rulesPerFetch.ToString());
+    }
+}

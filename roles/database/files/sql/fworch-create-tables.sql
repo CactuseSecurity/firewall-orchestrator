@@ -956,5 +956,6 @@ Create table "config"
 (
 "config_key" VARCHAR NOT NULL,
 "config_value" VARCHAR,
-primary key ("config_key")
+"config_user" Integer,
+primary key ("config_key","config_user")
 );

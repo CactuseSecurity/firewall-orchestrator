@@ -30,15 +30,15 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-    UiUsersDbAccess uiUser = new UiUsersDbAccess();
+    UiUsersDbAccess uiUser;
 
     string selectedLanguage;
 
     protected override async Task OnInitializedAsync()
     {
         AuthenticationState authState = await authenticationStateTask;
-        await uiUser.getLanguage(authState, apiConnection);
-        selectedLanguage = ((uiUser.Language != "") ? uiUser.Language : userConfigCollection.CurrentLanguage);
+        uiUser = new UiUsersDbAccess(authState, apiConnection);
+        selectedLanguage = ((uiUser.UiUser.Language != "") ? uiUser.UiUser.Language : userConfigCollection.CurrentLanguage);
     }
 
     private async Task ChangeLanguage(string language)

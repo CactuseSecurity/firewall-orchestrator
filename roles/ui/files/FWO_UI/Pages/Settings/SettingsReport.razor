@@ -26,21 +26,34 @@
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     ConfigDbAccess config;
-    int rulesPerFetch;
+    int rulesPerFetch = 100;
 
-     protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         AuthenticationState authState = await authenticationStateTask;
         UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
         config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
         try
         {
-            rulesPerFetch = Int32.Parse(config.Get(ConfigDbAccess.kRulesPerFetch));
-        }
+            string settingsValue = config.Get(ConfigDbAccess.kRulesPerFetch);
+            if (settingsValue != "")
+            {
+                rulesPerFetch = Int32.Parse(settingsValue);
+            }
+            else
+            {
+                // get default value
+                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection, 0);
+                settingsValue = defaultConfig.Get(ConfigDbAccess.kRulesPerFetch);
+                if (settingsValue != "")
+                {
+                    rulesPerFetch = Int32.Parse(settingsValue);
+                }
+            }
+         }
         catch(Exception exception)
         {
-            Log.WriteError("Read Config", $"Key not found or could not convert value to int: taking value 10 ", exception);
-            rulesPerFetch = 10;
+            Log.WriteError("Read Config", $"Key not found or could not convert value to int: taking value 100 ", exception);
         }
     }
 

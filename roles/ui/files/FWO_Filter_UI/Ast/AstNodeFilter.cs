@@ -10,187 +10,231 @@ namespace FWO.Ui.Filter.Ast
         public TokenKind Name { get; set; }
         public TokenKind Operator { get; set; }
         public string Value { get; set; }
-
         private List<string> ruleFieldNames { get; set; }
         private int queryLevel { get; set; }
 
         public override void Extract(ref DynGraphqlQuery query)
         {
-            ruleFieldNames = new List<string>();
-            string operation = defineOperator();
-            string paramName = getFieldsAndParamName(query.parameterCounter++);
-            query.RuleWhereQuery += buildLocalQuery(paramName, operation);
-            if (paramName != "active") // no need for a parameter if we just want the current config
-            {
-                query.QueryParameters.Add(buildQueryParameter(paramName));
-                query.QueryVariables[paramName] = buildQueryVariable(operation);
-            }
+            Dictionary<string, Func<DynGraphqlQuery, DynGraphqlQuery>> functions = new Dictionary<string, Func<DynGraphqlQuery, DynGraphqlQuery>>();
+
+            functions["FullText"] = this.ExtractFullTextQuery;
+            functions["Value"] = this.ExtractFullTextQuery; // "xy" and "FullText=xy" are the same filter
+
+            functions["DestinationPort"] = this.ExtractDestinationPort;
+            functions["Time"] = this.ExtractTimeQuery;
+            functions["Source"] = this.ExtractSourceQuery;
+            functions["Destination"] = this.ExtractDestinationQuery;
+            functions["Action"] = this.ExtractActionQuery;
+            functions["Service"] = this.ExtractServiceQuery;
+            functions["Protocol"] = this.ExtractProtocolQuery;
+            functions["Management"] = this.ExtractManagementQuery;
+            functions["Gateway"] = this.ExtractGatewayQuery;
+
+            // call the method matching the Name of the current node to build the graphQL query
+            query = functions[Name.ToString()](query);
+
             return;
         }
-        private string buildQueryVariable(string operation)
-        {
-            string queryVariable = Value;
-            if (operation == "_ilike" || operation == "_nilike")  /// in case of like operators, add leading and trailing % to the variables
-                queryVariable = $"%{queryVariable}%";
-            return queryVariable;
-        }
 
-        private string buildQueryParameter(string paramName)
+        private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
-            if (Name == TokenKind.DestinationPort)
-                return "$" + paramName + ": Int! ";
-            else if (Name == TokenKind.Time)
-                return "$" + paramName + ": timestamp "; // not mandatory because of active filtering
-            else if ((Name == TokenKind.Source || Name == TokenKind.DestinationPort) && isCidr(Value))
-                return "$" + paramName + ": cidr! "; // filtering cidr
+            if (Value == "true")    // filtering "now"
+                query.RuleWhereQuery += $"active: {{ _eq: true }} ";
             else
-                return "$" + paramName + ": String! ";
+            {
+                string QueryVarName = "time" + query.parameterCounter++;
+                query.RuleWhereQuery +=
+                    $"import_control: {{ stop_time: {{_lte: ${QueryVarName} }} }}, " +
+                    $"importControlByRuleLastSeen: {{ stop_time: {{_gte: ${QueryVarName} }} }}";
+                // TODO: fix report times > last import with a change
+                // ruleFieldNames.Add("_or: [{active: {_eq: true}, {importControlByRuleLastSeen: { stop_time: {_gte");
+                query.QueryParameters.Add($"${QueryVarName}: timestamp! ");
+                query.QueryVariables[QueryVarName] = $"{Value}";
+            }
+            return query;
         }
 
-        private string getFieldsAndParamName(int paramCounter)
+        private DynGraphqlQuery ExtractSourceQuery(DynGraphqlQuery query)
         {
-            string paramName = "";
-            queryLevel = 1; // how many levels do we have (equals number of closing brackets)
-            ruleFieldNames = new List<string>();
-            switch (Name)
+            string QueryOperation = SetQueryOpString(Operator, Name);
+
+            if (isCidr(Value))  // filtering for ip addresses
             {
-                case TokenKind.Source:
-                    // ruleFieldNames.Add("rule_src");
-                    if (isCidr(Value))
-                    {
-                        ruleFieldNames.Add("rule_froms: { object: { objgrp_flats: { objectByObjgrpFlatMemberId: { obj_ip");
-                        // TODO: deal with ip ranges
-                        queryLevel = 5;
-                    }
+                string QueryVarName1 = "srcLow" + query.parameterCounter;
+                string QueryVarName2 = "srcHigh" + query.parameterCounter++;
+                (string firstIp, string lastIp) = getFirstAndLastIp(Value);
+                query.QueryVariables[QueryVarName1] = firstIp;
+                query.QueryVariables[QueryVarName2] = lastIp;
+                query.QueryParameters.Add($"${QueryVarName1}: cidr! ");
+                query.QueryParameters.Add($"${QueryVarName2}: cidr! ");
+                query.RuleWhereQuery +=
+                    $@"
+                        rule_froms: 
+                            {{ object: 
+                                 {{ objgrp_flats: 
+                                    {{ objectByObjgrpFlatMemberId: 
+                                        {{ _and: 
+                                            [ 
+                                                {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
+                                                {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
+                                            ]
+                                        }} 
+                                    }}
+                                }}
+                            }}";
+            }
+            else // string search against src obj name
+            {
+                string QueryVarName = "src" + query.parameterCounter++;
+                query.QueryVariables[QueryVarName] = $"%{Value}%";
+                query.QueryParameters.Add($"${QueryVarName}: String! ");
+                query.RuleWhereQuery += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+            }
+            return query;
+        }
+        private DynGraphqlQuery ExtractDestinationQuery(DynGraphqlQuery query)
+        {
+            string QueryOperation = SetQueryOpString(Operator, Name);
+
+            if (isCidr(Value))  // filtering for ip addresses
+            {
+                string QueryVarName1 = "dstLow" + query.parameterCounter;
+                string QueryVarName2 = "dstHigh" + query.parameterCounter++;
+                (string firstIp, string lastIp) = getFirstAndLastIp(Value);
+                query.QueryVariables[QueryVarName1] = firstIp;
+                query.QueryVariables[QueryVarName2] = lastIp;
+                query.QueryParameters.Add($"${QueryVarName1}: cidr! ");
+                query.QueryParameters.Add($"${QueryVarName2}: cidr! ");
+                query.RuleWhereQuery +=
+                    $@"
+                        rule_tos: 
+                            {{ object: 
+                                 {{ objgrp_flats: 
+                                    {{ objectByObjgrpFlatMemberId: 
+                                        {{ _and: 
+                                            [ 
+                                                {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
+                                                {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
+                                            ]
+                                        }} 
+                                    }}
+                                }}
+                            }}";
+            }
+            else // string search against dst obj name
+            {
+                string QueryVarName = "dst" + query.parameterCounter++;
+                query.QueryVariables[QueryVarName] = $"%{Value}%";
+                query.QueryParameters.Add($"${QueryVarName}: String! ");
+                query.RuleWhereQuery += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+            }
+            return query;
+        }
+
+        private DynGraphqlQuery ExtractServiceQuery(DynGraphqlQuery query)
+        {
+            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryVarName = "svc" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: String! ");
+            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.RuleWhereQuery += $"rule_services: {{service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+            return query;
+        }
+        private DynGraphqlQuery ExtractActionQuery(DynGraphqlQuery query)
+        {
+            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryVarName = "action" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: String! ");
+            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.RuleWhereQuery += $"rule_action: {{ {QueryOperation}: ${QueryVarName} }}";
+            return query;
+        }
+        private DynGraphqlQuery ExtractProtocolQuery(DynGraphqlQuery query)
+        {
+            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryVarName = "proto" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: String! ");
+            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.RuleWhereQuery += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }}";
+            return query;
+        }
+        private DynGraphqlQuery ExtractManagementQuery(DynGraphqlQuery query)
+        {
+            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryVarName = "mgmtName" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: String! ");
+            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.RuleWhereQuery += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            return query;
+        }
+        private DynGraphqlQuery ExtractGatewayQuery(DynGraphqlQuery query)
+        {
+            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryVarName = "gwName" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: String! ");
+            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.RuleWhereQuery += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+
+            return query;
+        }
+        private DynGraphqlQuery ExtractFullTextQuery(DynGraphqlQuery query)
+        {
+            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryVarName = "fullTextFilter" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: String! ");
+            query.QueryVariables[QueryVarName] = $"%{Value}%";
+
+            ruleFieldNames = new List<string>() { "rule_src", "rule_dst", "rule_svc", "rule_action" };  // TODO: add comment later
+            List<string> searchParts = new List<string>();
+            foreach (string field in ruleFieldNames)
+                searchParts.Add($"{{{field}: {{{QueryOperation}: ${QueryVarName} }} }} ");
+            query.RuleWhereQuery += " _or: [";
+            query.RuleWhereQuery += string.Join(", ", searchParts);
+            query.RuleWhereQuery += "]";
+
+            return query;
+        }
+
+        private DynGraphqlQuery ExtractDestinationPort(DynGraphqlQuery query)
+        {
+            string QueryVarName = "dport" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: Int! ");
+            query.QueryVariables[QueryVarName] = Value;
+
+            query.RuleWhereQuery +=
+                " rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte" +
+                ": $" + QueryVarName + "}, svc_port_end: {_gte: $" + QueryVarName + "} } } } }";
+            return query;
+        }
+
+        private string SetQueryOpString(TokenKind Operator, TokenKind Name)
+        {
+            string operation = "";
+            switch (Operator)
+            {
+                case TokenKind.EQ:
+                    if (Name == TokenKind.Time || Name == TokenKind.DestinationPort)
+                        operation = "_eq";
+                    else if ((Name == TokenKind.Source && isCidr(Value)) || Name == TokenKind.DestinationPort)
+                        operation = "_eq";
                     else
-                    {
-                        ruleFieldNames.Add("rule_froms: { object: { objgrp_flats: { objectByObjgrpFlatMemberId: { obj_name");
-                        queryLevel = 5;
-                    }
-                    paramName = "src" + paramCounter++;
+                        operation = "_ilike";
                     break;
-                case TokenKind.Destination:
-                    //ruleFieldNames.Add("rule_dst");
-                    ruleFieldNames.Add("rule_tos: {object: {objgrp_flats: {objectByObjgrpFlatMemberId: {obj_name");
-                    queryLevel = 5;
-                    paramName = "dst" + paramCounter++;
-                    break;
-                case TokenKind.Service:
-                    // ruleFieldNames.Add("rule_svc");
-                    ruleFieldNames.Add("rule_services: {service: {svcgrp_flats: {serviceBySvcgrpFlatMemberId: {svc_name");
-                    queryLevel = 5;
-                    paramName = "svc" + paramCounter++;
-                    break;
-                case TokenKind.Protocol:
-                    ruleFieldNames.Add("rule_services: {service: {stm_ip_proto: {ip_proto_name");
-                    paramName = "proto" + paramCounter++;
-                    queryLevel = 4;
-                    break;
-                case TokenKind.DestinationPort:
-                    //  without searching into groups:
-                    //     ruleFieldNames.Add("rule_services: {service: {svc_port:{_lte:");
-                    //     level = 3;
-                    ruleFieldNames.Add(" rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte");
-                    queryLevel = 5;
-                    ruleFieldNames.Add("svc_port_end:{_gte: ");
-                    paramName = "dport" + paramCounter++;
-                    break;
-                case TokenKind.Action:
-                    ruleFieldNames.Add("rule_action");
-                    paramName = "action" + paramCounter++;
-                    break;
-                case TokenKind.Management:
-                    ruleFieldNames.Add("management: {mgm_name");
-                    paramName = "mgmName" + paramCounter++;
-                    queryLevel = 2;
-                    break;
-                case TokenKind.Gateway:
-                    ruleFieldNames.Add("device: {dev_name");
-                    paramName = "gwName" + paramCounter++;
-                    queryLevel = 2;
-                    break;
-                case TokenKind.FullText:
-                case TokenKind.Value:   // in case of missing operation, assume full text search across the following fields
-                    ruleFieldNames.Add("rule_src");
-                    ruleFieldNames.Add("rule_dst");
-                    ruleFieldNames.Add("rule_svc");
-                    ruleFieldNames.Add("rule_action");
-                    paramName = "fullTextFilter" + paramCounter++;
-                    queryLevel = 2;
-                    break;
-                case TokenKind.Time:
-                    if (Value == "true")    // filtering "now"
-                    {
-                        paramName = "active";
-                        queryLevel = 0;
-                    }
-                    else
-                    {
-                        ruleFieldNames.Add("import_control: { stop_time: {_lte");
-                        ruleFieldNames.Add("importControlByRuleLastSeen: { stop_time: {_gte");
-                        // ruleFieldNames.Add("_or: [{active: {_eq: true}, {importControlByRuleLastSeen: { stop_time: {_gte");
-                        // TODO: missing case: if reportTime > last import, take the rules from the last successul import (max)
-                        paramName = "reportTime";
-                        queryLevel = 2;
-                    }
+                case TokenKind.NEQ:
+                    operation = "_nilike";
                     break;
                 default:
-                    throw new Exception("### Parser Error: Expected Filtername Token (and thought there is one) ###");
+                    throw new Exception("### Parser Error: Expected Operator Token (and thought there is one) ###");
             }
-            return paramName;
+            return operation;
         }
-        private string buildLocalQuery(string paramName, string operation)
-        {
-            string localQuery = "";
-            if (ruleFieldNames.Count > 1)  // more complicated query cases
-            {
-                if (Name == TokenKind.Time)
-                {
-                    localQuery = ruleFieldNames[0] + ": $" + paramName + "} }," + ruleFieldNames[1] + "$" + paramName;
-                }
-                else if (Name == TokenKind.DestinationPort)
-                {
-                    localQuery = ruleFieldNames[0] + ": $" + paramName + "}," + ruleFieldNames[1] + "$" + paramName;
-                }
-                else if (Name == TokenKind.Value || Name == TokenKind.FullText)
-                {
-                    localQuery = "_or: [";
-                    List<string> searchParts = new List<string>();
-                    foreach (string field in ruleFieldNames)
-                        searchParts.Add($"{{{field}: {{{operation}:${paramName} }}}} ");
-                    localQuery += string.Join(", ", searchParts);
-                    localQuery += "]";
-                }
-                else
-                {
-                    throw new Exception("### Parser Error: found unexpected list of fieldnames  ###");
-                }
-            }
-            else  // default case: just a single ruleField
-            {
-                if (Name == TokenKind.Time && paramName == "active")   // no real time parameter, settting search to "now"
-                    localQuery = " active: {_eq: true }";
-                else if (Name == TokenKind.Protocol)
-                    localQuery += $"{ruleFieldNames[0]}: {{ {operation}:${paramName} ";
-                else
-                    localQuery = $" {ruleFieldNames[0]}: {{{operation}: ${paramName} ";
-            }
-
-            // add closing brackets depending on query level
-            if (Name != TokenKind.Value && Name != TokenKind.FullText)  // due to or statement, we do not need closing brackets in these cases
-                for (int i = 0; i < queryLevel; ++i)
-                    localQuery += "}";
-            return localQuery;
-        }
-
-        // private bool isCidr(string cidr)
-        // {
-        //     if (IPAddress.TryParse(cidr, out _))
-        //         return true;
-        //     else
-        //         return false;
-        // }
-
         private bool isCidr(string cidr)
         {
             // IPV4 only:
@@ -204,44 +248,41 @@ namespace FWO.Ui.Filter.Ast
                         return true;
                 }
             }
+            else if (IPA.Length == 1) // no / in string, simple IP
+            {
+                if (IPAddress.TryParse(cidr, out _))
+                {
+                    return true;
+                }
+            }
             // TODO: IPv6 handling
             return false;
         }
 
-        private (string, int) toCidr(string cidr)
+        private static string toip(uint ip)
         {
-            // IPV4 only:
-            if (isCidr(cidr))
-            {
-                string[] IPA = cidr.Split('/');
-                string net = IPA[0];
-                int bitsInMask = Int16.Parse(IPA[1]);
-                return (net, bitsInMask);
-            }
             // TODO: IPv6 handling
-            return ("",-1);
+            return String.Format("{0}.{1}.{2}.{3}", ip >> 24, (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff);
         }
 
-        private string defineOperator()
+        private static (string, string) getFirstAndLastIp(string cidr)
         {
-            string operation = "";
-            switch (Operator)
-            {
-                case TokenKind.EQ:
-                    if (Name == TokenKind.Time || Name == TokenKind.DestinationPort)
-                        operation = "_eq";
-                    else if ((Name == TokenKind.Source || Name == TokenKind.DestinationPort) && isCidr(Value))
-                        operation = "_eq";
-                    else
-                        operation = "_ilike";
-                    break;
-                case TokenKind.NEQ:
-                    operation = "_nilike";
-                    break;
-                default:
-                    throw new Exception("### Parser Error: Expected Operator Token (and thought there is one) ###");
-            }
-            return operation;
+            // TODO: IPv6 handling
+            string[] parts = cidr.Split('.', '/');
+
+            uint ipnum = (Convert.ToUInt32(parts[0]) << 24) |
+                (Convert.ToUInt32(parts[1]) << 16) |
+                (Convert.ToUInt32(parts[2]) << 8) |
+                Convert.ToUInt32(parts[3]);
+
+            int maskbits = Convert.ToInt32(parts[4]);
+            uint mask = 0xffffffff;
+            mask <<= (32 - maskbits);
+
+            uint ipstart = ipnum & mask;
+            uint ipend = ipnum | (mask ^ 0xffffffff);
+            return (toip(ipstart), toip(ipend));
         }
+
     }
 }

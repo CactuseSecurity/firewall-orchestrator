@@ -47,7 +47,6 @@
         }
     </div>
 </Sidebar>
-
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h4 class="m-1">Reporting</h4>
     <button class="btn btn-secondary btn-sm m-1" @onclick="Export">Generate Pdf Export</button>
@@ -72,6 +71,10 @@
             <label for="rulesPerPageHtml" class="mr-1">Show rules per page: </label>
             <input id="rulesPerPageHtml" type="number" class="form-control-sm" @bind="rulesPerPage" />
         </div>
+        <div class="form-group mt-1 mb-1">
+            <input id="generationTime" type="text" class="form-control-sm" @bind="reportGenerationTimeLine" />
+        </div>
+        
     </div>
 
     <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateTestReport">
@@ -182,9 +185,10 @@
 
     private Management[] managementsOverview = new Management[0];
     private Management[] managementsReport = new Management[0];
+    // private Management[] managementsReport;
     private Management[] managementsAllObjects = new Management[0];
 
-    private int rulesPerFetch = 10;
+    private int rulesPerFetch = 100;
     private int rulesPerPage = 0;
 
     private bool ShowPopUp = false;
@@ -196,6 +200,8 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
+    private string reportGenerationTimeLine = "";
+
 
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
@@ -207,7 +213,7 @@
             try
             {
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
-
+ 
                 managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                 await InvokeAsync(StateHasChanged);
 
@@ -242,31 +248,23 @@
         {
             try
             {
+                DateTime startTime = DateTime.Now;
                 DynGraphqlQuery query = Compiler.Compile(filterInput);
 
-                int limit = rulesPerFetch;
-                int offset = 0;
-                query.QueryVariables["limit"] = limit;
-                query.QueryVariables["offset"] = offset;
+                query.QueryVariables["limit"] = rulesPerFetch;
+                query.QueryVariables["offset"] = 0;
+                bool gotNewObjects = true;
 
-                // with filter:
-                string test = System.Text.Json.JsonSerializer.Serialize(query.QueryVariables);
                 managementsReport = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
-                await InvokeAsync(StateHasChanged);
 
-                bool newObjects = true;
-
-                while (newObjects)
+                while (gotNewObjects)
                 {
-                    offset += rulesPerFetch;
-                    query.QueryVariables["offset"] = offset;
-
-                    // with filter:
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
-                    newObjects = managementsReport.Merge(managementsCurrentFetch);
-
+                    query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
+                    Management[] test = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
+                    gotNewObjects = managementsReport.Merge(test);
                     await InvokeAsync(StateHasChanged);
                 }
+                reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
             }
             catch (Exception exception)
             {

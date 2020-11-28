@@ -47,7 +47,7 @@ namespace FWO.Config
             bool isRsaKey = true;
 
             rawKey = rawKey.Trim(); // remove trailing and leading empty lines
-            Log.WriteDebug("Key extraction", $"Raw key = \"{rawKey}\"");
+            // Log.WriteDebug("Key extraction", $"Raw key = \"{rawKey}\"");
 
             try
             {

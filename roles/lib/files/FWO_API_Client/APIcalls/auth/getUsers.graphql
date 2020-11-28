@@ -4,5 +4,6 @@ query getUsers{
     uuid
     uiuser_username
     uiuser_language
+    uiuser_last_login
   }
 }

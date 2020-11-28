@@ -53,24 +53,35 @@
   - set_fact:
       postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
 
-  - name: remove database
-    postgresql_db:
-      name: fworchdb
-      state: absent
-    become_user: postgres
-    register: drop_dba
-    ignore_errors: true
-    when: pg_version < 13
+  - block:
+      - name: remove database pre pg_version 13
+        postgresql_db:
+          name: fworchdb
+          state: absent
+        become_user: postgres
+        register: drop_db
+        ignore_errors: true
 
-  - name: remove database
-    command: psql -c 'drop database fworchdb with ( force )'
-    become_user: postgres
-    when: pg_version >= 13
+      - name: fail when drop db failed
+        fail:
+          msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
+        when: drop_db.failed
 
-  - name: fail when drop db failed
-    fail:
-      msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
-    when: drop_db.failed
+    when: pg_version|int < 13
+
+  - block:
+      - name: remove database for pg_version starting from 13
+        command: psql -c 'drop database fworchdb with ( force )'
+        become_user: postgres
+        register: drop_db
+
+      - name: fail when drop db failed
+        fail:
+          msg: database could not be dropped {{ drop_db }}. Try to stop all sessions connected to the database before running uninstall again.
+        when: drop_db.failed
+
+    when: pg_version|int >= 13
+
 
   - name: remove db groups
     postgresql_user:

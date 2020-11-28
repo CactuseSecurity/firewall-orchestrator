@@ -38,7 +38,7 @@ namespace FWO.Ui.Filter.Ast
 
         private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
-            if (Value == "true")    // filtering "now"
+            if (Value == "now")    // filtering "now"
                 query.RuleWhereQuery += $"active: {{ _eq: true }} ";
             else
             {

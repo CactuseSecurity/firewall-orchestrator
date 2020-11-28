@@ -1,5 +1,4 @@
 ---
-
 - hosts: all
   tasks:
     - name: uninstall product

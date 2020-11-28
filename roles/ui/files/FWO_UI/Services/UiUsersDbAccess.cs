@@ -17,17 +17,17 @@ namespace FWO.Ui.Services
         {
             Language = "";
             ClaimsPrincipal user = authState.User;
-            string userDn ="";
-            foreach(var claim in user.Claims)
-            {
-                if (claim.Type == "x-hasura-uuid")
-                {
-                    userDn = claim.Value;
-                    break;
-                }
-            }
+            string userDn = user.FindFirstValue("x-hasura-uuid");
+            //foreach(var claim in user.Claims)
+            //{
+            //    if (claim.Type == "x-hasura-uuid")
+            //    {
+            //        userDn = claim.Value;
+            //        break;
+            //    }
+            //}
             Log.WriteDebug("Get User Language", $"userDn: {userDn}");
-            UiUser[] uiUser = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn })));
+            UiUser[] uiUser = await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn });
             if(uiUser != null && uiUser.Length > 0)
             {
                 Language = uiUser[0].Language;

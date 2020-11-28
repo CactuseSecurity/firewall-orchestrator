@@ -14,7 +14,20 @@ namespace FWO.ApiConfig
         public string CurrentLanguage { get; private set; }
         protected ConfigCollection globalConfig { get; set; }
 
-        public Dictionary<string, string> translate;
+        private Dictionary<string, string> translate;
+
+        public Dictionary<string, string> Translate
+        {
+            get
+            {
+                return translate;
+            }
+
+            set
+            {
+                translate = value;
+            }
+        }
 
         public event EventHandler OnChange;
 
@@ -32,7 +45,8 @@ namespace FWO.ApiConfig
         {
             CurrentLanguage = languageName;
             translate = globalConfig.langDict[languageName];
-            OnChange.Invoke(this, null);
+            if (OnChange != null)
+                OnChange.Invoke(this, null);
         }
 
         public void setNextLanguage()

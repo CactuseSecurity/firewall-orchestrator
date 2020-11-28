@@ -3,9 +3,10 @@
 @using FWO.ApiClient.Queries
 @using FWO.Ui.Data.API
 @using FWO.Ui.Data
+@using FWO.Report 
 @using FWO.Ui.Display
-@using FWO.Ui.Filter
-@using FWO.Ui.Filter.Exceptions
+@using FWO.Report.Filter
+@using FWO.Report.Filter.Exceptions
 
 @inject APIConnection Connection
 
@@ -100,46 +101,46 @@
                                    style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
                                    PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
 
-                                <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true">
+                                <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayNumber(device.Rules))
                                     </Template>
                                 </Column>
-                                <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-                                <Column TableItem="Rule" Title="Source Zone" Field="@(x => x.SourceZone)" Sortable="true" Filterable="true">
+                                <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="Source Zone" Field="@(x => x.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplaySourceZone())
                                     </Template>
                                 </Column>
-                                <Column TableItem="Rule" Title="Source" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+                                <Column TableItem="Rule" Title="Source" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplaySource())
                                     </Template>
                                 </Column>
-                                <Column TableItem="Rule" Title="Destination Zone" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+                                <Column TableItem="Rule" Title="Destination Zone" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayDestinationZone())
                                     </Template>
                                 </Column>
-                                <Column TableItem="Rule" Title="Destination" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+                                <Column TableItem="Rule" Title="Destination" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayDestination())
                                     </Template>
                                 </Column>
-                                <Column TableItem="Rule" Title="Services" Field="@(x => x.Name)" Sortable="true" Filterable="true">
+                                <Column TableItem="Rule" Title="Services" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayServices())
                                     </Template>
                                 </Column>
-                                <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" />
-                                <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" />
-                                <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true">
+                                <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayDisabled())
                                     </Template>
                                 </Column>
-                                <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" />
-                                <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" Hideable="true" />
 
                                 <DetailTemplate TableItem="Rule">
                                     <div>test</div>
@@ -238,52 +239,38 @@
 
     private void GenerateTestReport()
     {
-        Task.Run(async () =>
+        try
         {
-            try
+            Task.Run(() =>
             {
-                DynGraphqlQuery query = Compiler.Compile(filterInput);
+                DateTime startTime = DateTime.Now;
 
-                int limit = rulesPerFetch;
-                int offset = 0;
-                query.QueryVariables["limit"] = limit;
-                query.QueryVariables["offset"] = offset;
+                ReportPointInTime report = new ReportPointInTime();
+                report.Generate(rulesPerFetch, filterInput, Connection,
+                    managementsReportIntermediate =>
+                    {
+                        managementsReport = managementsReportIntermediate;
+                        return InvokeAsync(StateHasChanged);
+                    });
 
-                // with filter:
-                string test = System.Text.Json.JsonSerializer.Serialize(query.QueryVariables);
-                managementsReport = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
-                await InvokeAsync(StateHasChanged);
-
-                bool newObjects = true;
-
-                while (newObjects)
-                {
-                    offset += rulesPerFetch;
-                    query.QueryVariables["offset"] = offset;
-
-                    // with filter:
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
-                    newObjects = managementsReport.Merge(managementsCurrentFetch);
-
-                    await InvokeAsync(StateHasChanged);
-                }
-            }
-            catch (Exception exception)
+                //reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
+            });
+        }
+        catch (Exception exception)
+        {
+            //this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+            //leave managementsReport as default = empty array
+            if (exception.Message == "no such type exists in the schema: 'cidr'")
             {
-                //this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
-                //leave managementsReport as default = empty array
-                if (exception.Message == "no such type exists in the schema: 'cidr'")
-                {
-                    Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
-                    ShowError("Report generation", "You dont have sufficient acces rights.");
-                }
-                else
-                {
-                    Log.WriteError("Report generation", "Unclassified error.", exception);
-                    ShowError("Report generation", "Unclassified error.");
-                }
+                Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
+                ShowError("Report generation", "You dont have sufficient acces rights.");
             }
-        });
+            else
+            {
+                Log.WriteError("Report generation", "Unclassified error.", exception);
+                ShowError("Report generation", "Unclassified error.");
+            }
+        }
     }
 
     private void Export()

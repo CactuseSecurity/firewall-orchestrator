@@ -19,6 +19,7 @@ using FWO.Config;
 using FWO.ApiConfig;
 using FWO.Logging;
 using FWO.Ui.Services;
+using BlazorTable;
 
 namespace FWO.Ui
 {
@@ -69,6 +70,8 @@ namespace FWO.Ui
             services.AddScoped<UserConfigCollection>(_ => new UserConfigCollection(configCollection));
 
             services.AddScoped<DownloadManagerService>(_ => new DownloadManagerService());
+
+            services.AddBlazorTable();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

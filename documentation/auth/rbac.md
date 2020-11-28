@@ -12,7 +12,7 @@
 
 The following roles are defined in ascending order of permissions:
 - anonymous - anonymous users can only access the login page and health statistics
-- auth-server - allows the auth server to read necessary tables (ldap_connection)
+- middleware-server - allows the middleware server to read necessary tables (ldap_connection)
 - reporter - reporters have access to basic tables (stm_...) and limited rights for object and rule tables depending on the visible devices for the tenant the user belongs to.
 - reporter-viewall - reporter role for full read access to all devices
 - importer - users can import config changes into the database
@@ -39,7 +39,7 @@ The default tenant "tenant0" is always defined and has access rights to all devi
 These tenant-based permissions are assigned during login as follows:
 - The tenant(s) a user belongs to are read from an ldap directory.
 - The devices a tenant has access to are read from the database table tenent_to_device.
-- This information is written to a JWT (visible_devices, visible_managements) and signed by the Auth-Module.
+- This information is written to a JWT (visible_devices, visible_managements) and signed by the Middleware-Module.
 
 ## LDAP - remote vs. local
 - When using only the local LDAP server, the user <--> role matching is implemented with LDAP groups managed via the web user interface.

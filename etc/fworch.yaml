@@ -8,9 +8,9 @@ api_uri: "https://127.0.0.1:9443/api/v1/graphql"
 # api_hasura_jwt_alg: "HS384"
 api_hasura_jwt_alg: "RS256"
 
-# auth
-auth_JWT_key_file: "../../../../../etc/secrets/jwt_private.key"
-auth_hostname: "127.0.0.1"
-auth_server_port: "8888"
-#auth_uri: "http://{{ auth_hostname }}:{{ auth_server_port }}/"
-auth_uri: "http://127.0.0.1:8888/"
+# middleware
+middleware_JWT_key_file: "../../../../../etc/secrets/jwt_private.key"
+middleware_hostname: "127.0.0.1"
+middleware_server_port: "8888"
+#middleware_uri: "http://{{ middleware_hostname }}:{{ middleware_server_port }}/"
+middleware_uri: "http://127.0.0.1:8888/"

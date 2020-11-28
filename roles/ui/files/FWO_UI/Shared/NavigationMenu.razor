@@ -6,6 +6,7 @@
 
 @inject ConfigCollection globalConfig
 @inject UserConfigCollection userConfig
+@inject IJSRuntime jsRuntime
 
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark shadow w-100">
     <a class="navbar-brand" href="#">
@@ -20,37 +21,50 @@
 
     <div class="navbar-collapse @NavMenuCollapseClass">
         <ul class="navbar-nav mr-auto">
-            @foreach (NavItem navItem in navItemsLeft)
-            {
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="@navItem.Link">
-                        <span class="@navItem.Symbol"></span> @navItem.Name()
-                    </NavLink>
-                </li>
-            }
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="/report">
+                    <span class="oi oi-spreadsheet"></span> @(userConfig.Translate["reporting"])
+                </NavLink>
+            </li>
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="#">
+                    <span class="oi oi-book"></span> @(userConfig.Translate["documentation"])
+                </NavLink>
+            </li>
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="#">
+                    <span class="oi oi-comment-square"></span> @(userConfig.Translate["request"])
+                </NavLink>
+            </li>
         </ul>
 
         <ul class="navbar-nav">
-            @foreach (NavItem navItem in navItemsRight)
-            {
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="@navItem.Link">
-                        <span class="@navItem.Symbol"></span> @navItem.Name()
-                    </NavLink>
-                </li>
-            }
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("newWindow", args: "/test-help"))">
+                    <span class="oi oi-info"></span> @(userConfig.Translate["help"])
+                </NavLink>
+            </li>
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="/settings">
+                    <span class="oi oi-cog"></span> @(userConfig.Translate["settings"])
+                </NavLink>
+            </li>
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="/settings/personal">
+                    <span class="oi oi-person"></span> @(authenticationStateTask.Result.User.Identity.Name.ToUpper())
+                </NavLink>
+            </li>
+            <li class="nav-item px-2">
+                <NavLink class="nav-link" href="/logout">
+                    <span class="oi oi-account-logout"></span> @(userConfig.Translate["logout"])
+                </NavLink>
+            </li>
         </ul>
     </div>
 </nav>
 
 @code
 {
-    [Parameter]
-    public NavItem[] navItemsLeft { get; set; }
-
-    [Parameter]
-    public NavItem[] navItemsRight { get; set; }
-
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
@@ -58,33 +72,15 @@
 
     string NavMenuCollapseClass => (collapseNavMenu ? " collapse" : "");
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        AuthenticationState authState = await authenticationStateTask;
-        ClaimsPrincipal user = authState.User;
-
-        navItemsLeft = new NavItem[]
-        {
-            new NavItem(() => userConfig.translate["reporting"], "/report", "oi oi-spreadsheet"),
-            new NavItem(() => userConfig.translate["documentation"], "#", "oi oi-book"),
-            new NavItem(() => userConfig.translate["request"], "#", "oi oi-comment-square")
-        };
-
-        // build list of items in right navigation and turning into array in the end
-        List<NavItem> navRightList = new List<NavItem>();
-        navRightList.Add(new NavItem(() => userConfig.translate["help"], "/help", "oi oi-info"));
-        navRightList.Add(new NavItem(() => userConfig.translate["settings"], "/settings", "oi oi-cog"));
-        navRightList.Add(new NavItem(() => user.Identity.Name.ToUpper(), "/settings/personal", "oi oi-person"));
-        navRightList.Add(new NavItem(() => userConfig.translate["logout"], "/logout", "oi oi-account-logout"));
-        navItemsRight = navRightList.ToArray();
-
-        userConfig.OnChange += Update;
+        userConfig.OnChange += OnChange;
     }
-
-    private async void Update(object sender, EventArgs args) => await InvokeAsync(StateHasChanged);
 
     void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
+
+    private async void OnChange(object _, EventArgs __) => await InvokeAsync(StateHasChanged);
 }

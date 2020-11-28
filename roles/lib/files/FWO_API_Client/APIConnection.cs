@@ -90,7 +90,7 @@ namespace FWO.ApiClient
             catch (Exception exception)
             {
                 Log.WriteError("API Connection", "Error while sending query to GraphQL API.", exception);
-                throw exception;
+                throw;
             }
         }
     }

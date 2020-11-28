@@ -78,27 +78,5 @@
 @code
 {
     private int sidebarWidth = 200;
-
-    private NavItem[] adminNavItems;
-    private NavItem[] userNavItems;
-
-    protected override void OnInitialized()
-    {
-        //adminNavItems = new NavItem[]
-        //{
-        //    new NavItem(() => "Managements", "settings/managements", "oi oi-inbox"),
-        //    new NavItem(() => "Gateways", "settings/gateways", "oi oi-shield"),
-        //    new NavItem(() => "Authorization", "settings/authorization", "oi oi-lock-locked"),
-        //};
-
-        //userNavItems = new NavItem[]
-        //{
-        //    new NavItem(() => "Personal", "settings/personal", "oi oi-person")
-        //};
-
-        userConfig.OnChange += Update;
-    }
-
-    private async void Update(object sender, EventArgs args) => await InvokeAsync(StateHasChanged);
 }
 

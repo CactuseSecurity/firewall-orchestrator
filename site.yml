@@ -1,6 +1,16 @@
 ---
 
 - hosts: all
+  tasks:
+    - name: uninstall product
+      import_tasks: scripts/uninstall-fworch.yml
+      when: installation_mode == "uninstall"
+      become: yes
+  tags:
+    - backend
+    - frontend
+
+- hosts: all
   roles:
     - { role: uninstall, when: "installation_mode=uninstall" }
     - { role: common, when: "not installation_mode=uninstall" }

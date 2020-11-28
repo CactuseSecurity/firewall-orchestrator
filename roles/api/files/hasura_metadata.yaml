@@ -141,9 +141,79 @@ tables:
   table:
     name: changelog_user
     schema: public
-- table:
+- insert_permissions:
+  - permission:
+      backend_only: false
+      check:
+        config_user:
+          _eq: X-Hasura-User-Id
+      columns:
+      - config_user
+      - config_key
+      - config_value
+    role: reporter
+  - permission:
+      backend_only: false
+      check:
+        config_user:
+          _eq: X-Hasura-User-Id
+      columns:
+      - config_user
+      - config_key
+      - config_value
+    role: reporter-viewall
+  object_relationships:
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: config_user
+  select_permissions:
+  - permission:
+      columns:
+      - config_key
+      - config_value
+      - config_user
+      filter:
+        config_user:
+          _eq: 0
+    role: anonymous
+  - permission:
+      columns:
+      - config_key
+      - config_value
+      - config_user
+      filter:
+        config_user:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      columns:
+      - config_user
+      - config_key
+      - config_value
+      filter:
+        config_user:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
+  table:
     name: config
     schema: public
+  update_permissions:
+  - permission:
+      check: null
+      columns:
+      - config_value
+      filter:
+        config_user:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      check: null
+      columns:
+      - config_value
+      filter:
+        config_user:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
 - array_relationships:
   - name: changelog_rules
     using:
@@ -2552,6 +2622,13 @@ tables:
         column: import_admin
         table:
           name: changelog_user
+          schema: public
+  - name: configs
+    using:
+      foreign_key_constraint_on:
+        column: config_user
+        table:
+          name: config
           schema: public
   - name: objects
     using:

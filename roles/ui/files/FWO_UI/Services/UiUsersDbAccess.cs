@@ -10,12 +10,10 @@ namespace FWO.Ui.Services
 {
     public class UiUsersDbAccess
     {
-        public string Language { get; set; }
-        int actUserId = 0;
+        public UiUser UiUser { get; set; }
 
-        public async Task getLanguage(AuthenticationState authState, APIConnection apiConnection)
+        public UiUsersDbAccess (AuthenticationState authState, APIConnection apiConnection)
         {
-            Language = "";
             ClaimsPrincipal user = authState.User;
             string userDn ="";
             foreach(var claim in user.Claims)
@@ -26,12 +24,11 @@ namespace FWO.Ui.Services
                     break;
                 }
             }
-            Log.WriteDebug("Get User Language", $"userDn: {userDn}");
-            UiUser[] uiUser = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn })));
-            if(uiUser != null && uiUser.Length > 0)
+            Log.WriteDebug("Get User Data", $"userDn: {userDn}");
+            UiUser[] uiUsers = (Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn }))).Result;
+            if(uiUsers != null && uiUsers.Length > 0)
             {
-                Language = uiUser[0].Language;
-                actUserId = uiUser[0].DbId;
+                UiUser = uiUsers[0];
             }
         }
 
@@ -41,7 +38,7 @@ namespace FWO.Ui.Services
             {
                 var Variables = new
                 {
-                    id = actUserId,
+                    id = UiUser.DbId,
                     language = language
                 };
                 await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUser, Variables));

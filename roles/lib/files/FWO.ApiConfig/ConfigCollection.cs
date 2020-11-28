@@ -46,7 +46,17 @@ namespace FWO.ApiConfig
             authClient = new AuthClient(authServerUri);
             apiConnection = new APIConnection(apiServerUri);
             apiConnection.SetAuthHeader(jwt);
-            defaultLanguage = "English";
+            
+            ConfigDbAccess configTable = new ConfigDbAccess(apiConnection, 0);
+            try
+            {
+                defaultLanguage = configTable.Get(ConfigDbAccess.kDefaultLanguage);
+            }
+            catch(Exception exception)
+            {
+                Log.WriteError("Read Config table", $"Key not found: taking English ", exception);
+                defaultLanguage = "English";
+            }
 
             // get languages defined 
             try

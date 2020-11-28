@@ -12,7 +12,6 @@
 
 - hosts: all
   roles:
-    - { role: uninstall, when: "installation_mode=uninstall" }
     - { role: common, when: "not installation_mode=uninstall" }
 
   tags:

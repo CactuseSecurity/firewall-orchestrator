@@ -1,5 +1,13 @@
+# Note: In the example below, if database foo exists and has another tablespace
+# the tablespace will be changed to foo. Access to the database will be locked
+# until the copying of database files is finished.
+# - name: Create a new database called foo in tablespace bar
+#   postgresql_db:
+#     name: foo
+#     tablespace: bar
 
- 
+
+
 #     leave out tablespace creation for now as this cannot be done within a pgsql function (might use dblink later on) 
 #     - name: create tablespace {{ fworch_user }}
 #       shell: 'psql -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_tablespace WHERE spcname = ''{{ table_space_name }}'') THEN CREATE TABLESPACE {{ table_space_name }} OWNER dbadmin LOCATION ''{{ table_space }}''; END IF; END \$do\$"'

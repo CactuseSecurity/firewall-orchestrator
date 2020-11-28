@@ -8,6 +8,7 @@
 @page "/settings/report"
 
 @inject APIConnection apiConnection
+@inject UserConfigCollection userConfig
 
 <h3>Report Settings</h3>
 <hr />
@@ -59,6 +60,8 @@
 
     private async Task SaveRulesPerFetch()
     {
-        await config.Set(ConfigDbAccess.kRulesPerFetch, rulesPerFetch.ToString());
+        string rulesPerFetchString = rulesPerFetch.ToString();
+        await config.Set(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString);
+        userConfig.ChangeConfigValue(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString);
     }
 }

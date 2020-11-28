@@ -10,6 +10,7 @@
 @using FWO.Ui.Services
 
 @inject APIConnection Connection
+@inject UserConfigCollection userConfig
 
 @page "/report"
 
@@ -208,9 +209,6 @@
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
-
     protected override void OnInitialized()
     {
         Task.Run(async () =>
@@ -331,12 +329,9 @@
 
     private void GetSettings()
     {
-        AuthenticationState authState = authenticationStateTask.Result;
-        UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, Connection);
-        ConfigDbAccess config = new ConfigDbAccess(Connection, uiUser.UiUser.DbId);
         try
         {
-            string settingsValue = config.Get(ConfigDbAccess.kRulesPerFetch);
+            string settingsValue = userConfig.GetConfigValue(ConfigDbAccess.kRulesPerFetch);
             if (settingsValue != "")
             {
                 rulesPerFetch = Int32.Parse(settingsValue);

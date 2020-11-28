@@ -15,6 +15,8 @@ namespace FWO.ApiConfig
         protected ConfigCollection globalConfig { get; set; }
 
         public Dictionary<string, string> translate;
+        public Dictionary<String, String> userConfigItems { get; set; }
+        public Dictionary<String, String> defaultConfigItems { get; set; }
 
         public event EventHandler OnChange;
 
@@ -33,6 +35,32 @@ namespace FWO.ApiConfig
             CurrentLanguage = languageName;
             translate = globalConfig.langDict[languageName];
             OnChange.Invoke(this, null);
+        }
+
+        public string GetConfigValue(string Key)
+        {
+            string settingsValue = "";
+            if (userConfigItems.ContainsKey(Key))
+            {
+                settingsValue = userConfigItems[Key];
+            }
+            else if (defaultConfigItems.ContainsKey(Key))
+            {
+                settingsValue = defaultConfigItems[Key];
+            }
+            return settingsValue;
+        }
+
+        public void ChangeConfigValue(string Key, string Value)
+        {
+            if (userConfigItems.ContainsKey(Key))
+            {
+                userConfigItems[Key] = Value;
+            }
+            else
+            {
+                userConfigItems.Add(Key, Value);
+            }
         }
 
         public void setNextLanguage()

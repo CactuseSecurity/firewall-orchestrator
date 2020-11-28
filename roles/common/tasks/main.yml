@@ -32,14 +32,14 @@
       msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
     when: not already_installed and installation_mode == "upgrade"
 
-  - name: uninstall product
-    import_tasks: ../scripts/uninstall-fworch.yml
-    when: installation_mode == "uninstall"
+  # - name: uninstall product
+  #   import_tasks: ../scripts/uninstall-fworch.yml
+  #   when: installation_mode == "uninstall"
 
-  - name: stopping here in case of uninstall
-    fail:
-      msg: "uninstall completed, thanks for using firewall orchestrator"
-    when: installation_mode == "uninstall"
+  # - name: stopping here in case of uninstall
+  #   fail:
+  #     msg: "uninstall completed, thanks for using firewall orchestrator"
+  #   when: installation_mode == "uninstall"
 
   # - name: uninstall completed, thanks for using firewall orchestrator
   #   meta: end_play
@@ -116,6 +116,8 @@
         :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log
         :programname, isequal, "{{ product_name }}-import" /var/log/{{ product_name }}/import.log
         :programname, isequal, "{{ product_name }}-api" /var/log/{{ product_name }}/api.log
+        # only for devsrv:
+        :programname, isequal, "{{ product_name }}-webhook" /var/log/{{ product_name }}/webhook.log
 
   - name: edit logrotate
     blockinfile:

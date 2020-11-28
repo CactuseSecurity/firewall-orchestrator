@@ -39,7 +39,7 @@ namespace FWO.Report.Filter
                 {
                     Name = TokenKind.Time,
                     Operator = TokenKind.EQ,
-                    Value = "true" //DateTime.Now.ToString()
+                    Value = "now" //DateTime.Now.ToString()
                 };
             }
 
@@ -51,7 +51,7 @@ namespace FWO.Report.Filter
                     {
                         Name = TokenKind.Time,
                         Operator = TokenKind.EQ,
-                        Value = "true" //DateTime.Now.ToString()
+                        Value = "now" //DateTime.Now.ToString()
                     },
 
                     ConnectorType = TokenKind.And,

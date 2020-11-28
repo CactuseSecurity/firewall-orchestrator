@@ -57,18 +57,39 @@
     image: hasura/graphql-engine:{{ api_hasura_version }}
     state: started
     network_mode: host
+    networks_cli_compatible: yes
     log_driver: syslog
     log_options:
       syslog-address: "{{ syslog_proto }}://{{ syslog_host }}:{{ syslog_port }}"
       syslog-facility: daemon
       tag: "{{ api_container_name }}"
     recreate: yes
-    ports:
-      - "{{ api_ip_address }}:{{ api_port }}:{{ api_port }}"
+    exposed_ports:
+      - "{{ api_port }}:{{ api_port }}"
+      #- "{{ api_ip_address }}:{{ api_port }}:{{ api_port }}"
     env:
       "{{ hasura_env }}"
+  register: docker_return
   become: yes
   become_user: "{{ fworch_user }}"
+
+- name: show docker result
+  debug:
+    var:
+      docker_return
+  when: debug_level > '1'
+
+- name: Get info on container
+  docker_container_info:
+    name: "{{ api_container_name }}"
+  register: result
+  become: yes
+  become_user: "{{ fworch_user }}"
+
+- name: Print the status of the container
+  fail: 
+    msg: "The container status is: {{ result }}"
+  when: result.exists and result.container['State']['Status'] == 'exited'
 
 - name: copy hasura docker systemd service script
   template:

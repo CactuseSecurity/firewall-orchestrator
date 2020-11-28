@@ -560,6 +560,7 @@ Create table "import_control"
 	"mgm_id" Integer NOT NULL,
 	"last_change_in_config" Timestamp,
 	"successful_import" Boolean NOT NULL Default FALSE,
+	"changes_found" Boolean NOT NULL Default FALSE,
 	"import_errors" Varchar,
  primary key ("control_id")
 );
@@ -956,5 +957,6 @@ Create table "config"
 (
 "config_key" VARCHAR NOT NULL,
 "config_value" VARCHAR,
-primary key ("config_key")
+"config_user" Integer,
+primary key ("config_key","config_user")
 );

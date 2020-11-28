@@ -19,6 +19,9 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("uiuser_language")]
         public string Language { get; set; }
 
+        [JsonPropertyName("uiuser_last_login")]
+        public DateTime? LastLogin { get; set; }
+
             
         public UiUser()
         {}

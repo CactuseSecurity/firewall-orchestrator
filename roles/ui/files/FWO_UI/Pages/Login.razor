@@ -131,11 +131,9 @@
                 // overwrite userConfig with actual userData after login (does this work?)
                 //userConfig = new ApiConfig.UserConfigCollection();
 
-                // currently we change the language for all active users because of central userConfig :-(
                 AuthenticationState authState = await authenticationStateTask;
-                UiUsersDbAccess uiUser = new UiUsersDbAccess();
-                await uiUser.getLanguage(authState, ApiConnection);
-                userConfig.ChangeLanguage((uiUser.Language != "") ? uiUser.Language : "English");
+                UiUsersDbAccess uiUserAcc = new UiUsersDbAccess(authState, ApiConnection);
+                userConfig.ChangeLanguage((uiUserAcc.UiUser.Language != "") ? uiUserAcc.UiUser.Language : "English");
 
                 loginInProgress = false;
             }

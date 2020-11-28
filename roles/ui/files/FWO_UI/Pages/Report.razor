@@ -48,7 +48,6 @@
         }
     </div>
 </Sidebar>
-
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <h4 class="m-1">Reporting</h4>
     <button class="btn btn-secondary btn-sm m-1" @onclick="Export">Generate Pdf Export</button>
@@ -73,6 +72,10 @@
             <label for="rulesPerPageHtml" class="mr-1">Show rules per page: </label>
             <input id="rulesPerPageHtml" type="number" class="form-control-sm" @bind="rulesPerPage" />
         </div>
+        <div class="form-group mt-1 mb-1">
+            <input id="generationTime" type="text" class="form-control-sm" @bind="reportGenerationTimeLine" />
+        </div>
+        
     </div>
 
     <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateTestReport">
@@ -183,9 +186,10 @@
 
     private Management[] managementsOverview = new Management[0];
     private Management[] managementsReport = new Management[0];
+    // private Management[] managementsReport;
     private Management[] managementsAllObjects = new Management[0];
 
-    private int rulesPerFetch = 10;
+    private int rulesPerFetch = 100;
     private int rulesPerPage = 0;
 
     private bool ShowPopUp = false;
@@ -197,6 +201,8 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
+    private string reportGenerationTimeLine = "";
+
 
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
@@ -208,7 +214,7 @@
             try
             {
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
-
+ 
                 managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                 await InvokeAsync(StateHasChanged);
 
@@ -253,7 +259,7 @@
                         return InvokeAsync(StateHasChanged);
                     });
 
-                //reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
+                reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
             });
         }
         catch (Exception exception)

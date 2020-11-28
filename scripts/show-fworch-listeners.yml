@@ -1,0 +1,18 @@
+---
+- block:
+
+    - name: check if netstat exists
+      stat: 
+        path: /bin/netstat
+      register: netstat_file_exists
+
+    - name: get running tcp services
+      command: netstat -tlpen
+      register: netstat_result
+      when:  netstat_file_exists.stat.exists == true
+
+    - name: show running tcp services
+      debug: var=netstat_result.stdout_lines
+      when:  netstat_file_exists.stat.exists == true
+
+  become: yes

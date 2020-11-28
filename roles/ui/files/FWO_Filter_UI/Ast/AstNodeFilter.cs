@@ -54,34 +54,57 @@ namespace FWO.Ui.Filter.Ast
             return query;
         }
 
+        private DynGraphqlQuery ExtractIpFilter(DynGraphqlQuery query, string location, string locationTable)
+        {
+            string filterIP = sanitizeIp(Value);
+            (string firstIp, string lastIp) = getFirstAndLastIp(filterIP);
+            string ipFilterString = "";
+
+            if (firstIp == lastIp) // optimization, just need a single comparison if searching for single ip
+            {
+                string QueryVarName = $"{location}Ip" + query.parameterCounter++;
+                query.QueryVariables[QueryVarName] = firstIp;
+                query.QueryParameters.Add($"${QueryVarName}: cidr! ");
+                ipFilterString = $"obj_ip: {{ _eq: ${QueryVarName} }}";
+            }
+            else // ip filter is a subnet with /xy
+            {
+                string QueryVarName1 = $"{location}IpLow" + query.parameterCounter;
+                string QueryVarName2 = $"{location}IpHigh" + query.parameterCounter++;
+                query.QueryVariables[QueryVarName1] = firstIp;
+                query.QueryVariables[QueryVarName2] = lastIp;
+                query.QueryParameters.Add($"${QueryVarName1}: cidr! ");
+                query.QueryParameters.Add($"${QueryVarName2}: cidr! ");
+                // todo: can we also implement comparison with subnet objects?
+                // currently the following match only works if the obj_ip is fully included in the subnet filter
+                ipFilterString =
+                     $@"    _and: 
+                                [ 
+                                    {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
+                                    {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
+                                ]";
+            }
+            query.RuleWhereQuery += 
+                $@" {locationTable}: 
+                        {{ object: 
+                            {{ objgrp_flats: 
+                                {{ objectByObjgrpFlatMemberId:
+                                    {{ {ipFilterString} }}
+                                }}
+                            }}
+                        }}";
+            return query;
+        }
+
         private DynGraphqlQuery ExtractSourceQuery(DynGraphqlQuery query)
         {
             string QueryOperation = SetQueryOpString(Operator, Name);
 
             if (isCidr(Value))  // filtering for ip addresses
             {
-                string QueryVarName1 = "srcLow" + query.parameterCounter;
-                string QueryVarName2 = "srcHigh" + query.parameterCounter++;
-                (string firstIp, string lastIp) = getFirstAndLastIp(Value);
-                query.QueryVariables[QueryVarName1] = firstIp;
-                query.QueryVariables[QueryVarName2] = lastIp;
-                query.QueryParameters.Add($"${QueryVarName1}: cidr! ");
-                query.QueryParameters.Add($"${QueryVarName2}: cidr! ");
-                query.RuleWhereQuery +=
-                    $@"
-                        rule_froms: 
-                            {{ object: 
-                                 {{ objgrp_flats: 
-                                    {{ objectByObjgrpFlatMemberId: 
-                                        {{ _and: 
-                                            [ 
-                                                {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
-                                                {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
-                                            ]
-                                        }} 
-                                    }}
-                                }}
-                            }}";
+                string location = "src";
+                string locationTable = "rule_froms";
+                query = ExtractIpFilter(query, location, locationTable);
             }
             else // string search against src obj name
             {
@@ -98,28 +121,9 @@ namespace FWO.Ui.Filter.Ast
 
             if (isCidr(Value))  // filtering for ip addresses
             {
-                string QueryVarName1 = "dstLow" + query.parameterCounter;
-                string QueryVarName2 = "dstHigh" + query.parameterCounter++;
-                (string firstIp, string lastIp) = getFirstAndLastIp(Value);
-                query.QueryVariables[QueryVarName1] = firstIp;
-                query.QueryVariables[QueryVarName2] = lastIp;
-                query.QueryParameters.Add($"${QueryVarName1}: cidr! ");
-                query.QueryParameters.Add($"${QueryVarName2}: cidr! ");
-                query.RuleWhereQuery +=
-                    $@"
-                        rule_tos: 
-                            {{ object: 
-                                 {{ objgrp_flats: 
-                                    {{ objectByObjgrpFlatMemberId: 
-                                        {{ _and: 
-                                            [ 
-                                                {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
-                                                {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
-                                            ]
-                                        }} 
-                                    }}
-                                }}
-                            }}";
+                string location = "dst";
+                string locationTable = "rule_tos";
+                query = ExtractIpFilter(query, location, locationTable);
             }
             else // string search against dst obj name
             {
@@ -235,10 +239,30 @@ namespace FWO.Ui.Filter.Ast
             }
             return operation;
         }
-        private bool isCidr(string cidr)
+
+        private static string sanitizeIp(string cidr_str)
+        {
+            IPAddress ip;
+            if (IPAddress.TryParse(cidr_str, out ip))
+            {
+                cidr_str = ip.ToString();
+                if (cidr_str.IndexOf("/") < 0) // a single ip without mask
+                {
+                    cidr_str += "/32";
+                }
+                if (cidr_str.IndexOf("/") == cidr_str.Length-1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                {
+                    cidr_str += "32";
+                }
+            }
+            return cidr_str;
+        }
+
+        private static bool isCidr(string cidr)
         {
             // IPV4 only:
-            string[] IPA = cidr.Split('/');
+
+            string[] IPA = sanitizeIp(cidr).Split('/');
             if (IPA.Length == 2)
             {
                 if (IPAddress.TryParse(IPA[0], out _))
@@ -268,7 +292,7 @@ namespace FWO.Ui.Filter.Ast
         private static (string, string) getFirstAndLastIp(string cidr)
         {
             // TODO: IPv6 handling
-            string[] parts = cidr.Split('.', '/');
+            string[] parts = sanitizeIp(cidr).Split('.', '/');
 
             uint ipnum = (Convert.ToUInt32(parts[0]) << 24) |
                 (Convert.ToUInt32(parts[1]) << 16) |

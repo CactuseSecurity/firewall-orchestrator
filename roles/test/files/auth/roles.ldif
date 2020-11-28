@@ -5,11 +5,11 @@ cn: anonymous
 uniqueMember: cn=anonymous,ou=role,dc=fworch,dc=internal
 description: anonymous users can only access the login page and health statistics
 
-dn: cn=auth-server,ou=role,dc=fworch,dc=internal
+dn: cn=middleware-server,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
-cn: auth-server
-description: allows the auth server to read necessary tables (ldap_connection)
+cn: middleware-server
+description: allows the middleware server to read necessary tables (ldap_connection)
 
 dn: cn=reporter,ou=role,dc=fworch,dc=internal
 objectClass: top

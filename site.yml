@@ -22,11 +22,11 @@
   tags:
     - backend
 
-- hosts: authserver
+- hosts: middlewareserver
   roles:
     - { role: openldap-server, when: "not installation_mode == 'uninstall'" }
     - { role: lib, when: "not installation_mode == 'uninstall'" }
-    - { role: auth, when: "not installation_mode == 'uninstall'" }
+    - { role: middleware, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
 
@@ -38,11 +38,11 @@
     - backend
    # todo: make api (and docker) work with github actions
 
-# restart authserver now that the API is ready.
-- hosts: authserver
+# restart middlewareserver now that the API is ready.
+- hosts: middlewareserver
   tasks:
-    - name: restart auth service
-      command: "systemctl restart {{ auth_service_name }}"
+    - name: restart middleware service
+      command: "systemctl restart {{ middleware_service_name }}"
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:
@@ -50,8 +50,8 @@
 
 - hosts: frontends
   roles:
-    # do not install lib role twice (for non distributed install, already installed for authserver)
-    - { role: lib, when: "'authserver' not in group_names and not installation_mode == 'uninstall'"}
+    # do not install lib role twice (for non distributed install, already installed for middlewareserver)
+    - { role: lib, when: "'middlewareserver' not in group_names and not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
     - { role: frontend-php, when: "ui_php is defined and not installation_mode == 'uninstall'"}
   tags:
@@ -71,7 +71,7 @@
     - samples
     - backend
 
-- hosts: authserver
+- hosts: middlewareserver
   roles:
     - { role: sample-auth-data, when: "without_sample_data is not defined and not installation_mode == 'uninstall'" }
   tags:

@@ -1,16 +1,16 @@
-# this playbook contains auth server tests
+# this playbook contains middleware server tests
 
-- name:  wait for auth server port to become available
+- name:  wait for middleware port to become available
   wait_for:
-    port: "{{ auth_web_listener_port }}"
-    host: "{{ auth_hostname }}"
+    port: "{{ middleware_web_listener_port }}"
+    host: "{{ middleware_hostname }}"
     connect_timeout: 1
     delay: 10
     timeout: 25
   when: "run_on_github is not defined"
 
 # curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
-- name: auth test get jwt valid creds
+- name: middleware test get jwt valid creds
   command: |
     curl --request POST --insecure 
       --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/AuthenticateUser/ 
@@ -38,7 +38,7 @@
 - set_fact: jwt_type="{{ jwt_header.typ }}"
 - debug: var=jwt_type
 
-- name: auth get jwt test valid creds output
+- name: middleware get jwt test valid creds output
   debug:
     msg: "ERROR unexpected jwt test result (jwt_type does not match 'JWT'): {{ jwt_type }}"
   when: "jwt_type is not match('JWT')"
@@ -56,12 +56,12 @@
 - set_fact: jwt_payload="{{ jwt_encoded_payload|b64decode }}"
 - set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
 
-- name: auth get jwt check valid creds output
+- name: middleware get jwt check valid creds output
   debug:
     msg: "ERROR unexpected jwt test result (username does not match 'fritz'): {{ jwt_unique_user_name }}"
   when: "jwt_unique_user_name is not match('fritz')"
 
-- name: auth test get jwt wrong creds
+- name: middleware test get jwt wrong creds
   command: |
     curl --request POST --insecure 
       --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/AuthenticateUser/
@@ -70,7 +70,7 @@
   register: sample_jwt
   changed_when: false
 
-- name: auth get jwt test wrong creds output
+- name: middleware get jwt test wrong creds output
   debug:
     msg: "ERROR unexpected jwt test result (not equal 'InvalidCredentials'): {{ sample_jwt.stdout }}"
   when: sample_jwt.stdout is not match('InvalidCredentials')

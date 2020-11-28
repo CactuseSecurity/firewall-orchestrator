@@ -8,20 +8,20 @@ modulepath      /usr/lib64/openldap
 
 access to *
                 by self write
-                by dn.base="{{ auth_ldap_superuser_name }}" write
+                by dn.base="{{ middleware_ldap_superuser_name }}" write
                 by * read
 access to attrs=userPassword
                 by self write
-                by anonymous auth
-                by dn.base="{{ auth_ldap_superuser_name }}" write
+                by anonymous middleware
+                by dn.base="{{ middleware_ldap_superuser_name }}" write
                 by * none
 access to attrs=shadowLastChange
                 by self write
                 by * read
 
 database        bdb
-suffix          "{{ auth_ldap_path }}"
-rootdn          "{{ auth_ldap_superuser_name }}"
+suffix          "{{ middleware_ldap_path }}"
+rootdn          "{{ middleware_ldap_superuser_name }}"
 rootpw          {{ root_password.stdout }}
 #This directory has to be created and would contain the ldap database.
 directory       /var/lib/ldap/{{ openldap_server_domain_name }}/

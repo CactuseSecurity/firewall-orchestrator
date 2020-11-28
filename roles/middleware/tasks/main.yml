@@ -45,7 +45,7 @@
   when: installation_mode == "upgrade"
 
 - name: Set {{ middleware_ldap_internal_readonly_user }} password in ldap
-  command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ middleware_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}'"
+  command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}'"
 
 - name: Set admin password in ldap
   command: "ldappasswd -s {{ admin_pwd }} -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ middleware_ldap_path }}'"

@@ -71,7 +71,7 @@
 
   - block:
       - name: remove database for pg_version starting from 13
-        command: psql -c 'drop database fworchdb with ( force )'
+        command: psql -c 'drop database if exists fworchdb with ( force )'
         become_user: postgres
         register: drop_db
 

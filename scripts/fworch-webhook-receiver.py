@@ -55,7 +55,7 @@ def post_handler():
       modified_files = req_data['head_commit']['modified']
       f.write('found modified files: ' + json.dumps(modified_files) + '\n')
       relevant_change = False
-      pattern = '^roles\/|^inventory\/|^site.yml$'
+      pattern = '^roles\/|^scripts\/|^inventory\/|^site.yml$'
       for modified_file in modified_files:
          if (re.match(pattern, modified_file)):
             relevant_change = True
@@ -77,13 +77,13 @@ def post_handler():
             os.system("cp " + tmp_git_dir + "/firewall-orchestrator/scripts/fworch-webhook-receiver.py " + root_dir)
             # might not work due to user rights:
             # os.system("systemctl restart fworch-webhook-receiver.service")
-         # uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"installation_mode=uninstall\"" + "'"
-         # f.write('executing uninstall command: ' + uninstall_cmd + '\n')
-         # os.system(uninstall_cmd) # remove fworch
+         uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"installation_mode=uninstall\"" + "'"
+         f.write('executing uninstall command: ' + uninstall_cmd + '\n')
+         os.system(uninstall_cmd) # remove fworch
          # fresh install: 
-         # build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=new\" --skip-tags \"test\""
+         build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=new\" --skip-tags \"test\""
          # reverting to upgrade since uninstall fails whenever a session is blocking the removal of the database
-         build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" --skip-tags \"test\""
+         # build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" --skip-tags \"test\""
          f.write('executing build command: ' + build_cmd + '\n')
          os.system(build_cmd) # building fworch
          now = datetime.now() # current date and time

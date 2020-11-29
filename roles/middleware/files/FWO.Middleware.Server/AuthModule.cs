@@ -7,12 +7,12 @@ using System.Net;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
-using FWO.Auth.Server.Data;
-using FWO.Auth.Server.Requests;
+using FWO.Middleware.Server.Data;
+using FWO.Middleware.Server.Requests;
 using FWO.Config;
 using FWO.Logging;
 
-namespace FWO.Auth.Server
+namespace FWO.Middleware.Server
 {
     public class AuthModule
     {

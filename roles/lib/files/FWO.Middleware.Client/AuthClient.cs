@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Linq;
 using System.Net;
 
-namespace FWO.Auth.Client
+namespace FWO.Middleware.Client
 {
     public class AuthClient
     {

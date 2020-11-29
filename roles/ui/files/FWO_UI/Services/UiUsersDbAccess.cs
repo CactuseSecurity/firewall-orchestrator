@@ -19,10 +19,10 @@ namespace FWO.Ui.Services
 
             Log.WriteDebug("Get User Language", $"userDn: {userDn}");
 
-            UiUser[] uiUser = await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn });
+            UiUser[] uiUser = apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn }).Result;
             if(uiUser != null && uiUser.Length > 0)
             {
-                UiUser = uiUsers[0];
+                UiUser = uiUser[0];
             }
         }
 

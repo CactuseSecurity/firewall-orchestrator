@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace FWO.Auth.Server.Data
+namespace FWO.Middleware.Server.Data
 {
     public class User
     {

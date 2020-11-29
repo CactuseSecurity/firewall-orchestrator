@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FWO_Auth_Client\FWO.Middleware.Client.csproj" />
+    <ProjectReference Include="..\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
     <ProjectReference Include="..\FWO_API_Client\FWO.ApiClient.csproj" />
     <ProjectReference Include="..\FWO_Config\FWO.Config.csproj" />
     <ProjectReference Include="..\FWO_Logging\FWO.Logging.csproj" />

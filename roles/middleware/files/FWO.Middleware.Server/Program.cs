@@ -1,7 +1,7 @@
 ﻿using FWO.Logging;
 using System;
 
-namespace FWO.Auth.Server
+namespace FWO.Middleware.Server
 {
     class Program
     {

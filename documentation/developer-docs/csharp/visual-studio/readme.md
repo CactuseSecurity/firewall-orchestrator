@@ -56,7 +56,7 @@ if vs code does not show the upstream repo in pull-from, just give it some time 
 
 ### install nuget packages
 
-    tim@acantha:~/dev/tpur-fwo/firewall-orchestrator/roles/lib/files/FWO_Auth_Client$ dotnet add package System.IdentityModel.Tokens.Jwt
+    tim@acantha:~/dev/tpur-fwo/firewall-orchestrator/roles/lib/files/FWO.Middleware.Client$ dotnet add package System.IdentityModel.Tokens.Jwt
 
 ### add local project reference
 
@@ -100,7 +100,7 @@ or alternatively add the following to csproj file:
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FWO_Auth_Client\FWO.Auth.Client.csproj" />
+    <ProjectReference Include="..\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
     <ProjectReference Include="..\FWO_API_Client\FWO.ApiClient.csproj" />
     <ProjectReference Include="..\FWO_Config\FWO.Config.csproj" />
     <ProjectReference Include="..\FWO_Logging\FWO.Logging.csproj" />

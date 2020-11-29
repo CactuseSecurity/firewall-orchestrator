@@ -13,7 +13,7 @@
 - name: middleware test get jwt valid creds
   command: |
     curl --request POST --insecure 
-      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/AuthenticateUser/ 
+      --url http://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/ 
       --header 'content-type: application/json' 
       --data '{"Username":"fritz","Password":"fritz1"}'
   register: sample_jwt
@@ -56,7 +56,7 @@
 - set_fact: jwt_payload="{{ jwt_encoded_payload|b64decode }}"
 - set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
 
-- name: middleware get jwt check valid creds output
+- name: middleware get jwt check valid creds output user fritz
   debug:
     msg: "ERROR unexpected jwt test result (username does not match 'fritz'): {{ jwt_unique_user_name }}"
   when: "jwt_unique_user_name is not match('fritz')"
@@ -64,7 +64,7 @@
 - name: middleware test get jwt wrong creds
   command: |
     curl --request POST --insecure 
-      --url http://{{ auth_hostname }}:{{ auth_web_listener_port }}/AuthenticateUser/
+      --url http://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
       --header 'content-type: application/json' 
       --data '{"Username":"fritz","Password":"wrong-pwd"}'
   register: sample_jwt

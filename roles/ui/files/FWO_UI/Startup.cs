@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Ui.Auth;
-using FWO.Auth.Client;
+using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;

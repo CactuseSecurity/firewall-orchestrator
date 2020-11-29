@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using FWO.Logging;
 using FWO.Config;
-using FWO.Auth.Client;
+using FWO.Middleware.Client;
 using FWO.ApiClient;
 using FWO.ApiConfig.Data;
 using FWO.ApiClient.Queries;

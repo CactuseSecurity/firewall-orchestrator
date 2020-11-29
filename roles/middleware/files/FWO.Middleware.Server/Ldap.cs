@@ -1,4 +1,4 @@
-﻿using FWO.Auth.Server.Data;
+﻿using FWO.Middleware.Server.Data;
 using FWO.Logging;
 using Novell.Directory.Ldap;
 using System;
@@ -8,7 +8,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 
 
-namespace FWO.Auth.Server
+namespace FWO.Middleware.Server
 {
     public class Ldap
     {

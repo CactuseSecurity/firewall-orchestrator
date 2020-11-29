@@ -2,7 +2,7 @@
 using System.Reflection;
 using System;
 
-namespace FWO.Auth.Server
+namespace FWO.Middleware.Server
 {
     public static class ObjectExtensions
     {

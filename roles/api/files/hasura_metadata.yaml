@@ -789,7 +789,7 @@ tables:
       - user_name
       - user_typ
       - user_comment
-      - user_middlewaremethod
+      - user_authmethod
       - user_valid_from
       - user_valid_until
       - user_member_names
@@ -2954,7 +2954,7 @@ tables:
       - active
       - user_member_names
       - user_member_refs
-      - user_middlewaremethod
+      - user_authmethod
       - user_valid_from
       - user_valid_until
       - src_restrict
@@ -2982,7 +2982,7 @@ tables:
       - active
       - user_member_names
       - user_member_refs
-      - user_middlewaremethod
+      - user_authmethod
       - user_valid_from
       - user_valid_until
       - src_restrict

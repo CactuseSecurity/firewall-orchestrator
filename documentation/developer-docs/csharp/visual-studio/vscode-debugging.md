@@ -41,10 +41,10 @@ dotnet_mode: "Release"
 api_uri: "https://127.0.0.1:9443/api/v1/graphql"
 api_hasura_jwt_alg: "RS256"
 
-# auth
-auth_uri: "http://127.0.0.1:8888"
-auth_hostname: "127.0.0.1"
-auth_server_port: "8888"
+# middleware
+middleware_uri: "http://127.0.0.1:8888"
+middleware_hostname: "127.0.0.1"
+middleware_server_port: "8888"
 ```
 
 ### test /etc/fworch/secrets/jwt_private_key.pem 

@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using FWO.Config;
 using FWO.Logging;
 
-namespace FWO.Auth.Client
+namespace FWO.Middleware.Client
 {
     public class JwtReader
     {

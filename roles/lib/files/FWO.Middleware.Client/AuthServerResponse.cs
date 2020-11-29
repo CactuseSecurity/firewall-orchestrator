@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace FWO.Auth.Client
+namespace FWO.Middleware.Client
 {
     public class AuthServerResponse
     {

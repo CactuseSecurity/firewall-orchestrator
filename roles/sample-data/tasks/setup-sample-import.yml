@@ -23,8 +23,7 @@
         create: yes
         state: present
         insertafter: EOF
-        regex: "{{ user_pub_key['content'] | b64decode }}"
-        
+
     - name: correct sample-data users authorized_keys file acls
       file:
         path: "{{ sample_config_user_home }}/.ssh/authorized_keys"

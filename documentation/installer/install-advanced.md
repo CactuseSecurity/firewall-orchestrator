@@ -6,7 +6,7 @@ always change into the firewwall-orchestrator directory before starting the inst
 
 ### Installation mode parameter
 
-The followin switch can be used to set the type of installation to perform
+The following switch can be used to set the type of installation to perform
 
 ```console
 ansible-playbook -i inventory -e "installation_mode=upgrade" site.yml -K
@@ -14,7 +14,7 @@ ansible-playbook -i inventory -e "installation_mode=upgrade" site.yml -K
 
 installation_mode options:
 - new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
-- uninstall     - uninstalls the product including any data
+- uninstall     - uninstalls the product including any data (database, ldap, files)!
 - upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api; removes all files from target and copies latest sources instead
                 
 

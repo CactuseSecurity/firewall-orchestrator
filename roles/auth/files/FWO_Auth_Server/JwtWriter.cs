@@ -88,14 +88,6 @@ namespace FWO.Auth.Server
         {
             if (user.Dn != "anonymous")
             {
-                User userToBeReturned = new User(user);
-                // failed to get this working (seems like serializer stumbles over an extra layer)
-                // APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
-                // userFromLdap = apiConn.SendQueryAsync<User[]>(
-                //         AuthQueries.assertUserExists,
-                //         new { uuid = user.Dn, uiuser_username = user.Name, onConflictRule = new { update_columns = "uuid", constraint = "uiuser_uuid_key" } }
-                //     ).Result[0];
-
                 APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
                 User[] existingUserFound = null;
                 bool userSetInDb = false;
@@ -106,37 +98,65 @@ namespace FWO.Auth.Server
                     {
                         if (existingUserFound.Length == 1)
                         {
-                            userToBeReturned.DbId = existingUserFound[0].DbId;
+                            user.DbId = existingUserFound[0].DbId;
+                            updateLastLogin(apiConn, user.DbId);
                             userSetInDb = true;
                         }
                         else
                         {
-                            Log.WriteError("Duplicate User", $"Couldn't find {user.Name} exactly once!");
+                            Log.WriteError("User not found", $"Couldn't find {user.Name} exactly once!");
                         }
                     }
                 }
-                catch(Exception Exception)
+                catch(Exception exeption)
                 {
-                    Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", Exception);
+                    Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
                 }
 
                 if(!userSetInDb)
                 {
                     Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
-                    try          
-                    {
-                        // add new user to uiuser via API mutation
-                        userToBeReturned.DbId = apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, new { uuid = user.Dn, uiuser_username = user.Name }).Result.ReturnIds[0].NewId;
-                    }
-                    catch (Exception addExeption)
-                    {
-                        Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", addExeption);
-                    }
+                    addUser(apiConn, user);
                 }
-                return userToBeReturned;
             }
             // for anonymous access, just return the unmodified user
             return user;
+        }
+
+        private void addUser(APIConnection apiConn, User user)
+        {
+            try          
+            {
+                // add new user to uiuser
+                var Variables = new
+                {
+                    uuid = user.Dn, 
+                    uiuser_username = user.Name,
+                    loginTime = DateTime.UtcNow
+                };
+                user.DbId = apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables).Result.ReturnIds[0].NewId;
+            }
+            catch (Exception exeption)
+            {
+                Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", exeption);
+            }
+        }
+
+        private void updateLastLogin(APIConnection apiConn, int id)
+        {
+            try
+            {
+                var Variables = new
+                {
+                    id = id, 
+                    loginTime = DateTime.UtcNow
+                };
+                apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLastLogin, Variables);
+            }
+            catch(Exception exeption)
+            {
+                Log.WriteError("Update User Error", $"User {id} could not be updated in database.", exeption);
+            }
         }
 
         private ClaimsIdentity GetClaims(User user)

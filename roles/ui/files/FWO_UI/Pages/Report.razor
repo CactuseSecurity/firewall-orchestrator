@@ -1,13 +1,16 @@
 @using BlazorTable
 @using FWO.ApiClient
 @using FWO.ApiClient.Queries
+@using FWO.ApiConfig;
 @using FWO.Ui.Data.API
 @using FWO.Ui.Data
 @using FWO.Ui.Display
 @using FWO.Ui.Filter
 @using FWO.Ui.Filter.Exceptions
+@using FWO.Ui.Services
 
 @inject APIConnection Connection
+@inject UserConfigCollection userConfig
 
 @page "/report"
 
@@ -212,6 +215,7 @@
         {
             try
             {
+                GetSettings();
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
  
                 managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
@@ -320,6 +324,22 @@
 #if DEBUG
             ShowError("Filter Error", $"{unexpectedError.Message}\n{unexpectedError.StackTrace}");
 #endif
+        }
+    }
+
+    private void GetSettings()
+    {
+        try
+        {
+            string settingsValue = userConfig.GetConfigValue(ConfigDbAccess.kRulesPerFetch);
+            if (settingsValue != "")
+            {
+                rulesPerFetch = Int32.Parse(settingsValue);
+            }
+        }
+        catch(Exception exception)
+        {
+            Log.WriteError("Read Config", $"Error reading config value", exception);
         }
     }
 }

@@ -182,8 +182,11 @@ tables:
       - config_value
       - config_user
       filter:
-        config_user:
-          _eq: X-Hasura-User-Id
+        _or:
+        - config_user:
+            _eq: X-Hasura-User-Id
+        - config_user:
+            _eq: 0
     role: reporter
   - permission:
       columns:
@@ -191,8 +194,11 @@ tables:
       - config_key
       - config_value
       filter:
-        config_user:
-          _eq: X-Hasura-User-Id
+        _or:
+        - config_user:
+            _eq: X-Hasura-User-Id
+        - config_user:
+            _eq: 0
     role: reporter-viewall
   table:
     name: config

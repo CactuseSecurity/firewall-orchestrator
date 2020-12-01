@@ -33,7 +33,7 @@
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "'run_on_github' is not defined and not installation_mode == 'uninstall'" }
+    - { role: docker, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
     - { role: api, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
   tags:
     - backend
@@ -52,7 +52,7 @@
 - hosts: frontends
   roles:
     # do not install lib role twice (for non distributed install, already installed for authserver)
-    - { role: lib, when: "'authserver' not in group_names and not installation_mode == 'uninstall'"}
+    - { role: lib, when: "authserver not in group_names and not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
     - { role: frontend-php, when: "ui_php is defined and not installation_mode == 'uninstall'"}
   tags:

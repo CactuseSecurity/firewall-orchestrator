@@ -16,15 +16,25 @@ access to attrs=userPassword
                 by self write
                 by anonymous auth
                 by dn.base="{{ auth_ldap_superuser_name }}" write
-                by dn.base="uid=inspector,ou=systemuser,ou=user,{{ auth_ldap_path }}" read
+                by dn.base="{{ auth_ldap_internal_readonly_user_fq }}" read
+                by dn.base="{{ auth_ldap_role_admin }}" read
                 by * none
+
 access to attrs=shadowLastChange
                 by self write
                 by * read
+
+access to dn.children="{{ auth_ldap_std_role_path }}"
+                by dn.base="{{ auth_ldap_role_admin }}" write
+                by dn.base="{{ auth_ldap_superuser_name }}" write
+                by dn.base="{{ auth_ldap_internal_readonly_user_fq }}" read
+                by * none
+
 access to *
                 by self write
                 by dn.base="{{ auth_ldap_superuser_name }}" write
-                by dn.base="uid=inspector,ou=systemuser,ou=user,{{ auth_ldap_path }}" read
+                by dn.base="{{ auth_ldap_internal_readonly_user_fq }}" read
+                by dn.base="{{ auth_ldap_role_admin }}" read
                 by * none
 
 database        bdb

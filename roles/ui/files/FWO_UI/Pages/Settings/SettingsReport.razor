@@ -1,0 +1,67 @@
+﻿@using BlazorTable
+@using FWO.ApiClient
+@using FWO.ApiConfig
+@using FWO.ApiConfig.Data;
+@using FWO.Ui.Data.API
+@using FWO.Ui.Services
+
+@page "/settings/report"
+
+@inject APIConnection apiConnection
+@inject UserConfigCollection userConfig
+
+<h3>Report Settings</h3>
+<hr />
+
+<form class="form-inline">
+    <label for="rulesPerFetch" class="col-form-label mr-2">Rules per fetch:</label>
+    <div class="col-sm-2">
+        <input id="rulesPerFetch" type="text" class="form-control form-control-sm" @bind="rulesPerFetch" />
+    </div>
+    <button class="btn btn-sm btn-primary" @onclick="SaveRulesPerFetch">Save</button>
+</form>
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    ConfigDbAccess config;
+    int rulesPerFetch = 100;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState authState = await authenticationStateTask;
+        UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
+        config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
+        try
+        {
+            string settingsValue = config.Get(ConfigDbAccess.kRulesPerFetch);
+            if (settingsValue != "")
+            {
+                rulesPerFetch = Int32.Parse(settingsValue);
+            }
+            else
+            {
+                // get default value
+                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection, 0);
+                settingsValue = defaultConfig.Get(ConfigDbAccess.kRulesPerFetch);
+                if (settingsValue != "")
+                {
+                    rulesPerFetch = Int32.Parse(settingsValue);
+                }
+            }
+         }
+        catch(Exception exception)
+        {
+            Log.WriteError("Read Config", $"Key not found or could not convert value to int: taking value 100 ", exception);
+        }
+    }
+
+    private async Task SaveRulesPerFetch()
+    {
+        string rulesPerFetchString = rulesPerFetch.ToString();
+        await config.Set(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString);
+        userConfig.ChangeConfigValue(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString);
+    }
+}

@@ -1,29 +1,40 @@
 ---
 
 - hosts: all
+  tasks:
+    - name: uninstall product
+      import_tasks: scripts/uninstall-fworch.yml
+      when: "installation_mode == 'uninstall'"
+      become: yes
+  tags:
+    - backend
+    - frontend
+
+- hosts: all
   roles:
-    - common
+    - { role: common, when: "not installation_mode == 'uninstall'" }
+
   tags:
     - backend
 
 - hosts: backendserver
   roles:
-    - database
+    - { role: database, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
 
 - hosts: authserver
   roles:
-    - openldap-server
-    - lib
-    - auth
+    - { role: openldap-server, when: "not installation_mode == 'uninstall'" }
+    - { role: lib, when: "not installation_mode == 'uninstall'" }
+    - { role: auth, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "run_on_github is not defined" }
-    - { role: api, when: "run_on_github is not defined" }
+    - { role: docker, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
+    - { role: api, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
   tags:
     - backend
    # todo: make api (and docker) work with github actions
@@ -34,34 +45,36 @@
     - name: restart auth service
       command: "systemctl restart {{ auth_service_name }}"
       become: yes
+      when: "not installation_mode == 'uninstall'"
   tags:
     - backend
 
 - hosts: frontends
   roles:
-    - { role: lib, when: "'authserver' not in group_names"}    # do not install lib role twice (already installed for authserver)
-    - ui
-    - { role: frontend-php, when: "ui_php is defined"}
+    # do not install lib role twice (for non distributed install, already installed for authserver)
+    - { role: lib, when: "'authserver' not in group_names and not installation_mode == 'uninstall'"}
+    - { role: ui, when: "not installation_mode == 'uninstall'"}
+    - { role: frontend-php, when: "ui_php is defined and not installation_mode == 'uninstall'"}
   tags:
     - frontend
 
 - hosts: importers
   roles:
-    - importer
+    - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
     - frontend
 
 - hosts: sampleserver
   roles:
-    - { role: sample-data, when: "without_sample_data is not defined" }
-    - { role: sample-data-connect-sting, when: "connect_sting is defined" }
+    - { role: sample-data, when: "without_sample_data is not defined and not installation_mode == 'uninstall'" }
+    - { role: sample-data-connect-sting, when: "connect_sting is defined and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend
 
 - hosts: authserver
   roles:
-    - { role: sample-auth-data, when: "without_sample_data is not defined" }
+    - { role: sample-auth-data, when: "without_sample_data is not defined and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend
@@ -73,19 +86,31 @@
     - name: restart importer service
       command: "/etc/init.d/fworch-importer restart"
       become: yes
+      when: "not installation_mode == 'uninstall'"
+
   tags:
     - backend
 
 # simply set new version in config file
 - hosts: all
   roles:
-    - upgrade-completion
+    - { role: upgrade-completion, when: "installation_mode == 'upgrade'" }
   tags:
     - backend
     - frontend
 
 - hosts: all
   roles:
-    - test
+    - { role: test, when: "not installation_mode == 'uninstall'" }
   tags:
     - test
+
+- hosts: all
+  tasks:
+    - name: show listener status
+      import_tasks: scripts/show-fworch-listeners.yml
+      become: yes
+      # when: "installation_mode == 'uninstall'"
+  tags:
+    - backend
+    - frontend

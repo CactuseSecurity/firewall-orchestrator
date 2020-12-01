@@ -33,7 +33,7 @@
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "'run_on_github' is not defined and not installation_mode == 'uninstall'" }
+    - { role: docker, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
     - { role: api, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
   tags:
     - backend

@@ -65,24 +65,50 @@ namespace FWO.Ui.Filter.Ast
                 string QueryVarName = $"{location}Ip" + query.parameterCounter++;
                 query.QueryVariables[QueryVarName] = firstIp;
                 query.QueryParameters.Add($"${QueryVarName}: cidr! ");
-                ipFilterString = $"obj_ip: {{ _eq: ${QueryVarName} }}";
-            }
+                // checking if single filter ip is part of a cidr subnet (or is a direct match for a single ip)
+                ipFilterString =  $@" _and: 
+                                        [ 
+                                            {{ obj_ip: {{ _gte: ${QueryVarName} }} }}
+                                            {{ obj_ip: {{ _lte: ${QueryVarName} }} }}
+                                        ]";
+             }
             else // ip filter is a subnet with /xy
             {
+                string QueryVarName0 = $"{location}IpNet" + query.parameterCounter;
                 string QueryVarName1 = $"{location}IpLow" + query.parameterCounter;
                 string QueryVarName2 = $"{location}IpHigh" + query.parameterCounter++;
+                query.QueryVariables[QueryVarName0] = filterIP;
                 query.QueryVariables[QueryVarName1] = firstIp;
                 query.QueryVariables[QueryVarName2] = lastIp;
+                query.QueryParameters.Add($"${QueryVarName0}: cidr! ");
                 query.QueryParameters.Add($"${QueryVarName1}: cidr! ");
                 query.QueryParameters.Add($"${QueryVarName2}: cidr! ");
-                // todo: can we also implement comparison with subnet objects?
-                // currently the following match only works if the obj_ip is fully included in the subnet filter
-                ipFilterString =
-                     $@"    _and: 
-                                [ 
-                                    {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
-                                    {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
-                                ]";
+                // covering all 3 cases: 
+                // 1 - current ip is contained in filter ip range
+                // 2 - current ip overlaps with lower boundary of filter ip range
+                // 3 - current ip overlaps with upper boundary of filter ip range
+                ipFilterString = 
+                     $@" _or: [
+                            {{ obj_ip: {{ _eq: ${QueryVarName0} }} }}
+                            {{ _and: 
+                                    [ 
+                                        {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
+                                        {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
+                                    ]
+                            }}
+                            {{ _and: 
+                                    [ 
+                                        {{ obj_ip: {{ _lte: ${QueryVarName1} }} }}
+                                        {{ obj_ip: {{ _gte: ${QueryVarName1} }} }}
+                                    ]
+                            }} 
+                            {{ _and: 
+                                    [ 
+                                        {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
+                                        {{ obj_ip: {{ _gte: ${QueryVarName2} }} }}
+                                    ]
+                            }}
+                     ]";
             }
             query.RuleWhereQuery += 
                 $@" {locationTable}: 
@@ -98,14 +124,9 @@ namespace FWO.Ui.Filter.Ast
 
         private DynGraphqlQuery ExtractSourceQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name);
-
+            string QueryOperation = SetQueryOpString(Operator, Name, Value);
             if (isCidr(Value))  // filtering for ip addresses
-            {
-                string location = "src";
-                string locationTable = "rule_froms";
-                query = ExtractIpFilter(query, location, locationTable);
-            }
+                query = ExtractIpFilter(query, location: "src", locationTable: "rule_froms");
             else // string search against src obj name
             {
                 string QueryVarName = "src" + query.parameterCounter++;
@@ -117,14 +138,9 @@ namespace FWO.Ui.Filter.Ast
         }
         private DynGraphqlQuery ExtractDestinationQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name);
-
+            string QueryOperation = SetQueryOpString(Operator, Name, Value);
             if (isCidr(Value))  // filtering for ip addresses
-            {
-                string location = "dst";
-                string locationTable = "rule_tos";
-                query = ExtractIpFilter(query, location, locationTable);
-            }
+                query = ExtractIpFilter(query, location: "dst", locationTable: "rule_tos");
             else // string search against dst obj name
             {
                 string QueryVarName = "dst" + query.parameterCounter++;
@@ -137,7 +153,7 @@ namespace FWO.Ui.Filter.Ast
 
         private DynGraphqlQuery ExtractServiceQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value);
             string QueryVarName = "svc" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -147,7 +163,7 @@ namespace FWO.Ui.Filter.Ast
         }
         private DynGraphqlQuery ExtractActionQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value);
             string QueryVarName = "action" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -157,7 +173,7 @@ namespace FWO.Ui.Filter.Ast
         }
         private DynGraphqlQuery ExtractProtocolQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value);
             string QueryVarName = "proto" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -167,7 +183,7 @@ namespace FWO.Ui.Filter.Ast
         }
         private DynGraphqlQuery ExtractManagementQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value);
             string QueryVarName = "mgmtName" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -177,7 +193,7 @@ namespace FWO.Ui.Filter.Ast
         }
         private DynGraphqlQuery ExtractGatewayQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value);
             string QueryVarName = "gwName" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -188,7 +204,7 @@ namespace FWO.Ui.Filter.Ast
         }
         private DynGraphqlQuery ExtractFullTextQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value);
             string QueryVarName = "fullTextFilter" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -218,7 +234,7 @@ namespace FWO.Ui.Filter.Ast
             return query;
         }
 
-        private string SetQueryOpString(TokenKind Operator, TokenKind Name)
+        private static string SetQueryOpString(TokenKind Operator, TokenKind Name, string Value)
         {
             string operation = "";
             switch (Operator)

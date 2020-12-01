@@ -52,7 +52,7 @@
 - hosts: frontends
   roles:
     # do not install lib role twice (for non distributed install, already installed for authserver)
-    - { role: lib, when: "authserver not in group_names and not installation_mode == 'uninstall'"}
+    - { role: lib, when: "'authserver' not in group_names and not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
     - { role: frontend-php, when: "ui_php is defined and not installation_mode == 'uninstall'"}
   tags:

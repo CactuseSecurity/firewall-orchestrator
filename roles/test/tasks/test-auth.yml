@@ -19,6 +19,8 @@
   register: sample_jwt
   changed_when: false
 
+- debug: var=sample_jwt
+
 - set_fact: jwt_header="{{ ((sample_jwt.stdout.split('.')[0]).split(':')[1]).split('\"')[1] }}"
 
 - debug: var=jwt_header

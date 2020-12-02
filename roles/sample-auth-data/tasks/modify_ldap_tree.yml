@@ -5,9 +5,10 @@
   when: ldap_conn_present.stdout >= "1"
 
 - debug:
-    var:
-      - ldap_conn_present
-      - auth_change_local_ldap
+    var: "{{ item }}"
+  loop:
+    - ldap_conn_present
+    - auth_change_local_ldap
 
 - name: create ldif directory
   file:

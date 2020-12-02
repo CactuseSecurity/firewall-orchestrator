@@ -1,0 +1,14 @@
+query getTenants {
+  tenant {
+    tenant_id
+    tenant_name
+    tenant_comment
+    tenant_projekt
+    tenant_to_devices {
+      device {
+        dev_id
+        name: dev_name
+      }
+    }
+  }
+}

@@ -110,7 +110,7 @@ The old way is
     
 The search above won't work anymore. LDAP is now exlusive to the users "manager" and "inspector" (read only). The new way
 
-    fworch@FWO:~$ ldapsearch -x -W -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=admin
+    fworch@FWO:~$ ldapsearch -x -W -D cn=manager,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_manager_pw.txt uid=admin
 
 ### check password
 wrong password:

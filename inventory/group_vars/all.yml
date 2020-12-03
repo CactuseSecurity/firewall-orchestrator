@@ -62,6 +62,9 @@ dotnet_mode: "Release"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 
+### ldap
+random_generated_pw: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+
 ### logging
 syslog_proto: tcp
 syslog_host: localhost

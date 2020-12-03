@@ -38,19 +38,11 @@ namespace FWO.Ui.Filter.Ast
 
         private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
-            if (Value == "now")    // filtering "now"
-                query.RuleWhereQuery += $"active: {{ _eq: true }} ";
-            else
-            {
-                string QueryVarName = "time" + query.parameterCounter++;
                 query.RuleWhereQuery +=
-                    $"import_control: {{ stop_time: {{_lte: ${QueryVarName} }} }}, " +
-                    $"importControlByRuleLastSeen: {{ stop_time: {{_gte: ${QueryVarName} }} }}";
-                // TODO: fix report times > last import with a change
-                // ruleFieldNames.Add("_or: [{active: {_eq: true}, {importControlByRuleLastSeen: { stop_time: {_gte");
-                query.QueryParameters.Add($"${QueryVarName}: timestamp! ");
-                query.QueryVariables[QueryVarName] = $"{Value}";
-            }
+                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                query.ReportTime = Value;
+            // }
             return query;
         }
 
@@ -83,10 +75,11 @@ namespace FWO.Ui.Filter.Ast
                 query.QueryParameters.Add($"${QueryVarName0}: cidr! ");
                 query.QueryParameters.Add($"${QueryVarName1}: cidr! ");
                 query.QueryParameters.Add($"${QueryVarName2}: cidr! ");
-                // covering all 3 cases: 
-                // 1 - current ip is contained in filter ip range
+                // covering various cases: 
+                // 1 - current ip is fully contained in filter ip range
                 // 2 - current ip overlaps with lower boundary of filter ip range
                 // 3 - current ip overlaps with upper boundary of filter ip range
+                // 4 - current ip fully contains filter ip range - does not work
                 ipFilterString = 
                      $@" _or: [
                             {{ obj_ip: {{ _eq: ${QueryVarName0} }} }}
@@ -105,6 +98,12 @@ namespace FWO.Ui.Filter.Ast
                             {{ _and: 
                                     [ 
                                         {{ obj_ip: {{ _lte: ${QueryVarName2} }} }}
+                                        {{ obj_ip: {{ _gte: ${QueryVarName2} }} }}
+                                    ]
+                            }}
+                            {{ _and: 
+                                    [ 
+                                        {{ obj_ip: {{ _lte: ${QueryVarName1} }} }}
                                         {{ obj_ip: {{ _gte: ${QueryVarName2} }} }}
                                     ]
                             }}

@@ -27,8 +27,13 @@ namespace FWO.Ui.Filter
         public List<string> QueryParameters { get; set; } = new List<string>()
         {
             " $limit: Int ",
-            " $offset: Int "
+            " $offset: Int ",
+            " $mgmId: [Int!]",
+            " $relevantImportId: bigint"
         };
+        public string ReportTime { get; set; } =  "";
+
+        // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery() { }
 
         public static DynGraphqlQuery Generate(AstNode ast)
@@ -46,7 +51,7 @@ namespace FWO.Ui.Filter
 
                 query ruleFilter ({paramString}) 
                 {{ 
-                    management( order_by: {{ mgm_name: asc }} ) 
+                    management( where: {{ mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }} ) 
                         {{
                             id: mgm_id
                             name: mgm_name

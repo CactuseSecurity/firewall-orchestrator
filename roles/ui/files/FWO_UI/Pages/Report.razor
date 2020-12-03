@@ -24,7 +24,7 @@
 
         <hr />
 
-        <button class="btn btn-primary btn-sm" @onclick="GenerateTestReport">Generate Report</button>
+        <button class="btn btn-primary btn-sm" @onclick="GenerateRuleReport">Generate Report</button>
 
         <hr />
 
@@ -77,7 +77,7 @@
         
     </div>
 
-    <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateTestReport">
+    <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateRuleReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
                class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" />
         <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
@@ -185,8 +185,9 @@
 
     private Management[] managementsOverview = new Management[0];
     private Management[] managementsReport = new Management[0];
-    // private Management[] managementsReport;
     private Management[] managementsAllObjects = new Management[0];
+    private Management[] managementsWithRelevantImportId = new Management[0];
+    
 
     private int rulesPerFetch = 100;
     private int rulesPerPage = 0;
@@ -242,26 +243,49 @@
         });
     }
 
-    private void GenerateTestReport()
+    private void GenerateRuleReport()
     {
         Task.Run(async () =>
         {
             try
             {
                 DateTime startTime = DateTime.Now;
+                // get the filter line
                 DynGraphqlQuery query = Compiler.Compile(filterInput);
+                string TimeFilter = (string) DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
+                if (query.ReportTime != "")
+                    TimeFilter = query.ReportTime;
 
+                // get relevant import ids for report time
+                ImpIdQueryVariables["time"] = TimeFilter;
+                managementsWithRelevantImportId = await Connection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+
+                managementsReport = new Management[managementsWithRelevantImportId.Length];
                 query.QueryVariables["limit"] = rulesPerFetch;
                 query.QueryVariables["offset"] = 0;
                 bool gotNewObjects = true;
 
-                managementsReport = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
-
+                Management[] tempMgmtArray = new Management[0];
+                Management singleMgmt = new Management();
+                for (int i=0; i<managementsWithRelevantImportId.Length; i++)
+                {
+                    // setting mgmt and relevantImporId QueryVariables 
+                    query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                    query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                    tempMgmtArray = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables); // todo: do this more elegantly
+                    managementsReport[i] = tempMgmtArray[0]; // take first (and only) one
+                }
                 while (gotNewObjects)
                 {
                     query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
-                    Management[] test = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
-                    gotNewObjects = managementsReport.Merge(test);
+                    for (int j=0; j<managementsWithRelevantImportId.Length; j++)
+                    {
+                        query.QueryVariables["mgmId"] = managementsWithRelevantImportId[j].Id;
+                        tempMgmtArray = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
+                        singleMgmt = tempMgmtArray[0]; // todo: do this more elegantly
+                        gotNewObjects = managementsReport[j].Merge(singleMgmt);
+                    }
                     await InvokeAsync(StateHasChanged);
                 }
                 reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";

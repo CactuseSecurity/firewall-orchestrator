@@ -2,11 +2,6 @@
 dn: cn=reporter,ou=role,{{ auth_ldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=diesen,ou=test,ou=loeschen,ou=funktioniert,dc=unbekannter,dc=name
-
-dn: cn=reporter,ou=role,{{ auth_ldap_path }}
-changetype: modify
-add: uniquemember
 uniquemember: uid=helga,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
 
 dn: cn=workflow-user,ou=role,{{ auth_ldap_path }}

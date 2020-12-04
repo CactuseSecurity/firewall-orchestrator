@@ -14,7 +14,7 @@ moduleload      back_bdb.la
 
 access to attrs=userPassword
                 by self write
-                by anonymous middleware
+                by anonymous auth
                 by dn.base="{{ middleware_ldap_superuser_name }}" write
                 by dn.base="uid=inspector,ou=systemuser,ou=user,{{ middleware_ldap_path }}" read
                 by * none

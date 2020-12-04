@@ -20,7 +20,7 @@ namespace FWO.Ui.Services
 
             Log.WriteDebug("Get User Language", $"userDn: {userDn}");
 
-            //UiUser = apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }).Result?[0];
+            UiUser = apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }).Result?[0];
         }
 
         public async Task ChangeLanguage(string language, APIConnection apiConnection)

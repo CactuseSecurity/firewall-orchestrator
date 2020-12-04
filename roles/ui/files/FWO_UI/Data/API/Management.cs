@@ -71,7 +71,7 @@ namespace FWO.Ui.Data.API
 
         [JsonPropertyName("pointInTime")]
         public DateTime ReportTime { get; set; }
-        public int RelevantImportId { get; set; }
+        public int? RelevantImportId { get; set; }
 
         public Management()
         { }
@@ -97,7 +97,11 @@ namespace FWO.Ui.Data.API
                 management.Import.ImportAggregate.ImportAggregateMax != null &&
                 management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
             {
+                //if (management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!=null) 
+                //    RelevantImportId = Convert.ToInt32(management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId);
                 RelevantImportId = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                // else
+                //    RelevantImportId = 0;
             }
             // Devices = management.Devices;
             // Objects = management.Objects;

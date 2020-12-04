@@ -18,7 +18,7 @@ namespace FWO.Ui.Data.API
     public class ImportAggregateMax
     {
         [JsonPropertyName("id")]
-        public int RelevantImportId { get; set; }
+        public int? RelevantImportId { get; set; }
     }
 
 }

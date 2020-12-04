@@ -270,15 +270,19 @@
                 query.QueryVariables["offset"] = 0;
                 bool gotNewObjects = true;
 
-                Management[] tempMgmtArray = new Management[0];
                 Management singleMgmt = new Management();
+                // for programmatic reasons the first fetch is done before the while loop ;-)
                 for (int i=0; i<managementsWithRelevantImportId.Length; i++)
                 {
                     // setting mgmt and relevantImporId QueryVariables 
                     query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+
+                    // setting RelevantImportId from "null" to an impossible number to suppress any report for this management
+                    if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId == null)
+                        managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId = -1;
+                    
                     query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-                    tempMgmtArray = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables); // todo: do this more elegantly
-                    managementsReport[i] = tempMgmtArray[0]; // take first (and only) one
+                    managementsReport[i] = (await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
                 }
                 while (gotNewObjects)
                 {
@@ -286,8 +290,8 @@
                     for (int j=0; j<managementsWithRelevantImportId.Length; j++)
                     {
                         query.QueryVariables["mgmId"] = managementsWithRelevantImportId[j].Id;
-                        tempMgmtArray = await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
-                        singleMgmt = tempMgmtArray[0]; // todo: do this more elegantly
+                        query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[j].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                        singleMgmt = (await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
                         gotNewObjects = managementsReport[j].Merge(singleMgmt);
                     }
                     await InvokeAsync(StateHasChanged);

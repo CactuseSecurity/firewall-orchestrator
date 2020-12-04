@@ -206,4 +206,19 @@
       #   ignore_errors: yes
       #   # todo: only execute if this is an ldap server (maybe just ignore_errors)
 
+      - name: remove OS users and delete home directories
+        user:
+          name: "{{ item }}"
+          force: yes
+          remove_home: yes
+          state: absent
+        loop:
+          - "{{ fworch_user }}"
+          - "isosample"
+
+      - name: remove OS group
+        group:
+          name: "{{ fworch_group }}"
+          state: absent
+
     become: yes

@@ -5,9 +5,9 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace FWO.Auth.Client
+namespace FWO.Middleware.Client
 {
-    public class AuthServerResponse
+    public class MiddlewareServerResponse
     {
         private Dictionary<string, JsonElement> resultsJson;
 
@@ -15,7 +15,7 @@ namespace FWO.Auth.Client
 
         public string Error { get; internal set; }
 
-        internal AuthServerResponse(HttpStatusCode status, Dictionary<string, JsonElement> resultsJson = null)
+        internal MiddlewareServerResponse(HttpStatusCode status, Dictionary<string, JsonElement> resultsJson = null)
         {
             this.resultsJson = resultsJson;
             Status = status;
@@ -33,7 +33,7 @@ namespace FWO.Auth.Client
             }
         }
 
-        internal AuthServerResponse(HttpStatusCode status, string errorMessage)
+        internal MiddlewareServerResponse(HttpStatusCode status, string errorMessage)
         {
             Status = status;
             Error = errorMessage;

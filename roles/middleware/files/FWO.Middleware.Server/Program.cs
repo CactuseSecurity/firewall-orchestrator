@@ -1,7 +1,7 @@
 ﻿using FWO.Logging;
 using System;
 
-namespace FWO.Auth.Server
+namespace FWO.Middleware.Server
 {
     class Program
     {
@@ -9,7 +9,7 @@ namespace FWO.Auth.Server
         {
             try
             {
-                AuthModule Server = new AuthModule();
+                MiddlewareServer Server = new MiddlewareServer();
             }
             catch (Exception exception)
             {

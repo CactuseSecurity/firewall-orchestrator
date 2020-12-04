@@ -15,7 +15,7 @@
 <form class="form-inline">
     <label for="rulesPerFetch" class="col-form-label mr-2">Rules per fetch:</label>
     <div class="col-sm-2">
-        <input id="rulesPerFetch" type="text" class="form-control form-control-sm" @bind="rulesPerFetch" />
+        <input id="rulesPerFetch" type="number" class="form-control form-control-sm" @bind="rulesPerFetch" />
     </div>
     <button class="btn btn-sm btn-primary" @onclick="SaveRulesPerFetch">Save</button>
 </form>
@@ -25,27 +25,15 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-    ConfigDbAccess config;
     int rulesPerFetch;
 
-     protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        AuthenticationState authState = await authenticationStateTask;
-        UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
-        config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
-        try
-        {
-            rulesPerFetch = Int32.Parse(config.Get(ConfigDbAccess.kRulesPerFetch));
-        }
-        catch(Exception exception)
-        {
-            Log.WriteError("Read Config", $"Key not found or could not convert value to int: taking value 10 ", exception);
-            rulesPerFetch = 10;
-        }
+        rulesPerFetch = 10;
     }
 
     private async Task SaveRulesPerFetch()
     {
-        await config.Set(ConfigDbAccess.kRulesPerFetch, rulesPerFetch.ToString());
+        //await config.Set(ConfigDbAccess.kRulesPerFetch, rulesPerFetch.ToString());
     }
 }

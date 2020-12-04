@@ -8,18 +8,18 @@ using System.Security.Cryptography;
 using System.Linq;
 using System.Net;
 
-namespace FWO.Auth.Client
+namespace FWO.Middleware.Client
 {
-    public class AuthClient
+    public class MiddlewareClient
     {
         readonly RequestSender requestSender;
 
-        public AuthClient(string authServerUri)
+        public MiddlewareClient(string authServerUri)
         {
             requestSender = new RequestSender(authServerUri);
         }
 
-        public async Task<AuthServerResponse> AuthenticateUser(string Username, string Password)
+        public async Task<MiddlewareServerResponse> AuthenticateUser(string Username, string Password)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {

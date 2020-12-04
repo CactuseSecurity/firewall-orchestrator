@@ -5,6 +5,7 @@ using System.Security.Claims;
 using FWO.ApiClient;
 using FWO.Ui.Data.API;
 using Microsoft.AspNetCore.Components.Authorization;
+using FWO.ApiClient.Queries;
 
 namespace FWO.Ui.Services
 {
@@ -12,18 +13,14 @@ namespace FWO.Ui.Services
     {
         public UiUser UiUser { get; set; }
 
-        public UiUsersDbAccess (AuthenticationState authState, APIConnection apiConnection)
+        public UiUsersDbAccess(AuthenticationState authState, APIConnection apiConnection)
         {
             ClaimsPrincipal user = authState.User;
             string userDn = user.FindFirstValue("x-hasura-uuid");
 
             Log.WriteDebug("Get User Language", $"userDn: {userDn}");
 
-            UiUser[] uiUser = await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn });
-            if(uiUser != null && uiUser.Length > 0)
-            {
-                UiUser = uiUsers[0];
-            }
+            //UiUser = apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }).Result?[0];
         }
 
         public async Task ChangeLanguage(string language, APIConnection apiConnection)
@@ -37,7 +34,7 @@ namespace FWO.Ui.Services
                 };
                 await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUser, Variables));
             }
-            catch(Exception)
+            catch (Exception)
             {
                 // maybe admin has deleted uiuser inbetween
             }

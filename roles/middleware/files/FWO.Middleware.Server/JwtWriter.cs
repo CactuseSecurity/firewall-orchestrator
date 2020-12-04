@@ -1,4 +1,4 @@
-﻿using FWO.Auth.Server.Data;
+﻿using FWO.Middleware.Server.Data;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
@@ -10,7 +10,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
 
-namespace FWO.Auth.Server
+namespace FWO.Middleware.Server
 {
     class JwtWriter
     {

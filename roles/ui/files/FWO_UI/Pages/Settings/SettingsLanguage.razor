@@ -34,17 +34,9 @@
 
     string selectedLanguage;
 
-    protected override async Task OnInitializedAsync()
-    {
-        AuthenticationState authState = await authenticationStateTask;
-        uiUser = new UiUsersDbAccess(authState, apiConnection);
-        selectedLanguage = ((uiUser.UiUser.Language != "") ? uiUser.UiUser.Language : userConfigCollection.CurrentLanguage);
-    }
-
     private async Task ChangeLanguage(string language)
     {
         Log.WriteDebug("Change language", $"new language: {language}");
         userConfigCollection.ChangeLanguage(language);
-        await uiUser.ChangeLanguage(language, apiConnection);
     }
 }

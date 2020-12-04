@@ -69,13 +69,13 @@ namespace FWO.Config
             }
         }
 
-        private string authServerUri = null;
+        private string middlewareServerUri = null;
         public string AuthServerUri
         {
             get
             {
-                CriticalConfigValueLoaded(authServerUri);
-                return authServerUri;
+                CriticalConfigValueLoaded(middlewareServerUri);
+                return middlewareServerUri;
             }
         }
 
@@ -115,7 +115,7 @@ namespace FWO.Config
                 IgnoreExceptions(() => jwtPublicKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPublicKeyPath), isPrivateKey: false));
 
                 // Try to get auth uri
-                IgnoreExceptions(() => authServerUri = configFileData["auth_uri"]);
+                IgnoreExceptions(() => middlewareServerUri = configFileData["middleware_uri"]);
 
                 // Try to get api uri
                 IgnoreExceptions(() => apiServerUri = configFileData["api_uri"]);

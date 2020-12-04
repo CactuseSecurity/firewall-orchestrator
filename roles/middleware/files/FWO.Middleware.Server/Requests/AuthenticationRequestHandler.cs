@@ -1,4 +1,4 @@
-﻿using FWO.Auth.Server.Data;
+﻿using FWO.Middleware.Server.Data;
 using FWO.Logging;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace FWO.Auth.Server.Requests
+namespace FWO.Middleware.Server.Requests
 {
     class AuthenticationRequestHandler : RequestHandler
     {

@@ -7,16 +7,16 @@ using System.Net;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
-using FWO.Auth.Server.Data;
-using FWO.Auth.Server.Requests;
+using FWO.Middleware.Server.Data;
+using FWO.Middleware.Server.Requests;
 using FWO.Config;
 using FWO.Logging;
 
-namespace FWO.Auth.Server
+namespace FWO.Middleware.Server
 {
-    public class AuthModule
+    public class MiddlewareServer
     {
-        private readonly string authServerUri;
+        private readonly string middlewareServerUri;
         private readonly HttpListener listener;
         private const int maxConnectionsCount = 1000;
 
@@ -31,12 +31,12 @@ namespace FWO.Auth.Server
 
         private readonly string apiUri;
 
-        public AuthModule()
+        public MiddlewareServer()
         {
             config = new ConfigConnection();
             apiUri = config.ApiServerUri;
             privateJWTKey = config.JwtPrivateKey;
-            authServerUri = config.AuthServerUri;
+            middlewareServerUri = config.AuthServerUri;
 
             // Create Http Listener
             listener = new HttpListener();
@@ -57,18 +57,18 @@ namespace FWO.Auth.Server
             Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
             // Start Http Listener, todo: move to https
-            RunListenerAsync(authServerUri).Wait();
+            RunListenerAsync(middlewareServerUri).Wait();
         }
 
-        private async Task RunListenerAsync(string AuthServerListenerUri)
+        private async Task RunListenerAsync(string middlewareListenerUri)
         {
             // Add prefixes to listen to 
-            listener.Prefixes.Add(AuthServerListenerUri + "/AuthenticateUser/");
-            listener.Prefixes.Add(AuthServerListenerUri + "/Test/"); // TODO: REMOVE TEST PREFIX
+            listener.Prefixes.Add(middlewareListenerUri + "/AuthenticateUser/");
+            listener.Prefixes.Add(middlewareListenerUri + "/Test/"); // TODO: REMOVE TEST PREFIX
 
             // Start listener
             listener.Start();
-            Log.WriteInfo("Listener started", "Auth server http listener started.");
+            Log.WriteInfo("Listener started", "Middleware server http listener started.");
 
             List<Task> connections = new List<Task>(maxConnectionsCount);
 

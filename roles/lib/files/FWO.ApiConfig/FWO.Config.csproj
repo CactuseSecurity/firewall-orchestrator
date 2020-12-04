@@ -5,11 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GraphQL.Client" Version="3.2.0" />
-    <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="3.2.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.8.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
+    <ProjectReference Include="..\FWO_API_Client\FWO.ApiClient.csproj" />
     <ProjectReference Include="..\FWO_Config\FWO.Config.File.csproj" />
     <ProjectReference Include="..\FWO_Logging\FWO.Logging.csproj" />
   </ItemGroup>

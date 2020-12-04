@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Ui.Auth;
-using FWO.Auth.Client;
+using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -48,12 +48,12 @@ namespace FWO.Ui
             string ProductVersion = configConnection.ProductVersion;
 
             services.AddScoped<APIConnection>(_ => new APIConnection(ApiUri));
-            services.AddScoped<AuthClient>(_ => new AuthClient(AuthUri));
+            services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(AuthUri));
             // use anonymous login
 
-            AuthClient authClient = new AuthClient(AuthUri);
+            MiddlewareClient authClient = new MiddlewareClient(AuthUri);
             APIConnection apiConn = new APIConnection(ApiUri);
-            AuthServerResponse authResponse = authClient.AuthenticateUser("","").Result;
+            MiddlewareServerResponse authResponse = authClient.AuthenticateUser("","").Result;
             if (authResponse.Status == HttpStatusCode.BadRequest) 
             {
                 Log.WriteError("Auth Server Connection", $"Error while authenticating as anonymous user from UI.");

@@ -2,12 +2,11 @@
 @using System.Net
 @using FWO.Ui.Auth
 @using FWO.ApiClient
-@using FWO.Auth.Client
+@using FWO.Middleware.Client
 @using FWO.ApiConfig
-@using FWO.Ui.Data.API
 @using FWO.Ui.Services
 
-@inject AuthClient AuthClient
+@inject MiddlewareClient AuthClient
 @inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
@@ -57,7 +56,7 @@
     private string InputClass = "";
 
     private string errorMessage = "";
-    
+
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
@@ -102,7 +101,7 @@
             loginInProgress = true;
 
             // There is no jwt in session storage. Get one from auth module.
-            AuthServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
+            MiddlewareServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
 
             // There was an error trying to authenticate the user. Probably invalid credentials
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
@@ -113,6 +112,7 @@
                 InputClass = "is-invalid";
                 loginInProgress = false;
                 await focusInput();
+                StateHasChanged();
             }
 
             else
@@ -127,13 +127,6 @@
 
                 // Try to auth with jwt (validates it, gets roles, ...).
                 ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
-
-                // overwrite userConfig with actual userData after login (does this work?)
-                //userConfig = new ApiConfig.UserConfigCollection();
-
-                AuthenticationState authState = await authenticationStateTask;
-                UiUsersDbAccess uiUserAcc = new UiUsersDbAccess(authState, ApiConnection);
-                userConfig.ChangeLanguage((uiUserAcc.UiUser.Language != "") ? uiUserAcc.UiUser.Language : "English");
 
                 loginInProgress = false;
             }

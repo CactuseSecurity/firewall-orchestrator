@@ -11,11 +11,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Middleware.Client", "li
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.ApiClient", "lib\files\FWO_API_Client\FWO.ApiClient.csproj", "{419E00BA-AC3E-48F9-B886-135FE371110B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Config", "lib\files\FWO_Config\FWO.Config.csproj", "{EB1283FB-8639-45E9-8D7C-30261B5DDF93}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Config.File", "lib\files\FWO_Config\FWO.Config.File.csproj", "{EB1283FB-8639-45E9-8D7C-30261B5DDF93}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Logging", "lib\files\FWO_Logging\FWO.Logging.csproj", "{8E6CF3CB-C482-4658-A4A2-A356516F7C56}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.ApiConfig", "lib\files\FWO.ApiConfig\FWO.ApiConfig.csproj", "{AC28C4C6-896B-42B2-B816-51F8220A6E76}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Config", "lib\files\FWO.ApiConfig\FWO.Config.csproj", "{AC28C4C6-896B-42B2-B816-51F8220A6E76}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Ui", "ui\files\FWO_UI\FWO.Ui.csproj", "{73B8B5C9-E4AD-4AAC-AADA-EF778B81A952}"
 	ProjectSection(ProjectDependencies) = postProject

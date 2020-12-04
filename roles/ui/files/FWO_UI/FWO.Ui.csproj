@@ -13,11 +13,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\lib\files\FWO.Report.Filter\FWO.Report.Filter.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Report\FWO.Report.csproj" />
-    <ProjectReference Include="..\..\..\lib\files\FWO_Config\FWO.Config.csproj" />
-    <ProjectReference Include="..\..\..\lib\files\FWO.ApiConfig\FWO.ApiConfig.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO_Config\FWO.Config.File.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.ApiConfig\FWO.Config.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO_Logging\FWO.Logging.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO.ApiClient.csproj" />
-    <ProjectReference Include="..\..\..\lib\files\FWO_Auth_Client\FWO.Middleware.Client.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
   </ItemGroup>
 
 </Project>

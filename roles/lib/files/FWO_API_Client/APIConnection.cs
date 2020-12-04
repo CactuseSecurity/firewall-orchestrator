@@ -54,14 +54,16 @@ namespace FWO.ApiClient
         /// <param name="query"></param>
         /// <param name="variables"></param>
         /// <param name="operationName"></param>
-        /// <returns>object of specified type</returns>
+        /// <returns><typeparamref name="QueryResponseType"/></returns>
 
         public async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object variables = null, string operationName = null)
         {
             try
             {
                 // Log.WriteDebug("API Response", $"API Call variables: { variables }");
+                Log.WriteDebug("API call", $"Sending API call {operationName}.");
                 GraphQLResponse<dynamic> response = await Client.SendQueryAsync<dynamic>(query, variables, operationName);
+                Log.WriteDebug("API call", "API call received.");
 
                 if (response.Errors != null)
                 {

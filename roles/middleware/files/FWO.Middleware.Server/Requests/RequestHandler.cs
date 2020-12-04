@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace FWO.Auth.Server.Requests
+namespace FWO.Middleware.Server.Requests
 {
     abstract class RequestHandler
     {

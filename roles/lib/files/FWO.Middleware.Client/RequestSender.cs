@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace FWO.Auth.Client
+namespace FWO.Middleware.Client
 {
     internal class RequestSender
     {
@@ -20,9 +20,9 @@ namespace FWO.Auth.Client
             this.authServerUri = authServerUri;
         }
 
-        public virtual async Task<AuthServerResponse> SendRequest(Dictionary<string, object> parameters, string request)
+        public virtual async Task<MiddlewareServerResponse> SendRequest(Dictionary<string, object> parameters, string request)
         {
-            AuthServerResponse result;
+            MiddlewareServerResponse result;
 
             try
             {
@@ -36,7 +36,7 @@ namespace FWO.Auth.Client
                 // Unwrap result
                 string wrappedResult = await httpResponse.Content.ReadAsStringAsync();
                 Dictionary<string, JsonElement> jsonResults = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(wrappedResult);
-                result = new AuthServerResponse(httpResponse.StatusCode, jsonResults);
+                result = new MiddlewareServerResponse(httpResponse.StatusCode, jsonResults);
             }
             catch (Exception exception)
             {
@@ -45,7 +45,7 @@ namespace FWO.Auth.Client
                     exception);
 
                 // Inform requester about errors
-                result = new AuthServerResponse(HttpStatusCode.BadRequest, "An error occured while sending request.");
+                result = new MiddlewareServerResponse(HttpStatusCode.BadRequest, "An error occured while sending request.");
             }
 
             // Return result

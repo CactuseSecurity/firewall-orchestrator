@@ -5,7 +5,6 @@ dotnet_mode: "Release"
 
 # api
 api_uri: "https://127.0.0.1:9443/api/v1/graphql"
-# api_hasura_jwt_alg: "HS384"
 api_hasura_jwt_alg: "RS256"
 
 # middleware

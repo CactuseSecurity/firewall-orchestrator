@@ -128,6 +128,18 @@
                 // Try to auth with jwt (validates it, gets roles, ...).
                 ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
 
+                // overwrite userConfig with actual userData after login (does this work?)
+                //userConfig = new ApiConfig.UserConfigCollection();
+
+                AuthenticationState authState = await authenticationStateTask;
+                UiUsersDbAccess uiUserAcc = new UiUsersDbAccess(authState, ApiConnection);
+                userConfig.ChangeLanguage((uiUserAcc.UiUser.Language != "") ? uiUserAcc.UiUser.Language : "English");
+                ConfigDbAccess userConfigDb = new ConfigDbAccess(ApiConnection, uiUserAcc.UiUser.DbId);
+                userConfig.userConfigItems = userConfigDb.configItems;
+                // setting defaults here to have them in state of login time, could maybe be done via global config on startup time
+                ConfigDbAccess defaultConfigDb = new ConfigDbAccess(ApiConnection, 0);
+                userConfig.defaultConfigItems = defaultConfigDb.configItems;
+
                 loginInProgress = false;
             }
         }

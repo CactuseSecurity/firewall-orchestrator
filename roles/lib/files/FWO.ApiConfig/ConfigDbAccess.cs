@@ -12,7 +12,7 @@ namespace FWO.ApiConfig
         public static string kDefaultLanguage = "DefaultLanguage";
         public static string kRulesPerFetch = "rulesPerFetch";
 
-        Dictionary<String, String> configItems;
+        public Dictionary<String, String> configItems;
         static APIConnection apiConnection;
         int userid;
 
@@ -35,14 +35,10 @@ namespace FWO.ApiConfig
 
         public string Get(string key)
         {
-            string value;
-            try
+            string value = "";
+            if (configItems.ContainsKey(key))
             {
                 value = configItems[key];
-            }
-            catch
-            {
-                value = "";
             }
             return value;
         }

@@ -20,12 +20,14 @@ namespace FWO.Ui.Filter.Ast
             functions["FullText"] = this.ExtractFullTextQuery;
             functions["Value"] = this.ExtractFullTextQuery; // "xy" and "FullText=xy" are the same filter
 
-            functions["DestinationPort"] = this.ExtractDestinationPort;
+            functions["ReportType"] = this.ExtractReportTypeQuery;
             functions["Time"] = this.ExtractTimeQuery;
+
             functions["Source"] = this.ExtractSourceQuery;
             functions["Destination"] = this.ExtractDestinationQuery;
             functions["Action"] = this.ExtractActionQuery;
             functions["Service"] = this.ExtractServiceQuery;
+            functions["DestinationPort"] = this.ExtractDestinationPort;
             functions["Protocol"] = this.ExtractProtocolQuery;
             functions["Management"] = this.ExtractManagementQuery;
             functions["Gateway"] = this.ExtractGatewayQuery;
@@ -38,11 +40,16 @@ namespace FWO.Ui.Filter.Ast
 
         private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
-                query.RuleWhereQuery +=
-                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                query.ReportTime = Value;
-            // }
+            query.RuleWhereQuery +=
+                $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+            query.ReportTime = Value;
+            // todo: deal with time ranges for changes report type
+            return query;
+        }
+        private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
+        {
+            query.ReportType = Value;
             return query;
         }
 
@@ -58,12 +65,12 @@ namespace FWO.Ui.Filter.Ast
                 query.QueryVariables[QueryVarName] = firstIp;
                 query.QueryParameters.Add($"${QueryVarName}: cidr! ");
                 // checking if single filter ip is part of a cidr subnet (or is a direct match for a single ip)
-                ipFilterString =  $@" _and: 
+                ipFilterString = $@" _and: 
                                         [ 
                                             {{ obj_ip: {{ _gte: ${QueryVarName} }} }}
                                             {{ obj_ip: {{ _lte: ${QueryVarName} }} }}
                                         ]";
-             }
+            }
             else // ip filter is a subnet with /xy
             {
                 string QueryVarName0 = $"{location}IpNet" + query.parameterCounter;
@@ -80,7 +87,7 @@ namespace FWO.Ui.Filter.Ast
                 // 2 - current ip overlaps with lower boundary of filter ip range
                 // 3 - current ip overlaps with upper boundary of filter ip range
                 // 4 - current ip fully contains filter ip range - does not work
-                ipFilterString = 
+                ipFilterString =
                      $@" _or: [
                             {{ obj_ip: {{ _eq: ${QueryVarName0} }} }}
                             {{ _and: 
@@ -109,7 +116,7 @@ namespace FWO.Ui.Filter.Ast
                             }}
                      ]";
             }
-            query.RuleWhereQuery += 
+            query.RuleWhereQuery +=
                 $@" {locationTable}: 
                         {{ object: 
                             {{ objgrp_flats: 
@@ -265,7 +272,7 @@ namespace FWO.Ui.Filter.Ast
                 {
                     cidr_str += "/32";
                 }
-                if (cidr_str.IndexOf("/") == cidr_str.Length-1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
                 {
                     cidr_str += "32";
                 }

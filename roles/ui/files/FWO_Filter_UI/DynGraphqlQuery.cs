@@ -32,6 +32,7 @@ namespace FWO.Ui.Filter
             " $relevantImportId: bigint"
         };
         public string ReportTime { get; set; } =  "";
+        public string ReportType { get; set; } =  "";
 
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery() { }

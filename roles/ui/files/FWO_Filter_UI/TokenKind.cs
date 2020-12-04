@@ -14,6 +14,7 @@ namespace FWO.Ui.Filter
         Management,
         Gateway,
         Time,
+        ReportType,
         FullText,
         BL, // (
         BR, // )

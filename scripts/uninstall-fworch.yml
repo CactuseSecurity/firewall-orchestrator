@@ -210,7 +210,7 @@
         user:
           name: "{{ item }}"
           force: yes
-          remove_home: yes
+          remove: yes
           state: absent
         loop:
           - "{{ fworch_user }}"

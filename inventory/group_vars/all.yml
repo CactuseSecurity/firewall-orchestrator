@@ -13,6 +13,7 @@ installation_mode: new
 ### operating system settings
 user_id: 60320
 fworch_user: "{{ product_name }}"
+fworch_group: "{{ fworch_user }}"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworch_conf_file: "{{ fworch_home }}/etc/fworch.yaml"

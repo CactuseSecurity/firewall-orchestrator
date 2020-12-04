@@ -18,9 +18,14 @@ namespace FWO.Ui.Services
             ClaimsPrincipal user = authState.User;
             string userDn = user.FindFirstValue("x-hasura-uuid");
 
-            Log.WriteDebug("Get User Language", $"userDn: {userDn}");
-
-            UiUser = apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }).Result?[0];
+            //UiUser = apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }).Result?[0]; // SHORTER
+			
+			Log.WriteDebug("Get User Data", $"userDn: {userDn}");
+            UiUser[] uiUsers = (Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn }))).Result;
+            if(uiUsers != null && uiUsers.Length > 0)
+            {
+                UiUser = uiUsers[0];
+            }
         }
 
         public async Task ChangeLanguage(string language, APIConnection apiConnection)

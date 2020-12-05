@@ -10,6 +10,7 @@ namespace FWO.ApiClient.Queries
     public class AuthQueries : Queries
     {
         public static readonly string getTenantId;
+        public static readonly string getTenants;
         public static readonly string getUsers;
         public static readonly string getUserByDn;
         public static readonly string getUserByUuid;
@@ -30,6 +31,7 @@ namespace FWO.ApiClient.Queries
             try
             {
                 getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
+                getTenants = File.ReadAllText(QueryPath + "auth/getTenants.graphql");
                 getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleDeviceIdsPerTenant.graphql");
                 getVisibleManagementIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleManagementIdsPerTenant.graphql");
                 getLdapConnections = File.ReadAllText(QueryPath + "auth/getLdapConnections.graphql");

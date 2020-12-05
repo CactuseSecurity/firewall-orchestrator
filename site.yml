@@ -43,7 +43,9 @@
 - hosts: authserver
   tasks:
     - name: restart auth service
-      command: "systemctl restart {{ auth_service_name }}"
+      systemd:
+        name: "{{ auth_service_name }}"
+        state: restarted
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:

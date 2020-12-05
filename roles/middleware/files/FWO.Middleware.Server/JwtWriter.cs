@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server
 {
     class JwtWriter
     {
-        private const string issuer = "FWO Auth Module";
+        private const string issuer = "FWO Middleware Module";
         private const string audience = "FWO";
         private readonly RsaSecurityKey jwtPrivateKey;
         private readonly int hoursValid;
@@ -51,17 +51,17 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Jwt creator function used within authserver that does not need: user, getClaims
+        /// Jwt creator function used within middlewareserver that does not need: user, getClaims
         /// necessary because this JWT needs to be used within getClaims
         /// </summary>
-        /// <returns>JWT for auth-server role.</returns>
-        public string CreateJWTAuthServer()
+        /// <returns>JWT for middleware-server role.</returns>
+        public string CreateJWTMiddlewareServer()
         {
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = new ClaimsIdentity();
-            subject.AddClaim(new Claim("unique_name", "auth-server"));
-            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "auth-server" }), JsonClaimValueTypes.JsonArray));
-            subject.AddClaim(new Claim("x-hasura-default-role", "auth-server"));
+            subject.AddClaim(new Claim("unique_name", "middleware-server"));
+            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "middleware-server" }), JsonClaimValueTypes.JsonArray));
+            subject.AddClaim(new Claim("x-hasura-default-role", "middleware-server"));
 
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
@@ -74,7 +74,7 @@ namespace FWO.Middleware.Server
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);
-            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for auth-server");
+            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for middleware-server");
             return GeneratedToken;
         }
 
@@ -88,7 +88,7 @@ namespace FWO.Middleware.Server
         {
             if (user.Dn != "anonymous")
             {
-                APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
+                APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTMiddlewareServer());
                 User[] existingUserFound = null;
                 bool userSetInDb = false;
                 try

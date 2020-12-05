@@ -12,12 +12,12 @@ namespace FWO.Middleware.Client
     internal class RequestSender
     {
         readonly HttpClient httpClient;
-        readonly string authServerUri;
+        readonly string middlewareServerUri;
 
-        public RequestSender(string authServerUri)
+        public RequestSender(string middlewareServerUri)
         {
             httpClient = new HttpClient();
-            this.authServerUri = authServerUri;
+            this.middlewareServerUri = middlewareServerUri;
         }
 
         public virtual async Task<MiddlewareServerResponse> SendRequest(Dictionary<string, object> parameters, string request)
@@ -31,7 +31,7 @@ namespace FWO.Middleware.Client
                 StringContent requestContent = new StringContent(wrappedParameters);
 
                 // Send request, Receive answer
-                HttpResponseMessage httpResponse = await httpClient.PostAsync($"{authServerUri}/{request}/", requestContent);
+                HttpResponseMessage httpResponse = await httpClient.PostAsync($"{middlewareServerUri}/{request}/", requestContent);
                 
                 // Unwrap result
                 string wrappedResult = await httpResponse.Content.ReadAsStringAsync();

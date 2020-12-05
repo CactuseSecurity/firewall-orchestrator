@@ -14,9 +14,9 @@ namespace FWO.Middleware.Client
     {
         readonly RequestSender requestSender;
 
-        public MiddlewareClient(string authServerUri)
+        public MiddlewareClient(string middlewareServerUri)
         {
-            requestSender = new RequestSender(authServerUri);
+            requestSender = new RequestSender(middlewareServerUri);
         }
 
         public async Task<MiddlewareServerResponse> AuthenticateUser(string Username, string Password)

@@ -101,7 +101,7 @@
             loginInProgress = true;
 
             // There is no jwt in session storage. Get one from auth module.
-            MiddlewareServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
+            MiddlewareServerResponse apiAuthResponse = await MiddlewareClient.AuthenticateUser(Username, Password);
 
             // There was an error trying to authenticate the user. Probably invalid credentials
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)

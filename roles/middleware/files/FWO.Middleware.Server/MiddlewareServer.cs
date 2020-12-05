@@ -36,7 +36,7 @@ namespace FWO.Middleware.Server
             config = new ConfigConnection();
             apiUri = config.ApiServerUri;
             privateJWTKey = config.JwtPrivateKey;
-            middlewareServerUri = config.AuthServerUri;
+            middlewareServerUri = config.MiddlewareServerUri;
 
             // Create Http Listener
             listener = new HttpListener();
@@ -49,7 +49,7 @@ namespace FWO.Middleware.Server
             // Create Token Generator
             JwtWriter jwtWriter = GetNewJwtWriter();
 
-            // Create JWT for auth-server API calls (relevant part is the role auth-server) and add it to the Api connection header. 
+            // Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
             APIConnection apiConn = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriter));
 
             // Fetch all connectedLdaps via API (blocking).
@@ -171,8 +171,8 @@ namespace FWO.Middleware.Server
 
         private string GetNewSelfSignedJwt(JwtWriter jwtWriter)
         {
-            // return jwtWriter.CreateJWT(new User { Name = "auth-server", Password = "", Roles = new string[] { "auth-server" } });
-            return jwtWriter.CreateJWTAuthServer();
+            // return jwtWriter.CreateJWT(new User { Name = "middleware-server", Password = "", Roles = new string[] { "middleware-server" } });
+            return jwtWriter.CreateJWTMiddlewareServer();
         }
 
         private APIConnection GetNewApiConnection(string jwt)

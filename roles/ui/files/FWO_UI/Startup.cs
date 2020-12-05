@@ -44,19 +44,19 @@ namespace FWO.Ui
             ConfigConnection configConnection = new ConfigConnection();
 
             string ApiUri = configConnection.ApiServerUri;
-            string AuthUri = configConnection.AuthServerUri;
+            string MiddlewareUri = configConnection.MiddlewareServerUri;
             string ProductVersion = configConnection.ProductVersion;
 
             services.AddScoped<APIConnection>(_ => new APIConnection(ApiUri));
-            services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(AuthUri));
+            services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
             // use anonymous login
 
-            MiddlewareClient authClient = new MiddlewareClient(AuthUri);
+            MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             APIConnection apiConn = new APIConnection(ApiUri);
-            MiddlewareServerResponse authResponse = authClient.AuthenticateUser("","").Result;
+            MiddlewareServerResponse authResponse = middlewareClient.AuthenticateUser("","").Result;
             if (authResponse.Status == HttpStatusCode.BadRequest) 
             {
-                Log.WriteError("Auth Server Connection", $"Error while authenticating as anonymous user from UI.");
+                Log.WriteError("Middleware Server Connection", $"Error while authenticating as anonymous user from UI.");
                 Environment.Exit(1);
             }
             string jwt = authResponse.GetResult<string>("jwt");

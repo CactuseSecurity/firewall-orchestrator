@@ -16,9 +16,9 @@ namespace FWO.ApiConfig
     public class ConfigCollection
     {
         /// <summary>
-        /// Internal connection to auth server. Used to connect with api server.
+        /// Internal connection to middleware server. Used to connect with api server.
         /// </summary>
-        private readonly MiddlewareClient authClient;
+        private readonly MiddlewareClient middlewareClient;
 
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
@@ -40,10 +40,10 @@ namespace FWO.ApiConfig
         {
             ConfigConnection config = new Config.ConfigConnection();
             RsaSecurityKey jwtPublicKey = config.JwtPublicKey;
-            string authServerUri = config.AuthServerUri;
+            string middlewareServerUri = config.MiddlewareServerUri;
             string apiServerUri = config.ApiServerUri;
             productVersion = config.ProductVersion;
-            authClient = new MiddlewareClient(authServerUri);
+            middlewareClient = new MiddlewareClient(MiddlewareServerUri);
             apiConnection = new APIConnection(apiServerUri);
             apiConnection.SetAuthHeader(jwt);
             

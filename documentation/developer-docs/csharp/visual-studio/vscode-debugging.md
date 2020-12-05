@@ -102,4 +102,4 @@ aQIDAQAB
 ### debugging starts the folloging local listeners on client
 
 - 5001 - blazor
-- 8888 - auth-server
+- 8888 - middleware-server

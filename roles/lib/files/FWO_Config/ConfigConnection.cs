@@ -29,9 +29,9 @@ namespace FWO.Config
         private const string jwtPrivateKeyPath = "/etc/fworch/secrets/jwt_private_key.pem";
 
         /// <summary>
-        /// Internal connection to auth server. Used to connect with api server.
+        /// Internal connection to middleware server. Used to connect with api server.
         /// </summary>
-        //private readonly AuthClient authClient;
+        //private readonly MiddlewareClient middlewareClient;
 
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
@@ -70,7 +70,7 @@ namespace FWO.Config
         }
 
         private string middlewareServerUri = null;
-        public string AuthServerUri
+        public string MiddlewareServerUri
         {
             get
             {
@@ -114,7 +114,7 @@ namespace FWO.Config
                 // Try to read jwt public key
                 IgnoreExceptions(() => jwtPublicKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPublicKeyPath), isPrivateKey: false));
 
-                // Try to get auth uri
+                // Try to get middleware uri
                 IgnoreExceptions(() => middlewareServerUri = configFileData["middleware_uri"]);
 
                 // Try to get api uri

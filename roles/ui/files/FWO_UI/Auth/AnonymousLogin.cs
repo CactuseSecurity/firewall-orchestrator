@@ -11,14 +11,14 @@ namespace FWO.Ui.Auth
 {
     public class AnonymousLogin
     {
-        private MiddlewareClient authClient = new MiddlewareClient("");
+        private MiddlewareClient middlewareClient = new MiddlewareClient("");
 
         private APIConnection apiConnection;
 
         public AnonymousLogin()
         {
-            // There is no jwt in session storage. Get one from auth module.
-            MiddlewareServerResponse apiAuthResponse = authClient.AuthenticateUser("","").Result;
+            // There is no jwt in session storage. Get one from Middleware module.
+            MiddlewareServerResponse apiAuthResponse = middlewareClient.AuthenticateUser("","").Result;
 
             // There was an error trying to authenticate the user. Probably invalid credentials
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)

@@ -8,6 +8,9 @@ middleware_ldap_std_user_path: "ou=operator,ou=user,{{ middleware_ldap_path }}"
 middleware_ldap_std_role_path: "ou=role,{{ middleware_ldap_path }}"
 middleware_ldap_internal_readonly_user: "inspector"
 middleware_ldap_internal_readonly_user_fq: "uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
+generate_new_ldap_crypto: false 
+    #The decision to generate new certificates and keys in openldapserver
+
 middleware_path_rel: FWO.Middleware.Server
 middleware_server_base_dir: "{{ fworch_home }}/middleware/files"
 middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Server"

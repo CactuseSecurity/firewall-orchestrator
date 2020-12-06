@@ -308,7 +308,7 @@ tables:
 - delete_permissions:
   - permission:
       filter: {}
-    role: auth-server
+    role: middleware-server
   insert_permissions:
   - permission:
       backend_only: false
@@ -316,14 +316,14 @@ tables:
       columns:
       - id
       - name
-    role: auth-server
+    role: middleware-server
   select_permissions:
   - permission:
       columns:
       - id
       - name
       filter: {}
-    role: auth-server
+    role: middleware-server
   table:
     name: device_type
     schema: public
@@ -334,7 +334,7 @@ tables:
       - id
       - name
       filter: {}
-    role: auth-server
+    role: middleware-server
 - array_relationships:
   - name: error_logs
     using:
@@ -876,7 +876,7 @@ tables:
       - ldap_write_user
       - ldap_write_user_pwd
       filter: {}
-    role: auth-server
+    role: middleware-server
   table:
     name: ldap_connection
     schema: public
@@ -2484,7 +2484,7 @@ tables:
       - tenant_is_superadmin
       - tenant_create
       filter: {}
-    role: auth-server
+    role: middleware-server
   table:
     name: tenant
     schema: public
@@ -2700,7 +2700,7 @@ tables:
       - uiuser_last_name
       - uiuser_username
       - uuid
-    role: auth-server
+    role: middleware-server
   object_relationships:
   - name: language
     using:
@@ -2726,7 +2726,7 @@ tables:
       - uiuser_last_password_change
       - uiuser_pwd_history
       filter: {}
-    role: auth-server
+    role: middleware-server
   - permission:
       columns:
       - uiuser_id
@@ -2789,7 +2789,7 @@ tables:
       - uiuser_username
       - uuid
       filter: {}
-    role: auth-server
+    role: middleware-server
   - permission:
       check: null
       columns:

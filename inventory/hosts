@@ -25,7 +25,7 @@ fworch-srv
 fworch-srv
 #fworch-back
 
-[authserver]
+[middlewareserver]
 fworch-srv
 #fworch-back
 

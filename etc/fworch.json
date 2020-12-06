@@ -1,7 +1,7 @@
 
 {
     "privateJWTKeyFile": "../../../../../etc/secrets/jwt_private.key",
-    "AuthServerIp": "localhost",
-    "AuthServerPort": "8888",
-    "AuthLdapUri": "ldaps://localhost"
+    "MiddlewareServerIp": "localhost",
+    "MiddlewareServerPort": "8888",
+    "MiddlewareLdapUri": "ldaps://localhost"
 }

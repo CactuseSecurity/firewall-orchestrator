@@ -5,7 +5,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO.Ui.Data.API
+namespace FWO.Api.Data
 {
     public class GroupFlat<T>
     {

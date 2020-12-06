@@ -11,7 +11,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace FWO.Config
 {
-    public class ConfigConnection
+    public class ConfigFile
     {
         /// <summary>
         /// Path to config file
@@ -89,7 +89,7 @@ namespace FWO.Config
             }
         }
 
-        public ConfigConnection()
+        public ConfigFile()
         {
             #region Config File
 

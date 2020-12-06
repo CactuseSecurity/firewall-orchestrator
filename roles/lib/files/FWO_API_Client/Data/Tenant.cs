@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using System.Collections.Generic;
 
-namespace FWO.Ui.Data.API
+namespace FWO.Api.Data
 {
     public class Tenant
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace FWO.Ui.Data.API
+namespace FWO.Api.Data
 {
     public class Manufacturer
     {

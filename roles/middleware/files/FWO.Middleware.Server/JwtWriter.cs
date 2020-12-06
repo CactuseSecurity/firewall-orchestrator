@@ -88,7 +88,7 @@ namespace FWO.Middleware.Server
         {
             if (user.Dn != "anonymous")
             {
-                APIConnection apiConn = new APIConnection(new ConfigConnection().ApiServerUri, CreateJWTAuthServer());
+                APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, CreateJWTAuthServer());
                 User[] existingUserFound = null;
                 bool userSetInDb = false;
                 try

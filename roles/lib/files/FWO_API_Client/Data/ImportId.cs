@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace FWO.Ui.Data.API
+namespace FWO.Api.Data
 {
     public class Import
     {

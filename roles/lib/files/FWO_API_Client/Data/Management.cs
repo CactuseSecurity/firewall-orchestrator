@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using FWO.Logging;
 
-namespace FWO.Ui.Data.API
+namespace FWO.Api.Data
 {
     public class Management
     {

@@ -3,7 +3,7 @@ using System;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using FWO.ApiClient;
-using FWO.Ui.Data.API;
+using FWO.Api.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.ApiClient.Queries;
 

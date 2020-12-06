@@ -10,8 +10,8 @@
 @inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
-@inject UserConfigCollection userConfig
-@inject ConfigCollection globalConfig
+@inject UserConfig userConfig
+@inject GlobalConfig globalConfig
 
 @if (showLoginForm)
 {
@@ -135,10 +135,10 @@
                 UiUsersDbAccess uiUserAcc = new UiUsersDbAccess(authState, ApiConnection);
                 userConfig.ChangeLanguage((uiUserAcc.UiUser.Language != "") ? uiUserAcc.UiUser.Language : "English");
                 ConfigDbAccess userConfigDb = new ConfigDbAccess(ApiConnection, uiUserAcc.UiUser.DbId);
-                userConfig.userConfigItems = userConfigDb.configItems;
+                userConfig.UserConfigItems = userConfigDb.configItems;
                 // setting defaults here to have them in state of login time, could maybe be done via global config on startup time
                 ConfigDbAccess defaultConfigDb = new ConfigDbAccess(ApiConnection, 0);
-                userConfig.defaultConfigItems = defaultConfigDb.configItems;
+                userConfig.DefaultConfigItems = defaultConfigDb.configItems;
 
                 loginInProgress = false;
             }

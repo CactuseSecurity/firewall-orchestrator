@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace FWO.Ui.Data.API
+namespace FWO.Api.Data // TODO: Change namespace
 {
     public class UiUser
     {

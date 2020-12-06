@@ -23,7 +23,7 @@ namespace FWO.Middleware.Client
             this.jwtString = jwtString;
 
             // Get public key from config lib
-            ConfigConnection config = new ConfigConnection();
+            ConfigFile config = new ConfigFile();
             jwtPublicKey = config.JwtPublicKey;
         } 
 

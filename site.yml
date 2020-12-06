@@ -89,7 +89,6 @@
       command: "/etc/init.d/fworch-importer restart"
       become: yes
       when: "not installation_mode == 'uninstall'"
-
   tags:
     - backend
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿﻿using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using FWO.Logging;
@@ -40,10 +40,10 @@ namespace FWO.ApiConfig
         {
             ConfigFile config = new ConfigFile();
             RsaSecurityKey jwtPublicKey = config.JwtPublicKey;
-            string authServerUri = config.MiddlewareServerUri;
+            string middlewareServerUri = config.MiddlewareServerUri;
             string apiServerUri = config.ApiServerUri;
             productVersion = config.ProductVersion;
-            authClient = new MiddlewareClient(authServerUri);
+            authClient = new MiddlewareClient(middlewareServerUri);
             apiConnection = new APIConnection(apiServerUri);
             apiConnection.SetAuthHeader(jwt);
             

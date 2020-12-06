@@ -1,4 +1,5 @@
 ---
+
 - hosts: all
   tasks:
     - name: uninstall product
@@ -32,7 +33,7 @@
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "'run_on_github' is not defined and not installation_mode == 'uninstall'" }
+    - { role: docker, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
     - { role: api, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
   tags:
     - backend
@@ -42,7 +43,9 @@
 - hosts: middlewareserver
   tasks:
     - name: restart middleware service
-      command: "systemctl restart {{ middleware_service_name }}"
+      systemd:
+        name: "{{ middleware_service_name }}"
+        state: restarted
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:

@@ -41,7 +41,7 @@ namespace FWO.Ui
 
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
-            ConfigConnection configConnection = new ConfigConnection();
+            ConfigFile configConnection = new ConfigFile();
 
             string ApiUri = configConnection.ApiServerUri;
             string MiddlewareUri = configConnection.MiddlewareServerUri;
@@ -64,10 +64,10 @@ namespace FWO.Ui
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
             
             // get all non-confidential configuration settings and add to a global service (for all users)
-            ConfigCollection configCollection = new ConfigCollection(jwt);
-            services.AddSingleton<ConfigCollection>(_ => configCollection);
+            GlobalConfig configCollection = new GlobalConfig(jwt);
+            services.AddSingleton<GlobalConfig>(_ => configCollection);
             
-            services.AddScoped<UserConfigCollection>(_ => new UserConfigCollection(configCollection));
+            services.AddScoped<UserConfig>(_ => new UserConfigCollection(configCollection));
 
             services.AddScoped<DownloadManagerService>(_ => new DownloadManagerService());
 

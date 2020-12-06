@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FWO.Ui.Data.API
+namespace FWO.Api.Data
 {
     public class PaginationVariables
     {

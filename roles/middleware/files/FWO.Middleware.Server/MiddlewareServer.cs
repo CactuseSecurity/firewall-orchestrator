@@ -24,7 +24,7 @@ namespace FWO.Middleware.Server
 
         // private readonly object pendingChanges = new object(); // LOCK
 
-        private readonly ConfigConnection config;
+        private readonly ConfigFile config;
 
         private readonly RsaSecurityKey privateJWTKey;
         private readonly int hoursValid = 4;  // TODO: MOVE TO API/Config    
@@ -33,7 +33,7 @@ namespace FWO.Middleware.Server
 
         public MiddlewareServer()
         {
-            config = new ConfigConnection();
+            config = new ConfigFile();
             apiUri = config.ApiServerUri;
             privateJWTKey = config.JwtPrivateKey;
             middlewareServerUri = config.MiddlewareServerUri;

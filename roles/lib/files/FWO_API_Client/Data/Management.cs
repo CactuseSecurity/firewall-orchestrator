@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using FWO.Logging;
 
-namespace FWO.Ui.Data.API
+namespace FWO.Api.Data
 {
     public class Management
     {
@@ -66,6 +66,13 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; }
 
+        [JsonPropertyName("import")]
+        public Import Import { get; set; }
+
+        [JsonPropertyName("pointInTime")]
+        public DateTime ReportTime { get; set; }
+        public int RelevantImportId { get; set; }
+
         public Management()
         { }
 
@@ -85,6 +92,13 @@ namespace FWO.Ui.Data.API
             HideInUi = management.HideInUi;
             Comment = management.Comment;
             TenantId = management.TenantId;
+            Import = management.Import;
+            if (management.Import != null && management.Import.ImportAggregate != null &&
+                management.Import.ImportAggregate.ImportAggregateMax != null &&
+                management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
+            {
+                RelevantImportId = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+            }
             // Devices = management.Devices;
             // Objects = management.Objects;
             // Services = management.Services;
@@ -130,11 +144,42 @@ namespace FWO.Ui.Data.API
                 if (managements[i].Devices != null && managementsToMerge[i].Devices != null && managementsToMerge[i].Devices.Length > 0)
                 {
                     // important: if any management still returns rules, newObjects is set to true
-                    if(managements[i].Devices.Merge(managementsToMerge[i].Devices) == true)  
+                    if (managements[i].Devices.Merge(managementsToMerge[i].Devices) == true)
                         newObjects = true;
                 }
             }
 
+            return newObjects;
+        }
+
+        public static bool Merge(this Management management, Management managementToMerge)
+        {
+            bool newObjects = false;
+
+            if (management.Objects != null && managementToMerge.Objects != null && managementToMerge.Objects.Length > 0)
+            {
+                management.Objects = management.Objects.Concat(managementToMerge.Objects).ToArray();
+                newObjects = true;
+            }
+
+            if (management.Services != null && managementToMerge.Services != null && managementToMerge.Services.Length > 0)
+            {
+                management.Services = management.Services.Concat(managementToMerge.Services).ToArray();
+                newObjects = true;
+            }
+
+            if (management.Users != null && managementToMerge.Users != null && managementToMerge.Users.Length > 0)
+            {
+                management.Users = management.Users.Concat(managementToMerge.Users).ToArray();
+                newObjects = true;
+            }
+
+            if (management.Devices != null && managementToMerge.Devices != null && managementToMerge.Devices.Length > 0)
+            {
+                // important: if any management still returns rules, newObjects is set to true
+                if (management.Devices.Merge(managementToMerge.Devices) == true)
+                    newObjects = true;
+            }
             return newObjects;
         }
     }

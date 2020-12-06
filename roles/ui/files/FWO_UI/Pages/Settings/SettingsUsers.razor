@@ -33,6 +33,7 @@
     protected override async Task OnInitializedAsync()
     {
         uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
+        uiUsers = uiUsers.FindAll(x => x.DbId != 0);
     }
 
     private async Task DeleteUser(UiUser user)

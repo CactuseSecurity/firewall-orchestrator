@@ -17,6 +17,12 @@ namespace FWO.Ui.Data.API
         [JsonPropertyName("tenant_projekt")]
         public string Project { get; set; }
 
+        [JsonPropertyName("tenant_can_view_all_devices")]
+        public bool ViewAllDevices { get; set; }
+
+        [JsonPropertyName("tenant_is_superadmin")]
+        public bool Superadmin { get; set; }
+
         [JsonPropertyName("tenant_to_devices")]
         public TenantDevice[] TenantDevices { get; set; }
 

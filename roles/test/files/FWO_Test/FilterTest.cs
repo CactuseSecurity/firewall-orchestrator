@@ -1,4 +1,4 @@
-﻿using FWO.Ui.Filter;
+﻿using FWO.Report.Filter;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;

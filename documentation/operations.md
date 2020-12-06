@@ -14,9 +14,9 @@ tim@ubu2004test:/var/log/fworch$ tail -f ui.log auth.log ldap.log api.log
 Aug 25 16:48:19 ubu2004test fworch-ui[407866]: Sending GetJWT Request...
 
 ==> auth.log <==
-Aug 25 16:48:19 ubu2004test fworch.auth-server[403234]: Try to validate as admin...
-Aug 25 16:48:19 ubu2004test fworch.auth-server[403234]: FWO_Auth_Server::Ldap.cs: ValidateUser called for user uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
-Aug 25 16:48:19 ubu2004test fworch.auth-server[403234]: FWO_Auth_Server::Ldap.cs: LdapServerPort=636
+Aug 25 16:48:19 ubu2004test fworch.middleware-server[403234]: Try to validate as admin...
+Aug 25 16:48:19 ubu2004test fworch.middleware-server[403234]: FWO_Auth_Server::Ldap.cs: ValidateUser called for user uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal
+Aug 25 16:48:19 ubu2004test fworch.middleware-server[403234]: FWO_Auth_Server::Ldap.cs: LdapServerPort=636
 
 ==> ldap.log <==
 Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 fd=12 ACCEPT from IP=127.0.0.1:35558 (IP=0.0.0.0:636)
@@ -28,10 +28,10 @@ Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 op=1 UNBIND
 Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 fd=12 closed
 
 ==> auth.log <==
-Aug 25 16:48:19 ubu2004test fworch.auth-server[403234]: Successfully validated as FWO_Auth_Server.User!
-Aug 25 16:48:19 ubu2004test fworch.auth-server[403234]: Generating JWT for user admin ...
-Aug 25 16:48:19 ubu2004test fworch.auth-server[403234]: Generated JWT eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImFkbWluIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsxLDcsMTd9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoiezEsNH0iLCJyb2xlIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNTk4Mzc0MDk5LCJleHAiOjE1OTg5Nzg4OTksImlhdCI6MTU5ODM3NDA5OSwiaXNzIjoiRldPIEF1dGggTW9kdWxlIiwiYXVkIjoiRldPIn0.APtkX_fAMICID9pAzASKrlBGERWvlxbGg01up1CAYD8QKLGtmW1URnO2hvJbkVli for User FWO_Auth_Server.User
-Aug 25 16:48:19 ubu2004test fworch.auth-server[403234]: User admin was assigned the following roles: eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImFkbWluIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsxLDcsMTd9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoiezEsNH0iLCJyb2xlIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNTk4Mzc0MDk5LCJleHAiOjE1OTg5Nzg4OTksImlhdCI6MTU5ODM3NDA5OSwiaXNzIjoiRldPIEF1dGggTW9kdWxlIiwiYXVkIjoiRldPIn0.APtkX_fAMICID9pAzASKrlBGERWvlxbGg01up1CAYD8QKLGtmW1URnO2hvJbkVli
+Aug 25 16:48:19 ubu2004test fworch.middleware-server[403234]: Successfully validated as FWO_Auth_Server.User!
+Aug 25 16:48:19 ubu2004test fworch.middleware-server[403234]: Generating JWT for user admin ...
+Aug 25 16:48:19 ubu2004test fworch.middleware-server[403234]: Generated JWT eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImFkbWluIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsxLDcsMTd9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoiezEsNH0iLCJyb2xlIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNTk4Mzc0MDk5LCJleHAiOjE1OTg5Nzg4OTksImlhdCI6MTU5ODM3NDA5OSwiaXNzIjoiRldPIEF1dGggTW9kdWxlIiwiYXVkIjoiRldPIn0.APtkX_fAMICID9pAzASKrlBGERWvlxbGg01up1CAYD8QKLGtmW1URnO2hvJbkVli for User FWO_Auth_Server.User
+Aug 25 16:48:19 ubu2004test fworch.middleware-server[403234]: User admin was assigned the following roles: eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImFkbWluIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsxLDcsMTd9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoiezEsNH0iLCJyb2xlIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNTk4Mzc0MDk5LCJleHAiOjE1OTg5Nzg4OTksImlhdCI6MTU5ODM3NDA5OSwiaXNzIjoiRldPIEF1dGggTW9kdWxlIiwiYXVkIjoiRldPIn0.APtkX_fAMICID9pAzASKrlBGERWvlxbGg01up1CAYD8QKLGtmW1URnO2hvJbkVli
 
 ==> ui.log <==
 Aug 25 16:48:19 ubu2004test fworch-ui[407866]: APIConnection::ChangeAuthHeader Jwt=eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6ImFkbWluIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsxLDcsMTd9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoiezEsNH0iLCJyb2xlIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbInJlcG9ydGVyLXZpZXdhbGwiLCJyZXBvcnRlciJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNTk4Mzc0MDk5LCJleHAiOjE1OTg5Nzg4OTksImlhdCI6MTU5ODM3NDA5OSwiaXNzIjoiRldPIEF1dGggTW9kdWxlIiwiYXVkIjoiRldPIn0.APtkX_fAMICID9pAzASKrlBGERWvlxbGg01up1CAYD8QKLGtmW1URnO2hvJbkVli

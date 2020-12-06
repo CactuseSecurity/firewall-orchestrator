@@ -2,17 +2,16 @@
 @using System.Net
 @using FWO.Ui.Auth
 @using FWO.ApiClient
-@using FWO.Auth.Client
+@using FWO.Middleware.Client
 @using FWO.ApiConfig
-@using FWO.Ui.Data.API
 @using FWO.Ui.Services
 
-@inject AuthClient AuthClient
+@inject MiddlewareClient middlewareClient
 @inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
-@inject UserConfigCollection userConfig
-@inject ConfigCollection globalConfig
+@inject UserConfig userConfig
+@inject GlobalConfig globalConfig
 
 @if (showLoginForm)
 {
@@ -57,7 +56,7 @@
     private string InputClass = "";
 
     private string errorMessage = "";
-    
+
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
@@ -102,7 +101,7 @@
             loginInProgress = true;
 
             // There is no jwt in session storage. Get one from auth module.
-            AuthServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser(Username, Password);
 
             // There was an error trying to authenticate the user. Probably invalid credentials
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
@@ -113,6 +112,7 @@
                 InputClass = "is-invalid";
                 loginInProgress = false;
                 await focusInput();
+                StateHasChanged();
             }
 
             else
@@ -135,10 +135,11 @@
                 UiUsersDbAccess uiUserAcc = new UiUsersDbAccess(authState, ApiConnection);
                 userConfig.ChangeLanguage((uiUserAcc.UiUser.Language != "") ? uiUserAcc.UiUser.Language : "English");
                 ConfigDbAccess userConfigDb = new ConfigDbAccess(ApiConnection, uiUserAcc.UiUser.DbId);
-                userConfig.userConfigItems = userConfigDb.configItems;
+                userConfig.UserConfigItems = userConfigDb.configItems;
                 // setting defaults here to have them in state of login time, could maybe be done via global config on startup time
                 ConfigDbAccess defaultConfigDb = new ConfigDbAccess(ApiConnection, 0);
-                userConfig.defaultConfigItems = defaultConfigDb.configItems;
+                userConfig.DefaultConfigItems = defaultConfigDb.configItems;
+
                 loginInProgress = false;
             }
         }

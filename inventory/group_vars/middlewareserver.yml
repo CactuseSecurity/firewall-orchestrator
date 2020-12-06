@@ -1,0 +1,29 @@
+
+middleware_ldap_path: "dc=fworch,dc=internal"
+middleware_ldap_server_internal: "127.0.0.1"
+middleware_ldap_internal_url: "ldaps://{{ middleware_ldap_server_internal }}"
+middleware_ldap_superuser_name: "cn=Manager,ou=systemuser,ou=user,{{ middleware_ldap_path }}"
+middleware_ldap_user_inital_pwd: "fworch.1"
+middleware_ldap_std_user_path: "ou=operator,ou=user,{{ middleware_ldap_path }}"
+middleware_ldap_std_role_path: "ou=role,{{ middleware_ldap_path }}"
+middleware_ldap_internal_readonly_user: "inspector"
+middleware_ldap_internal_readonly_user_fq: "uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
+generate_new_ldap_crypto: false 
+    #The decision to generate new certificates and keys in openldapserver
+
+middleware_path_rel: FWO.Middleware.Server
+middleware_server_base_dir: "{{ fworch_home }}/middleware/files"
+middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Server"
+middleware_change_local_ldap: "yes"
+
+# use static jwt generation test key if set to 1 - only for testing, not for production environment
+testkey: "no"
+
+########## test data only ##############
+
+test_ldap_external_server: 192.168.100.8
+test_ldap_external_user_search_path: "DC=int,DC=cactus,DC=de"
+test_ldap_external_user_fq_name: "ad-readonly@int.cactus.de"
+test_ldap_external_user_pwd: "fworch.123!"
+test_ldap_external_tls: false
+test_ldap_external_port: 389

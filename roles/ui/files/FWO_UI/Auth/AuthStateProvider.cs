@@ -2,7 +2,7 @@
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using FWO.Auth.Client;
+using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Logging;
 

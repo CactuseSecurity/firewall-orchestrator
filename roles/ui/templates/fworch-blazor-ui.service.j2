@@ -1,11 +1,11 @@
 [Unit]
 Description={{ product_name }} Blazor UI
-{% if 'apiserver' in group_names and 'authserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service {{ auth_service_name }}.service
+{% if 'apiserver' in group_names and 'middlewareserver' in group_names -%}
+After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service {{ middleware_service_name }}.service
 {% elif 'apiserver' in group_names -%}
 After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service
-{% elif 'authserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ auth_service_name }}.service
+{% elif 'middlewareserver' in group_names -%}
+After=network.target remote-fs.target nss-lookup.target {{ middleware_service_name }}.service
 {% else -%}
 After=network.target remote-fs.target nss-lookup.target
 {%- endif %}

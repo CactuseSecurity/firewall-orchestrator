@@ -1,9 +1,9 @@
 
-# JWT Hash algorithm (needed by API, Auth, UI)
+# JWT Hash algorithm (needed by API, Middleware, UI)
 
 # default language per user (UI)
 # current strategy: all user specific information is stored in ldap
-# --> should be retrieved via auth server?
+# --> should be retrieved via middleware server?
 
 ###############################################
 # basic config data related to device import/report

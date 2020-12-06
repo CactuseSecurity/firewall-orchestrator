@@ -16,7 +16,6 @@
         group: "{{ fworch_user }}"
       loop:
         - FWO_UI
-        - FWO_Filter_UI
 
   become: yes
 

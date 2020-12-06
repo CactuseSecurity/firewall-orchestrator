@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Ui.Auth;
-using FWO.Auth.Client;
+using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -19,6 +19,7 @@ using FWO.Config;
 using FWO.ApiConfig;
 using FWO.Logging;
 using FWO.Ui.Services;
+using BlazorTable;
 
 namespace FWO.Ui
 {
@@ -40,22 +41,22 @@ namespace FWO.Ui
 
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
-            ConfigConnection configConnection = new ConfigConnection();
+            ConfigFile configConnection = new ConfigFile();
 
             string ApiUri = configConnection.ApiServerUri;
-            string AuthUri = configConnection.AuthServerUri;
+            string MiddlewareUri = configConnection.MiddlewareServerUri;
             string ProductVersion = configConnection.ProductVersion;
 
             services.AddScoped<APIConnection>(_ => new APIConnection(ApiUri));
-            services.AddScoped<AuthClient>(_ => new AuthClient(AuthUri));
+            services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
             // use anonymous login
 
-            AuthClient authClient = new AuthClient(AuthUri);
+            MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             APIConnection apiConn = new APIConnection(ApiUri);
-            AuthServerResponse authResponse = authClient.AuthenticateUser("","").Result;
+            MiddlewareServerResponse authResponse = middlewareClient.AuthenticateUser("","").Result;
             if (authResponse.Status == HttpStatusCode.BadRequest) 
             {
-                Log.WriteError("Auth Server Connection", $"Error while authenticating as anonymous user from UI.");
+                Log.WriteError("Middleware Server Connection", $"Error while authenticating as anonymous user from UI.");
                 Environment.Exit(1);
             }
             string jwt = authResponse.GetResult<string>("jwt");
@@ -63,12 +64,14 @@ namespace FWO.Ui
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
             
             // get all non-confidential configuration settings and add to a global service (for all users)
-            ConfigCollection configCollection = new ConfigCollection(jwt);
-            services.AddSingleton<ConfigCollection>(_ => configCollection);
+            GlobalConfig globalConfig = new GlobalConfig(jwt);
+            services.AddSingleton<GlobalConfig>(_ => globalConfig);
             
-            services.AddScoped<UserConfigCollection>(_ => new UserConfigCollection(configCollection));
+            services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
 
             services.AddScoped<DownloadManagerService>(_ => new DownloadManagerService());
+
+            services.AddBlazorTable();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -640,18 +640,20 @@ tables:
       foreign_key_constraint_on: mgm_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
+      - changes_found
+      - is_initial_import
+      - successful_import
+      - mgm_id
       - control_id
+      - last_change_in_config
       - start_time
       - stop_time
-      - is_initial_import
       - delimiter_group
-      - delimiter_zone
-      - delimiter_user
       - delimiter_list
-      - mgm_id
-      - last_change_in_config
-      - successful_import
+      - delimiter_user
+      - delimiter_zone
       - import_errors
       filter:
         mgm_id:
@@ -671,6 +673,7 @@ tables:
       - mgm_id
       - last_change_in_config
       - successful_import
+      - changes_found
       - import_errors
       filter: {}
     role: reporter-viewall

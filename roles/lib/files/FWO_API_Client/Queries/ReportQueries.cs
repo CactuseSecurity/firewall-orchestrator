@@ -12,14 +12,16 @@ namespace FWO.ApiClient.Queries
         public static readonly string getReportTemplates;
         public static readonly string getReportsOverview;
         public static readonly string getReportsById;
+        public static readonly string getRelevantImportIdsAtTime;
 
         static ReportQueries() 
         {
             try
             {
-                getReportsOverview = File.ReadAllText(QueryPath + "report/getReports.graphql");
+                getReportsOverview = File.ReadAllText(QueryPath + "report/getReportSchedules.graphql");
                 getReportsById = File.ReadAllText(QueryPath + "report/getReportById.graphql");
                 getReportTemplates = File.ReadAllText(QueryPath + "report/getReportTemplates.graphql");
+                getRelevantImportIdsAtTime = File.ReadAllText(QueryPath + "report/getRelevantImportIdsAtTime.graphql");
             }
             catch (Exception exception)
             {

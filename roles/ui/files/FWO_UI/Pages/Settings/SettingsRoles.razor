@@ -35,23 +35,35 @@
         {
             <form>
                 <form class="form-inline">
-                    <label for="roleUser" class="col-sm-2 col-form-label col-form-label-sm">User:</label>
+                    <label for="roleUser" class="col-sm-2 col-form-label col-form-label-sm">Active User:</label>
                     <div class="col-sm-8">
-                        <select id="roleUser" class="form-control form-control-sm" @bind="selectedUser.Dn">
+                        <select id="roleUser" class="form-control form-control-sm" @bind="selectedUserDn">
                             @foreach (UiUser user in uiUsers)
                             {
-                                <option selected="@user.Dn">@(user.Dn)</option>
+                                <option value="@user.Dn">@(user.Dn)</option>
                             }
                         </select>
                     </div>
-                    <button class="btn btn-sm btn-success" @onclick="() => AddUser(selectedUser)">Add</button>
+                    <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUserDn)">Add</button>
                 </form>
                 <form class="form-inline">
                     <label for="newUser" class="col-sm-2 col-form-label col-form-label-sm">New (Dn):</label>
                     <div class="col-sm-8">
-                        <input id="newUser" type="text" class="form-control form-control-sm" @bind="newUser.Dn" />
+                        <input id="newUser" type="text" class="form-control form-control-sm" @bind="newUserDn" />
                     </div>
-                    <button class="btn btn-sm btn-success" @onclick="() => AddUser(newUser)">Add</button>
+                    <button class="btn btn-sm btn-success" @onclick="() => NewUser(newUserDn)">Add</button>
+                </form>
+                <form class="form-inline">
+                    <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">from Ldap:</label>
+                    <div class="col-sm-8">
+                        <select id="ldapUser" class="form-control form-control-sm" @bind="selectedLdapId">
+                            @foreach (LdapConnection ldap in connectedLdaps)
+                            {
+                                <option value="@ldap.Id">@(ldap.Host())</option>
+                            }
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-success" @onclick="() => SearchUser(selectedLdapId)">Search</button>
                 </form>
 
                 @if (errorMessage != "")
@@ -76,10 +88,10 @@
                 <div class="form-group row">
                     <label for="roleUserdel" class="col-sm-3 col-form-label col-form-label-sm">User:</label>
                     <div class="col-sm-8">
-                        <select id="roleUserdel" class="form-control form-control-sm" @bind="selectedUser.Dn">
+                        <select id="roleUserdel" class="form-control form-control-sm" @bind="selectedUserDn">
                             @foreach (UiUser user in actRole.Users)
                             {
-                                <option selected="@user.Dn">@(user.Dn)</option>
+                                <option value="@user.Dn">@(user.Dn)</option>
                             }
                         </select>
                     </div>
@@ -94,8 +106,40 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(selectedUser)">Delete</button>
+            <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(selectedUserDn)">Delete</button>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@($"Get user from ldap {selectedLdap.Host()}")" Show="@SearchMode" OnClose="() => SearchMode = false">
+    <Body>
+        @if (SearchMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="roleUsersearch" class="col-sm-3 col-form-label col-form-label-sm">User:</label>
+                    <div class="col-sm-8">
+                        <select id="roleUsersearch" class="form-control form-control-sm" @bind="selectedUserDn">
+                            @foreach (UiUser user in ldapUsers)
+                            {
+                                <option value="@user.Dn">@(user.Dn)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+            @if (errorMessage != "")
+            {
+                <label class="m-2">@errorMessage</label>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedUserDn)">Add</button>
+            <button class="btn btn-sm btn-secondary" @onclick="CancelSearch">Cancel</button>
         </div>
     </Footer>
 </PopUp>
@@ -104,14 +148,19 @@
 {
     private List<Role> roles = new List<Role>();
     private List<UiUser> uiUsers = new List<UiUser>();
+    private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+    private List<UiUser> ldapUsers = new List<UiUser>();
     
-    private UiUser newUser = new UiUser();
-    private UiUser selectedUser = new UiUser();
+    private string newUserDn;
+    private LdapConnection selectedLdap = new LdapConnection();
+    private string selectedUserDn;
+    private int selectedLdapId;
 
     private Role actRole = new Role();
 
     private bool AddMode = false;
     private bool DeleteMode = false;
+    private bool SearchMode = false;
 
     private string errorMessage = "";
 
@@ -122,6 +171,8 @@
 
         uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
         uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+        // connectedLdaps = connectedLdaps.FindAll(x => x.RoleSearchPath != null);
     }
 
     private void Add(Role role)
@@ -136,24 +187,40 @@
         actRole = role;
     }
 
+
+    private void NewUser(string userDn)
+    {
+        UiUser newUser = new UiUser() {Dn = userDn , Name = extractUserNameFromDn(userDn)}; 
+        AddUser (newUser);
+    }
+
+    private void AddUserFromUiUsers(string userDn)
+    {
+        UiUser selectedUser = uiUsers.Find(x => x.Dn == userDn);
+        AddUser (selectedUser);
+    }
+
+    private void AddUserFromLdap(string userDn)
+    {
+        UiUser selectedUser = ldapUsers.Find(x => x.Dn == userDn);
+        AddUser (selectedUser);
+    }
+
     private void AddUser(UiUser user)
     {
         // add user in LDAP
 
-        if (user.Name == null)
-        {
-            user.Name = extractUserNameFromDn(user.Dn);
-        }
         actRole.Users.Add(user);
         roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
         AddMode = false;
+        SearchMode = false;
     }
 
-    private void DeleteUser(UiUser user)
+    private void DeleteUser(string userDn)
     {
         // delete user in LDAP
 
-        var itemToRemove = actRole.Users.SingleOrDefault(x => x.Dn == user.Dn);
+        var itemToRemove = actRole.Users.SingleOrDefault(x => x.Dn == userDn);
         if (itemToRemove != null)
         {
             actRole.Users.Remove(itemToRemove);
@@ -166,10 +233,26 @@
         }
     }
 
+    private void SearchUser(int ldapId)
+    {
+        selectedLdap = connectedLdaps.Find(x => x.Id == ldapId);
+        // get users from Ldap
+        // -> ldapUsers
+        SearchMode = true;
+        AddMode = false;
+    }
+
     private void Cancel()
     {
         AddMode = false;
         DeleteMode = false;
+        errorMessage = "";
+    }
+
+    private void CancelSearch()
+    {
+        SearchMode = false;
+        AddMode = true;
         errorMessage = "";
     }
 
@@ -200,5 +283,8 @@
         Role role2 = new Role() { Name="Spezialist", Description="noch schlimmer", Users=users2 };
         roles.Add(role1);
         roles.Add(role2);
+        ldapUsers.Add(user1);
+        ldapUsers.Add(user2);
+        ldapUsers.Add(user3);
     }
 }

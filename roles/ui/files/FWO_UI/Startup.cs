@@ -64,10 +64,10 @@ namespace FWO.Ui
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
             
             // get all non-confidential configuration settings and add to a global service (for all users)
-            GlobalConfig configCollection = new GlobalConfig(jwt);
-            services.AddSingleton<GlobalConfig>(_ => configCollection);
+            GlobalConfig globalConfig = new GlobalConfig(jwt);
+            services.AddSingleton<GlobalConfig>(_ => globalConfig);
             
-            services.AddScoped<UserConfig>(_ => new UserConfigCollection(configCollection));
+            services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
 
             services.AddScoped<DownloadManagerService>(_ => new DownloadManagerService());
 

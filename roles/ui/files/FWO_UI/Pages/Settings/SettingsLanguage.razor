@@ -7,8 +7,8 @@
 
 @page "/settings/language"
 
-@inject ConfigCollection configCollection
-@inject UserConfigCollection userConfigCollection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
 @inject APIConnection apiConnection
 
 <h3>Language Settings</h3>
@@ -17,7 +17,7 @@
 <form class="form-inline">
     <label for="languageSelect" class="col-form-label mr-2">Language</label>
     <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedLanguage">
-        @foreach (Language language in configCollection.uiLanguages)
+        @foreach (Language language in globalConfig.uiLanguages)
         {
             <option selected="@(selectedLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
         }
@@ -37,6 +37,6 @@
     private async Task ChangeLanguage(string language)
     {
         Log.WriteDebug("Change language", $"new language: {language}");
-        userConfigCollection.ChangeLanguage(language);
+        userConfig.ChangeLanguage(language);
     }
 }

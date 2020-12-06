@@ -6,7 +6,7 @@
 @using FWO.ApiConfig
 @using FWO.Ui.Services
 
-@inject MiddlewareClient AuthClient
+@inject MiddlewareClient middlewareClient
 @inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
@@ -101,7 +101,7 @@
             loginInProgress = true;
 
             // There is no jwt in session storage. Get one from auth module.
-            MiddlewareServerResponse apiAuthResponse = await MiddlewareClient.AuthenticateUser(Username, Password);
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser(Username, Password);
 
             // There was an error trying to authenticate the user. Probably invalid credentials
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)

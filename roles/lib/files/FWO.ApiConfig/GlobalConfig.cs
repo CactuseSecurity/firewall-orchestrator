@@ -40,7 +40,7 @@ namespace FWO.ApiConfig
         {
             ConfigFile config = new ConfigFile();
             RsaSecurityKey jwtPublicKey = config.JwtPublicKey;
-            string authServerUri = config.AuthServerUri;
+            string authServerUri = config.MiddlewareServerUri;
             string apiServerUri = config.ApiServerUri;
             productVersion = config.ProductVersion;
             authClient = new MiddlewareClient(authServerUri);

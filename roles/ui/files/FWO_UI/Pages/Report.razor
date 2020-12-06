@@ -19,15 +19,15 @@
         <h5 class="text-center">Report Type</h5>
 
         <div class="list-group small mt-3">
-            <a class="list-group-item list-group-item-action active" @onclick="() => { }" href="report">Point in time</a>
-            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Time intervall</a>
+            <a class="list-group-item list-group-item-action @(reportType==rulesReport?$"active":$"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
+            <a class="list-group-item list-group-item-action @(reportType==changesReport?$"active":$"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
             <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Compliance</a>
             <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Statistics</a>
         </div>
 
         <hr />
 
-        <button class="btn btn-primary btn-sm" @onclick="GenerateRuleReport">Generate Report</button>
+        <button class="btn btn-primary btn-sm" @onclick="GenerateReport">Generate Report</button>
 
         <hr />
 
@@ -80,9 +80,9 @@
         
     </div>
 
-    <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateRuleReport">
+    <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
-               class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" />
+               class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
         <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
              class="form-control position-absolute whitespace-div" spellcheck="false">
             <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
@@ -204,7 +204,14 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
+    private string rulesReportDefaultFilterLine = "type=rules and time=now ";
+    private string changesReportDefaultFilterLine = "type=change and time=\"last year\" ";
     private string reportGenerationTimeLine = "";
+    private const string rulesReport = "Rules";
+    private const string changesReport = "Changes";
+    private const string complianceReport = "Compliance";
+    private const string statisticsReport = "Statistics";
+    private string reportType = rulesReport;
 
 
     [CascadingParameter]
@@ -247,55 +254,85 @@
         });
     }
 
-    private void GenerateRuleReport()
+    private void GenerateReport()
     {
         Task.Run(async () =>
         {
             try
             {
                 DateTime startTime = DateTime.Now;
-                // get the filter line
                 DynGraphqlQuery query = Compiler.Compile(filterInput);
-                string TimeFilter = (string) DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-                if (query.ReportTime != "")
-                    TimeFilter = query.ReportTime;
-
-                // get relevant import ids for report time
-                ImpIdQueryVariables["time"] = TimeFilter;
-                managementsWithRelevantImportId = await Connection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
-
-                managementsReport = new Management[managementsWithRelevantImportId.Length];
-                query.QueryVariables["limit"] = rulesPerFetch;
-                query.QueryVariables["offset"] = 0;
+                string TimeFilter = "";
                 bool gotNewObjects = true;
-
                 Management singleMgmt = new Management();
-                // for programmatic reasons the first fetch is done before the while loop ;-)
-                for (int i=0; i<managementsWithRelevantImportId.Length; i++)
-                {
-                    // setting mgmt and relevantImporId QueryVariables 
-                    query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                int i;
+                Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
 
-                    // setting RelevantImportId from "null" to an impossible number to suppress any report for this management
-                    if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId == null)
-                        managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId = -1;
-                    
-                    query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-                    managementsReport[i] = (await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
-                }
-                while (gotNewObjects)
+                switch (reportType) 
                 {
-                    query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
-                    for (int j=0; j<managementsWithRelevantImportId.Length; j++)
-                    {
-                        query.QueryVariables["mgmId"] = managementsWithRelevantImportId[j].Id;
-                        query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[j].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-                        singleMgmt = (await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
-                        gotNewObjects = managementsReport[j].Merge(singleMgmt);
-                    }
-                    await InvokeAsync(StateHasChanged);
+                    case rulesReport:
+                        // get the filter line
+                        TimeFilter = (string) DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                        if (query.ReportTime != "")
+                            TimeFilter = query.ReportTime;
+
+                        // get relevant import ids for report time
+                        ImpIdQueryVariables["time"] = TimeFilter;
+                        managementsWithRelevantImportId = await Connection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+
+                        managementsReport = new Management[managementsWithRelevantImportId.Length];
+                        query.QueryVariables["limit"] = rulesPerFetch;
+                        query.QueryVariables["offset"] = 0;
+
+                       
+                        // for programmatic reasons the first fetch is done before the while loop ;-)
+                        for (i=0; i<managementsWithRelevantImportId.Length; i++)
+                        {
+                            // setting mgmt and relevantImporId QueryVariables 
+                            query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+
+                            // setting RelevantImportId from "null" to an impossible number to suppress any report for this management
+                            if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId == null)
+                                managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId = -1;
+                            
+                            query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                            managementsReport[i] = (await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
+                        }
+                        while (gotNewObjects)
+                        {
+                            query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
+                            for (i=0; i<managementsWithRelevantImportId.Length; i++)
+                            {
+                                query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                                query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                                singleMgmt = (await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
+                                gotNewObjects = managementsReport[i].Merge(singleMgmt);
+                            }
+                            await InvokeAsync(StateHasChanged);
+                        }
+                        break;
+
+                    case changesReport:
+                        query.QueryVariables["limit"] = rulesPerFetch;
+                        query.QueryVariables["offset"] = 0;
+                        managementsReport = new Management[0];
+
+                        while (gotNewObjects)
+                        {
+                            for (i=0; i<managementsWithRelevantImportId.Length; i++)
+                            {
+                                query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                                query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                                singleMgmt = (await Connection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
+                                gotNewObjects = managementsReport[i].Merge(singleMgmt);
+                            }
+                            query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
+
+                            await InvokeAsync(StateHasChanged);
+                        }
+                        break;
                 }
+
                 reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
             }
             catch (Exception exception)

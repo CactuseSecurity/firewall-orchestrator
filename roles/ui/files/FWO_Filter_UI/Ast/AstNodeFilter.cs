@@ -38,12 +38,73 @@ namespace FWO.Ui.Filter.Ast
             return;
         }
 
+        private (string, string) resolveTimeRange(string timeRange)
+        {
+            string start = "";
+            string stop = "";
+            DateTime now = DateTime.Now;
+            string currentTime = (string)DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            string currentYear = (string)DateTime.Now.ToString("yyyy");
+            string currentMonth = (string)DateTime.Now.ToString("MM");
+            string currentDay = (string)DateTime.Now.ToString("dd");
+            DateTime startOfCurrentMonth = new DateTime(Convert.ToInt16(currentYear), Convert.ToInt16(currentMonth), 1);
+            DateTime startOfNextMonth = startOfCurrentMonth.AddMonths(1);
+            DateTime startOfPrevMonth = startOfCurrentMonth.AddMonths(-1);
+
+            switch (timeRange)
+            {
+                // todo: add today, yesterday, this week, last week
+                case "last year":
+                    start = $"{(Convert.ToInt16(currentYear) - 1).ToString()}-01-01";
+                    stop = $"{Convert.ToInt16(currentYear).ToString()}-01-01";
+                    break;
+                case "this year":
+                    start = $"{(Convert.ToInt16(currentYear)).ToString()}-01-01";
+                    stop = $"{(Convert.ToInt16(currentYear) + 1).ToString()}-01-01";
+                    break;
+                case "this month":
+                    start = startOfCurrentMonth.ToString("yyyy-MM-dd");
+                    stop = startOfNextMonth.ToString("yyyy-MM-dd");
+                    break;
+                case "last month":
+                    start = startOfPrevMonth.ToString("yyyy-MM-dd");
+                    stop = startOfCurrentMonth.ToString("yyyy-MM-dd");
+                    break;
+                default:
+                    string[] times = timeRange.Split('-');
+                    if (times.Length == 2)
+                    {
+                        start = times[0];
+                        stop = times[1];
+                        if (start != Convert.ToDateTime(start).ToString() || stop != Convert.ToDateTime(stop).ToString())
+                            throw new Exception($"Error: wrong time range format");
+                    }
+                    else
+                    {
+                        throw new Exception($"Error: wrong time range format");
+                    }
+                    break;
+            }
+            return (start, stop);
+        }
         private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
-            query.RuleWhereQuery +=
-                $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-            query.ReportTime = Value;
+            if (query.ReportType == "rules")
+            {
+                query.RuleWhereQuery +=
+                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                query.ReportTime = Value;
+            }
+            else if (query.ReportType == "changes")
+            {
+                string start = "";
+                string stop = "";
+                (start, stop) = resolveTimeRange(Value);
+                query.RuleWhereQuery +=
+                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+            }
             // todo: deal with time ranges for changes report type
             return query;
         }

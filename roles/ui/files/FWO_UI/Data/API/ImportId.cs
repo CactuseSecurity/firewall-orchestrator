@@ -8,7 +8,6 @@ namespace FWO.Ui.Data.API
         public ImportAggregate ImportAggregate { get; set; }
     }
 
-
     public class ImportAggregate
     {
         [JsonPropertyName("max")]

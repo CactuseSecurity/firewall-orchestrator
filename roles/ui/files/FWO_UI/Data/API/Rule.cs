@@ -72,5 +72,3 @@ namespace FWO.Ui.Data.API
         public string SectionHeader { get; set; }
     }
 }
-
-

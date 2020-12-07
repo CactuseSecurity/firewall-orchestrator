@@ -28,7 +28,7 @@
     <div class="col-sm-2">
         <input id="rulesPerFetch" type="text" class="form-control form-control-sm" @bind="rulesPerFetch" />
     </div>
-    <button class="btn btn-sm btn-primary" @onclick="SaveRulesPerFetch">Save</button>
+    <button class="btn btn-sm btn-primary" @onclick="SaveRulesPerFetch" @onclick:preventDefault>Save</button>
 </form>
 
 @code

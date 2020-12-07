@@ -89,11 +89,10 @@ namespace FWO.Middleware.Server
             if (user.Dn != "anonymous")
             {
                 APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, CreateJWTMiddlewareServer());
-                User[] existingUserFound = null;
                 bool userSetInDb = false;
                 try
                 {
-                    existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
+                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
                     if (existingUserFound != null)
                     {
                         if (existingUserFound.Length == 1)

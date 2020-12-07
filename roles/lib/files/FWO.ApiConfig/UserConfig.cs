@@ -4,6 +4,9 @@ using FWO.ApiConfig.Data;
 using System.Linq;
 using System;
 using FWO.ApiClient;
+using FWO.Api.Data;
+using FWO.ApiClient.Queries;
+using System.Threading.Tasks;
 
 namespace FWO.ApiConfig
 {
@@ -12,13 +15,17 @@ namespace FWO.ApiConfig
     /// </summary>
     public class UserConfig
     {
-        public string CurrentLanguage { get; private set; }
-        protected GlobalConfig globalConfig { get; set; }
- 
-        public Dictionary<string, string> UserConfigItems { get; set; }
-        public Dictionary<string, string> DefaultConfigItems { get; set; }
+        private readonly GlobalConfig globalConfig;
+
+        private Dictionary<string, string> userConfigItems;
+        private Dictionary<string, string> defaultConfigItems;
+
+        public static readonly string kDefaultLanguage = "DefaultLanguage";
+        public static readonly string kRulesPerFetch = "rulesPerFetch";
 
         public Dictionary<string, string> Translate {get; set; }
+
+        private UiUser uiUser;
 
         public event EventHandler OnChange;
 
@@ -26,114 +33,87 @@ namespace FWO.ApiConfig
         /// create a config collection (used centrally once in a UI server for all users
         /// </summary>
         /// 
-        //public UserConfig()
-        //{
-        //    ClaimsPrincipal user = authState.User;
-        //    string userDn = user.FindFirstValue("x-hasura-uuid");
-
-        //    //UiUser = apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }).Result?[0]; // SHORTER
-
-        //    Log.WriteDebug("Get User Data", $"userDn: {userDn}");
-        //    UiUser[] uiUsers = (Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn }))).Result;
-        //    if (uiUsers != null && uiUsers.Length > 0)
-        //    {
-        //        UiUser = uiUsers[0];
-        //    }
-        //}
-
-        public UserConfig(GlobalConfig globalConfigIn)//, string userDn, APIConnection apiConnection)
+        public UserConfig(GlobalConfig globalConfigIn)
         {
-            CurrentLanguage = globalConfigIn.defaultLanguage;   // TODO: not quite correct when a user signs back in and has alread set another language; Do not create a new UserConfigCollection then?
-            Translate = globalConfigIn.langDict[CurrentLanguage];
+            Translate = globalConfigIn.langDict[globalConfigIn.defaultLanguage];
             globalConfig = globalConfigIn;
+        }
 
-            //UiUser = apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }).Result?[0]; // SHORTER
+        public async Task SetUserInformation(string userDn, APIConnection apiConnection)
+        {
+            Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
+            uiUser = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }))?[0];
 
-            //Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
-            //UiUser = apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn }).Result[0];
-            //if (uiUsers != null && uiUsers.Length > 0)
+            await ChangeLanguage(uiUser.Language, apiConnection);
+
+            defaultConfigItems = await GetConfigItems(0, apiConnection);
+            userConfigItems = await GetConfigItems(uiUser.DbId, apiConnection);
+        }
+
+        private async Task<Dictionary<string, string>> GetConfigItems(int userId, APIConnection apiConnection)
+        {
+            ConfigItem[] apiConfItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { user = userId });
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            foreach (ConfigItem confItem in apiConfItems)
+            {
+                result.Add(confItem.Key, confItem.Value);
+            }
+
+            return result;
+        }
+
+        public async Task ChangeLanguage(string languageName, APIConnection apiConnection)
+        {
+            //try
             //{
-            //    UiUser = uiUsers[0];
+                await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUser, new { id = uiUser.DbId, language = languageName });
+
+                Translate = globalConfig.langDict[languageName];
+                if (OnChange != null)
+                    OnChange.Invoke(this, null);
+            //}
+            //catch (Exception)
+            //{
+            //    // maybe admin has deleted uiuser inbetween
             //}
         }
 
-        public void ChangeLanguage(string languageName)
-        {
-            CurrentLanguage = languageName;
-            Translate = globalConfig.langDict[languageName];
-            if (OnChange != null)
-                OnChange.Invoke(this, null);
-        }
-
-        public string GetConfigValue(string Key)
+        public string GetConfigValue(string key)
         {
             string settingsValue = "";
-            if (UserConfigItems.ContainsKey(Key))
+            if (userConfigItems.ContainsKey(key))
             {
-                settingsValue = UserConfigItems[Key];
+                settingsValue = userConfigItems[key];
             }
-            else if (DefaultConfigItems.ContainsKey(Key))
+            else if (defaultConfigItems.ContainsKey(key))
             {
-                settingsValue = DefaultConfigItems[Key];
+                settingsValue = defaultConfigItems[key];
             }
             return settingsValue;
         }
 
-        public void ChangeConfigValue(string Key, string Value)
+        public async Task ChangeConfigValue(string key, string value, APIConnection apiConnection)
         {
-            if (UserConfigItems.ContainsKey(Key))
-            {
-                UserConfigItems[Key] = Value;
-            }
-            else
-            {
-                UserConfigItems.Add(Key, Value);
-            }
-        }
+            var apiVariables = new { key, value, user = uiUser.DbId };
 
-        public void setNextLanguage()
-        {
-            int idx = 0;
-            bool changedLanguage = false;
-
-            foreach (Language lang in globalConfig.uiLanguages)
+            try
             {
-                if (lang.Name == CurrentLanguage)
+                if (userConfigItems.ContainsKey(key))
                 {
-                    CurrentLanguage = globalConfig.uiLanguages[(idx + 1) % (globalConfig.uiLanguages.Length)].Name;
-                    Translate = globalConfig.langDict[CurrentLanguage];
-                    changedLanguage = true;
-                    //ComponentBase.StateHasChanged();
-                    break;
+                    await apiConnection.SendQueryAsync<object>(ConfigQueries.updateConfigItem, apiVariables);
+                    userConfigItems[key] = value;
                 }
-                idx++;
+                else
+                {
+                    await Task.Run(() => apiConnection.SendQueryAsync<object>(ConfigQueries.addConfigItem, apiVariables));
+                    userConfigItems.Add(key, value);
+                }
             }
-
-            OnChange.Invoke(this, null);
-
-            if (!changedLanguage)
+            catch (Exception exception)
             {
-                Log.WriteWarning("Language Config", "Something went wrong while trying to switch languages.");
+                Log.WriteError("Write Config", $"Could not write key: {key}, user: {uiUser.Dn}, value: {value} to config: ", exception);
+                throw;
             }
         }
-
-        //public UiUser UiUser { get; set; }
-
-        //public async Task ChangeLanguage(string language, APIConnection apiConnection)
-        //{
-        //    try
-        //    {
-        //        var Variables = new
-        //        {
-        //            id = UiUser.DbId,
-        //            language = language
-        //        };
-        //        await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUser, Variables));
-        //    }
-        //    catch (Exception)
-        //    {
-        //        // maybe admin has deleted uiuser inbetween
-        //    }
-        //}
     }
 }

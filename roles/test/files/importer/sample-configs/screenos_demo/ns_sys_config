@@ -82,7 +82,7 @@ set address "Global" "211.0.0.0/8" 211.0.0.0 255.0.0.0
 set address "DMZ" "222.4.4.4/32" 222.4.4.4 255.255.255.255
 set address "DMZ" "DMZ_222.1.0.0-16_Webserver_Farm" 222.1.0.0 255.255.0.0
 set user "tim" uid 1
-set user "tim" type  auth
+set user "tim" type auth
 set user "tim" hash-password "02HD1uCmBKnju9gbb+LZQ5hrydbuBZdVaJv0k="
 set user "tim" "enable"
 set user-group "testgroup1" id 1

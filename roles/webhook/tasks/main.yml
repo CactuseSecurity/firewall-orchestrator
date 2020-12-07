@@ -1,0 +1,31 @@
+---
+- block:  
+     - name: Install packages for webhook receiver
+       package:
+         name: "{{ item }}"
+       loop:
+         - python3-flask
+
+     - name: create webhook dir
+       file:
+         dest: "{{ fworch_home }}/webhook"
+         state: directory
+         owner: "{{ fworch_user }}"
+         group: "{{ fworch_user }}"
+         mode: "0775"
+
+     - name: copy startup file from template
+       template:
+         src: fworch-webhook-receiver.service.j2
+         dest: "/lib/systemd/system/fworch-webhook-receiver.service"
+         mode: "0755"
+         notify: "restart daemons"
+
+     - name: copy webhook file from template
+       template:
+         src: fworch-webhook-receiver.py.j2
+         dest: "{{ fworch_home }}/webhook/fworch-webhook-receiver.py"
+         mode: "0755"
+         notify: "restart daemons"
+
+  become: yes

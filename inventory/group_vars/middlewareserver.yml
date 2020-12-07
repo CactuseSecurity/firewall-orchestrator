@@ -8,8 +8,8 @@ middleware_ldap_std_user_path: "ou=operator,ou=user,{{ middleware_ldap_path }}"
 middleware_ldap_std_role_path: "ou=role,{{ middleware_ldap_path }}"
 middleware_ldap_internal_readonly_user: "inspector"
 middleware_ldap_internal_readonly_user_fq: "uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
-middleware_ldap_role_admin: "roleadmin"
-middleware_ldap_role_admin_fq: "cn={{ middleware_ldap_role_admin }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
+middleware_ldap_writer: "ldapwriter"
+middleware_ldap_writer_fq: "cn={{ middleware_ldap_writer }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
 generate_new_ldap_crypto: false
     #The decision to generate new certificates and keys in openldapserver
 

@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FWO_Config\FWO.Config.csproj" />
+    <ProjectReference Include="..\FWO_Config\FWO.Config.File.csproj" />
     <ProjectReference Include="..\FWO_Logging\FWO.Logging.csproj" />
   </ItemGroup>
 

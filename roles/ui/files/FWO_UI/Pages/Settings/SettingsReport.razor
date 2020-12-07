@@ -2,13 +2,13 @@
 @using FWO.ApiClient
 @using FWO.ApiConfig
 @using FWO.ApiConfig.Data;
-@using FWO.Ui.Data.API
+@using FWO.Api.Data
 @using FWO.Ui.Services
 
 @page "/settings/report"
 
 @inject APIConnection apiConnection
-@inject UserConfigCollection userConfig
+@inject UserConfig userConfig
 
 <h3>Report Settings</h3>
 <hr />
@@ -16,7 +16,7 @@
 <form class="form-inline">
     <label for="rulesPerFetch" class="col-form-label mr-2">Rules per fetch:</label>
     <div class="col-sm-2">
-        <input id="rulesPerFetch" type="text" class="form-control form-control-sm" @bind="rulesPerFetch" />
+        <input id="rulesPerFetch" type="number" class="form-control form-control-sm" @bind="rulesPerFetch" />
     </div>
     <button class="btn btn-sm btn-primary" @onclick="SaveRulesPerFetch">Save</button>
 </form>

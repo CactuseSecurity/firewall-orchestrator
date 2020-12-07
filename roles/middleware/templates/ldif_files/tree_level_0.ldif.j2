@@ -1,0 +1,7 @@
+dn: {{ middleware_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: dcObject
+objectClass: organization
+o: root of {{ product_name }} internal ldap
+{%- endif %}

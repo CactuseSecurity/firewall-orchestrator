@@ -31,26 +31,34 @@ namespace FWO.Report
             query.QueryVariables["limit"] = rulesPerFetch;
             query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
+            int i;
 
-            for (int i = 0; i < managementsWithRelevantImportId.Length; i++)
+            for (i = 0; i < managementsWithRelevantImportId.Length; i++)
             {
                 // setting mgmt and relevantImporId QueryVariables 
                 query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
+                    query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                else    // managment was not yet imported at that time
+                    query.QueryVariables["relevantImportId"] = -1;
                 result[i] = (await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
             }
             while (gotNewObjects)
             {
                 query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
-                for (int j = 0; j < managementsWithRelevantImportId.Length; j++)
+                for (i = 0; i < managementsWithRelevantImportId.Length; i++)
                 {
-                    query.QueryVariables["mgmId"] = managementsWithRelevantImportId[j].Id;
-                    gotNewObjects = result[j].Merge((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
+                    if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
+                        query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                    else
+                        query.QueryVariables["relevantImportId"] = -1; // managment was not yet imported at that time
+                    query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                    gotNewObjects = result[i].Merge((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
                 }
                 await callback(result);
             }
         }
-         
+
         public abstract string ToCsv();
 
         public abstract string ToHtml();

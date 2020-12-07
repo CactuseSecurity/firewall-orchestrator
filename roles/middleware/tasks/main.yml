@@ -55,8 +55,14 @@
   become: yes
   become_user: postgres
 
-- name: add local ldap connection
+- name: add local ldap connection for {{ middleware_ldap_internal_readonly_user }}
   shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ middleware_ldap_server_internal | quote }}', 636, '{{ middleware_ldap_std_user_path | quote }}', '{{ middleware_ldap_std_role_path | quote }}', 1, '{{ middleware_ldap_internal_readonly_user_fq | quote }}', '{{ ldap_inspector_pw }}'); END IF; END \$do\$"
+  become: yes
+  become_user: postgres
+
+# Change this to roles admin next, delete auth_
+- name: add local ldap connection for Manager
+  shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ auth_ldap_server_internal | quote }}', 636, '{{ auth_ldap_std_user_path | quote }}', '{{ auth_ldap_std_role_path | quote }}', 1, '{{ auth_ldap_superuser_name | quote }}', '{{ ldap_manager_pwd }}'); END IF; END \$do\$"
   become: yes
   become_user: postgres
 

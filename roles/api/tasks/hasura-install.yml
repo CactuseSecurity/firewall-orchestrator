@@ -15,6 +15,12 @@
   become: yes
   become_user: "{{ fworch_user }}"
 
+- name: restart docker deamon
+  service:
+    name: docker
+    state: started
+  become: true
+
 - name: read jwt public key from file as JWT secret
   slurp:
     src: "{{ jwt_public_key_file }}"

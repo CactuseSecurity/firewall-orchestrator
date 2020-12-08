@@ -14,5 +14,3 @@ alter table "uiuser" IF EXISTS RENAME COLUMN isoadmin_id TO uiuser_last_login;
 alter table "uiuser" IF EXISTS RENAME COLUMN isoadmin_id TO uiuser_last_password_change;
 
 alter table "uiuser" IF EXISTS ADD COLUMN IF NOT EXISTS uiuser_language Varchar Default "English";
-
--- todo 

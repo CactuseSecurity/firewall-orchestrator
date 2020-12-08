@@ -343,27 +343,36 @@ namespace FWO.Report.Filter.Ast
 
         private static bool isCidr(string cidr)
         {
-            // IPV4 only:
+            try
+            {
+                // IPV4 only:
 
-            string[] IPA = sanitizeIp(cidr).Split('/');
-            if (IPA.Length == 2)
-            {
-                if (IPAddress.TryParse(IPA[0], out _))
+                string[] IPA = sanitizeIp(cidr).Split('/');
+                if (IPA.Length == 2)
                 {
-                    int bitsInMask = Int16.Parse(IPA[1]);
-                    if (bitsInMask >= 0 && bitsInMask <= 32)
+                    if (IPAddress.TryParse(IPA[0], out _))
+                    {
+                        if (int.TryParse(IPA[1], out int bitsInMask) == false)
+                            return false;
+                        else if (bitsInMask >= 0 && bitsInMask <= 32)
+                            return true;
+                    }
+                }
+                else if (IPA.Length == 1) // no / in string, simple IP
+                {
+                    if (IPAddress.TryParse(cidr, out _))
+                    {
                         return true;
+                    }
                 }
+                // TODO: IPv6 handling
+                return false;
             }
-            else if (IPA.Length == 1) // no / in string, simple IP
+            catch (Exception)
             {
-                if (IPAddress.TryParse(cidr, out _))
-                {
-                    return true;
-                }
+                Logging.Log.WriteDebug("Ip Address Parsing", "An exception occured while trying to parse an Ip address.");
+                return false;
             }
-            // TODO: IPv6 handling
-            return false;
         }
 
         private static string toip(uint ip)

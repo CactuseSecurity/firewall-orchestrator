@@ -22,7 +22,7 @@
             <option selected="@(selectedLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
         }
     </select>
-    <button class="btn btn-sm btn-success" @onclick="() => { ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
+    <button class="btn btn-sm btn-success" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
 </form>
 
 @code
@@ -37,6 +37,6 @@
     private async Task ChangeLanguage(string language)
     {
         Log.WriteDebug("Change language", $"new language: {language}");
-        userConfig.ChangeLanguage(language);
+        await userConfig.ChangeLanguage(language, apiConnection);
     }
 }

@@ -23,12 +23,6 @@
     when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
     ignore_errors: true
 
-  # - name: remove database
-  #   command: psql -c "drop database fworchdb"
-  #   # command: psql -c "drop database fworchdb with force"  # only with postgres  >=13
-  #   become_user: postgres
-  #   ignore_errors: true
-
   - set_fact: 
       distribution_version: "debian/10"
       when: ansible_facts['distribution']|lower == 'debian'
@@ -81,7 +75,6 @@
         when: drop_db.failed
 
     when: pg_version|int >= 13
-
 
   - name: remove db groups
     postgresql_user:
@@ -195,16 +188,12 @@
           - /etc/fworch
           - /etc/apache2/sites-available/fworch.conf
           - /etc/apache2/sites-available/fworch-api.conf
-
-      - name: remove ldap data dir
-        file: 
-          name: /var/lib/ldap/fworch.internal
-          state: absent
+          - /var/lib/ldap/fworch.internal
 
       # - name: delete complete ldap tree
       #   command: "ldapdelete -r -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ middleware_manager_pwd }} -x '{{ middleware_ldap_path }}'"
       #   ignore_errors: yes
-      #   # todo: only execute if this is an ldap server (maybe just ignore_errors)
+        # todo: only execute if this is an ldap server (maybe just ignore_errors)
 
       - name: remove OS users and delete home directories
         user:

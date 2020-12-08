@@ -262,13 +262,26 @@
             {
                 DateTime startTime = DateTime.Now;
 
-                ReportPointInTime report = new ReportPointInTime();
-                report.Generate(rulesPerFetch, filterInput, Connection,
-                    managementsReportIntermediate =>
-                    {
-                        managementsReport = managementsReportIntermediate;
-                        return InvokeAsync(StateHasChanged);
-                    });
+                switch (reportType) {
+                    case "Rules":
+                        ReportRules reportRules = new ReportRules();
+                        reportRules.Generate(rulesPerFetch, filterInput, Connection,
+                            managementsReportIntermediate =>
+                            {
+                                managementsReport = managementsReportIntermediate;
+                                return InvokeAsync(StateHasChanged);
+                            });
+                        break;
+                    case "Changes":
+                        ReportChanges reportChanges = new ReportChanges();
+                        reportChanges.Generate(rulesPerFetch, filterInput, Connection,
+                            managementsReportIntermediate =>
+                            {
+                                managementsReport = managementsReportIntermediate;
+                                return InvokeAsync(StateHasChanged);
+                            });
+                        break;
+                }
                 reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
             });
         }

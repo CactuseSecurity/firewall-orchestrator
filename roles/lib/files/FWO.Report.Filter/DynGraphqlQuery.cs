@@ -31,8 +31,8 @@ namespace FWO.Report.Filter
             " $mgmId: [Int!]",
             " $relevantImportId: bigint"
         };
-        public string ReportTime { get; set; } =  "";
-        public string ReportType { get; set; } =  "";
+        public string ReportTime { get; set; } = "";
+        public string ReportType { get; set; } = "";
 
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery() { }
@@ -47,30 +47,74 @@ namespace FWO.Report.Filter
             // if any filter is set, optionally leave out all header texts
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
-            query.FullQuery = $@"
-                {ruleOverviewFragment}
+            switch (query.ReportType)
+            {
+                case "rules":
 
-                query ruleFilter ({paramString}) 
-                {{ 
-                    management( where: {{ mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }} ) 
+                    query.FullQuery = $@"
+                    {ruleOverviewFragment}
+
+                    query ruleFilter ({paramString}) 
+                    {{ 
+                        management( where: {{ mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }} ) 
+                            {{
+                                id: mgm_id
+                                name: mgm_name
+                                devices ( order_by: {{ dev_name: asc }} ) 
+                                    {{
+                                        id: dev_id
+                                        name: dev_name
+                                        rules(
+                                            limit: $limit 
+                                            offset: $offset
+                                            where: {{ {query.RuleWhereQuery} }} 
+                                            order_by: {{ rule_num_numeric: asc }} )
+                                            {{
+                                                ...ruleOverview
+                                            }} 
+                                    }}
+                            }} 
+                    }}";
+                    break;
+                case "changes":
+                    query.FullQuery = $@"
+                    {ruleOverviewFragment}
+
+                    query changeReport({paramString}) {{
+                        management(order_by: {{mgm_name: asc}}) 
                         {{
-                            id: mgm_id
-                            name: mgm_name
-                            devices ( order_by: {{ dev_name: asc }} ) 
-                                {{
-                                    id: dev_id
-                                    name: dev_name
-                                    rules(
-                                        limit: $limit 
-                                        offset: $offset
-                                        where: {{ {query.RuleWhereQuery} }} 
-                                        order_by: {{ rule_num_numeric: asc }} )
-                                        {{
-                                            ...ruleOverview
-                                        }} 
+                            mgm_id
+                            mgm_name
+                            devices (order_by: {{dev_name: asc}}) 
+                            {{
+                                dev_id
+                                dev_name
+                                changelog_rules(
+                                    where: {{ {query.RuleWhereQuery} }}
+                                    order_by: {{ control_id: asc }}
+                                ) 
+                                    {{
+                                        change_time
+                                        security_relevant
+                                        change_action
+                                        change_type_id
+                                        device {{
+                                            dev_id
+                                            dev_name
+                                        }}
+                                        old: ruleByOldRuleId {{
+                                        ...ruleOverview
+                                        }}
+                                        new: rule {{
+                                        ...ruleOverview
+                                        }}
+                                    }}
                                 }}
-                        }} 
-                }}";
+                            }}
+                        }}
+                    ";
+                    break;
+            }
             return query;
         }
     }

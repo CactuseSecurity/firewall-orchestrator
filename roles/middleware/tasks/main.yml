@@ -34,6 +34,9 @@
   become_user: postgres
   register: ldap_conn_present
 
+  debug:
+    var: ldap_conn_present
+
 # todo: rework when condition, var changed
 - name: change value for middleware_change_local_ldap if ldap conn already exists to prevent re-creation errors
   set_fact:

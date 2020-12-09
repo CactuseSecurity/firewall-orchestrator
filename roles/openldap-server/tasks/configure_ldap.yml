@@ -85,12 +85,6 @@
     when: openldap_server_enable_ssl and ansible_os_family == 'Debian'
     notify: 
     - restart slapd
-
-  - name: start the slapd service
-    service: 
-      name: slapd 
-      state: restarted 
-      enabled: yes 
     
   - name: Copy the template for creating base dn
     template: 

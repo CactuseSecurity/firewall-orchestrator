@@ -189,6 +189,8 @@
           - /etc/apache2/sites-available/fworch.conf
           - /etc/apache2/sites-available/fworch-api.conf
           - /var/lib/ldap/fworch.internal
+          - /var/lib/ldap/example.com
+          # only temporary fix
 
       # - name: delete complete ldap tree
       #   command: "ldapdelete -r -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ middleware_manager_pwd }} -x '{{ middleware_ldap_path }}'"

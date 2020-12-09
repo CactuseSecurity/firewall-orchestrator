@@ -34,6 +34,7 @@
   become_user: postgres
   register: ldap_conn_present
 
+- name: debug
   debug:
     var: ldap_conn_present
 

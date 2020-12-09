@@ -61,7 +61,6 @@
     private async Task SaveRulesPerFetch()
     {
         string rulesPerFetchString = rulesPerFetch.ToString();
-        await config.Set(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString);
-        userConfig.ChangeConfigValue(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString);
+        await userConfig.ChangeConfigValue(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString, apiConnection);
     }
 }

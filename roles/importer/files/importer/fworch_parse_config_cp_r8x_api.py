@@ -286,7 +286,10 @@ def csv_dump_nw_obj(nw_obj):
         result_line += csv_delimiter  # obj_ip for groups = null
     else:
         result_line += '"' + nw_obj['obj_ip'] + '"' + csv_delimiter  # obj_ip
-    result_line += csv_delimiter  # result_line += '"' + nw_obj['obj_ip_end'] + '"' + csv_delimiter         # obj_ip_end
+    if nw_obj['obj_typ'] == 'ip_range':
+        result_line += '"' + nw_obj['obj_ip_end'] + '"' + csv_delimiter         # obj_ip_end
+    else:
+        result_line += csv_delimiter  # obj_ip_end = null - for everything except obj_typ = ip_range
     result_line += '"' + nw_obj['obj_color'] + '"' + csv_delimiter  # obj_color
     result_line += '"' + nw_obj['obj_comment'] + '"' + csv_delimiter  # obj_comment
     result_line += csv_delimiter  # result_line += '"' + nw_obj['obj_location'] + '"' + csv_delimiter       # obj_location
@@ -299,6 +302,7 @@ def csv_dump_nw_obj(nw_obj):
 
 
 def get_ip_of_obj(obj):
+    ip_end = ''
     if 'ipv4-address' in obj:
         ip_addr = obj['ipv4-address']
     elif 'ipv6-address' in obj:
@@ -309,16 +313,26 @@ def get_ip_of_obj(obj):
         ip_addr = obj['subnet6'] + '/' + str(obj['mask-length6'])
     elif 'obj_typ' in obj and obj['obj_typ'] == 'group':
         ip_addr = ''
+    elif 'ipv4-address-first' in obj:
+        ip_addr = obj['ipv4-address-first'] + '/32'
+        ip_end = obj['ipv4-address-last'] + '/32'
+        #logging.debug ('ip_addr: ' + ip_addr )
+        #logging.debug ('ip_end: ' + ip_end )
+    elif 'ipv6-address-first' in obj:
+        ip_addr = obj['ipv6-address-first'] + '/128'
+        ip_end = obj['ipv6-address-last'] + '/128'
+        #logging.debug ('ip_addr: ' + ip_addr )
+        #logging.debug ('ip_end: ' + ip_end )
     else:
         ip_addr = '0.0.0.0/0'
-    return ip_addr
+    return ip_addr, ip_end
 
 
 # collect_nw_objects writes nw objects info into global nw_objects dict
 def collect_nw_objects(object_table):
     global nw_objects
     result = ''  # todo: delete this line
-    nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
+    nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
     nw_obj_type_to_host_list = [
         'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
@@ -327,23 +341,33 @@ def collect_nw_objects(object_table):
     if object_table['object_type'] in nw_obj_tables:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
+                #logging.debug ('#############')
+                #logging.debug ('obj_name: ' + obj['name'] )
+                #logging.debug ('obj_type: ' + obj['type'] )
                 members = ''
                 ip_addr = ''
+                ip_addr_end = ''
                 member_refs = ''
                 member_names = ''
                 if 'members' in obj:
                     for member in obj['members']:
                         member_refs += member + list_delimiter
                     member_refs = member_refs[:-1]
-                ip_addr = get_ip_of_obj(obj)
+                ip_addr, ip_addr_end = get_ip_of_obj(obj)
                 obj_type = obj['type']
-                if obj_type == 'address-range':
-                    obj_type = 'ip_range'  # TODO: change later?
+                if obj_type == 'address-range' or obj_type == 'multicast-address-range':
+                    #logging.debug ('obj_name: ' + obj['name'] )
+                    #logging.debug ('obj_type: ' + obj['type'] )
+                    obj_type = 'ip_range'
+                if obj_type == 'multicast-address-range':
+                    #logging.debug ('obj_name: ' + obj['name'] )
+                    #logging.debug ('obj_type: ' + obj['type'] )
+                    obj_type = 'ip_range'
                 if (obj_type in nw_obj_type_to_host_list):
                     obj_type = 'host'
                 nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
                                     'obj_comment': obj['comments'],
-                                    'obj_typ': obj_type, 'obj_ip': ip_addr,
+                                    'obj_typ': obj_type, 'obj_ip': ip_addr, 'obj_ip_end': ip_addr_end,
                                     'obj_member_refs': member_refs, 'obj_member_names': member_names}])
 
 

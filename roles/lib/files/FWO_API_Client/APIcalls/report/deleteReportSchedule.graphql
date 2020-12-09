@@ -1,0 +1,7 @@
+﻿mutation delete_low_rated_articles {
+  delete_article(
+    where: {rating: {_lt: 3}}
+  ) {
+    affected_rows
+  }
+}

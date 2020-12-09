@@ -61,11 +61,11 @@ use_object_dictionary = 'false'
 
 # all obj table names to look at:
 api_obj_types = [
-    'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
+    'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains',
     'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp', 'services-icmp6' ]
 
-nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']  
+nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']  
 # do not consider: CpmiAnyObject, CpmiGatewayPlain, external 
 svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
 
@@ -340,6 +340,8 @@ elif (mode=='enrich'):
             obj = api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid)
             obj = obj['object']
             #print(json.dumps(obj, indent=json_indent))
+            logging.debug ('missing obj:\n')
+            logging.debug (json.dumps(obj, indent=json_indent) )
             if (obj['type'] == 'CpmiAnyObject'):
                 json_obj = {"object_type": "hosts", "object_chunks": [ {
                         "objects": [ {
@@ -347,8 +349,17 @@ elif (mode=='enrich'):
                             'comments': 'any nw object checkpoint (hard coded)',
                             'type': 'CpmiAnyObject', 'ipv4-address': '0.0.0.0/0',
                             } ] } ] }
+                logging.debug ('missing obj: ' + obj['name'] + obj['type'])
                 config['object_tables'].append(json_obj)
             elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain'):
+                json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                    } ] } ] }
+                config['object_tables'].append(json_obj)
+                logging.debug ('missing obj: ' + obj['name'] + obj['type'])
+            elif (obj['type'] == 'CpmiVsClusterMember'):
                 json_obj = {"object_type": "hosts", "object_chunks": [ {
 
                     "objects": [ {
@@ -356,6 +367,7 @@ elif (mode=='enrich'):
                     'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
                     } ] } ] }
                 config['object_tables'].append(json_obj)
+                logging.debug ('missing obj: ' + obj['name'] + obj['type'])
             else:
                 logging.debug ( "WARNING - get_config_cp_r8x_api - missing nw obj of unexpected type: " + missing_obj )
                 #print ("missing nw obj: " + missing_obj)

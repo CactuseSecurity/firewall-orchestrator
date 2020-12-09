@@ -17,7 +17,7 @@ access to attrs=userPassword
                 by anonymous auth
                 by dn.base="{{ middleware_ldap_superuser_name }}" write
                 by dn.base="uid=inspector,ou=systemuser,ou=user,{{ middleware_ldap_path }}" read
-                by dn.base="{{ middlewareh_ldap_internal_readonly_user_fq }}" read
+                by dn.base="{{ middleware_ldap_internal_readonly_user_fq }}" read
                 by dn.base="{{ middleware_ldap_writer }}" read
                 by * none
 

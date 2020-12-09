@@ -10,8 +10,10 @@ middleware_ldap_internal_readonly_user: "inspector"
 middleware_ldap_internal_readonly_user_fq: "uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
 middleware_ldap_writer: "ldapwriter"
 middleware_ldap_writer_fq: "cn={{ middleware_ldap_writer }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
+
+# open ldap server
 generate_new_ldap_crypto: false
-    #The decision to generate new certificates and keys in openldapserver
+openldap_server_domain_name: "{{ product_name }}.internal"
 
 middleware_path_rel: FWO.Middleware.Server
 middleware_server_base_dir: "{{ fworch_home }}/middleware/files"

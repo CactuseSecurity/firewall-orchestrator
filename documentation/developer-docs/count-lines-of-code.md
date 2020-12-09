@@ -7,6 +7,9 @@ cat cloc-fwo.sh
     cloc temp-linecount-repo &&
     rm -rf temp-linecount-repo
 chmod 755 cloc-fwo.sh 
+date
+    Wed Dec  9 18:22:59 UTC 2020
+
 ./cloc-fwo.sh ssh://git@github.com/tpurschke/firewall-orchestrator.git
     Cloning into 'temp-linecount-repo'...
     remote: Enumerating objects: 872, done.

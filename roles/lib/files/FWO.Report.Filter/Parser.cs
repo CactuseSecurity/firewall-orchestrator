@@ -33,7 +33,7 @@ namespace FWO.Report.Filter
 
         private AstNode ParseReportType()
         {
-            if (NextTokenExists() == false)
+            if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.ReportType)
             {
                 return new AstNodeConnector()
                 {
@@ -48,23 +48,6 @@ namespace FWO.Report.Filter
                     Right = ParseTime()
                 };
             }
-
-            else if (GetNextToken().Kind != TokenKind.ReportType)
-            {
-                return new AstNodeConnector
-                {
-                    Left = new AstNodeFilter()
-                    {
-                        Name = TokenKind.ReportType,
-                        Operator = TokenKind.EQ,
-                        Value = "rules"
-                    },
-                    ConnectorType = TokenKind.And,
-
-                    Right = ParseTime()
-                };
-            }
-
             else
             {
                 AstNodeConnector root = new AstNodeConnector

@@ -19,15 +19,15 @@
         <h5 class="text-center">Report Type</h5>
 
         <div class="list-group small mt-3">
-            <a class="list-group-item list-group-item-action active" @onclick="() => { }" href="report">Point in time</a>
-            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Time intervall</a>
+            <a class="list-group-item list-group-item-action @(reportType==rulesReport?$"active":$"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
+            <a class="list-group-item list-group-item-action @(reportType==changesReport?$"active":$"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
             <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Compliance</a>
             <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Statistics</a>
         </div>
 
         <hr />
 
-        <button class="btn btn-primary btn-sm" @onclick="GenerateRuleReport">Generate Report</button>
+        <button class="btn btn-primary btn-sm" @onclick="GenerateReport">Generate Report</button>
 
         <hr />
 
@@ -80,9 +80,9 @@
         
     </div>
 
-    <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateRuleReport">
+    <form class="mr-1 ml-1 position-relative" @onsubmit="GenerateReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
-               class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" />
+               class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
         <div style="left:0px; top:0px; color:rgba(0,0,0,0); user-select:none;" translate="no" autocapitalize="off"
              class="form-control position-absolute whitespace-div" spellcheck="false">
             <span>@filterFeedbackStart</span><span class="error-underline">@filterFeedbackError</span><span>@filterFeedbackEnd</span>
@@ -204,7 +204,14 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
+    private string rulesReportDefaultFilterLine = "type=rules and time=now ";
+    private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
     private string reportGenerationTimeLine = "";
+    private const string rulesReport = "Rules";
+    private const string changesReport = "Changes";
+    private const string complianceReport = "Compliance";
+    private const string statisticsReport = "Statistics";
+    private string reportType = rulesReport;
 
 
     [CascadingParameter]
@@ -247,7 +254,7 @@
         });
     }
 
-    private void GenerateRuleReport()
+    private void GenerateReport()
     {
         try
         {
@@ -255,13 +262,26 @@
             {
                 DateTime startTime = DateTime.Now;
 
-                ReportPointInTime report = new ReportPointInTime();
-                report.Generate(rulesPerFetch, filterInput, Connection,
-                    managementsReportIntermediate =>
-                    {
-                        managementsReport = managementsReportIntermediate;
-                        return InvokeAsync(StateHasChanged);
-                    });
+                switch (reportType) {
+                    case "Rules":
+                        ReportRules reportRules = new ReportRules();
+                        reportRules.Generate(rulesPerFetch, filterInput, Connection,
+                            managementsReportIntermediate =>
+                            {
+                                managementsReport = managementsReportIntermediate;
+                                return InvokeAsync(StateHasChanged);
+                            });
+                        break;
+                    case "Changes":
+                        ReportChanges reportChanges = new ReportChanges();
+                        reportChanges.Generate(rulesPerFetch, filterInput, Connection,
+                            managementsReportIntermediate =>
+                            {
+                                managementsReport = managementsReportIntermediate;
+                                return InvokeAsync(StateHasChanged);
+                            });
+                        break;
+                }
                 reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
             });
         }

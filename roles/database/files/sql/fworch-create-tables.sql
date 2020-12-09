@@ -872,6 +872,8 @@ Create table "report"
 	"report_start_time" Timestamp,
 	"report_end_time" Timestamp,
 	"report_document" bytea NOT NULL,
+	"report_owner_id" Integer NOT NULL, --FK to uiuser
+	-- "tenant_wide_visible" Integer NOT NULL, not yet
  primary key ("report_id")
 );
 

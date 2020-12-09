@@ -25,6 +25,12 @@ namespace FWO.Report.Filter
                     WhiteSpaceRequiered = new string[] { "time" },
                     NoWhiteSpaceRequiered = new string[] { }
                 },
+                
+                TokenKind.ReportType => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "type", "reporttype" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
 
                 TokenKind.Source => new TokenSyntax
                 {

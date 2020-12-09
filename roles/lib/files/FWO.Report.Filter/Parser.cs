@@ -18,7 +18,7 @@ namespace FWO.Report.Filter
 
         public AstNode Parse()
         {
-            AstNode root = ParseTime();
+            AstNode root = ParseReportType();
 
             if (NextTokenExists() == true)
             {
@@ -28,6 +28,49 @@ namespace FWO.Report.Filter
             else
             {
                 return root;
+            }
+        }
+
+        private AstNode ParseReportType()
+        {
+            if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.ReportType)
+            {
+                return new AstNodeConnector()
+                {
+                    Left = new AstNodeFilter()
+                    {
+                        Name = TokenKind.ReportType,
+                        Operator = TokenKind.EQ,
+                        Value = "rules"
+                    },
+                    ConnectorType = TokenKind.And,
+
+                    Right = ParseTime()
+                };
+            }
+            else
+            {
+                AstNodeConnector root = new AstNodeConnector
+                {
+                    Left = new AstNodeFilter()
+                    {
+                        Name = CheckToken(TokenKind.ReportType).Kind,
+                        Operator = CheckToken(TokenKind.EQ).Kind,
+                        Value = ParseValue()
+                    }
+                };
+
+                if (NextTokenExists())
+                {
+                    root.ConnectorType = CheckToken(TokenKind.And).Kind;
+                    root.Right = ParseTime();
+                    return root;
+                }
+
+                else
+                {
+                    return root.Left;
+                }
             }
         }
 
@@ -224,7 +267,7 @@ namespace FWO.Report.Filter
         private TokenKind ParseFilterName()
         {
             return CheckToken(
-                TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol, 
+                TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
                 TokenKind.Management).Kind;
         }

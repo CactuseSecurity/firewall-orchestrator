@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
-
+using FWO.Logging;
 namespace FWO.Report.Filter.Ast
 {
     class AstNodeFilter : AstNode
@@ -20,12 +20,14 @@ namespace FWO.Report.Filter.Ast
             functions["FullText"] = this.ExtractFullTextQuery;
             functions["Value"] = this.ExtractFullTextQuery; // "xy" and "FullText=xy" are the same filter
 
-            functions["DestinationPort"] = this.ExtractDestinationPort;
+            functions["ReportType"] = this.ExtractReportTypeQuery;
             functions["Time"] = this.ExtractTimeQuery;
+
             functions["Source"] = this.ExtractSourceQuery;
             functions["Destination"] = this.ExtractDestinationQuery;
             functions["Action"] = this.ExtractActionQuery;
             functions["Service"] = this.ExtractServiceQuery;
+            functions["DestinationPort"] = this.ExtractDestinationPort;
             functions["Protocol"] = this.ExtractProtocolQuery;
             functions["Management"] = this.ExtractManagementQuery;
             functions["Gateway"] = this.ExtractGatewayQuery;
@@ -38,11 +40,39 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
+            if (query.ReportType == "rules")
+            {
                 query.RuleWhereQuery +=
                     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
                     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
                 query.ReportTime = Value;
-            // }
+            }
+            else if (query.ReportType == "changes")
+            {
+                string start = "";
+                string stop = "";
+                (start, stop) = resolveTimeRange(Value);
+                query.QueryVariables["start"] = start;
+                query.QueryVariables["stop"] = stop;
+                query.QueryParameters.Add("$start: timestamp! ");
+                query.QueryParameters.Add("$stop: timestamp! ");
+
+                query.RuleWhereQuery += $@"
+                    _and: [
+                        {{ import_control: {{ stop_time: {{ _gte: $start }} }} }}
+                        {{ import_control: {{ stop_time: {{ _lte: $stop }} }} }}
+                    ]
+                    change_type_id: {{ _eq: 3 }}
+                    security_relevant: {{ _eq: true }}";
+            } else {
+                Log.WriteError("Filter", $"Undefined Report Type found: {query.ReportType}");
+            }
+            // todo: deal with time ranges for changes report type
+            return query;
+        }
+        private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
+        {
+            query.ReportType = Value;
             return query;
         }
 
@@ -58,12 +88,12 @@ namespace FWO.Report.Filter.Ast
                 query.QueryVariables[QueryVarName] = firstIp;
                 query.QueryParameters.Add($"${QueryVarName}: cidr! ");
                 // checking if single filter ip is part of a cidr subnet (or is a direct match for a single ip)
-                ipFilterString =  $@" _and: 
+                ipFilterString = $@" _and: 
                                         [ 
                                             {{ obj_ip: {{ _gte: ${QueryVarName} }} }}
                                             {{ obj_ip: {{ _lte: ${QueryVarName} }} }}
                                         ]";
-             }
+            }
             else // ip filter is a subnet with /xy
             {
                 string QueryVarName0 = $"{location}IpNet" + query.parameterCounter;
@@ -80,7 +110,7 @@ namespace FWO.Report.Filter.Ast
                 // 2 - current ip overlaps with lower boundary of filter ip range
                 // 3 - current ip overlaps with upper boundary of filter ip range
                 // 4 - current ip fully contains filter ip range - does not work
-                ipFilterString = 
+                ipFilterString =
                      $@" _or: [
                             {{ obj_ip: {{ _eq: ${QueryVarName0} }} }}
                             {{ _and: 
@@ -109,7 +139,7 @@ namespace FWO.Report.Filter.Ast
                             }}
                      ]";
             }
-            query.RuleWhereQuery += 
+            query.RuleWhereQuery +=
                 $@" {locationTable}: 
                         {{ object: 
                             {{ objgrp_flats: 
@@ -265,7 +295,7 @@ namespace FWO.Report.Filter.Ast
                 {
                     cidr_str += "/32";
                 }
-                if (cidr_str.IndexOf("/") == cidr_str.Length-1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
                 {
                     cidr_str += "32";
                 }
@@ -330,6 +360,55 @@ namespace FWO.Report.Filter.Ast
             uint ipstart = ipnum & mask;
             uint ipend = ipnum | (mask ^ 0xffffffff);
             return (toip(ipstart), toip(ipend));
+        }
+        private (string, string) resolveTimeRange(string timeRange)
+        {
+            string start = "";
+            string stop = "";
+            DateTime now = DateTime.Now;
+            string currentTime = (string)DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            string currentYear = (string)DateTime.Now.ToString("yyyy");
+            string currentMonth = (string)DateTime.Now.ToString("MM");
+            string currentDay = (string)DateTime.Now.ToString("dd");
+            DateTime startOfCurrentMonth = new DateTime(Convert.ToInt16(currentYear), Convert.ToInt16(currentMonth), 1);
+            DateTime startOfNextMonth = startOfCurrentMonth.AddMonths(1);
+            DateTime startOfPrevMonth = startOfCurrentMonth.AddMonths(-1);
+
+            switch (timeRange)
+            {
+                // todo: add today, yesterday, this week, last week
+                case "last year":
+                    start = $"{(Convert.ToInt16(currentYear) - 1).ToString()}-01-01";
+                    stop = $"{Convert.ToInt16(currentYear).ToString()}-01-01";
+                    break;
+                case "this year":
+                    start = $"{(Convert.ToInt16(currentYear)).ToString()}-01-01";
+                    stop = $"{(Convert.ToInt16(currentYear) + 1).ToString()}-01-01";
+                    break;
+                case "this month":
+                    start = startOfCurrentMonth.ToString("yyyy-MM-dd");
+                    stop = startOfNextMonth.ToString("yyyy-MM-dd");
+                    break;
+                case "last month":
+                    start = startOfPrevMonth.ToString("yyyy-MM-dd");
+                    stop = startOfCurrentMonth.ToString("yyyy-MM-dd");
+                    break;
+                default:
+                    string[] times = timeRange.Split('-');
+                    if (times.Length == 2)
+                    {
+                        start = times[0];
+                        stop = times[1];
+                        if (start != Convert.ToDateTime(start).ToString() || stop != Convert.ToDateTime(stop).ToString())
+                            throw new Exception($"Error: wrong time range format");
+                    }
+                    else
+                    {
+                        throw new Exception($"Error: wrong time range format");
+                    }
+                    break;
+            }
+            return (start, stop);
         }
 
     }

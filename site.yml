@@ -86,11 +86,11 @@
 - hosts: importers
   tasks:
     - name: restart importer service
-      command: "/etc/init.d/fworch-importer restart"
+      command: "/etc/init.d/{{ product_name }}-importer restart"
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:
-    - backend
+    - frontend
 
 # simply set new version in config file
 - hosts: all

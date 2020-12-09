@@ -114,7 +114,7 @@
         :programname, isequal, "{{ middleware_server_syslog_id }}" /var/log/{{ product_name }}/middleware.log
         :programname, isequal, "{{ ui_syslog_id }}" /var/log/{{ product_name }}/ui.log
         :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log
-        :programname, isequal, "{{ product_name }}-import" /var/log/{{ product_name }}/import.log
+        :programname, isequal, "{{ product_name }}-importer" /var/log/{{ product_name }}/importer.log
         :programname, isequal, "{{ product_name }}-api" /var/log/{{ product_name }}/api.log
         # only for devsrv:
         :programname, isequal, "{{ product_name }}-webhook" /var/log/{{ product_name }}/webhook.log
@@ -133,10 +133,10 @@
             copytruncate
             sharedscripts
                 prerotate
-                        /etc/init.d/{{ product_name }}-import stop >/dev/null
+                        /etc/init.d/{{ product_name }}-importer stop >/dev/null
                 endscript
                 postrotate
-                        /etc/init.d/{{ product_name }}-import start >/dev/null
+                        /etc/init.d/{{ product_name }}-importer start >/dev/null
                 endscript
         }
 
@@ -145,7 +145,7 @@
       name: "rsyslog"
       state: restarted
 
-  - name: create group {{ fworch_user }}
+  - name: create group {{ fworch_group }}
     group:
       name: "{{ fworch_user }}"
       gid: "{{ user_id }}"
@@ -168,7 +168,7 @@
       path: "{{ fworch_home }}/etc"
       state: directory
       owner: "{{ fworch_user }}"
-      group: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
       mode: '0755'
 
   - name: create dir for passwords
@@ -176,7 +176,7 @@
       path: "{{ fworch_home }}/etc/secrets"
       state: directory
       owner: "{{ fworch_user }}"
-      group: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
       mode: '0700'
 
   - name: copy iso.conf to target
@@ -184,7 +184,7 @@
       src: iso.conf
       dest: "{{ fworch_home }}/etc/iso.conf"
       owner: "{{ fworch_user }}"
-      group: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
 
   - name: include fworch.yaml config file creator
     import_tasks: conf_file_creator.yml

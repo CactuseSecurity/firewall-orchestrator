@@ -47,7 +47,7 @@
   when: installation_mode == "upgrade"
 
 - name: Set {{ middleware_ldap_internal_readonly_user }} password in ldap
- ldap_passwd:
+  community.general.ldap_passwd:
     dn: "{{ middleware_ldap_internal_readonly_user_fq }}"
     passwd: "{{ ldap_inspector_pw }}"
     server_uri: "{{ middleware_ldap_internal_url }}"
@@ -55,7 +55,7 @@
     bind_pw: "{{ ldap_manager_pwd }}"
 
 - name: Set admin password in ldap
-  ldap_passwd:
+  community.general.ldap_passwd:
     dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ middleware_ldap_path }}
     passwd: "{{ admin_pwd }}"
     server_uri: "{{ middleware_ldap_internal_url }}"
@@ -63,7 +63,7 @@
     bind_pw: "{{ ldap_manager_pwd }}"
 
 - name: Set "{{ middleware_ldap_writer }}" password in ldap
-  ldap_passwd:
+  community.general.ldap_passwd:
     dn: "{{ middleware_ldap_writer_fq }}"
     passwd: "{{ ldap_writer_pw }}"
     server_uri: "{{ middleware_ldap_internal_url }}"

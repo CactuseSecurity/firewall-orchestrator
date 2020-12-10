@@ -34,7 +34,6 @@
   become_user: postgres
   register: ldap_conn_present
 
-# todo: rework when condition, var changed
 - name: change value for middleware_change_local_ldap if ldap conn already exists to prevent re-creation errors
   set_fact:
     middleware_change_local_ldap: "no"
@@ -83,36 +82,20 @@
   become: yes
   become_user: postgres
 
-- name: add local ldap connection for {{ middleware_ldap_internal_readonly_user }}
-  #shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ middleware_ldap_server_internal | quote }}', 636, '{{ middleware_ldap_std_user_path | quote }}', '{{ middleware_ldap_std_role_path | quote }}', 1, '{{ middleware_ldap_internal_readonly_user_fq | quote }}', '{{ ldap_inspector_pw }}'); END IF; END \$do\$"
+- name: add connection for internal ldap
   postgresql_query:
     db: "{{ fworch_db_name }}"
     query: >
-      DO \$do\$ BEGIN IF NOT EXISTS
-      (SELECT * FROM ldap_connection)
+      DO $do$ BEGIN IF NOT EXISTS
+      (SELECT * FROM ldap_connection WHERE ldap_server = {{ middleware_ldap_server_internal | quote }})
       THEN INSERT INTO ldap_connection
       (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles,
-      ldap_tenant_level, ldap_search_user, ldap_search_user_pwd)
+      ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd)
       VALUES ({{ middleware_ldap_server_internal | quote }}, 636,
       {{ middleware_ldap_std_user_path | quote }}, {{ middleware_ldap_std_role_path | quote }},
-      1, {{ middleware_ldap_internal_readonly_user_fq | quote }}, {{ ldap_inspector_pw }});
-      END IF; END \$do\$
-  become: yes
-  become_user: postgres
-
-- name: add local ldap connection for Manager
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO \$do\$ BEGIN IF NOT EXISTS
-      (SELECT * FROM ldap_connection)
-      THEN INSERT INTO ldap_connection
-      (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles,
-      ldap_tenant_level, ldap_search_user, ldap_search_user_pwd)
-      VALUES ({{ middleware_ldap_server_internal | quote }}, 636,
-      {{ middleware_ldap_std_user_path | quote }}, {{ middleware_ldap_std_role_path | quote }},
-      1, {{ middleware_ldap_writer_fq | quote }}, {{ ldap_writer_pw }});
-      END IF; END \$do\$
+      1, {{ middleware_ldap_internal_readonly_user_fq | quote }}, {{ ldap_inspector_pw }},
+      {{ middleware_ldap_writer_fq | quote }}, {{ ldap_writer_pw }});
+      END IF; END $do$
   become: yes
   become_user: postgres
 
@@ -120,16 +103,17 @@
   postgresql_query:
     db: "{{ fworch_db_name }}"
     query: >
-      DO \$do\$ BEGIN IF EXISTS
+      DO $do$ BEGIN IF EXISTS
       (SELECT * FROM ldap_connection)
       THEN UPDATE ldap_connection
       SET ldap_server={{ middleware_ldap_server_internal | quote }},
       ldap_port=636, ldap_searchpath_for_users={{ middleware_ldap_std_user_path | quote }},
       ldap_searchpath_for_roles={{ middleware_ldap_std_role_path | quote }}, ldap_tenant_level=1,
       ldap_search_user={{ middleware_ldap_internal_readonly_user_fq | quote }},
-      ldap_search_user_pwd={{ ldap_inspector_pw }}
+      ldap_search_user_pwd={{ ldap_inspector_pw }},
+      ldap_write_user= {{ middleware_ldap_writer_fq | quote }}, ldap_write_user_pwd={{ ldap_writer_pw }}
       WHERE ldap_server={{ middleware_ldap_server_internal | quote }};
-      END IF; END \$do\$
+      END IF; END $do$
   become: yes
   become_user: postgres
 

@@ -26,6 +26,6 @@ openldap_server_ldif: domain.ldif
   #fworch_user
   #middleware_ldap_superuser_name
   #middleware_ldap_path
-  #middlewareh_ldap_internal_readonly_user_fq
+  #middleware_ldap_internal_readonly_user_fq
   #middleware_ldap_writer
   #The file {{ fworch_home }}/etc/secrets does not exist

@@ -17,13 +17,7 @@ query changeReport($start: timestamp, $stop: timestamp) {
         order_by: { control_id: asc }
       ) {
         change_time
-        security_relevant
         change_action
-        change_type_id
-        device {
-          dev_id
-          dev_name
-        }
         old: ruleByOldRuleId {
           ...ruleOverview
         }

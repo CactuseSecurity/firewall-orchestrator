@@ -46,6 +46,17 @@
   import_tasks: upgrade_ldap_tree.yml
   when: installation_mode == "upgrade"
 
+- name: install python modules for ansible ldap module
+  apt:
+    - libsasl2-dev
+    - python-dev
+    - libldap2-dev
+    - libssl-dev
+
+- name: install python modules for ansible ldap module
+  pip:
+    name: pyldap
+
 - name: Set {{ middleware_ldap_internal_readonly_user }} password in ldap
   ldap_passwd:
     dn: "{{ middleware_ldap_internal_readonly_user_fq }}"
@@ -87,7 +98,7 @@
     db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF NOT EXISTS
-      (SELECT * FROM ldap_connection WHERE ldap_server = {{ middleware_ldap_server_internal | quote }})
+      (SELECT * FROM ldap_connection)
       THEN INSERT INTO ldap_connection
       (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles,
       ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd)

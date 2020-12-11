@@ -48,14 +48,17 @@
 
 - name: install python modules for ansible ldap module
   apt:
-    - libsasl2-dev
-    - python-dev
-    - libldap2-dev
-    - libssl-dev
+    name:
+      - libsasl2-dev
+      - python-dev
+      - libldap2-dev
+      - libssl-dev
+  become: yes
 
 - name: install python modules for ansible ldap module
   pip:
     name: pyldap
+  become: yes
 
 - name: Set {{ middleware_ldap_internal_readonly_user }} password in ldap
   ldap_passwd:

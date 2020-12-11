@@ -310,11 +310,9 @@ sub calc_md5_of_files {
     my $total = '';
     my @file_ar;
 
-    if (@file_ar) {
-        @file_ar = split(/,/, $str_of_files_to_sum);
-        foreach $file (@file_ar) {
-            $total .= calc_md5_of_file($file, $tmpdir);
-        }
+    @file_ar = split(/,/, $str_of_files_to_sum);
+    foreach $file (@file_ar) {
+        $total .= calc_md5_of_file($file, $tmpdir);
     }
     return $total;
 }

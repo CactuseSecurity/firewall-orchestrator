@@ -26,14 +26,6 @@
         mode: "0755"
       with_fileglob: "{{ fworch_home }}/importer/*"
 
-    # - name: copy importer bin
-    #   copy:
-    #     src: "bin/"
-    #     dest: "{{ fworch_home }}/bin/"
-    #     mode: "0755"
-    #     owner: "{{ fworch_user }}"
-    #     group: "{{ fworch_user }}"
-
     - name: copy import.conf
       copy:
         src: "import.conf"
@@ -55,6 +47,8 @@
 
     - name: start {{ product_name }} importer 
       command: "/etc/init.d/{{ product_name }}-importer start"
+
+    # todo: the following did not work at first try, so sticking to /etc/init.d for now:
 
     # - name: copy importer systemd service script
     #   template:

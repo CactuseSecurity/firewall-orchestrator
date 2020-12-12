@@ -107,46 +107,46 @@
                                         style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
                                         PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
 
-                                        <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(x => x.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayNumber(device.Rules))
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Source Zone" Field="@(x => x.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Name" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="Source Zone" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplaySourceZone())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Source" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Source" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplaySource())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Destination Zone" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Destination Zone" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayDestinationZone())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Destination" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Destination" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayDestination())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Services" Field="@(x => x.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Services" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
-                                                @((MarkupString)context.DisplayServices())
+                                                @((MarkupString)context.DisplayService())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Action" Field="@(x => x.Action)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Track" Field="@(x => x.Track)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Disabled" Field="@(x => x.Disabled)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Action" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="Track" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="Disabled" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayDisabled())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="UID" Field="@(x => x.Uid)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="UID" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="Comment" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="true" Hideable="true" />
 
                                         <DetailTemplate TableItem="Rule">
                                             <div>test</div>
@@ -174,25 +174,68 @@
                                         style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
                                         PageSize="rulesPerPage" ColumnReorder="true">
 
-                                       <Column TableItem="RuleChange" Title="Change Time" Field="@(x => x.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
-                                       <Column TableItem="RuleChange" Title="Change Type" Field="@(x => x.ChangeAction)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayChangeAction())
                                             </Template>
                                         </Column>
-                                        @* <Column TableItem="RuleChange" Title="" /> *@
-                                        <Column TableItem="RuleChange" Title="Name" Field="@(x => x.OldRule.Name)" Sortable="true" Filterable="true" Hideable="true" />
-                                        @* <Column TableItem="RuleChange" Title="Source Zone" Field="@(x => x.OldRule.SourceZone.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="RuleChange" Title="Name" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayName())
+                                            </Template>
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Source Zone" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplaySourceZone())
                                             </Template>
-                                        </Column> *@
-                                        @* <Column TableItem="RuleChange" Title="Source" Field="@(x => x.OldRule.Source)" Sortable="true" Filterable="true" Hideable="true">
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Source" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplaySource())
                                             </Template>
-                                        </Column> *@
-                                       
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Destination Zone" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayDestinationZone())
+                                            </Template>
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Destination" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayDestination())
+                                            </Template>
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Services" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayService())
+                                            </Template>
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Action" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayAction())
+                                            </Template>
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Track" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayTrack())
+                                            </Template>
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Disabled" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayDisabled())
+                                            </Template>
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="UID" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayUid())
+                                            </Template>
+                                        </Column>
+                                        <Column TableItem="RuleChange" Title="Comment" Hideable="true">
+                                            <Template>
+                                                @((MarkupString)context.DisplayComment())
+                                            </Template>
+                                        </Column>
+
                                         <DetailTemplate TableItem="RuleChange">
                                             <div>test</div>
                                         </DetailTemplate>

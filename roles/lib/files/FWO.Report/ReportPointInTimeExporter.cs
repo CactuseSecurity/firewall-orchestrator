@@ -56,7 +56,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{rule.DisplayName()}</td>");
                         report.AppendLine($"<td>{rule.DisplaySource()}</td>");
                         report.AppendLine($"<td>{rule.DisplayDestination()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayServices()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayService()}</td>");
                         report.AppendLine($"<td>{rule.DisplayAction()}</td>");
                         report.AppendLine($"<td>{rule.DisplayTrack()}</td>");
                         report.AppendLine($"<td>{rule.DisplayDisabled()}</td>");

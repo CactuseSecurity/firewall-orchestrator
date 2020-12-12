@@ -12,7 +12,7 @@ using VetCV.HtmlRendererCore.PdfSharpCore;
 
 namespace FWO.Report
 {
-    public class ReportPointInTimeExporter : ReportExporter
+    public class ReportRulesExporter : ReportExporter
     {
         public Management[] Managements { get; set; }
 

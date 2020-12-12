@@ -399,7 +399,7 @@
 
     private void Export()
     {
-        ReportPointInTimeExporter exporter = new ReportPointInTimeExporter() { Managements = managementsReport };
+        ReportRulesExporter exporter = new ReportRulesExporter() { Managements = managementsReport };
         string text = exporter.ToHtml();
         exporter.ToPdf();
     }

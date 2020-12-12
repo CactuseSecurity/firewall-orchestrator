@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Data;
 using FWO.Logging;
+using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace FWO.Ui.Display
@@ -26,7 +27,7 @@ namespace FWO.Ui.Display
 
         public static string DisplayName(this RuleChange ruleChange)
         {
-           switch (ruleChange.ChangeAction)
+            switch (ruleChange.ChangeAction)
             {
                 case 'D': return ruleChange.OldRule.DisplayName();
                 case 'I': return ruleChange.NewRule.DisplayName();
@@ -38,7 +39,7 @@ namespace FWO.Ui.Display
         }
         public static string DisplaySourceZone(this RuleChange ruleChange)
         {
-           switch (ruleChange.ChangeAction)
+            switch (ruleChange.ChangeAction)
             {
                 case 'D': return ruleChange.OldRule.DisplaySourceZone();
                 case 'I': return ruleChange.NewRule.DisplaySourceZone();
@@ -169,9 +170,39 @@ namespace FWO.Ui.Display
         /// <returns><paramref name=""/>string diff result</returns>
         public static string DisplayDiff(string oldElement, string newElement)
         {
-            return DisplayJsonDiff(oldElement, newElement);
-        }
+            if (oldElement == newElement)
+                return oldElement;
+            else
+            {
+                string[] separatingStrings = {"<br>"};
+                string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
+                string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
+                string[] longerAr;
+                string[] shorterAr;
+                string result;
+                if (oldAr.Length > newAr.Length)
+                {
+                    longerAr = oldAr;
+                    shorterAr = newAr;
+                }
+                else
+                {
+                    longerAr = newAr;
+                    shorterAr = oldAr;
+                }
+                string difference = string.Join("<br>", longerAr.Except(shorterAr));
+                if (oldAr.Length<newAr.Length)
+                    result = string.Join("<br>", shorterAr) + $" + <p style=\"text-decoration: bold;\">{difference}</p>";
+                else if (oldAr.Length>newAr.Length)
+                    result = string.Join("<br>", shorterAr) + $" - <p style=\"text-decoration: line-through;\">{difference.ToString()}</p>";
+                else // same number of elements - one of them was replaced - todo!
+                    result = string.Join("<br>", shorterAr) + $" diff: {difference}";
 
+                return result;
+                // return $"{oldElement} --> {newElement}";
+                // return DisplayJsonDiff(oldElement, newElement);
+            }
+        }
         /// <summary>
         /// displays differences between two json objects
         /// </summary>

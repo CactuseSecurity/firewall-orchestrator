@@ -83,25 +83,21 @@ namespace FWO.Report.Filter
                     query changeReport({paramString}) {{
                         management(order_by: {{mgm_name: asc}}) 
                         {{
-                            mgm_id
-                            mgm_name
+                            id: mgm_id
+                            name: mgm_name
                             devices (order_by: {{dev_name: asc}}) 
                             {{
-                                dev_id
-                                dev_name
+                                id: dev_id
+                                name: dev_name
                                 changelog_rules(
+                                    offset: $offset 
+                                    limit: $limit 
                                     where: {{ {query.RuleWhereQuery} }}
                                     order_by: {{ control_id: asc }}
                                 ) 
                                     {{
-                                        change_time
-                                        security_relevant
+                                        import: import_control {{ time: stop_time }}
                                         change_action
-                                        change_type_id
-                                        device {{
-                                            dev_id
-                                            dev_name
-                                        }}
                                         old: ruleByOldRuleId {{
                                         ...ruleOverview
                                         }}

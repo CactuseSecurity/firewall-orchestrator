@@ -19,3 +19,6 @@ adding config_user column to config table for user specific config settings
 
 ### 5.0.4
 add report_owner_id column to report table (but do not allow for sharing of generated reports yet)
+
+### 5.0.5 - 13.12.2020
+adjust all relevant tables to allow for growth beyond integer (turning into BIGINT)

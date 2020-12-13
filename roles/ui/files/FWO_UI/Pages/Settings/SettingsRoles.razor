@@ -1,6 +1,7 @@
 ﻿@using BlazorTable
 @using FWO.Api.Data
 @using FWO.ApiClient
+@using FWO.Middleware.Client;
 
 @page "/settings/roles"
 
@@ -35,25 +36,6 @@
         {
             <form>
                 <form class="form-inline">
-                    <label for="roleUser" class="col-sm-2 col-form-label col-form-label-sm">Active User:</label>
-                    <div class="col-sm-8">
-                        <select id="roleUser" class="form-control form-control-sm" @bind="selectedUserDn">
-                            @foreach (UiUser user in uiUsers)
-                            {
-                                <option value="@user.Dn">@(user.Dn)</option>
-                            }
-                        </select>
-                    </div>
-                    <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUserDn)">Add</button>
-                </form>
-                <form class="form-inline">
-                    <label for="newUser" class="col-sm-2 col-form-label col-form-label-sm">New (Dn):</label>
-                    <div class="col-sm-8">
-                        <input id="newUser" type="text" class="form-control form-control-sm" @bind="newUserDn" />
-                    </div>
-                    <button class="btn btn-sm btn-success" @onclick="() => NewUser(newUserDn)">Add</button>
-                </form>
-                <form class="form-inline">
                     <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">from Ldap:</label>
                     <div class="col-sm-8">
                         <select id="ldapUser" class="form-control form-control-sm" @bind="selectedLdapId">
@@ -63,7 +45,26 @@
                             }
                         </select>
                     </div>
-                    <button class="btn btn-sm btn-success" @onclick="() => SearchUser(selectedLdapId)">Search</button>
+                    <button class="btn btn-sm btn-success" @onclick="async() => await SearchUser(selectedLdapId)" @onclick:preventDefault>Search</button>
+                </form>
+                <form class="form-inline">
+                    <label for="roleUser" class="col-sm-2 col-form-label col-form-label-sm">Active User:</label>
+                    <div class="col-sm-8">
+                        <select id="roleUser" class="form-control form-control-sm" @bind="selectedUserDn">
+                            @foreach (UiUser user in uiUsers)
+                            {
+                                <option value="@user.Dn">@(user.Dn)</option>
+                            }
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUserDn)" @onclick:preventDefault>Add</button>
+                </form>
+                <form class="form-inline">
+                    <label for="newUser" class="col-sm-2 col-form-label col-form-label-sm">New (Dn):</label>
+                    <div class="col-sm-8">
+                        <input id="newUser" type="text" class="form-control form-control-sm" @bind="newUserDn" />
+                    </div>
+                    <button class="btn btn-sm btn-success" @onclick="() => NewUser(newUserDn)" @onclick:preventDefault>Add</button>
                 </form>
 
                 @if (errorMessage != "")
@@ -106,7 +107,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(selectedUserDn)">Delete</button>
+            <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserDn)" @onclick:preventDefault>Delete</button>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
@@ -138,7 +139,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedUserDn)">Add</button>
+            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedUserDn)" @onclick:preventDefault>Add</button>
             <button class="btn btn-sm btn-secondary" @onclick="CancelSearch">Cancel</button>
         </div>
     </Footer>
@@ -187,42 +188,73 @@
         actRole = role;
     }
 
-
-    private void NewUser(string userDn)
+    private async Task SearchUser(int ldapId)
     {
-        UiUser newUser = new UiUser() {Dn = userDn , Name = extractUserNameFromDn(userDn)}; 
-        AddUser (newUser);
+        errorMessage = "";
+        selectedLdap = connectedLdaps.Find(x => x.Id == ldapId);
+
+        // get users from Ldap -> ldapUsers
+
+        SearchMode = true;
+        AddMode = false;
     }
 
-    private void AddUserFromUiUsers(string userDn)
+    private async Task NewUser(string userDn)
+    {
+        if((userDn == null) || (userDn.Length < 5))
+        {
+            // todo: more checks?
+            errorMessage = "please define a proper user";
+        }
+        else
+        {
+            UiUser newUser = new UiUser() {Dn = userDn , Name = extractUserNameFromDn(userDn)}; 
+            await AddUser (newUser);
+        }
+    }
+
+    private async Task AddUserFromUiUsers(string userDn)
     {
         UiUser selectedUser = uiUsers.Find(x => x.Dn == userDn);
-        AddUser (selectedUser);
+        await AddUser (selectedUser);
     }
 
-    private void AddUserFromLdap(string userDn)
+    private async Task AddUserFromLdap(string userDn)
     {
         UiUser selectedUser = ldapUsers.Find(x => x.Dn == userDn);
-        AddUser (selectedUser);
+        await AddUser (selectedUser);
     }
 
-    private void AddUser(UiUser user)
+    private async Task AddUser(UiUser user)
     {
-        // add user in LDAP
+        errorMessage = "";
 
-        actRole.Users.Add(user);
-        roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
-        AddMode = false;
-        SearchMode = false;
+        if(user == null)
+        {
+            errorMessage = "please select a user";
+        }
+        else if(actRole.Users.Contains(user))
+        {
+            errorMessage = "user is already assigned to this role";
+        }
+        else
+        {
+            // add user in LDAP
+
+            actRole.Users.Add(user);
+            roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
+            AddMode = false;
+            SearchMode = false;
+        }
     }
 
-    private void DeleteUser(string userDn)
+    private async Task DeleteUser(string userDn)
     {
-        // delete user in LDAP
-
-        var itemToRemove = actRole.Users.SingleOrDefault(x => x.Dn == userDn);
+        var itemToRemove = actRole.Users.Find(x => x.Dn == userDn);
         if (itemToRemove != null)
         {
+            // delete user in LDAP
+
             actRole.Users.Remove(itemToRemove);
             roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
             DeleteMode = false;
@@ -231,15 +263,6 @@
         {
             errorMessage = "user to delete not found";
         }
-    }
-
-    private void SearchUser(int ldapId)
-    {
-        selectedLdap = connectedLdaps.Find(x => x.Id == ldapId);
-        // get users from Ldap
-        // -> ldapUsers
-        SearchMode = true;
-        AddMode = false;
     }
 
     private void Cancel()

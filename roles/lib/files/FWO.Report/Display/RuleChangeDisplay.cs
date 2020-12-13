@@ -17,12 +17,11 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'I':
-                    return "rule created";
-                case 'D':
-                    return "rule deleted";
+                case 'I': return "rule created";
+                case 'D': return "rule deleted";
+                case 'C': return "rule modified";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
-            return "rule modified";
         }
 
         public static string DisplayName(this RuleChange ruleChange)
@@ -32,9 +31,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayName();
                 case 'I': return ruleChange.NewRule.DisplayName();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayName(), ruleChange.NewRule.DisplayName());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
         public static string DisplaySourceZone(this RuleChange ruleChange)
@@ -44,13 +41,10 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplaySourceZone();
                 case 'I': return ruleChange.NewRule.DisplaySourceZone();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplaySourceZone(), ruleChange.NewRule.DisplaySourceZone());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
 
-        //          DisplaySource()
         public static string DisplaySource(this RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)
@@ -58,9 +52,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplaySource();
                 case 'I': return ruleChange.NewRule.DisplaySource();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplaySource(), ruleChange.NewRule.DisplaySource());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
 
@@ -71,9 +63,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayDestinationZone();
                 case 'I': return ruleChange.NewRule.DisplayDestinationZone();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayDestinationZone(), ruleChange.NewRule.DisplayDestinationZone());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
 
@@ -84,9 +74,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayDestination();
                 case 'I': return ruleChange.NewRule.DisplayDestination();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayDestination(), ruleChange.NewRule.DisplayDestination());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
         public static string DisplayService(this RuleChange ruleChange)
@@ -96,9 +84,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayService();
                 case 'I': return ruleChange.NewRule.DisplayService();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayService(), ruleChange.NewRule.DisplayService());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
         public static string DisplayAction(this RuleChange ruleChange)
@@ -108,9 +94,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayAction();
                 case 'I': return ruleChange.NewRule.DisplayAction();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayAction(), ruleChange.NewRule.DisplayAction());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
         public static string DisplayTrack(this RuleChange ruleChange)
@@ -120,9 +104,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayTrack();
                 case 'I': return ruleChange.NewRule.DisplayTrack();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayTrack(), ruleChange.NewRule.DisplayTrack());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
         public static string DisplayDisabled(this RuleChange ruleChange)
@@ -132,9 +114,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayDisabled();
                 case 'I': return ruleChange.NewRule.DisplayDisabled();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayDisabled(), ruleChange.NewRule.DisplayDisabled());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
         public static string DisplayUid(this RuleChange ruleChange)
@@ -144,9 +124,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayUid();
                 case 'I': return ruleChange.NewRule.DisplayUid();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayUid(), ruleChange.NewRule.DisplayUid());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
         public static string DisplayComment(this RuleChange ruleChange)
@@ -156,9 +134,7 @@ namespace FWO.Ui.Display
                 case 'D': return ruleChange.OldRule.DisplayComment();
                 case 'I': return ruleChange.NewRule.DisplayComment();
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayComment(), ruleChange.NewRule.DisplayComment());
-                default:
-                    Log.WriteWarning("Unknown Change Action", $"found an unexpected change action [{ruleChange.ChangeAction}]");
-                    return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
 
@@ -168,13 +144,13 @@ namespace FWO.Ui.Display
         /// <param name="oldElement">the original value of the object</param>
         /// <param name="newElement">the new (changed) value of the object</param>
         /// <returns><paramref name=""/>string diff result</returns>
-        public static string DisplayDiff(string oldElement, string newElement)
+        private static string DisplayDiff(string oldElement, string newElement)
         {
             if (oldElement == newElement)
                 return oldElement;
             else
             {
-                string[] separatingStrings = {"<br>"};
+                string[] separatingStrings = { "<br>" };
                 string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
                 string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
                 string[] longerAr;
@@ -191,31 +167,34 @@ namespace FWO.Ui.Display
                     shorterAr = oldAr;
                 }
                 string difference = string.Join("<br>", longerAr.Except(shorterAr));
-                if (oldAr.Length<newAr.Length)
+                if (oldAr.Length < newAr.Length)
                     result = string.Join("<br>", shorterAr) + $" + <p style=\"text-decoration: bold;\">{difference}</p>";
-                else if (oldAr.Length>newAr.Length)
+                else if (oldAr.Length > newAr.Length)
                     result = string.Join("<br>", shorterAr) + $" - <p style=\"text-decoration: line-through;\">{difference.ToString()}</p>";
                 else // same number of elements - one of them was replaced - todo!
                     result = string.Join("<br>", shorterAr) + $" diff: {difference}";
 
                 return result;
-                // return $"{oldElement} --> {newElement}";
-                // return DisplayJsonDiff(oldElement, newElement);
             }
         }
+        
         /// <summary>
         /// displays differences between two json objects
         /// </summary>
         /// <param name="oldJsonObject">the original value of the object</param>
         /// <param name="newJsonObject">the new (changed) value of the object</param>
         /// <returns><paramref name=""/> wrapped in <c>Dictionary</c> serialized to Json.</returns>
-        public static string DisplayJsonDiff(string oldJsonObject, string newJsonObject)
+        private static string DisplayJsonDiff(string oldJsonObject, string newJsonObject)
         {
             // todo: implement diff
             if (oldJsonObject == newJsonObject)
                 return oldJsonObject;
             else
                 return $"{oldJsonObject} --> {newJsonObject}";
+        }
+        private static void ThrowErrorUnknowChangeAction(char action)
+        {
+            Log.WriteError("Unknown Change Action", $"found an unexpected change action [{action}]");
         }
     }
 }

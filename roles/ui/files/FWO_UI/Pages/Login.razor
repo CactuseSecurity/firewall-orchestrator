@@ -2,17 +2,17 @@
 @using System.Net
 @using FWO.Ui.Auth
 @using FWO.ApiClient
-@using FWO.Auth.Client
+@using FWO.Middleware.Client
 @using FWO.ApiConfig
-@using FWO.Ui.Data.API
 @using FWO.Ui.Services
+@using System.Security.Claims
 
-@inject AuthClient AuthClient
+@inject MiddlewareClient middlewareClient
 @inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject APIConnection ApiConnection
-@inject UserConfigCollection userConfig
-@inject ConfigCollection globalConfig
+@inject UserConfig userConfig
+@inject GlobalConfig globalConfig
 
 @if (showLoginForm)
 {
@@ -57,7 +57,7 @@
     private string InputClass = "";
 
     private string errorMessage = "";
-    
+
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
@@ -72,13 +72,7 @@
 
             if (jwtLoadRequest.Success) // reconnect
             {
-                string jwt = jwtLoadRequest.Value;
-
-                // Tell api connection to use jwt as authentication
-                ApiConnection.SetAuthHeader(jwt);
-
-                // Try to auth with jwt (validates it, gets roles, ...).
-                ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+                await CreateUserContext(jwtLoadRequest.Value);
             }
 
             else // no reconnect
@@ -102,7 +96,7 @@
             loginInProgress = true;
 
             // There is no jwt in session storage. Get one from auth module.
-            AuthServerResponse apiAuthResponse = await AuthClient.AuthenticateUser(Username, Password);
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser(Username, Password);
 
             // There was an error trying to authenticate the user. Probably invalid credentials
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
@@ -113,6 +107,7 @@
                 InputClass = "is-invalid";
                 loginInProgress = false;
                 await focusInput();
+                StateHasChanged();
             }
 
             else
@@ -122,23 +117,9 @@
                 // Save it in session storage.
                 await sessionStorage.SetAsync("jwt", jwt);
 
-                // Tell api connection to use jwt as authentication
-                ApiConnection.SetAuthHeader(jwt);
+                // Add all user relevant information to the current session. Also used when reloading page.
+                await CreateUserContext(jwt);
 
-                // Try to auth with jwt (validates it, gets roles, ...).
-                ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
-
-                // overwrite userConfig with actual userData after login (does this work?)
-                //userConfig = new ApiConfig.UserConfigCollection();
-
-                AuthenticationState authState = await authenticationStateTask;
-                UiUsersDbAccess uiUserAcc = new UiUsersDbAccess(authState, ApiConnection);
-                userConfig.ChangeLanguage((uiUserAcc.UiUser.Language != "") ? uiUserAcc.UiUser.Language : "English");
-                ConfigDbAccess userConfigDb = new ConfigDbAccess(ApiConnection, uiUserAcc.UiUser.DbId);
-                userConfig.userConfigItems = userConfigDb.configItems;
-                // setting defaults here to have them in state of login time, could maybe be done via global config on startup time
-                ConfigDbAccess defaultConfigDb = new ConfigDbAccess(ApiConnection, 0);
-                userConfig.defaultConfigItems = defaultConfigDb.configItems;
                 loginInProgress = false;
             }
         }
@@ -148,5 +129,17 @@
     {
         if (showLoginForm)
             await usernameInput.FocusAsync();
+    }
+
+    private async Task CreateUserContext(string jwt)
+    {
+        // Tell api connection to use jwt as authentication
+        ApiConnection.SetAuthHeader(jwt);
+
+        // Try to auth with jwt (validates it, gets roles, ...).
+        ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
+
+        AuthenticationState authState = await authenticationStateTask;
+        await userConfig.SetUserInformation(authState.User.FindFirstValue("x-hasura-uuid"), ApiConnection);
     }
 }

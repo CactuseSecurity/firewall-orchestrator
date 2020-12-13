@@ -16,9 +16,11 @@
         group: "{{ fworch_user }}"
       loop:
         - FWO_API_Client
-        - FWO_Auth_Client
+        - FWO.Middleware.Client
         - FWO_Logging
         - FWO_Config
         - FWO.ApiConfig
+        - FWO.Report
+        - FWO.Report.Filter
 
   become: yes

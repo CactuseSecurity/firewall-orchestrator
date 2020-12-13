@@ -1,14 +1,14 @@
 ﻿@using BlazorTable
 @using FWO.ApiConfig;
 @using FWO.ApiConfig.Data;
-@using FWO.Ui.Data.API
+@using FWO.Api.Data
 @using FWO.ApiClient
 @using FWO.Ui.Services
 
 @page "/settings/language"
 
-@inject ConfigCollection configCollection
-@inject UserConfigCollection userConfigCollection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
 @inject APIConnection apiConnection
 
 <h3>Language Settings</h3>
@@ -17,12 +17,12 @@
 <form class="form-inline">
     <label for="languageSelect" class="col-form-label mr-2">Language</label>
     <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedLanguage">
-        @foreach (Language language in configCollection.uiLanguages)
+        @foreach (Language language in globalConfig.uiLanguages)
         {
             <option selected="@(selectedLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
         }
     </select>
-    <button class="btn btn-sm btn-success" @onclick="() => { ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
+    <button class="btn btn-sm btn-success" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
 </form>
 
 @code
@@ -34,17 +34,9 @@
 
     string selectedLanguage;
 
-    protected override async Task OnInitializedAsync()
-    {
-        AuthenticationState authState = await authenticationStateTask;
-        uiUser = new UiUsersDbAccess(authState, apiConnection);
-        selectedLanguage = ((uiUser.UiUser.Language != "") ? uiUser.UiUser.Language : userConfigCollection.CurrentLanguage);
-    }
-
     private async Task ChangeLanguage(string language)
     {
         Log.WriteDebug("Change language", $"new language: {language}");
-        userConfigCollection.ChangeLanguage(language);
-        await uiUser.ChangeLanguage(language, apiConnection);
+        await userConfig.ChangeLanguage(language, apiConnection);
     }
 }

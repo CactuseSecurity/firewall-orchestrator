@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.0.2"
+product_version: "5.0.4"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -13,6 +13,7 @@ installation_mode: new
 ### operating system settings
 user_id: 60320
 fworch_user: "{{ product_name }}"
+fworch_group: "{{ fworch_user }}"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworch_conf_file: "{{ fworch_home }}/etc/fworch.yaml"
@@ -35,15 +36,15 @@ fworch_db_host: localhost
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
 
-### auth server 
-#auth_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
+### middleware server 
+#middleware_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
 jwt_private_key_file: "{{ fworch_home }}/etc/secrets/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_home }}/etc/secrets/jwt_public_key.pem"
 
-auth_hostname: "127.0.0.1"
-auth_web_listener_port: 8888
+middleware_hostname: "127.0.0.1"
+middleware_web_listener_port: 8888
 ldif_changetype: add
-auth_service_name: "{{ product_name }}-auth"
+middleware_service_name: "{{ product_name }}-middleware"
 
 ### database & api
 api_service_name: fworch-hasura-docker-api
@@ -69,7 +70,7 @@ random_generated_pw: "{{ lookup('password', '/dev/null length=15 chars=ascii_let
 syslog_proto: tcp
 syslog_host: localhost
 syslog_port: 514
-auth_server_syslog_id: "{{ product_name }}.auth-server"
+middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
 api_log_level: info

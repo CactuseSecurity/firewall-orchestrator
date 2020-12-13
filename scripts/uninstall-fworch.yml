@@ -23,12 +23,6 @@
     when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
     ignore_errors: true
 
-  # - name: remove database
-  #   command: psql -c "drop database fworchdb"
-  #   # command: psql -c "drop database fworchdb with force"  # only with postgres  >=13
-  #   become_user: postgres
-  #   ignore_errors: true
-
   - set_fact: 
       distribution_version: "debian/10"
       when: ansible_facts['distribution']|lower == 'debian'
@@ -82,7 +76,6 @@
 
     when: pg_version|int >= 13
 
-
   - name: remove db groups
     postgresql_user:
       name: "{{ item }}"
@@ -112,9 +105,9 @@
       enabled: no
     ignore_errors: true
 
-  - name: stop and disable fworch-auth
+  - name: stop and disable fworch-middleware
     service:
-      name: fworch-auth
+      name: fworch-middleware
       state: stopped
       enabled: no
     ignore_errors: true
@@ -195,15 +188,26 @@
           - /etc/fworch
           - /etc/apache2/sites-available/fworch.conf
           - /etc/apache2/sites-available/fworch-api.conf
-
-      - name: remove ldap data dir
-        file: 
-          name: /var/lib/ldap/fworch.internal
-          state: absent
+          - /var/lib/ldap/fworch.internal
 
       # - name: delete complete ldap tree
-      #   command: "ldapdelete -r -H {{ auth_ldap_internal_url }} -D {{ auth_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x '{{ auth_ldap_path }}'"
+      #   command: "ldapdelete -r -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ middleware_manager_pwd }} -x '{{ middleware_ldap_path }}'"
       #   ignore_errors: yes
-      #   # todo: only execute if this is an ldap server (maybe just ignore_errors)
+        # todo: only execute if this is an ldap server (maybe just ignore_errors)
+
+      - name: remove OS users and delete home directories
+        user:
+          name: "{{ item }}"
+          force: yes
+          remove: yes
+          state: absent
+        loop:
+          - "{{ fworch_user }}"
+          - "isosample"
+
+      - name: remove OS group
+        group:
+          name: "{{ fworch_group }}"
+          state: absent
 
     become: yes

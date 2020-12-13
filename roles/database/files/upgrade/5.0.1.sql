@@ -1,4 +1,6 @@
 
+-- create table report_schedule
+
 Create table if not exists "report_schedule"
 (
 	"report_schedule_id" BIGSERIAL,
@@ -10,5 +12,5 @@ Create table if not exists "report_schedule"
  primary key ("report_schedule_id")
 );
 
-Alter table "report_schedule" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
-Alter table "report_schedule" add foreign key ("report_schedule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+Alter table if exists "report_schedule" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
+Alter table if exists "report_schedule" if not exists add foreign key ("report_schedule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;

@@ -72,6 +72,57 @@ tables:
   - name: uiuserByImportAdmin
     using:
       foreign_key_constraint_on: import_admin
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - log_rule_id
+      - doku_admin
+      - control_id
+      - import_admin
+      - new_rule_id
+      - old_rule_id
+      - implicit_change
+      - abs_change_id
+      - change_action
+      - changelog_rule_comment
+      - documented
+      - docu_time
+      - mgm_id
+      - dev_id
+      - change_type_id
+      - security_relevant
+      - change_request_info
+      - change_time
+      - unique_name
+      filter:
+        dev_id:
+          _in: x-hasura-visible-devices
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - log_rule_id
+      - doku_admin
+      - control_id
+      - import_admin
+      - new_rule_id
+      - old_rule_id
+      - implicit_change
+      - abs_change_id
+      - change_action
+      - changelog_rule_comment
+      - documented
+      - docu_time
+      - mgm_id
+      - dev_id
+      - change_type_id
+      - security_relevant
+      - change_request_info
+      - change_time
+      - unique_name
+      filter: {}
+    role: reporter-viewall
   table:
     name: changelog_rule
     schema: public
@@ -308,7 +359,7 @@ tables:
 - delete_permissions:
   - permission:
       filter: {}
-    role: auth-server
+    role: middleware-server
   insert_permissions:
   - permission:
       backend_only: false
@@ -316,14 +367,14 @@ tables:
       columns:
       - id
       - name
-    role: auth-server
+    role: middleware-server
   select_permissions:
   - permission:
       columns:
       - id
       - name
       filter: {}
-    role: auth-server
+    role: middleware-server
   table:
     name: device_type
     schema: public
@@ -334,7 +385,7 @@ tables:
       - id
       - name
       filter: {}
-    role: auth-server
+    role: middleware-server
 - array_relationships:
   - name: error_logs
     using:
@@ -876,7 +927,7 @@ tables:
       - ldap_write_user
       - ldap_write_user_pwd
       filter: {}
-    role: auth-server
+    role: middleware-server
   table:
     name: ldap_connection
     schema: public
@@ -1279,90 +1330,16 @@ tables:
   table:
     name: report
     schema: public
-- delete_permissions:
-  - permission:
-      filter:
-        report_schedule_owner:
-          _eq: X-Hasura-User-Id
-    role: reporter
-  - permission:
-      filter:
-        report_schedule_owner:
-          _eq: X-Hasura-User-Id
-    role: reporter-viewall
-  insert_permissions:
-  - permission:
-      backend_only: false
-      check: {}
-      columns:
-      - report_schedule_id
-      - report_template_id
-      - report_schedule_owner
-      - report_schedule_start_time
-    role: reporter
-  - permission:
-      backend_only: false
-      check: {}
-      columns:
-      - report_schedule_owner
-      - report_template_id
-      - report_schedule_id
-      - report_schedule_start_time
-    role: reporter-viewall
-  object_relationships:
+- object_relationships:
   - name: report_template
     using:
       foreign_key_constraint_on: report_template_id
   - name: uiuser
     using:
       foreign_key_constraint_on: report_schedule_owner
-  select_permissions:
-  - permission:
-      columns:
-      - report_schedule_owner
-      - report_template_id
-      - report_schedule_id
-      - report_schedule_start_time
-      filter:
-        report_schedule_owner:
-          _eq: X-Hasura-User-Id
-    role: reporter
-  - permission:
-      columns:
-      - report_schedule_owner
-      - report_template_id
-      - report_schedule_id
-      - report_schedule_start_time
-      filter:
-        report_schedule_owner:
-          _eq: X-Hasura-User-Id
-    role: reporter-viewall
   table:
     name: report_schedule
     schema: public
-  update_permissions:
-  - permission:
-      check: null
-      columns:
-      - report_schedule_owner
-      - report_template_id
-      - report_schedule_id
-      - report_schedule_start_time
-      filter:
-        report_schedule_owner:
-          _eq: X-Hasura-User-Id
-    role: reporter
-  - permission:
-      check: null
-      columns:
-      - report_schedule_owner
-      - report_template_id
-      - report_schedule_id
-      - report_schedule_start_time
-      filter:
-        report_schedule_owner:
-          _eq: X-Hasura-User-Id
-    role: reporter-viewall
 - array_relationships:
   - name: reports
     using:
@@ -1396,25 +1373,6 @@ tables:
   - name: stm_report_typ
     using:
       foreign_key_constraint_on: report_typ_id
-  select_permissions:
-  - permission:
-      columns:
-      - report_template_id
-      - report_filter
-      - report_template_name
-      - report_template_comment
-      - report_typ_id
-      - report_template_create
-      - filterline_history
-      filter:
-        _and:
-        - report_template_viewable_by_tenants:
-            tenant_id:
-              _eq: x-hasura-tenant-id
-        - report_template_viewable_by_users:
-            uiuser_id:
-              _eq: x-hasura-user-id
-    role: reporter
   table:
     name: report_template
     schema: public
@@ -2484,7 +2442,7 @@ tables:
       - tenant_is_superadmin
       - tenant_create
       filter: {}
-    role: auth-server
+    role: middleware-server
   table:
     name: tenant
     schema: public
@@ -2700,7 +2658,7 @@ tables:
       - uiuser_last_name
       - uiuser_username
       - uuid
-    role: auth-server
+    role: middleware-server
   object_relationships:
   - name: language
     using:
@@ -2726,7 +2684,7 @@ tables:
       - uiuser_last_password_change
       - uiuser_pwd_history
       filter: {}
-    role: auth-server
+    role: middleware-server
   - permission:
       columns:
       - uiuser_id
@@ -2789,7 +2747,7 @@ tables:
       - uiuser_username
       - uuid
       filter: {}
-    role: auth-server
+    role: middleware-server
   - permission:
       check: null
       columns:

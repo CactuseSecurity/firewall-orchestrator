@@ -9,6 +9,6 @@
 - name: include ldif driven changes
   import_tasks: modify_ldap_tree.yml
 
-- name: restart auth server in case any changes to ldap_connections were made
-  command: "systemctl restart {{ auth_service_name }}"
+- name: restart middleware server in case any changes to ldap_connections were made
+  command: "systemctl restart {{ middleware_service_name }}"
   become: yes

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HtmlRendererCore.PdfSharpCore" Version="1.0.1" />
+    <PackageReference Include="PdfSharpCore" Version="1.2.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FWO.Report.Filter\FWO.Report.Filter.csproj" />
+    <ProjectReference Include="..\FWO_API_Client\FWO.ApiClient.csproj" />
+  </ItemGroup>
+
+</Project>

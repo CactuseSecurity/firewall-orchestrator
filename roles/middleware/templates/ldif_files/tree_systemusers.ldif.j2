@@ -1,0 +1,18 @@
+dn: uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: {{ middleware_ldap_internal_readonly_user }}
+sn: {{ middleware_ldap_internal_readonly_user }}
+{%- endif %}
+
+
+dn: {{ middleware_ldap_writer_fq }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectclass: inetorgperson
+cn: {{ middleware_ldap_writer }}
+sn: {{ middleware_ldap_writer }}
+{%- endif %}

@@ -43,15 +43,15 @@
             "processId": "${command:pickProcess}"
         },
         {
-            "name": "AuthServer",
+            "name": "MiddlewareServer",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             "enableStepFiltering": false,
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/roles/auth/files/FWO_Auth_Server/bin/Debug/net5.0/FWO.Auth.Server.dll",
+            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net5.0/FWO.Middleware.Server.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/roles/auth/files/FWO_Auth_Server",
+            "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false

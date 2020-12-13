@@ -1,11 +1,13 @@
 ﻿@using BlazorTable
+@using System.Net
 @using FWO.Api.Data
 @using FWO.ApiClient
-@using FWO.Middleware.Client;
+@using FWO.Middleware.Client
 
 @page "/settings/roles"
 
 @inject APIConnection apiConnection
+@inject MiddlewareClient middlewareClient
 
 <h3 class="m-2">Roles</h3>
 <hr />
@@ -168,12 +170,28 @@
     protected override async Task OnInitializedAsync()
     {
         // get roles from LDAP
-        TestInit(roles);
+        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetAllRoles();
+        if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+        {
+            errorMessage = "no roles found";
+        }
+        else
+        {
+            foreach (var roleUser in apiAuthResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allRoles"))
+            {
+                Role role = new Role() { Dn = roleUser.Key , Name = extractRoleNameFromDn(roleUser.Key)};
+                foreach (var userDn in roleUser.Value)
+                {
+                    UiUser newUser = new UiUser(){ Dn = userDn , Name = extractUserNameFromDn(userDn) };
+                    role.Users.Add(newUser);
+                }
+                roles.Add(role);
+            }
+        }
 
         uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
         uiUsers = uiUsers.FindAll(x => x.DbId != 0);
         connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
-        // connectedLdaps = connectedLdaps.FindAll(x => x.RoleSearchPath != null);
     }
 
     private void Add(Role role)
@@ -240,11 +258,18 @@
         else
         {
             // add user in LDAP
-
-            actRole.Users.Add(user);
-            roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
-            AddMode = false;
-            SearchMode = false;
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUserToRole(user.Dn, actRole.Dn);
+            if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userAdded") == false))
+            {
+                errorMessage = "user could not be added to role in ldaps";
+            }
+            else
+            {
+                actRole.Users.Add(user);
+                roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
+                AddMode = false;
+                SearchMode = false;
+            }
         }
     }
 
@@ -281,33 +306,22 @@
 
     private string extractUserNameFromDn(string Dn)
     {
-        string Name = "";
-        // assuming that Dn starts with "uid="
-        int kPrefixLength = 4;
-        int Index = Dn.IndexOf(",");
-        if(Index > kPrefixLength)
-        {
-            Name = Dn.Substring(kPrefixLength, Index - kPrefixLength);
-        }
-        return Name;
+        return extractNameFromDn(Dn, "uid=");
     }
 
-    private void TestInit(List<Role> roles)
+    private string extractRoleNameFromDn(string Dn)
     {
-        UiUser user1 = new UiUser(){ Name="Tim", Dn="uid=Tim,ou=soso"};
-        UiUser user2 = new UiUser(){ Name="Nils", Dn="uid=Nils,ou=soso"};
-        UiUser user3 = new UiUser(){ Name="Achim", Dn="uid=Ach,ou=soso"};
-        List<UiUser> users1 = new List<UiUser>();
-        List<UiUser> users2 = new List<UiUser>();
-        users1.Add(user1);
-        users1.Add(user2);
-        users2.Add(user3);
-        Role role1 = new Role() { Name="Experte", Description="uiuiui", Users=users1 };
-        Role role2 = new Role() { Name="Spezialist", Description="noch schlimmer", Users=users2 };
-        roles.Add(role1);
-        roles.Add(role2);
-        ldapUsers.Add(user1);
-        ldapUsers.Add(user2);
-        ldapUsers.Add(user3);
+        return extractNameFromDn(Dn, "cn=");
+    }
+
+    private string extractNameFromDn(string Dn, string Prefix)
+    {
+        string Name = "";
+        int Index = Dn.IndexOf(",");
+        if(Index > Prefix.Length)
+        {
+            Name = Dn.Substring(Prefix.Length, Index - Prefix.Length);
+        }
+        return Name;
     }
 }

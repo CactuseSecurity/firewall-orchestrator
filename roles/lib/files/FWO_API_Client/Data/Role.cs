@@ -5,15 +5,19 @@ namespace FWO.Api.Data
     public class Role
     {
         public string Name;
+        public string Dn;
         public string Description;
         public List<UiUser> Users { get; set; }
 
         public Role()
-        { }
+        { 
+            Users = new List<UiUser>();
+        }
 
         public Role(Role role)
         {
             Name = role.Name;
+            Dn = role.Dn;
             Description = role.Description;
             if (role.Users != null)
             {

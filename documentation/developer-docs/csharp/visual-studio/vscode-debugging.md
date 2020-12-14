@@ -3,7 +3,7 @@
 ## using central backend host
 devsrvffm is a central backend server for all services that are not debugged locally on client via visual studio (code)
 
-### connect as user developer via ssh on port 60333/tcp
+### connect as user developer via ssh on port 60333/tcp (2nd server on 60334/tcp)
 
 (on linux this needs to be done as root to be able to forward low port 636)
 
@@ -16,7 +16,7 @@ example for user tim:
 note: your public key needs to be added to /home/devoloper/.ssh/authorized_keys on devsrvffm 
 
 ### automatic updates of test server
-The testserver has a webhook receiver running at https://cactus.de:60344/fwo which is triggered by changes to the cactus repo (not the individual forks!).
+The testserver has a webhook receiver running at https://cactus.de:60344/fwo (2nd server on 60345/tcp) which is triggered by changes to the cactus repo (not the individual forks!).
 Only changes to roles, inventory and site.yml will trigger a rebuild, not documentation changes.
 
 ### add local config on development client

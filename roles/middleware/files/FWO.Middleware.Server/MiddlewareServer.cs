@@ -63,10 +63,10 @@ namespace FWO.Middleware.Server
         private async Task RunListenerAsync(string middlewareListenerUri)
         {
             // Add prefixes to listen to 
-            listener.Prefixes.Add(middlewareListenerUri + "/AuthenticateUser/");
-            listener.Prefixes.Add(middlewareListenerUri + "/GetAllRoles/");
-            listener.Prefixes.Add(middlewareListenerUri + "/AddUserToRole/");
-            listener.Prefixes.Add(middlewareListenerUri + "/Test/"); // TODO: REMOVE TEST PREFIX
+            listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
+            listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
+            listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
+            listener.Prefixes.Add(middlewareListenerUri + "Test/"); // TODO: REMOVE TEST PREFIX
 
             // Start listener
             listener.Start();

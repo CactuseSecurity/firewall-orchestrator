@@ -85,7 +85,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public static string DisplayServices(this Rule rule)
+        public static string DisplayService(this Rule rule)
         {
             result = new StringBuilder();
 

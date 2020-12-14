@@ -27,7 +27,9 @@
   include_tasks: create_auth_secrets.yml
 
 - name: check if there already is an ldap connection in DB
-  command: psql -qtAX -d {{ fworch_db_name | quote }} -c "SELECT COUNT(*) FROM ldap_connection"
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: SELECT COUNT(*) FROM ldap_connection
   become: yes
   become_user: postgres
   register: ldap_conn_present
@@ -35,7 +37,7 @@
 - name: change value for middleware_change_local_ldap if ldap conn already exists to prevent re-creation errors
   set_fact:
     middleware_change_local_ldap: "no"
-  when: ldap_conn_present.stdout >= "1"
+  when: ldap_conn_present.query_result.0.count >= 1
 
 - name: import ldif driven changes
   import_tasks: set_initial_ldap_tree.yml
@@ -44,24 +46,88 @@
   import_tasks: upgrade_ldap_tree.yml
   when: installation_mode == "upgrade"
 
+- name: install python modules for ansible ldap module
+  apt:
+    name:
+      - libsasl2-dev
+      - python-dev
+      - libldap2-dev
+      - libssl-dev
+  become: yes
+
+- name: install python modules for ansible ldap module
+  pip:
+    name: pyldap
+  become: yes
+
 - name: Set {{ middleware_ldap_internal_readonly_user }} password in ldap
-  command: "ldappasswd -s {{ ldap_inspector_pw }} -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}'"
+  ldap_passwd:
+    dn: "{{ middleware_ldap_internal_readonly_user_fq }}"
+    passwd: "{{ ldap_inspector_pw }}"
+    server_uri: "{{ middleware_ldap_internal_url }}"
+    bind_dn: "{{ middleware_ldap_superuser_name }}"
+    bind_pw: "{{ ldap_manager_pwd }}"
 
 - name: Set admin password in ldap
-  command: "ldappasswd -s {{ admin_pwd }} -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x 'uid=admin,ou=tenant0,ou=operator,ou=user,{{ middleware_ldap_path }}'"
+  ldap_passwd:
+    dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ middleware_ldap_path }}
+    passwd: "{{ admin_pwd }}"
+    server_uri: "{{ middleware_ldap_internal_url }}"
+    bind_dn: "{{ middleware_ldap_superuser_name }}"
+    bind_pw: "{{ ldap_manager_pwd }}"
+
+- name: Set "{{ middleware_ldap_writer }}" password in ldap
+  ldap_passwd:
+    dn: "{{ middleware_ldap_writer_fq }}"
+    passwd: "{{ ldap_writer_pw }}"
+    server_uri: "{{ middleware_ldap_internal_url }}"
+    bind_dn: "{{ middleware_ldap_superuser_name }}"
+    bind_pw: "{{ ldap_manager_pwd }}"
   
 - name: insert admin tenant0 to database
-  command: 'psql -d {{ fworch_db_name }} -c "DO $do$ BEGIN IF NOT EXISTS (SELECT tenant_id FROM tenant WHERE tenant_name=''tenant0'') THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin) values (''tenant0'', true, true); END IF; END $do$"'
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN IF NOT EXISTS
+      (SELECT tenant_id FROM tenant WHERE tenant_name='tenant0')
+      THEN insert into tenant (tenant_name, tenant_can_view_all_devices, tenant_is_superadmin)
+      values ('tenant0', true, true);
+      END IF; END $do$
   become: yes
   become_user: postgres
 
-- name: add local ldap connection
-  shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF NOT EXISTS (SELECT * FROM ldap_connection) THEN INSERT INTO ldap_connection (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_tenant_level, ldap_search_user, ldap_search_user_pwd) VALUES ('{{ middleware_ldap_server_internal | quote }}', 636, '{{ middleware_ldap_std_user_path | quote }}', '{{ middleware_ldap_std_role_path | quote }}', 1, '{{ middleware_ldap_internal_readonly_user_fq | quote }}', '{{ ldap_inspector_pw }}'); END IF; END \$do\$"
+- name: add connection for internal ldap
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN IF NOT EXISTS
+      (SELECT * FROM ldap_connection WHERE ldap_server = '{{ middleware_ldap_server_internal | quote }}')
+      THEN INSERT INTO ldap_connection
+      (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles,
+      ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd)
+      VALUES ('{{ middleware_ldap_server_internal | quote }}', 636,
+      '{{ middleware_ldap_std_user_path | quote }}', '{{ middleware_ldap_std_role_path | quote }}',
+      1, '{{ middleware_ldap_internal_readonly_user_fq | quote }}', '{{ ldap_inspector_pw }}',
+      '{{ middleware_ldap_writer_fq | quote }}', '{{ ldap_writer_pw }}');
+      END IF; END $do$
   become: yes
   become_user: postgres
 
 - name: update password for local ldap connection  in case of upgrade
-  shell: psql -d {{ fworch_db_name | quote }} -c "DO \$do\$ BEGIN IF EXISTS (SELECT * FROM ldap_connection) THEN UPDATE ldap_connection SET ldap_server='{{ middleware_ldap_server_internal | quote }}', ldap_port=636, ldap_searchpath_for_users='{{ middleware_ldap_std_user_path | quote }}', ldap_searchpath_for_roles='{{ middleware_ldap_std_role_path | quote }}', ldap_tenant_level=1, ldap_search_user='{{ middleware_ldap_internal_readonly_user_fq | quote }}', ldap_search_user_pwd='{{ ldap_inspector_pw }}' WHERE ldap_server='{{ middleware_ldap_server_internal | quote }}'; END IF; END \$do\$"
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN IF EXISTS
+      (SELECT * FROM ldap_connection)
+      THEN UPDATE ldap_connection
+      SET ldap_server='{{ middleware_ldap_server_internal | quote }}',
+      ldap_port=636, ldap_searchpath_for_users='{{ middleware_ldap_std_user_path | quote }}',
+      ldap_searchpath_for_roles='{{ middleware_ldap_std_role_path | quote }}', ldap_tenant_level=1,
+      ldap_search_user='{{ middleware_ldap_internal_readonly_user_fq | quote }}',
+      ldap_search_user_pwd='{{ ldap_inspector_pw }}',
+      ldap_write_user= '{{ middleware_ldap_writer_fq | quote }}', ldap_write_user_pwd='{{ ldap_writer_pw }}'
+      WHERE ldap_server='{{ middleware_ldap_server_internal | quote }}';
+      END IF; END $do$
   become: yes
   become_user: postgres
 

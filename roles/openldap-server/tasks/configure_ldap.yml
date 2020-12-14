@@ -87,10 +87,10 @@
     - restart slapd
 
   - name: start the slapd service
-    service: 
-      name: slapd 
-      state: restarted 
-      enabled: yes 
+    service:
+      name: slapd
+      state: restarted
+      enabled: yes
     
   - name: Copy the template for creating base dn
     template: 

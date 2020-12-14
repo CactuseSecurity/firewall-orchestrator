@@ -21,24 +21,6 @@
       set_fact: pg_version={{ pg_version | int }}
       when: pg_version|int >= 10
 
-    #  - name: set fact postgresql_dev_package
-    #    set_fact:
-    #       postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
-
-    #  - name: install development package for postgresql (needed for pgcrypto jwt auth)
-    #    package:
-    #     name: "{{ postgresql_dev_package }}"
-    #     state: present
-
-    # # todo: this does not work reliably:
-    # - name: edit postgresql.conf listener
-    #   lineinfile:
-    #     path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
-    #     backrefs: yes
-    #     regexp: '^\s*listen_addresses\s*=\s*(.*)'
-    #     line: 'listen_addresses = \1,{{ fworch_db_host }}'
-    #     backup: yes
-
     - name: edit postgresql.conf log_destination
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
@@ -137,13 +119,6 @@
 
   become: yes
 
-#- name: check if database already exists
-#  # old
-#  command: 'psql -At -c "SELECT count(*) FROM pg_database WHERE datname=''{{ fworch_db_name }}''"'
-#  register: db_exists
-#  become: yes
-#  become_user: postgres
-
 - name: check if database already exists
   postgresql_query:
     query: SELECT count(*) FROM pg_database WHERE datname='{{ fworch_db_name }}'
@@ -158,3 +133,6 @@
 - name: upgrade database
   import_tasks: upgrade-database.yml
   when: installation_mode == "upgrade"
+
+- name: (re)define functions and views
+  import_tasks: recreate-functions-and-views.yml

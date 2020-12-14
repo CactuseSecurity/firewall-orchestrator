@@ -16,10 +16,10 @@ namespace FWO.Report
 
         Management[] result = null;
 
-        public override async void Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async void Generate(int changesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
-            query.QueryVariables["limit"] = rulesPerFetch;
+            query.QueryVariables["limit"] = changesPerFetch;
             query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
             result = new Management[0];
@@ -27,7 +27,7 @@ namespace FWO.Report
             result = await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
             while (gotNewObjects)
             {
-                query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
+                query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + changesPerFetch;
                 gotNewObjects = result.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
                 await callback(result);
             }

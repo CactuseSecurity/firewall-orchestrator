@@ -1,9 +1,9 @@
 /*
 Created			29.04.2005
-Last modified	13.11.2020
+Last modified	13.12.2020
 Project			Firewall Orchestrator
 Contact			https://cactus.de/fworch
-Database		PostgreSQL 9-12
+Database		PostgreSQL 9-13
 */
 
 /* Create Sequence 
@@ -104,17 +104,17 @@ Create table "object"
 	"obj_sys_readcom" Varchar,
 	"obj_sys_writecom" Varchar,
 	"active" Boolean NOT NULL Default TRUE,
-	"obj_create" Integer NOT NULL,
-	"obj_last_seen" Integer NOT NULL,
+	"obj_create" BIGINT NOT NULL,
+	"obj_last_seen" BIGINT NOT NULL,
  primary key ("obj_id")
 );
 
 Create table "objgrp"
 (
-	"objgrp_id" Integer NOT NULL,
-	"objgrp_member_id" Integer NOT NULL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
+	"objgrp_id" BIGINT NOT NULL,
+	"objgrp_member_id" BIGINT NOT NULL,
+	"import_created" BIGINT NOT NULL,
+	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("objgrp_id","objgrp_member_id")
@@ -152,8 +152,8 @@ Create table "rule"
 	"rule_comment" Text,
 	"rule_head_text" Text,
 	"rule_implied" Boolean NOT NULL Default FALSE,
-	"rule_create" Integer NOT NULL,
-	"rule_last_seen" Integer NOT NULL,
+	"rule_create" BIGINT NOT NULL,
+	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
  primary key ("rule_id")
 );
@@ -161,11 +161,11 @@ Create table "rule"
 Create table "rule_from"
 (
 	"rule_from_id" BIGSERIAL,
-	"rf_create" Integer NOT NULL,
-	"rf_last_seen" Integer NOT NULL,
-	"rule_id" Integer NOT NULL,
-	"obj_id" Integer NOT NULL,
-	"user_id" Integer,
+	"rf_create" BIGINT NOT NULL,
+	"rf_last_seen" BIGINT NOT NULL,
+	"rule_id" BIGINT NOT NULL,
+	"obj_id" BIGINT NOT NULL,
+	"user_id" BIGINT,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("rule_from_id")
@@ -173,7 +173,7 @@ Create table "rule_from"
 
 Create table "rule_review"
 (
-	"rule_id" Integer NOT NULL,
+	"rule_id" BIGINT NOT NULL,
 	"tenant_id" Integer NOT NULL,
 	"rr_comment" Text,
 	"rr_visible" Boolean NOT NULL Default true,
@@ -184,21 +184,21 @@ Create table "rule_review"
 
 Create table "rule_service"
 (
-	"rule_id" Integer NOT NULL,
-	"svc_id" Integer NOT NULL,
+	"rule_id" BIGINT NOT NULL,
+	"svc_id" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
-	"rs_create" Integer NOT NULL,
-	"rs_last_seen" Integer NOT NULL,
+	"rs_create" BIGINT NOT NULL,
+	"rs_last_seen" BIGINT NOT NULL,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("rule_id","svc_id")
 );
 
 Create table "rule_to"
 (
-	"rule_id" Integer NOT NULL,
-	"obj_id" Integer NOT NULL,
-	"rt_create" Integer NOT NULL,
-	"rt_last_seen" Integer NOT NULL,
+	"rule_id" BIGINT NOT NULL,
+	"obj_id" BIGINT NOT NULL,
+	"rt_create" BIGINT NOT NULL,
+	"rt_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("rule_id","obj_id")
@@ -237,17 +237,17 @@ Create table "service"
 	"svc_sync_delay_start" Integer,
 	"active" Boolean NOT NULL Default TRUE,
 	"last_change_admin" Integer,
-	"svc_create" Integer NOT NULL,
-	"svc_last_seen" Integer NOT NULL,
+	"svc_create" BIGINT NOT NULL,
+	"svc_last_seen" BIGINT NOT NULL,
  primary key ("svc_id")
 );
 
 Create table "svcgrp"
 (
-	"svcgrp_id" Integer NOT NULL,
-	"svcgrp_member_id" Integer NOT NULL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
+	"svcgrp_id" BIGINT NOT NULL,
+	"svcgrp_member_id" BIGINT NOT NULL,
+	"import_created" BIGINT NOT NULL,
+	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE,
  primary key ("svcgrp_id","svcgrp_member_id")
@@ -255,9 +255,9 @@ Create table "svcgrp"
 
 Create table "zone"
 (
-	"zone_id" BIGSERIAL,
-	"zone_create" Integer NOT NULL,
-	"zone_last_seen" Integer NOT NULL,
+	"zone_id" SERIAL,
+	"zone_create" BIGINT NOT NULL,
+	"zone_last_seen" BIGINT NOT NULL,
 	"mgm_id" Integer NOT NULL,
 	"zone_name" Varchar NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
@@ -280,8 +280,8 @@ Create table "usr"
 	"src_restrict" Text,
 	"dst_restrict" Text,
 	"time_restrict" Text,
-	"user_create" Integer NOT NULL,
-	"user_last_seen" Integer NOT NULL,
+	"user_create" BIGINT NOT NULL,
+	"user_last_seen" BIGINT NOT NULL,
 	"user_comment" Text,
 	"user_uid" Text,
 	"user_firstname" Varchar,
@@ -292,10 +292,10 @@ Create table "usr"
 
 Create table "usergrp"
 (
-	"usergrp_id" BIGSERIAL,
-	"usergrp_member_id" BIGSERIAL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
+	"usergrp_id" BIGINT,
+	"usergrp_member_id" BIGINT,
+	"import_created" BIGINT NOT NULL,
+	"import_last_seen" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
  primary key ("usergrp_id","usergrp_member_id")
 );
@@ -303,20 +303,20 @@ Create table "usergrp"
 Create table "usergrp_flat"
 (
 	"active" Boolean NOT NULL Default TRUE,
-	"usergrp_flat_id" Integer NOT NULL,
-	"usergrp_flat_member_id" Integer NOT NULL,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
+	"usergrp_flat_id" BIGINT NOT NULL,
+	"usergrp_flat_member_id" BIGINT NOT NULL,
+	"import_created" BIGINT NOT NULL,
+	"import_last_seen" BIGINT NOT NULL,
  primary key ("usergrp_flat_id","usergrp_flat_member_id")
 );
 
 Create table "objgrp_flat"
 (
-	"objgrp_flat_id" Integer NOT NULL,
-	"objgrp_flat_member_id" Integer NOT NULL,
+	"objgrp_flat_id" BIGINT NOT NULL,
+	"objgrp_flat_member_id" BIGINT NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
-	"import_created" Integer NOT NULL,
-	"import_last_seen" Integer NOT NULL,
+	"import_created" BIGINT NOT NULL,
+	"import_last_seen" BIGINT NOT NULL,
 	"negated" Boolean NOT NULL Default FALSE
 );
 
@@ -328,16 +328,6 @@ Create table "svcgrp_flat"
 	"import_last_seen" Integer NOT NULL,
 	"active" Boolean NOT NULL Default TRUE,
 	"negated" Boolean NOT NULL Default FALSE
-);
-
--- to be removed in 5.0
-Create table "rule_order"
-(
-	"control_id" Integer NOT NULL,
-	"dev_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL,
-	"rule_number" Integer NOT NULL,
- primary key ("control_id","dev_id","rule_id")
 );
 
 -- uiuser - change metadata -------------------------------------
@@ -428,7 +418,7 @@ Create table "tenant_to_device"
 Create table "tenant_object"
 (
 	"tenant_id" Integer NOT NULL,
-	"obj_id" Integer NOT NULL,
+	"obj_id" BIGINT NOT NULL,
  primary key ("tenant_id","obj_id")
 );
 
@@ -570,7 +560,7 @@ Create table "import_control"
 Create table "import_service"
 (
 	"svc_id" BIGSERIAL,
-	"control_id" Integer NOT NULL,
+	"control_id" BIGINT NOT NULL,
 	"svc_typ" Text NOT NULL,
 	"svc_name" Varchar,
 	"svc_comment" Text,
@@ -608,7 +598,7 @@ Create table "import_object"
 	"obj_color" Text Default 'black',
 	"obj_comment" Text,
 	"obj_location" Text,
-	"control_id" Integer NOT NULL,
+	"control_id" BIGINT NOT NULL,
 	"obj_uid" Text,
 	"last_change_admin" Varchar,
 	"last_change_time" Timestamp,
@@ -619,7 +609,7 @@ Create table "import_object"
 Create table "import_user"
 (
 	"user_id" BIGSERIAL,
-	"control_id" Integer NOT NULL,
+	"control_id" BIGINT NOT NULL,
 	"user_color" Text Default 'black',
 	"user_name" Varchar NOT NULL,
 	"user_typ" Text,
@@ -643,7 +633,7 @@ Create table "import_user"
 
 Create table "import_rule"
 (
-	"control_id" Integer NOT NULL,
+	"control_id" BIGINT NOT NULL,
 	"rule_id" BIGSERIAL,
 	"rulebase_name" Varchar NOT NULL,
 	"rule_num" Integer NOT NULL,
@@ -678,7 +668,7 @@ Create table "import_rule"
 
 Create table "import_zone"
 (
-	"control_id" Integer NOT NULL,
+	"control_id" BIGINT NOT NULL,
 	"zone_name" Text NOT NULL,
 	"last_change_time" Timestamp
 );
@@ -694,8 +684,8 @@ Create table "import_changelog"
 	"changed_object_type" Varchar,
 	"change_action" Varchar NOT NULL,
 	"change_admin" Varchar,
-	"control_id" Integer NOT NULL,
-	"import_changelog_nr" Integer,
+	"control_id" BIGINT NOT NULL,
+	"import_changelog_nr" BIGINT,
 	"import_changelog_id" BIGSERIAL,
  primary key ("import_changelog_id")
 );
@@ -703,12 +693,12 @@ Create table "import_changelog"
 Create table "changelog_object"
 (
 	"log_obj_id" BIGSERIAL,
-	"new_obj_id" Integer Constraint "changelog_object_new_obj_id_constraint" Check ((change_action='D' AND new_obj_id IS NULL) OR NOT new_obj_id IS NULL),
-	"old_obj_id" Integer Constraint "changelog_object_old_obj_id_constraint" Check ((change_action='I' AND old_obj_id IS NULL) OR NOT old_obj_id IS NULL),
+	"new_obj_id" BIGINT Constraint "changelog_object_new_obj_id_constraint" Check ((change_action='D' AND new_obj_id IS NULL) OR NOT new_obj_id IS NULL),
+	"old_obj_id" BIGINT Constraint "changelog_object_old_obj_id_constraint" Check ((change_action='I' AND old_obj_id IS NULL) OR NOT old_obj_id IS NULL),
 	"import_admin" Integer,
 	"doku_admin" Integer,
-	"control_id" Integer NOT NULL,
-	"abs_change_id" Integer NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
+	"control_id" BIGINT NOT NULL,
+	"abs_change_id" BIGINT NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
 	"change_action" Char(1) NOT NULL,
 	"changelog_obj_comment" Text,
 	"documented" Boolean NOT NULL Default FALSE,
@@ -726,11 +716,11 @@ Create table "changelog_service"
 (
 	"log_svc_id" BIGSERIAL,
 	"doku_admin" Integer,
-	"control_id" Integer NOT NULL,
+	"control_id" BIGINT NOT NULL,
 	"import_admin" Integer,
-	"new_svc_id" Integer Constraint "changelog_service_new_svc_id_constraint" Check ((change_action='D' AND new_svc_id IS NULL) OR NOT new_svc_id IS NULL),
-	"old_svc_id" Integer Constraint "changelog_service_old_svc_id_constraint" Check ((change_action='I' AND old_svc_id IS NULL) OR NOT old_svc_id IS NULL),
-	"abs_change_id" Integer NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
+	"new_svc_id" BIGINT Constraint "changelog_service_new_svc_id_constraint" Check ((change_action='D' AND new_svc_id IS NULL) OR NOT new_svc_id IS NULL),
+	"old_svc_id" BIGINT Constraint "changelog_service_old_svc_id_constraint" Check ((change_action='I' AND old_svc_id IS NULL) OR NOT old_svc_id IS NULL),
+	"abs_change_id" BIGINT NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
 	"change_action" Char(1) NOT NULL,
 	"changelog_svc_comment" Text,
 	"documented" Boolean NOT NULL Default FALSE,
@@ -747,12 +737,12 @@ Create table "changelog_service"
 Create table "changelog_user"
 (
 	"log_usr_id" BIGSERIAL,
-	"new_user_id" Integer Constraint "changelog_user_new_user_id_constraint" Check ((change_action='D' AND new_user_id IS NULL) OR NOT new_user_id IS NULL),
-	"old_user_id" Integer Constraint "changelog_user_old_user_id_contraint" Check ((change_action='I' AND old_user_id IS NULL) OR NOT old_user_id IS NULL),
+	"new_user_id" BIGINT Constraint "changelog_user_new_user_id_constraint" Check ((change_action='D' AND new_user_id IS NULL) OR NOT new_user_id IS NULL),
+	"old_user_id" BIGINT Constraint "changelog_user_old_user_id_contraint" Check ((change_action='I' AND old_user_id IS NULL) OR NOT old_user_id IS NULL),
 	"import_admin" Integer,
 	"doku_admin" Integer,
-	"control_id" Integer NOT NULL,
-	"abs_change_id" Integer NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
+	"control_id" BIGINT NOT NULL,
+	"abs_change_id" BIGINT NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
 	"change_action" Char(1) NOT NULL,
 	"changelog_user_comment" Text,
 	"documented" Boolean NOT NULL Default FALSE,
@@ -770,12 +760,12 @@ Create table "changelog_rule"
 (
 	"log_rule_id" BIGSERIAL,
 	"doku_admin" Integer,
-	"control_id" Integer NOT NULL,
+	"control_id" BIGINT NOT NULL,
 	"import_admin" Integer,
-	"new_rule_id" Integer Constraint "changelog_rule_new_rule_id_constraint" Check ((change_action='D' AND new_rule_id IS NULL) OR NOT new_rule_id IS NULL),
-	"old_rule_id" Integer Constraint "changelog_rule_old_rule_id_constraint" Check ((change_action='I' AND old_rule_id IS NULL) OR NOT old_rule_id IS NULL),
+	"new_rule_id" BIGINT Constraint "changelog_rule_new_rule_id_constraint" Check ((change_action='D' AND new_rule_id IS NULL) OR NOT new_rule_id IS NULL),
+	"old_rule_id" BIGINT Constraint "changelog_rule_old_rule_id_constraint" Check ((change_action='I' AND old_rule_id IS NULL) OR NOT old_rule_id IS NULL),
 	"implicit_change" Boolean NOT NULL Default FALSE,
-	"abs_change_id" Integer NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
+	"abs_change_id" BIGINT NOT NULL Default nextval('public.abs_change_id_seq'::text) UNIQUE,
 	"change_action" Char(1) NOT NULL,
 	"changelog_rule_comment" Text,
 	"documented" Boolean NOT NULL Default FALSE,
@@ -807,28 +797,28 @@ Create table "request"
 
 Create table "request_object_change"
 (
-	"log_obj_id" Integer NOT NULL,
+	"log_obj_id" BIGINT NOT NULL,
 	"request_id" Integer NOT NULL,
  primary key ("log_obj_id","request_id")
 );
 
 Create table "request_service_change"
 (
-	"log_svc_id" Integer NOT NULL,
+	"log_svc_id" BIGINT NOT NULL,
 	"request_id" Integer NOT NULL,
  primary key ("log_svc_id","request_id")
 );
 
 Create table "request_rule_change"
 (
-	"log_rule_id" Integer NOT NULL,
+	"log_rule_id" BIGINT NOT NULL,
 	"request_id" Integer NOT NULL,
  primary key ("log_rule_id","request_id")
 );
 
 Create table "request_user_change"
 (
-	"log_usr_id" Integer NOT NULL,
+	"log_usr_id" BIGINT NOT NULL,
 	"request_id" Integer NOT NULL,
  primary key ("log_usr_id","request_id")
 );
@@ -910,33 +900,6 @@ Create table "report_template_viewable_by_user"
  primary key ("uiuser_id","report_template_id")
 );
 
-
-
--- temp tables reporting -------------------------------------------
-
--- not needed for 5.0:
-Create table "temp_table_for_tenant_filtered_rule_ids"
-(
-	"rule_id" Integer NOT NULL,
-	"report_id" Integer NOT NULL,
- primary key ("rule_id","report_id")
-);
-
--- not needed for 5.0:
-Create table "temp_filtered_rule_ids"
-(
-	"report_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL
-);
-
--- not needed for 5.0:
-Create table "temp_mgmid_importid_at_report_time"
-(
-	"control_id" Integer,
-	"mgm_id" Integer,
-	"report_id" Integer NOT NULL
-);
-
 -- configuration
 
 Create table "ldap_connection"
@@ -961,4 +924,35 @@ Create table "config"
 "config_value" VARCHAR,
 "config_user" Integer,
 primary key ("config_key","config_user")
+);
+
+-- not needed for 5.0:  -------------------------------------------
+
+Create table "temp_table_for_tenant_filtered_rule_ids"
+(
+	"rule_id" Integer NOT NULL,
+	"report_id" Integer NOT NULL,
+ primary key ("rule_id","report_id")
+);
+
+Create table "temp_filtered_rule_ids"
+(
+	"report_id" Integer NOT NULL,
+	"rule_id" Integer NOT NULL
+);
+
+Create table "temp_mgmid_importid_at_report_time"
+(
+	"control_id" Integer,
+	"mgm_id" Integer,
+	"report_id" Integer NOT NULL
+);
+
+Create table "rule_order"
+(
+	"control_id" Integer NOT NULL,
+	"dev_id" Integer NOT NULL,
+	"rule_id" Integer NOT NULL,
+	"rule_number" Integer NOT NULL,
+ primary key ("control_id","dev_id","rule_id")
 );

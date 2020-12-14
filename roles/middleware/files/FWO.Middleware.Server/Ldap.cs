@@ -39,6 +39,12 @@ namespace FWO.Middleware.Server
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
 
+        [JsonPropertyName("ldap_write_user")]
+        public string WriteUser { get; set; }
+
+        [JsonPropertyName("ldap_write_user_pwd")]
+        public string WriteUserPwd { get; set; }
+
         private const int timeOutInMs = 200; // TODO: MOVE TO API
 
         /// <summary>
@@ -174,6 +180,79 @@ namespace FWO.Middleware.Server
 
             Log.WriteDebug($"Found the following roles for user {userDn}:", string.Join("\n", userRoles));
             return userRoles.ToArray();
+        }
+
+        public List<KeyValuePair<string, List<string>>> GetAllRoles()
+        {
+            List<KeyValuePair<string, List<string>>> roleUsers = new List<KeyValuePair<string, List<string>>>();
+
+            // If this Ldap is containing roles
+            if (RoleSearchPath != null)
+            {
+                // Connect to Ldap
+                using (LdapConnection connection = Connect())
+                {     
+                    // Authenticate as search user
+                    connection.Bind(SearchUser, SearchUserPwd);
+
+                    // Search for Ldap roles in given directory          
+                    int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scobe?
+                    string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
+                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath, searchScope, searchFilter, null, false);                
+
+                    // Foreach found role
+                    foreach (LdapEntry entry in searchResults)
+                    {
+                        List<string> users = new List<string>();
+                        string[] roleMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
+                        foreach (string currentDn in roleMemberDn)
+                        {
+                            if (currentDn != "")
+                            {
+                                users.Add(currentDn);
+                            }
+                        }
+                        roleUsers.Add(new KeyValuePair<string, List<string>>(entry.Dn, users));
+                    }
+                }
+            }
+            return roleUsers;
+        }
+
+        public bool AddUserToRole(string userDn, string role)
+        {
+            Log.WriteInfo("Add User to Role", $"Trying to add User: \"{userDn}\" to Role: \"{role}\"");
+            bool userAdded = false;
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    // Add a new value to the description attribute
+                    LdapAttribute attribute = new LdapAttribute("uniquemember", userDn);
+                    LdapModification[] mods = { new LdapModification(LdapModification.Add, attribute) }; 
+
+                    try
+                    {
+                        //Modify the entry in the directory
+                        connection.Modify ( role, mods );
+                        userAdded = true;
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Modify Role", $"maybe role doesn't exist in this LDAP: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to add user", exception);
+            }
+
+            return userAdded;
         }
     }
 }

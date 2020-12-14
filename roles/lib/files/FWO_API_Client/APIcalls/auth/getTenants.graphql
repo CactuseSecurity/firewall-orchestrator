@@ -4,6 +4,8 @@ query getTenants {
     tenant_name
     tenant_comment
     tenant_projekt
+    tenant_can_view_all_devices
+    tenant_is_superadmin
     tenant_to_devices {
       device {
         dev_id

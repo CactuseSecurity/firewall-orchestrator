@@ -1,0 +1,35 @@
+﻿<div class="w-100 card">
+    <div class="btn-group w-100">
+        <button class="btn btn-sm btn-block text-sm-left" @ondblclick="SwapContent">@(swapped ? Title2 : Title1)</button>
+        <button class="btn btn-sm btn-secondary" @onclick="SwapContent"><span class="oi oi-loop-circular"></span></button>
+    </div>
+    @if (swapped)
+    {
+        @Content2
+    }
+    else
+    {
+        @Content1
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Title1 { get; set; }
+
+    [Parameter]
+    public string Title2 { get; set; }
+
+    [Parameter]
+    public RenderFragment Content1 { get; set; }
+
+    [Parameter]
+    public RenderFragment Content2 { get; set; }
+
+    private bool swapped = false;
+
+    private void SwapContent()
+    {
+        swapped = !swapped;
+    }
+}

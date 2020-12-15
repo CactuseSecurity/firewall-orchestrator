@@ -334,8 +334,12 @@ def collect_nw_objects(object_table):
     result = ''  # todo: delete this line
     nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
     nw_obj_type_to_host_list = [
-        'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 
-        'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
+        'simple-gateway', 'simple-cluster', 'checkpoint-host',
+        'CpmiAnyObject',
+        'CpmiVsClusterNetobj',
+        'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember',
+        'CpmiGatewayPlain', 'CpmiHostCkp',
+        'CpmiClusterMember', 'CpmiGatewayCluster'
     ]
 
     if object_table['object_type'] in nw_obj_tables:

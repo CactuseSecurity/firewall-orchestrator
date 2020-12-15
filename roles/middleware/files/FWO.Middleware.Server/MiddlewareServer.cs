@@ -63,8 +63,10 @@ namespace FWO.Middleware.Server
         private async Task RunListenerAsync(string middlewareListenerUri)
         {
             // Add prefixes to listen to 
-            listener.Prefixes.Add(middlewareListenerUri + "/AuthenticateUser/");
-            listener.Prefixes.Add(middlewareListenerUri + "/Test/"); // TODO: REMOVE TEST PREFIX
+            listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
+            listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
+            listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
+            listener.Prefixes.Add(middlewareListenerUri + "Test/"); // TODO: REMOVE TEST PREFIX
 
             // Start listener
             listener.Start();
@@ -108,21 +110,39 @@ namespace FWO.Middleware.Server
             string requestName = request.Url.LocalPath.Trim('\\', '/');
             Log.WriteInfo("Request received", $"New request received: \"{requestName}\".");
 
+            JwtWriter jwtWriterCopy = GetNewJwtWriter();
+            List<Ldap> ldapsCopy = GetNewConnectedLdaps();
+            APIConnection apiConnectionCopy = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriterCopy));
+
             // Find correct way to handle request.
             switch (requestName)
             {
                 // Authenticate user request. Returns jwt if user credentials are valid.
                 case "AuthenticateUser":
 
-                    JwtWriter jwtWriterCopy = GetNewJwtWriter();
-                    List<Ldap> ldapsCopy = GetNewConnectedLdaps();
-                    APIConnection apiConnectionCopy = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriterCopy));
-
                     // Initialize Request Handler  
                     AuthenticationRequestHandler authenticationRequestHandler = new AuthenticationRequestHandler(ldapsCopy, jwtWriterCopy, apiConnectionCopy);
 
                     // Try to authenticate user
                     (status, responseString) = await authenticationRequestHandler.HandleRequestAsync(request);
+                    break;
+
+                case "GetAllRoles":
+
+                    // Initialize Request Handler  
+                    GetAllRolesRequestHandler getAllRolesRequestHandler = new GetAllRolesRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                    // Try to get all roles with users
+                    (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
+                    break;
+
+                case "AddUserToRole":
+
+                    // Initialize Request Handler  
+                    AddUserToRoleRequestHandler addUserToRoleRequestHandler = new AddUserToRoleRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                    // Try to add user to role
+                    (status, responseString) = await addUserToRoleRequestHandler.HandleRequestAsync(request);
                     break;
 
                 // TODO: REMOVE TEST PREFIX

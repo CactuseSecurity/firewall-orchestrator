@@ -28,9 +28,9 @@
          mode: "0755"
        notify: "restart daemons"
 
-    - name: make webhook run at host startup
-      systemd:
-        name: fworch-webhook-receiver
-        enabled: yes
+     - name: make webhook run at host startup
+       systemd:
+         name: fworch-webhook-receiver
+         enabled: yes
 
   become: yes

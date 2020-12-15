@@ -1,2 +1,3 @@
+install_webhook: no
 webhook_install_mode: reinstall
 # webhook_install_mode: upgrade

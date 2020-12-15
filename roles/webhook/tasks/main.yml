@@ -33,4 +33,9 @@
          name: fworch-webhook-receiver
          enabled: yes
 
+     - name: start webhook
+       systemd:
+         name: fworch-webhook-receiver
+         state: restarted
+
   become: yes

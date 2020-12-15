@@ -219,10 +219,44 @@ namespace FWO.Middleware.Server
             return roleUsers;
         }
 
+        public List<string> GetAllUsers()
+        {
+            List<string> allUsers = new List<string>();
+
+            // Connect to Ldap
+            using (LdapConnection connection = Connect())
+            {     
+                // Authenticate as search user
+                connection.Bind(SearchUser, SearchUserPwd);
+
+                // Search for Ldap users in given directory          
+                int searchScope = LdapConnection.ScopeSub;
+                string searchFilter = $"(&(objectClass=person)(uid=*))";
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath, searchScope, searchFilter, null, false);                
+
+                foreach (LdapEntry entry in searchResults)
+                {
+                    allUsers.Add(entry.Dn);
+                }
+            }
+            return allUsers;
+        }
+
         public bool AddUserToRole(string userDn, string role)
         {
             Log.WriteInfo("Add User to Role", $"Trying to add User: \"{userDn}\" to Role: \"{role}\"");
-            bool userAdded = false;
+            return ModifyUserInRole(userDn, role, LdapModification.Add);
+        }
+        
+        public bool RemoveUserFromRole(string userDn, string role)
+        {
+            Log.WriteInfo("Remove User from Role", $"Trying to remove User: \"{userDn}\" from Role: \"{role}\"");
+            return ModifyUserInRole(userDn, role, LdapModification.Delete);
+        }
+
+        public bool ModifyUserInRole(string userDn, string role, int LdapModification)
+        {
+            bool userModified = false;
             try         
             {
                 // Connecting to Ldap
@@ -233,13 +267,13 @@ namespace FWO.Middleware.Server
 
                     // Add a new value to the description attribute
                     LdapAttribute attribute = new LdapAttribute("uniquemember", userDn);
-                    LdapModification[] mods = { new LdapModification(LdapModification.Add, attribute) }; 
+                    LdapModification[] mods = { new LdapModification(LdapModification, attribute) }; 
 
                     try
                     {
                         //Modify the entry in the directory
                         connection.Modify ( role, mods );
-                        userAdded = true;
+                        userModified = true;
                     }
                     catch(Exception exception)
                     {
@@ -249,10 +283,9 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to add user", exception);
+                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to modify user", exception);
             }
-
-            return userAdded;
+            return userModified;
         }
     }
 }

@@ -53,6 +53,7 @@
       - python-dev
       - libldap2-dev
       - libssl-dev
+      - python3-setuptools
   become: yes
 
 - name: install python modules for ansible ldap module

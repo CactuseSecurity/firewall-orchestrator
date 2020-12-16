@@ -16,6 +16,7 @@ fworch_user: "{{ product_name }}"
 fworch_group: "{{ fworch_user }}"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
+fworchtest_home: /home/fworchtest
 fworch_conf_file: "{{ fworch_home }}/etc/fworch.yaml"
 http_proxy: ""
 #http_proxy: http://admsrv.int.cactus:3128

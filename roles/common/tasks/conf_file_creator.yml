@@ -52,7 +52,7 @@
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         
         # middleware
-        middleware_uri: "http://{{ middleware_hostname }}:{{ middleware_web_listener_port }}"
+        middleware_uri: "http://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
         # should be middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}"
     when: installation_mode != "upgrade"
     # keep old version number in config file until end of upgrade

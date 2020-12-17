@@ -158,6 +158,15 @@ namespace FWO.Report.Filter.Ast
                                 }}
                             }}
                         }}";
+            query.nwObjWhereStatement +=
+                $@" {locationTable}: 
+                        {{ object: 
+                            {{ objgrp_flats: 
+                                {{ objectByObjgrpFlatMemberId:
+                                    {{ {ipFilterString} }}
+                                }}
+                            }}
+                        }}";
             return query;
         }
 
@@ -228,6 +237,9 @@ namespace FWO.Report.Filter.Ast
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value}%";
             query.ruleWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            query.nwObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            query.svcObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            query.userObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
             return query;
         }
         private DynGraphqlQuery ExtractGatewayQuery(DynGraphqlQuery query)
@@ -238,6 +250,9 @@ namespace FWO.Report.Filter.Ast
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value}%";
             query.ruleWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            // query.nwObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            // query.svcObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            // query.userObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
 
             return query;
         }

@@ -22,7 +22,8 @@
             <a class="list-group-item list-group-item-action @(reportType==rulesReport?$"active":$"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
             <a class="list-group-item list-group-item-action @(reportType==changesReport?$"active":$"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
             <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Compliance</a>
-            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Statistics</a>
+            @* <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Statistics Global</a> *@
+            <a class="list-group-item list-group-item-action  @(reportType==statisticsReport?$"active":$"")" @onclick="() => { filterInput = statisticsReportDefaultFilterLine; reportType = statisticsReport; }" href="report">Statistics</a>
         </div>
 
         <hr />
@@ -93,7 +94,7 @@
         <div class="card-body">
 
             @switch (reportType) {
-                case "Rules":
+                case rulesReport:
                     @foreach (Management management in managementsReport)
                     {
                         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
@@ -159,7 +160,7 @@
                        </Collapse>
                     }
                     break;
-                case "Changes":
+                case changesReport:
                     @foreach (Management management in managementsReport)
                     {
                         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
@@ -247,6 +248,25 @@
                        </Collapse>
                     }                
                     break;
+                case statisticsReport:
+                    
+                    @foreach (Management management in managementsReport)
+                    {
+                        <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+                            <hr />
+
+                            <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
+                                
+                                <Column TableItem="Device" Title="Gateway" Field="@(Device => Device.Name)" Hideable="true"/>
+                                <Column TableItem="Device" Title="Number of Rules" Field="@(Device => Device.RuleStatistics[0].ElementAggregate.Counter.ElementNumber)" Hideable="true"/>
+
+                            </Table>
+                            
+                       </Collapse>
+                    }               
+                    break;
+                default:
+                    break;
             }
         </div>
     </div>
@@ -299,6 +319,8 @@
     private string rulesReportDefaultFilterLine = "type=rules and time=now ";
     //private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
     private string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
+    private string statisticsReportDefaultFilterLine = "type=statistics and time=now ";
+    
     private string reportGenerationTimeLine = "";
     private const string rulesReport = "Rules";
     private const string changesReport = "Changes";
@@ -357,7 +379,7 @@
                 DateTime startTime = DateTime.Now;
 
                 switch (reportType) {
-                    case "Rules":
+                    case rulesReport:
                         ReportRules reportRules = new ReportRules();
                         reportRules.Generate(rulesPerFetch, filterInput, Connection,
                             managementsReportIntermediate =>
@@ -367,9 +389,18 @@
                             });
                         break;
                         
-                    case "Changes":
+                    case changesReport:
                         ReportChanges reportChanges = new ReportChanges();
                         reportChanges.Generate(rulesPerFetch, filterInput, Connection,
+                            managementsReportIntermediate =>
+                            {
+                                managementsReport = managementsReportIntermediate;
+                                return InvokeAsync(StateHasChanged);
+                            });
+                        break;
+                case statisticsReport:
+                        ReportStatistics reportStatistics = new ReportStatistics();
+                        reportStatistics.Generate(0, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;

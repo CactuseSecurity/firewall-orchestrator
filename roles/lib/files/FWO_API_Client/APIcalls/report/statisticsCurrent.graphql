@@ -1,0 +1,36 @@
+
+query statisticsCurrentperDevice {
+  management(order_by: { mgm_name: asc }) {
+    name: mgm_name
+    id: mgm_id
+    objects_aggregate(where: { active: { _eq: true } }) {
+      aggregate {
+        count
+      }
+    }
+    services_aggregate(where: { active: { _eq: true } }) {
+      aggregate {
+        count
+      }
+    }
+    usrs_aggregate(where: { active: { _eq: true } }) {
+      aggregate {
+        count
+      }
+    }
+    rules_aggregate(where: { active: { _eq: true } }) {
+      aggregate {
+        count
+      }
+    }
+    devices(order_by: { dev_name: asc }) {
+      name: dev_name
+      id: dev_id
+      rules_aggregate(where: { active: { _eq: true } }) {
+        aggregate {
+          count
+        }
+      }
+    }
+  }
+}

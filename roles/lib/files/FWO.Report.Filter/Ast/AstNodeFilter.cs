@@ -40,9 +40,18 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
-            if (query.ReportType == "rules")
+            if (query.ReportType == "rules" || query.ReportType == "statistics")
             {
-                query.RuleWhereQuery +=
+                query.ruleWhereStatement +=
+                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                query.nwObjWhereStatement +=
+                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                query.svcObjWhereStatement +=
+                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                query.userObjWhereStatement +=
                     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
                     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
                 query.ReportTime = Value;
@@ -57,7 +66,7 @@ namespace FWO.Report.Filter.Ast
                 query.QueryParameters.Add("$start: timestamp! ");
                 query.QueryParameters.Add("$stop: timestamp! ");
 
-                query.RuleWhereQuery += $@"
+                query.ruleWhereStatement += $@"
                     _and: [
                         {{ import_control: {{ stop_time: {{ _gte: $start }} }} }}
                         {{ import_control: {{ stop_time: {{ _lte: $stop }} }} }}
@@ -70,6 +79,7 @@ namespace FWO.Report.Filter.Ast
             // todo: deal with time ranges for changes report type
             return query;
         }
+        
         private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
         {
             query.ReportType = Value;
@@ -139,7 +149,7 @@ namespace FWO.Report.Filter.Ast
                             }}
                      ]";
             }
-            query.RuleWhereQuery +=
+            query.ruleWhereStatement +=
                 $@" {locationTable}: 
                         {{ object: 
                             {{ objgrp_flats: 
@@ -161,7 +171,7 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = "src" + query.parameterCounter++;
                 query.QueryVariables[QueryVarName] = $"%{Value}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
-                query.RuleWhereQuery += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+                query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;
         }
@@ -175,7 +185,7 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = "dst" + query.parameterCounter++;
                 query.QueryVariables[QueryVarName] = $"%{Value}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
-                query.RuleWhereQuery += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+                query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;
         }
@@ -187,7 +197,7 @@ namespace FWO.Report.Filter.Ast
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value}%";
-            query.RuleWhereQuery += $"rule_services: {{service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+            query.ruleWhereStatement += $"rule_services: {{service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
             return query;
         }
         private DynGraphqlQuery ExtractActionQuery(DynGraphqlQuery query)
@@ -197,7 +207,7 @@ namespace FWO.Report.Filter.Ast
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value}%";
-            query.RuleWhereQuery += $"rule_action: {{ {QueryOperation}: ${QueryVarName} }}";
+            query.ruleWhereStatement += $"rule_action: {{ {QueryOperation}: ${QueryVarName} }}";
             return query;
         }
         private DynGraphqlQuery ExtractProtocolQuery(DynGraphqlQuery query)
@@ -207,7 +217,7 @@ namespace FWO.Report.Filter.Ast
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value}%";
-            query.RuleWhereQuery += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }}";
+            query.ruleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }}";
             return query;
         }
         private DynGraphqlQuery ExtractManagementQuery(DynGraphqlQuery query)
@@ -217,7 +227,7 @@ namespace FWO.Report.Filter.Ast
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value}%";
-            query.RuleWhereQuery += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            query.ruleWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
             return query;
         }
         private DynGraphqlQuery ExtractGatewayQuery(DynGraphqlQuery query)
@@ -227,7 +237,7 @@ namespace FWO.Report.Filter.Ast
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value}%";
-            query.RuleWhereQuery += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            query.ruleWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
 
             return query;
         }
@@ -243,9 +253,9 @@ namespace FWO.Report.Filter.Ast
             List<string> searchParts = new List<string>();
             foreach (string field in ruleFieldNames)
                 searchParts.Add($"{{{field}: {{{QueryOperation}: ${QueryVarName} }} }} ");
-            query.RuleWhereQuery += " _or: [";
-            query.RuleWhereQuery += string.Join(", ", searchParts);
-            query.RuleWhereQuery += "]";
+            query.ruleWhereStatement += " _or: [";
+            query.ruleWhereStatement += string.Join(", ", searchParts);
+            query.ruleWhereStatement += "]";
 
             return query;
         }
@@ -257,7 +267,7 @@ namespace FWO.Report.Filter.Ast
             query.QueryParameters.Add($"${QueryVarName}: Int! ");
             query.QueryVariables[QueryVarName] = Value;
 
-            query.RuleWhereQuery +=
+            query.ruleWhereStatement +=
                 " rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte" +
                 ": $" + QueryVarName + "}, svc_port_end: {_gte: $" + QueryVarName + "} } } } }";
             return query;

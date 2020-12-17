@@ -1,0 +1,23 @@
+
+query statisticsCurrentOverall {
+  object_aggregate(where: { active: { _eq: true } }) {
+    aggregate {
+      count
+    }
+  }
+  service_aggregate(where: { active: { _eq: true } }) {
+    aggregate {
+      count
+    }
+  }
+  usr_aggregate(where: { active: { _eq: true } }) {
+    aggregate {
+      count
+    }
+  }
+  rule_aggregate(where: { active: { _eq: true } }) {
+    aggregate {
+      count
+    }
+  }
+}

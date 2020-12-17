@@ -38,6 +38,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("changelog_rules")]
         public RuleChange[] RuleChanges { get; set; }
 
+        [JsonPropertyName("rules_aggregate")]
+        public ObjectStatistics[] RuleStatistics { get; set; }
+
         public Device()
         { }
 

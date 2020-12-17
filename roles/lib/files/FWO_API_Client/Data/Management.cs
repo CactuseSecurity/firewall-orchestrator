@@ -69,9 +69,21 @@ namespace FWO.Api.Data
         [JsonPropertyName("import")]
         public Import Import { get; set; }
 
-        [JsonPropertyName("pointInTime")]
-        public DateTime ReportTime { get; set; }
+        // [JsonPropertyName("pointInTime")]
+        // public DateTime ReportTime { get; set; }
         public int? RelevantImportId { get; set; }
+
+        [JsonPropertyName("objects_aggregate")]
+        public ObjectStatistics NetworkObjectStatistics { get; set; }
+
+        [JsonPropertyName("services_aggregate")]
+        public ObjectStatistics ServiceObjectStatistics { get; set; }
+
+        [JsonPropertyName("usrs_aggregate")]
+        public ObjectStatistics UserObjectStatistics { get; set; }
+        
+        [JsonPropertyName("rules_aggregate")]
+        public ObjectStatistics RuleStatistics { get; set; }
 
         public Management()
         { }

@@ -16,7 +16,8 @@ namespace FWO.ApiClient.Queries
         public static readonly string getReportsOverview;
         public static readonly string getReportsById;
         public static readonly string getRelevantImportIdsAtTime;
-        public static readonly string getRuleChangeDetails;
+        // public static readonly string getRuleChangeDetails;
+        public static readonly string statisticsReportCurrent;
 
         static ReportQueries() 
         {
@@ -28,16 +29,18 @@ namespace FWO.ApiClient.Queries
                 getReportsById = File.ReadAllText(QueryPath + "report/getReportById.graphql");
                 getReportTemplates = File.ReadAllText(QueryPath + "report/getReportTemplates.graphql");
                 getRelevantImportIdsAtTime = File.ReadAllText(QueryPath + "report/getRelevantImportIdsAtTime.graphql");
-                
-                getRuleChangeDetails =
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetails.graphql") +
-                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetails.graphql") +
-                    File.ReadAllText(QueryPath + "user/fragments/userDetails.graphql") +
-                    // File.ReadAllText(QueryPath + "rule/fragments/ruleDetails.graphql") +
-                    File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql") +
-                    File.ReadAllText(QueryPath + "report/getRuleChangeDetails.graphql");
-
+                statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrent.graphql");
+                statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrentOverall.graphql");
                 getReportSchedules = File.ReadAllText(QueryPath + "report/getReportSchedules.graphql");
+
+                // getRuleChangeDetails =
+                //     File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetails.graphql") +
+                //     File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetails.graphql") +
+                //     File.ReadAllText(QueryPath + "user/fragments/userDetails.graphql") +
+                //     // File.ReadAllText(QueryPath + "rule/fragments/ruleDetails.graphql") +
+                //     File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql") +
+                //     File.ReadAllText(QueryPath + "report/getRuleChangeDetails.graphql");
+
             }
             catch (Exception exception)
             {

@@ -10,11 +10,10 @@
 
   - name: Create the DB_CONFIG file
     copy:
-      path:
-        src: DB_CONFIG
-        dest: /var/lib/ldap/{{ openldap_server_domain_name }}/DB_CONFIG
-        owner: "{{ openldap_server_user }}"
-        group: "{{ openldap_server_user }}"
+      src: DB_CONFIG
+      dest: /var/lib/ldap/{{ openldap_server_domain_name }}/DB_CONFIG
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
 
   - name: delete the directory for ldap certificates
     file:

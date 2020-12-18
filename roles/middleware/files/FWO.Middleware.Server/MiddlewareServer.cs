@@ -65,7 +65,9 @@ namespace FWO.Middleware.Server
             // Add prefixes to listen to 
             listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
             listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
+            listener.Prefixes.Add(middlewareListenerUri + "GetUsers/");
             listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
+            listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
             listener.Prefixes.Add(middlewareListenerUri + "Test/"); // TODO: REMOVE TEST PREFIX
 
             // Start listener
@@ -136,6 +138,15 @@ namespace FWO.Middleware.Server
                     (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
                     break;
 
+                case "GetUsers":
+
+                    // Initialize Request Handler  
+                    GetUsersRequestHandler getUsersRequestHandler = new GetUsersRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                    // Try to get all users from Ldap
+                    (status, responseString) = await getUsersRequestHandler.HandleRequestAsync(request);
+                    break;
+
                 case "AddUserToRole":
 
                     // Initialize Request Handler  
@@ -143,6 +154,15 @@ namespace FWO.Middleware.Server
 
                     // Try to add user to role
                     (status, responseString) = await addUserToRoleRequestHandler.HandleRequestAsync(request);
+                    break;
+
+                case "RemoveUserFromRole":
+
+                    // Initialize Request Handler  
+                    RemoveUserFromRoleRequestHandler removeUserFromRoleRequestHandler = new RemoveUserFromRoleRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                    // Try to remove user from role
+                    (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
                     break;
 
                 // TODO: REMOVE TEST PREFIX

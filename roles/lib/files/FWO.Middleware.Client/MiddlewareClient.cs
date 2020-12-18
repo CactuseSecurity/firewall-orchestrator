@@ -38,6 +38,16 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "GetAllRoles");
         }
 
+        public async Task<MiddlewareServerResponse> GetUsers(string Ldap)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "Ldap", Ldap }
+            };
+
+            return await requestSender.SendRequest(parameters, "GetUsers");
+        }
+
         public async Task<MiddlewareServerResponse> AddUserToRole(string Username, string Role)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
@@ -47,6 +57,17 @@ namespace FWO.Middleware.Client
             };
 
             return await requestSender.SendRequest(parameters, "AddUserToRole");
+        }
+
+        public async Task<MiddlewareServerResponse> RemoveUserFromRole(string Username, string Role)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "Username", Username },
+                { "Role", Role }
+            };
+
+            return await requestSender.SendRequest(parameters, "RemoveUserFromRole");
         }
     }
 }

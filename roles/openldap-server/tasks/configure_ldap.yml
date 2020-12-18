@@ -2,9 +2,16 @@
 
 - block:
   - name: Create the directory for ldap database
-    file: 
+    file:
       path: "/var/lib/ldap/{{ openldap_server_domain_name }}/"
-      state: directory 
+      state: directory
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  - name: Create the DB_CONFIG file
+    copy:
+      src: DB_CONFIG
+      dest: /var/lib/ldap/{{ openldap_server_domain_name }}/DB_CONFIG
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
@@ -15,7 +22,7 @@
     when: generate_new_ldap_crypto == true
 
   - name: Create the directory for ldap certificates
-    file: 
+    file:
       path: "{{ openldap_server_app_path }}/certs/"
       state: directory
       owner: "{{ openldap_server_user }}"
@@ -46,44 +53,44 @@
       provider: selfsigned
 
   - name: set permissions on key
-    file: 
+    file:
       path: "{{ openldap_server_private_key }}"
       state: file
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
   - name: set permissions on cert
-    file: 
+    file:
       path: "{{ openldap_server_cert }}"
       state: file
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
   - name: copy the supporting files
-    copy: 
+    copy:
       src: ldap
-      dest: /etc/sysconfig/ldap 
+      dest: /etc/sysconfig/ldap
       mode: "0755"
     when: openldap_server_enable_ssl and ansible_os_family == 'RedHat'
-    notify: 
+    notify:
     - restart slapd
 
   - name: copy the supporting files
-    copy: 
+    copy:
       src: slapd_fedora
-      dest: /etc/sysconfig/slapd 
+      dest: /etc/sysconfig/slapd
       mode: "0755"
     when: openldap_server_enable_ssl and ansible_distribution == "Fedora"
-    notify: 
+    notify:
     - restart slapd
 
   - name: copy the supporting files
-    copy: 
-      src: slapd 
-      dest: /etc/default/slapd 
+    copy:
+      src: slapd
+      dest: /etc/default/slapd
       mode: "0755"
     when: openldap_server_enable_ssl and ansible_os_family == 'Debian'
-    notify: 
+    notify:
     - restart slapd
 
   - name: start the slapd service
@@ -91,9 +98,9 @@
       name: slapd
       state: restarted
       enabled: yes
-    
+
   - name: Copy the template for creating base dn
-    template: 
+    template:
       src: "{{ openldap_server_ldif }}"
       dest: /tmp/
     register: result
@@ -104,5 +111,5 @@
   #   args:
   #     creates: "{{ openldap_server_app_path }}/rootdn_created"
   #   when: not is_manger_pw_present_flag.stat.exists
-  
+
   become: yes

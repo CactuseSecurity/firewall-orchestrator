@@ -22,3 +22,6 @@ add report_owner_id column to report table (but do not allow for sharing of gene
 
 ### 5.0.5 - 13.12.2020
 adjust all relevant tables to allow for growth beyond integer (turning into BIGINT)
+
+### 5.0.6 - 18.12.2020
+adding tenant_id to ldap_connection table (optional) to allow dedicated ldap_connections per tenant

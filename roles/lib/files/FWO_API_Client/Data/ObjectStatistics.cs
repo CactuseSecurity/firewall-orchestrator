@@ -5,7 +5,15 @@ namespace FWO.Api.Data
     public class ObjectStatistics
     {
         [JsonPropertyName("aggregate")]
-        public ElementAggregate ElementAggregate { get; set; }
+        public ObjectAggregate ObjectAggregate { get; set; }
+    }
+
+    public class ObjectAggregate
+    {
+        [JsonPropertyName("count")]
+        public int ObjectCount { get; set; }
+
     }
 
 }
+

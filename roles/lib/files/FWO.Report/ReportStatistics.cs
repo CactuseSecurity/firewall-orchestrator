@@ -21,13 +21,13 @@ namespace FWO.Report
             DynGraphqlQuery query = Compiler.Compile(filterInput);
             string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            if (query.ReportTime != "")
+            if (query.ReportTime != null && query.ReportTime != "" && query.ReportTime != "now")
                 TimeFilter = query.ReportTime;
 
             // get relevant import ids for report time
             ImpIdQueryVariables["time"] = TimeFilter;
             Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
-            result = new Management[managementsWithRelevantImportId.Length];
+            List<Management> resultList = new List<Management>();
             int i;
 
             for (i = 0; i < managementsWithRelevantImportId.Length; i++)
@@ -38,9 +38,13 @@ namespace FWO.Report
                     query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
                 else    // managment was not yet imported at that time
                     query.QueryVariables["relevantImportId"] = -1;
-                result[i] = (await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
-                await callback(result);
-           }
+                resultList.Add((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
+
+                // gotNewObjects = result.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
+
+            }
+            result = resultList.ToArray();
+            await callback(result);
         }
 
         public override string ToCsv()

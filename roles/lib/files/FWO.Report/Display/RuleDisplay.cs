@@ -14,7 +14,8 @@ namespace FWO.Ui.Display
         public static string DisplayNumber(this Rule rule, Rule[] rules)
         {
             result = new StringBuilder();
-            result.AppendLine($"{Array.IndexOf(rules, rule) + 1} <br>");
+            if (rules != null)
+                result.AppendLine($"{Array.IndexOf(rules, rule) + 1} <br>");
             result.AppendLine($"DEBUG: {rule.OrderNumber}");
             return result.ToString();
         }

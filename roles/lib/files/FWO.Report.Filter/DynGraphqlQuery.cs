@@ -56,7 +56,7 @@ namespace FWO.Report.Filter
                     query.FullQuery = $@"
                     query statisticsReport ({paramString}) 
                     {{ 
-                        management(order_by: {{ mgm_name: asc }}) 
+                        management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
                         {{
                             name: mgm_name
                             id: mgm_id
@@ -68,7 +68,7 @@ namespace FWO.Report.Filter
                             {{
                                 name: dev_name
                                 id: dev_id
-                                rulesPerGateway: rules_aggregate(where: {{ {query.ruleWhereStatement} }}) {{ aggregate {{ count }} }}
+                                rules_aggregate(where: {{ {query.ruleWhereStatement} }}) {{ aggregate {{ count }} }}
                             }}
                         }}
                     }}";

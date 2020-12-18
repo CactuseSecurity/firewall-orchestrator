@@ -108,21 +108,10 @@ namespace FWO.Api.Data
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&
                 management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-            {
-                //if (management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!=null) 
-                //    RelevantImportId = Convert.ToInt32(management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId);
                 RelevantImportId = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-                // else
-                //    RelevantImportId = 0;
-            }
-            // Devices = management.Devices;
-            // Objects = management.Objects;
-            // Services = management.Services;
-            // Users = management.Users;
+
             if (management.DeviceType != null)
-            {
                 DeviceType = new DeviceType(management.DeviceType);
-            }
         }
 
         public string Host()

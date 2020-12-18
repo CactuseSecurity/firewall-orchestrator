@@ -1219,6 +1219,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - obj_id
       - last_change_admin
@@ -1623,6 +1624,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - rule_id
       - last_change_admin
@@ -1907,6 +1909,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - svc_id
       - svc_uid
@@ -2970,6 +2973,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - user_id
       - usr_typ_id

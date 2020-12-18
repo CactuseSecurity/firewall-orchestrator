@@ -47,13 +47,13 @@ namespace FWO.Report.Filter.Ast
                     $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
                 query.nwObjWhereStatement +=
                     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                    $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
                 query.svcObjWhereStatement +=
                     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                    $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
                 query.userObjWhereStatement +=
                     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                    $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
                 query.ReportTime = Value;
             }
             else if (query.ReportType == "changes")

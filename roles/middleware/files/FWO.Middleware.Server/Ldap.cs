@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
         [JsonPropertyName("ldap_write_user_pwd")]
         public string WriteUserPwd { get; set; }
 
-        [JsonPropertyName("ldap_tenant_id")]
+        [JsonPropertyName("tenant_id")]
         public int? TenantId { get; set; }
 
         private const int timeOutInMs = 200; // TODO: MOVE TO API

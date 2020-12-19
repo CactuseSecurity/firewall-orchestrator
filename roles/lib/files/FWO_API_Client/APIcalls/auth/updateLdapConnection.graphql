@@ -25,7 +25,7 @@ mutation updateLdapConnection(
       ldap_searchpath_for_roles: $searchpathForRoles
       ldap_write_user: $writeUser
       ldap_write_user_pwd: $writeUserPwd
-      ldap_tenant_id: $tenantId
+      tenant_id: $tenantId
     }
   ) {
     UpdatedId: ldap_connection_id

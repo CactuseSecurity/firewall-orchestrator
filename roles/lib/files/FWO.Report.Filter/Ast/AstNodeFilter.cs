@@ -23,6 +23,11 @@ namespace FWO.Report.Filter.Ast
             functions["ReportType"] = this.ExtractReportTypeQuery;
             functions["Time"] = this.ExtractTimeQuery;
 
+            // functions["Disabled"] = this.ExtractDisabled;
+            // functions["SourceNegated"] = this.ExtractSourceNegated;
+            // functions["DestinationNegated"] = this.ExtractDestinationNegated;
+            // functions["ServiceNegated"] = this.ExtractServiceNegated;
+            
             functions["Source"] = this.ExtractSourceQuery;
             functions["Destination"] = this.ExtractDestinationQuery;
             functions["Action"] = this.ExtractActionQuery;
@@ -170,6 +175,29 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
+            // functions["Disabled"] = this.ExtractDisabled;
+        // private DynGraphqlQuery ExtractDisabledQuery(DynGraphqlQuery query)
+        // {
+        //     string QueryOperation = SetQueryOpString(Operator, Name, Value);
+
+        //     if (QueryOperation == null) 
+        //     {
+        //         QueryOperation = EQ;
+        //     }
+        //     if (isCidr(Value))  // filtering for ip addresses
+        //         query = ExtractIpFilter(query, location: "src", locationTable: "rule_froms");
+        //     else // string search against src obj name
+        //     {
+        //         string QueryVarName = "src" + query.parameterCounter++;
+        //         query.QueryVariables[QueryVarName] = $"%{Value}%";
+        //         query.QueryParameters.Add($"${QueryVarName}: String! ");
+        //         query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+        //     }
+        //     return query;
+        // }            // functions["SourceNegated"] = this.ExtractSourceNegated;
+        //     // functions["DestinationNegated"] = this.ExtractDestinationNegated;
+        //     // functions["ServiceNegated"] = this.ExtractServiceNegated;
+            
         private DynGraphqlQuery ExtractSourceQuery(DynGraphqlQuery query)
         {
             string QueryOperation = SetQueryOpString(Operator, Name, Value);

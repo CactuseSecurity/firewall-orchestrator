@@ -41,7 +41,7 @@ namespace FWO.Api.Data
         [JsonPropertyName("ldap_write_user_pwd")]
         public string WriteUserPwd { get; set; }
 
-        [JsonPropertyName("ldap_tenant_id")]
+        [JsonPropertyName("tenant_id")]
         public int? TenantId { get; set; }
 
         public string TenantIdAsString

@@ -21,8 +21,7 @@
         <div class="list-group small mt-3">
             <a class="list-group-item list-group-item-action @(reportType==rulesReport?$"active":$"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
             <a class="list-group-item list-group-item-action @(reportType==changesReport?$"active":$"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
-            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Compliance</a>
-            @* <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Statistics Global</a> *@
+            <a class="list-group-item list-group-item-action @(reportType==complianceReport?$"active":$"")" @onclick="() => { filterInput = complianceReportDefaultFilterLine; reportType = complianceReport; }" href="report">Compliance</a>
             <a class="list-group-item list-group-item-action  @(reportType==statisticsReport?$"active":$"")" @onclick="() => { filterInput = statisticsReportDefaultFilterLine; reportType = statisticsReport; }" href="report">Statistics</a>
         </div>
 
@@ -320,11 +319,14 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
-    private string rulesReportDefaultFilterLine = "type=rules and time=now ";
+    private const string rulesReportDefaultFilterLine = "type=rules and time=now ";
     //private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
-    private string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
-    private string statisticsReportDefaultFilterLine = "type=statistics and time=now ";
-    
+    private const string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
+    private const string statisticsReportDefaultFilterLine = "type=statistics and time=now ";
+    private const string anyObjcomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny)";
+    private const string cleanupRulecomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any and dst=any and svc=any) or (src=all and dst=all and svc=all) and (action=drop or action=reject or action=deny)";
+    private const string inactiveRulescomplianceReportDefaultFilterLine = "type=compliance and time=now and active=false";
+    private const string complianceReportDefaultFilterLine = anyObjcomplianceReportDefaultFilterLine;
     private string reportGenerationTimeLine = "";
     private const string rulesReport = "Rules";
     private const string changesReport = "Changes";
@@ -381,7 +383,7 @@
             Task.Run(() =>
             {
                 DateTime startTime = DateTime.Now;
-
+                managementsReport = new Management[0]; // reset management data when switching between reports
                 switch (reportType) {
                     case rulesReport:
                         ReportRules reportRules = new ReportRules();

@@ -21,6 +21,11 @@
         <Column TableItem="LdapConnection" Title="Search User" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true" />
         <Column TableItem="LdapConnection" Title="Write User" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true" />
         <Column TableItem="LdapConnection" Title="Role Search Path" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true" />
+        <Column TableItem="LdapConnection" Title="Tenant" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.TenantId != null ? tenants.Find(x => x.Id == context.TenantId).Name : "" )
+            </Template>
+        </Column>
         <Column TableItem="LdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -97,7 +102,7 @@
                 <div class="form-group row">
                     <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">Tenant:</label>
                     <div class="col-sm-8">
-                        <select id="deviceTenant" class="form-control form-control-sm" @bind="actLdapConnection.TenantId">
+                        <select id="deviceTenant" class="form-control form-control-sm" @bind="actLdapConnection.TenantIdAsString">
                             <option value="null">None</option>
                             @foreach (Tenant tenant in tenants)
                             {

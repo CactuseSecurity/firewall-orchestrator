@@ -44,6 +44,12 @@ namespace FWO.Api.Data
         [JsonPropertyName("ldap_tenant_id")]
         public int? TenantId { get; set; }
 
+        public string TenantIdAsString
+        {
+            get => TenantId?.ToString()?? "null";
+            set => TenantId = value == "null" ? null :(int?)int.Parse(value);
+        }
+        
         public LdapConnection()
         {}
         

@@ -5,6 +5,10 @@ namespace FWO.Report.Filter
     public enum TokenKind
     {
         Value,
+        Disabled,
+        SourceNegated,
+        DestinationNegated,
+        ServiceNegated,
         Source,
         Destination,
         Service,

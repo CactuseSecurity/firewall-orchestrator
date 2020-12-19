@@ -52,6 +52,7 @@ namespace FWO.Report.Filter
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
             switch (query.ReportType)
             {
+                // todo: move $mdmId filter from management into query.xxxWhereStatement
                 case "statistics":
                     query.FullQuery = $@"
                     query statisticsReport ({paramString}) 

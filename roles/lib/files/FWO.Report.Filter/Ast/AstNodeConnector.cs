@@ -16,8 +16,11 @@ namespace FWO.Report.Filter.Ast
             {
                 case TokenKind.And: // and is the default operator
                     break;
-                case TokenKind.Or:
-                    query.RuleWhereQuery += "_or: [{"; // or terms need to be enclosed in []
+                case TokenKind.Or: // or terms need to be enclosed in []
+                    query.ruleWhereStatement += "_or: [{"; 
+                    query.nwObjWhereStatement += "_or: [{";
+                    query.svcObjWhereStatement += "_or: [{";
+                    query.userObjWhereStatement += "_or: [{"; 
                     break;
                 default:
                     throw new Exception("Expected Filtername Token (and thought there is one)");
@@ -26,12 +29,22 @@ namespace FWO.Report.Filter.Ast
             Left.Extract(ref query);
 
             if (ConnectorType == TokenKind.Or)
-                query.RuleWhereQuery += "}, {";
+            {
+                query.ruleWhereStatement += "}, {";
+                query.nwObjWhereStatement += "}, {";
+                query.svcObjWhereStatement += "}, {";
+                query.userObjWhereStatement += "}, {";
+            }
 
             Right.Extract(ref query);
 
             if (ConnectorType == TokenKind.Or)
-                query.RuleWhereQuery += "}] ";
+            {
+                query.ruleWhereStatement += "}] ";
+                query.nwObjWhereStatement += "}] ";
+                query.svcObjWhereStatement += "}] ";
+                query.userObjWhereStatement += "}] ";
+            }
             return;
         }
     }

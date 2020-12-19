@@ -41,7 +41,6 @@
         owner: "root"
 
     - name: make blazor ui run at host startup
-      #command: "systemctl enable {{ ui_service_name }}"
       systemd:
         name: "{{ ui_service_name }}"
         enabled: yes
@@ -57,7 +56,6 @@
   become_user: "{{ fworch_user }}"
 
 - name: start blazor ui
-  #command: "systemctl restart {{ ui_service_name }}"
   systemd:
     name: "{{ ui_service_name }}"
     state: restarted

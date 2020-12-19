@@ -38,6 +38,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("changelog_rules")]
         public RuleChange[] RuleChanges { get; set; }
 
+        [JsonPropertyName("rules_aggregate")]
+        public ObjectStatistics RuleStatistics { get; set; }
+
         public Device()
         { }
 
@@ -83,6 +86,8 @@ namespace FWO.Api.Data
                         devices[i].RuleChanges = devices[i].RuleChanges.Concat(devicesToMerge[i].RuleChanges).ToArray();
                         newObjects = true;
                     }
+                    if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
+                        devices[i].RuleStatistics = devicesToMerge[i].RuleStatistics;
                 }
                 else
                 {

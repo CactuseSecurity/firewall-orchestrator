@@ -912,7 +912,11 @@ tables:
   table:
     name: language
     schema: public
-- select_permissions:
+- object_relationships:
+  - name: tenant
+    using:
+      foreign_key_constraint_on: ldap_tenant_id
+  select_permissions:
   - permission:
       columns:
       - ldap_connection_id
@@ -926,6 +930,7 @@ tables:
       - ldap_tls
       - ldap_write_user
       - ldap_write_user_pwd
+      - ldap_tenant_id
       filter: {}
     role: middleware-server
   table:

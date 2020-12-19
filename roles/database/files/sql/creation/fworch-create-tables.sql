@@ -915,6 +915,7 @@ Create table "ldap_connection"
 	"ldap_search_user_pwd" Varchar NOT NULL,
 	"ldap_write_user" Varchar,
 	"ldap_write_user_pwd" Varchar,
+	"ldap_tenant_id" Integer,
 	primary key ("ldap_connection_id")
 );
 

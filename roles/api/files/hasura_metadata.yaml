@@ -671,6 +671,20 @@ tables:
         table:
           name: usergrp
           schema: public
+  - name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: user_create
+        table:
+          name: usr
+          schema: public
+  - name: usrsByUserLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: user_last_seen
+        table:
+          name: usr
+          schema: public
   - name: zones
     using:
       foreign_key_constraint_on:
@@ -912,7 +926,11 @@ tables:
   table:
     name: language
     schema: public
-- select_permissions:
+- object_relationships:
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  select_permissions:
   - permission:
       columns:
       - ldap_connection_id
@@ -926,6 +944,7 @@ tables:
       - ldap_tls
       - ldap_write_user
       - ldap_write_user_pwd
+      - tenant_id
       filter: {}
     role: middleware-server
   table:
@@ -1205,6 +1224,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - obj_id
       - last_change_admin
@@ -1327,6 +1347,9 @@ tables:
   - name: report_template
     using:
       foreign_key_constraint_on: report_template_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: report_owner_id
   table:
     name: report
     schema: public
@@ -1606,6 +1629,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - rule_id
       - last_change_admin
@@ -1890,6 +1914,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - svc_id
       - svc_uid
@@ -2604,6 +2629,13 @@ tables:
         table:
           name: object
           schema: public
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: report_owner_id
+        table:
+          name: report
+          schema: public
   - name: report_schedules
     using:
       foreign_key_constraint_on:
@@ -2894,6 +2926,12 @@ tables:
           name: usergrp
           schema: public
   object_relationships:
+  - name: import_control
+    using:
+      foreign_key_constraint_on: user_create
+  - name: importControlByUserLastSeen
+    using:
+      foreign_key_constraint_on: user_last_seen
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -2940,6 +2978,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - user_id
       - usr_typ_id

@@ -32,3 +32,6 @@ fworch-srv
 [sampleserver]
 fworch-srv
 #fworch-back
+
+[testservers]
+fworch-srv

@@ -21,8 +21,8 @@
         <div class="list-group small mt-3">
             <a class="list-group-item list-group-item-action @(reportType==rulesReport?$"active":$"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
             <a class="list-group-item list-group-item-action @(reportType==changesReport?$"active":$"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
-            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Compliance</a>
-            <a class="list-group-item list-group-item-action" @onclick="() => { }" href="#">Statistics</a>
+            <a class="list-group-item list-group-item-action @(reportType==complianceReport?$"active":$"")" @onclick="() => { filterInput = complianceReportDefaultFilterLine; reportType = complianceReport; }" href="report">Compliance</a>
+            <a class="list-group-item list-group-item-action  @(reportType==statisticsReport?$"active":$"")" @onclick="() => { filterInput = statisticsReportDefaultFilterLine; reportType = statisticsReport; }" href="report">Statistics</a>
         </div>
 
         <hr />
@@ -93,11 +93,10 @@
         <div class="card-body">
 
             @switch (reportType) {
-                case "Rules":
+                case rulesReport:
                     @foreach (Management management in managementsReport)
                     {
                         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                            <hr />
 
                             @foreach (Device device in management.Devices)
                             {
@@ -159,11 +158,11 @@
                        </Collapse>
                     }
                     break;
-                case "Changes":
+
+                case changesReport:
                     @foreach (Management management in managementsReport)
                     {
                         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                            <hr />
 
                             @foreach (Device device in management.Devices)
                             {
@@ -247,6 +246,31 @@
                        </Collapse>
                     }                
                     break;
+                
+                case statisticsReport:                            
+                    @foreach (Management management in managementsReport)
+                    {
+                        <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+                            <h6>Total number of objects per Management</h6>
+                            <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
+                                <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                            </Table>
+
+                            <h6>Number of Rules per Gateway</h6>
+                            <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
+                                <Column TableItem="Device" Title="Gateway" Field="@(Device => Device.Name)" />
+                                <Column TableItem="Device" Title="Number of Rules" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                            </Table>
+                            
+                       </Collapse>
+                    }               
+                    break;
+                
+                default:
+                    break;
             }
         </div>
     </div>
@@ -283,7 +307,6 @@
     private Management[] managementsAllObjects = new Management[0];
     private Management[] managementsWithRelevantImportId = new Management[0];
     
-
     private int rulesPerFetch = 100;    // todo: rename to "elementsPerFetch" to cover all types of report/objects
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
@@ -296,9 +319,14 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
-    private string rulesReportDefaultFilterLine = "type=rules and time=now ";
+    private const string rulesReportDefaultFilterLine = "type=rules and time=now ";
     //private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
-    private string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
+    private const string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
+    private const string statisticsReportDefaultFilterLine = "type=statistics and time=now ";
+    private const string anyObjcomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny)";
+    private const string cleanupRulecomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any and dst=any and svc=any) or (src=all and dst=all and svc=all) and (action=drop or action=reject or action=deny)";
+    private const string inactiveRulescomplianceReportDefaultFilterLine = "type=compliance and time=now and active=false";
+    private const string complianceReportDefaultFilterLine = anyObjcomplianceReportDefaultFilterLine;
     private string reportGenerationTimeLine = "";
     private const string rulesReport = "Rules";
     private const string changesReport = "Changes";
@@ -355,9 +383,9 @@
             Task.Run(() =>
             {
                 DateTime startTime = DateTime.Now;
-
+                managementsReport = new Management[0]; // reset management data when switching between reports
                 switch (reportType) {
-                    case "Rules":
+                    case rulesReport:
                         ReportRules reportRules = new ReportRules();
                         reportRules.Generate(rulesPerFetch, filterInput, Connection,
                             managementsReportIntermediate =>
@@ -367,9 +395,18 @@
                             });
                         break;
                         
-                    case "Changes":
+                    case changesReport:
                         ReportChanges reportChanges = new ReportChanges();
                         reportChanges.Generate(rulesPerFetch, filterInput, Connection,
+                            managementsReportIntermediate =>
+                            {
+                                managementsReport = managementsReportIntermediate;
+                                return InvokeAsync(StateHasChanged);
+                            });
+                        break;
+                case statisticsReport:
+                        ReportStatistics reportStatistics = new ReportStatistics();
+                        reportStatistics.Generate(0, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;

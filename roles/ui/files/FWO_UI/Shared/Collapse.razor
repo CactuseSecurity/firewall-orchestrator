@@ -25,6 +25,9 @@
     [Parameter]
     public string Class { get; set; } = "";
 
+    //[Parameter]
+    //public Parent
+
     private string show = ".show";
 
     protected override void OnAfterRender(bool firstRender)
@@ -36,5 +39,10 @@
     private void ToggleCollapse()
     {
         show = show == "" ? ".show" : "";
+    }
+
+    public void ForceCollapse()
+    {
+
     }
 }

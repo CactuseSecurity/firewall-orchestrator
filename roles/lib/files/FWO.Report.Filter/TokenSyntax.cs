@@ -32,6 +32,30 @@ namespace FWO.Report.Filter
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
+                TokenKind.Disabled => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "disabled", "inactive" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.SourceNegated => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "srcnegate", "sourcenegate", "sourcenegated", "source-negate","source-negated"},
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.DestinationNegated => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "dstnegate", "destinationnegate", "destinationnegated", "destination-negate", "destination-negated"},
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.ServiceNegated => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "svcnegate", "servicenegate", "servicenegated", "service-negate", "service-negated"},
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
                 TokenKind.Source => new TokenSyntax
                 {
                     WhiteSpaceRequiered = new string[] { "src", "source" },

@@ -6,7 +6,7 @@ fragment userDetails on usr {
   user_lastname
   user_firstname
   usr_typ_id
-  stm_usr_typ {
+  type: stm_usr_typ {
     usr_typ_name
   }
   user_member_names
@@ -16,6 +16,9 @@ fragment userDetails on usr {
     byId: usrByUsergrpMemberId {
       user_id
       user_name
+      type: stm_usr_typ {
+        usr_typ_name
+      }
     }
   }
   usergrp_flats {
@@ -23,6 +26,9 @@ fragment userDetails on usr {
     byFlatId: usrByUsergrpFlatMemberId {
       user_id
       user_name
+      type: stm_usr_typ {
+        usr_typ_name
+      }
     }
   }
 }

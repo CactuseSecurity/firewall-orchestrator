@@ -2,7 +2,7 @@
 @using FWO.Api.Data
 @using FWO.ApiClient
 
-@page "/settings/authorization"
+@page "/settings/ldap"
 
 @inject APIConnection apiConnection
 
@@ -19,7 +19,13 @@
             </Template>
         </Column>
         <Column TableItem="LdapConnection" Title="Search User" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true" />
+        <Column TableItem="LdapConnection" Title="Write User" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true" />
         <Column TableItem="LdapConnection" Title="Role Search Path" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true" />
+        <Column TableItem="LdapConnection" Title="Tenant" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.TenantId != null ? tenants.Find(x => x.Id == context.TenantId).Name : "" )
+            </Template>
+        </Column>
         <Column TableItem="LdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -93,6 +99,18 @@
                         <input id="ldapWriteUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.WriteUserPwd" />
                     </div>
                 </div>
+                <div class="form-group row">
+                    <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">Tenant:</label>
+                    <div class="col-sm-8">
+                        <select id="deviceTenant" class="form-control form-control-sm" @bind="actLdapConnection.TenantIdAsString">
+                            <option value="null">None</option>
+                            @foreach (Tenant tenant in tenants)
+                            {
+                                <option value="@tenant.Id">@(tenant.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
 
                 @if (errorMessage != "")
                 {
@@ -135,6 +153,7 @@
 @code 
 {
     private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+    private List<Tenant> tenants = new List<Tenant>();
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -150,6 +169,7 @@
     protected override async Task OnInitializedAsync()
     {
         connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+        tenants = (await Task.Run(() => apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants))).ToList();
     }
 
     private void Edit(LdapConnection ldapConnection)
@@ -231,7 +251,8 @@
                     searchpathForUsers = actLdapConnection.UserSearchPath,
                     searchpathForRoles = actLdapConnection.RoleSearchPath,
                     writeUser = actLdapConnection.WriteUser,
-                    writeUserPwd = actLdapConnection.WriteUserPwd
+                    writeUserPwd = actLdapConnection.WriteUserPwd,
+                    tenantId = actLdapConnection.TenantId
                 };
                 actLdapConnection.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.newLdapConnection, Variables))).ReturnIds[0].NewId;
                 connectedLdaps.Add(actLdapConnection);
@@ -253,7 +274,8 @@
                     searchpathForUsers = actLdapConnection.UserSearchPath,
                     searchpathForRoles = actLdapConnection.RoleSearchPath,
                     writeUser = actLdapConnection.WriteUser,
-                    writeUserPwd = actLdapConnection.WriteUserPwd
+                    writeUserPwd = actLdapConnection.WriteUserPwd,
+                    tenantId = actLdapConnection.TenantId
                 };
                 int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateLdapConnection, Variables))).UpdatedId;
                 EditMode = (udId == actLdapConnection.Id ? false : true);

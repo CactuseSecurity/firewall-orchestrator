@@ -22,6 +22,9 @@ fragment networkObjectDetails on object {
       byId: objectByObjgrpMemberId {
         obj_id
         obj_name
+        type: stm_obj_typ {
+          name: obj_typ_name
+        }
       }
     }
     objgrp_flats {
@@ -29,6 +32,9 @@ fragment networkObjectDetails on object {
       byFlatId: objectByObjgrpFlatMemberId {
         obj_id
         obj_name
+        type: stm_obj_typ {
+          name: obj_typ_name
+        }
       }
     }
 }

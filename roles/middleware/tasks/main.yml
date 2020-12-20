@@ -49,10 +49,12 @@
 - name: install python modules for ansible ldap module
   apt:
     name:
+      - python3-pip
       - libsasl2-dev
       - python-dev
       - libldap2-dev
       - libssl-dev
+      - python3-setuptools
   become: yes
 
 - name: install python modules for ansible ldap module
@@ -101,14 +103,14 @@
     db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN IF NOT EXISTS
-      (SELECT * FROM ldap_connection WHERE ldap_server = '{{ middleware_ldap_server_internal | quote }}')
+      (SELECT * FROM ldap_connection WHERE ldap_server = '{{ middleware_ldap_server_internal }}')
       THEN INSERT INTO ldap_connection
       (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles,
       ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd)
-      VALUES ('{{ middleware_ldap_server_internal | quote }}', 636,
-      '{{ middleware_ldap_std_user_path | quote }}', '{{ middleware_ldap_std_role_path | quote }}',
-      1, '{{ middleware_ldap_internal_readonly_user_fq | quote }}', '{{ ldap_inspector_pw }}',
-      '{{ middleware_ldap_writer_fq | quote }}', '{{ ldap_writer_pw }}');
+      VALUES ('{{ middleware_ldap_server_internal }}', 636,
+      '{{ middleware_ldap_std_user_path }}', '{{ middleware_ldap_std_role_path }}',
+      1, '{{ middleware_ldap_internal_readonly_user_fq }}', '{{ ldap_inspector_pw }}',
+      '{{ middleware_ldap_writer_fq }}', '{{ ldap_writer_pw }}');
       END IF; END $do$
   become: yes
   become_user: postgres
@@ -120,13 +122,13 @@
       DO $do$ BEGIN IF EXISTS
       (SELECT * FROM ldap_connection)
       THEN UPDATE ldap_connection
-      SET ldap_server='{{ middleware_ldap_server_internal | quote }}',
-      ldap_port=636, ldap_searchpath_for_users='{{ middleware_ldap_std_user_path | quote }}',
-      ldap_searchpath_for_roles='{{ middleware_ldap_std_role_path | quote }}', ldap_tenant_level=1,
-      ldap_search_user='{{ middleware_ldap_internal_readonly_user_fq | quote }}',
+      SET ldap_server='{{ middleware_ldap_server_internal }}',
+      ldap_port=636, ldap_searchpath_for_users='{{ middleware_ldap_std_user_path }}',
+      ldap_searchpath_for_roles='{{ middleware_ldap_std_role_path }}', ldap_tenant_level=1,
+      ldap_search_user='{{ middleware_ldap_internal_readonly_user_fq }}',
       ldap_search_user_pwd='{{ ldap_inspector_pw }}',
-      ldap_write_user= '{{ middleware_ldap_writer_fq | quote }}', ldap_write_user_pwd='{{ ldap_writer_pw }}'
-      WHERE ldap_server='{{ middleware_ldap_server_internal | quote }}';
+      ldap_write_user= '{{ middleware_ldap_writer_fq }}', ldap_write_user_pwd='{{ ldap_writer_pw }}'
+      WHERE ldap_server='{{ middleware_ldap_server_internal }}';
       END IF; END $do$
   become: yes
   become_user: postgres

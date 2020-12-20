@@ -11,6 +11,7 @@ namespace FWO.ApiClient.Queries
     {
         public static readonly string addReportTemplate;
         public static readonly string addReportSchedule;
+        public static readonly string deleteReportSchedule;
         public static readonly string getReportSchedules;
         public static readonly string getReportTemplates;
         public static readonly string getReportsOverview;
@@ -24,7 +25,9 @@ namespace FWO.ApiClient.Queries
             {
                 addReportTemplate = File.ReadAllText(QueryPath + "report/addReportTemplate.graphql");
                 addReportSchedule = File.ReadAllText(QueryPath + "report/addReportSchedule.graphql");
-                getReportsOverview = File.ReadAllText(QueryPath + "report/getReportSchedules.graphql");
+                deleteReportSchedule = File.ReadAllText(QueryPath + "report/deleteReportSchedule.graphql");
+                getReportSchedules = File.ReadAllText(QueryPath + "report/getReportSchedules.graphql");
+                getReportsOverview = File.ReadAllText(QueryPath + "report/getReportsOverview.graphql");
                 getReportsById = File.ReadAllText(QueryPath + "report/getReportById.graphql");
                 getReportTemplates = File.ReadAllText(QueryPath + "report/getReportTemplates.graphql");
                 getRelevantImportIdsAtTime = File.ReadAllText(QueryPath + "report/getRelevantImportIdsAtTime.graphql");
@@ -37,7 +40,7 @@ namespace FWO.ApiClient.Queries
                     File.ReadAllText(QueryPath + "rule/fragments/ruleOverview.graphql") +
                     File.ReadAllText(QueryPath + "report/getRuleChangeDetails.graphql");
 
-                getReportSchedules = File.ReadAllText(QueryPath + "report/getReportSchedules.graphql");
+
             }
             catch (Exception exception)
             {

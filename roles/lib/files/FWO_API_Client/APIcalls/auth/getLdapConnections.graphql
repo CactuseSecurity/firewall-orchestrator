@@ -14,5 +14,6 @@ query getLdapConnections {
     ldap_searchpath_for_roles
     ldap_write_user
     ldap_write_user_pwd
+    tenant_id
   }
 }

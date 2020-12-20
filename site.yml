@@ -92,12 +92,22 @@
   tags:
     - frontend
 
-# simply set new version in config file
 - hosts: all
   roles:
     - { role: upgrade-completion, when: "installation_mode == 'upgrade'" }
   tags:
     - backend
+    - frontend
+
+- hosts: frontends
+  tasks:
+    - name: restart ui service to display new version
+      service: 
+        name: "{{ ui_service_name }}"
+        state: restarted
+      become: yes
+      when: "not installation_mode == 'uninstall'"
+  tags:
     - frontend
 
 - hosts: testservers
@@ -117,7 +127,6 @@
     - name: show listener status
       import_tasks: scripts/show-fworch-listeners.yml
       become: yes
-      # when: "installation_mode == 'uninstall'"
   tags:
     - backend
     - frontend

@@ -25,3 +25,6 @@ adjust all relevant tables to allow for growth beyond integer (turning into BIGI
 
 ### 5.0.6 - 18.12.2020
 adding tenant_id to ldap_connection table (optional) to allow dedicated ldap_connections per tenant
+
+### 5.0.7 - 20.12.2020
+remove unique constraint from uiuser_username in uiuser

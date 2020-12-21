@@ -335,7 +335,7 @@ Create table "svcgrp_flat"
 Create table "uiuser"
 (
 	"uiuser_id" SERIAL NOT NULL,
-	"uiuser_username" Varchar NOT NULL UNIQUE,	-- might drop the unique constraint later as we have a uuid now
+	"uiuser_username" Varchar,
 	"uuid" Varchar NOT NULL UNIQUE,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,

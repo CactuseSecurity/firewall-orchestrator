@@ -16,6 +16,8 @@ namespace FWO.Api.Data // TODO: Change namespace
         [JsonPropertyName("uuid")]
         public string Dn { get; set; }
 
+        public string Email { get; set; }
+
         [JsonPropertyName("uiuser_language")]
         public string Language { get; set; }
 
@@ -31,6 +33,7 @@ namespace FWO.Api.Data // TODO: Change namespace
             Name = user.Name;
             DbId = user.DbId;
             Dn = user.Dn;
+            Email = user.Email;
             Language = user.Language;
         }
     }

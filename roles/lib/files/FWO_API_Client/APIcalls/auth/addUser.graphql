@@ -1,7 +1,7 @@
 mutation addUser(
   $uiuser_username: String!
   $uuid: String!
-  $loginTime: timestamptz!
+  $loginTime: timestamptz
 ) {
   insert_uiuser(
     objects: {

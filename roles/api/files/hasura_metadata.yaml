@@ -1392,10 +1392,6 @@ tables:
         table:
           name: report_template_viewable_by_user
           schema: public
-  object_relationships:
-  - name: stm_report_typ
-    using:
-      foreign_key_constraint_on: report_typ_id
   table:
     name: report_template
     schema: public
@@ -2183,17 +2179,6 @@ tables:
     role: reporter-viewall
   table:
     name: stm_obj_typ
-    schema: public
-- array_relationships:
-  - name: report_templates
-    using:
-      foreign_key_constraint_on:
-        column: report_typ_id
-        table:
-          name: report_template
-          schema: public
-  table:
-    name: stm_report_typ
     schema: public
 - array_relationships:
   - name: services

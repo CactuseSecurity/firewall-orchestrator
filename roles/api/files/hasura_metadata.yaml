@@ -2362,6 +2362,13 @@ tables:
         table:
           name: device
           schema: public
+  - name: ldap_connections
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: ldap_connection
+          schema: public
   - name: management
     using:
       foreign_key_constraint_on:

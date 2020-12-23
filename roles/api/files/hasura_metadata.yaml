@@ -1392,10 +1392,6 @@ tables:
         table:
           name: report_template_viewable_by_user
           schema: public
-  object_relationships:
-  - name: stm_report_typ
-    using:
-      foreign_key_constraint_on: report_typ_id
   table:
     name: report_template
     schema: public
@@ -2185,17 +2181,6 @@ tables:
     name: stm_obj_typ
     schema: public
 - array_relationships:
-  - name: report_templates
-    using:
-      foreign_key_constraint_on:
-        column: report_typ_id
-        table:
-          name: report_template
-          schema: public
-  table:
-    name: stm_report_typ
-    schema: public
-- array_relationships:
   - name: services
     using:
       foreign_key_constraint_on:
@@ -2376,6 +2361,13 @@ tables:
         column: tenant_id
         table:
           name: device
+          schema: public
+  - name: ldap_connections
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: ldap_connection
           schema: public
   - name: management
     using:

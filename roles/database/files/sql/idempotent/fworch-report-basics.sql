@@ -227,18 +227,18 @@ $$ LANGUAGE plpgsql;
 -- END;
 -- $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION get_report_typ_list(REFCURSOR) RETURNS REFCURSOR AS $$
-DECLARE
-	r_config RECORD;
-BEGIN
-	SELECT INTO r_config * FROM config;
-	OPEN $1 FOR
-		SELECT report_typ_id,report_typ_name as report_typ_name
-			FROM stm_report_typ
-			ORDER BY report_typ_id;
-    RETURN $1;
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION get_report_typ_list(REFCURSOR) RETURNS REFCURSOR AS $$
+-- DECLARE
+-- 	r_config RECORD;
+-- BEGIN
+-- 	SELECT INTO r_config * FROM config;
+-- 	OPEN $1 FOR
+-- 		SELECT report_typ_id,report_typ_name as report_typ_name
+-- 			FROM stm_report_typ
+-- 			ORDER BY report_typ_id;
+--     RETURN $1;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:    get_tenant_list(name-of-refcursor)

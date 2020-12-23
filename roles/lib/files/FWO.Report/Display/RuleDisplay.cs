@@ -45,7 +45,7 @@ namespace FWO.Ui.Display
             {
                 if (source.User != null)
                 {
-                    result.AppendLine($"{source.User.Name}@");
+                    result.AppendLine($"<a href=\"report#user{source.User.Id}\">{source.User.Name}</a>@");
                 }
 
                 result.Append($"{source.Object.Name}");

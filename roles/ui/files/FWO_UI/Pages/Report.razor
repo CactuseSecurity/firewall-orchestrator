@@ -106,46 +106,46 @@
                                         style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
                                         PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
 
-                                        <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rule => rule.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayNumber(device.Rules))
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Name" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Source Zone" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Name" Field="@(rule => rule.Name)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="Source Zone" Field="@(rule => rule.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplaySourceZone())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Source" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Source" Field="@(rule => rule.Name)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplaySource())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Destination Zone" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Destination Zone" Field="@(rule => rule.Name)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayDestinationZone())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Destination" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Destination" Field="@(rule => rule.Name)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayDestination())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Services" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Services" Field="@(rule => rule.Name)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayService())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="Action" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Track" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Disabled" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
+                                        <Column TableItem="Rule" Title="Action" Field="@(rule => rule.Action)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="Track" Field="@(rule => rule.Track)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="Disabled" Field="@(rule => rule.Disabled)" Sortable="true" Filterable="true" Hideable="true">
                                             <Template>
                                                 @((MarkupString)context.DisplayDisabled())
                                             </Template>
                                         </Column>
-                                        <Column TableItem="Rule" Title="UID" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Comment" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="UID" Field="@(rule => rule.Uid)" Sortable="true" Filterable="true" Hideable="true" />
+                                        <Column TableItem="Rule" Title="Comment" Field="@(rule => rule.Comment)" Sortable="true" Filterable="true" Hideable="true" />
 
                                         <DetailTemplate TableItem="Rule">
                                             <div>test</div>
@@ -248,10 +248,17 @@
                     break;
                 
                 case statisticsReport:                            
+                    <h6>Gobal number of Objects</h6>
+                    <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
+                        <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                        <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                        <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                        <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                    </Table>
                     @foreach (Management management in managementsReport)
                     {
                         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                            <h6>Total number of objects per Management</h6>
+                            <h6>Total number of Objects per Management</h6>
                             <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
                                 <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
@@ -306,7 +313,8 @@
     private Management[] managementsReport = new Management[0];
     private Management[] managementsAllObjects = new Management[0];
     private Management[] managementsWithRelevantImportId = new Management[0];
-    
+    private Management globalStats = new Management();
+        
     private int rulesPerFetch = 100;    // todo: rename to "elementsPerFetch" to cover all types of report/objects
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
@@ -380,7 +388,7 @@
     {
         try
         {
-            Task.Run(() =>
+            Task.Run( async () =>
             {
                 DateTime startTime = DateTime.Now;
                 managementsReport = new Management[0]; // reset management data when switching between reports
@@ -412,9 +420,30 @@
                                 managementsReport = managementsReportIntermediate;
                                 return InvokeAsync(StateHasChanged);
                             });
+                        await Task.Delay(500); // todo: this is a workaround and will not work for larger installations!!!
+                        globalStats.RuleStatistics = new ObjectStatistics();
+                        globalStats.NetworkObjectStatistics = new ObjectStatistics();
+                        globalStats.ServiceObjectStatistics = new ObjectStatistics();
+                        globalStats.UserObjectStatistics = new ObjectStatistics();
+                        globalStats.RuleStatistics.ObjectAggregate = new ObjectAggregate();
+                        globalStats.NetworkObjectStatistics.ObjectAggregate = new ObjectAggregate();
+                        globalStats.ServiceObjectStatistics.ObjectAggregate = new ObjectAggregate();
+                        globalStats.UserObjectStatistics.ObjectAggregate = new ObjectAggregate();
+                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount = 0;
+                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount = 0;
+                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount = 0;
+                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount = 0;
+                        foreach (Management mgm in managementsReport)
+                        {
+                            globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                            globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                            globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                            globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                        }
                         break;
                 }
                 reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
+                await InvokeAsync(StateHasChanged); // to update report generation time
             });
         }
         catch (Exception exception)

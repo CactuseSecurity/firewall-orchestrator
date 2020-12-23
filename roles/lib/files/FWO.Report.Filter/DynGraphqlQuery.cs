@@ -15,6 +15,7 @@ using GraphQL.Client.Serializer.SystemTextJson;
 using GraphQL.Client.Abstractions;
 using System.Linq;
 using FWO.ApiClient.Queries;
+using System.Text.RegularExpressions;
 
 namespace FWO.Report.Filter
 {
@@ -53,11 +54,14 @@ namespace FWO.Report.Filter
             switch (query.ReportType)
             {
                 // todo: move $mdmId filter from management into query.xxxWhereStatement
+                // management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
+                        // management(order_by: {{ mgm_name: asc }}) 
                 case "statistics":
                     query.FullQuery = $@"
                     query statisticsReport ({paramString}) 
                     {{ 
                         management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
+
                         {{
                             name: mgm_name
                             id: mgm_id
@@ -136,6 +140,12 @@ namespace FWO.Report.Filter
                     ";
                     break;
             }
+
+            // remove line breaks and duplicate whitespaces
+            Regex pattern = new Regex("\n");
+            pattern.Replace(query.FullQuery, "");
+            pattern = new Regex("[ ]{2}");
+            pattern.Replace(query.FullQuery, "");
             return query;
         }
     }

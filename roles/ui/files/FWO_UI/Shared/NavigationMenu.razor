@@ -26,7 +26,7 @@
                     <span class="oi oi-spreadsheet"></span> @(userConfig.Translate["reporting"])
                 </NavLink>
             </li>
-            <li class="nav-item px-2">
+            @* <li class="nav-item px-2">
                 <NavLink class="nav-link" href="#">
                     <span class="oi oi-book"></span> @(userConfig.Translate["documentation"])
                 </NavLink>
@@ -35,7 +35,7 @@
                 <NavLink class="nav-link" href="#">
                     <span class="oi oi-comment-square"></span> @(userConfig.Translate["request"])
                 </NavLink>
-            </li>
+            </li> *@
         </ul>
 
         <ul class="navbar-nav">
@@ -50,7 +50,7 @@
                 </NavLink>
             </li>
             <li class="nav-item px-2">
-                <NavLink class="nav-link" href="/settings/personal">
+                <NavLink class="nav-link" href="/settings/language">
                     <span class="oi oi-person"></span> @(authenticationStateTask.Result.User.Identity.Name.ToUpper())
                 </NavLink>
             </li>

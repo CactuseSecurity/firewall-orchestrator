@@ -28,3 +28,6 @@ adding tenant_id to ldap_connection table (optional) to allow dedicated ldap_con
 
 ### 5.0.7 - 22.12.2020
 removing stm_report_typ table and references, adding report_schedule.report_schedule_name.
+
+### 5.0.8 - 23.12.2020
+adding report_name and report_filetype to report table

@@ -11,7 +11,6 @@
         <Collapse Title="@NameExtractor(obj)" Style="@("primary")" StartToggled="true">
             <Collapse Title="Network Objects" StartToggled="true">
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
-                    @* <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" Class="word-wrap" /> *@
                     <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" Class="word-wrap">
                         <Template>
                             @if (context.Type.Name=="group")
@@ -136,7 +135,14 @@
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" Class="word-wrap">
                         <Template>
-                            <b id="user@(context.Id)">@(context.Name)</b>
+                            @if (context.Type.Name=="group")
+                            {
+                                <span class="oi oi-people">&nbsp;</span><b id="user@(context.Id)">@(context.Name)</b>
+                            }
+                            else
+                            {
+                                <span class="oi oi-person">&nbsp;</span><b id="nwobj@(context.Id)">@(context.Name)</b>
+                            }
                         </Template>
                     </Column>
                     <DetailTemplate TableItem="NetworkUser">

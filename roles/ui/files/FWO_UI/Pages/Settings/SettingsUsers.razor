@@ -215,17 +215,23 @@
             if (AddMode)
             {
                 // insert new user to ldap
-
-                
-                ldapUsers.Add(actUser);
-                AddMode = false;
-                EditMode = false;
-                errorMessage = "";
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn);
+                if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                {
+                    errorMessage = "no user added";
+                }
+                else
+                {
+                    ldapUsers.Add(actUser);
+                    AddMode = false;
+                    EditMode = false;
+                    errorMessage = "";
+                }                
             }
             else
             {
                 // Update existing user in ldap
-
+                // Todo: what kind of updates should be possible?
 
                 EditMode = false;
                 ldapUsers[ldapUsers.FindIndex(x => x.DbId == actUser.DbId)] = actUser;
@@ -243,8 +249,7 @@
     private void RequestDelete(UiUser user)
     {
         actUser = user;
-        // Checks if delete possible. Todo: further checks?
-
+        // Todo: Checks if delete possible, e.g. if assigned to role?
 
         if (actUser == null)
         {
@@ -264,9 +269,16 @@
         try
         {
             // delete user from Ldap
-
-
-            DeleteMode = false;
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteUser(actUser.Dn);
+            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            {
+                errorMessage = "no user deleted";
+            }
+            else
+            {
+                ldapUsers.Remove(actUser);           
+                DeleteMode = false;
+            }
         }
         catch (Exception exception)
         {

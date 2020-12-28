@@ -846,7 +846,6 @@ Create table "report_template"
 	"report_filter" Varchar,
 	"report_template_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
 	"report_template_comment" TEXT,
-	"report_typ_id" Integer NOT NULL,
 	"report_template_create" Timestamp,
 	"filterline_history" Boolean Default TRUE, -- every time a filterline is sent, we save it for future usage (auto-deleted every 90 days)
 	primary key ("report_template_id")
@@ -862,6 +861,8 @@ Create table "report"
 	"report_start_time" Timestamp,
 	"report_end_time" Timestamp,
 	"report_document" bytea NOT NULL,
+	"report_filetype" varchar NOT NULL,
+	"report_name" varchar NOT NULL,
 	"report_owner_id" Integer NOT NULL, --FK to uiuser
 	-- "tenant_wide_visible" Integer NOT NULL, not yet
  primary key ("report_id")
@@ -870,20 +871,13 @@ Create table "report"
 Create table if not exists "report_schedule"
 (
 	"report_schedule_id" BIGSERIAL,
+	"report_schedule_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
 	"report_template_id" Integer, --FK
 	"report_schedule_owner" Integer, --FK
 	"report_schedule_start_time" Timestamp NOT NULL,
 	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 2 daily, 2 weekly, 3 monthly, 4 yearly 
 	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years
  primary key ("report_schedule_id")
-);
-
-Create table "stm_report_typ"
-(
-	"report_typ_id" SERIAL,
-	"report_typ_name" Varchar NOT NULL,
-	"report_typ_comment" Text,
- primary key ("report_typ_id")
 );
 
 Create table "report_template_viewable_by_tenant"

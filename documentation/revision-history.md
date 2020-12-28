@@ -26,5 +26,11 @@ adjust all relevant tables to allow for growth beyond integer (turning into BIGI
 ### 5.0.6 - 18.12.2020
 adding tenant_id to ldap_connection table (optional) to allow dedicated ldap_connections per tenant
 
-### 5.0.7 - 20.12.2020
+### 5.0.7 - 22.12.2020
+removing stm_report_typ table and references, adding report_schedule.report_schedule_name.
+
+### 5.0.8 - 23.12.2020
+adding report_name and report_filetype to report table
+
+### 5.0.9 - 28.12.2020
 remove unique constraint from uiuser_username in uiuser

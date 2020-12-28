@@ -1,16 +1,16 @@
 
-insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
-	VALUES (1, 'Configuration', 'snapshot of secuity configuration at a certian time');
-insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
-	VALUES (2, 'Changes',  'Changes in the security configuration between two dates');
-insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
-	VALUES (3, 'Usage', 'Usage of objects in the configuration');
-insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
-	VALUES (4, 'Rule search', 'Global search for rules containing certain ip addresses or services');
-insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
-	VALUES (5, 'Audit changes', 'Shows changes in an audit-friendly way');
-insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
-	VALUES (6, 'Audit changes details', 'Shows changes in an audit-friendly way including unchanged rules');
+-- insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+-- 	VALUES (1, 'Configuration', 'snapshot of secuity configuration at a certian time');
+-- insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+-- 	VALUES (2, 'Changes',  'Changes in the security configuration between two dates');
+-- insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+-- 	VALUES (3, 'Usage', 'Usage of objects in the configuration');
+-- insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+-- 	VALUES (4, 'Rule search', 'Global search for rules containing certain ip addresses or services');
+-- insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+-- 	VALUES (5, 'Audit changes', 'Shows changes in an audit-friendly way');
+-- insert into stm_report_typ (report_typ_id, report_typ_name, report_typ_comment)
+-- 	VALUES (6, 'Audit changes details', 'Shows changes in an audit-friendly way including unchanged rules');
 
 --
 -- Data for Name: text_msg; Type: TABLE DATA; Schema: public; Owner: dbadmin

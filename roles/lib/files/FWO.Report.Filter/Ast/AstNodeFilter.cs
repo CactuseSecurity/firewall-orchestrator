@@ -27,7 +27,7 @@ namespace FWO.Report.Filter.Ast
             // functions["SourceNegated"] = this.ExtractSourceNegated;
             // functions["DestinationNegated"] = this.ExtractDestinationNegated;
             // functions["ServiceNegated"] = this.ExtractServiceNegated;
-            
+
             functions["Source"] = this.ExtractSourceQuery;
             functions["Destination"] = this.ExtractDestinationQuery;
             functions["Action"] = this.ExtractActionQuery;
@@ -78,13 +78,15 @@ namespace FWO.Report.Filter.Ast
                     ]
                     change_type_id: {{ _eq: 3 }}
                     security_relevant: {{ _eq: true }}";
-            } else {
+            }
+            else
+            {
                 Log.WriteError("Filter", $"Undefined Report Type found: {query.ReportType}");
             }
             // todo: deal with time ranges for changes report type
             return query;
         }
-        
+
         private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
         {
             query.ReportType = Value;
@@ -175,7 +177,7 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-            // functions["Disabled"] = this.ExtractDisabled;
+        // functions["Disabled"] = this.ExtractDisabled;
         // private DynGraphqlQuery ExtractDisabledQuery(DynGraphqlQuery query)
         // {
         //     string QueryOperation = SetQueryOpString(Operator, Name, Value);
@@ -197,7 +199,7 @@ namespace FWO.Report.Filter.Ast
         // }            // functions["SourceNegated"] = this.ExtractSourceNegated;
         //     // functions["DestinationNegated"] = this.ExtractDestinationNegated;
         //     // functions["ServiceNegated"] = this.ExtractServiceNegated;
-            
+
         private DynGraphqlQuery ExtractSourceQuery(DynGraphqlQuery query)
         {
             string QueryOperation = SetQueryOpString(Operator, Name, Value);
@@ -260,14 +262,28 @@ namespace FWO.Report.Filter.Ast
         private DynGraphqlQuery ExtractManagementQuery(DynGraphqlQuery query)
         {
             string QueryOperation = SetQueryOpString(Operator, Name, Value);
-            string QueryVarName = "mgmtName" + query.parameterCounter++;
+            string QueryVarName;
 
-            query.QueryParameters.Add($"${QueryVarName}: String! ");
-            query.QueryVariables[QueryVarName] = $"%{Value}%";
-            query.ruleWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-            query.nwObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-            query.svcObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-            query.userObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            if (int.TryParse(Value, out int _)) // dealing with mgm_id filter
+            {
+                QueryVarName = "mgmtId" + query.parameterCounter++;
+                query.QueryParameters.Add($"${QueryVarName}: Int! ");
+                query.QueryVariables[QueryVarName] = Value;
+                query.ruleWhereStatement += $"management: {{mgm_id : {{{QueryOperation}: ${QueryVarName} }} }}";
+                query.nwObjWhereStatement += $"management: {{mgm_id : {{{QueryOperation}: ${QueryVarName} }} }}";
+                query.svcObjWhereStatement += $"management: {{mgm_id : {{{QueryOperation}: ${QueryVarName} }} }}";
+                query.userObjWhereStatement += $"management: {{mgm_id : {{{QueryOperation}: ${QueryVarName} }} }}";
+            }
+            else
+            {
+                QueryVarName = "mgmtName" + query.parameterCounter++;
+                query.QueryParameters.Add($"${QueryVarName}: String! ");
+                query.QueryVariables[QueryVarName] = $"%{Value}%";
+                query.ruleWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+                query.nwObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+                query.svcObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+                query.userObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            }
             return query;
         }
         private DynGraphqlQuery ExtractGatewayQuery(DynGraphqlQuery query)
@@ -325,6 +341,8 @@ namespace FWO.Report.Filter.Ast
                     if (Name == TokenKind.Time || Name == TokenKind.DestinationPort)
                         operation = "_eq";
                     else if ((Name == TokenKind.Source && isCidr(Value)) || Name == TokenKind.DestinationPort)
+                        operation = "_eq";
+                    else if (Name == TokenKind.Management && int.TryParse(Value, out int _))
                         operation = "_eq";
                     else
                         operation = "_ilike";

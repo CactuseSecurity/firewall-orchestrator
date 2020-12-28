@@ -45,10 +45,22 @@ namespace FWO.Ui.Display
             {
                 if (source.User != null)
                 {
-                    result.AppendLine($"{source.User.Name}@");
+                    result.AppendLine($"<a href=\"report#user{source.User.Id}\" target=\"_top\"><span class=\"oi oi-people\">&nbsp;</span>{source.User.Name}</a>@");
                 }
 
-                result.Append($"{source.Object.Name}");
+                if (source.Object.Type.Name == "group")
+                {
+                    result.Append($"<a href=\"report#nwobj{source.Object.Id}\" target=\"_top\"><span class=\"oi oi-list-rich\">&nbsp;</span>{source.Object.Name}</a>");
+                }
+                else if (source.Object.Type.Name == "network")
+                {
+                    result.Append($"<a href=\"report#nwobj{source.Object.Id}\" target=\"_top\"><span class=\"oi oi-rss\">&nbsp;</span>{source.Object.Name}</a>");
+                }
+                else
+                {
+                    result.Append($"<a href=\"report#nwobj{source.Object.Id}\" target=\"_top\"><span class=\"oi oi-monitor\">&nbsp;</span>{source.Object.Name}</a>");
+                }
+
                 result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
                 result.AppendLine("<br>");
             }
@@ -76,7 +88,19 @@ namespace FWO.Ui.Display
 
             foreach (NetworkLocation destination in rule.Tos)
             {
-                result.Append($"{destination.Object.Name}");
+                if (destination.Object.Type.Name == "group")
+                {
+                    result.Append($"<a href=\"report#nwobj{destination.Object.Id}\" target=\"_top\"><span class=\"oi oi-list-rich\">&nbsp;</span>{destination.Object.Name}</a>");
+                }
+                else if (destination.Object.Type.Name == "network")
+                {
+                    result.Append($"<a href=\"report#nwobj{destination.Object.Id}\" target=\"_top\"><span class=\"oi oi-rss\">&nbsp;</span>{destination.Object.Name}</a>");
+                }
+                else
+                {
+                    result.Append($"<a href=\"report#nwobj{destination.Object.Id}\" target=\"_top\"><span class=\"oi oi-monitor\">&nbsp;</span>{destination.Object.Name}</a>");
+                }
+                // result.Append($"<a href=\"report#nwobj{destination.Object.Id}\" target=\"_top\">{destination.Object.Name}</a>");
                 result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
                 result.AppendLine("<br>");
             }
@@ -99,10 +123,19 @@ namespace FWO.Ui.Display
 
             foreach (ServiceWrapper service in rule.Services)
             {
-                result.Append($"{service.Content.Name}");
+                if (service.Content.Type.Name == "group")
+                {
+                    result.Append($"<a href=\"report#svc{service.Content.Id}\" target=\"_top\"><span class=\"oi oi-list-rich\">&nbsp;</span>{service.Content.Name}</a>");
+                }
+                else
+                {
+                    result.Append($"<a href=\"report#svc{service.Content.Id}\" target=\"_top\"><span class=\"oi oi-wrench\">&nbsp;</span>{service.Content.Name}</a>");
+                }
+
                 // result.Append(service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{service.Content.Protocol.Name})" : "");
                 string protoName = "";
-                if (service.Content.Protocol != null && service.Content.Protocol.Name != null) protoName = service.Content.Protocol.Name;
+                if (service.Content.Protocol != null && service.Content.Protocol.Name != null) 
+                    protoName = service.Content.Protocol.Name;
                 result.Append(service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{protoName})" : "");
                 result.AppendLine("<br>");
             }

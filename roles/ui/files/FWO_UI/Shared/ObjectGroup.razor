@@ -17,6 +17,10 @@
                             {
                                 <span class="oi oi-list-rich">&nbsp;</span><b id="nwobj@(context.Id)">@(context.Name)</b>
                             }
+                            else if (context.Type.Name=="network")
+                            {
+                                <span class="oi oi-rss">&nbsp;</span><b id="nwobj@(context.Id)">@(context.Name)</b>
+                            }
                             else
                             {
                                 <span class="oi oi-laptop">&nbsp;</span><b id="nwobj@(context.Id)">@(context.Name)</b>
@@ -37,6 +41,10 @@
                                         @if (member.Object.Type.Name=="group")
                                         {
                                             <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
+                                        }
+                                        else if (member.Object.Type.Name=="network")
+                                        {
+                                            <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-rss">&nbsp;</span>@(member.Object.Name)</a><br>
                                         }
                                         else
                                         {

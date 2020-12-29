@@ -37,7 +37,7 @@ namespace FWO.Ui.Services
                     id = UiUser.DbId,
                     language = language
                 };
-                await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUser, Variables));
+                await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLanguage, Variables));
             }
             catch (Exception)
             {

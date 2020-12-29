@@ -23,6 +23,7 @@
     <Table class="table table-bordered table-responsive" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiUser" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Dn" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Email" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Language" Field="@(x => x.Language)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Last Login" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Action" Field="(x => x.DbId)" Sortable="false" Filterable="false">
@@ -54,6 +55,12 @@
                     </div>
                 </div>
                 <div class="form-group row">
+                    <label for="userPassword" class="col-sm-3 col-form-label col-form-label-sm">Password:</label>
+                    <div class="col-sm-8">
+                        <input id="userPassword" type ="password" class="form-control form-control-sm" @bind="actUser.Password" />
+                    </div>
+                </div>
+                <div class="form-group row">
                     <label for="userEmail" class="col-sm-3 col-form-label col-form-label-sm">Email:</label>
                     <div class="col-sm-8">
                         <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
@@ -69,7 +76,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+            <button class="btn btn-sm btn-primary" @onclick="() => Save()">Save</button>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
@@ -91,7 +98,7 @@
         <div class="btn-group">
             @if (DeleteAllowed)
             {
-                <button class="btn btn-sm btn-danger" @onclick="() => Delete(actUser)">Delete</button>
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete()">Delete</button>
             }
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
@@ -133,8 +140,8 @@
             if (relatedUiUser != null)
             {
                 // Update related user
-                // relatedUiUser.Email = ...
-                // update in db
+                await updateUserInDb(relatedUiUser, ldapUser.Email);
+                relatedUiUser.Email = ldapUser.Email;
             }
             else
             {
@@ -162,11 +169,28 @@
         }
         else
         {
-            foreach(var userDn in apiAuthResponse.GetResult<List<string>>("allUsers"))
+            foreach(var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
             {
-                UiUser newUser = new UiUser(){ Dn = userDn , Name = (new DistName(userDn)).UserName };
+                UiUser newUser = new UiUser(){ Dn = user.Key , Name = (new DistName(user.Key)).UserName, Email = user.Value };
                 ldapUsers.Add(newUser);
             }
+        }
+    }
+
+    private async Task updateUserInDb(UiUser user, string email)
+    {
+        try          
+        {
+            var Variables = new
+            {
+                id = user.DbId,
+                email = email
+            };
+            await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables));
+        }
+        catch (Exception exeption)
+        {
+            Log.WriteError("Update User Error", $"User {user.Name} could not be updated in database.", exeption);
         }
     }
 
@@ -178,6 +202,7 @@
             {
                 uuid = user.Dn, 
                 uiuser_username = user.Name,
+                email = user.Email
             };
             user.DbId = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables))).ReturnIds[0].NewId;
         }
@@ -198,6 +223,7 @@
     {
         AddMode = true;
         newUser = new UiUser(user);
+        newUser.Name = null;
         Edit(newUser);
     }
 
@@ -211,22 +237,31 @@
     {
         try
         {
-            // Todo: Value checks?
             if (AddMode)
             {
-                // insert new user to ldap
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn);
-                if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                // Todo: Further value checks?
+                if (actUser.Dn == null || actUser.Dn == "" || actUser.Password == null || actUser.Password == "")
                 {
-                    errorMessage = "no user added";
+                    errorMessage = "Dn and Password have to be filled";
                 }
                 else
                 {
-                    ldapUsers.Add(actUser);
-                    AddMode = false;
-                    EditMode = false;
-                    errorMessage = "";
-                }                
+                    // insert new user to ldap
+                    MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email);
+                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                    {
+                        errorMessage = "no user added";
+                    }
+                    else
+                    {
+                        actUser.Name = (new DistName(actUser.Dn)).UserName;
+                        await addUserToDb(actUser);
+                        ldapUsers.Add(actUser);
+                        AddMode = false;
+                        EditMode = false;
+                        errorMessage = "";
+                    }                
+                }
             }
             else
             {
@@ -264,7 +299,7 @@
         DeleteMode = true;
     }
 
-    private async Task Delete(UiUser user)
+    private async Task Delete()
     {
         try
         {
@@ -276,8 +311,10 @@
             }
             else
             {
+                await CleanUpUser(actUser);
                 ldapUsers.Remove(actUser);           
                 DeleteMode = false;
+                errorMessage = "";
             }
         }
         catch (Exception exception)

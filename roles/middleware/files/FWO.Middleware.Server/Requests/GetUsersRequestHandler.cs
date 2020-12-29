@@ -24,7 +24,7 @@ namespace FWO.Middleware.Server.Requests
         {
             string ldap = GetRequestParameter<string>("Ldap", notNull: true);
 
-            List<string> allUsers = new List<string>();
+            List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
 
             foreach (Ldap currentLdap in Ldaps)
             {

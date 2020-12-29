@@ -66,7 +66,7 @@ namespace FWO.ApiConfig
         {
             //try
             //{
-                await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUser, new { id = uiUser.DbId, language = languageName });
+                await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = uiUser.DbId, language = languageName });
 
                 Translate = globalConfig.langDict[languageName];
                 if (OnChange != null)

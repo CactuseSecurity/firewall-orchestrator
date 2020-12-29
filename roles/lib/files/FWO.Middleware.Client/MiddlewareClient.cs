@@ -48,11 +48,13 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "GetUsers");
         }
 
-        public async Task<MiddlewareServerResponse> AddUser(string Username)
+        public async Task<MiddlewareServerResponse> AddUser(string Username, string Password, string Email)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
-                { "Username", Username }
+                { "Username", Username },
+                { "Password", Password },
+                { "Email", Email }
             };
 
             return await requestSender.SendRequest(parameters, "AddUser");

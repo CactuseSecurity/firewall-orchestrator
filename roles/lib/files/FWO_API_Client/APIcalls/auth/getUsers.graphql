@@ -3,6 +3,7 @@ query getUsers{
     uiuser_id
     uuid
     uiuser_username
+    uiuser_email
     uiuser_language
     uiuser_last_login
   }

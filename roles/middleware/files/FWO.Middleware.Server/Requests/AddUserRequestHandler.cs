@@ -22,8 +22,10 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            // Get parameters from request. Expected parameters: "Username" from Type string
+            // Get parameters from request. Expected parameters: "Username", "Password", "Email" from Type string
             string userDn = GetRequestParameter<string>("Username", notNull: true);
+            string password = GetRequestParameter<string>("Password", notNull: true);
+            string email = GetRequestParameter<string>("Email", notNull: false);
 
             bool userAdded = false;
             List<Task> ldapRoleRequests = new List<Task>();
@@ -33,7 +35,7 @@ namespace FWO.Middleware.Server.Requests
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
                     // if current Ldap is internal: Try to add user to current Ldap
-                    if (currentLdap.IsInternal() && currentLdap.AddUser(userDn))
+                    if (currentLdap.IsInternal() && currentLdap.AddUser(userDn, password, email))
                     {
                         userAdded = true;
                     }

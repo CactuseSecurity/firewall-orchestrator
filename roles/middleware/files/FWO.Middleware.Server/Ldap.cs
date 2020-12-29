@@ -112,6 +112,10 @@ namespace FWO.Middleware.Server
                             {
                                 // Return ldap dn
                                 Log.WriteDebug("User Validation", $"\"{ currentUser.Dn}\" successfully authenticated.");
+                                if (currentUser.GetAttributeSet().ContainsKey("mail"))
+                                {
+                                    user.Email = currentUser.GetAttribute("mail").StringValue;
+                                }
                                 return currentUser.Dn;
                             }
 
@@ -227,9 +231,9 @@ namespace FWO.Middleware.Server
             return roleUsers;
         }
 
-        public List<string> GetAllUsers()
+        public List<KeyValuePair<string, string>> GetAllUsers()
         {
-            List<string> allUsers = new List<string>();
+            List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
 
             // Connect to Ldap
             using (LdapConnection connection = Connect())
@@ -244,13 +248,13 @@ namespace FWO.Middleware.Server
 
                 foreach (LdapEntry entry in searchResults)
                 {
-                    allUsers.Add(entry.Dn);
+                    allUsers.Add(new KeyValuePair<string, string> (entry.Dn, (entry.GetAttributeSet().ContainsKey("mail") ? entry.GetAttribute("mail").StringValue : "")));
                 }
             }
             return allUsers;
         }
 
-        public bool AddUser(string userDn)
+        public bool AddUser(string userDn , string password, string email)
         {
             Log.WriteInfo("Add User", $"Trying to add User: \"{userDn}\"");
             bool userAdded = false;
@@ -268,8 +272,8 @@ namespace FWO.Middleware.Server
                     attributeSet.Add( new LdapAttribute("sn", userName));
                     attributeSet.Add( new LdapAttribute("cn", userName));
                     attributeSet.Add( new LdapAttribute("uid", userName));
-                    attributeSet.Add( new LdapAttribute("userPassword", userName + "1"));
-                    // attributeSet.Add( new LdapAttribute("mail", "JSmith@Acme.com"));
+                    attributeSet.Add( new LdapAttribute("userPassword", password));
+                    attributeSet.Add( new LdapAttribute("mail", email));
 
                     LdapEntry newEntry = new LdapEntry( userDn, attributeSet );
 

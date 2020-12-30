@@ -2,7 +2,7 @@
 -- Maintenance functions for db cleanup
 ----------------------------------------------------
 
-CREATE OR REPLACE FUNCTION delete_import(INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION delete_import(BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_import_id ALIAS FOR $1; -- ID des zurueckzuruderndes Managements
 BEGIN
@@ -25,7 +25,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION get_stale_imports(INTEGER) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION get_stale_imports(BIGINT) RETURNS VOID AS $$
 -- returns all import ids that are unneccessary
 DECLARE
 	i_import_id ALIAS FOR $1; -- ID des zurueckzuruderndes Managements

@@ -27,22 +27,5 @@ namespace FWO.Ui.Services
                 UiUser = uiUsers[0];
             }
         }
-
-        public async Task ChangeLanguage(string language, APIConnection apiConnection)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    id = UiUser.DbId,
-                    language = language
-                };
-                await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLanguage, Variables));
-            }
-            catch (Exception)
-            {
-                // maybe admin has deleted uiuser inbetween
-            }
-        }
     }
 }

@@ -19,7 +19,7 @@
     <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedLanguage">
         @foreach (Language language in globalConfig.uiLanguages)
         {
-            <option selected="@(selectedLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
+            <option value="@(language.Name)">@(language.Name)</option>
         }
     </select>
     <button class="btn btn-sm btn-success" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
@@ -27,12 +27,12 @@
 
 @code
 {
-    [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
-
-    UiUsersDbAccess uiUser;
-
     string selectedLanguage;
+
+    protected override void OnInitialized()
+    {
+        selectedLanguage = userConfig.GetUserLanguage();
+    }
 
     private async Task ChangeLanguage(string language)
     {

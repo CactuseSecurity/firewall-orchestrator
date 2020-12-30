@@ -60,6 +60,17 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "AddUser");
         }
 
+        public async Task<MiddlewareServerResponse> UpdateUser(string Username, string Email)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "Username", Username },
+                { "Email", Email }
+            };
+
+            return await requestSender.SendRequest(parameters, "UpdateUser");
+        }
+
         public async Task<MiddlewareServerResponse> DeleteUser(string Username)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>

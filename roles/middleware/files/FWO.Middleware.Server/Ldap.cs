@@ -296,6 +296,40 @@ namespace FWO.Middleware.Server
             return userAdded;
         }
 
+        public bool UpdateUser(string userDn, string email)
+        {
+            Log.WriteInfo("Update User", $"Trying to update User: \"{userDn}\"");
+            bool userUpdated = false;
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    LdapAttribute attribute = new LdapAttribute("mail", email);
+                    LdapModification[] mods = { new LdapModification(LdapModification.Replace, attribute) };
+
+                    try
+                    {
+                        //Add the entry to the directory
+                        connection.Modify(userDn, mods);
+                        userUpdated = true;
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Update User", $"couldn't update user in LDAP: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to update user", exception);
+            }
+            return userUpdated;
+        }
+
         public bool DeleteUser(string userDn)
         {
             Log.WriteInfo("Delete User", $"Trying to delete User: \"{userDn}\"");
@@ -357,7 +391,7 @@ namespace FWO.Middleware.Server
                     try
                     {
                         //Modify the entry in the directory
-                        connection.Modify ( role, mods );
+                        connection.Modify (role, mods);
                         userModified = true;
                     }
                     catch(Exception exception)

@@ -50,16 +50,26 @@
                 </div>
                 <div class="form-group row">
                     <label for="userDn" class="col-sm-3 col-form-label col-form-label-sm">Dn:</label>
-                    <div class="col-sm-8">
-                        <input id="userDn" type="text" class="form-control form-control-sm" @bind="actUser.Dn" />
-                    </div>
+                    @if (AddMode)
+                    {
+                        <div class="col-sm-8">
+                            <input id="userDn" type="text" class="form-control form-control-sm" @bind="actUser.Dn" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="m-2">@actUser.Dn</label>
+                    }
                 </div>
-                <div class="form-group row">
-                    <label for="userPassword" class="col-sm-3 col-form-label col-form-label-sm">Password:</label>
-                    <div class="col-sm-8">
-                        <input id="userPassword" type ="password" class="form-control form-control-sm" @bind="actUser.Password" />
+                @if (AddMode)
+                {
+                    <div class="form-group row">
+                        <label for="userPassword" class="col-sm-3 col-form-label col-form-label-sm">Password:</label>
+                        <div class="col-sm-8">
+                            <input id="userPassword" type ="password" class="form-control form-control-sm" @bind="actUser.Password" />
+                        </div>
                     </div>
-                </div>
+                }
                 <div class="form-group row">
                     <label for="userEmail" class="col-sm-3 col-form-label col-form-label-sm">Email:</label>
                     <div class="col-sm-8">
@@ -140,8 +150,11 @@
             if (relatedUiUser != null)
             {
                 // Update related user
-                await updateUserInDb(relatedUiUser, ldapUser.Email);
-                relatedUiUser.Email = ldapUser.Email;
+                if (relatedUiUser.Email != ldapUser.Email)
+                {
+                    relatedUiUser.Email = ldapUser.Email;
+                    await updateUserInDb(relatedUiUser);
+                }
             }
             else
             {
@@ -177,14 +190,14 @@
         }
     }
 
-    private async Task updateUserInDb(UiUser user, string email)
+    private async Task updateUserInDb(UiUser user)
     {
         try          
         {
             var Variables = new
             {
                 id = user.DbId,
-                email = email
+                email = user.Email
             };
             await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables));
         }
@@ -256,7 +269,7 @@
                     {
                         actUser.Name = (new DistName(actUser.Dn)).UserName;
                         await addUserToDb(actUser);
-                        ldapUsers.Add(actUser);
+                        uiUsers.Add(actUser);
                         AddMode = false;
                         EditMode = false;
                         errorMessage = "";
@@ -265,12 +278,19 @@
             }
             else
             {
-                // Update existing user in ldap
-                // Todo: what kind of updates should be possible?
-
-                EditMode = false;
-                ldapUsers[ldapUsers.FindIndex(x => x.DbId == actUser.DbId)] = actUser;
-                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
+                // Update existing user in ldap --> currently only email
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateUser(actUser.Dn, actUser.Email);
+                if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                {
+                    errorMessage = "no user updated";
+                }
+                else
+                {
+                    await updateUserInDb(actUser);
+                    uiUsers[uiUsers.FindIndex(x => x.DbId == actUser.DbId)].Email = actUser.Email;
+                    EditMode = false;
+                    errorMessage = "";
+                }
             }
             // update actUser
         }
@@ -312,7 +332,7 @@
             else
             {
                 await CleanUpUser(actUser);
-                ldapUsers.Remove(actUser);           
+                uiUsers.Remove(actUser);           
                 DeleteMode = false;
                 errorMessage = "";
             }

@@ -186,10 +186,10 @@
         {
             foreach (var roleUser in apiAuthResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allRoles"))
             {
-                Role role = new Role() { Dn = roleUser.Key , Name = extractRoleNameFromDn(roleUser.Key)};
+                Role role = new Role() { Dn = roleUser.Key , Name = (new DistName(roleUser.Key)).Role};
                 foreach (var userDn in roleUser.Value)
                 {
-                    UiUser newUser = new UiUser(){ Dn = userDn , Name = extractUserNameFromDn(userDn) };
+                    UiUser newUser = new UiUser(){ Dn = userDn , Name = (new DistName(userDn)).UserName };
                     role.Users.Add(newUser);
                 }
                 roles.Add(role);
@@ -226,9 +226,9 @@
         }
         else
         {
-            foreach(var userDn in apiAuthResponse.GetResult<List<string>>("allUsers"))
+            foreach(var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
             {
-                UiUser newUser = new UiUser(){ Dn = userDn , Name = extractUserNameFromDn(userDn) };
+                UiUser newUser = new UiUser(){ Dn = user.Key , Name = (new DistName(user.Key)).UserName };
                 ldapUsers.Add(newUser);
             }
         }
@@ -246,7 +246,7 @@
         }
         else
         {
-            UiUser newUser = new UiUser() {Dn = userDn , Name = extractUserNameFromDn(userDn)}; 
+            UiUser newUser = new UiUser() {Dn = userDn , Name = (new DistName(userDn)).UserName}; 
             await AddUser (newUser);
         }
     }
@@ -337,26 +337,5 @@
         SearchMode = false;
         AddMode = true;
         errorMessage = "";
-    }
-
-    private string extractUserNameFromDn(string Dn)
-    {
-        return extractNameFromDn(Dn, "uid=");
-    }
-
-    private string extractRoleNameFromDn(string Dn)
-    {
-        return extractNameFromDn(Dn, "cn=");
-    }
-
-    private string extractNameFromDn(string Dn, string Prefix)
-    {
-        string Name = "";
-        int Index = Dn.IndexOf(",");
-        if(Index > Prefix.Length)
-        {
-            Name = Dn.Substring(Prefix.Length, Index - Prefix.Length);
-        }
-        return Name;
     }
 }

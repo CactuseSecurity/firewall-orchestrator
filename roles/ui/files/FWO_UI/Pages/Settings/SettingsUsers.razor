@@ -1,42 +1,330 @@
 ﻿@using BlazorTable
+@using System.Net
 @using FWO.Api.Data
 @using FWO.ApiClient
+@using FWO.Middleware.Client
 
 @page "/settings/users"
 
 @inject APIConnection apiConnection
+@inject MiddlewareClient middlewareClient
 
 <h3 class="m-2">UI Users</h3>
 <hr />
+
+@if (errorMessage != "")
+{
+    <label class="m-2">@errorMessage</label>
+}
+
+<button class="btn btn-success m-2" @onclick="Add">Add new user</button>
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
         <Column TableItem="UiUser" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Dn" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Email" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Language" Field="@(x => x.Language)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Last Login" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Action" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(context)">Delete</button>
-                </div>
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                    <button class="btn btn-sm btn-info" @onclick="() => CleanUpUser(context)">Clean Up</button>
+               </div>
             </Template>
         </Column>
     </Table>
 </div>
 
+<PopUp Title="Edit User" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+    <Body>
+        @if (EditMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="userName" class="col-sm-3 col-form-label col-form-label-sm">Name:</label>
+                    <label class="m-2">@actUser.Name</label>
+                </div>
+                <div class="form-group row">
+                    <label for="userDn" class="col-sm-3 col-form-label col-form-label-sm">Dn:</label>
+                    <div class="col-sm-8">
+                        <input id="userDn" type="text" class="form-control form-control-sm" @bind="actUser.Dn" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="userPassword" class="col-sm-3 col-form-label col-form-label-sm">Password:</label>
+                    <div class="col-sm-8">
+                        <input id="userPassword" type ="password" class="form-control form-control-sm" @bind="actUser.Password" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="userEmail" class="col-sm-3 col-form-label col-form-label-sm">Email:</label>
+                    <div class="col-sm-8">
+                        <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
+                    </div>
+                </div>
+
+                @if (errorMessage != "")
+                {
+                    <label class="m-2">@errorMessage</label>
+                }
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-primary" @onclick="() => Save()">Save</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="Delete" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+    <Body>
+        @if (DeleteMode)
+        {
+            <p>@(deleteMessage)</p>
+
+            @if (errorMessage != "")
+            {
+                <label class="m-2">@errorMessage</label>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (DeleteAllowed)
+            {
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete()">Delete</button>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
 
 @code 
 {
+    private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+    private List<UiUser> ldapUsers = new List<UiUser>();
     private List<UiUser> uiUsers = new List<UiUser>();
+
+    private bool EditMode = false;
+    private bool DeleteMode = false;
+    private bool DeleteAllowed = false;
+    private bool AddMode = false;
+
+    private UiUser newUser;
+    private UiUser actUser;
+
+    private string deleteMessage = "";
+    private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
+        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+
+        // Get all users from internal ldap
+        await GetUsersFromInternalLdap();
+
+        // Get users from uiusers table
         uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
         uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+
+        // Synchronize both
+        foreach (var ldapUser in ldapUsers)
+        {
+            UiUser relatedUiUser = uiUsers.Find(x => x.Dn == ldapUser.Dn);
+            if (relatedUiUser != null)
+            {
+                // Update related user
+                await updateUserInDb(relatedUiUser, ldapUser.Email);
+                relatedUiUser.Email = ldapUser.Email;
+            }
+            else
+            {
+                // Add new user to UiUsers table
+                await addUserToDb(ldapUser);
+                uiUsers.Add(ldapUser);
+            }
+        }
     }
 
-    private async Task DeleteUser(UiUser user)
+    private async Task GetUsersFromInternalLdap()
+    {
+        LdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
+        if (internalLdap == null)
+        {
+            errorMessage = "no internal Ldap found";
+            return;
+        }
+
+        // get users from Ldap
+        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(internalLdap.Address);
+        if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+        {
+            errorMessage = "no users found";
+        }
+        else
+        {
+            foreach(var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+            {
+                UiUser newUser = new UiUser(){ Dn = user.Key , Name = (new DistName(user.Key)).UserName, Email = user.Value };
+                ldapUsers.Add(newUser);
+            }
+        }
+    }
+
+    private async Task updateUserInDb(UiUser user, string email)
+    {
+        try          
+        {
+            var Variables = new
+            {
+                id = user.DbId,
+                email = email
+            };
+            await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables));
+        }
+        catch (Exception exeption)
+        {
+            Log.WriteError("Update User Error", $"User {user.Name} could not be updated in database.", exeption);
+        }
+    }
+
+    private async Task addUserToDb(UiUser user)
+    {
+        try          
+        {
+            var Variables = new
+            {
+                uuid = user.Dn, 
+                uiuser_username = user.Name,
+                email = user.Email
+            };
+            user.DbId = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables))).ReturnIds[0].NewId;
+        }
+        catch (Exception exeption)
+        {
+            Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", exeption);
+        }
+    }
+
+    private void Add()
+    {
+        AddMode = true;
+        newUser = new UiUser();
+        Edit(newUser);
+    }
+
+    private void Clone(UiUser user)
+    {
+        AddMode = true;
+        newUser = new UiUser(user);
+        newUser.Name = null;
+        Edit(newUser);
+    }
+
+    private void Edit(UiUser user)
+    {
+        actUser = new UiUser(user);
+        EditMode = true;
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (AddMode)
+            {
+                // Todo: Further value checks?
+                if (actUser.Dn == null || actUser.Dn == "" || actUser.Password == null || actUser.Password == "")
+                {
+                    errorMessage = "Dn and Password have to be filled";
+                }
+                else
+                {
+                    // insert new user to ldap
+                    MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email);
+                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                    {
+                        errorMessage = "no user added";
+                    }
+                    else
+                    {
+                        actUser.Name = (new DistName(actUser.Dn)).UserName;
+                        await addUserToDb(actUser);
+                        ldapUsers.Add(actUser);
+                        AddMode = false;
+                        EditMode = false;
+                        errorMessage = "";
+                    }                
+                }
+            }
+            else
+            {
+                // Update existing user in ldap
+                // Todo: what kind of updates should be possible?
+
+                EditMode = false;
+                ldapUsers[ldapUsers.FindIndex(x => x.DbId == actUser.DbId)] = actUser;
+                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
+            }
+            // update actUser
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Save User in Ldap", $"Exception occurred: {exception}");
+            errorMessage = "Something went wrong with saving: " + exception.Message;
+        }
+    }
+
+    private void RequestDelete(UiUser user)
+    {
+        actUser = user;
+        // Todo: Checks if delete possible, e.g. if assigned to role?
+
+        if (actUser == null)
+        {
+            deleteMessage = $"Deletion of user {actUser.Name} not allowed.";
+            DeleteAllowed = false;
+        }
+        else
+        {
+            deleteMessage = $"Are you sure you want to delete user {actUser.Name}?";
+            DeleteAllowed = true;
+        }
+        DeleteMode = true;
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            // delete user from Ldap
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteUser(actUser.Dn);
+            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            {
+                errorMessage = "no user deleted";
+            }
+            else
+            {
+                await CleanUpUser(actUser);
+                ldapUsers.Remove(actUser);           
+                DeleteMode = false;
+                errorMessage = "";
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Delete User from Ldap", $"Exception occurred: {exception}");
+            errorMessage = "Something went wrong with deleting: " + exception.Message;
+        }
+    }
+
+    private async Task CleanUpUser(UiUser user)
     {
         try
         {
@@ -51,5 +339,13 @@
         {
             Log.WriteDebug("Delete UIUser", $"Exception occurred: {exception}");
         }
+    }
+
+    private void Cancel()
+    {
+        AddMode = false;
+        EditMode = false;
+        DeleteMode = false;
+        errorMessage = "";
     }
 }

@@ -31,3 +31,6 @@ removing stm_report_typ table and references, adding report_schedule.report_sche
 
 ### 5.0.8 - 23.12.2020
 adding report_name and report_filetype to report table
+
+### 5.0.9 - 28.12.2020
+remove unique constraint from uiuser_username in uiuser

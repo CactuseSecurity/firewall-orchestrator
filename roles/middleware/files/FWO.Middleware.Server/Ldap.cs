@@ -71,6 +71,11 @@ namespace FWO.Middleware.Server
             }
         }
 
+        public bool IsInternal()
+        {
+            return (WriteUser != null && WriteUser != "");
+        }
+
         public string ValidateUser(User user)
         {
             Log.WriteInfo("User Validation", $"Validating User: \"{user.Name}\" ...");
@@ -107,6 +112,10 @@ namespace FWO.Middleware.Server
                             {
                                 // Return ldap dn
                                 Log.WriteDebug("User Validation", $"\"{ currentUser.Dn}\" successfully authenticated.");
+                                if (currentUser.GetAttributeSet().ContainsKey("mail"))
+                                {
+                                    user.Email = currentUser.GetAttribute("mail").StringValue;
+                                }
                                 return currentUser.Dn;
                             }
 
@@ -222,9 +231,9 @@ namespace FWO.Middleware.Server
             return roleUsers;
         }
 
-        public List<string> GetAllUsers()
+        public List<KeyValuePair<string, string>> GetAllUsers()
         {
-            List<string> allUsers = new List<string>();
+            List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
 
             // Connect to Ldap
             using (LdapConnection connection = Connect())
@@ -239,10 +248,83 @@ namespace FWO.Middleware.Server
 
                 foreach (LdapEntry entry in searchResults)
                 {
-                    allUsers.Add(entry.Dn);
+                    allUsers.Add(new KeyValuePair<string, string> (entry.Dn, (entry.GetAttributeSet().ContainsKey("mail") ? entry.GetAttribute("mail").StringValue : "")));
                 }
             }
             return allUsers;
+        }
+
+        public bool AddUser(string userDn , string password, string email)
+        {
+            Log.WriteInfo("Add User", $"Trying to add User: \"{userDn}\"");
+            bool userAdded = false;
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    string userName = (new FWO.Api.Data.DistName(userDn)).UserName;
+                    LdapAttributeSet attributeSet = new LdapAttributeSet();
+                    attributeSet.Add( new LdapAttribute("objectclass", "inetOrgPerson"));
+                    attributeSet.Add( new LdapAttribute("sn", userName));
+                    attributeSet.Add( new LdapAttribute("cn", userName));
+                    attributeSet.Add( new LdapAttribute("uid", userName));
+                    attributeSet.Add( new LdapAttribute("userPassword", password));
+                    attributeSet.Add( new LdapAttribute("mail", email));
+
+                    LdapEntry newEntry = new LdapEntry( userDn, attributeSet );
+
+                    try
+                    {
+                        //Add the entry to the directory
+                        connection.Add(newEntry);
+                        userAdded = true;
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Add User", $"couldn't add user to LDAP: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to add user", exception);
+            }
+            return userAdded;
+        }
+
+        public bool DeleteUser(string userDn)
+        {
+            Log.WriteInfo("Delete User", $"Trying to delete User: \"{userDn}\"");
+            bool userDeleted = false;
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    try
+                    {
+                        //Delete the entry in the directory
+                        connection.Delete(userDn);
+                        userDeleted = true;
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Delete User", $"couldn't delete user in LDAP: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to delete user", exception);
+            }
+            return userDeleted;
         }
 
         public bool AddUserToRole(string userDn, string role)

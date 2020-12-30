@@ -15,7 +15,8 @@ namespace FWO.ApiClient.Queries
         public static readonly string getUserByDn;
         public static readonly string getUserByUuid;
         public static readonly string addUser;
-        public static readonly string updateUser;
+        public static readonly string updateUserEmail;
+        public static readonly string updateUserLanguage;
         public static readonly string updateUserLastLogin;
         public static readonly string deleteUser;
         public static readonly string assertUserExists;
@@ -39,7 +40,8 @@ namespace FWO.ApiClient.Queries
                 getUserByDn = File.ReadAllText(QueryPath + "auth/getUserByDn.graphql");
                 getUserByUuid = File.ReadAllText(QueryPath + "auth/getUserByUuid.graphql");
                 addUser = File.ReadAllText(QueryPath + "auth/addUser.graphql");
-                updateUser = File.ReadAllText(QueryPath + "auth/updateUser.graphql");
+                updateUserEmail = File.ReadAllText(QueryPath + "auth/updateUserEmail.graphql");
+                updateUserLanguage = File.ReadAllText(QueryPath + "auth/updateUserLanguage.graphql");
                 updateUserLastLogin = File.ReadAllText(QueryPath + "auth/updateUserLastLogin.graphql");
                 deleteUser = File.ReadAllText(QueryPath + "auth/deleteUser.graphql");
                 assertUserExists = File.ReadAllText(QueryPath + "auth/assertUserExists.graphql");

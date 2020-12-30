@@ -31,7 +31,7 @@ DECLARE
 	r_ctrl		RECORD;	-- zum Holen des group-delimiters
 	v_debug		VARCHAR; --debug-output
 	v_user_name	VARCHAR; --debug-output
-	i_previous_import_id INTEGER;
+	i_previous_import_id BIGINT;
 	i_mgm_id INTEGER;
 BEGIN
 	RAISE DEBUG 'import_usr_refhandler_main - 1 starting';

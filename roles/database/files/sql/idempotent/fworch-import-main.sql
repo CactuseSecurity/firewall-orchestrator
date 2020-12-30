@@ -1,9 +1,9 @@
 -- $Id: iso-import-main.sql,v 1.1.2.12 2011-09-16 15:05:04 tim Exp $
 -- $Source: /home/cvs/iso/package/install/database/Attic/iso-import-main.sql,v $
 
--- Function: public.import_all_main(integer)
+-- Function: public.import_all_main(BIGINT)
 
--- DROP FUNCTION public.import_all_main(integer);
+-- DROP FUNCTION public.import_all_main(BIGINT);
 
 CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT)
   RETURNS boolean AS
@@ -222,8 +222,8 @@ DECLARE
 	r_changelog RECORD;	
 	i_admin_id INTEGER;
 	r_user_id RECORD;
-	i_delete_import_id INTEGER;
-	i_last_seen_import_id INTEGER;
+	i_delete_import_id BIGINT;
+	i_last_seen_import_id BIGINT;
 BEGIN
 	FOR r_auditlog IN
 		SELECT * FROM import_changelog WHERE control_id=i_current_import_id

@@ -73,7 +73,7 @@ $$ LANGUAGE plpgsql;
 -- RETURNS:     id des change_admins
 --
 
--- DROP FUNCTION get_last_change_admin_of_rulebase_change (INTEGER, INTEGER);
+-- DROP FUNCTION get_last_change_admin_of_rulebase_change (BIGINT, INTEGER);
 CREATE OR REPLACE FUNCTION get_last_change_admin_of_rulebase_change (BIGINT, INTEGER) RETURNS INTEGER AS
 $BODY$
 DECLARE
@@ -111,7 +111,7 @@ $BODY$
 -- RETURNS:     id des change_admins
 --
 
--- DROP FUNCTION get_last_change_admin_of_obj_delete (INTEGER);
+-- DROP FUNCTION get_last_change_admin_of_obj_delete (BIGINT);
 CREATE OR REPLACE FUNCTION get_last_change_admin_of_obj_delete (BIGINT) RETURNS INTEGER AS
 $BODY$
 DECLARE
@@ -353,7 +353,7 @@ DECLARE
 	t_report_time_in ALIAS FOR $2;
 	t_report_time TIMESTAMP;
 	i_mgm_id INTEGER;
-	i_prev_import_id INTEGER;
+	i_prev_import_id BIGINT;
 BEGIN
 	IF t_report_time_in IS NULL THEN
 		t_report_time := now();

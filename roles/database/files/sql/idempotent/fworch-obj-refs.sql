@@ -1,19 +1,3 @@
--- $Id: iso-obj-refs.sql,v 1.1.2.8 2011-09-28 21:14:05 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-obj-refs.sql,v $
-
-/*
- import_nwobj_refhandler_main (INTEGER) RETURNS VOID
- import_nwobj_refhandler_change(INTEGER, INTEGER, INTEGER)
- import_nwobj_refhandler_insert (integer,varchar) RETURNS VOID
- import_nwobj_refhandler_objgrp_add_group (integer,varchar,varchar,integer)
- import_nwobj_refhandler_objgrp_add_single_groupmember(varchar,integer,INTEGER) RETURNS VOID
- import_nwobj_refhandler_objgrp_flat_add_group (INTEGER,INTEGER,INTEGER) RETURNS VOID
- import_nwobj_refhandler_change_objgrp_member_refs(INTEGER, INTEGER) RETURNS VOID
- import_nwobj_refhandler_change_objgrp_flat_member_refs(INTEGER, INTEGER) RETURNS VOID
- import_nwobj_refhandler_change_rule_from_refs (INTEGER, INTEGER) RETURNS VOID
- import_nwobj_refhandler_change_rule_to_refs (INTEGER, INTEGER) RETURNS VOID
-*/
-
 ----------------------------------------------------
 -- FUNCTION:  import_nwobj_refhandler_main
 -- Zweck:     ueberall dort, wo ein object veraendert (changed,inserted,deleted) wurde,
@@ -24,9 +8,9 @@
 -- Parameter: current_import_id
 -- RETURNS:   VOID
 --
--- Function: import_nwobj_refhandler_main(integer)
+-- Function: import_nwobj_refhandler_main(BIGINT)
 
--- DROP FUNCTION import_nwobj_refhandler_main(integer);
+-- DROP FUNCTION import_nwobj_refhandler_main(BIGINT);
 
 CREATE OR REPLACE FUNCTION import_nwobj_refhandler_main(BIGINT)
   RETURNS void AS
@@ -40,7 +24,6 @@ DECLARE
 	i_previous_import_id BIGINT;
 	i_mgm_id INTEGER;
 BEGIN
---	CREATE TEMPORARY TABLE objidx1temp ( pos INTEGER NOT NULL ) ON COMMIT DELETE ROWS;
 	RAISE DEBUG 'import_nwobj_refhandler_main - starting ...';
 
 	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;

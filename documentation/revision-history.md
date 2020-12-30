@@ -34,3 +34,6 @@ adding report_name and report_filetype to report table
 
 ### 5.0.9 - 28.12.2020
 remove unique constraint from uiuser_username in uiuser
+
+### 5.1.01 - 30.12.2020
+drop old functions to enable re-creation with bigint

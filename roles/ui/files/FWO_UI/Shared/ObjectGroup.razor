@@ -63,6 +63,10 @@
                                         {
                                             <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
                                         }
+                                        else if (member.Object.Type.Name=="network")
+                                        {
+                                            <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-rss">&nbsp;</span>@(member.Object.Name)</a><br>
+                                        }
                                         else
                                         {
                                             <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-laptop">&nbsp;</span>@(member.Object.Name)</a><br>

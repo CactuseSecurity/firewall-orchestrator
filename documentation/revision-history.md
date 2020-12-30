@@ -37,3 +37,6 @@ remove unique constraint from uiuser_username in uiuser
 
 ### 5.1.01 - 30.12.2020
 drop old functions to enable re-creation with bigint
+
+### 5.1.02 - 30.12.2020
+drop default value for uiuser_language in uiuser

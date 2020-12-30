@@ -162,10 +162,10 @@ namespace FWO.Middleware.Server
                 case "UpdateUser":
 
                     // Initialize Request Handler  
-//                    AddUserRequestHandler updateUserRequestHandler = new UpdateUserRequestHandler(ldapsCopy, apiConnectionCopy);
+                    UpdateUserRequestHandler updateUserRequestHandler = new UpdateUserRequestHandler(ldapsCopy, apiConnectionCopy);
 
                     // Try to add user to role
-//                    (status, responseString) = await updateUserRequestHandler.HandleRequestAsync(request);
+                    (status, responseString) = await updateUserRequestHandler.HandleRequestAsync(request);
                     break;
 
                 case "DeleteUser":

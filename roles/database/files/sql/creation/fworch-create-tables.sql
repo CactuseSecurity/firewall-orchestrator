@@ -343,7 +343,7 @@ Create table "uiuser"
 	"uiuser_end_date" Date,
 	"uiuser_email" Varchar,
 	"tenant_id" Integer,
-	"uiuser_language" Varchar Default 'English',
+	"uiuser_language" Varchar,
 	"uiuser_password_must_be_changed" Boolean NOT NULL Default TRUE,
 	"uiuser_last_login" Timestamp with time zone,
 	"uiuser_last_password_change" Timestamp with time zone,

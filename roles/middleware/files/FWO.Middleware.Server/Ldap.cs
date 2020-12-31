@@ -111,7 +111,7 @@ namespace FWO.Middleware.Server
                             if (connection.Bound)
                             {
                                 // Return ldap dn
-                                Log.WriteDebug("User Validation", $"\"{ currentUser.Dn}\" successfully authenticated.");
+                                Log.WriteDebug("User Validation", $"\"{ currentUser.Dn}\" successfully authenticated in {Address}.");
                                 if (currentUser.GetAttributeSet().ContainsKey("mail"))
                                 {
                                     user.Email = currentUser.GetAttribute("mail").StringValue;
@@ -123,22 +123,22 @@ namespace FWO.Middleware.Server
                             {
                                 // this will probably never be reached as an error is thrown before
                                 // Incorrect password - do nothing, assume its another user with the same username
-                                Log.WriteDebug("User Validation", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                                Log.WriteDebug($"User Validation {Address}", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
                             }
                         }
                         catch (LdapException exc)
                         {
                             if (exc.ResultCode == 49)  // 49 = InvalidCredentials
-                                Log.WriteDebug("Duplicate user", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
+                                Log.WriteDebug($"Duplicate user {Address}", $"Found user with matching uid but different pwd: \"{ currentUser.Dn}\".");
                             else
-                                Log.WriteError("Ldap exception", "Unexpected error while trying to validate user \"{ currentUser.Dn}\".");
+                                Log.WriteError($"Ldap exception {Address}", "Unexpected error while trying to validate user \"{ currentUser.Dn}\".");
                         } 
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to validate user", exception);
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to validate user", exception);
             }
 
             Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\".");
@@ -190,7 +190,7 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            Log.WriteDebug($"Found the following roles for user {userDn}:", string.Join("\n", userRoles));
+            Log.WriteDebug($"Found the following roles for user {userDn} in {Address}:", string.Join("\n", userRoles));
             return userRoles.ToArray();
         }
 
@@ -282,16 +282,17 @@ namespace FWO.Middleware.Server
                         //Add the entry to the directory
                         connection.Add(newEntry);
                         userAdded = true;
+                        Log.WriteDebug("Add user", $"User {userName} added in {Address}");
                     }
                     catch(Exception exception)
                     {
-                        Log.WriteInfo("Add User", $"couldn't add user to LDAP: {exception.ToString()}");
+                        Log.WriteInfo("Add User", $"couldn't add user to LDAP {Address}: {exception.ToString()}");
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to add user", exception);
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to add user", exception);
             }
             return userAdded;
         }
@@ -316,16 +317,17 @@ namespace FWO.Middleware.Server
                         //Add the entry to the directory
                         connection.Modify(userDn, mods);
                         userUpdated = true;
+                        Log.WriteDebug("Update user", $"User {userDn} updated in {Address}");
                     }
                     catch(Exception exception)
                     {
-                        Log.WriteInfo("Update User", $"couldn't update user in LDAP: {exception.ToString()}");
+                        Log.WriteInfo("Update User", $"couldn't update user in LDAP {Address}: {exception.ToString()}");
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to update user", exception);
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to update user", exception);
             }
             return userUpdated;
         }
@@ -347,16 +349,17 @@ namespace FWO.Middleware.Server
                         //Delete the entry in the directory
                         connection.Delete(userDn);
                         userDeleted = true;
+                        Log.WriteDebug("Delete user", $"User {userDn} deleted in {Address}");
                     }
                     catch(Exception exception)
                     {
-                        Log.WriteInfo("Delete User", $"couldn't delete user in LDAP: {exception.ToString()}");
+                        Log.WriteInfo("Delete User", $"couldn't delete user in LDAP {Address}: {exception.ToString()}");
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to delete user", exception);
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to delete user", exception);
             }
             return userDeleted;
         }
@@ -393,16 +396,17 @@ namespace FWO.Middleware.Server
                         //Modify the entry in the directory
                         connection.Modify (role, mods);
                         userModified = true;
+                        Log.WriteDebug("Modify Role", $"Role {role} modified in {Address}");
                     }
                     catch(Exception exception)
                     {
-                        Log.WriteInfo("Modify Role", $"maybe role doesn't exist in this LDAP: {exception.ToString()}");
+                        Log.WriteInfo("Modify Role", $"maybe role doesn't exist in this LDAP {Address}: {exception.ToString()}");
                     }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError("Non-LDAP exception", "Unexpected error while trying to modify user", exception);
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to modify user", exception);
             }
             return userModified;
         }

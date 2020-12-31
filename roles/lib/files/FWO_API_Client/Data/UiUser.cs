@@ -27,7 +27,13 @@ namespace FWO.Api.Data // TODO: Change namespace
         [JsonPropertyName("uiuser_last_login")]
         public DateTime? LastLogin { get; set; }
 
-            
+        [JsonPropertyName("uiuser_last_password_change")]
+        public DateTime? LastPasswordChange { get; set; }
+
+        [JsonPropertyName("uiuser_password_must_be_changed")]
+        public bool PasswordMustBeChanged { get; set; }
+
+
         public UiUser()
         {}
         

@@ -184,13 +184,20 @@
         }
         else
         {
-            foreach (var roleUser in apiAuthResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allRoles"))
+            foreach (var ldapRole in apiAuthResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
             {
-                Role role = new Role() { Dn = roleUser.Key , Name = (new DistName(roleUser.Key)).Role};
-                foreach (var userDn in roleUser.Value)
+                Role role = new Role() { Dn = ldapRole.Key , Name = (new DistName(ldapRole.Key)).Role};
+                foreach (var roleAttr in ldapRole.Value)
                 {
-                    UiUser newUser = new UiUser(){ Dn = userDn , Name = (new DistName(userDn)).UserName };
-                    role.Users.Add(newUser);
+                    if(roleAttr.Key == "description")
+                    {
+                        role.Description = roleAttr.Value;
+                    }
+                    else if(roleAttr.Key == "user")
+                    {
+                        UiUser newUser = new UiUser(){ Dn = roleAttr.Value , Name = (new DistName(roleAttr.Value)).UserName };
+                        role.Users.Add(newUser);
+                    }
                 }
                 roles.Add(role);
             }

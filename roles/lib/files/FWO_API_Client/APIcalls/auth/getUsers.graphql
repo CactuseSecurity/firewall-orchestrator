@@ -6,5 +6,7 @@ query getUsers{
     uiuser_email
     uiuser_language
     uiuser_last_login
+    uiuser_last_password_change
+    uiuser_password_must_be_changed
   }
 }

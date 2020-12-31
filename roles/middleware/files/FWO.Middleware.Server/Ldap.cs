@@ -194,9 +194,9 @@ namespace FWO.Middleware.Server
             return userRoles.ToArray();
         }
 
-        public List<KeyValuePair<string, List<string>>> GetAllRoles()
+        public List<KeyValuePair<string, List<KeyValuePair<string, string>>>> GetAllRoles()
         {
-            List<KeyValuePair<string, List<string>>> roleUsers = new List<KeyValuePair<string, List<string>>>();
+            List<KeyValuePair<string, List<KeyValuePair<string, string>>>> roleUsers = new List<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
 
             // If this Ldap is containing roles
             if (RoleSearchPath != null)
@@ -215,16 +215,19 @@ namespace FWO.Middleware.Server
                     // Foreach found role
                     foreach (LdapEntry entry in searchResults)
                     {
-                        List<string> users = new List<string>();
+                        List<KeyValuePair<string, string>> attributes = new List<KeyValuePair<string, string>>();
+                        string roleDesc = entry.GetAttribute("description").StringValue;
+                        attributes.Add(new KeyValuePair<string, string>("description", roleDesc));
+
                         string[] roleMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
                         foreach (string currentDn in roleMemberDn)
                         {
                             if (currentDn != "")
                             {
-                                users.Add(currentDn);
+                                attributes.Add(new KeyValuePair<string, string>("user", currentDn));
                             }
                         }
-                        roleUsers.Add(new KeyValuePair<string, List<string>>(entry.Dn, users));
+                        roleUsers.Add(new KeyValuePair<string, List<KeyValuePair<string, string>>>(entry.Dn, attributes));
                     }
                 }
             }

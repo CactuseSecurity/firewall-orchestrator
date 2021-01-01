@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using FWO.Ui.Services;
+using FWO.ApiClient.Queries;
+using FWO.ApiClient;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -11,18 +12,19 @@ namespace FWO.Ui.Pages
 {
     public class DownloadManagerModel : PageModel
     {
-        private DownloadManagerService downloadManager;
+        APIConnection apiConnection;
 
-        public DownloadManagerModel(DownloadManagerService downloadManager)
+        public DownloadManagerModel(APIConnection apiConnection)
         {
-            this.downloadManager = downloadManager;
+            this.apiConnection = apiConnection;
         }
 
-        public IActionResult OnGet(string name)
+        public async Task<IActionResult> OnGetAsync(string reportId)
         {
-            Download download = downloadManager.Downloads.Find(download => download.Name == name);
-            FileStream stream = System.IO.File.OpenRead("");
-            return File(download.GetContent(), download.Type, download.Name);
+            var queryParameter = new { reportId };
+            //await apiConnection.SendQueryAsync<string>(ReportQueries.getSavedReports, queryParameter);
+            //return File(download.GetContent(), download.Type, download.Name);
+            return null;
         }
     }
 }

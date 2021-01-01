@@ -1,0 +1,25 @@
+﻿mutation addGeneratedReport(
+  $report_name: String!
+  $report_start_time : timestamp!
+  $report_generation_time: timestamp!
+  $report_owner_id: Int!
+  $report_document: bytea!
+  $report_filetype: String!
+  $report_template_id: Int!
+) {  
+  insert_report(
+    objects: {
+      report_name: $report_name
+      report_start_time: $report_start_time
+      report_generation_time: $report_generation_time
+      report_owner_id : $report_owner_id
+      report_document : $report_document
+      report_filetype : $report_filetype
+      report_template_id : $report_template_id
+    }
+  ) {
+    returning {
+      report_id
+    }
+  }
+}

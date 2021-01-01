@@ -9,15 +9,19 @@ namespace FWO.ApiClient.Queries
 {
     public class ReportQueries : Queries
     {
+        public static readonly string getReportTemplates;
         public static readonly string addReportTemplate;
+        public static readonly string editReportTemplate;
+        public static readonly string deleteReportTemplate;
+
         public static readonly string addReportSchedule;
         public static readonly string deleteReportSchedule;
         public static readonly string getReportSchedules;
-        public static readonly string getReportTemplates;
+
         public static readonly string getReportsOverview;
+
         public static readonly string getReportsById;
         public static readonly string getRelevantImportIdsAtTime;
-        // public static readonly string getRuleChangeDetails;
         public static readonly string statisticsReportCurrent;
 
         static ReportQueries() 
@@ -35,6 +39,8 @@ namespace FWO.ApiClient.Queries
                 statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrent.graphql");
                 statisticsReportCurrent = File.ReadAllText(QueryPath + "report/statisticsCurrentOverall.graphql");
                 getReportSchedules = File.ReadAllText(QueryPath + "report/getReportSchedules.graphql");
+                editReportTemplate = File.ReadAllText(QueryPath + "report/editReportTemplate.graphql");
+                deleteReportTemplate = File.ReadAllText(QueryPath + "report/deleteReportTemplate.graphql");              
             }
             catch (Exception exception)
             {

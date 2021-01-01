@@ -1,17 +1,19 @@
 mutation addReportTemplate(
   $reportTemplateName: String!
   $reportFilterLine: String!
-  $reportTypeId:Int!
+  $reportTemplateCreate: timestamp!
+  $reportTemplateComment: String!
 ) {
   insert_report_template(
     objects: {
       report_template_name: $reportTemplateName
       report_filter: $reportFilterLine
-      report_typ_id:$reportTypeId
+      report_template_create: $reportTemplateCreate
+      report_template_comment: $reportTemplateComment
     }
   ) {
     returning {
-      report_template_id
+      newId: report_template_id
     }
   }
 }

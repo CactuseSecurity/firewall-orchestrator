@@ -204,7 +204,7 @@
           state: absent
         loop:
           - "{{ fworch_user }}"
-          - "isosample"
+          - "fworchsample"
 
       - name: remove OS group
         group:

@@ -335,7 +335,7 @@ Create table "svcgrp_flat"
 Create table "uiuser"
 (
 	"uiuser_id" SERIAL NOT NULL,
-	"uiuser_username" Varchar NOT NULL UNIQUE,	-- might drop the unique constraint later as we have a uuid now
+	"uiuser_username" Varchar,
 	"uuid" Varchar NOT NULL UNIQUE,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
@@ -343,7 +343,7 @@ Create table "uiuser"
 	"uiuser_end_date" Date,
 	"uiuser_email" Varchar,
 	"tenant_id" Integer,
-	"uiuser_language" Varchar Default 'English',
+	"uiuser_language" Varchar,
 	"uiuser_password_must_be_changed" Boolean NOT NULL Default TRUE,
 	"uiuser_last_login" Timestamp with time zone,
 	"uiuser_last_password_change" Timestamp with time zone,
@@ -846,10 +846,23 @@ Create table "report_template"
 	"report_filter" Varchar,
 	"report_template_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
 	"report_template_comment" TEXT,
-	"report_typ_id" Integer NOT NULL,
 	"report_template_create" Timestamp,
+	"report_template_owner" Integer, --FK
 	"filterline_history" Boolean Default TRUE, -- every time a filterline is sent, we save it for future usage (auto-deleted every 90 days)
 	primary key ("report_template_id")
+);
+
+Create table "report_format"
+(
+	"report_format_name" varchar not null,
+ 	primary key ("report_format_name")
+);
+
+Create table "report_schedule_format"
+(
+	"report_schedule_format_name" VARCHAR not null,
+	"report_schedule_id" BIGSERIAL,
+ 	primary key ("report_schedule_format_name","report_schedule_id")
 );
 
 Create table "report"
@@ -861,43 +874,42 @@ Create table "report"
 	"report_generation_time" Timestamp NOT NULL Default now(),
 	"report_start_time" Timestamp,
 	"report_end_time" Timestamp,
-	"report_document" bytea NOT NULL,
+	"report_json" json NOT NULL,
+	"report_pdf" bytea,
+	"report_csv" text,
+	"report_html" text,
+	"report_filetype" varchar,
+	"report_name" varchar NOT NULL,
 	"report_owner_id" Integer NOT NULL, --FK to uiuser
-	-- "tenant_wide_visible" Integer NOT NULL, not yet
- primary key ("report_id")
+	"tenant_wide_visible" Integer,
+ 	primary key ("report_id")
 );
 
 Create table if not exists "report_schedule"
 (
 	"report_schedule_id" BIGSERIAL,
+	"report_schedule_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
 	"report_template_id" Integer, --FK
 	"report_schedule_owner" Integer, --FK
-	"report_schedule_start_time" Timestamp NOT NULL,
-	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 2 daily, 2 weekly, 3 monthly, 4 yearly 
+	"report_schedule_start_time" Timestamp NOT NULL,  -- if day is bigger than 28, simply use the 1st of the next month, 00:00 am
+	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 1 daily, 2 weekly, 3 monthly, 4 yearly 
 	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years
- primary key ("report_schedule_id")
-);
-
-Create table "stm_report_typ"
-(
-	"report_typ_id" SERIAL,
-	"report_typ_name" Varchar NOT NULL,
-	"report_typ_comment" Text,
- primary key ("report_typ_id")
+	"report_schedule_active" Boolean Default TRUE,
+ 	primary key ("report_schedule_id")
 );
 
 Create table "report_template_viewable_by_tenant"
 (
 	"report_template_id" Integer NOT NULL,
 	"tenant_id" Integer NOT NULL,
- primary key ("tenant_id","report_template_id")
+ 	primary key ("tenant_id","report_template_id")
 );
 
 Create table "report_template_viewable_by_user"
 (
 	"report_template_id" Integer NOT NULL,
 	"uiuser_id" Integer NOT NULL,
- primary key ("uiuser_id","report_template_id")
+ 	primary key ("uiuser_id","report_template_id")
 );
 
 -- configuration
@@ -921,10 +933,10 @@ Create table "ldap_connection"
 
 Create table "config"
 (
-"config_key" VARCHAR NOT NULL,
-"config_value" VARCHAR,
-"config_user" Integer,
-primary key ("config_key","config_user")
+	"config_key" VARCHAR NOT NULL,
+	"config_value" VARCHAR,
+	"config_user" Integer,
+	primary key ("config_key","config_user")
 );
 
 -- not needed for 5.0:  -------------------------------------------
@@ -933,7 +945,7 @@ Create table "temp_table_for_tenant_filtered_rule_ids"
 (
 	"rule_id" Integer NOT NULL,
 	"report_id" Integer NOT NULL,
- primary key ("rule_id","report_id")
+	primary key ("rule_id","report_id")
 );
 
 Create table "temp_filtered_rule_ids"

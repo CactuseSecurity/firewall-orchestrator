@@ -129,9 +129,9 @@ $$ LANGUAGE plpgsql;
 -- Zweck:     liefert die ID des direkt vor $2 liegenden Imports des Managements $1 zurueck
 -- Parameter1: Management-ID
 -- Parameter2: Bezugspunkt (normalerweise = current_import_id)
--- RETURNS:   INTEGER Import-ID
+-- RETURNS:   BIGINT Import-ID
 --
-CREATE OR REPLACE FUNCTION get_previous_import_id_for_mgmt (INTEGER,BIGINT) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_previous_import_id_for_mgmt (INTEGER,BIGINT) RETURNS BIGINT AS $$
 DECLARE
 	i_mgm_id ALIAS FOR $1; -- ID des Managements
 	i_import_id ALIAS FOR $2; -- ID des Imports
@@ -150,7 +150,7 @@ $$ LANGUAGE plpgsql;
 -- FUNCTION:  get_last_import_id_for_mgmt
 -- Zweck:     liefert die ID des letzten Imports des Managements $1 zurueck
 -- Parameter1: Management-ID
--- RETURNS:   INTEGER Import-ID
+-- RETURNS:   BIGINT Import-ID
 --
 CREATE OR REPLACE FUNCTION get_last_import_id_for_mgmt (INTEGER) RETURNS BIGINT AS $$
 DECLARE
@@ -187,7 +187,7 @@ $$ LANGUAGE plpgsql;
 -- Zweck:     liefert die ID des direkt vor $2 liegenden Imports des Devices $1 zurueck
 -- Parameter1: Device-ID
 -- Parameter2: Zeitpunkt
--- RETURNS:   INTEGER Import-ID
+-- RETURNS:   BIGINT Import-ID
 --
 CREATE OR REPLACE FUNCTION get_import_id_for_dev_at_time (INTEGER,TIMESTAMP) RETURNS BIGINT AS $$
 DECLARE
@@ -206,7 +206,7 @@ $$ LANGUAGE plpgsql;
 -- Zweck:     liefert die ID des direkt vor $2 liegenden Imports des Managements $1 zurueck
 -- Parameter1: Management-ID
 -- Parameter2: Zeitpunkt
--- RETURNS:   INTEGER Import-ID
+-- RETURNS:   BIGINT Import-ID
 --
 CREATE OR REPLACE FUNCTION get_import_id_for_mgmt_at_time (INTEGER,TIMESTAMP) RETURNS BIGINT AS $$
 DECLARE

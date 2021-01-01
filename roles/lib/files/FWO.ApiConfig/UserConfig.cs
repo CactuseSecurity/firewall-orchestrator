@@ -44,10 +44,14 @@ namespace FWO.ApiConfig
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
             uiUser = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }))?[0];
 
-            await ChangeLanguage(uiUser.Language, apiConnection);
-
             defaultConfigItems = await GetConfigItems(0, apiConnection);
             userConfigItems = await GetConfigItems(uiUser.DbId, apiConnection);
+            
+            if(uiUser.Language == null)
+            {
+                uiUser.Language = GetConfigValue(kDefaultLanguage);
+            }
+            await ChangeLanguage(uiUser.Language, apiConnection);
         }
 
         private async Task<Dictionary<string, string>> GetConfigItems(int userId, APIConnection apiConnection)
@@ -62,20 +66,18 @@ namespace FWO.ApiConfig
             return result;
         }
 
+        public string GetUserLanguage()
+        {
+            return uiUser.Language;
+        }
+
         public async Task ChangeLanguage(string languageName, APIConnection apiConnection)
         {
-            //try
-            //{
-                await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUser, new { id = uiUser.DbId, language = languageName });
+            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = uiUser.DbId, language = languageName });
 
-                Translate = globalConfig.langDict[languageName];
-                if (OnChange != null)
-                    OnChange.Invoke(this, null);
-            //}
-            //catch (Exception)
-            //{
-            //    // maybe admin has deleted uiuser inbetween
-            //}
+            Translate = globalConfig.langDict[languageName];
+            if (OnChange != null)
+                OnChange.Invoke(this, null);
         }
 
         public string GetConfigValue(string key)

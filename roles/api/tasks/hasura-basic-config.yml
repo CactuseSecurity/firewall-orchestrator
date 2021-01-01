@@ -34,6 +34,15 @@
      group: "{{ fworch_user }}"
   become: yes
 
+- name:  wait for hasura port to become available
+  wait_for:
+    port: "{{ api_port }}"
+    host: "{{ api_ip_address }}"
+    connect_timeout: 1
+    delay: 10
+    timeout: 25
+  when: "run_on_github is not defined"
+
 - name: import hasura metadata
   command: "{{ api_hasura_cli_bin }} metadata apply --from-file"
   args:

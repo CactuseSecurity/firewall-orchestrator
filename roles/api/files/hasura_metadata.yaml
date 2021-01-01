@@ -1347,11 +1347,25 @@ tables:
   - name: report_template
     using:
       foreign_key_constraint_on: report_template_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_wide_visible
   - name: uiuser
     using:
       foreign_key_constraint_on: report_owner_id
   table:
     name: report
+    schema: public
+- array_relationships:
+  - name: report_schedule_formats
+    using:
+      foreign_key_constraint_on:
+        column: report_schedule_format_name
+        table:
+          name: report_schedule_format
+          schema: public
+  table:
+    name: report_format
     schema: public
 - delete_permissions:
   - permission:
@@ -1476,6 +1490,13 @@ tables:
         report_schedule_owner:
           _eq: X-Hasura-User-Id
     role: reporter-viewall
+- object_relationships:
+  - name: report_format
+    using:
+      foreign_key_constraint_on: report_schedule_format_name
+  table:
+    name: report_schedule_format
+    schema: public
 - array_relationships:
   - name: reports
     using:
@@ -1530,6 +1551,10 @@ tables:
       - report_template_owner
       - filterline_history
     role: reporter-viewall
+  object_relationships:
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: report_template_owner
   select_permissions:
   - permission:
       columns:
@@ -2539,6 +2564,13 @@ tables:
         table:
           name: management
           schema: public
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: tenant_wide_visible
+        table:
+          name: report
+          schema: public
   - name: report_template_viewable_by_tenants
     using:
       foreign_key_constraint_on:
@@ -2797,6 +2829,13 @@ tables:
         column: report_schedule_owner
         table:
           name: report_schedule
+          schema: public
+  - name: report_templates
+    using:
+      foreign_key_constraint_on:
+        column: report_template_owner
+        table:
+          name: report_template
           schema: public
   - name: report_template_viewable_by_users
     using:

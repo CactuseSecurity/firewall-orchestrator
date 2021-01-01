@@ -639,11 +639,11 @@ ALTER TABLE report
         REFERENCES public.device (dev_id) MATCH SIMPLE
         ON UPDATE RESTRICT
         ON DELETE CASCADE,
-    DROP CONSTRAINT report_report_typ_id_fkey,
-    ADD CONSTRAINT report_report_typ_id_fkey FOREIGN KEY (report_typ_id)
-        REFERENCES public.stm_report_typ (report_typ_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
+    -- DROP CONSTRAINT report_report_typ_id_fkey,
+    -- ADD CONSTRAINT report_report_typ_id_fkey FOREIGN KEY (report_typ_id)
+    --     REFERENCES public.stm_report_typ (report_typ_id) MATCH SIMPLE
+    --     ON UPDATE RESTRICT
+    --     ON DELETE CASCADE,
     DROP CONSTRAINT report_start_import_id_fkey,
     ADD CONSTRAINT report_start_import_id_fkey FOREIGN KEY (start_import_id)
         REFERENCES public.import_control (control_id) MATCH SIMPLE

@@ -141,7 +141,6 @@ Create index "IX_Relationship139" on "request_service_change" ("log_svc_id");
 Create index "IX_Relationship145" on "request_user_change" ("log_usr_id");
 Create index "IX_Relationship142" on "request_rule_change" ("log_rule_id");
 Create index "IX_Relationship93" on "usr" ("usr_typ_id");
-Create index "IX_Relationship201" on "report_template" ("report_typ_id");
 Create index "IX_Relationship137" on "request_object_change" ("request_id");
 Create index "IX_Relationship140" on "request_service_change" ("request_id");
 Create index "IX_Relationship143" on "request_rule_change" ("request_id");

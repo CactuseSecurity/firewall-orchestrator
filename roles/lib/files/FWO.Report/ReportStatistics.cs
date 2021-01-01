@@ -17,6 +17,7 @@ namespace FWO.Report
         Management[] result = null;
 
         public override async void Generate(int _, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
+        // public override void Generate(int _, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
             string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
@@ -39,9 +40,6 @@ namespace FWO.Report
                 else    // managment was not yet imported at that time
                     query.QueryVariables["relevantImportId"] = -1;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
-
-                // gotNewObjects = result.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
-
             }
             result = resultList.ToArray();
             await callback(result);

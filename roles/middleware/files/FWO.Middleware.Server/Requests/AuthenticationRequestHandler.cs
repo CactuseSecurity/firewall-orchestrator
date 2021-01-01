@@ -185,11 +185,13 @@ namespace FWO.Middleware.Server.Requests
             }
             else
             {
-                tenant.Name = ExtractTenantName(user.Dn, tenantLevel);
+                tenant.Name = (new FWO.Api.Data.DistName(user.Dn)).getTenant(tenantLevel);
                 if(tenant.Name == "")
                 {
                     return null;
                 }
+                Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenant.Name} from {user.Dn}");
+
                 var tenNameObj = new { tenant_name = tenant.Name };
                 tenant = (await ApiConn.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId"))[0];
             }
@@ -211,34 +213,5 @@ namespace FWO.Middleware.Server.Requests
             }
             return tenant;
         }
-
-        private string ExtractTenantName(string userDN, int ldapTenantLevel)
-        {
-            string localString = userDN;
-            string beginSeparator = "ou=";
-            string endSeparator = ",";
-            int beginSeparatorIndex = 0;
-            int endSeparatorIndex = 0;
-            string tenantName = "";
-
-            for(int i = 0; i < ldapTenantLevel; ++i)
-            {
-                localString = localString.Substring(endSeparatorIndex);
-                beginSeparatorIndex = localString.IndexOf(beginSeparator);
-                if(beginSeparatorIndex < 0) 
-                {
-                    // No tenant found on this level
-                    return "";
-                }
-                endSeparatorIndex = localString.Substring(beginSeparatorIndex).IndexOf(endSeparator);
-            }
-            if((beginSeparatorIndex >= 0) && (endSeparatorIndex >= 0))
-            {
-                tenantName = localString.Substring(beginSeparatorIndex + beginSeparator.Length, endSeparatorIndex - 3);
-            }
-            Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenantName} from {userDN}");
-
-            return tenantName;
-        }
     }
 }

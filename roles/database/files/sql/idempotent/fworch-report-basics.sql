@@ -73,7 +73,7 @@ $$ LANGUAGE plpgsql;
 -- RETURNS:     id des change_admins
 --
 
--- DROP FUNCTION get_last_change_admin_of_rulebase_change (INTEGER, INTEGER);
+-- DROP FUNCTION get_last_change_admin_of_rulebase_change (BIGINT, INTEGER);
 CREATE OR REPLACE FUNCTION get_last_change_admin_of_rulebase_change (BIGINT, INTEGER) RETURNS INTEGER AS
 $BODY$
 DECLARE
@@ -111,7 +111,7 @@ $BODY$
 -- RETURNS:     id des change_admins
 --
 
--- DROP FUNCTION get_last_change_admin_of_obj_delete (INTEGER);
+-- DROP FUNCTION get_last_change_admin_of_obj_delete (BIGINT);
 CREATE OR REPLACE FUNCTION get_last_change_admin_of_obj_delete (BIGINT) RETURNS INTEGER AS
 $BODY$
 DECLARE
@@ -227,18 +227,18 @@ $$ LANGUAGE plpgsql;
 -- END;
 -- $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION get_report_typ_list(REFCURSOR) RETURNS REFCURSOR AS $$
-DECLARE
-	r_config RECORD;
-BEGIN
-	SELECT INTO r_config * FROM config;
-	OPEN $1 FOR
-		SELECT report_typ_id,report_typ_name as report_typ_name
-			FROM stm_report_typ
-			ORDER BY report_typ_id;
-    RETURN $1;
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION get_report_typ_list(REFCURSOR) RETURNS REFCURSOR AS $$
+-- DECLARE
+-- 	r_config RECORD;
+-- BEGIN
+-- 	SELECT INTO r_config * FROM config;
+-- 	OPEN $1 FOR
+-- 		SELECT report_typ_id,report_typ_name as report_typ_name
+-- 			FROM stm_report_typ
+-- 			ORDER BY report_typ_id;
+--     RETURN $1;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:    get_tenant_list(name-of-refcursor)
@@ -353,7 +353,7 @@ DECLARE
 	t_report_time_in ALIAS FOR $2;
 	t_report_time TIMESTAMP;
 	i_mgm_id INTEGER;
-	i_prev_import_id INTEGER;
+	i_prev_import_id BIGINT;
 BEGIN
 	IF t_report_time_in IS NULL THEN
 		t_report_time := now();

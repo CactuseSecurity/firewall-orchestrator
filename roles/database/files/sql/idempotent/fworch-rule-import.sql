@@ -80,7 +80,7 @@ $$ LANGUAGE plpgsql;
 ----------------------------------------------------
 -- FUNCTION:  import_rules_save_order
 -- Zweck:     speichert die Regelreihenfolge in rule_order
--- Parameter: current_import_id::INTEGER
+-- Parameter: current_import_id::BIGINT
 -- Parameter: device_id::INTEGER
 -- RETURNS:   VOID
 --
@@ -121,9 +121,9 @@ DECLARE
 	i_dev_id ALIAS FOR $2; -- ID des zu importierenden Devices
 	i_mgm_id INTEGER; -- ID des zugehoerigen Managements
 	r_rule RECORD;
-	i_prev_numeric_value INTEGER;
-	i_next_numeric_value INTEGER;
-	i_numeric_value INTEGER;
+	i_prev_numeric_value BIGINT;
+	i_next_numeric_value BIGINT;
+	i_numeric_value BIGINT;
 /*  function layout:
 	for each rule in import_rule
 		if rule changed
@@ -203,8 +203,8 @@ DECLARE
     b_change	  BOOLEAN;	 -- Regel geaendert
     b_change_sr   BOOLEAN;	 -- non-security-relevant Change
     v_change_id	  VARCHAR;	-- type of change
-    i_new_rule_id INTEGER;  -- id of rule just about to be inserted
-    i_old_rule_id INTEGER;  -- id of exisiting rule
+    i_new_rule_id BIGINT;  -- id of rule just about to be inserted
+    i_old_rule_id BIGINT;  -- id of exisiting rule
 	b_is_documented BOOLEAN; 
 	t_outtext	  TEXT; 
 	i_change_type INTEGER;

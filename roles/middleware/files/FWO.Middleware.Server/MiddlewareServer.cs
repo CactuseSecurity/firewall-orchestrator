@@ -68,6 +68,9 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetUsers/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "UpdateUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "DeleteUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
@@ -168,6 +171,33 @@ namespace FWO.Middleware.Server
 
                     // Try to get all users from Ldap
                     (status, responseString) = await getUsersRequestHandler.HandleRequestAsync(request);
+                    break;
+
+                case "AddUser":
+
+                    // Initialize Request Handler  
+                    AddUserRequestHandler addUserRequestHandler = new AddUserRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                    // Try to add user to role
+                    (status, responseString) = await addUserRequestHandler.HandleRequestAsync(request);
+                    break;
+
+                case "UpdateUser":
+
+                    // Initialize Request Handler  
+                    UpdateUserRequestHandler updateUserRequestHandler = new UpdateUserRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                    // Try to add user to role
+                    (status, responseString) = await updateUserRequestHandler.HandleRequestAsync(request);
+                    break;
+
+                case "DeleteUser":
+
+                    // Initialize Request Handler  
+                    DeleteUserRequestHandler deleteUserRequestHandler = new DeleteUserRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                    // Try to add user to role
+                    (status, responseString) = await deleteUserRequestHandler.HandleRequestAsync(request);
                     break;
 
                 case "AddUserToRole":

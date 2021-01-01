@@ -131,6 +131,7 @@ namespace FWO.Middleware.Server
                 {
                     uuid = user.Dn, 
                     uiuser_username = user.Name,
+                    email = user.Email,
                     loginTime = DateTime.UtcNow
                 };
                 user.DbId = apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables).Result.ReturnIds[0].NewId;
@@ -192,7 +193,11 @@ namespace FWO.Middleware.Server
             string defaultRole = "";
             if (roles != null && roles.Length > 0)
             {
-                if (hasuraRolesList.Contains("reporter-viewall"))
+                if (hasuraRolesList.Contains("admin"))
+                    defaultRole = "admin";
+                else if (hasuraRolesList.Contains("auditor"))
+                    defaultRole = "auditor";
+                else if (hasuraRolesList.Contains("reporter-viewall"))
                     defaultRole = "reporter-viewall";
                 else
                 {

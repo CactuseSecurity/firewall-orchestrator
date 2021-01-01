@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION import_usr_mark_deleted(BIGINT,INTEGER) RETURNS VOID 
 DECLARE
     i_current_import_id ALIAS FOR $1;
     i_mgm_id            ALIAS FOR $2;
-    i_previous_import_id  INTEGER; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
+    i_previous_import_id  BIGINT; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
     r_usr  RECORD;  -- Datensatz mit einzelner svc_id aus import_service-Tabelle des zu importierenden Services
     i_import_admin_id	INTEGER;
 BEGIN
@@ -93,13 +93,9 @@ $$ LANGUAGE plpgsql;
 -- Parameter: import_user.user_id (die ID des zu importierenden Users)
 -- RETURNS:   TRUE (dummy)
 --
--- Function: import_usr_single(integer, integer, integer, boolean)
+-- Function: import_usr_single(BIGINT, integer, BIGINT, boolean)
 
--- DROP FUNCTION import_usr_single(integer, integer, integer, boolean);
-
--- Function: import_usr_single(integer, integer, integer, boolean)
-
--- DROP FUNCTION import_usr_single(integer, integer, integer, boolean);
+-- DROP FUNCTION import_usr_single(BIGINT, integer, BIGINT, boolean);
 
 CREATE OR REPLACE FUNCTION import_usr_single(BIGINT, integer, BIGINT, boolean)
   RETURNS void AS
@@ -130,7 +126,7 @@ DECLARE
 	b_is_documented BOOLEAN; 
 	t_outtext TEXT; 
 	i_change_type INTEGER;
-	i_new_user_id  INTEGER;	-- id des neu eingefuegten Users
+	i_new_user_id  BIGINT;	-- id des neu eingefuegten Users
 	v_comment	VARCHAR;
 --	r_x RECORD;
 BEGIN

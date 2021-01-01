@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server.Requests
 {
-    class GetAllRolesRequestHandler : RequestHandler
+    class AddUserRequestHandler : RequestHandler
     {
         private APIConnection ApiConn;
         
@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server.Requests
         /// </summary>
         private List<Ldap> Ldaps;
 
-        public GetAllRolesRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
+        public AddUserRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
         {
             this.Ldaps = Ldaps;
             this.ApiConn = ApiConn;
@@ -22,21 +22,22 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            // No parameters
+            // Get parameters from request. Expected parameters: "Username", "Password", "Email" from Type string
+            string userDn = GetRequestParameter<string>("Username", notNull: true);
+            string password = GetRequestParameter<string>("Password", notNull: true);
+            string email = GetRequestParameter<string>("Email", notNull: false);
 
-            List<KeyValuePair<string, List<KeyValuePair<string, string>>>> allRoles = new List<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
+            bool userAdded = false;
             List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
-                    // if current Ldap has roles stored
-                    if (currentLdap.RoleSearchPath != "")
+                    // if current Ldap is internal: Try to add user to current Ldap
+                    if (currentLdap.IsInternal() && currentLdap.AddUser(userDn, password, email))
                     {
-                        // Get all roles from current Ldap
-                        List<KeyValuePair<string, List<KeyValuePair<string, string>>>> currentRoles = currentLdap.GetAllRoles();
-                        allRoles.AddRange(currentRoles);
+                        userAdded = true;
                     }
                 }));
             }
@@ -44,7 +45,7 @@ namespace FWO.Middleware.Server.Requests
             await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result
-            return WrapResult(HttpStatusCode.OK, ("allRoles", allRoles));
+            return WrapResult(HttpStatusCode.OK, ("userAdded", userAdded));
         }
     }
 }

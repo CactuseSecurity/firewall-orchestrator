@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server.Requests
 {
-    class GetAllRolesRequestHandler : RequestHandler
+    class DeleteUserRequestHandler : RequestHandler
     {
         private APIConnection ApiConn;
         
@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server.Requests
         /// </summary>
         private List<Ldap> Ldaps;
 
-        public GetAllRolesRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
+        public DeleteUserRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
         {
             this.Ldaps = Ldaps;
             this.ApiConn = ApiConn;
@@ -22,21 +22,20 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            // No parameters
+            // Get parameters from request. Expected parameters: "Username" from Type string
+            string userDn = GetRequestParameter<string>("Username", notNull: true);
 
-            List<KeyValuePair<string, List<KeyValuePair<string, string>>>> allRoles = new List<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
+            bool userDeleted = false;
             List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
-                    // if current Ldap has roles stored
-                    if (currentLdap.RoleSearchPath != "")
+                    // if current Ldap has roles stored: Try to add user to role in current Ldap
+                    if (currentLdap.IsInternal() && currentLdap.DeleteUser(userDn))
                     {
-                        // Get all roles from current Ldap
-                        List<KeyValuePair<string, List<KeyValuePair<string, string>>>> currentRoles = currentLdap.GetAllRoles();
-                        allRoles.AddRange(currentRoles);
+                        userDeleted = true;
                     }
                 }));
             }
@@ -44,7 +43,7 @@ namespace FWO.Middleware.Server.Requests
             await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result
-            return WrapResult(HttpStatusCode.OK, ("allRoles", allRoles));
+            return WrapResult(HttpStatusCode.OK, ("userDeleted", userDeleted));
         }
     }
 }

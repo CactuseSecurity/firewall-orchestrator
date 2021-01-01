@@ -184,13 +184,20 @@
         }
         else
         {
-            foreach (var roleUser in apiAuthResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allRoles"))
+            foreach (var ldapRole in apiAuthResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
             {
-                Role role = new Role() { Dn = roleUser.Key , Name = extractRoleNameFromDn(roleUser.Key)};
-                foreach (var userDn in roleUser.Value)
+                Role role = new Role() { Dn = ldapRole.Key , Name = (new DistName(ldapRole.Key)).Role};
+                foreach (var roleAttr in ldapRole.Value)
                 {
-                    UiUser newUser = new UiUser(){ Dn = userDn , Name = extractUserNameFromDn(userDn) };
-                    role.Users.Add(newUser);
+                    if(roleAttr.Key == "description")
+                    {
+                        role.Description = roleAttr.Value;
+                    }
+                    else if(roleAttr.Key == "user")
+                    {
+                        UiUser newUser = new UiUser(){ Dn = roleAttr.Value , Name = (new DistName(roleAttr.Value)).UserName };
+                        role.Users.Add(newUser);
+                    }
                 }
                 roles.Add(role);
             }
@@ -226,9 +233,9 @@
         }
         else
         {
-            foreach(var userDn in apiAuthResponse.GetResult<List<string>>("allUsers"))
+            foreach(var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
             {
-                UiUser newUser = new UiUser(){ Dn = userDn , Name = extractUserNameFromDn(userDn) };
+                UiUser newUser = new UiUser(){ Dn = user.Key , Name = (new DistName(user.Key)).UserName };
                 ldapUsers.Add(newUser);
             }
         }
@@ -246,7 +253,7 @@
         }
         else
         {
-            UiUser newUser = new UiUser() {Dn = userDn , Name = extractUserNameFromDn(userDn)}; 
+            UiUser newUser = new UiUser() {Dn = userDn , Name = (new DistName(userDn)).UserName}; 
             await AddUser (newUser);
         }
     }
@@ -337,26 +344,5 @@
         SearchMode = false;
         AddMode = true;
         errorMessage = "";
-    }
-
-    private string extractUserNameFromDn(string Dn)
-    {
-        return extractNameFromDn(Dn, "uid=");
-    }
-
-    private string extractRoleNameFromDn(string Dn)
-    {
-        return extractNameFromDn(Dn, "cn=");
-    }
-
-    private string extractNameFromDn(string Dn, string Prefix)
-    {
-        string Name = "";
-        int Index = Dn.IndexOf(",");
-        if(Index > Prefix.Length)
-        {
-            Name = Dn.Substring(Prefix.Length, Index - Prefix.Length);
-        }
-        return Name;
     }
 }

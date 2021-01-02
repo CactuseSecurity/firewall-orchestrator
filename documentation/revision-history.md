@@ -43,3 +43,6 @@ drop default value for uiuser_language in uiuser
 
 ### 5.1.03 - 31.12.2020
 adding some reporting columns
+
+### 5.1.04 - 01.01.2021
+adding default report_templates

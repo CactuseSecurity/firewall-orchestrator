@@ -846,7 +846,7 @@ Create table "report_template"
 	"report_filter" Varchar,
 	"report_template_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
 	"report_template_comment" TEXT,
-	"report_template_create" Timestamp,
+	"report_template_create" Timestamp DEFAULT now(),
 	"report_template_owner" Integer, --FK
 	"filterline_history" Boolean Default TRUE, -- every time a filterline is sent, we save it for future usage (auto-deleted every 90 days)
 	primary key ("report_template_id")

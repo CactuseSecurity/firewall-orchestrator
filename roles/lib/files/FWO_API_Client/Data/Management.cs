@@ -74,16 +74,16 @@ namespace FWO.Api.Data
         public int? RelevantImportId { get; set; }
 
         [JsonPropertyName("objects_aggregate")]
-        public ObjectStatistics NetworkObjectStatistics { get; set; }
+        public ObjectStatistics NetworkObjectStatistics { get; set; } = new ObjectStatistics();
 
         [JsonPropertyName("services_aggregate")]
-        public ObjectStatistics ServiceObjectStatistics { get; set; }
+        public ObjectStatistics ServiceObjectStatistics { get; set; } = new ObjectStatistics();
 
         [JsonPropertyName("usrs_aggregate")]
-        public ObjectStatistics UserObjectStatistics { get; set; }
+        public ObjectStatistics UserObjectStatistics { get; set; } = new ObjectStatistics();
         
         [JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics RuleStatistics { get; set; }
+        public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
         { }

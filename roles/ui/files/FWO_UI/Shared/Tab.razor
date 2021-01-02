@@ -1,7 +1,11 @@
-﻿<li>
-    <a @onclick="ActivateTab" class="nav-link @(ContainerTabSet.ActiveTab == this ? "active" : "")">
+﻿<li class="nav-item">
+    <div @onclick="ActivateTab" class="d-flex justify-content-center nav-link @CssClass @(ContainerTabSet.ActiveTab == this ? "active" : "")">
         @Title
-    </a>
+        @*@if (Closeable)
+        {
+            <div class="ml-1 oi oi-x"></div>
+        }*@
+    </div>
 </li>
 
 @code {
@@ -13,6 +17,12 @@
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string CssClass { get; set; } = "";
+
+    [Parameter]
+    public bool Closeable { get; set; } = false;
 
     protected override void OnInitialized()
     {

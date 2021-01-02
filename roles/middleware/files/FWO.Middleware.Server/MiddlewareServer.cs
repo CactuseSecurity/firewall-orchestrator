@@ -22,7 +22,7 @@ namespace FWO.Middleware.Server
 
         private List<Ldap> connectedLdaps;
 
-        // private readonly object pendingChanges = new object(); // LOCK
+        private readonly object changesLock = new object(); // LOCK
 
         private readonly ConfigFile config;
 
@@ -62,20 +62,37 @@ namespace FWO.Middleware.Server
 
         private async Task RunListenerAsync(string middlewareListenerUri)
         {
-            // Add prefixes to listen to 
-            listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
-            listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
-            listener.Prefixes.Add(middlewareListenerUri + "GetUsers/");
-            listener.Prefixes.Add(middlewareListenerUri + "AddUser/");
-            listener.Prefixes.Add(middlewareListenerUri + "UpdateUser/");
-            listener.Prefixes.Add(middlewareListenerUri + "DeleteUser/");
-            listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
-            listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
-            listener.Prefixes.Add(middlewareListenerUri + "Test/"); // TODO: REMOVE TEST PREFIX
+            try
+            {
+                // Add prefixes to listen to 
+                listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
+                listener.Prefixes.Add(middlewareListenerUri + "GetUsers/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "UpdateUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "DeleteUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
+                listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
+                listener.Prefixes.Add(middlewareListenerUri + "Test/"); // TODO: REMOVE TEST PREFIX
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Listener URI", "Could not listen to required middleware URIs.", exception);
+                Environment.Exit(-1);
+            }
 
-            // Start listener
-            listener.Start();
-            Log.WriteInfo("Listener started", "Middleware server http listener started.");
+            try
+            {
+                // Start listener
+                listener.Start();
+                Log.WriteInfo("Listener started", "Middleware server http listener started.");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Start Listener", "Could not start middleware listener.", exception);
+                Environment.Exit(-1);
+            }
 
             List<Task> connections = new List<Task>(maxConnectionsCount);
 
@@ -115,9 +132,15 @@ namespace FWO.Middleware.Server
             string requestName = request.Url.LocalPath.Trim('\\', '/');
             Log.WriteInfo("Request received", $"New request received: \"{requestName}\".");
 
-            JwtWriter jwtWriterCopy = GetNewJwtWriter();
-            List<Ldap> ldapsCopy = GetNewConnectedLdaps();
-            APIConnection apiConnectionCopy = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriterCopy));
+            JwtWriter jwtWriterCopy;
+            List<Ldap> ldapsCopy;
+            APIConnection apiConnectionCopy;
+            lock (changesLock) // TODO: Optimize
+            {
+                jwtWriterCopy = GetNewJwtWriter();
+                ldapsCopy = GetNewConnectedLdaps();
+                apiConnectionCopy = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriterCopy));
+            }
 
             // Find correct way to handle request.
             switch (requestName)
@@ -193,6 +216,17 @@ namespace FWO.Middleware.Server
 
                     // Try to remove user from role
                     (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
+                    break;
+
+                case "AddLdap":
+                    lock (changesLock)
+                    {
+                        // Initilaize Request Handler
+                        AddLdapRequestHandler addLdapRequestHandler = new AddLdapRequestHandler(apiUri, ref connectedLdaps);
+
+                        // Try to add new ldap connection
+                        (status, responseString) = addLdapRequestHandler.HandleRequestAsync(request).Result;
+                    }
                     break;
 
                 // TODO: REMOVE TEST PREFIX

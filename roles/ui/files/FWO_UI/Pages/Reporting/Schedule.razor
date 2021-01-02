@@ -1,0 +1,215 @@
+﻿@using FWO.ApiConfig
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/schedule"
+
+<h3>Schedule</h3>
+
+<button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport(); ShowSaveScheduledReportDialog = true; }">Add</button>
+
+<Table TableClass="table table-bordered table-sm table-responsive" TableItem="ScheduledReport" Items="scheduledReports">
+    <Column TableItem="ScheduledReport" Title="Name" Field="@(scheduledReport => scheduledReport.Name)" />
+    <Column TableItem="ScheduledReport" Title="Start Time" Field="@(scheduledReport => scheduledReport.StartTime)" />
+    <Column TableItem="ScheduledReport" Title="Repeat Interval" Field="@(scheduledReport => scheduledReport.RepeatOffset)">
+        <Template>
+            @(context.RepeatOffset) @(context.RepeatInterval)
+        </Template>
+   </Column>
+    <Column TableItem="ScheduledReport" Title="Template" Field="@(scheduledReport => scheduledReport.Template.Name)" />
+    <Column TableItem="ScheduledReport" Title="Owner" Field="@(scheduledReport => scheduledReport.Owner.Name)" />
+    <Column TableItem="ScheduledReport" Title="Active" Field="@(scheduledReport => scheduledReport.Active)" />
+    <Column TableItem="ScheduledReport" Title="Output Format" Field="@(scheduledReport => scheduledReport.OutputFormat)" />
+    <Column TableItem="ScheduledReport" Title="Actions">
+        <Template>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">Edit</button>
+                <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">Delete</button>
+            </div>
+        </Template>
+    </Column>
+</Table>
+
+<PopUp Large="true" Title="Report Schedule" Show="@(ShowSaveScheduledReportDialog || ShowEditScheduledReportDialog)">
+    <Body>
+        <div>
+            <div class="form-group row">
+                <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">Name:</label>
+                <div class="col-sm-8">
+                    <input id="scheduleName" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.Name" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="scheduleStartTime" class="col-sm-3 col-form-label col-form-label-sm">Start Time:</label>
+                <div class="col-sm-4">
+                    <input id="scheduleStartTime" type="time" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime"/>
+                </div>
+                <div class="col-sm-4">
+                    <input id="scheduleStartTimeDate" type="date" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="scheduleRepeatEvery" class="col-sm-3 col-form-label col-form-label-sm">Repeat Every:</label>
+                <div class="col-sm-4">
+                    <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatOffset" />
+                </div>
+                <div class="col-sm-4">
+                    <select class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatInterval">
+                        <option value="@Interval.Days" selected>Day(s)</option>
+                        <option value="@Interval.Weeks">Week(s)</option>
+                        <option value="@Interval.Months">Month(s)</option>
+                        <option value="@Interval.Years">Year(s)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="scheduleTemplate" class="col-sm-3 col-form-label col-form-label-sm">Template:</label>
+                <div class="col-sm-8">
+                    <select class="form-control form-control-sm" @bind="scheduledReportInEdit.Template.Id">
+                        @foreach (ReportTemplate reportTemplate in reportTemplates)
+                        {
+                            <option value="@reportTemplate.Id">@reportTemplate.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">Output Format:</label>
+                <div class="col-sm-8">
+                    <input id="scheduleOutputFormat" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.OutputFormat" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">Active:</label>
+                <div class="col-sm-8">
+                    <input id="scheduleActive" type="checkbox" class="form-control form-control-sm" @bind="scheduledReportInEdit.Active" />
+                </div>
+            </div>
+        </div>
+    </Body>
+    <Footer>
+        <button class="btn btn-sm btn-primary" @onclick="async () => await (ShowSaveScheduledReportDialog ? SaveScheduledReport() : EditScheduledReport())">Save</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowEditScheduledReportDialog = ShowSaveScheduledReportDialog = false">Cancel</button>
+    </Footer>
+</PopUp>
+
+<PopUp Title="Report Schedule" Show="@ShowDeleteScheduledReportDialog">
+    <Body>
+        <p>Do you really want to delete report schedule "@scheduledReportInEdit.Name" ?</p>
+    </Body>
+    <Footer>
+        <button class="btn btn-sm btn-danger" @onclick="DeleteScheduledReport">Delete</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteScheduledReportDialog = false">Cancel</button>
+    </Footer>
+</PopUp>
+
+@code
+{
+    List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
+    ScheduledReport scheduledReportInEdit = null;
+
+    private bool ShowSaveScheduledReportDialog = false;
+    private bool ShowEditScheduledReportDialog = false;
+    private bool ShowDeleteScheduledReportDialog = false;
+
+    private int uiUserDbId = -1;
+
+    ReportTemplate[] reportTemplates = new ReportTemplate[0];
+
+    [CascadingParameter]
+    Action<string, string> ShowError { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
+        reportTemplates = await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates);
+        uiUserDbId = userConfig.User.DbId;
+    }
+
+    private async Task SaveScheduledReport()
+    {
+        try
+        {
+            //$report_schedule_name: String!
+            //$report_schedule_owner_id: Int!
+            //$report_schedule_template_id: Int!
+            //$report_schedule_start_time: timestamp!
+            //$report_schedule_repeat: Int! # 0 do not repeat, 2 daily, 2 weekly, 3 monthly, 4 yearly
+            //$report_schedule_every: Int! # every x days/weeks/months/years
+            //$report_schedule_active: Boolean!
+
+            var queryVariables = new
+            {
+                report_schedule_name = scheduledReportInEdit.Name,
+                report_schedule_owner_id = uiUserDbId,
+                report_schedule_template_id = scheduledReportInEdit.Template.Id,
+                report_schedule_start_time = scheduledReportInEdit.StartTime,
+                report_schedule_repeat = scheduledReportInEdit.RepeatOffset,
+                report_schedule_every = (int)scheduledReportInEdit.RepeatInterval,
+                report_schedule_active = scheduledReportInEdit.Active
+            };
+
+            scheduledReportInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariables)).ReturnIds[0].NewId;
+            scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
+
+            ShowSaveScheduledReportDialog = false;
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Save scheduled report", "Unclassified error.", exception);
+            ShowError("Save scheduled report error", "Unclassified error.");
+        }
+    }
+
+    private async Task EditScheduledReport()
+    {
+        try
+        {
+            var queryVariables = new
+            {
+                report_schedule_id = scheduledReportInEdit.Id,
+                report_schedule_name = scheduledReportInEdit.Name,
+                report_schedule_owner_id = uiUserDbId,
+                report_schedule_template_id = scheduledReportInEdit.Template.Id,
+                report_schedule_start_time = scheduledReportInEdit.StartTime,
+                report_schedule_repeat = scheduledReportInEdit.RepeatOffset,
+                report_schedule_every = (int)scheduledReportInEdit.RepeatInterval,
+                report_schedule_active = scheduledReportInEdit.Active
+            };
+
+            await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
+            scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
+
+            ShowEditScheduledReportDialog = false;
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Edit scheduled report", "Unclassified error.", exception);
+            ShowError("Edit scheduled report error", "Unclassified error.");
+        }
+    }
+
+    private async Task DeleteScheduledReport()
+    {
+        try
+        {
+            var queryVariables = new
+            {
+                report_schedule_id = scheduledReportInEdit.Id
+            };
+
+            await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportSchedule, queryVariables);
+            scheduledReports.Remove(scheduledReports.Find(scheduledReport => scheduledReport.Id == scheduledReportInEdit.Id));
+
+            ShowDeleteScheduledReportDialog = false;
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Delete scheduled report", "Unclassified error.", exception);
+            ShowError("Delete scheduled report error", "Unclassified error.");
+        }
+    }
+}
+
+

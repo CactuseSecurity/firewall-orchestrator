@@ -14,10 +14,7 @@ namespace FWO.Report
     {
         public Management[] Managements { get; set; }
 
-        Management[] result = null;
-
         public override async void Generate(int _, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
-        // public override void Generate(int _, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
             string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");

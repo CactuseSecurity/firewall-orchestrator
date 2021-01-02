@@ -1,0 +1,23 @@
+﻿@inject APIConnection apiConnection
+
+@page "/archive"
+
+<h3>Archive</h3>
+
+@*<Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="ReportFile" Items="archivedReports">
+        <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
+        <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
+        <Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" />
+        <Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" />
+        <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner)" />
+        <Column TableItem="ReportFile" Title="Actions">
+            <Template>
+                <button class="btn btn-sm btn-danger" @onclick="() => { reportFileId = context.Id; ShowDeleteReportFileDialog = true; }">Delete</button>
+            </Template>
+        </Column>
+    </Table>*@
+
+@code 
+{
+
+}

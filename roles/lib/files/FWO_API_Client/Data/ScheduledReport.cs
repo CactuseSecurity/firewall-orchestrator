@@ -15,25 +15,33 @@ namespace FWO.Api.Data
         [JsonPropertyName("report_schedule_name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("report_schedule_owner")]
-        public string Owner { get; set; }
+        [JsonPropertyName("report_schedule_owner_user")]
+        public UiUser Owner { get; set; }
 
         [JsonPropertyName("report_schedule_start_time")]
-        public string StartTime { get; set; }
+        public DateTime StartTime { get; set; } = DateTime.Now;
 
         [JsonPropertyName("report_schedule_repeat")]
-        public int RepeatCount { get; set; }
+        public int RepeatOffset { get; set; } = 1;
 
         [JsonPropertyName("report_schedule_every")]
-        public string RepeatInterval { get; set; }
+        public Interval RepeatInterval { get; set; }
 
         [JsonPropertyName("report_schedule_template")]
-        public ReportTemplate Template { get; set; }
-
-        [JsonPropertyName("report_schedule_active")]
-        public bool Active { get; set; }
+        public ReportTemplate Template { get; set; } = new ReportTemplate();
 
         [JsonPropertyName("report_schedule_output_format")]
         public string OutputFormat { get; set; }
+
+        [JsonPropertyName("report_schedule_active")]
+        public bool Active { get; set; }
+    }
+
+    public enum Interval
+    {
+        Days = 2,
+        Weeks = 3,
+        Months = 4,
+        Years = 5
     }
 }

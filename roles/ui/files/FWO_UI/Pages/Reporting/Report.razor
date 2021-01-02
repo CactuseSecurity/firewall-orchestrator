@@ -1,8 +1,4 @@
-@using BlazorTable
-@using FWO.ApiClient
-@using FWO.ApiClient.Queries
 @using FWO.ApiConfig
-@using FWO.Api.Data
 @using FWO.Report
 @using FWO.Ui.Display
 @using FWO.Report.Filter
@@ -54,34 +50,6 @@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
     <TabSet>
         <Tab Title="Generate">
-            @*<h4 class="m-1">Reporting</h4>
-        <button class="btn btn-secondary btn-sm m-1" @onclick="Export">Generate Pdf Export</button>
-        <a href="downloads/test.pdf" target="_blank" download>Download Pdf Export</a>
-        <button class="btn btn-danger btn-sm m-1" @onclick="() => ShowPopUp = true">Show Pop up</button>
-
-        <PopUp Title="test" Show="@ShowPopUp">
-            <Body>
-                test
-            </Body>
-            <Footer>
-                <button class="btn btn-sm btn-danger" @onclick="() => ShowPopUp = false">Close</button>
-            </Footer>
-        </PopUp>
-
-        <div class="form-inline m-1">
-            <div class="form-group mt-1 mb-1 mr-2">
-                <label for="rulesPerDeviceHtml" class="mr-1">Load rules per fetch: </label>
-                <input id="rulesPerDeviceHtml" type="number" class="form-control-sm" @bind="rulesPerFetch" />
-            </div>
-            <div class="form-group mt-1 mb-1">
-                <label for="rulesPerPageHtml" class="mr-1">Show rules per page: </label>
-                <input id="rulesPerPageHtml" type="number" class="form-control-sm" @bind="rulesPerPage" />
-            </div>
-            <div class="form-group mt-1 mb-1">
-                <input id="generationTime" type="text" class="form-control-sm" @bind="reportGenerationTimeLine" />
-            </div>
-        </div>*@
-
             <form class="m-1 position-relative" @onsubmit="GenerateReport">
                 <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
                        class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
@@ -130,14 +98,14 @@
                     </div>
                 </Body>
                 <Footer>
-                    <button class="btn btn-primary btn-sm" @onclick="() => { }">Export</button>
-                    <button class="btn btn-secondary btn-sm" @onclick="() => ShowExportDialog = false">Cancel</button>
+                    <button class="btn btn-primary" @onclick="() => { }">Export</button>
+                    <button class="btn btn-secondary" @onclick="() => ShowExportDialog = false">Cancel</button>
                 </Footer>
             </PopUp>
 
             <PopUp Large="true" Title="Report Template" Show="@(ShowEditTemplateDialog || ShowSaveTemplateDialog)">
                 <Body>
-                    <form>
+                    <div>
                         <div class="form-group">
                             <label for="saveTemplateName">Name:</label>
                             <input id="saveTemplateName" type="text" class="form-control" @bind="reportTemplateInEdit.Name">
@@ -146,15 +114,15 @@
                             <label for="saveTemplateComment">Comment:</label>
                             <textarea id="saveTemplateComment" class="form-control" @bind="reportTemplateInEdit.Comment" />
                         </div>
-                        <div class="mb-3">
-                            <label for="saveTemplateFilterLineTextarea">FilterLine:</label>
+                        <div class="form-group">
+                            <label for="saveTemplateFilterLineTextarea">Filter:</label>
                             <textarea id="saveTemplateFilterLineTextarea" class="form-control" @bind="reportTemplateInEdit.Filter" />
                         </div>
-                    </form>
+                    </div>
                 </Body>
                 <Footer>
-                    <button class="btn btn-sm btn-primary" @onclick="async () => { if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">Save</button>
-                    <button class="btn btn-sm btn-secondary" @onclick="() => ShowEditTemplateDialog = ShowSaveTemplateDialog = false">Cancel</button>
+                    <button class="btn btn-primary" @onclick="async () => { if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">Save</button>
+                    <button class="btn btn-secondary" @onclick="() => ShowEditTemplateDialog = ShowSaveTemplateDialog = false">Cancel</button>
                 </Footer>
             </PopUp>
 
@@ -163,8 +131,8 @@
                     <p>Do you really want to delete report template "@reportTemplateInEdit.Name" ?</p>
                 </Body>
                 <Footer>
-                    <button class="btn btn-sm btn-danger" @onclick="DeleteTemplate">Delete</button>
-                    <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteTemplateDialog = false">Cancel</button>
+                    <button class="btn btn-danger" @onclick="DeleteTemplate">Delete</button>
+                    <button class="btn btn-secondary" @onclick="() => ShowDeleteTemplateDialog = false">Cancel</button>
                 </Footer>
             </PopUp>
 
@@ -391,28 +359,7 @@
             </Table>
         </Tab>
         <Tab Title="Scheduling">
-            <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="ScheduledReport" Items="scheduledReports">
-                <Column TableItem="ScheduledReport" Title="Name" Field="@(scheduledReport => scheduledReport.Name)" />
-                <Column TableItem="ScheduledReport" Title="Start Time" Field="@(scheduledReport => scheduledReport.StartTime)" />
-                <Column TableItem="ScheduledReport" Title="Repeat Intervall" Field="@(scheduledReport => scheduledReport.RepeatInterval)" />
-                <Column TableItem="ScheduledReport" Title="Repeat Count" Field="@(scheduledReport => scheduledReport.RepeatCount)" />
-                <Column TableItem="ScheduledReport" Title="Template" Field="@(scheduledReport => scheduledReport.Template.Name)" />
-                <Column TableItem="ScheduledReport" Title="Owner" Field="@(scheduledReport => scheduledReport.Owner)" />
-                <Column TableItem="ScheduledReport" Title="Active" Field="@(scheduledReport => scheduledReport.Active)" />
-                <Column TableItem="ScheduledReport" Title="Output Format" Field="@(scheduledReport => scheduledReport.OutputFormat)" />
-                <Column TableItem="ScheduledReport" Title="Actions">
-                    <Template>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportId = context.Id; scheduledReportName = context.Name;
-                                                                             scheduledReportRepeatInterval = context.RepeatInterval; scheduledReportRepeatCount = context.RepeatCount;
-                                                                             scheduledReportTemplateName = context.Template.Name; scheduledReportOwner = context.Owner; 
-                                                                             scheduledReportOutputFormat = context.OutputFormat; scheduledReportActive = context.Active;
-                                                                              ShowEditScheduledReportDialog = true; }">Edit</button>
-                            <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportId = context.Id; ShowDeleteScheduledReportDialog = true; }">Delete</button>
-                        </div>
-                    </Template>
-                </Column>
-            </Table>
+
         </Tab>
     </TabSet>
 </div>

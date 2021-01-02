@@ -15,6 +15,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string deleteReportTemplate;
 
         public static readonly string addReportSchedule;
+        public static readonly string editReportSchedule;
         public static readonly string deleteReportSchedule;
         public static readonly string getReportSchedules;
 
@@ -30,6 +31,7 @@ namespace FWO.ApiClient.Queries
             {
                 addReportTemplate = File.ReadAllText(QueryPath + "report/addReportTemplate.graphql");
                 addReportSchedule = File.ReadAllText(QueryPath + "report/addReportSchedule.graphql");
+                editReportSchedule = File.ReadAllText(QueryPath + "report/editReportSchedule.graphql");
                 deleteReportSchedule = File.ReadAllText(QueryPath + "report/deleteReportSchedule.graphql");
                 getReportSchedules = File.ReadAllText(QueryPath + "report/getReportSchedules.graphql");
                 getReportsOverview = File.ReadAllText(QueryPath + "report/getReportsOverview.graphql");

@@ -13,15 +13,18 @@
     </div>
 </div>
 
-<div class="footer alert alert-danger @errorDialogClass">
-    <div class="d-flex flex-row justify-content-between">
-        <div>@errorDialogTitle - @errorDialogMessage See logs for details!</div>  <div class="oi oi-x" @onclick="@(() => { errorDialogClass = "d-none"; StateHasChanged();})"></div>
+@if (errorDialogShow)
+{
+    <div class="footer alert alert-danger">
+        <div class="d-flex flex-row justify-content-between">
+            <div>@errorDialogTitle - @errorDialogMessage See logs for details!</div>  <div class="oi oi-x" @onclick="@(() => { errorDialogShow = false; StateHasChanged();})"></div>
+        </div>
     </div>
-</div>
+}
 
 @code
 {
-    private string errorDialogClass = "d-none";
+    private bool errorDialogShow = false;
     private string errorDialogTitle;
     private string errorDialogMessage;
 
@@ -41,7 +44,7 @@
         {
             errorDialogTitle = title;
             errorDialogMessage = message;
-            errorDialogClass = "";
+            errorDialogShow = true;
             InvokeAsync(StateHasChanged);
         }
     }

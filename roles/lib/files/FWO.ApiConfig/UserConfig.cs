@@ -25,7 +25,7 @@ namespace FWO.ApiConfig
 
         public Dictionary<string, string> Translate {get; set; }
 
-        private UiUser uiUser;
+        public UiUser User { private set; get; }
 
         public event EventHandler OnChange;
 
@@ -42,16 +42,16 @@ namespace FWO.ApiConfig
         public async Task SetUserInformation(string userDn, APIConnection apiConnection)
         {
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
-            uiUser = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }))?[0];
+            User = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }))?[0];
 
             defaultConfigItems = await GetConfigItems(0, apiConnection);
-            userConfigItems = await GetConfigItems(uiUser.DbId, apiConnection);
+            userConfigItems = await GetConfigItems(User.DbId, apiConnection);
             
-            if(uiUser.Language == null)
+            if(User.Language == null)
             {
-                uiUser.Language = GetConfigValue(kDefaultLanguage);
+                User.Language = GetConfigValue(kDefaultLanguage);
             }
-            await ChangeLanguage(uiUser.Language, apiConnection);
+            await ChangeLanguage(User.Language, apiConnection);
         }
 
         private async Task<Dictionary<string, string>> GetConfigItems(int userId, APIConnection apiConnection)
@@ -68,12 +68,12 @@ namespace FWO.ApiConfig
 
         public string GetUserLanguage()
         {
-            return uiUser.Language;
+            return User.Language;
         }
 
         public async Task ChangeLanguage(string languageName, APIConnection apiConnection)
         {
-            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = uiUser.DbId, language = languageName });
+            await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
 
             Translate = globalConfig.langDict[languageName];
             if (OnChange != null)
@@ -96,7 +96,7 @@ namespace FWO.ApiConfig
 
         public async Task ChangeConfigValue(string key, string value, APIConnection apiConnection)
         {
-            var apiVariables = new { key, value, user = uiUser.DbId };
+            var apiVariables = new { key, value, user = User.DbId };
 
             try
             {
@@ -113,7 +113,7 @@ namespace FWO.ApiConfig
             }
             catch (Exception exception)
             {
-                Log.WriteError("Write Config", $"Could not write key: {key}, user: {uiUser.Dn}, value: {value} to config: ", exception);
+                Log.WriteError("Write Config", $"Could not write key: {key}, user: {User.Dn}, value: {value} to config: ", exception);
                 throw;
             }
         }

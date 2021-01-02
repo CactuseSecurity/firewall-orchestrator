@@ -15,10 +15,10 @@
         <h5 class="text-center">Report Type</h5>
 
         <div class="list-group small mt-3">
-            <a class="list-group-item list-group-item-action @(reportType==rulesReport?$"active":$"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
-            <a class="list-group-item list-group-item-action @(reportType==changesReport?$"active":$"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
-            <a class="list-group-item list-group-item-action @(reportType==complianceReport?$"active":$"")" @onclick="() => { filterInput = complianceReportDefaultFilterLine; reportType = complianceReport; }" href="report">Compliance</a>
-            <a class="list-group-item list-group-item-action  @(reportType==statisticsReport?$"active":$"")" @onclick="() => { filterInput = statisticsReportDefaultFilterLine; reportType = statisticsReport; }" href="report">Statistics</a>
+            <a class="list-group-item list-group-item-action @(reportType==rulesReport?"active":"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
+            <a class="list-group-item list-group-item-action @(reportType==changesReport?"active":"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
+            <a class="list-group-item list-group-item-action @(reportType==complianceReport?"active":"")" @onclick="() => { filterInput = complianceReportDefaultFilterLine; reportType = complianceReport; }" href="report">Compliance</a>
+            <a class="list-group-item list-group-item-action  @(reportType==statisticsReport?"active":"")" @onclick="() => { filterInput = statisticsReportDefaultFilterLine; reportType = statisticsReport; }" href="report">Statistics</a>
         </div>
 
         <hr />
@@ -318,10 +318,20 @@
                             break;
 
                         case statisticsReport:
+                            @if (globalStats != null)
+                            {
+                                <h6>Gobal number of Objects</h6>
+                                <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
+                                    <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                </Table>
+                            }
                             @foreach (Management management in managementsReport)
                             {
                                 <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                                    <h6>Total number of objects per Management</h6>
+                                    <h6>Total number of Objects per Management</h6>
                                     <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
                                         <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
                                         <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
@@ -394,6 +404,7 @@
     private Management[] managementsReport = new Management[0];
     private Management[] managementsAllObjects = new Management[0];
     private Management[] managementsWithRelevantImportId = new Management[0];
+    private Management globalStats = null;
 
     private List<ReportTemplate> reportTemplates = new List<ReportTemplate>();
     private ReportFile[] archivedReports = new ReportFile[0];
@@ -532,18 +543,28 @@
                         break;
 
                     case statisticsReport:
+                        globalStats = new Management();
                         ReportStatistics reportStatistics = new ReportStatistics();
                         reportStatistics.Generate(0, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;
-                                return InvokeAsync(StateHasChanged);
+                                return InvokeAsync(() =>
+                                {
+                                    foreach (Management mgm in managementsReport)
+                                    {
+                                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                                    }
+                                    StateHasChanged();
+                                });
                             });
-
-                        await InvokeAsync(StateHasChanged);
                         break;
                 }
                 reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
+                await InvokeAsync(StateHasChanged);
             });
         }
         catch (Exception exception)
@@ -624,31 +645,6 @@
             Log.WriteError("Delete report template", "Unclassified error.", exception);
             ShowError("Delete report template error", "Unclassified error.");
         }
-    }
-
-    private async Task DeleteReportFile()
-    {
-        var reportFile = new
-        {
-            reportFileId = reportFileId
-        };
-
-        //API Call
-    }
-
-    private async Task AddScheduledReport()
-    {
-
-    }
-
-    private async Task EditScheduledReport()
-    {
-
-    }
-
-    private async Task DeleteScheduledReport()
-    {
-
     }
 
     private void Export()

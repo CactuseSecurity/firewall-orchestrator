@@ -1,5 +1,5 @@
 query getRelevantImportIdsAtTime($time: timestamp!) {
-  management(order_by: { mgm_name: asc }) {
+  management(where: { hide_in_gui: { _eq: false } } order_by: { mgm_name: asc }) {
     Name: mgm_name
     id: mgm_id
     import: import_controls_aggregate(

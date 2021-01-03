@@ -60,7 +60,13 @@ namespace FWO.Report.Filter
                     query.FullQuery = $@"
                     query statisticsReport ({paramString}) 
                     {{ 
-                        management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
+                        management(
+                            where: {{ 
+                                hide_in_gui: {{_eq: false }}  
+                                mgm_id: {{_in: $mgmId }} 
+                            }}
+                            order_by: {{ mgm_name: asc }}
+                        ) 
 
                         {{
                             name: mgm_name
@@ -69,7 +75,7 @@ namespace FWO.Report.Filter
                             services_aggregate(where: {{ {query.svcObjWhereStatement} }}) {{ aggregate {{ count }} }}
                             usrs_aggregate(where: {{ {query.userObjWhereStatement} }}) {{ aggregate {{ count }} }}
                             rules_aggregate(where: {{ {query.ruleWhereStatement} }}) {{ aggregate {{ count }} }}
-                            devices(order_by: {{ dev_name: asc }}) 
+                            devices( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} )
                             {{
                                 name: dev_name
                                 id: dev_id
@@ -85,11 +91,11 @@ namespace FWO.Report.Filter
 
                     query rulesReport ({paramString}) 
                     {{ 
-                        management( where: {{ mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }} ) 
+                        management( where: {{ mgm_id: {{_in: $mgmId }}, hide_in_gui: {{_eq: false }} }} order_by: {{ mgm_name: asc }} ) 
                             {{
                                 id: mgm_id
                                 name: mgm_name
-                                devices ( order_by: {{ dev_name: asc }} ) 
+                                devices ( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} ) 
                                     {{
                                         id: dev_id
                                         name: dev_name
@@ -110,11 +116,11 @@ namespace FWO.Report.Filter
                     {ruleOverviewFragment}
 
                     query changeReport({paramString}) {{
-                        management(order_by: {{mgm_name: asc}}) 
+                        management(where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{mgm_name: asc}}) 
                         {{
                             id: mgm_id
                             name: mgm_name
-                            devices (order_by: {{dev_name: asc}}) 
+                            devices (where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{dev_name: asc}}) 
                             {{
                                 id: dev_id
                                 name: dev_name

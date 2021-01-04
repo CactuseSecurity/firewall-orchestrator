@@ -19,13 +19,23 @@
          src: fworch-webhook-receiver.service.j2
          dest: "/lib/systemd/system/fworch-webhook-receiver.service"
          mode: "0755"
-         notify: "restart daemons"
+       notify: "restart daemons"
 
      - name: copy webhook file from template
        template:
          src: fworch-webhook-receiver.py.j2
-         dest: "{{ fworch_home }}/webhook/fworch-webhook-receiver.py"
+         dest: "{{ fworchtest_home }}/fworch-webhook-receiver.py"
          mode: "0755"
-         notify: "restart daemons"
+       notify: "restart daemons"
+
+     - name: make webhook run at host startup
+       systemd:
+         name: fworch-webhook-receiver
+         enabled: yes
+
+     - name: start webhook
+       systemd:
+         name: fworch-webhook-receiver
+         state: restarted
 
   become: yes

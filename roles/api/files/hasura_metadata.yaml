@@ -671,6 +671,20 @@ tables:
         table:
           name: usergrp
           schema: public
+  - name: usrs
+    using:
+      foreign_key_constraint_on:
+        column: user_create
+        table:
+          name: usr
+          schema: public
+  - name: usrsByUserLastSeen
+    using:
+      foreign_key_constraint_on:
+        column: user_last_seen
+        table:
+          name: usr
+          schema: public
   - name: zones
     using:
       foreign_key_constraint_on:
@@ -912,7 +926,11 @@ tables:
   table:
     name: language
     schema: public
-- select_permissions:
+- object_relationships:
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  select_permissions:
   - permission:
       columns:
       - ldap_connection_id
@@ -926,6 +944,7 @@ tables:
       - ldap_tls
       - ldap_write_user
       - ldap_write_user_pwd
+      - tenant_id
       filter: {}
     role: middleware-server
   table:
@@ -1205,6 +1224,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - obj_id
       - last_change_admin
@@ -1327,18 +1347,155 @@ tables:
   - name: report_template
     using:
       foreign_key_constraint_on: report_template_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_wide_visible
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: report_owner_id
   table:
     name: report
     schema: public
-- object_relationships:
+- array_relationships:
+  - name: report_schedule_formats
+    using:
+      foreign_key_constraint_on:
+        column: report_schedule_format_name
+        table:
+          name: report_schedule_format
+          schema: public
+  table:
+    name: report_format
+    schema: public
+- delete_permissions:
+  - permission:
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
+  insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_schedule_id
+      - report_schedule_name
+      - report_template_id
+      - report_schedule_owner
+      - report_schedule_start_time
+      - report_schedule_repeat
+      - report_schedule_every
+      - report_schedule_active
+    role: reporter
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_schedule_active
+      - report_schedule_every
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      - report_schedule_name
+    role: reporter-viewall
+  object_relationships:
   - name: report_template
     using:
       foreign_key_constraint_on: report_template_id
   - name: uiuser
     using:
       foreign_key_constraint_on: report_schedule_owner
+  select_permissions:
+  - permission:
+      columns:
+      - report_schedule_active
+      - report_schedule_every
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      - report_schedule_name
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      columns:
+      - report_schedule_active
+      - report_schedule_every
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      - report_schedule_name
+      filter:
+        _or:
+        - report_schedule_owner:
+            _eq: X-Hasura-User-Id
+        - _exists:
+            _table:
+              name: report_template_viewable_by_user
+              schema: public
+            _where:
+              uiuser_id:
+                _eq: X-Hasura-User-Id
+        - _exists:
+            _table:
+              name: report_template_viewable_by_tenant
+              schema: public
+            _where:
+              tenant_id:
+                _eq: X-Hasura-User-Tenant-Id
+    role: reporter-viewall
   table:
     name: report_schedule
+    schema: public
+  update_permissions:
+  - permission:
+      check: null
+      columns:
+      - report_schedule_active
+      - report_schedule_every
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      - report_schedule_name
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      check: null
+      columns:
+      - report_schedule_active
+      - report_schedule_every
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      - report_schedule_name
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
+- object_relationships:
+  - name: report_format
+    using:
+      foreign_key_constraint_on: report_schedule_format_name
+  table:
+    name: report_schedule_format
     schema: public
 - array_relationships:
   - name: reports
@@ -1369,10 +1526,60 @@ tables:
         table:
           name: report_template_viewable_by_user
           schema: public
+  insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_template_id
+      - report_filter
+      - report_template_name
+      - report_template_comment
+      - report_template_create
+      - report_template_owner
+      - filterline_history
+    role: reporter
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_template_id
+      - report_filter
+      - report_template_name
+      - report_template_comment
+      - report_template_create
+      - report_template_owner
+      - filterline_history
+    role: reporter-viewall
   object_relationships:
-  - name: stm_report_typ
+  - name: uiuser
     using:
-      foreign_key_constraint_on: report_typ_id
+      foreign_key_constraint_on: report_template_owner
+  select_permissions:
+  - permission:
+      columns:
+      - filterline_history
+      - report_template_id
+      - report_template_owner
+      - report_template_comment
+      - report_template_create
+      - report_filter
+      - report_template_name
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      columns:
+      - filterline_history
+      - report_template_id
+      - report_template_owner
+      - report_template_comment
+      - report_template_create
+      - report_filter
+      - report_template_name
+      filter: {}
+    role: reporter-viewall
   table:
     name: report_template
     schema: public
@@ -1606,6 +1813,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - rule_id
       - last_change_admin
@@ -1890,6 +2098,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - svc_id
       - svc_uid
@@ -2160,17 +2369,6 @@ tables:
     name: stm_obj_typ
     schema: public
 - array_relationships:
-  - name: report_templates
-    using:
-      foreign_key_constraint_on:
-        column: report_typ_id
-        table:
-          name: report_template
-          schema: public
-  table:
-    name: stm_report_typ
-    schema: public
-- array_relationships:
   - name: services
     using:
       foreign_key_constraint_on:
@@ -2352,12 +2550,26 @@ tables:
         table:
           name: device
           schema: public
+  - name: ldap_connections
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: ldap_connection
+          schema: public
   - name: management
     using:
       foreign_key_constraint_on:
         column: tenant_id
         table:
           name: management
+          schema: public
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: tenant_wide_visible
+        table:
+          name: report
           schema: public
   - name: report_template_viewable_by_tenants
     using:
@@ -2604,12 +2816,26 @@ tables:
         table:
           name: object
           schema: public
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: report_owner_id
+        table:
+          name: report
+          schema: public
   - name: report_schedules
     using:
       foreign_key_constraint_on:
         column: report_schedule_owner
         table:
           name: report_schedule
+          schema: public
+  - name: report_templates
+    using:
+      foreign_key_constraint_on:
+        column: report_template_owner
+        table:
+          name: report_template
           schema: public
   - name: report_template_viewable_by_users
     using:
@@ -2894,6 +3120,12 @@ tables:
           name: usergrp
           schema: public
   object_relationships:
+  - name: import_control
+    using:
+      foreign_key_constraint_on: user_create
+  - name: importControlByUserLastSeen
+    using:
+      foreign_key_constraint_on: user_last_seen
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -2940,6 +3172,7 @@ tables:
           _in: X-Hasura-visible-managements
     role: reporter
   - permission:
+      allow_aggregations: true
       columns:
       - user_id
       - usr_typ_id

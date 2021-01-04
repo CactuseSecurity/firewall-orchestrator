@@ -16,6 +16,7 @@ namespace FWO.Middleware.Server.Requests
         private readonly JwtWriter tokenGenerator;
         private APIConnection ApiConn;
         private int tenantLevel = 1;
+        private int? fixedTenantId;
 
         private object rolesLock = new object();
         private object dnLock = new object();
@@ -104,6 +105,7 @@ namespace FWO.Middleware.Server.Requests
                             {
                                 tenantLevel = currentLdap.TenantLevel;
                                 userDn = currentDn;
+                                fixedTenantId = currentLdap.TenantId;
                             }
                         }
                     }));
@@ -175,63 +177,41 @@ namespace FWO.Middleware.Server.Requests
         public async Task<Tenant> GetTenantAsync(User user)
         {
             Tenant tenant = new Tenant();
-            tenant.Name = ExtractTenantName(user.Dn, tenantLevel);
-            if(tenant.Name == "")
+            if(fixedTenantId != null)
             {
-                return null;
+                Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {fixedTenantId.Value}");
+                tenant.Id = fixedTenantId.Value;
+                // todo: do we also need the tenant name here?
             }
             else
             {
-                var tenNameObj = new { tenant_name = tenant.Name };
+                tenant.Name = (new FWO.Api.Data.DistName(user.Dn)).getTenant(tenantLevel);
+                if(tenant.Name == "")
+                {
+                    return null;
+                }
+                Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenant.Name} from {user.Dn}");
 
+                var tenNameObj = new { tenant_name = tenant.Name };
                 tenant = (await ApiConn.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId"))[0];
+            }
 
-                var tenIdObj = new { tenantId = tenant.Id };
+            var tenIdObj = new { tenantId = tenant.Id };
 
-                DeviceId[] deviceIds = await ApiConn.SendQueryAsync<DeviceId[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
-                tenant.VisibleDevices = new int[deviceIds.Length];
-                for(int i = 0; i < deviceIds.Length; ++i)
-                {
-                    tenant.VisibleDevices[i] = deviceIds[i].Id;
-                }
-                
-                ManagementId[] managementIds = await ApiConn.SendQueryAsync<ManagementId[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
-                tenant.VisibleManagements = new int[managementIds.Length];
-                for(int i = 0; i < managementIds.Length; ++i)
-                {
-                    tenant.VisibleManagements[i] = managementIds[i].Id;
-                }
+            DeviceId[] deviceIds = await ApiConn.SendQueryAsync<DeviceId[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+            tenant.VisibleDevices = new int[deviceIds.Length];
+            for(int i = 0; i < deviceIds.Length; ++i)
+            {
+                tenant.VisibleDevices[i] = deviceIds[i].Id;
+            }
+            
+            ManagementId[] managementIds = await ApiConn.SendQueryAsync<ManagementId[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+            tenant.VisibleManagements = new int[managementIds.Length];
+            for(int i = 0; i < managementIds.Length; ++i)
+            {
+                tenant.VisibleManagements[i] = managementIds[i].Id;
             }
             return tenant;
         }
-
-        private string ExtractTenantName(string userDN, int ldapTenantLevel)
-        {
-            string localString = userDN;
-            string beginSeparator = "ou=";
-            string endSeparator = ",";
-            int beginSeparatorIndex = 0;
-            int endSeparatorIndex = 0;
-            string tenantName = "";
-
-            for(int i = 0; i < ldapTenantLevel; ++i)
-            {
-                localString = localString.Substring(endSeparatorIndex);
-                beginSeparatorIndex = localString.IndexOf(beginSeparator);
-                if(beginSeparatorIndex < 0) 
-                {
-                    // No tenant found on this level
-                    return "";
-                }
-                endSeparatorIndex = localString.Substring(beginSeparatorIndex).IndexOf(endSeparator);
-            }
-            if((beginSeparatorIndex >= 0) && (endSeparatorIndex >= 0))
-            {
-                tenantName = localString.Substring(beginSeparatorIndex + beginSeparator.Length, endSeparatorIndex - 3);
-            }
-            Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenantName} from {userDN}");
-
-            return tenantName;
-        }
     }
 }

@@ -69,9 +69,21 @@ namespace FWO.Api.Data
         [JsonPropertyName("import")]
         public Import Import { get; set; }
 
-        [JsonPropertyName("pointInTime")]
-        public DateTime ReportTime { get; set; }
+        // [JsonPropertyName("pointInTime")]
+        // public DateTime ReportTime { get; set; }
         public int? RelevantImportId { get; set; }
+
+        [JsonPropertyName("objects_aggregate")]
+        public ObjectStatistics NetworkObjectStatistics { get; set; } = new ObjectStatistics();
+
+        [JsonPropertyName("services_aggregate")]
+        public ObjectStatistics ServiceObjectStatistics { get; set; } = new ObjectStatistics();
+
+        [JsonPropertyName("usrs_aggregate")]
+        public ObjectStatistics UserObjectStatistics { get; set; } = new ObjectStatistics();
+        
+        [JsonPropertyName("rules_aggregate")]
+        public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
         { }
@@ -96,21 +108,10 @@ namespace FWO.Api.Data
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&
                 management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-            {
-                //if (management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId!=null) 
-                //    RelevantImportId = Convert.ToInt32(management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId);
                 RelevantImportId = management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-                // else
-                //    RelevantImportId = 0;
-            }
-            // Devices = management.Devices;
-            // Objects = management.Objects;
-            // Services = management.Services;
-            // Users = management.Users;
+
             if (management.DeviceType != null)
-            {
                 DeviceType = new DeviceType(management.DeviceType);
-            }
         }
 
         public string Host()

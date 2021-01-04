@@ -16,13 +16,13 @@ namespace FWO.Report.Filter.Ast
             switch (Kind)
             {
                 case TokenKind.Not:
-                    query.RuleWhereQuery += "_not: {";
+                    query.ruleWhereStatement += "_not: {";
                     break;
                 default:
                     throw new Exception("### Parser Error: Expected Filtername Token (and thought there is one) ###");
             }
             Value.Extract(ref query);
-            query.RuleWhereQuery += "}";
+            query.ruleWhereStatement += "}";
             return;
         }
     }

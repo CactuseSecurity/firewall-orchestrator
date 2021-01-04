@@ -8,8 +8,8 @@ namespace FWO.Api.Data
 {
     public class NetworkUser
     {
-        [JsonPropertyName("user_typ_id")]
-        public string Id { get; set; }
+        [JsonPropertyName("user_id")]
+        public int Id { get; set; }
 
         [JsonPropertyName("user_uid")]
         public string Uid { get; set; }

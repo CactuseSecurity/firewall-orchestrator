@@ -41,6 +41,15 @@ namespace FWO.Api.Data
         [JsonPropertyName("ldap_write_user_pwd")]
         public string WriteUserPwd { get; set; }
 
+        [JsonPropertyName("tenant_id")]
+        public int? TenantId { get; set; }
+
+        public string TenantIdAsString
+        {
+            get => TenantId?.ToString()?? "null";
+            set => TenantId = value == "null" ? null :(int?)int.Parse(value);
+        }
+        
         public LdapConnection()
         {}
         
@@ -57,6 +66,7 @@ namespace FWO.Api.Data
             RoleSearchPath = ldapConnection.RoleSearchPath;
             WriteUser = ldapConnection.WriteUser;
             WriteUserPwd = ldapConnection.WriteUserPwd;
+            TenantId = ldapConnection.TenantId;
         }
 
         public string Host()

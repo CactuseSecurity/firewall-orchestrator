@@ -18,6 +18,8 @@ namespace FWO.Middleware.Server.Data
         [JsonPropertyName("uuid")]
         public string Dn { get; set; }
 
+        public string Email { get; set; }
+
         public Tenant Tenant { get; set; }
         
         public string DefaultRole { get; set; }
@@ -34,6 +36,7 @@ namespace FWO.Middleware.Server.Data
             DbId = user.DbId;
             Password = user.Password;
             Dn = user.Dn;
+            Email = user.Email;
             Tenant = user.Tenant;
             DefaultRole = user.DefaultRole;
             Roles = user.Roles;

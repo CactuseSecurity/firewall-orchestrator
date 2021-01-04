@@ -27,15 +27,25 @@
                 </NavLink>
             </li>
             <li class="nav-item px-2">
-                <NavLink class="nav-link" href="#">
-                    <span class="oi oi-book"></span> @(userConfig.Translate["documentation"])
+                <NavLink class="nav-link" href="/schedule">
+                    <span class="oi oi-calendar"></span> Scheduling
                 </NavLink>
             </li>
             <li class="nav-item px-2">
-                <NavLink class="nav-link" href="#">
-                    <span class="oi oi-comment-square"></span> @(userConfig.Translate["request"])
+                <NavLink class="nav-link" href="/archive">
+                    <span class="oi oi-box"></span> Archive
                 </NavLink>
             </li>
+            @* <li class="nav-item px-2">
+            <NavLink class="nav-link" href="#">
+                <span class="oi oi-book"></span> @(userConfig.Translate["documentation"])
+            </NavLink>
+        </li>
+        <li class="nav-item px-2">
+            <NavLink class="nav-link" href="#">
+                <span class="oi oi-comment-square"></span> @(userConfig.Translate["request"])
+            </NavLink>
+        </li> *@
         </ul>
 
         <ul class="navbar-nav">
@@ -50,7 +60,7 @@
                 </NavLink>
             </li>
             <li class="nav-item px-2">
-                <NavLink class="nav-link" href="/settings/personal">
+                <NavLink class="nav-link" href="/settings/language">
                     <span class="oi oi-person"></span> @(authenticationStateTask.Result.User.Identity.Name.ToUpper())
                 </NavLink>
             </li>

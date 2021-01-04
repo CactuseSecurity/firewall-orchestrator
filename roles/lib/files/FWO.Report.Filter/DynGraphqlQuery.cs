@@ -15,6 +15,7 @@ using GraphQL.Client.Serializer.SystemTextJson;
 using GraphQL.Client.Abstractions;
 using System.Linq;
 using FWO.ApiClient.Queries;
+using System.Text.RegularExpressions;
 
 namespace FWO.Report.Filter
 {
@@ -23,7 +24,10 @@ namespace FWO.Report.Filter
         public int parameterCounter = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = new Dictionary<string, object>();
         public string FullQuery { get; set; } = "";
-        public string RuleWhereQuery { get; set; } = "";
+        public string ruleWhereStatement { get; set; } = "";
+        public string nwObjWhereStatement { get; set; } = "";
+        public string svcObjWhereStatement { get; set; } = "";
+        public string userObjWhereStatement { get; set; } = "";
         public List<string> QueryParameters { get; set; } = new List<string>()
         {
             " $limit: Int ",
@@ -49,25 +53,56 @@ namespace FWO.Report.Filter
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
             switch (query.ReportType)
             {
-                case "rules":
+                // todo: move $mdmId filter from management into query.xxxWhereStatement
+                // management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
+                        // management(order_by: {{ mgm_name: asc }}) 
+                case "statistics":
+                    query.FullQuery = $@"
+                    query statisticsReport ({paramString}) 
+                    {{ 
+                        management(
+                            where: {{ 
+                                hide_in_gui: {{_eq: false }}  
+                                mgm_id: {{_in: $mgmId }} 
+                            }}
+                            order_by: {{ mgm_name: asc }}
+                        ) 
 
+                        {{
+                            name: mgm_name
+                            id: mgm_id
+                            objects_aggregate(where: {{ {query.nwObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                            services_aggregate(where: {{ {query.svcObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                            usrs_aggregate(where: {{ {query.userObjWhereStatement} }}) {{ aggregate {{ count }} }}
+                            rules_aggregate(where: {{ {query.ruleWhereStatement} }}) {{ aggregate {{ count }} }}
+                            devices( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} )
+                            {{
+                                name: dev_name
+                                id: dev_id
+                                rules_aggregate(where: {{ {query.ruleWhereStatement} }}) {{ aggregate {{ count }} }}
+                            }}
+                        }}
+                    }}";
+                    break;                
+
+                case "rules":
                     query.FullQuery = $@"
                     {ruleOverviewFragment}
 
-                    query ruleFilter ({paramString}) 
+                    query rulesReport ({paramString}) 
                     {{ 
-                        management( where: {{ mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }} ) 
+                        management( where: {{ mgm_id: {{_in: $mgmId }}, hide_in_gui: {{_eq: false }} }} order_by: {{ mgm_name: asc }} ) 
                             {{
                                 id: mgm_id
                                 name: mgm_name
-                                devices ( order_by: {{ dev_name: asc }} ) 
+                                devices ( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} ) 
                                     {{
                                         id: dev_id
                                         name: dev_name
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{ {query.RuleWhereQuery} }} 
+                                            where: {{ {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 ...ruleOverview
@@ -81,18 +116,18 @@ namespace FWO.Report.Filter
                     {ruleOverviewFragment}
 
                     query changeReport({paramString}) {{
-                        management(order_by: {{mgm_name: asc}}) 
+                        management(where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{mgm_name: asc}}) 
                         {{
                             id: mgm_id
                             name: mgm_name
-                            devices (order_by: {{dev_name: asc}}) 
+                            devices (where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{dev_name: asc}}) 
                             {{
                                 id: dev_id
                                 name: dev_name
                                 changelog_rules(
                                     offset: $offset 
                                     limit: $limit 
-                                    where: {{ {query.RuleWhereQuery} }}
+                                    where: {{ {query.ruleWhereStatement} }}
                                     order_by: {{ control_id: asc }}
                                 ) 
                                     {{
@@ -111,6 +146,12 @@ namespace FWO.Report.Filter
                     ";
                     break;
             }
+
+            // remove line breaks and duplicate whitespaces
+            Regex pattern = new Regex("\n");
+            pattern.Replace(query.FullQuery, "");
+            pattern = new Regex("[ ]{2}");
+            pattern.Replace(query.FullQuery, "");
             return query;
         }
     }

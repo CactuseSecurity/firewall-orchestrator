@@ -1,5 +1,5 @@
 
-sample_config_user: isosample
+sample_config_user: fworchsample
 sample_config_user_home: "/home/{{ sample_config_user }}"
 import_sample_server: localhost
 sample_config_hostname: isosrv

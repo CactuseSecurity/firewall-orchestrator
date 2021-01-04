@@ -16,13 +16,24 @@ namespace FWO.Api.Data // TODO: Change namespace
         [JsonPropertyName("uuid")]
         public string Dn { get; set; }
 
+        public string Password { get; set; }
+
+        [JsonPropertyName("uiuser_email")]
+        public string Email { get; set; }
+
         [JsonPropertyName("uiuser_language")]
         public string Language { get; set; }
 
         [JsonPropertyName("uiuser_last_login")]
         public DateTime? LastLogin { get; set; }
 
-            
+        [JsonPropertyName("uiuser_last_password_change")]
+        public DateTime? LastPasswordChange { get; set; }
+
+        [JsonPropertyName("uiuser_password_must_be_changed")]
+        public bool PasswordMustBeChanged { get; set; }
+
+
         public UiUser()
         {}
         
@@ -31,6 +42,8 @@ namespace FWO.Api.Data // TODO: Change namespace
             Name = user.Name;
             DbId = user.DbId;
             Dn = user.Dn;
+            Password = user.Password;
+            Email = user.Email;
             Language = user.Language;
         }
     }

@@ -11,7 +11,7 @@ import sys
 # example$ python3 write_date_to_comment.py uid "path"
 
 uid = sys.argv[1] if len(sys.argv) >= 2 else 52
-config_path = sys.argv[2] if len(sys.argv) >= 3 else "/home/isosample/sample-configs/fortinet_demo/fortigate.cfg"
+config_path = sys.argv[2] if len(sys.argv) >= 3 else "/home/fworchsample/sample-configs/fortinet_demo/fortigate.cfg"
 
 with open(config_path, "r") as fin:
     data = fin.readlines()

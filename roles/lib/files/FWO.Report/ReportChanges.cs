@@ -14,8 +14,6 @@ namespace FWO.Report
     {
         public Management[] Managements { get; set; }
 
-        Management[] result = null;
-
         public override async void Generate(int changesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);

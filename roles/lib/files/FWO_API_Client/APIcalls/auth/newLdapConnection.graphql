@@ -9,6 +9,7 @@ mutation newLdapConnection(
   $searchpathForRoles: String
   $writeUser: String
   $writeUserPwd: String
+  $tenantId: Int
 ) {
   insert_ldap_connection(
     objects: {
@@ -22,6 +23,7 @@ mutation newLdapConnection(
       ldap_searchpath_for_roles: $searchpathForRoles
       ldap_write_user: $writeUser
       ldap_write_user_pwd: $writeUserPwd
+      tenant_id: $tenantId
     }
   ) {
     returning {

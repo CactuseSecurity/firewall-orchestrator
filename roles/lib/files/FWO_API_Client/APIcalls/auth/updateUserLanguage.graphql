@@ -1,4 +1,4 @@
-mutation updateUser(
+mutation updateUserLanguage(
   $id: Int!
   $language: String!
 ) {

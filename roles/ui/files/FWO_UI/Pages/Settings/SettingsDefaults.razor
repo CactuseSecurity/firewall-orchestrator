@@ -8,7 +8,7 @@
 @page "/settings/defaults"
 
 @inject APIConnection apiConnection
-@inject GlobalConfig configCollection
+@inject GlobalConfig globalConfig
 
 <h3>Default Settings</h3>
 <hr />
@@ -16,9 +16,9 @@
 <form class="form-inline">
     <label for="languageSelect" class="col-form-label mr-2">Default Language:</label>
     <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedDefaultLanguage">
-        @foreach (Language language in configCollection.uiLanguages)
+        @foreach (Language language in globalConfig.uiLanguages)
         {
-            <option selected="@(selectedDefaultLanguage == language.Name ? true.ToString() : false.ToString())">@(language.Name)</option>
+            <option value="@(language.Name)">@(language.Name)</option>
         }
     </select>
     <button class="btn btn-sm btn-primary" @onclick="async () => { await SaveDefaultLanguage(selectedDefaultLanguage); StateHasChanged(); }" @onclick:preventDefault>Save</button>
@@ -53,11 +53,12 @@
 
         try
         {
-            rulesPerFetch = Int32.Parse(config.Get(ConfigDbAccess.kRulesPerFetch));
+            string confValue = config.Get(ConfigDbAccess.kRulesPerFetch);
+            rulesPerFetch = (confValue != "" ? Int32.Parse(confValue) : 10);
         }
         catch(Exception exception)
         {
-            Log.WriteError("Read Config", $"Key not found or could not convert value to int: taking value 10 ", exception);
+            Log.WriteError("Read Config", $"Error reading Config for rulesPerFetch: taking value 10 ", exception);
             rulesPerFetch = 10;
         }
     }

@@ -29,13 +29,14 @@
       old_version: "{{ config.product_version }}"
     when: already_installed and installation_mode == "upgrade"
 
-  - name: write new version of product to config file
-    lineinfile:
-      path: "{{ fworch_conf_file }}"
-      regexp: "^product_version:"
-      line: "product_version: {{ product_version }}"
-      backup: yes
-    when: installation_mode == "upgrade"
+  # in case of upgrade: version number is only upgraded at the very end in role upgrade-completion
+  # - name: write new version of product to config file
+  #   lineinfile:
+  #     path: "{{ fworch_conf_file }}"
+  #     regexp: "^product_version:"
+  #     line: "product_version: {{ product_version }}"
+  #     backup: yes
+  #   when: installation_mode == "upgrade"
 
   - name: edit central conf file
     blockinfile:
@@ -52,8 +53,8 @@
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
         
         # middleware
-        middleware_uri: "http://{{ middleware_hostname }}:{{ middleware_web_listener_port }}"
-        # should be middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}"
+        middleware_uri: "http://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
+        # should be middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
     when: installation_mode != "upgrade"
     # keep old version number in config file until end of upgrade
 

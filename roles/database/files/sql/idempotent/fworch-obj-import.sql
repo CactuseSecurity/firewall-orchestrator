@@ -25,25 +25,6 @@ BEGIN
 	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
 	RAISE DEBUG 'import_nwobj_main processing mgm %', i_mgm_id;
 
-/*
-	IF NOT b_is_initial_import THEN	-- Objekte ausklammern, die vor dem vorherigen Import-Zeitpunkt geaendert wurden, Tuning-Masznahme
-		SELECT INTO r_last_times MAX(start_time) AS last_import_time, MAX(last_change_in_config) AS last_change_time
-			FROM import_control WHERE mgm_id=i_mgm_id AND NOT control_id=i_current_import_id AND successful_import;
-		IF (r_last_times.last_change_time IS NULL) THEN t_last_change_time := r_last_times.last_import_time;
-		ELSE 
-			IF (r_last_times.last_import_time<r_last_times.last_change_time) THEN t_last_change_time := r_last_times.last_import_time;
-		 	ELSE t_last_change_time := r_last_times.last_change_time;
-		 	END IF;
-	 	END IF;
-		t_last_change_time := t_last_change_time - CAST('24 hours' AS INTERVAL); -- einen Tag abziehen, falls Zeitsync-Probleme
-		RAISE DEBUG 'obj last_change_time (parser): %', r_last_times.last_change_time;
-		RAISE DEBUG 'obj last_import_time: %', r_last_times.last_import_time;
-		RAISE DEBUG 'obj final_last_change_time: %', t_last_change_time;
-		UPDATE object SET obj_last_seen=i_current_import_id WHERE mgm_id=i_mgm_id AND active AND NOT obj_uid IS NULL AND obj_uid IN
-			(SELECT obj_uid FROM import_object WHERE last_change_time<t_last_change_time AND NOT last_change_time IS NULL);
-		DELETE FROM import_object WHERE last_change_time<t_last_change_time	AND NOT last_change_time IS NULL AND NOT obj_uid IS NULL;
-	END IF;
-*/	
 	-- Schleife fuer alle (verbliebenen) Eintraege in import_object fuer MGM
 	FOR r_obj IN -- jedes Objekt wird mittels insert_single_nwobj eingefuegt
 		SELECT obj_id, obj_name FROM import_object WHERE control_id = i_current_import_id
@@ -63,9 +44,8 @@ $BODY$
 
 ----------------------------------------------------
 -- FUNCTION:  import_nwobj_mark_deleted
--- Zweck:     markiert alle nicht mehr vorhandenen Objekte als not active
+-- Zweck:     marks all non-existant network objects as non-active
 -- Parameter: current_control_id, mgm_id
--- Parameter: import_object.obj_id (die ID des zu importierenden Objekts)
 -- RETURNS:   VOID
 --
 CREATE OR REPLACE FUNCTION import_nwobj_mark_deleted(BIGINT,INTEGER) RETURNS VOID AS $$
@@ -98,16 +78,16 @@ $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:  import_nwobj_single
--- Zweck:     fuegt ein Netzwerkobjekt des aktuellen Imports in die object-Tabelle
+-- Zweck:     adds a network object of the current import to the table "object"
 -- Parameter: current_control_id
 -- Parameter: mgm_id
--- Parameter: import_object.obj_id (die ID des zu importierenden Objekts)
+-- Parameter: import_object.obj_id (id of the network object to import)
 -- Parameter: is_initial_import (boolean)
 -- RETURNS:   VOID
 --
--- Function: import_nwobj_single(integer, integer, integer, boolean)
+-- Function: import_nwobj_single(BIGINT, integer, BIGINT, boolean)
 
--- DROP FUNCTION import_nwobj_single(integer, integer, integer, boolean);
+-- DROP FUNCTION import_nwobj_single(BIGINT, integer, BIGINT, boolean);
 
 CREATE OR REPLACE FUNCTION import_nwobj_single(BIGINT, integer, BIGINT, boolean)
   RETURNS void AS
@@ -133,7 +113,7 @@ DECLARE
 	b_is_documented BOOLEAN; 
 	t_outtext TEXT; 
 	i_change_type INTEGER;
-	i_new_obj_id  INTEGER;	-- id des neu eingefügten object
+	i_new_obj_id  BIGINT;	-- id des neu eingefügten object
 	v_comment	VARCHAR;
 BEGIN
     b_insert := FALSE;

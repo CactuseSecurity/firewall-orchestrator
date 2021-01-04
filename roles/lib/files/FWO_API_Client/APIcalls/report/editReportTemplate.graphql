@@ -1,0 +1,14 @@
+﻿mutation editReportTemplate($report_template_id: Int, $report_template_name: String,
+  $report_template_create: timestamp, $report_template_comment: String, $report_filter : String) {
+  update_report_template(
+    where: {report_template_id: {_eq: $report_template_id}},
+    _set: {
+      report_template_name: $report_template_name,
+      report_template_create: $report_template_create,
+      report_template_comment: $report_template_comment,
+      report_filter: $report_filter
+    }
+  ) {
+    affected_rows
+  }
+}

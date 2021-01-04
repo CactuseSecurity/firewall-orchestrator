@@ -9,9 +9,9 @@
 -- Parameter: control-id
 -- RETURNS:   VOID
 --
--- Function: public.import_svc_main(integer, boolean)
+-- Function: public.import_svc_main(BIGINT, boolean)
 
--- DROP FUNCTION public.import_svc_main(integer, boolean);
+-- DROP FUNCTION public.import_svc_main(BIGINT, boolean);
 
 CREATE OR REPLACE FUNCTION public.import_svc_main(
     BIGINT,
@@ -86,8 +86,8 @@ CREATE OR REPLACE FUNCTION import_svc_mark_deleted(BIGINT,INTEGER) RETURNS VOID 
 DECLARE
     i_current_import_id	ALIAS FOR $1;
     i_mgm_id			ALIAS FOR $2;
-    i_import_admin_id	INTEGER;
-	i_previous_import_id  INTEGER; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
+    i_import_admin_id	BIGINT;
+	i_previous_import_id  BIGINT; -- zum Holen der import_ID des vorherigen Imports fuer das Mgmt
 	r_svc  RECORD;  -- Datensatz mit einzelner svc_id aus import_service-Tabelle des zu importierenden Services
 BEGIN
 	RAISE DEBUG 'import_svc_mark_deleted start';
@@ -161,7 +161,7 @@ DECLARE
 	b_is_documented BOOLEAN; 
 	t_outtext TEXT; 
 	i_change_type INTEGER;
-	i_new_svc_id  INTEGER;	-- id des neu eingefuegten object
+	i_new_svc_id  BIGINT;	-- id des neu eingefuegten object
 	v_comment	VARCHAR;	
 BEGIN
     RAISE DEBUG 'import_svc_single::start';

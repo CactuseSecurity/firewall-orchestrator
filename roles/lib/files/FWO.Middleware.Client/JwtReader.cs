@@ -51,6 +51,7 @@ namespace FWO.Middleware.Client
             catch (SecurityTokenExpiredException)
             {
                 Log.WriteDebug("Jwt Validation", "Jwt lifetime expired.");
+                verified = false;
             }
             catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
             {

@@ -24,8 +24,15 @@
         <Column TableItem="Role" Title="Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Add(context)">Add user</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete User</button>
+                    @if (context.Name != "anonymous" && context.Name != "middleware-server")
+                    {
+                        <button class="btn btn-sm btn-success" @onclick="() => Add(context)">Add user</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete User</button>
+                    }
+                    else
+                    {
+                        <label class="m-2">(no users can be assigned)</label>
+                    }
                 </div>
             </Template>
         </Column>
@@ -177,13 +184,20 @@
         }
         else
         {
-            foreach (var roleUser in apiAuthResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allRoles"))
+            foreach (var ldapRole in apiAuthResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
             {
-                Role role = new Role() { Dn = roleUser.Key , Name = extractRoleNameFromDn(roleUser.Key)};
-                foreach (var userDn in roleUser.Value)
+                Role role = new Role() { Dn = ldapRole.Key , Name = (new DistName(ldapRole.Key)).Role};
+                foreach (var roleAttr in ldapRole.Value)
                 {
-                    UiUser newUser = new UiUser(){ Dn = userDn , Name = extractUserNameFromDn(userDn) };
-                    role.Users.Add(newUser);
+                    if(roleAttr.Key == "description")
+                    {
+                        role.Description = roleAttr.Value;
+                    }
+                    else if(roleAttr.Key == "user")
+                    {
+                        UiUser newUser = new UiUser(){ Dn = roleAttr.Value , Name = (new DistName(roleAttr.Value)).UserName };
+                        role.Users.Add(newUser);
+                    }
                 }
                 roles.Add(role);
             }
@@ -211,7 +225,20 @@
         errorMessage = "";
         selectedLdap = connectedLdaps.Find(x => x.Id == ldapId);
 
-        // get users from Ldap -> ldapUsers
+        // get users from Ldap
+        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(selectedLdap.Address);
+        if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+        {
+            errorMessage = "no users found";
+        }
+        else
+        {
+            foreach(var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+            {
+                UiUser newUser = new UiUser(){ Dn = user.Key , Name = (new DistName(user.Key)).UserName };
+                ldapUsers.Add(newUser);
+            }
+        }
 
         SearchMode = true;
         AddMode = false;
@@ -226,7 +253,7 @@
         }
         else
         {
-            UiUser newUser = new UiUser() {Dn = userDn , Name = extractUserNameFromDn(userDn)}; 
+            UiUser newUser = new UiUser() {Dn = userDn , Name = (new DistName(userDn)).UserName}; 
             await AddUser (newUser);
         }
     }
@@ -275,14 +302,29 @@
 
     private async Task DeleteUser(string userDn)
     {
+        errorMessage = "";
         var itemToRemove = actRole.Users.Find(x => x.Dn == userDn);
         if (itemToRemove != null)
         {
-            // delete user in LDAP
-
-            actRole.Users.Remove(itemToRemove);
-            roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
-            DeleteMode = false;
+            if(actRole.Name == "admin" && actRole.Users.Count < 2)
+            {
+                errorMessage = "last admin user can't be deleted";
+            }
+            else 
+            {
+                // delete user in LDAP
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromRole(userDn, actRole.Dn);
+                if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
+                {
+                    errorMessage = "user could not be removed from any role in ldaps";
+                }
+                else
+                {
+                    actRole.Users.Remove(itemToRemove);
+                    roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
+                    DeleteMode = false;
+                }
+            }
         }
         else 
         {
@@ -302,26 +344,5 @@
         SearchMode = false;
         AddMode = true;
         errorMessage = "";
-    }
-
-    private string extractUserNameFromDn(string Dn)
-    {
-        return extractNameFromDn(Dn, "uid=");
-    }
-
-    private string extractRoleNameFromDn(string Dn)
-    {
-        return extractNameFromDn(Dn, "cn=");
-    }
-
-    private string extractNameFromDn(string Dn, string Prefix)
-    {
-        string Name = "";
-        int Index = Dn.IndexOf(",");
-        if(Index > Prefix.Length)
-        {
-            Name = Dn.Substring(Prefix.Length, Index - Prefix.Length);
-        }
-        return Name;
     }
 }

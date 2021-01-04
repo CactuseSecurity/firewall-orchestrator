@@ -24,7 +24,7 @@ namespace FWO.Middleware.Server.Requests
         {
             // No parameters
 
-            List<KeyValuePair<string, List<string>>> allRoles = new List<KeyValuePair<string, List<string>>>();
+            List<KeyValuePair<string, List<KeyValuePair<string, string>>>> allRoles = new List<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
             List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
@@ -35,7 +35,7 @@ namespace FWO.Middleware.Server.Requests
                     if (currentLdap.RoleSearchPath != "")
                     {
                         // Get all roles from current Ldap
-                        List<KeyValuePair<string, List<string>>> currentRoles = currentLdap.GetAllRoles();
+                        List<KeyValuePair<string, List<KeyValuePair<string, string>>>> currentRoles = currentLdap.GetAllRoles();
                         allRoles.AddRange(currentRoles);
                     }
                 }));

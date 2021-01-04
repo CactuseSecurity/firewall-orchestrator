@@ -13,7 +13,7 @@
 ```console
 fworch_user: fworch
 fworch_home: "{{ fworch_parent_dir }}/{{ fworch_user }}"
-sample_config_user: isosample
+sample_config_user: fworchsample
 sample_config_user_home: "/home/{{ sample_config_user }}"
 ```
 

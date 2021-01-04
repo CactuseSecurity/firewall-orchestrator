@@ -31,7 +31,7 @@ namespace FWO.Middleware.Client
                 StringContent requestContent = new StringContent(wrappedParameters);
 
                 // Send request, Receive answer
-                HttpResponseMessage httpResponse = await httpClient.PostAsync($"{middlewareServerUri}/{request}/", requestContent);
+                HttpResponseMessage httpResponse = await httpClient.PostAsync($"{middlewareServerUri}{request}/", requestContent);
                 
                 // Unwrap result
                 string wrappedResult = await httpResponse.Content.ReadAsStringAsync();

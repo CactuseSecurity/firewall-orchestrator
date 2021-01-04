@@ -19,6 +19,9 @@ openldap_server_enable_ssl: true
 #The ldif file
 openldap_server_ldif: domain.ldif
 
+#The path to the pw dir
+openldap_secrets_path: /tmp
+
 #These vars are not defined in this role
   #fworch_home
   #random_generated_pw

@@ -23,7 +23,7 @@
 
   - name: Check if manager password exist
     stat:
-      path: "{{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
+      path: "{{ openldap_secrets_path }}/ldap_manager_pw.txt"
     register: is_manger_pw_present_flag
 
   - name: Decide on random manager password
@@ -34,14 +34,14 @@
   - name: Write random manager password to file
     copy:
       content: "{{ openldap_server_random_rootpw }}"
-      dest: "{{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
+      dest: "{{ openldap_secrets_path }}/ldap_manager_pw.txt"
       mode: '0600'
       owner: "{{ fworch_user }}"
       group: "{{ fworch_user }}"
     when: not is_manger_pw_present_flag.stat.exists
 
-  - name: Generate the root password for ldap
-    shell: "slappasswd -T {{ fworch_home }}/etc/secrets/ldap_manager_pw.txt"
+  - name: Generate the root password hash for the config
+    shell: "slappasswd -T {{ openldap_secrets_path }}/ldap_manager_pw.txt"
     register: root_password
 
   # - name: Copy the slapd.conf configuration file for Redhat
@@ -53,12 +53,16 @@
   #   - restart slapd
 
   - name: Copy the slapd.conf configuration file
-    template: src=slapd.conf_ubuntu.j2 dest={{ openldap_server_app_path }}/slapd.conf
+    template:
+      src: slapd.conf_ubuntu.j2
+      dest: "{{ openldap_server_app_path }}/slapd.conf"
 #    when: ansible_os_family == "Debian"
-    notify: 
+    notify:
     - restart slapd
   
   - name: Copy the ldap.conf configuration file
-    template: src=ldap.conf.j2 dest={{ openldap_server_app_path }}/ldap.conf
+    template:
+      src: ldap.conf.j2
+      dest: "{{ openldap_server_app_path }}/ldap.conf"
 
   become: yes

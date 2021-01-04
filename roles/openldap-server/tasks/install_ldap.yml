@@ -54,7 +54,7 @@
 
   - name: Copy the slapd.conf configuration file
     template:
-      src: slapd.conf_ubuntu.j2
+      src: slapd.conf_{{ openldap_current_role }}.j2
       dest: "{{ openldap_server_app_path }}/slapd.conf"
 #    when: ansible_os_family == "Debian"
     notify:

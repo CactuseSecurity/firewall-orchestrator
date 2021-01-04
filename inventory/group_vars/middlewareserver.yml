@@ -15,7 +15,7 @@ middleware_ldap_writer_fq: "cn={{ middleware_ldap_writer }},ou=systemuser,ou=use
 generate_new_ldap_crypto: false
 openldap_server_domain_name: "{{ product_name }}.internal"
 openldap_secrets_path: "{{ fworch_home }}/etc/secrets"
-
+openldap_current_role: middleware
 
 middleware_path_rel: FWO.Middleware.Server
 middleware_server_base_dir: "{{ fworch_home }}/middleware/files"

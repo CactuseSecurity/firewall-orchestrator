@@ -15,7 +15,7 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
-  - name: delete the directory for ldap certificates
+  - name: Delete the directory for ldap certificates
     file:
       state: absent
       path: "{{ openldap_server_app_path }}/certs/"
@@ -99,11 +99,11 @@
       state: restarted
       enabled: yes
 
-  - name: Copy the template for creating base dn
-    template:
-      src: "{{ openldap_server_ldif }}"
-      dest: /tmp/
-    register: result
+#  - name: Copy the template for creating base dn
+#    template:
+#      src: "{{ openldap_server_ldif }}"
+#      dest: /tmp/
+#    register: result
 
   # the following was moved to middleware module
   # - name: add the base domain

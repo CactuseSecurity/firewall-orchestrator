@@ -6,3 +6,7 @@ sample_config_hostname: isosrv
 importer_hostname: localhost
 sting_ip: "192.168.100.110"
 sting_port: "443"
+
+# sample openldap server
+sample_ldap_path: "dc=example,dc=com"
+sample_ldap_superuser_name: "cn=Manager,ou=user,{{ sample_ldap_path }}"

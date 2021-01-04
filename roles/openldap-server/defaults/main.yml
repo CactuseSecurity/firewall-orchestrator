@@ -22,6 +22,9 @@ openldap_server_ldif: domain.ldif
 #The path to the pw dir
 openldap_secrets_path: /tmp
 
+#The
+openldap_current_role: default
+
 #These vars are not defined in this role
   #fworch_home
   #random_generated_pw

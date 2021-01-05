@@ -17,7 +17,7 @@
         name: "fworch-importer"
         state: stopped
       become: yes
-      when: "run_on_github is not defined
+      when: "run_on_github is not defined"
   tags:
     - frontend
 

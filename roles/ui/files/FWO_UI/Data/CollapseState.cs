@@ -8,11 +8,12 @@ namespace FWO.Ui.Data
     public delegate void Notify(bool show);
     public class CollapseState
     {
-        public static event Notify OnCollapseAll;
+        public event Notify OnCollapseAll;
 
-        public static void CollapseAll()
+        public void CollapseAll()
         {
             OnCollapseAll?.Invoke(false);
+            Console.WriteLine(OnCollapseAll?.GetInvocationList().Length);
         }
     }
 }

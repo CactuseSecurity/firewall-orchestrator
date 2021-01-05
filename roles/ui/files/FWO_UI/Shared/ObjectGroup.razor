@@ -5,8 +5,6 @@
 
 @typeparam InputDataType
 
-<div class="btn btn-secondary" @onclick="CollapseAll">collapse all</div>
-
 @if (Data != null)
 {
     @foreach (InputDataType obj in Data)
@@ -228,9 +226,4 @@
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>> NetworkUserExtractor { get; set; }
-
-    private void CollapseAll()
-    {
-        CollapseState.CollapseAll();
-    }
 }

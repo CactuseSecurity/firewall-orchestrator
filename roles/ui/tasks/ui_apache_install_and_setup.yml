@@ -8,10 +8,10 @@
     - name: enable apache modules proxy proxy_http ssl
       apache2_module: state=present name={{ item }}
       loop:
+        - rewrite
         - proxy
         - proxy_http
         - ssl
-        - rewrite
         - proxy_wstunnel
 
     - name: copy ui httpd config file to ui target

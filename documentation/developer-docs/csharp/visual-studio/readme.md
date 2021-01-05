@@ -9,16 +9,13 @@ Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
 
       sudo apt install mono-complete
 - Install [Visual Studio Code](https://code.visualstudio.com/Download) for Linux or Windows
-- Add the following extensions via File - Preferences - Extensions:
-  - GitHub Pull Requests and Issues, see <https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-pull-request-github>
-  - C#
-  
+ 
 ## Add Extensions from Marketplace
 recommended:
 - C#
 - Razor+
 - Debugger for Firefox
-- GitHub Pull Request and Issue Provider
+- GitHub Pull Requests and Issues, see <https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-pull-request-github>
 - GitLens
 - GraphQL for VSCode
 - Perl

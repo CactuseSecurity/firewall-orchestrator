@@ -1,4 +1,6 @@
-﻿<div class="w-100 card @Class">
+﻿@using FWO.Ui.Data
+
+<div class="w-100 card @Class">
     <div class="btn-group w-100">
         <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show == ".show" ? "collapse-up" : "collapse-down")"></span> </button>
         <button class="btn btn-sm btn-block btn-@Style disabled text-left" @ondblclick="ToggleCollapse">@Title</button>
@@ -33,16 +35,19 @@
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
+        {
             show = StartToggled ? "" : ".show";
+            CollapseState.OnCollapseAll += ForceCollapse;
+        }
+    }
+
+    private void ForceCollapse(bool s)
+    {
+        show = s ? ".show" : "";
     }
 
     private void ToggleCollapse()
     {
         show = show == "" ? ".show" : "";
-    }
-
-    public void ForceCollapse()
-    {
-
     }
 }

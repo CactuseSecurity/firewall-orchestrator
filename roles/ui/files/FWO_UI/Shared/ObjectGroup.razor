@@ -1,8 +1,11 @@
 ﻿@using BlazorTable
 @using FWO.Api.Data
+@using FWO.Ui.Data
 @using Microsoft.AspNetCore.Components.Web
 
 @typeparam InputDataType
+
+<div class="btn btn-secondary" @onclick="CollapseAll">collapse all</div>
 
 @if (Data != null)
 {
@@ -225,4 +228,9 @@
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>> NetworkUserExtractor { get; set; }
+
+    private void CollapseAll()
+    {
+        CollapseState.CollapseAll();
+    }
 }

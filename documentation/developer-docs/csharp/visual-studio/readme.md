@@ -10,7 +10,7 @@ Useful for Blazor/C# testing. Works on Windows, MacOS and Linux.
       sudo apt install mono-complete
 - Install [Visual Studio Code](https://code.visualstudio.com/Download) for Linux or Windows
  
-## Add Extensions from Marketplace
+## Add VS Code Extensions from Marketplace
 recommended:
 - C#
 - Razor+

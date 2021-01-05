@@ -122,17 +122,17 @@
   - block:
 
       - name: disable apache sites
-        command: a2dissite fworch
+        command: a2dissite fworch-ui
         ignore_errors: true
 
-      # - name: disable apache modules (due to a bug with php mod not properly getting purged)
-      #   apache2_module: state=absent name={{ item }}
-      #   loop:
-      #     - php
-      #     - proxy_http
-      #     - rewrite
-      #     - proxy_wstunnel
-      #   ignore_errors: true
+      - name: disable apache modules (due to a bug with php mod not properly getting purged)
+        apache2_module: state=absent name={{ item }}
+        loop:
+          - php
+          - proxy_http
+          - rewrite
+          - proxy_wstunnel
+        ignore_errors: true
 
       - name: uninstall all packages for fworch, keeping git and ansible
         package:

@@ -15,6 +15,9 @@ namespace FWO.Middleware.Server
         // The following properties are retrieved from the database api:
         // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
 
+        [JsonPropertyName("ldap_connection_id")]
+        public int Id { get; set; }
+
         [JsonPropertyName("ldap_server")]
         public string Address { get; set; }
 

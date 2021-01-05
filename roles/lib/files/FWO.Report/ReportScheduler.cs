@@ -1,5 +1,6 @@
 ﻿using FWO.ApiClient;
 using FWO.ApiClient.Queries;
+using FWO.Api.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,30 +11,31 @@ namespace FWO.Report
 {
     class ReportScheduler
     {
+        APIConnection apiConnection;
 
         public ReportScheduler(APIConnection apiConnection)
         {
-            //apiConnection.SendQueryAsync<>(ReportQueries.getReportSchedules);
+            this.apiConnection = apiConnection;
         }
 
-        public void GetReports()
+        public async Task<ScheduledReport[]> GetReports()
         {
-
+            return await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules);
         }
 
-        public void EditReport()
+        public async Task EditReport(ScheduledReport scheduledReport)
         {
-
+            await apiConnection.SendQueryAsync<int>(ReportQueries.getReportSchedules, scheduledReport);
         }
 
-        public void AddReport(string filter)
+        public async Task AddReport(ScheduledReport scheduledReport)
         {
-            //ReportQueries.addReportSchedule
+            await apiConnection.SendQueryAsync<int>(ReportQueries.addReportSchedule, scheduledReport);
         }
 
-        public void DeleteReport()
+        public async Task DeleteReport(ScheduledReport scheduledReport)
         {
-            //ReportQueries.dele
+            await apiConnection.SendQueryAsync<int>(ReportQueries.deleteReportSchedule, scheduledReport);
         }
     }
 }

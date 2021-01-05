@@ -1,6 +1,6 @@
-﻿mutation delete_low_rated_articles {
-  delete_article(
-    where: {rating: {_lt: 3}}
+﻿mutation deleteReportSchedule ($report_schedule_id : bigint!) {
+  delete_report_schedule(
+    where: {report_schedule_id: {_eq: $report_schedule_id}}
   ) {
     affected_rows
   }

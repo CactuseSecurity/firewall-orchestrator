@@ -12,7 +12,7 @@ namespace FWO.Report
 {
     public abstract class Report
     {
-        Management[] result = null;
+        protected Management[] result = null;
 
         public abstract void Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback);
         

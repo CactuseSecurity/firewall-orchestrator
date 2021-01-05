@@ -10,15 +10,11 @@ namespace FWO.Ui.Services
     public class DownloadManagerService
     {
         public List<Download> Downloads { get; set; } = new List<Download>();
-
-        public static string GetPath(string fileName, string userId)
-        {
-            return $"Downloads/{userId}/{fileName}";
-        }
     }
 
     public abstract class Download
     {
+        public string Id { get; protected set; }
         public string Name { get; protected set; }
         public string Type { get; protected set; }
 

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data // TODO: Change namespace
@@ -21,6 +19,9 @@ namespace FWO.Api.Data // TODO: Change namespace
         [JsonPropertyName("uiuser_email")]
         public string Email { get; set; }
 
+        [JsonPropertyName("tenant")]
+        public Tenant Tenant { get; set;}
+
         [JsonPropertyName("uiuser_language")]
         public string Language { get; set; }
 
@@ -36,16 +37,30 @@ namespace FWO.Api.Data // TODO: Change namespace
         public string Jwt { get; set; }
 
         public UiUser()
-        {}
+        {
+            Tenant = new Tenant();
+        }
         
         public UiUser(UiUser user)
         {
             Name = user.Name;
             DbId = user.DbId;
             Dn = user.Dn;
+            if (user.Tenant != null)
+            {
+                Tenant = new Tenant(user.Tenant);
+            }
             Password = user.Password;
             Email = user.Email;
             Language = user.Language;
+        }
+
+        public void setNamesFromDn()
+        {
+            DistName distname = new DistName(Dn);
+            Name = distname.UserName;
+            Tenant = new Tenant();
+            Tenant.Name = distname.getTenant();
         }
     }
 }

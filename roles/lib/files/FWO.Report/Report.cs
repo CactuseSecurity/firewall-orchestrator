@@ -14,7 +14,7 @@ namespace FWO.Report
     {
         protected Management[] result = null;
 
-        public abstract void Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback);
         
         public abstract string ToCsv();
 

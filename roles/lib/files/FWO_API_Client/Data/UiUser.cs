@@ -34,6 +34,7 @@ namespace FWO.Api.Data // TODO: Change namespace
         [JsonPropertyName("uiuser_password_must_be_changed")]
         public bool PasswordMustBeChanged { get; set; }
 
+        public string Jwt { get; set; }
 
         public UiUser()
         {

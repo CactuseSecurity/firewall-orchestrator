@@ -3,11 +3,13 @@
 @using FWO.Api.Data
 @using FWO.ApiClient
 @using FWO.Middleware.Client
+@using FWO.ApiConfig
 
 @page "/settings/users"
 
 @inject APIConnection apiConnection
 @inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
 
 <h3 class="m-2">UI Users</h3>
 <hr />
@@ -142,17 +144,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+        connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
 
         // Get all users from internal ldap
         await GetUsersFromInternalLdap();
 
         // Get users from uiusers table
-        uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
+        uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
         uiUsers = uiUsers.FindAll(x => x.DbId != 0);
 
         // Get the tenants
-        tenants = (await Task.Run(() => apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants))).ToList();
+        tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
 
         // Synchronize both
         foreach (var ldapUser in ldapUsers)
@@ -187,14 +189,14 @@
         }
 
         // get users from Ldap
-        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(internalLdap.Address);
-        if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+        MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Address, userConfig.User.Jwt);
+        if (usersMiddlewareResponse.Status == HttpStatusCode.BadRequest)
         {
             errorMessage = "no users found";
         }
         else
         {
-            foreach(var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+            foreach(var user in usersMiddlewareResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
             {
                 UiUser newUser = new UiUser(){ Dn = user.Key , Name = (new DistName(user.Key)).UserName, Email = user.Value };
                 ldapUsers.Add(newUser);
@@ -211,7 +213,7 @@
                 id = user.DbId,
                 email = user.Email
             };
-            await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables));
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables);
         }
         catch (Exception exeption)
         {
@@ -232,7 +234,7 @@
                 email = user.Email,
                 tenant = user.Tenant.Id
             };
-            user.DbId = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables))).ReturnIds[0].NewId;
+            user.DbId = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
         }
         catch (Exception exeption)
         {
@@ -281,7 +283,7 @@
                 else
                 {
                     // insert new user to ldap
-                    MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email);
+                    MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
                     if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
                     {
                         errorMessage = "no user added";
@@ -299,7 +301,7 @@
             else
             {
                 // Update existing user in ldap --> currently only email
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateUser(actUser.Dn, actUser.Email);
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateUser(actUser.Dn, actUser.Email, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
                 {
                     errorMessage = "no user updated";
@@ -344,7 +346,7 @@
         try
         {
             // delete user from Ldap
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteUser(actUser.Dn);
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteUser(actUser.Dn, userConfig.User.Jwt);
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
             {
                 errorMessage = "no user deleted";

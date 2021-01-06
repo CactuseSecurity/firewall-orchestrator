@@ -35,6 +35,7 @@
       HASURA_GRAPHQL_LOG_LEVEL:        "{{ api_log_level }}"
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: '{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}'
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
+      HASURA_GRAPHQL_CORS_DOMAIN:       "*"
       HASURA_GRAPHQL_JWT_SECRET:       '
                                         {
                                           "type": "{{ api_hasura_jwt_alg|quote }}",

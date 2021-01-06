@@ -208,6 +208,7 @@
         uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
         uiUsers = uiUsers.FindAll(x => x.DbId != 0);
         connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+        StateHasChanged();
     }
 
     private void Add(Role role)

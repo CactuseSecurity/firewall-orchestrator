@@ -38,17 +38,17 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "GetAllRoles", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> GetUsers(string Ldap)
+        public async Task<MiddlewareServerResponse> GetUsers(string Ldap, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
                 { "Ldap", Ldap }
             };
 
-            return await requestSender.SendRequest(parameters, "GetUsers");
+            return await requestSender.SendRequest(parameters, "GetUsers", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> AddUser(string Username, string Password, string Email)
+        public async Task<MiddlewareServerResponse> AddUser(string Username, string Password, string Email, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
@@ -57,10 +57,10 @@ namespace FWO.Middleware.Client
                 { "Email", Email }
             };
 
-            return await requestSender.SendRequest(parameters, "AddUser");
+            return await requestSender.SendRequest(parameters, "AddUser", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> UpdateUser(string Username, string Email)
+        public async Task<MiddlewareServerResponse> UpdateUser(string Username, string Email, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
@@ -68,20 +68,20 @@ namespace FWO.Middleware.Client
                 { "Email", Email }
             };
 
-            return await requestSender.SendRequest(parameters, "UpdateUser");
+            return await requestSender.SendRequest(parameters, "UpdateUser", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> DeleteUser(string Username)
+        public async Task<MiddlewareServerResponse> DeleteUser(string Username, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
                 { "Username", Username }
             };
 
-            return await requestSender.SendRequest(parameters, "DeleteUser");
+            return await requestSender.SendRequest(parameters, "DeleteUser", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> AddUserToRole(string Username, string Role)
+        public async Task<MiddlewareServerResponse> AddUserToRole(string Username, string Role, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
@@ -89,10 +89,10 @@ namespace FWO.Middleware.Client
                 { "Role", Role }
             };
 
-            return await requestSender.SendRequest(parameters, "AddUserToRole");
+            return await requestSender.SendRequest(parameters, "AddUserToRole", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> RemoveUserFromRole(string Username, string Role)
+        public async Task<MiddlewareServerResponse> RemoveUserFromRole(string Username, string Role, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
@@ -100,7 +100,7 @@ namespace FWO.Middleware.Client
                 { "Role", Role }
             };
 
-            return await requestSender.SendRequest(parameters, "RemoveUserFromRole");
+            return await requestSender.SendRequest(parameters, "RemoveUserFromRole", jwt);
         }
     }
 }

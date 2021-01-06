@@ -33,12 +33,7 @@ namespace FWO.Middleware.Client
         /// <returns>true if JWT contains admin role, otherwise false</returns>
         public Boolean JwtContainsAdminRole()
         {
-            // todo: needs to e implemented
-            Claim[] claims = this.jwt.Claims.ToArray();
-            if (claims.Contains(new Claim("role", "admin")))
-                return true;
-            else
-                return false;
+            return jwt.Claims.First(claim => claim.Type == "role" && claim.Value == "admin") != null;
         }
 
         public bool Validate()

@@ -168,101 +168,110 @@ namespace FWO.Middleware.Server
 
                 // JwtReader jwt = new JwtReader(apiConnectionCopy.GetAuthHeader());
                 //HttpListenerBasicIdentity identity = (HttpListenerBasicIdentity)context.User.Identity;
-                JwtReader jwt = new JwtReader(request.Headers.Get("Authorization").Replace("auth ", "").Trim());
 
-                if (jwt.Validate())
+                try
                 {
-                    if (jwt.JwtContainsAdminRole())
+                    JwtReader jwt = new JwtReader(request.Headers.Get("Authorization").Replace("auth ", "").Trim());
+
+                    if (jwt.Validate())
                     {
-                        // Find correct way to handle request.
-                        switch (requestName)
+                        if (jwt.JwtContainsAdminRole())
                         {
-                            case "GetAllRoles":
+                            // Find correct way to handle request.
+                            switch (requestName)
+                            {
+                                case "GetAllRoles":
 
-                                // Initialize Request Handler  
-                                GetAllRolesRequestHandler getAllRolesRequestHandler = new GetAllRolesRequestHandler(ldapsCopy, apiConnectionCopy);
+                                    // Initialize Request Handler  
+                                    GetAllRolesRequestHandler getAllRolesRequestHandler = new GetAllRolesRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                // Try to get all roles with users
-                                (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
-                                break;
+                                    // Try to get all roles with users
+                                    (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
+                                    break;
 
-                            case "GetUsers":
+                                case "GetUsers":
 
-                                // Initialize Request Handler  
-                                GetUsersRequestHandler getUsersRequestHandler = new GetUsersRequestHandler(ldapsCopy, apiConnectionCopy);
+                                    // Initialize Request Handler  
+                                    GetUsersRequestHandler getUsersRequestHandler = new GetUsersRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                // Try to get all users from Ldap
-                                (status, responseString) = await getUsersRequestHandler.HandleRequestAsync(request);
-                                break;
+                                    // Try to get all users from Ldap
+                                    (status, responseString) = await getUsersRequestHandler.HandleRequestAsync(request);
+                                    break;
 
-                            case "AddUser":
+                                case "AddUser":
 
-                                // Initialize Request Handler  
-                                AddUserRequestHandler addUserRequestHandler = new AddUserRequestHandler(ldapsCopy, apiConnectionCopy);
+                                    // Initialize Request Handler  
+                                    AddUserRequestHandler addUserRequestHandler = new AddUserRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                // Try to add user to role
-                                (status, responseString) = await addUserRequestHandler.HandleRequestAsync(request);
-                                break;
+                                    // Try to add user to role
+                                    (status, responseString) = await addUserRequestHandler.HandleRequestAsync(request);
+                                    break;
 
-                            case "UpdateUser":
+                                case "UpdateUser":
 
-                                // Initialize Request Handler  
-                                UpdateUserRequestHandler updateUserRequestHandler = new UpdateUserRequestHandler(ldapsCopy, apiConnectionCopy);
+                                    // Initialize Request Handler  
+                                    UpdateUserRequestHandler updateUserRequestHandler = new UpdateUserRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                // Try to add user to role
-                                (status, responseString) = await updateUserRequestHandler.HandleRequestAsync(request);
-                                break;
+                                    // Try to add user to role
+                                    (status, responseString) = await updateUserRequestHandler.HandleRequestAsync(request);
+                                    break;
 
-                            case "DeleteUser":
+                                case "DeleteUser":
 
-                                // Initialize Request Handler  
-                                DeleteUserRequestHandler deleteUserRequestHandler = new DeleteUserRequestHandler(ldapsCopy, apiConnectionCopy);
+                                    // Initialize Request Handler  
+                                    DeleteUserRequestHandler deleteUserRequestHandler = new DeleteUserRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                // Try to add user to role
-                                (status, responseString) = await deleteUserRequestHandler.HandleRequestAsync(request);
-                                break;
+                                    // Try to add user to role
+                                    (status, responseString) = await deleteUserRequestHandler.HandleRequestAsync(request);
+                                    break;
 
-                            case "AddUserToRole":
+                                case "AddUserToRole":
 
-                                // Initialize Request Handler  
-                                AddUserToRoleRequestHandler addUserToRoleRequestHandler = new AddUserToRoleRequestHandler(ldapsCopy, apiConnectionCopy);
+                                    // Initialize Request Handler  
+                                    AddUserToRoleRequestHandler addUserToRoleRequestHandler = new AddUserToRoleRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                // Try to add user to role
-                                (status, responseString) = await addUserToRoleRequestHandler.HandleRequestAsync(request);
-                                break;
+                                    // Try to add user to role
+                                    (status, responseString) = await addUserToRoleRequestHandler.HandleRequestAsync(request);
+                                    break;
 
-                            case "RemoveUserFromRole":
+                                case "RemoveUserFromRole":
 
-                                // Initialize Request Handler  
-                                RemoveUserFromRoleRequestHandler removeUserFromRoleRequestHandler = new RemoveUserFromRoleRequestHandler(ldapsCopy, apiConnectionCopy);
+                                    // Initialize Request Handler  
+                                    RemoveUserFromRoleRequestHandler removeUserFromRoleRequestHandler = new RemoveUserFromRoleRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                // Try to remove user from role
-                                (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
-                                break;
+                                    // Try to remove user from role
+                                    (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
+                                    break;
 
-                            case "AddLdap":
-                                lock (changesLock)
-                                {
-                                    // Initilaize Request Handler
-                                    AddLdapRequestHandler addLdapRequestHandler = new AddLdapRequestHandler(apiUri, ref connectedLdaps);
+                                case "AddLdap":
+                                    lock (changesLock)
+                                    {
+                                        // Initilaize Request Handler
+                                        AddLdapRequestHandler addLdapRequestHandler = new AddLdapRequestHandler(apiUri, ref connectedLdaps);
 
-                                    // Try to add new ldap connection
-                                    (status, responseString) = addLdapRequestHandler.HandleRequestAsync(request).Result;
-                                }
-                                break;
+                                        // Try to add new ldap connection
+                                        (status, responseString) = addLdapRequestHandler.HandleRequestAsync(request).Result;
+                                    }
+                                    break;
 
-                            // TODO: REMOVE TEST PREFIX
-                            case "Test":
-                                await Task.Delay(5000);
-                                break;
+                                // TODO: REMOVE TEST PREFIX
+                                case "Test":
+                                    await Task.Delay(5000);
+                                    break;
 
-                            // Listened to a request but could not handle it. In theory impossible. FATAL ERROR
-                            default:
-                                Log.WriteError("Internal Error", $"We received a request we could not handle: {request.RawUrl}", LogStackTrace: true);
-                                status = HttpStatusCode.InternalServerError;
-                                break;
+                                // Listened to a request but could not handle it. In theory impossible. FATAL ERROR
+                                default:
+                                    Log.WriteError("Internal Error", $"We received a request we could not handle: {request.RawUrl}", LogStackTrace: true);
+                                    status = HttpStatusCode.InternalServerError;
+                                    break;
+                            }
                         }
                     }
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("Middleware Server", "Request could not be handled.", exception);
+                    status = HttpStatusCode.NotFound;
                 }
             }
 

@@ -3,11 +3,13 @@
 @using FWO.Api.Data
 @using FWO.ApiClient
 @using FWO.Middleware.Client
+@using FWO.ApiConfig
 
 @page "/settings/roles"
 
 @inject APIConnection apiConnection
 @inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
 
 <h3 class="m-2">Roles</h3>
 <hr />
@@ -177,7 +179,7 @@
     protected override async Task OnInitializedAsync()
     {
         // get roles from LDAP
-        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetAllRoles();
+        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetAllRoles(userConfig.User.Jwt);
         if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
         {
             errorMessage = "no roles found";

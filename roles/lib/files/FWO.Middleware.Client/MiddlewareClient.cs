@@ -30,12 +30,12 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "AuthenticateUser");
         }
 
-        public async Task<MiddlewareServerResponse> GetAllRoles()
+        public async Task<MiddlewareServerResponse> GetAllRoles(string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {};
 
-            return await requestSender.SendRequest(parameters, "GetAllRoles");
+            return await requestSender.SendRequest(parameters, "GetAllRoles", jwt);
         }
 
         public async Task<MiddlewareServerResponse> GetUsers(string Ldap)

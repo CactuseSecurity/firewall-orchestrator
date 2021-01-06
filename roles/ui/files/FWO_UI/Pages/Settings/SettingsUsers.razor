@@ -136,13 +136,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+        connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
 
         // Get all users from internal ldap
         await GetUsersFromInternalLdap();
 
         // Get users from uiusers table
-        uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
+        uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
         uiUsers = uiUsers.FindAll(x => x.DbId != 0);
 
         // Synchronize both

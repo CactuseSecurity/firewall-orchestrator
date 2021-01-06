@@ -555,6 +555,11 @@
                 Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
                 ShowError("Report generation", "You dont have sufficient acces rights.");
             }
+            else if (exception.Message == "Could not verify JWT: JWTExpired")
+            {
+                Log.WriteError("Report generation", "User's JWT has expired.", exception);
+                ShowError("Report generation", "Your JWT has expired - please login again.");
+            }
             else
             {
                 Log.WriteError("Report generation", "Unclassified error.", exception);

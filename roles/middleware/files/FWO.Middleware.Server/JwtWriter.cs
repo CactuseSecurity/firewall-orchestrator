@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server
 {
@@ -17,19 +18,19 @@ namespace FWO.Middleware.Server
         private const string issuer = "FWO Middleware Module";
         private const string audience = "FWO";
         private readonly RsaSecurityKey jwtPrivateKey;
-        private readonly int hoursValid;
+        private readonly int minutesValid;
 
-        public JwtWriter(RsaSecurityKey jwtPrivateKey, int hoursValid)
+        public JwtWriter(RsaSecurityKey jwtPrivateKey, int minutesValid)
         {
-            this.hoursValid = hoursValid;
+            this.minutesValid = minutesValid;
             this.jwtPrivateKey = jwtPrivateKey;
         }
 
-        public string CreateJWT(User user)
+        public async Task <string> CreateJWT(User user)
         {
             Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = GetClaims(AddUserToDbAtFirstLogin(user));
+            ClaimsIdentity subject = GetClaims(await AddUserToDbAtFirstLogin(user));
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -40,7 +41,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddHours(hoursValid),
+                expires: DateTime.UtcNow.AddMinutes(minutesValid),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 
@@ -84,7 +85,7 @@ namespace FWO.Middleware.Server
         /// the user id is needed for allowing access to report_templates
         /// </summary>
         /// <returns> user including its db id </returns>
-        private User AddUserToDbAtFirstLogin(User user)
+        private async Task<User> AddUserToDbAtFirstLogin(User user)
         {
             if (user.Dn != "anonymous")
             {
@@ -98,7 +99,7 @@ namespace FWO.Middleware.Server
                         if (existingUserFound.Length == 1)
                         {
                             user.DbId = existingUserFound[0].DbId;
-                            updateLastLogin(apiConn, user.DbId);
+                            await updateLastLogin(apiConn, user.DbId);
                             userSetInDb = true;
                         }
                         else
@@ -115,14 +116,14 @@ namespace FWO.Middleware.Server
                 if(!userSetInDb)
                 {
                     Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
-                    addUser(apiConn, user);
+                    await addUser(apiConn, user);
                 }
             }
             // for anonymous access, just return the unmodified user
             return user;
         }
 
-        private void addUser(APIConnection apiConn, User user)
+        private async Task addUser(APIConnection apiConn, User user)
         {
             try          
             {
@@ -134,7 +135,7 @@ namespace FWO.Middleware.Server
                     email = user.Email,
                     loginTime = DateTime.UtcNow
                 };
-                user.DbId = apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables).Result.ReturnIds[0].NewId;
+                user.DbId = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
             }
             catch (Exception exeption)
             {
@@ -142,7 +143,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private void updateLastLogin(APIConnection apiConn, int id) // TODO: Wrong location
+        private async Task updateLastLogin(APIConnection apiConn, int id) // TODO: Wrong location
         {
             try
             {
@@ -151,7 +152,7 @@ namespace FWO.Middleware.Server
                     id = id, 
                     loginTime = DateTime.UtcNow
                 };
-                apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLastLogin, Variables);
+                await apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLastLogin, Variables);
             }
             catch(Exception exeption)
             {

@@ -69,7 +69,7 @@ namespace FWO.Middleware.Server.Requests
             user.Tenant = await GetTenantAsync(user);
 
             // Create JWT for validated user with roles and tenant
-            return tokenGenerator.CreateJWT(user);
+            return (await tokenGenerator.CreateJWT(user));
         }
 
         public async Task<string> GetLdapDistinguishName(User user)

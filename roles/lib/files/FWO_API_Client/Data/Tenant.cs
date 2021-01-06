@@ -26,6 +26,20 @@ namespace FWO.Api.Data
         [JsonPropertyName("tenant_to_devices")]
         public TenantDevice[] TenantDevices { get; set; }
 
+        public Tenant()
+        {}
+
+        public Tenant(Tenant tenant)
+        {
+            Id = tenant.Id;
+            Name = tenant.Name;
+            Comment = tenant.Comment;
+            Project = tenant.Project;
+            ViewAllDevices = tenant.ViewAllDevices;
+            Superadmin = tenant.Superadmin;
+            TenantDevices = tenant.TenantDevices;
+        }
+
         public string DeviceList()
         {
             List<string> deviceList = new List<string>();

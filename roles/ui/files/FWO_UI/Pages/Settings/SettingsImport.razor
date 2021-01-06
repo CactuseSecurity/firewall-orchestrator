@@ -11,21 +11,21 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="ImportStatus" Items="importStatii" PageSize="0" ColumnReorder="true">
-        <Column TableItem="ImportStatus" Title="MgmName" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
-        <Column TableItem="ImportStatus" Title="Last Import" Field="@(x => x.LastImport[0].StopTime)" Sortable="true" Filterable="true" />
-        <Column TableItem="ImportStatus" Title="Success" Field="@(x => x.LastImport[0].SuccessfulImport)" Sortable="true" Filterable="true" />
-        <Column TableItem="ImportStatus" Title="Errors" Field="@(x => x.LastImport[0].ImportErrors)" Sortable="true" Filterable="true" />
         <Column TableItem="ImportStatus" Title="Action" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Details(context)">Details</button>
                     @if (context.LastImport[0].SuccessfulImport == false)
                     {
-                        <button class="btn btn-sm btn-primary" @onclick="() => Fallback(context.MgmId)">Fallback</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Rollback(context.MgmId)">Rollback</button>
                     }
                 </div>
             </Template>
         </Column>
+        <Column TableItem="ImportStatus" Title="Management" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
+        <Column TableItem="ImportStatus" Title="Last Import" Field="@(x => x.LastImport[0].StopTime)" Sortable="true" Filterable="true" />
+        <Column TableItem="ImportStatus" Title="Success" Field="@(x => x.LastImport[0].SuccessfulImport)" Sortable="true" Filterable="true" />
+        <Column TableItem="ImportStatus" Title="Errors" Field="@(x => x.LastImport[0].ImportErrors)" Sortable="true" Filterable="true" />
     </Table>
 </div>
 <PopUp Title="@($"Import Status Details for {actStatus.MgmName}")" Show="@DetailsMode" Large="true" OnClose="() => DetailsMode = false">
@@ -37,7 +37,7 @@
                     <div class="col-sm-3 col-form-label">MgmName:</div>
                     <div class="m-2">@actStatus.MgmName</div>
                 </div>
-                
+
                 <h6>First Import</h6>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">Start:</div>
@@ -109,7 +109,7 @@
         DetailsMode = false;
     }
 
-    private async Task Fallback(int mgmId)
+    private async Task Rollback(int mgmId)
     {
 
     }

@@ -21,13 +21,6 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
-        <Column TableItem="UiUser" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Dn" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Email" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Language" Field="@(x => x.Language)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Last Login" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Last Password Change" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Password Must Be Changed" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Action" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -38,6 +31,14 @@
                </div>
             </Template>
         </Column>
+        <Column TableItem="UiUser" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Dn" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Tenant" Field="@(x => x.Tenant.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Email" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Language" Field="@(x => x.Language)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Last Login" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Last Password Change" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Password Must Be Changed" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" />
     </Table>
 </div>
 
@@ -49,6 +50,10 @@
                 <div class="form-group row">
                     <label for="userName" class="col-sm-3 col-form-label col-form-label-sm">Name:</label>
                     <label class="m-2">@actUser.Name</label>
+                </div>
+                <div class="form-group row">
+                    <label for="userTenant" class="col-sm-3 col-form-label col-form-label-sm">Tenant:</label>
+                    <label class="m-2">@actUser.Tenant.Name</label>
                 </div>
                 <div class="form-group row">
                     <label for="userDn" class="col-sm-3 col-form-label col-form-label-sm">Dn:</label>
@@ -122,6 +127,7 @@
     private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
     private List<UiUser> uiUsers = new List<UiUser>();
+    private List<Tenant> tenants = new List<Tenant>();
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -145,6 +151,9 @@
         uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
         uiUsers = uiUsers.FindAll(x => x.DbId != 0);
 
+        // Get the tenants
+        tenants = (await Task.Run(() => apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants))).ToList();
+
         // Synchronize both
         foreach (var ldapUser in ldapUsers)
         {
@@ -161,6 +170,7 @@
             else
             {
                 // Add new user to UiUsers table
+                ldapUser.setNamesFromDn();
                 await addUserToDb(ldapUser);
                 uiUsers.Add(ldapUser);
             }
@@ -213,11 +223,14 @@
     {
         try          
         {
+            user.Tenant.Id = tenants.Find(x => x.Name == user.Tenant.Name).Id;
+
             var Variables = new
             {
                 uuid = user.Dn, 
                 uiuser_username = user.Name,
-                email = user.Email
+                email = user.Email,
+                tenant = user.Tenant.Id
             };
             user.DbId = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables))).ReturnIds[0].NewId;
         }
@@ -239,6 +252,7 @@
         AddMode = true;
         newUser = new UiUser(user);
         newUser.Name = null;
+        newUser.Tenant.Name = null;
         Edit(newUser);
     }
 
@@ -255,9 +269,14 @@
             if (AddMode)
             {
                 // Todo: Further value checks?
+                actUser.setNamesFromDn();
                 if (actUser.Dn == null || actUser.Dn == "" || actUser.Password == null || actUser.Password == "")
                 {
                     errorMessage = "Dn and Password have to be filled";
+                }
+                else if ( !tenants.Exists(x => x.Name == actUser.Tenant.Name) )
+                {
+                    errorMessage = "unknown tenant";
                 }
                 else
                 {
@@ -269,7 +288,6 @@
                     }
                     else
                     {
-                        actUser.Name = (new DistName(actUser.Dn)).UserName;
                         await addUserToDb(actUser);
                         uiUsers.Add(actUser);
                         AddMode = false;

@@ -132,6 +132,7 @@ namespace FWO.Middleware.Server
                     uuid = user.Dn, 
                     uiuser_username = user.Name,
                     email = user.Email,
+                    tenant = user.Tenant.Id,
                     loginTime = DateTime.UtcNow
                 };
                 user.DbId = apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables).Result.ReturnIds[0].NewId;

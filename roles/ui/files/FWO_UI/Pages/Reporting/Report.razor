@@ -519,7 +519,7 @@
                 {
                     case rulesReport:
                         ReportRules reportRules = new ReportRules();
-                        reportRules.Generate(rulesPerFetch, filterInput, Connection,
+                        await reportRules.Generate(rulesPerFetch, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;
@@ -529,7 +529,7 @@
 
                     case changesReport:
                         ReportChanges reportChanges = new ReportChanges();
-                        reportChanges.Generate(rulesPerFetch, filterInput, Connection,
+                        await reportChanges.Generate(rulesPerFetch, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;
@@ -540,7 +540,7 @@
                     case statisticsReport:
                         globalStats = new Management();
                         ReportStatistics reportStatistics = new ReportStatistics();
-                        reportStatistics.Generate(0, filterInput, Connection,
+                        await reportStatistics.Generate(0, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;
@@ -570,6 +570,11 @@
             {
                 Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
                 ShowError("Report generation", "You dont have sufficient acces rights.");
+            }
+            else if (exception.Message == "Could not verify JWT: JWTExpired")
+            {
+                Log.WriteError("Report generation", "User's JWT has expired.", exception);
+                ShowError("Report generation", "Your JWT has expired - please login again.");
             }
             else
             {

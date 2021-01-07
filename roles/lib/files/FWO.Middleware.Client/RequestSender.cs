@@ -20,12 +20,17 @@ namespace FWO.Middleware.Client
             this.middlewareServerUri = middlewareServerUri;
         }
 
-        public virtual async Task<MiddlewareServerResponse> SendRequest(Dictionary<string, object> parameters, string request)
+        public virtual async Task<MiddlewareServerResponse> SendRequest(Dictionary<string, object> parameters, string request, string jwt = null)
         {
             MiddlewareServerResponse result;
 
             try
             {
+                if (jwt != null)
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("auth", jwt);
+                }
+
                 // Wrap parameters
                 string wrappedParameters = JsonSerializer.Serialize(parameters);
                 StringContent requestContent = new StringContent(wrappedParameters);

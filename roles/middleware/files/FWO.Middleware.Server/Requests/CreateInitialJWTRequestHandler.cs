@@ -28,7 +28,7 @@ namespace FWO.Middleware.Server.Requests
             user.Tenant = null;
 
             // Authenticate user
-            string jwt = tokenGenerator.CreateJWT(user);
+            string jwt = tokenGenerator.CreateJWT(user).Result;
 
             // Return status and result
             return Task.FromResult(WrapResult(HttpStatusCode.OK, ("jwt", jwt)));

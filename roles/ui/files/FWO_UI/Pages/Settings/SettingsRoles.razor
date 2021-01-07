@@ -3,11 +3,13 @@
 @using FWO.Api.Data
 @using FWO.ApiClient
 @using FWO.Middleware.Client
+@using FWO.ApiConfig
 
 @page "/settings/roles"
 
 @inject APIConnection apiConnection
 @inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
 
 <h3 class="m-2">Roles</h3>
 <hr />
@@ -177,7 +179,7 @@
     protected override async Task OnInitializedAsync()
     {
         // get roles from LDAP
-        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetAllRoles();
+        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetAllRoles(userConfig.User.Jwt);
         if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
         {
             errorMessage = "no roles found";
@@ -206,6 +208,7 @@
         uiUsers = (await Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers))).ToList();
         uiUsers = uiUsers.FindAll(x => x.DbId != 0);
         connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+        // await InvokeAsync(StateHasChanged);
     }
 
     private void Add(Role role)
@@ -226,7 +229,7 @@
         selectedLdap = connectedLdaps.Find(x => x.Id == ldapId);
 
         // get users from Ldap
-        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(selectedLdap.Address);
+        MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(selectedLdap.Address, userConfig.User.Jwt);
         if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
         {
             errorMessage = "no users found";
@@ -285,7 +288,7 @@
         else
         {
             // add user in LDAP
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUserToRole(user.Dn, actRole.Dn);
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUserToRole(user.Dn, actRole.Dn, userConfig.User.Jwt);
             if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userAdded") == false))
             {
                 errorMessage = "user could not be added to role in ldaps";
@@ -313,7 +316,7 @@
             else 
             {
                 // delete user in LDAP
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromRole(userDn, actRole.Dn);
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromRole(userDn, actRole.Dn, userConfig.User.Jwt);
                 if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
                 {
                     errorMessage = "user could not be removed from any role in ldaps";

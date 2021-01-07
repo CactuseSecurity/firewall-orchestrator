@@ -10,6 +10,17 @@
     - backend
     - frontend
 
+- hosts: importers
+  tasks:
+    - name: stop importer service before any changes
+      systemd:
+        name: "fworch-importer"
+        state: stopped
+      become: yes
+      when: "run_on_github is not defined"
+  tags:
+    - frontend
+
 - hosts: all
   roles:
     - { role: common, when: "not installation_mode == 'uninstall'" }

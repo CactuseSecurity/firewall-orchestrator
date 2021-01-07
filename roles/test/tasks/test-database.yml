@@ -1,0 +1,5 @@
+# add integration tests for database here
+# - import test
+# - report test
+
+# pg_prove -U postgres /pgjwt/test.sql

@@ -2,6 +2,7 @@ mutation addUser(
   $uiuser_username: String!
   $uuid: String!
   $email: String
+  $tenant: Int
   $loginTime: timestamptz
 ) {
   insert_uiuser(
@@ -9,6 +10,7 @@ mutation addUser(
       uiuser_username: $uiuser_username
       uuid: $uuid
       uiuser_email: $email
+      tenant_id: $tenant
       uiuser_last_login: $loginTime
     }
   ) {

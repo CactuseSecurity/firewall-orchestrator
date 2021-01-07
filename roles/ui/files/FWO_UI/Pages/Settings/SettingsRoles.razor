@@ -24,7 +24,7 @@
         <Column TableItem="Role" Title="Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (context.Name != "anonymous" && context.Name != "middleware-server")
+                    @if (context.Name != "middleware-server")
                     {
                         <button class="btn btn-sm btn-success" @onclick="() => Add(context)">Add user</button>
                         <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete User</button>

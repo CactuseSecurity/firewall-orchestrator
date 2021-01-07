@@ -40,8 +40,8 @@ namespace FWO.Middleware.Client
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Request \"{GetType().Name}\"",
-                    $"An error occured while sending request \"{GetType().Name}\".",
+                Log.WriteError($"Request \"{request}\"",
+                    $"An error occured while sending request \"{request}\".",
                     exception);
 
                 // Inform requester about errors

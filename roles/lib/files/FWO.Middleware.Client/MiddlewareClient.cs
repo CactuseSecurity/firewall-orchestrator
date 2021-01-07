@@ -30,6 +30,14 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "AuthenticateUser");
         }
 
+        public async Task<MiddlewareServerResponse> CreateInitialJWT()
+        {
+
+            Dictionary<string, object> parameters = new Dictionary<string, object> { };
+
+            return await requestSender.SendRequest(parameters, "CreateInitialJWT");
+        }
+
         public async Task<MiddlewareServerResponse> GetAllRoles()
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>

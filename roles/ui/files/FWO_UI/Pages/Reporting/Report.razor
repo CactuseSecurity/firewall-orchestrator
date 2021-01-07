@@ -564,7 +564,7 @@
         }
         catch (Exception exception)
         {
-            //this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+            //this is the default error message when user's access rights are not sufficient
             //leave managementsReport as default = empty array
             if (exception.Message == "no such type exists in the schema: 'cidr'")
             {

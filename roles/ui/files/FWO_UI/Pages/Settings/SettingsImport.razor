@@ -10,7 +10,7 @@
 <hr />
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="ImportStatus" Items="importStatii" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered table-responsive" TableItem="ImportStatus" Items="importStati" PageSize="0" ColumnReorder="true">
         <Column TableItem="ImportStatus" Title="Action" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -89,13 +89,22 @@
 
 @code 
 {
-    private List<ImportStatus> importStatii = new List<ImportStatus>();
+    [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    private List<ImportStatus> importStati = new List<ImportStatus>();
     private bool DetailsMode = false;
     private ImportStatus actStatus = new ImportStatus();
 
     protected override async Task OnInitializedAsync()
     {
-        importStatii = (await Task.Run(() => apiConnection.SendQueryAsync<ImportStatus[]>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus))).ToList();
+        try
+        {
+            importStati = (await apiConnection.SendQueryAsync<ImportStatus[]>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus)).ToList();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "API error", "Error while fetching import status information.", true);
+        }
     }
 
     private void Details(ImportStatus status)

@@ -31,8 +31,7 @@
 @code
 {
     [CascadingParameter]
-    Action<string, string> ShowError { get; set; }
-
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
 
     private List<Tenant> tenants = new List<Tenant>();
 
@@ -44,18 +43,7 @@
         }
         catch (Exception exception)
         {
-            if (exception.Message.Contains("JWTExpired"))
-            {
-                // display error
-                // redirect to login page
-                Log.WriteError("JWT Expiry Error", "JWT expired in session.", exception);
-                ShowError("JWT Expiry Error", "JWT expired in session - please log in again.");
-            }
-            else 
-            {
-                Log.WriteError("Unspecified Error", "Unspecified error occured.", exception);
-                ShowError("Unspecified Error", "Unexpected error condition encountered.");
-            }
+            DisplayMessageInUi(exception,null,null,true);
         }
     }
 }

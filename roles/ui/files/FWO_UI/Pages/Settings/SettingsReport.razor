@@ -24,6 +24,9 @@
 @code
 {
     [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     ConfigDbAccess config;
@@ -54,13 +57,20 @@
          }
         catch(Exception exception)
         {
-            Log.WriteError("Read Config", $"Key not found or could not convert value to int: taking value 100 ", exception);
+            DisplayMessageInUi(exception, "Read Report Settings", "Key not found or could not convert value to int: taking value 100", true);
         }
     }
 
     private async Task SaveRulesPerFetch()
     {
         string rulesPerFetchString = rulesPerFetch.ToString();
-        await userConfig.ChangeConfigValue(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString, apiConnection);
+        try
+        {
+            await userConfig.ChangeConfigValue(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString, apiConnection);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "Report Config", "Error while saving report settings", true);
+        }
     }
 }

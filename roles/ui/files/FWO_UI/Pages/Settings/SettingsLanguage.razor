@@ -27,16 +27,26 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
     string selectedLanguage;
 
     protected override void OnInitialized()
     {
         selectedLanguage = userConfig.GetUserLanguage();
+        StateHasChanged();
     }
 
     private async Task ChangeLanguage(string language)
     {
-        Log.WriteDebug("Change language", $"new language: {language}");
-        await userConfig.ChangeLanguage(language, apiConnection);
+        try
+        {
+            Log.WriteDebug("Change language", $"new language: {language}");
+            await userConfig.ChangeLanguage(language, apiConnection);
+        }
+        catch(Exception exception)
+        {
+            DisplayMessageInUi(exception, "Change Lanaguage error", exception.Message, true);
+        }
     }
 }

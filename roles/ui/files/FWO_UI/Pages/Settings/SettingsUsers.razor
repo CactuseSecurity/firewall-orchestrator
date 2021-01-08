@@ -126,6 +126,9 @@
 
 @code 
 {
+    [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+
     private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
     private List<UiUser> uiUsers = new List<UiUser>();
@@ -144,17 +147,45 @@
 
     protected override async Task OnInitializedAsync()
     {
-        connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
+        try
+        {
+            connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "UI User", "Error while fetching LDAP connections from API", true);
+        }
 
         // Get all users from internal ldap
-        await GetUsersFromInternalLdap();
+        try
+        {
+            await GetUsersFromInternalLdap();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "UI User", "Error while fetching users from internal LDAP", true);
+        }
 
         // Get users from uiusers table
-        uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
-        uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+        try
+        {
+            uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
+            uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "UI User", "Error while fetching users from API", true);
+        }
 
         // Get the tenants
-        tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
+        try
+        {
+            tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "UI User", "Error while fetching tenants from API", true);
+        }
 
         // Synchronize both
         foreach (var ldapUser in ldapUsers)
@@ -166,14 +197,28 @@
                 if (relatedUiUser.Email != ldapUser.Email)
                 {
                     relatedUiUser.Email = ldapUser.Email;
-                    await updateUserInDb(relatedUiUser);
+                    try
+                    {
+                        await updateUserInDb(relatedUiUser);
+                    }
+                    catch (System.Exception exception)
+                    {
+                        DisplayMessageInUi(exception, "UI User", "Error while updating user data via API", true);
+                    }
                 }
             }
             else
             {
                 // Add new user to UiUsers table
                 ldapUser.setNamesFromDn();
-                await addUserToDb(ldapUser);
+                try
+                {
+                    await addUserToDb(ldapUser);
+                }
+                catch (System.Exception exception)
+                {
+                    DisplayMessageInUi(exception, "UI User", "Error while adding user data via API", true);
+                }
                 uiUsers.Add(ldapUser);
             }
         }
@@ -185,6 +230,7 @@
         if (internalLdap == null)
         {
             errorMessage = "no internal Ldap found";
+            DisplayMessageInUi(null, "UI User", "No internal Ldap found.", true);
             return;
         }
 
@@ -192,7 +238,7 @@
         MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Address, userConfig.User.Jwt);
         if (usersMiddlewareResponse.Status == HttpStatusCode.BadRequest)
         {
-            errorMessage = "no users found";
+            DisplayMessageInUi(null, "UI User", "No users found.", true);
         }
         else
         {
@@ -215,9 +261,9 @@
             };
             await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserEmail, Variables);
         }
-        catch (Exception exeption)
+        catch (Exception exception)
         {
-            Log.WriteError("Update User Error", $"User {user.Name} could not be updated in database.", exeption);
+            DisplayMessageInUi(exception, "Update User Error", $"User {user.Name} could not be updated in database.", true);
         }
     }
 
@@ -236,9 +282,9 @@
             };
             user.DbId = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
         }
-        catch (Exception exeption)
+        catch (Exception exception)
         {
-            Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", exeption);
+            DisplayMessageInUi(exception, "Add User Error", $"User {user.Name} could not be added.", true);
         }
     }
 
@@ -274,11 +320,11 @@
                 actUser.setNamesFromDn();
                 if (actUser.Dn == null || actUser.Dn == "" || actUser.Password == null || actUser.Password == "")
                 {
-                    errorMessage = "Dn and Password have to be filled";
+                    DisplayMessageInUi(null, "Add User Error", "Dn and Password have to be filled", true);
                 }
                 else if ( !tenants.Exists(x => x.Name == actUser.Tenant.Name) )
                 {
-                    errorMessage = "unknown tenant";
+                    DisplayMessageInUi(null, "Add User Error", "Unknown tenant", true);
                 }
                 else
                 {
@@ -286,7 +332,7 @@
                     MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
                     if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
                     {
-                        errorMessage = "no user added";
+                        DisplayMessageInUi(null, "Add User Error", "No user could be added", true);
                     }
                     else
                     {
@@ -294,7 +340,6 @@
                         uiUsers.Add(actUser);
                         AddMode = false;
                         EditMode = false;
-                        errorMessage = "";
                     }                
                 }
             }
@@ -304,22 +349,20 @@
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateUser(actUser.Dn, actUser.Email, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
                 {
-                    errorMessage = "no user updated";
+                    DisplayMessageInUi(null, "Add User Error", "User could not be updated", true);
                 }
                 else
                 {
                     await updateUserInDb(actUser);
                     uiUsers[uiUsers.FindIndex(x => x.DbId == actUser.DbId)].Email = actUser.Email;
                     EditMode = false;
-                    errorMessage = "";
                 }
             }
             // update actUser
         }
         catch (Exception exception)
         {
-            Log.WriteDebug("Save User in Ldap", $"Exception occurred: {exception}");
-            errorMessage = "Something went wrong with saving: " + exception.Message;
+            DisplayMessageInUi(exception, "Save User in Ldap", $"Error: {exception.Message}", true);
         }
     }
 
@@ -349,7 +392,7 @@
             MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteUser(actUser.Dn, userConfig.User.Jwt);
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
             {
-                errorMessage = "no user deleted";
+                DisplayMessageInUi(null, "Delete LDAP user", "User could not be deleted", true);
             }
             else
             {
@@ -361,8 +404,7 @@
         }
         catch (Exception exception)
         {
-            Log.WriteDebug("Delete User from Ldap", $"Exception occurred: {exception}");
-            errorMessage = "Something went wrong with deleting: " + exception.Message;
+            DisplayMessageInUi(exception, "Delete LDAP user", $"User could not be deleted: {exception}", true);
         }
     }
 
@@ -371,7 +413,7 @@
         try
         {
             var Variables = new { id = user.DbId };
-            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteUser, Variables))).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteUser, Variables)).DeletedId;
             if (delId == user.DbId)
             {
                 uiUsers.Remove(user);
@@ -379,7 +421,7 @@
         }
         catch (Exception exception)
         {
-            Log.WriteDebug("Delete UIUser", $"Exception occurred: {exception}");
+            DisplayMessageInUi(exception, "Delete UIUser", $"Exception occurred: {exception.Message}", true);
         }
     }
 

@@ -1,5 +1,15 @@
 ---
 
+- hosts: importers
+  tasks:
+    - name: stop importer service before makeing any changes
+      command: "/etc/init.d/{{ product_name }}-importer stop"
+      become: yes
+      when: "run_on_github is not defined"
+  tags:
+    - frontend
+# todo: replace with systemd module when importer service has been migrated
+
 - hosts: all
   tasks:
     - name: uninstall product
@@ -8,17 +18,6 @@
       become: yes
   tags:
     - backend
-    - frontend
-
-- hosts: importers
-  tasks:
-    - name: stop importer service before any changes
-      systemd:
-        name: "fworch-importer"
-        state: stopped
-      become: yes
-      when: "run_on_github is not defined"
-  tags:
     - frontend
 
 - hosts: all

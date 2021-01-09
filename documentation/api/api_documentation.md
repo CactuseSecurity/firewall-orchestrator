@@ -1,6 +1,8 @@
 # Firewall Orchstrator - Common API Calls
 
-## import status
+## import
+
+## show import status
 
 ```graphql
 query getImportStatus {
@@ -34,6 +36,22 @@ query getImportStatus {
       successful_import
       import_errors
     }
+  }
+}
+```
+
+### rollback incomplete import of management
+
+```graphql
+mutation deleteIncompleteImport($mgmId: Int!) {
+  delete_import_control(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      successful_import: { _eq: false }
+      stop_time: { _is_null: true }
+    }
+  ) {
+    affected_rows
   }
 }
 ```

@@ -51,7 +51,7 @@ namespace FWO.Middleware.Server
         [JsonPropertyName("tenant_id")]
         public int? TenantId { get; set; }
 
-        private const int timeOutInMs = 200; // TODO: MOVE TO API
+        private const int timeOutInMs = 3000; // TODO: MOVE TO API
 
         /// <summary>
         /// Builds a connection to the specified Ldap server.

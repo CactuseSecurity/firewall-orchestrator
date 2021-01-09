@@ -32,8 +32,8 @@ namespace FWO.Middleware.Server
         private readonly ConfigFile config;
 
         private readonly RsaSecurityKey privateJWTKey;
-        private readonly int minutesValid = 240;  // TODO: MOVE TO API/Config    
-        // private readonly int minutesValid = 2;    
+        private readonly int JwtMinutesValid = 240;  // TODO: MOVE TO API/Config    
+        // private readonly int JwtMinutesValid = 1;    
 
         private readonly string apiUri;
 
@@ -308,7 +308,7 @@ namespace FWO.Middleware.Server
         private JwtWriter GetNewJwtWriter()
         {
             // TODO: Make privateJWTKey thread safe
-            return new JwtWriter(privateJWTKey, minutesValid);
+            return new JwtWriter(privateJWTKey, JwtMinutesValid);
         }
 
         private List<Ldap> GetNewConnectedLdaps()

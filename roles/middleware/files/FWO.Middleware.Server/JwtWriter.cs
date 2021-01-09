@@ -18,11 +18,11 @@ namespace FWO.Middleware.Server
         private const string issuer = "FWO Middleware Module";
         private const string audience = "FWO";
         private readonly RsaSecurityKey jwtPrivateKey;
-        private readonly int minutesValid;
+        private readonly int JwtMinutesValid;
 
-        public JwtWriter(RsaSecurityKey jwtPrivateKey, int minutesValid)
+        public JwtWriter(RsaSecurityKey jwtPrivateKey, int JwtMinutesValid)
         {
-            this.minutesValid = minutesValid;
+            this.JwtMinutesValid = JwtMinutesValid;
             this.jwtPrivateKey = jwtPrivateKey;
         }
 
@@ -45,7 +45,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddMinutes(minutesValid),
+                expires: DateTime.UtcNow.AddMinutes(JwtMinutesValid),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 

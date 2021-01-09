@@ -13,6 +13,15 @@
 
 <div class="d-flex flex-column m-2">
     <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
@@ -27,15 +36,6 @@
         <Column TableItem="Management" Title="Config Path" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Importer Host" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Import Disabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" />
-        <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
-                </div>
-            </Template>
-        </Column>
     </Table>
 </div>
 
@@ -169,7 +169,6 @@
     private Management actManagement;
 
     private string deleteMessage = "";
-    private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -275,7 +274,6 @@
                 managements.Add(actManagement);
                 AddMode = false;
                 EditMode = false;
-                errorMessage = "";
             }
             else
             {
@@ -302,7 +300,6 @@
                 int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
                 EditMode = (udId == actManagement.Id ? false : true);
                 managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
-                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
             }
             // update actManagement
             actManagement.DeviceType.Name = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Name;
@@ -319,6 +316,5 @@
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
-        errorMessage = "";
     }
 }

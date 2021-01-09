@@ -14,12 +14,10 @@
 <h3 class="m-2">UI Users</h3>
 <hr />
 
-@if (errorMessage != "")
-{
-    <label class="m-2">@errorMessage</label>
-}
-
-<button class="btn btn-success m-2" @onclick="Add">Add new user</button>
+<div class="form-group row">
+    <button class="btn btn-success m-2" @onclick="Add">Add new user</button>
+    <button class="btn btn-info m-2" @onclick="Refresh">Refresh</button>
+</div>
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
@@ -85,11 +83,6 @@
                         <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
                     </div>
                 </div>
-
-                @if (errorMessage != "")
-                {
-                    <label class="m-2">@errorMessage</label>
-                }
             </form>
         }
     </Body>
@@ -106,11 +99,6 @@
         @if (DeleteMode)
         {
             <p>@(deleteMessage)</p>
-
-            @if (errorMessage != "")
-            {
-                <label class="m-2">@errorMessage</label>
-            }
         }
     </Body>
     <Footer>
@@ -143,9 +131,13 @@
     private UiUser actUser;
 
     private string deleteMessage = "";
-    private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
+    {
+        await FetchAll();
+    }
+
+    private async Task FetchAll()
     {
         try
         {
@@ -188,6 +180,11 @@
         }
 
         // Synchronize both
+        Synchronize();
+    }
+
+    private async Task Synchronize()
+    {
         foreach (var ldapUser in ldapUsers)
         {
             UiUser relatedUiUser = uiUsers.Find(x => x.Dn == ldapUser.Dn);
@@ -229,7 +226,6 @@
         LdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
         if (internalLdap == null)
         {
-            errorMessage = "no internal Ldap found";
             DisplayMessageInUi(null, "UI User", "No internal Ldap found.", true);
             return;
         }
@@ -369,11 +365,11 @@
     private void RequestDelete(UiUser user)
     {
         actUser = user;
-        // Todo: Checks if delete possible, e.g. if assigned to role?
+        // Todo: Checks if delete possible, e.g. if assigned to role admin?
 
-        if (actUser == null)
+        if (actUser.Dn == userConfig.User.Dn)
         {
-            deleteMessage = $"Deletion of user {actUser.Name} not allowed.";
+            deleteMessage = $"Self deletion of user {actUser.Name} not allowed.";
             DeleteAllowed = false;
         }
         else
@@ -399,7 +395,6 @@
                 await CleanUpUser(actUser);
                 uiUsers.Remove(actUser);           
                 DeleteMode = false;
-                errorMessage = "";
             }
         }
         catch (Exception exception)
@@ -430,6 +425,10 @@
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
-        errorMessage = "";
+    }
+
+    private async Task Refresh()
+    {
+        await FetchAll();
     }
 }

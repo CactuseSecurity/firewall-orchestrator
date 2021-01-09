@@ -5,7 +5,7 @@
     - name: stop importer service before makeing any changes
       command: "/etc/init.d/{{ product_name }}-importer stop"
       become: yes
-      when: "installation_mode is not 'new'"
+      when: "installation_mode != 'new'"
   tags:
     - frontend
 # todo: replace with systemd module when importer service has been migrated

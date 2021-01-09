@@ -35,6 +35,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("last_import")]
         public ImportControl[] LastImport { get; set; }
 
+        [JsonPropertyName("last_successful_import")]
+        public ImportControl[] LastSuccessfulImport { get; set; }
+
         [JsonPropertyName("first_import")]
         public ImportControl[] FirstImport { get; set; }
     }

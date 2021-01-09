@@ -1,3 +1,8 @@
+# Firewall Orchstrator - Common API Calls
+
+## import status
+
+```graphql
 query getImportStatus {
   management(order_by: { mgm_name: asc }) {
     mgm_id
@@ -31,3 +36,4 @@ query getImportStatus {
     }
   }
 }
+```

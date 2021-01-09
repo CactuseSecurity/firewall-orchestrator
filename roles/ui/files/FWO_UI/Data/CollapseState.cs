@@ -13,7 +13,6 @@ namespace FWO.Ui.Data
         public void CollapseAll()
         {
             OnCollapseAll?.Invoke(false);
-            Console.WriteLine(OnCollapseAll?.GetInvocationList().Length);
         }
     }
 }

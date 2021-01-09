@@ -60,7 +60,6 @@ namespace FWO.Ui
                 Environment.Exit(1);
             }
             string jwt = createJWTResponse.GetResult<string>("jwt");
-            Console.WriteLine("JWT:\n" + jwt);
             apiConn.SetAuthHeader(jwt);
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
             

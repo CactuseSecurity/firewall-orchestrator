@@ -13,18 +13,8 @@ query getImportStatus {
       control_id
       start_time
       stop_time
-    }
-    last_successful_import: import_controls(
-      where: { successful_import: { _eq: true } }
-      order_by: { control_id: desc }
-      limit: 1
-    ) {
-      control_id
-      start_time
-      stop_time
       successful_import
       import_errors
-      last_change_in_config
     }
     first_import: import_controls(order_by: { control_id: asc }, limit: 1) {
       control_id

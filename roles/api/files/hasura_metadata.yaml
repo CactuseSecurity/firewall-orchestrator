@@ -1566,8 +1566,11 @@ tables:
       - report_filter
       - report_template_name
       filter:
-        report_template_owner:
-          _eq: X-Hasura-User-Id
+        _or:
+        - report_template_owner:
+            _is_null: true
+        - report_template_owner:
+            _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       columns:
@@ -1578,7 +1581,12 @@ tables:
       - report_template_create
       - report_filter
       - report_template_name
-      filter: {}
+      filter:
+        _or:
+        - report_template_owner:
+            _is_null: true
+        - report_template_owner:
+            _eq: X-Hasura-User-Id
     role: reporter-viewall
   table:
     name: report_template

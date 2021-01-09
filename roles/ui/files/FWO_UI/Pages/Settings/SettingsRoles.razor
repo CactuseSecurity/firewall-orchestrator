@@ -16,13 +16,6 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="Role" Items="roles" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Role" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="Role" Title="Description" Field="@(x => x.Description)" Sortable="true" Filterable="true" />
-        <Column TableItem="Role" Title="Users" Field="@(x => x.Users)" Sortable="false" Filterable="false">
-            <Template>
-                @(context.UserList())
-            </Template>
-        </Column>
         <Column TableItem="Role" Title="Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -36,6 +29,13 @@
                         <label class="m-2">(no users can be assigned)</label>
                     }
                 </div>
+            </Template>
+        </Column>
+        <Column TableItem="Role" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="Role" Title="Description" Field="@(x => x.Description)" Sortable="true" Filterable="true" />
+        <Column TableItem="Role" Title="Users" Field="@(x => x.Users)" Sortable="false" Filterable="false">
+            <Template>
+                @(context.UserList())
             </Template>
         </Column>
     </Table>
@@ -161,8 +161,6 @@
     private bool DeleteMode = false;
     private bool SearchMode = false;
 
-    private string errorMessage = "";
-
     protected override async Task OnInitializedAsync()
     {
         // get roles from LDAP
@@ -172,7 +170,6 @@
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
             {
                 DisplayMessageInUi(null, "Fetch Roles", "Error: no roles found", true);
-                // errorMessage = "no roles found";
             }
             else
             {
@@ -268,7 +265,7 @@
         if((userDn == null) || (userDn.Length < 5))
         {
             // todo: more checks?
-           DisplayMessageInUi(null, "New user", "please define a proper user", true);
+           DisplayMessageInUi(null, "New user", "please define a proper user", false);
         }
         else
         {
@@ -328,13 +325,12 @@
 
     private async Task DeleteUser(string userDn)
     {
-        errorMessage = "";
         var itemToRemove = actRole.Users.Find(x => x.Dn == userDn);
         if (itemToRemove != null)
         {
             if(actRole.Name == "admin" && actRole.Users.Count < 2)
             {
-                errorMessage = "last admin user can't be deleted";
+                DisplayMessageInUi(null, "Delete user", "last admin user can't be deleted", false);
             }
             else 
             {
@@ -344,7 +340,7 @@
                     MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromRole(userDn, actRole.Dn, userConfig.User.Jwt);
                     if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
                     {
-                        errorMessage = "user could not be removed from any role in ldaps";
+                        DisplayMessageInUi(null, "Delete user", "user could not be removed from any role in ldaps", false);
                     }
                     else
                     {
@@ -369,13 +365,11 @@
     {
         AddMode = false;
         DeleteMode = false;
-        errorMessage = "";
     }
 
     private void CancelSearch()
     {
         SearchMode = false;
         AddMode = true;
-        errorMessage = "";
     }
 }

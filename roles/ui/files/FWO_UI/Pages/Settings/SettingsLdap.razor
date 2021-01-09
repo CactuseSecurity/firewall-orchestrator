@@ -13,6 +13,15 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="LdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
+        <Column TableItem="LdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="LdapConnection" Title="Host" Field="@(x => x.Address)" Sortable="true" Filterable="true">
             <Template>
                 @(context.Host())
@@ -24,15 +33,6 @@
         <Column TableItem="LdapConnection" Title="Tenant" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
             <Template>
                 @(context.TenantId != null ? tenants.Find(x => x.Id == context.TenantId).Name : "" )
-            </Template>
-        </Column>
-        <Column TableItem="LdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
-                </div>
             </Template>
         </Column>
     </Table>

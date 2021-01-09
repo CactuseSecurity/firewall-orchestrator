@@ -13,6 +13,15 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Device" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="Device" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true"/>
         <Column TableItem="Device" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
@@ -25,15 +34,6 @@
             </Template>
         </Column>
         <Column TableItem="Device" Title="Import Disabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true"/>
-        <Column TableItem="Device" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
-                </div>
-            </Template>
-        </Column>
     </Table>
 </div>
 
@@ -132,8 +132,6 @@
 
     private Device newDevice;
     private Device actDevice;
-
-    private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {

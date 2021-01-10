@@ -20,15 +20,7 @@ namespace FWO.Middleware.Server.Requests
 
         protected override Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-
-            // Create User from given parameters
-            User user = new User() { Name = "", Password = "" };
-            user.Dn = "anonymous";
-            user.Roles = new string[] { "anonymous" };
-            user.Tenant = null;
-
-            // Authenticate user
-            string jwt = tokenGenerator.CreateJWT(user).Result;
+            string jwt = tokenGenerator.CreateJWT().Result;
 
             // Return status and result
             return Task.FromResult(WrapResult(HttpStatusCode.OK, ("jwt", jwt)));

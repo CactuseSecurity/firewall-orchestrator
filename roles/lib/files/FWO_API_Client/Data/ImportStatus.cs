@@ -19,9 +19,6 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("import_errors")]
         public string ImportErrors { get; set; }
-
-        [JsonPropertyName("last_change_in_config")]
-        public DateTime? LastChangeInConfig { get; set; }
     }
 
     public class ImportStatus
@@ -34,6 +31,9 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("last_import")]
         public ImportControl[] LastImport { get; set; }
+
+        [JsonPropertyName("last_successful_import")]
+        public ImportControl[] LastSuccessfulImport { get; set; }
 
         [JsonPropertyName("first_import")]
         public ImportControl[] FirstImport { get; set; }

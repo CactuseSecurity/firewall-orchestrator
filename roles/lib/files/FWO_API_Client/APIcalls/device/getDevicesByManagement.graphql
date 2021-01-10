@@ -1,8 +1,14 @@
 query getDevicesByManagement {
-  management(order_by: {mgm_name:asc}) {
+  management(
+    where: { hide_in_gui: { _eq: false } }
+    order_by: { mgm_name: asc }
+  ) {
     id: mgm_id
     name: mgm_name
-    devices(order_by: {dev_name:asc}) {
+    devices(
+      where: { hide_in_gui: { _eq: false } }
+      order_by: { dev_name: asc }
+    ) {
       dev_id
       dev_name
     }

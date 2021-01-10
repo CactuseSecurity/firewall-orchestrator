@@ -20,6 +20,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string updateDevice;
         public static readonly string deleteDevice;
         public static readonly string getImportStatus;
+        public static readonly string deleteImport;
 
         static DeviceQueries()
         {
@@ -38,6 +39,7 @@ namespace FWO.ApiClient.Queries
                 updateDevice = File.ReadAllText(QueryPath + "device/updateDevice.graphql");
                 deleteDevice = File.ReadAllText(QueryPath + "device/deleteDevice.graphql");
                 getImportStatus = File.ReadAllText(QueryPath + "device/getImportStatus.graphql");
+                deleteImport = File.ReadAllText(QueryPath + "device/deleteImport.graphql");
             }
             catch (Exception exception)
             {

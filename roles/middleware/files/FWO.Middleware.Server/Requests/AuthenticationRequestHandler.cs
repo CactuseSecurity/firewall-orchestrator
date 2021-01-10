@@ -69,18 +69,16 @@ namespace FWO.Middleware.Server.Requests
             user.Tenant = await GetTenantAsync(user);
 
             // Create JWT for validated user with roles and tenant
-            return tokenGenerator.CreateJWT(user);
+            return (await tokenGenerator.CreateJWT(user));
         }
 
         public async Task<string> GetLdapDistinguishName(User user)
         {
             Log.WriteDebug("User validation", $"Trying to validate {user.Name}...");
 
-            // Anonymous case
             if (user.Name == "")
             {
-                Log.WriteWarning("Anonymous/empty user", "No username was provided. Using anonymous username.");
-                return "anonymous";
+                throw new Exception("Invalid credentials. Username must not be empty.");
             }
 
             else
@@ -132,36 +130,27 @@ namespace FWO.Middleware.Server.Requests
 
             List<string> UserRoles = new List<string>();
 
-            // Anonymous case
-            if (UserDn == "anonymous")
-            {
-                Log.WriteWarning("Anonymous/empty user", $"Using anonymous role.");
-                UserRoles.Add("anonymous");
-            }
-            else
-            {
-                List<Task> ldapRoleRequests = new List<Task>();
+            List<Task> ldapRoleRequests = new List<Task>();
 
-                foreach (Ldap currentLdap in Ldaps)
+            foreach (Ldap currentLdap in Ldaps)
+            {
+                ldapRoleRequests.Add(Task.Run(() =>
                 {
-                    ldapRoleRequests.Add(Task.Run(() =>
+                    // if current Ldap has roles stored
+                    if (currentLdap.RoleSearchPath != "")
                     {
-                        // if current Ldap has roles stored
-                        if (currentLdap.RoleSearchPath != "")
+                        // Get roles from current Ldap
+                        string[] currentRoles = currentLdap.GetRoles(UserDn);
+
+                        lock(rolesLock)
                         {
-                            // Get roles from current Ldap
-                            string[] currentRoles = currentLdap.GetRoles(UserDn);
-
-                            lock(rolesLock)
-                            {
-                                UserRoles.AddRange(currentRoles);
-                            }
+                            UserRoles.AddRange(currentRoles);
                         }
-                    }));
-                }
-
-                await Task.WhenAll(ldapRoleRequests);
+                    }
+                }));
             }
+
+            await Task.WhenAll(ldapRoleRequests);
 
             // If no roles found
             if (UserRoles.Count == 0)

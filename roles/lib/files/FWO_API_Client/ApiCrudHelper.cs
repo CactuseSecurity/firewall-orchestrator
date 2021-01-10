@@ -16,6 +16,9 @@ namespace FWO.ApiClient
 
         [JsonPropertyName("DeletedId")]
         public int DeletedId { get; set; }
+
+        [JsonPropertyName("affected_rows")]
+        public int AffectedRows { get; set; }
     }
     
     public class NewReturning

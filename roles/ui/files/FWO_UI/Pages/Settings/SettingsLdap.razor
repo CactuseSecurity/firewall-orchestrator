@@ -13,6 +13,15 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="LdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
+        <Column TableItem="LdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="LdapConnection" Title="Host" Field="@(x => x.Address)" Sortable="true" Filterable="true">
             <Template>
                 @(context.Host())
@@ -24,15 +33,6 @@
         <Column TableItem="LdapConnection" Title="Tenant" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
             <Template>
                 @(context.TenantId != null ? tenants.Find(x => x.Id == context.TenantId).Name : "" )
-            </Template>
-        </Column>
-        <Column TableItem="LdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
-                </div>
             </Template>
         </Column>
     </Table>
@@ -111,11 +111,6 @@
                         </select>
                     </div>
                 </div>
-
-                @if (errorMessage != "")
-                {
-                    <label class="m-2">@errorMessage</label>
-                }
             </form>
         }
     </Body>
@@ -132,11 +127,6 @@
         @if (DeleteMode)
         {
             <p>@(deleteMessage)</p>
-
-            @if (errorMessage != "")
-            {
-                <label class="m-2">@errorMessage</label>
-            }
         }
     </Body>
     <Footer>
@@ -152,6 +142,8 @@
 
 @code 
 {
+    [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
     private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
     private List<Tenant> tenants = new List<Tenant>();
 
@@ -164,12 +156,25 @@
     private LdapConnection actLdapConnection;
 
     private string deleteMessage = "";
-    private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
-        connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
-        tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
+        try
+        {
+            connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "API error", "Unable to fetch LDAP connections.", true);
+        }
+        try
+        {
+            tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "API error", "Unable to fetch tenant information.", true);
+        }
     }
 
     private void Edit(LdapConnection ldapConnection)
@@ -214,8 +219,8 @@
         }
         catch (Exception exception)
         {
-            Log.WriteDebug("Delete Ldap Connection", $"Exception occurred: {exception}");
-            errorMessage = "Something went wrong with deleting: " + exception.Message;
+            // Log.WriteDebug("Delete Ldap Connection", $"Exception occurred: {exception}");
+            DisplayMessageInUi(exception, "Ldap Connection", "Error while deleting.", true);
         }
     }
 
@@ -258,7 +263,6 @@
                 connectedLdaps.Add(actLdapConnection);
                 AddMode = false;
                 EditMode = false;
-                errorMessage = "";
             }
             else
             {
@@ -280,14 +284,13 @@
                 int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateLdapConnection, Variables)).UpdatedId;
                 EditMode = (udId == actLdapConnection.Id ? false : true);
                 connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
-                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
             }
         }
         catch (Exception exception)
         {
             // Todo: Error message? Ignore?
-            Log.WriteDebug("Save Ldap Connection", $"Exception occurred: {exception}");
-            errorMessage = "Something went wrong with saving: " + exception.Message;
+            // Log.WriteDebug("Save Ldap Connection", $"Exception occurred: {exception}");
+            DisplayMessageInUi(exception, "Edit Ldap Connection", "Error while saving changes.", true);
         }
     }
 
@@ -296,6 +299,5 @@
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
-        errorMessage = "";
     }
 }

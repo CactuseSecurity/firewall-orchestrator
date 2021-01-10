@@ -26,7 +26,7 @@ namespace FWO.Middleware.Server
             this.jwtPrivateKey = jwtPrivateKey;
         }
 
-        public async Task <string> CreateJWT(User user)
+        public async Task <string> CreateJWT(User user = null)
         {
             if (user != null)
                 Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
@@ -34,7 +34,12 @@ namespace FWO.Middleware.Server
                 Log.WriteDebug("Jwt generation", "Generating empty JWT (startup)");
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = GetClaims(await AddUserToDbAtFirstLogin(user));
+
+            ClaimsIdentity subject;
+            if (user != null)
+                subject = GetClaims(await AddUserToDbAtFirstLogin(user));
+            else
+                subject = GetClaims(new User() { Name = "", Password = "", Dn = "anonymous", Roles = new string[] { "anonymous" } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -50,8 +55,10 @@ namespace FWO.Middleware.Server
             );
 
             string GeneratedToken = tokenHandler.WriteToken(token);
-
-            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
+            if (user != null)
+                Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
+            else
+                Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken}");
             return GeneratedToken;
         }
 

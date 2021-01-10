@@ -28,7 +28,11 @@ namespace FWO.Middleware.Server
 
         public async Task <string> CreateJWT(User user)
         {
-            Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
+            if (user != null)
+                Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
+            else
+                Log.WriteDebug("Jwt generation", "Generating empty JWT (startup)");
+
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = GetClaims(await AddUserToDbAtFirstLogin(user));
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
@@ -87,37 +91,34 @@ namespace FWO.Middleware.Server
         /// <returns> user including its db id </returns>
         private async Task<User> AddUserToDbAtFirstLogin(User user)
         {
-            if (user.Dn != "anonymous")
+            APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, CreateJWTMiddlewareServer());
+            bool userSetInDb = false;
+            try
             {
-                APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, CreateJWTMiddlewareServer());
-                bool userSetInDb = false;
-                try
+                User[] existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
+                if (existingUserFound != null)
                 {
-                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
-                    if (existingUserFound != null)
+                    if (existingUserFound.Length == 1)
                     {
-                        if (existingUserFound.Length == 1)
-                        {
-                            user.DbId = existingUserFound[0].DbId;
-                            await updateLastLogin(apiConn, user.DbId);
-                            userSetInDb = true;
-                        }
-                        else
-                        {
-                            Log.WriteError("User not found", $"Couldn't find {user.Name} exactly once!");
-                        }
+                        user.DbId = existingUserFound[0].DbId;
+                        updateLastLogin(apiConn, user.DbId);
+                        userSetInDb = true;
+                    }
+                    else
+                    {
+                        Log.WriteError("User not found", $"Couldn't find {user.Name} exactly once!");
                     }
                 }
-                catch(Exception exeption)
-                {
-                    Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
-                }
+            }
+            catch(Exception exeption)
+            {
+                Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
+            }
 
-                if(!userSetInDb)
-                {
-                    Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
-                    await addUser(apiConn, user);
-                }
+            if(!userSetInDb)
+            {
+                Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
+                await addUser(apiConn, user);
             }
             // for anonymous access, just return the unmodified user
             return user;

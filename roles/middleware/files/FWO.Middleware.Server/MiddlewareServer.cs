@@ -73,6 +73,7 @@ namespace FWO.Middleware.Server
             try
             {
                 // Add prefixes to listen to 
+                listener.Prefixes.Add(middlewareListenerUri + "CreateInitialJWT/");
                 listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetUsers/");
@@ -160,6 +161,15 @@ namespace FWO.Middleware.Server
 
                 // Try to authenticate user
                 (status, responseString) = await authenticationRequestHandler.HandleRequestAsync(request);
+            }
+            else if (requestName == "CreateInitialJWT")
+            {
+                // Initialize Request Handler  
+                CreateInitialJWTRequestHandler createInitialJWTRequestHandler = new CreateInitialJWTRequestHandler(jwtWriterCopy);
+
+                (status, responseString) = await createInitialJWTRequestHandler.HandleRequestAsync(request);
+
+
             }
             else
             {

@@ -49,17 +49,17 @@ namespace FWO.Ui
 
             services.AddScoped<APIConnection>(_ => new APIConnection(ApiUri));
             services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
-            // use anonymous login
+            // create "anonymous" (empty) jwt
 
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             APIConnection apiConn = new APIConnection(ApiUri);
-            MiddlewareServerResponse authResponse = middlewareClient.AuthenticateUser("","").Result;
-            if (authResponse.Status == HttpStatusCode.BadRequest) 
+            MiddlewareServerResponse createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+            if (createJWTResponse.Status == HttpStatusCode.BadRequest) 
             {
                 Log.WriteError("Middleware Server Connection", $"Error while authenticating as anonymous user from UI.");
                 Environment.Exit(1);
             }
-            string jwt = authResponse.GetResult<string>("jwt");
+            string jwt = createJWTResponse.GetResult<string>("jwt");
             apiConn.SetAuthHeader(jwt);
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
             

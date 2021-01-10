@@ -1,8 +1,8 @@
 query getImportStatus {
-  management(order_by: {mgm_name: asc}) {
+  management(order_by: { mgm_name: asc }) {
     mgm_id
     mgm_name
-    last_import: import_controls(order_by: {control_id: desc}, limit: 1) {
+    last_import: import_controls(order_by: { control_id: desc }, limit: 1) {
       control_id
       start_time
       stop_time
@@ -13,8 +13,10 @@ query getImportStatus {
       control_id
       start_time
       stop_time
+      successful_import
+      import_errors
     }
-    first_import: import_controls(order_by: {control_id: asc}, limit: 1) {
+    first_import: import_controls(order_by: { control_id: asc }, limit: 1) {
       control_id
       start_time
       stop_time

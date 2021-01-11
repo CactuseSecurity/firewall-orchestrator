@@ -108,7 +108,7 @@ namespace FWO.Middleware.Server
                     if (existingUserFound.Length == 1)
                     {
                         user.DbId = existingUserFound[0].DbId;
-                        updateLastLogin(apiConn, user.DbId);
+                        await updateLastLogin(apiConn, user.DbId);
                         userSetInDb = true;
                     }
                     else

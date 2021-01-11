@@ -46,9 +46,7 @@ namespace FWO.Test.Api
 
             NetworkProtocol networkProtocol = new NetworkProtocol();
             networkProtocol = (await apiConnection.SendQueryAsync<NetworkProtocol[]>(query, new {}))[0];
-        
-            if (networkProtocol.Name != "TCP")
-                throw(new Exception("wrong result of protocol API query"));
+            Assert.AreEqual(networkProtocol.Name, "TCP", "wrong result of protocol API query");
         }
     }
 }

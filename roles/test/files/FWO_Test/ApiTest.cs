@@ -6,7 +6,6 @@ using FWO.Api.Data;
 using FWO.Config;
 using FWO.Middleware.Client;
 using Microsoft.IdentityModel.Tokens;
-using FWO.Report;
 
 namespace FWO.Test.Api
 {
@@ -26,9 +25,6 @@ namespace FWO.Test.Api
             string middlewareServerUri = configConnection.MiddlewareServerUri;
             string apiServerUri = configConnection.ApiServerUri;
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
-
-            //TODO: create JWT for a test user (fritz/fritz1)
-
             MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser("fritz", "fritz1");
             string jwt = apiAuthResponse.GetResult<string>("jwt");
             apiConnection = new APIConnection(apiServerUri);
@@ -48,16 +44,11 @@ namespace FWO.Test.Api
                             }
                     }";
 
-            //  if (service.Content.Protocol != null && service.Content.Protocol.Name != null) 
-            //      protoName = service.Content.Protocol.Name;
-
-
             NetworkProtocol networkProtocol = new NetworkProtocol();
             networkProtocol = (await apiConnection.SendQueryAsync<NetworkProtocol[]>(query, new {}))[0];
         
             if (networkProtocol.Name != "TCP")
                 throw(new Exception("wrong result of protocol API query"));
-            //TODO: Compare with correct DataSet
         }
     }
 }

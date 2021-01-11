@@ -22,5 +22,5 @@
     - fworch-qa.sql
     - fworch-report-basics.sql
     - fworch-views.sql
-    - fworch-pre-auth.sql
+    - fworch-api-funcs.sql
     - fworch-grants.sql

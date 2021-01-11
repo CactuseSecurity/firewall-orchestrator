@@ -5,22 +5,22 @@
 
     - set_fact: api_server_name="{{ ansible_hostname }}"          #  this only works for importer = backend
 
-    - name: copy iso httpd config file to api target
+    - name: enable apache modules proxy proxy_http ssl rewrite proxy_wstunnel
+      apache2_module: state=present name={{ item }}
+      loop:
+        - rewrite
+        - proxy
+        - proxy_http
+        - ssl
+        - proxy_wstunnel
+
+    - name: copy api httpd config file to api target
       template:
         src: "httpd.conf"
         dest: "{{ http_conf_dir }}/{{ product_name }}-api.conf"
         owner: root
         group: root
         
-    - name: enable apache modules proxy proxy_http ssl
-      apache2_module: state=present name={{ item }}
-      loop:
-        - proxy
-        - proxy_http
-        - ssl
-        - rewrite
-        - proxy_wstunnel
-
     - name: copy apache_create_server_cert.sh to apache target
       template:
         src: "apache_create_server_cert.sh"

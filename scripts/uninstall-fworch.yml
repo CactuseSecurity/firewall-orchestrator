@@ -122,7 +122,7 @@
   - block:
 
       - name: disable apache sites
-        command: a2dissite fworch
+        command: a2dissite fworch-ui
         ignore_errors: true
 
       - name: disable apache modules (due to a bug with php mod not properly getting purged)

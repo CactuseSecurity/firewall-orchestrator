@@ -1,4 +1,8 @@
-﻿<div class="w-100 card @Class">
+﻿@using FWO.Ui.Data
+
+@implements IDisposable
+
+<div class="w-100 card @Class">
     <div class="btn-group w-100">
         <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show == ".show" ? "collapse-up" : "collapse-down")"></span> </button>
         <button class="btn btn-sm btn-block btn-@Style disabled text-left" @ondblclick="ToggleCollapse">@Title</button>
@@ -25,15 +29,24 @@
     [Parameter]
     public string Class { get; set; } = "";
 
-    //[Parameter]
-    //public Parent
+    [CascadingParameter]
+    public CollapseState collapseState { get; set; }
 
-    private string show = ".show";
+    private string show;
 
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
+        {
             show = StartToggled ? "" : ".show";
+            if (collapseState != null)
+                collapseState.OnCollapseAll += ForceCollapse;
+        }
+    }
+
+    private void ForceCollapse(bool s)
+    {
+        show = s ? ".show" : "";
     }
 
     private void ToggleCollapse()
@@ -41,8 +54,9 @@
         show = show == "" ? ".show" : "";
     }
 
-    public void ForceCollapse()
+    void IDisposable.Dispose()
     {
-
+        if (collapseState != null)
+            collapseState.OnCollapseAll -= ForceCollapse;
     }
 }

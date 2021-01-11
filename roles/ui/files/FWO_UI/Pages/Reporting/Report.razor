@@ -4,6 +4,7 @@
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
 @using FWO.Ui.Services
+@using FWO.Ui.Data
 
 @inject APIConnection Connection
 @inject UserConfig userConfig
@@ -357,18 +358,29 @@
     <div class="p-3">
         <TabSet>
             <Tab Title="All">
-                <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                             NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarAll.CollapseAll())">collapse all</div>
+                <CascadingValue Value="collapseSidebarAll">
+                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                </CascadingValue>
             </Tab>
             <Tab Title="Report">
-                <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                             NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
+                <CascadingValue Value="collapseSidebarReport">
+                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                </CascadingValue>
             </Tab>
             <Tab Title="Rule">
-                <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
-                             NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
-                             NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                             NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
+                <CascadingValue Value="collapseSidebarRule">
+                    <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
+                                 NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                                 NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                 NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                </CascadingValue>
             </Tab>
         </TabSet>
     </div>
@@ -435,6 +447,10 @@
     private const string complianceReport = "Compliance";
     private const string statisticsReport = "Statistics";
     private string reportType = rulesReport;
+
+    private CollapseState collapseSidebarAll = new CollapseState();
+    private CollapseState collapseSidebarReport = new CollapseState();
+    private CollapseState collapseSidebarRule = new CollapseState();
 
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
@@ -503,7 +519,7 @@
                 {
                     case rulesReport:
                         ReportRules reportRules = new ReportRules();
-                        reportRules.Generate(rulesPerFetch, filterInput, Connection,
+                        await reportRules.Generate(rulesPerFetch, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;
@@ -513,7 +529,7 @@
 
                     case changesReport:
                         ReportChanges reportChanges = new ReportChanges();
-                        reportChanges.Generate(rulesPerFetch, filterInput, Connection,
+                        await reportChanges.Generate(rulesPerFetch, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;
@@ -524,7 +540,7 @@
                     case statisticsReport:
                         globalStats = new Management();
                         ReportStatistics reportStatistics = new ReportStatistics();
-                        reportStatistics.Generate(0, filterInput, Connection,
+                        await reportStatistics.Generate(0, filterInput, Connection,
                             managementsReportIntermediate =>
                             {
                                 managementsReport = managementsReportIntermediate;
@@ -548,12 +564,17 @@
         }
         catch (Exception exception)
         {
-            //this is the default error message when user's access rights are not sufficient (e.g. user = anonymous)
+            //this is the default error message when user's access rights are not sufficient
             //leave managementsReport as default = empty array
             if (exception.Message == "no such type exists in the schema: 'cidr'")
             {
                 Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
                 ShowError("Report generation", "You dont have sufficient acces rights.");
+            }
+            else if (exception.Message == "Could not verify JWT: JWTExpired")
+            {
+                Log.WriteError("Report generation", "User's JWT has expired.", exception);
+                ShowError("Report generation", "Your JWT has expired - please login again.");
             }
             else
             {

@@ -46,3 +46,9 @@ adding some reporting columns
 
 ### 5.1.04 - 01.01.2021
 adding default report_templates
+
+### 5.1.05 - 06.01.2021
+adding first compliance report template (any rules)
+
+### 5.1.06 - 10.01.2021
+adding report template format fk and permissions

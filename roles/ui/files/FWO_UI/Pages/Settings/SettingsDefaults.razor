@@ -33,6 +33,8 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
     ConfigDbAccess config;
     int rulesPerFetch;
     string selectedDefaultLanguage;
@@ -47,7 +49,8 @@
         }
         catch(Exception exception)
         {
-            Log.WriteError("Read Config", $"Key not found: taking English ", exception);
+            // Log.WriteError("Read Config", $"Key not found: taking English ", exception);
+            DisplayMessageInUi(exception, "Read Config", "Key not found: taking default English ", false);
             selectedDefaultLanguage = "English";
         }
 
@@ -58,7 +61,8 @@
         }
         catch(Exception exception)
         {
-            Log.WriteError("Read Config", $"Error reading Config for rulesPerFetch: taking value 10 ", exception);
+            // Log.WriteError("Read Config", $"Error reading Config for rulesPerFetch: taking value 10 ", exception);
+            DisplayMessageInUi(exception, "Read Config", "Error reading Config for rulesPerFetch: taking value 10 ", false);
             rulesPerFetch = 10;
         }
     }

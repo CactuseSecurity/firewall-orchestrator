@@ -1,5 +1,6 @@
 ---
 
+# todo: replace with systemd module when importer service has been migrated
 - hosts: importers
   tasks:
     - name: stop importer service before makeing any changes
@@ -9,7 +10,6 @@
       ignore_errors: yes
   tags:
     - frontend
-# todo: replace with systemd module when importer service has been migrated
 
 - hosts: all
   tasks:

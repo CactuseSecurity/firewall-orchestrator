@@ -112,11 +112,11 @@ def post_handler():
             f.write('executing uninstall command: ' + uninstall_cmd + '\n')
             os.system(uninstall_cmd) # remove fworch
             # fresh install: 
-            build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=new\" --skip-tags \"test\""
+            build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=new\" "
 {% else -%}
 
             # upgrade 
-            build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" --skip-tags \"test\""
+            build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" "
 {%- endif %}
 
             f.write('executing build command: ' + build_cmd + '\n')

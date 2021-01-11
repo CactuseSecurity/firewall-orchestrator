@@ -2,55 +2,61 @@ using System;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using NUnit.Framework;
+using FWO.Api.Data;
+using FWO.Config;
+using FWO.Middleware.Client;
+using Microsoft.IdentityModel.Tokens;
+using FWO.Report;
 
 namespace FWO.Test.Api
 {
     [TestFixture]
     public class ApiTest
     {
-        APIConnection Connection;
+        APIConnection apiConnection;
 
         [SetUp]
-        public void EtablishConnectionToServer()
+        public async Task EtablishConnectionToServer()
         {
-            //Connection = new APIConnection();
+            ConfigFile configConnection = new ConfigFile();
+            string ApiUri = configConnection.ApiServerUri;
+            string MiddlewareUri = configConnection.MiddlewareServerUri;
+            string ProductVersion = configConnection.ProductVersion;
+            RsaSecurityKey jwtPublicKey = configConnection.JwtPublicKey;
+            string middlewareServerUri = configConnection.MiddlewareServerUri;
+            string apiServerUri = configConnection.ApiServerUri;
+            MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
+
+            //TODO: create JWT for a test user (fritz/fritz1)
+
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser("fritz", "fritz1");
+            string jwt = apiAuthResponse.GetResult<string>("jwt");
+            apiConnection = new APIConnection(apiServerUri);
+            apiConnection.SetAuthHeader(jwt);
         }
 
         [Test]
-        public async Task QueryTestRules()
+        public async Task QueryTestIpProto()
         {
-            // Query syntax:
-            // { "query" : " 'query' ", "variables" : { 'variables' } } with 'query' containing the query and 'variables' the corresponding variables used in the query
-            string Query = @"{ ""query"": "" 
-query listRules($management_id: [Int!], $device_id: [Int!], $rule_src_name: [String!], $rule_src_ip: [cidr!]) {
-  management(where: {mgm_id: {_in: $management_id}}) {
-    mgm_id
-    mgm_name
-    devices(where: {dev_id: {_in: $device_id}}) {
-      dev_id
-      dev_name
-      rules(where: {active: {_eq: true}, rule_src: {_in: $rule_src_name}, rule_disabled: {_eq: false}, rule_froms: {object: {obj_ip: {_in: $rule_src_ip}}}}, order_by: {rule_num: asc}) {
-        rule_num
-        rule_src
-        rule_froms {
-          object {
-            obj_ip
-          }
-        }
-        rule_dst
-        rule_svc
-        rule_action
-        rule_track
-      }
-    }
-  }
-}
-            } "", "" variables "" : {} }";
+            string query = @"
+                    query ipProtoTest 
+                    {
+                        stm_ip_proto (where: {ip_proto_id: {_eq: 6 } }) 
+                            {
+                                id: ip_proto_id
+                                name: ip_proto_name
+                            }
+                    }";
 
-            //await Connection.SendQuery(Query);
+            //  if (service.Content.Protocol != null && service.Content.Protocol.Name != null) 
+            //      protoName = service.Content.Protocol.Name;
 
-            throw new NotImplementedException();
 
+            NetworkProtocol networkProtocol = new NetworkProtocol();
+            networkProtocol = (await apiConnection.SendQueryAsync<NetworkProtocol[]>(query, new {}))[0];
+        
+            if (networkProtocol.Name != "TCP")
+                throw(new Exception("wrong result of protocol API query"));
             //TODO: Compare with correct DataSet
         }
     }

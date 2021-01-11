@@ -83,7 +83,7 @@ http_conf_dir: /etc/{{ web_server_name }}/sites-available/
 ################# testing #########################
 
 test_dir: "{{ fworch_home }}/test"
-ui_test_start_dir: "{{ fworch_home }}/test/ui/FWO_Test"
+csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO_Test"
 
 ################# to be removed ###################
 

@@ -2,20 +2,20 @@
 - name: copy test files to frontend target
   copy:
     src: FWO_Test
-    dest: "{{ test_dir }}/ui"
+    dest: "{{ test_dir }}/csharp"
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
   become: yes
 
-- name: ui test
+- name: csharp tests
   command: dotnet test
   args:
-    chdir: "{{ ui_test_start_dir }}"
+    chdir: "{{ csharp_test_start_dir }}"
   become: yes
   become_user: "{{ fworch_user }}"
-  register: ui_test
-  ignore_errors: yes
+  register: csharp_tests
+  ignore_errors: no
 
 - name: show test results
   debug:
-    var: ui_test
+    var: csharp_tests

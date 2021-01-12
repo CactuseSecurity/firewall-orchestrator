@@ -10,6 +10,7 @@
     state: present
   loop: "{{ test_packages }}"
   become: yes
+  environment: "{{ proxy_env }}"
 
 - name: database testing
   import_tasks: test-database.yml

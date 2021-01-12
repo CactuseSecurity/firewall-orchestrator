@@ -19,7 +19,7 @@
     file:
       state: absent
       path: "{{ openldap_server_app_path }}/certs/"
-    when: generate_new_ldap_crypto == true
+    when: openldap_generate_new_crypto == true
 
   - name: Create the directory for ldap certificates
     file:
@@ -107,7 +107,7 @@
 
   # the following was moved to middleware module
   # - name: add the base domain
-  #   shell: "ldapadd -x -D \"{{ middleware_ldap_superuser_name }}\" -w {{ openldap_server_random_rootpw }} -f {{ result.dest|default(result.path) }} && touch {{ openldap_server_app_path }}/rootdn_created"
+  #   shell: "ldapadd -x -D \"{{ openldap_superuser_dn }}\" -w {{ openldap_server_random_rootpw }} -f {{ result.dest|default(result.path) }} && touch {{ openldap_server_app_path }}/rootdn_created"
   #   args:
   #     creates: "{{ openldap_server_app_path }}/rootdn_created"
   #   when: not is_manger_pw_present_flag.stat.exists

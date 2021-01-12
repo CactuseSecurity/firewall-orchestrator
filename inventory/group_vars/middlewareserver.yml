@@ -1,18 +1,18 @@
 
-middleware_ldap_path: "dc=fworch,dc=internal"
-middleware_ldap_server_internal: "127.0.0.1"
-middleware_ldap_internal_url: "ldaps://{{ middleware_ldap_server_internal }}"
-middleware_ldap_superuser_name: "cn=Manager,ou=systemuser,ou=user,{{ middleware_ldap_path }}"
-middleware_ldap_user_inital_pwd: "fworch.1"
-middleware_ldap_std_user_path: "ou=operator,ou=user,{{ middleware_ldap_path }}"
-middleware_ldap_std_role_path: "ou=role,{{ middleware_ldap_path }}"
-middleware_ldap_internal_readonly_user: "inspector"
-middleware_ldap_internal_readonly_user_fq: "uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
-middleware_ldap_writer: "ldapwriter"
-middleware_ldap_writer_fq: "cn={{ middleware_ldap_writer }},ou=systemuser,ou=user,{{ middleware_ldap_path }}"
-
-# open ldap server
-generate_new_ldap_crypto: false
+openldap_path: "dc=fworch,dc=internal"
+openldap_server: "127.0.0.1"
+openldap_port: 636
+openldap_url: "ldaps://{{ openldap_server }}"
+openldap_superuser_dn: "cn=Manager,ou=systemuser,ou=user,{{ openldap_path }}"
+#todo: this initial pw is currently unused
+openldap_user_inital_pwd: "fworch.1"
+openldap_std_user_dn: "ou=operator,ou=user,{{ openldap_path }}"
+openldap_std_role_dn: "ou=role,{{ openldap_path }}"
+openldap_readonly_user_name: "inspector"
+openldap_readonly_user_dn: "uid={{ openldap_readonly_user_name }},ou=systemuser,ou=user,{{ openldap_path }}"
+openldap_writer_name: "ldapwriter"
+openldap_writer_dn: "cn={{ openldap_writer_name }},ou=systemuser,ou=user,{{ openldap_path }}"
+openldap_generate_new_crypto: false
 openldap_server_domain_name: "{{ product_name }}.internal"
 openldap_secrets_path: "{{ fworch_home }}/etc/secrets"
 openldap_current_role: middleware

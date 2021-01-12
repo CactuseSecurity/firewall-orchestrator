@@ -15,38 +15,38 @@ moduleload      back_bdb.la
 access to attrs=userPassword
                 by self write
                 by anonymous auth
-                by dn.base="{{ middleware_ldap_superuser_name }}" write
-                by dn.base="uid=inspector,ou=systemuser,ou=user,{{ middleware_ldap_path }}" read
-                by dn.base="{{ middleware_ldap_internal_readonly_user_fq }}" read
-                by dn.base="{{ middleware_ldap_writer_fq }}" read
+                by dn.base="{{ openldap_superuser_dn }}" write
+                by dn.base="uid=inspector,ou=systemuser,ou=user,{{ openldap_path }}" read
+                by dn.base="{{ openldap_readonly_user_dn }}" read
+                by dn.base="{{ openldap_writer_dn }}" read
                 by * none
 
 access to attrs=shadowLastChange
                 by self write
                 by * read
 
-access to dn.children="{{ middleware_ldap_std_role_path }}"
-                by dn.base="{{ middleware_ldap_writer_fq }}" write
-                by dn.base="{{ middleware_ldap_superuser_name }}" write
-                by dn.base="{{ middleware_ldap_internal_readonly_user_fq }}" read
+access to dn.children="{{ openldap_std_role_dn }}"
+                by dn.base="{{ openldap_writer_dn }}" write
+                by dn.base="{{ openldap_superuser_dn }}" write
+                by dn.base="{{ openldap_readonly_user_dn }}" read
                 by * none
 
-access to dn.children="{{ middleware_ldap_std_user_path }}"
-                by dn.base="{{ middleware_ldap_writer_fq }}" write
-                by dn.base="{{ middleware_ldap_superuser_name }}" write
-                by dn.base="{{ middleware_ldap_internal_readonly_user_fq }}" read
+access to dn.children="{{ openldap_std_user_dn }}"
+                by dn.base="{{ openldap_writer_dn }}" write
+                by dn.base="{{ openldap_superuser_dn }}" write
+                by dn.base="{{ openldap_readonly_user_dn }}" read
                 by * none
 
 access to *
                 by self write
-                by dn.base="{{ middleware_ldap_superuser_name }}" write
-                by dn.base="{{ middleware_ldap_internal_readonly_user_fq }}" read
-                by dn.base="{{ middleware_ldap_writer_fq }}" read
+                by dn.base="{{ openldap_superuser_dn }}" write
+                by dn.base="{{ openldap_readonly_user_dn }}" read
+                by dn.base="{{ openldap_writer_dn }}" read
                 by * none
 
 database        bdb
-suffix          "{{ middleware_ldap_path }}"
-rootdn          "{{ middleware_ldap_superuser_name }}"
+suffix          "{{ openldap_path }}"
+rootdn          "{{ openldap_superuser_dn }}"
 rootpw          {{ root_password.stdout }}
 #This directory has to be created and would contain the ldap database.
 directory       /var/lib/ldap/{{ openldap_server_domain_name }}/

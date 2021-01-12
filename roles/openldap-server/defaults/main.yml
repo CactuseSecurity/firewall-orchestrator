@@ -22,16 +22,5 @@ openldap_server_ldif: domain.ldif
 #The path to the pw dir
 openldap_secrets_path: /tmp
 
-#The
+#The current role
 openldap_current_role: default
-
-#These vars are not defined in this role
-  #fworch_home
-  #random_generated_pw
-  #generate_new_ldap_crypto
-  #fworch_user
-  #middleware_ldap_superuser_name
-  #middleware_ldap_path
-  #middleware_ldap_internal_readonly_user_fq
-  #middleware_ldap_writer
-  #The file {{ fworch_home }}/etc/secrets does not exist

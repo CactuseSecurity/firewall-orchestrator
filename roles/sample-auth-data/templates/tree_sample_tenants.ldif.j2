@@ -1,4 +1,4 @@
-dn: ou=tenant1,ou=operator,ou=user,{{ middleware_ldap_path }}
+dn: ou=tenant1,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -7,7 +7,7 @@ ou: tenant1
 {%- endif %}
 
 
-dn: ou=tenant2,ou=operator,ou=user,{{ middleware_ldap_path }}
+dn: ou=tenant2,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top

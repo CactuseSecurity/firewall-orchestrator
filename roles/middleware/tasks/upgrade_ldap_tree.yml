@@ -31,5 +31,5 @@
   become: yes
 
 - name: install ldap upgrades   
-  command: "ldapmodify -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
   loop: "{{ upgrade_files | sort }}"

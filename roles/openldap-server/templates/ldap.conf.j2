@@ -7,11 +7,11 @@
 
 BASE    {{ openldap_path }}
 {% if openldap_server_enable_ssl %}
-URI     ldaps://localhost
+URI     ldaps://{{ openldap_server }}:{{ openldap_port }}
 TLS_REQCERT never
 {% endif %}
 {% if not openldap_server_enable_ssl %}
-URI     ldap://localhost
+URI     ldap://{{ openldap_server }}:{{ openldap_port }}
 {% endif %}
 
 #SIZELIMIT      12

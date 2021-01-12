@@ -2,6 +2,9 @@
 
 #The domain prefix for ldap
 openldap_server_domain_name: example.com
+openldap_path: "dc=example,dc=com"
+openldap_server: "127.0.0.1"
+openldap_port: 636
 
 #The paths to key, csr and cert
 openldap_server_private_key: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
@@ -24,3 +27,6 @@ openldap_secrets_path: /tmp
 
 #The current role
 openldap_current_role: default
+
+#The current ansible user
+fworch_user: openldap

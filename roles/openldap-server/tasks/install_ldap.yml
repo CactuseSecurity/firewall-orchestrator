@@ -16,16 +16,15 @@
     # environment: env
     # when: ansible_os_family == 'Debian'
 
-    #todo: delete
-  - name: Pause for 5 minutes to test
-    pause:
-      minutes: 5
+  - name: Debug ldap initialization
+    debug:
+      var: openldap_first_install
 
   - name: Delete the configuration directory
     file:
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: absent
-    when: openldap_first_install == 'yes'
+    when: openldap_first_install == "yes"
 
   - name: Create the configuration directory
     file:
@@ -40,7 +39,7 @@
 
   - name: Initialize ldap config
     command: slapadd -F /etc/ldap/slapd.d -n 0 -l config.ldif
-    when: openldap_first_install == 'yes'
+    when: openldap_first_install == "yes"
     register: ldap_initialization
 
   - name: Debug ldap initialization

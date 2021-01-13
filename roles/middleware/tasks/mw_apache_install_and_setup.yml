@@ -1,0 +1,50 @@
+
+- block:
+    - name: Install webserver packages
+      package: name={{ item }} state=present
+      with_items:
+        - "{{ web_server_name }}"
+      environment: "{{ proxy_env }}"
+
+    - name: enable apache modules proxy proxy_http ssl
+      apache2_module: state=present name={{ item }}
+      loop:
+        - rewrite
+        - proxy
+        - proxy_http
+        - ssl
+        - proxy_wstunnel
+
+    - name: copy mw httpd config file to mw target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-mw.conf"
+        owner: root
+        group: root
+        
+    - name: copy cert creation script to apache target and execute
+      script: "apache_create_server_cert.sh" 
+
+    - name: enable {{ product_name }} middleware apache site
+      command: "a2ensite {{ product_name }}-mw"
+      register: testoutput
+
+    - name: test
+      debug:
+        var: testoutput
+
+
+    - name: add mw port to apache
+      lineinfile:
+        path: "/etc/apache2/ports.conf"
+        line: "Listen {{ middleware_web_listener_port }}"
+        insertafter: "<IfModule ssl_module>"
+
+
+    - name: restart apache
+      service:
+       name: "{{ web_server_name }}"
+       state: restarted     
+
+  become: yes
+  environment: "{{ proxy_env }}"

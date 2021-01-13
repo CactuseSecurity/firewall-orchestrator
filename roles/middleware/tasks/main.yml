@@ -136,3 +136,6 @@
 
 - name: install dot net
   import_tasks: middleware_install_dot_net.yml
+
+- name: install middleware https reverse proxy
+  import_tasks: mw_apache_install_and_setup.yml

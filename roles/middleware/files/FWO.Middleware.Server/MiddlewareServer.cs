@@ -21,7 +21,7 @@ namespace FWO.Middleware.Server
 {
     public class MiddlewareServer
     {
-        private readonly string middlewareServerUri;
+        private readonly string middlewareServerNativeUri;
         private readonly HttpListener listener;
         private const int maxConnectionsCount = 1000;
 
@@ -42,7 +42,7 @@ namespace FWO.Middleware.Server
             config = new ConfigFile();
             apiUri = config.ApiServerUri;
             privateJWTKey = config.JwtPrivateKey;
-            middlewareServerUri = config.MiddlewareServerUri;
+            middlewareServerNativeUri = config.MiddlewareServerNativeUri;
 
             // Create Http Listener
             listener = new HttpListener();
@@ -65,7 +65,7 @@ namespace FWO.Middleware.Server
             Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
             // Start Http Listener, todo: move to https
-            RunListenerAsync(middlewareServerUri).Wait();
+            RunListenerAsync(middlewareServerNativeUri).Wait();
         }
 
         private async Task RunListenerAsync(string middlewareListenerUri)

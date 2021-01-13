@@ -31,14 +31,14 @@
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: directory
 
-#  - name: Copy slap initial file to system if not present
-#    copy:
-#      src: config.ldif
-#      dest: "{{ openldap_server_app_path }}/slapd.d/"
-#      force: no
+  - name: Copy slap initial file to system if not present
+    copy:
+      src: config.ldif
+      dest: "{{ openldap_server_app_path }}/slapd.d/"
+      force: no
 
   - name: Initialize ldap config
-    command: slapadd -F /etc/ldap/slapd.d -n 0 -l config.ldif
+    command: slapadd -F /etc/ldap/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
     when: openldap_first_install | bool
     register: ldap_initialization
 

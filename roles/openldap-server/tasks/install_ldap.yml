@@ -21,6 +21,11 @@
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: absent
 
+  - name: Create the configuration directory
+    file:
+      path: "{{ openldap_server_app_path }}"
+      state: present
+
   - name: Check if manager password exist
     stat:
       path: "{{ openldap_secrets_path }}/ldap_manager_pw.txt"

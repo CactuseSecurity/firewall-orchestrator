@@ -36,15 +36,17 @@ If you manually replace the keys on the server side (use the test keys) you need
 ```yaml
 fworch_home: "/usr/local/fworch"
 dotnet_mode: "Release"
+product_version: 5.1
 
 # api
 api_uri: "https://127.0.0.1:9443/api/v1/graphql"
 api_hasura_jwt_alg: "RS256"
 
-# middleware
-middleware_uri: "http://127.0.0.1:8888"
-middleware_hostname: "127.0.0.1"
-middleware_server_port: "8888"
+# auth
+middleware_JWT_key_file: "/usr/local/fworch/etc/secrets/jwt_private_key.pem"
+middleware_uri: "http://127.0.0.1:8880/"
+middleware_native_uri: "http://127.0.0.1:8880/"
+
 ```
 
 ### test /etc/fworch/secrets/jwt_private_key.pem 

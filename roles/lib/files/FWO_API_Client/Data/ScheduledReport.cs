@@ -30,8 +30,8 @@ namespace FWO.Api.Data
         [JsonPropertyName("report_schedule_template")]
         public ReportTemplate Template { get; set; } = new ReportTemplate();
 
-        [JsonPropertyName("report_schedule_output_format")]
-        public string OutputFormat { get; set; }
+        [JsonPropertyName("report_schedule_formats")]
+        public List<FileFormat> OutputFormat { get; set; } = new List<FileFormat>();
 
         [JsonPropertyName("report_schedule_active")]
         public bool Active { get; set; }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.Json.Serialization;
 
-namespace FWO.Api.Data // TODO: Change namespace
+namespace FWO.Api.Data
 {
     public class UiUser
     {
@@ -33,6 +33,10 @@ namespace FWO.Api.Data // TODO: Change namespace
 
         [JsonPropertyName("uiuser_password_must_be_changed")]
         public bool PasswordMustBeChanged { get; set; }
+
+        public string DefaultRole { get; set; }
+
+        public string[] Roles { get; set; }
 
         public string Jwt { get; set; }
 

@@ -7,15 +7,14 @@ using System.Net;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
-using FWO.Middleware.Server.Data;
 using FWO.Middleware.Server.Requests;
 using FWO.Config;
 using FWO.Logging;
+using FWO.Report;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading;
 using FWO.Middleware.Client;
-//using Microsoft.AspNetCore.Components.Authorization;
 
 namespace FWO.Middleware.Server
 {
@@ -36,6 +35,8 @@ namespace FWO.Middleware.Server
         // private readonly int JwtMinutesValid = 1;    
 
         private readonly string apiUri;
+
+        private ReportScheduler reportScheduler;
 
         public MiddlewareServer()
         {
@@ -64,6 +65,12 @@ namespace FWO.Middleware.Server
             connectedLdaps = apiConn.SendQueryAsync<Ldap[]>(AuthQueries.getLdapConnections).Result.ToList();
             Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
+            // Create and start report scheduler
+            Task.Factory.StartNew(() =>
+            {
+                reportScheduler = new ReportScheduler(apiConn, jwtWriter);
+            }, TaskCreationOptions.LongRunning);
+
             // Start Http Listener, todo: move to https
             RunListenerAsync(middlewareServerNativeUri).Wait();
         }
@@ -83,6 +90,9 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddReportSchedule/");
+                listener.Prefixes.Add(middlewareListenerUri + "EditReportSchedule/");
+                listener.Prefixes.Add(middlewareListenerUri + "DeleteReportSchedule/");
                 listener.Prefixes.Add(middlewareListenerUri + "Test/"); // TODO: REMOVE TEST PREFIX
             }
             catch (Exception exception)

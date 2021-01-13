@@ -4,8 +4,6 @@ openldap_server: "127.0.0.1"
 openldap_port: 636
 openldap_url: "ldaps://{{ openldap_server }}"
 openldap_superuser_dn: "cn=Manager,ou=systemuser,ou=user,{{ openldap_path }}"
-#todo: this initial pw is currently unused
-openldap_user_inital_pwd: "fworch.1"
 openldap_std_user_dn: "ou=operator,ou=user,{{ openldap_path }}"
 openldap_std_role_dn: "ou=role,{{ openldap_path }}"
 openldap_readonly_user_name: "inspector"

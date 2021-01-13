@@ -16,6 +16,11 @@
     # environment: env
     # when: ansible_os_family == 'Debian'
 
+    #todo: delete
+  - name: Pause for 5 minutes to test
+    pause:
+      minutes: 5
+
   - name: Delete the configuration directory
     file: 
       path: "{{ openldap_server_app_path }}/slapd.d"

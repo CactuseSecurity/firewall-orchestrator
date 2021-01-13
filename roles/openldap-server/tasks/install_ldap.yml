@@ -26,9 +26,9 @@
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: absent
 
-  - name: Create the configuration directory
+  - name: Create the configuration directory for this instance
     file:
-      path: "{{ openldap_server_app_path }}"
+      path: "{{ openldap_server_instance_path }}"
       state: present
 
   - name: Check if manager password exist
@@ -65,7 +65,7 @@
   - name: Copy the slapd.conf configuration file
     template:
       src: slapd.conf_{{ openldap_current_role }}.j2
-      dest: "{{ openldap_server_app_path }}/slapd.conf"
+      dest: "{{ openldap_server_instance_path }}/slapd.conf"
 #    when: ansible_os_family == "Debian"
     notify:
     - restart slapd
@@ -73,6 +73,6 @@
   - name: Copy the ldap.conf configuration file
     template:
       src: ldap.conf.j2
-      dest: "{{ openldap_server_app_path }}/ldap.conf"
+      dest: "{{ openldap_server_instance_path }}/ldap.conf"
 
   become: yes

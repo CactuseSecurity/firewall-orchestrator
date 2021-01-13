@@ -67,7 +67,6 @@ namespace FWO.Report.Filter
                             }}
                             order_by: {{ mgm_name: asc }}
                         ) 
-
                         {{
                             name: mgm_name
                             id: mgm_id

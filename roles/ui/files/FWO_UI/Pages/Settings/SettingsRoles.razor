@@ -50,7 +50,7 @@
                     <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">from Ldap:</label>
                     <div class="col-sm-8">
                         <select id="ldapUser" class="form-control form-control-sm" @bind="selectedLdapId">
-                            @foreach (LdapConnection ldap in connectedLdaps)
+                            @foreach (UiLdapConnection ldap in connectedLdaps)
                             {
                                 <option value="@ldap.Id">@(ldap.Host())</option>
                             }
@@ -147,11 +147,11 @@
     Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
     private List<Role> roles = new List<Role>();
     private List<UiUser> uiUsers = new List<UiUser>();
-    private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
     
     private string newUserDn;
-    private LdapConnection selectedLdap = new LdapConnection();
+    private UiLdapConnection selectedLdap = new UiLdapConnection();
     private string selectedUserDn;
     private int selectedLdapId;
 
@@ -209,7 +209,7 @@
 
         try
         {
-            connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
+            connectedLdaps = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
         }
         catch (System.Exception exception)
         {

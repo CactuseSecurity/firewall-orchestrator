@@ -1,4 +1,5 @@
 ﻿@using FWO.ApiConfig
+@using System.Text.Json
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -16,11 +17,15 @@
         <Template>
             @(context.RepeatOffset) @(context.RepeatInterval)
         </Template>
-   </Column>
+    </Column>
     <Column TableItem="ScheduledReport" Title="Template" Field="@(scheduledReport => scheduledReport.Template.Name)" />
     <Column TableItem="ScheduledReport" Title="Owner" Field="@(scheduledReport => scheduledReport.Owner.Name)" />
     <Column TableItem="ScheduledReport" Title="Active" Field="@(scheduledReport => scheduledReport.Active)" />
-    <Column TableItem="ScheduledReport" Title="Output Format" Field="@(scheduledReport => scheduledReport.OutputFormat)" />
+    <Column TableItem="ScheduledReport" Title="Output Format" Field="@(scheduledReport => scheduledReport.OutputFormat)">
+        <Template>
+            @String.Join(", ", context.OutputFormat.ConvertAll(format => format.Name.ToUpperInvariant()))
+        </Template>
+    </Column>
     <Column TableItem="ScheduledReport" Title="Actions">
         <Template>
             <div class="btn-group">
@@ -43,7 +48,7 @@
             <div class="form-group row">
                 <label for="scheduleStartTime" class="col-sm-3 col-form-label col-form-label-sm">Start Time:</label>
                 <div class="col-sm-4">
-                    <input id="scheduleStartTime" type="time" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime"/>
+                    <input id="scheduleStartTime" type="time" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime" />
                 </div>
                 <div class="col-sm-4">
                     <input id="scheduleStartTimeDate" type="date" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime" />
@@ -75,9 +80,34 @@
                 </div>
             </div>
             <div class="form-group row">
-                <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">Output Format:</label>
+                <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">Output format:</label>
                 <div class="col-sm-8">
-                    <input id="scheduleOutputFormat" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.OutputFormat" />
+                    <div class="form-inline justify-content-between">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="outputFormatHtml" value="Html"
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "html"))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("html"))">
+                            <label class="form-check-label" for="outputFormatHtml">HTML</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="outputFormatPdf" value="Pdf"
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "pdf"))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("pdf"))">
+                            <label class="form-check-label" for="outputFormatPdf">PDF</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="outputFormatJson" value="Json"
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "json"))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("json"))">
+                            <label class="form-check-label" for="outputFormatJson">JSON</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
+                                   checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
+                                   @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
+                            <label class="form-check-label" for="outputFormatCsv">CSV</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="form-group row">
@@ -114,6 +144,10 @@
     private bool ShowDeleteScheduledReportDialog = false;
 
     private int uiUserDbId = -1;
+    private bool outputFormatHtml = false;
+    private bool outputFormatPdf = false;
+    private bool outputFormatCsv = false;
+    private bool outputFormatJson = false;
 
     ReportTemplate[] reportTemplates = new ReportTemplate[0];
 
@@ -139,7 +173,8 @@
             //$report_schedule_every: Int! # every x days/weeks/months/years
             //$report_schedule_active: Boolean!
 
-            var queryVariables = new
+            // Add report schedule to DB
+            dynamic queryVariablesReportSchedule = new
             {
                 report_schedule_name = scheduledReportInEdit.Name,
                 report_schedule_owner_id = uiUserDbId,
@@ -147,10 +182,25 @@
                 report_schedule_start_time = scheduledReportInEdit.StartTime,
                 report_schedule_repeat = scheduledReportInEdit.RepeatOffset,
                 report_schedule_every = (int)scheduledReportInEdit.RepeatInterval,
-                report_schedule_active = scheduledReportInEdit.Active
+                report_schedule_active = scheduledReportInEdit.Active,
+                report_schedule_formats = new { data = scheduledReportInEdit.OutputFormat }
             };
+            scheduledReportInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariablesReportSchedule)).ReturnIds[0].NewId;
 
-            scheduledReportInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportSchedule, queryVariables)).ReturnIds[0].NewId;
+            //// Add report schedule output format to DB (needs to be seperated because of unknown report schedule id)
+            //var queryVariablesReportScheduleOutputFormat = new
+            //{
+            //    report_schedule_ids_formats = new
+            //    {
+            //        data = scheduledReportInEdit.OutputFormat.ConvertAll(format =>
+            //        new { report_schedule_format_name = format.Name, report_schedule_id = scheduledReportInEdit.Id }).ToArray()
+            //    }
+            //};
+
+            ////string test = JsonSerializer.Serialize(queryVariablesReportScheduleOutputFormat, new JsonSerializerOptions { WriteIndented = true });
+            //ReturnId test = await apiConnection.SendQueryAsync<ReturnId>(ReportQueries.addReportScheduleFileFormats, queryVariablesReportScheduleOutputFormat);
+
+            // Update scheduled reports
             scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
 
             ShowSaveScheduledReportDialog = false;
@@ -175,7 +225,10 @@
                 report_schedule_start_time = scheduledReportInEdit.StartTime,
                 report_schedule_repeat = scheduledReportInEdit.RepeatOffset,
                 report_schedule_every = (int)scheduledReportInEdit.RepeatInterval,
-                report_schedule_active = scheduledReportInEdit.Active
+                report_schedule_active = scheduledReportInEdit.Active,
+                report_schedule_format_names = scheduledReportInEdit.OutputFormat.ConvertAll(format => format.Name),
+                report_schedule_format_rel = scheduledReportInEdit.OutputFormat.ConvertAll(format =>
+                new { report_schedule_format_name = format.Name, report_schedule_id = scheduledReportInEdit.Id })
             };
 
             await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, queryVariables);
@@ -211,5 +264,3 @@
         }
     }
 }
-
-

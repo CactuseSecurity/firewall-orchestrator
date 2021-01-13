@@ -44,6 +44,5 @@ namespace FWO.Test.Filter
         {
             Compiler.Compile("(src=cactus or dst=cactus or svc=smtps)");
         }
-        
     }
 }

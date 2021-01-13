@@ -27,7 +27,7 @@ namespace FWO.ApiConfig
 
         public UiUser User { private set; get; }
 
-        public event EventHandler OnChange;
+        public event Func<UserConfig, Task> OnChange;
 
         /// <summary>
         /// create a config collection (used centrally once in a UI server for all users
@@ -77,7 +77,7 @@ namespace FWO.ApiConfig
 
             Translate = globalConfig.langDict[languageName];
             if (OnChange != null)
-                OnChange.Invoke(this, null);
+                await OnChange.Invoke(this);
         }
 
         public string GetConfigValue(string key)

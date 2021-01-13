@@ -10,7 +10,7 @@ using FWO.ApiClient.Queries;
 
 namespace FWO.Report
 {
-    public abstract class Report
+    public abstract class ReportBase
     {
         protected Management[] result = null;
 
@@ -21,5 +21,18 @@ namespace FWO.Report
         public abstract string ToHtml();
 
         public abstract string ToPdf();
+
+        public static ReportBase ConstructReport(string filterInput)
+        {
+            DynGraphqlQuery query = Compiler.Compile(filterInput);
+
+            return query.ReportType switch
+            {
+                "statistics" => new ReportStatistics(),
+                "rules" => new ReportRules(),
+                "changes" => new ReportChanges(),
+                _ => throw new NotSupportedException("Report Type is not supported."),
+            };
+        }
     }
 }

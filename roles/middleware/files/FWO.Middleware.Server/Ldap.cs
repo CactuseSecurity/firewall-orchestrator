@@ -1,12 +1,11 @@
-﻿using FWO.Middleware.Server.Data;
-using FWO.Logging;
+﻿using FWO.Logging;
 using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
-
+using FWO.Api.Data;
 
 namespace FWO.Middleware.Server
 {
@@ -79,7 +78,7 @@ namespace FWO.Middleware.Server
             return (WriteUser != null && WriteUser != "");
         }
 
-        public string ValidateUser(User user)
+        public string ValidateUser(UiUser user)
         {
             Log.WriteInfo("User Validation", $"Validating User: \"{user.Name}\" ...");
             try         

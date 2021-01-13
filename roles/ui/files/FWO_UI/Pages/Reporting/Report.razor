@@ -3,7 +3,9 @@
 @using FWO.Ui.Display
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
+@using System.Text 
 @using FWO.Ui.Services
+@using FWO.Ui.Data
 
 @inject APIConnection Connection
 @inject UserConfig userConfig
@@ -138,10 +140,6 @@
         <Collapse Title="Templates" Style="@("primary")">
             <div class="card-body">
                 <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates">
-                    <Column Title="Name" TableItem="ReportTemplate" Field="x => x.Name" />
-                    <Column Title="Comment" TableItem="ReportTemplate" Field="x => x.Comment" />
-                    <Column Title="Creation Date" TableItem="ReportTemplate" Field="x => x.CreationDate" />
-                    <Column Title="Filter" TableItem="ReportTemplate" Field="x => x.Filter" />
                     <Column Title="Actions" TableItem="ReportTemplate">
                         <Template>
                             <div class="btn-group">
@@ -151,6 +149,10 @@
                             </div>
                         </Template>
                     </Column>
+                    <Column Title="Name" TableItem="ReportTemplate" Field="x => x.Name" />
+                    <Column Title="Comment" TableItem="ReportTemplate" Field="x => x.Comment" />
+                    <Column Title="Creation Date" TableItem="ReportTemplate" Field="x => x.CreationDate" />
+                    <Column Title="Filter" TableItem="ReportTemplate" Field="x => x.Filter" />
                 </Table>
             </div>
         </Collapse>
@@ -158,6 +160,9 @@
 
     <div class="card mr-1 ml-1 mb-1 shadow">
         <div class="card-body">
+
+            <a class="btn btn-sm btn-info" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.ASCII.GetBytes("test")))"
+               target="_blank" download="@("test").@("txt")">Download</a>
 
             @switch (reportType)
             {

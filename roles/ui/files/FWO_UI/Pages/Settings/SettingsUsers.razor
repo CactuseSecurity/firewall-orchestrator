@@ -119,7 +119,7 @@
 
 @code 
 {
-    private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
     private List<UiUser> uiUsers = new List<UiUser>();
 
@@ -136,7 +136,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
+        connectedLdaps = (await Task.Run(() => apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections))).ToList();
 
         // Get all users from internal ldap
         await GetUsersFromInternalLdap();
@@ -169,7 +169,7 @@
 
     private async Task GetUsersFromInternalLdap()
     {
-        LdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
+        UiLdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
         if (internalLdap == null)
         {
             errorMessage = "no internal Ldap found";

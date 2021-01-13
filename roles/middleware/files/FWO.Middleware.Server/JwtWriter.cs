@@ -1,5 +1,4 @@
-﻿using FWO.Middleware.Server.Data;
-using FWO.ApiClient;
+﻿using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
 using FWO.Config;
@@ -9,10 +8,11 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
+using FWO.Api.Data;
 
 namespace FWO.Middleware.Server
 {
-    class JwtWriter
+    public class JwtWriter
     {
         private const string issuer = "FWO Middleware Module";
         private const string audience = "FWO";
@@ -25,7 +25,7 @@ namespace FWO.Middleware.Server
             this.jwtPrivateKey = jwtPrivateKey;
         }
 
-        public string CreateJWT(User user)
+        public string CreateJWT(UiUser user)
         {
             Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
@@ -84,7 +84,7 @@ namespace FWO.Middleware.Server
         /// the user id is needed for allowing access to report_templates
         /// </summary>
         /// <returns> user including its db id </returns>
-        private User AddUserToDbAtFirstLogin(User user)
+        private UiUser AddUserToDbAtFirstLogin(UiUser user)
         {
             if (user.Dn != "anonymous")
             {
@@ -92,7 +92,7 @@ namespace FWO.Middleware.Server
                 bool userSetInDb = false;
                 try
                 {
-                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
+                    UiUser[] existingUserFound = apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
                     if (existingUserFound != null)
                     {
                         if (existingUserFound.Length == 1)
@@ -122,7 +122,7 @@ namespace FWO.Middleware.Server
             return user;
         }
 
-        private void addUser(APIConnection apiConn, User user)
+        private void addUser(APIConnection apiConn, UiUser user)
         {
             try          
             {
@@ -159,7 +159,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private ClaimsIdentity GetClaims(User user)
+        private ClaimsIdentity GetClaims(UiUser user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));

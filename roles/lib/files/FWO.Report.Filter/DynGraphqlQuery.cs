@@ -61,7 +61,6 @@ namespace FWO.Report.Filter
                     query statisticsReport ({paramString}) 
                     {{ 
                         management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
-
                         {{
                             name: mgm_name
                             id: mgm_id

@@ -98,19 +98,7 @@
             // There is no jwt in session storage. Get one from auth module.
             MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser(Username, Password);
 
-            // There was an error trying to authenticate the user. Probably invalid credentials
-            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
-            {
-                errorMessage = apiAuthResponse.Error + " See log for details!";
-
-                // Visualisize there was an error by making border of inputboxes red
-                InputClass = "is-invalid";
-                loginInProgress = false;
-                await focusInput();
-                StateHasChanged();
-            }
-
-            else
+            if (apiAuthResponse.Status == HttpStatusCode.OK)
             {
                 string jwt = apiAuthResponse.GetResult<string>("jwt");
 
@@ -121,6 +109,17 @@
                 await CreateUserContext(jwt);
 
                 loginInProgress = false;
+            }
+            else
+            {
+                // There was an error trying to authenticate the user. Probably invalid credentials
+                errorMessage = apiAuthResponse.Error + " See log for details!";
+
+                // Visualisize there was an error by making border of inputboxes red
+                InputClass = "is-invalid";
+                loginInProgress = false;
+                await focusInput();
+                StateHasChanged();
             }
         }
     }

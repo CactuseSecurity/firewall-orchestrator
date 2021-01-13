@@ -4,20 +4,64 @@
 
 <h3>Archive</h3>
 
-@*<Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="ReportFile" Items="archivedReports">
-        <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
-        <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
-        <Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" />
-        <Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" />
-        <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner)" />
-        <Column TableItem="ReportFile" Title="Actions">
-            <Template>
-                <button class="btn btn-sm btn-danger" @onclick="() => { reportFileId = context.Id; ShowDeleteReportFileDialog = true; }">Delete</button>
-            </Template>
-        </Column>
-    </Table>*@
+<Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportFile" Items="archivedReports">
+    <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
+    <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
+    <Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" />
+    <Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" />
+    <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner)" />
+    <Column TableItem="ReportFile" Title="Actions">
+        <Template>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-info" @onclick="() => { reportFileContext = context; ShowDownloadReportFileDialog = true; }">Download</button>
+                <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">Delete</button>
+            </div>
+        </Template>
+    </Column>
+</Table>
 
-@code 
+<PopUp Show="ShowDeleteReportFileDialog" Title="Generated Report">
+    <Body>
+        <p>Do you really want to delete generated report "@reportFileContext.Name" ?</p>
+    </Body>
+    <Footer>
+        <button class="btn btn-danger" @onclick="DeleteGeneratedReport">Delete</button>
+        <button class="btn btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">Cancel</button>
+    </Footer>
+</PopUp>
+
+<PopUp Show="ShowDownloadReportFileDialog" Title="Generated Report">
+    <Body>
+        <a class="btn btn-sm btn-info" href="data:application/octet-stream;base64,@(Convert.ToBase64String(reportFileContext.Content))"
+           target="_blank" download="@(reportFileContext.Name).@(reportFileContext.Type)">Download</a>
+    </Body>
+    <Footer>
+        <button class="btn btn-secondary" @onclick="() => ShowDownloadReportFileDialog = false">Cancel</button>
+    </Footer>
+</PopUp>
+
+@code
 {
+    private List<ReportFile> archivedReports = new List<ReportFile>();
 
+    private ReportFile reportFileContext;
+    private bool ShowDeleteReportFileDialog = false;
+    private bool ShowDownloadReportFileDialog = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
+    }
+
+    private async Task DeleteGeneratedReport()
+    {
+        var queryVariables = new
+        {
+            report_id = reportFileContext.Id
+        };
+
+        await apiConnection.SendQueryAsync<object>(ReportQueries.deleteGeneratedReport, queryVariables);
+
+        archivedReports.Remove(reportFileContext);
+    }
 }

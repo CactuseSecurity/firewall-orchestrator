@@ -10,7 +10,7 @@ using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 namespace FWO.Report
 {
-    public class ReportStatistics : Report
+    public class ReportStatistics : ReportBase
     {
         public Management[] Managements { get; set; }
 

@@ -12,21 +12,21 @@
 <button class="btn btn-success m-2" @onclick="Add">Add new LDAP connection</button>
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="LdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
-        <Column TableItem="LdapConnection" Title="Host" Field="@(x => x.Address)" Sortable="true" Filterable="true">
+    <Table class="table table-bordered table-responsive" TableItem="UiLdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
+        <Column TableItem="UiLdapConnection" Title="Host" Field="@(x => x.Address)" Sortable="true" Filterable="true">
             <Template>
                 @(context.Host())
             </Template>
         </Column>
-        <Column TableItem="LdapConnection" Title="Search User" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true" />
-        <Column TableItem="LdapConnection" Title="Write User" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true" />
-        <Column TableItem="LdapConnection" Title="Role Search Path" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true" />
-        <Column TableItem="LdapConnection" Title="Tenant" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="Search User" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiLdapConnection" Title="Write User" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiLdapConnection" Title="Role Search Path" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiLdapConnection" Title="Tenant" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
             <Template>
                 @(context.TenantId != null ? tenants.Find(x => x.Id == context.TenantId).Name : "" )
             </Template>
         </Column>
-        <Column TableItem="LdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Column TableItem="UiLdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
@@ -152,7 +152,7 @@
 
 @code 
 {
-    private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<Tenant> tenants = new List<Tenant>();
 
     private bool EditMode = false;
@@ -160,25 +160,25 @@
     private bool DeleteAllowed = false;
     private bool AddMode = false;
 
-    private LdapConnection newLdapConnection;
-    private LdapConnection actLdapConnection;
+    private UiLdapConnection newLdapConnection;
+    private UiLdapConnection actLdapConnection;
 
     private string deleteMessage = "";
     private string errorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
-        connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
+        connectedLdaps = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
         tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
     }
 
-    private void Edit(LdapConnection ldapConnection)
+    private void Edit(UiLdapConnection ldapConnection)
     {
-        actLdapConnection = new LdapConnection(ldapConnection);
+        actLdapConnection = new UiLdapConnection(ldapConnection);
         EditMode = true;
     }
 
-    private void RequestDelete(LdapConnection ldapConnection)
+    private void RequestDelete(UiLdapConnection ldapConnection)
     {
         actLdapConnection = ldapConnection;
         // Checks if delete possible. Todo: further checks?
@@ -200,7 +200,7 @@
         DeleteMode = true;
     }
 
-    private async Task Delete(LdapConnection ldapConnection)
+    private async Task Delete(UiLdapConnection ldapConnection)
     {
         try
         {
@@ -222,14 +222,14 @@
     private void Add()
     {
         AddMode = true;
-        newLdapConnection = new LdapConnection(){TenantLevel = 1};
+        newLdapConnection = new UiLdapConnection(){TenantLevel = 1};
         Edit(newLdapConnection);
     }
 
-    private void Clone(LdapConnection ldapConnection)
+    private void Clone(UiLdapConnection ldapConnection)
     {
         AddMode = true;
-        newLdapConnection = new LdapConnection(ldapConnection);
+        newLdapConnection = new UiLdapConnection(ldapConnection);
         Edit(newLdapConnection);
     }
 

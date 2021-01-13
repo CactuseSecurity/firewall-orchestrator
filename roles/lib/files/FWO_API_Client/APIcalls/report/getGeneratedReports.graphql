@@ -6,7 +6,6 @@
     uiuser {
       uiuser_username
     }
-    report_document
     report_filetype
     report_template {
       report_template_name

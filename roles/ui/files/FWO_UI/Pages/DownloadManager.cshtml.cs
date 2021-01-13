@@ -1,12 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using FWO.ApiClient.Queries;
 using FWO.ApiClient;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using FWO.Api.Data;
+using System.Text;
 
 namespace FWO.Ui.Pages
 {
@@ -21,10 +20,16 @@ namespace FWO.Ui.Pages
 
         public async Task<IActionResult> OnGetAsync(string reportId)
         {
-            var queryParameter = new { reportId };
-            //await apiConnection.SendQueryAsync<string>(ReportQueries.getSavedReports, queryParameter);
-            //return File(download.GetContent(), download.Type, download.Name);
-            return null;
+            try
+            {
+                var queryParameter = new { reportId };
+                ReportFile file = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports, queryParameter))[0];
+                return File(file.Content, file.Type, file.Name);
+            }
+            catch (Exception exception)
+            {
+                return File(Encoding.ASCII.GetBytes(exception.Message), "text/html", "error.txt");
+            }
         }
     }
 }

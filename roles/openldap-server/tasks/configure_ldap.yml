@@ -67,11 +67,11 @@
       group: "{{ openldap_server_user }}"
 
   - name: Create the directory for the supporting files
-      file:
-        path: "/etc/sysconfig/{{ openldap_server_domain_name }}/"
-        state: directory
-        owner: "{{ openldap_server_user }}"
-        group: "{{ openldap_server_user }}"
+    file:
+      path: "/etc/sysconfig/{{ openldap_server_domain_name }}/"
+      state: directory
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
 
   - name: copy the supporting files
     copy:

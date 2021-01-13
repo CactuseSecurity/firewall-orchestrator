@@ -29,6 +29,20 @@ namespace FWO.Api.Data
         public int[] VisibleDevices { get; set; } // TODO: Remove later (probably not possible)
         public int[] VisibleManagements { get; set; } // TODO: Remove later (probably not possible)
 
+        public Tenant()
+        {}
+
+        public Tenant(Tenant tenant)
+        {
+            Id = tenant.Id;
+            Name = tenant.Name;
+            Comment = tenant.Comment;
+            Project = tenant.Project;
+            ViewAllDevices = tenant.ViewAllDevices;
+            Superadmin = tenant.Superadmin;
+            TenantDevices = tenant.TenantDevices;
+        }
+
         public string DeviceList()
         {
             List<string> deviceList = new List<string>();

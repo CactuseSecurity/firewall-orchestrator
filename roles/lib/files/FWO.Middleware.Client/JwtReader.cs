@@ -14,8 +14,8 @@ namespace FWO.Middleware.Client
         private readonly string jwtString;
         private JwtSecurityToken jwt;
 
-        private readonly RsaSecurityKey jwtPublicKey;        
-        
+        private readonly RsaSecurityKey jwtPublicKey;
+
         public JwtReader(string jwtString)
         {
             // Save jwt string 
@@ -24,14 +24,23 @@ namespace FWO.Middleware.Client
             // Get public key from config lib
             ConfigFile config = new ConfigFile();
             jwtPublicKey = config.JwtPublicKey;
-        } 
+        }
+
+        /// <summary>
+        /// checks if JWT in HTTP header conains admin role.
+        /// </summary>
+        /// <returns>true if JWT contains admin role, otherwise false</returns>
+        public Boolean JwtContainsAdminRole()
+        {
+            return jwt.Claims.First(claim => claim.Type == "role" && claim.Value == "admin") != null;
+        }
 
         public bool Validate()
         {
             bool verified = true; // default ok, then set to false if any exception occurs during validation 
-            
+
             try
-            {                
+            {
                 TokenValidationParameters validationParameters = new TokenValidationParameters
                 {
                     RequireExpirationTime = true,
@@ -57,7 +66,7 @@ namespace FWO.Middleware.Client
                 Log.WriteError("Jwt Validation", $"Jwt signature could not be verified. Potential attack!", InvalidSignatureException);
                 verified = false;
             }
-            catch (Exception UnexpectedError) 
+            catch (Exception UnexpectedError)
             {
                 Log.WriteError("Jwt Validation", $"Unexpected problem while trying to verify Jwt", UnexpectedError);
                 verified = false;
@@ -66,7 +75,7 @@ namespace FWO.Middleware.Client
             Log.WriteDebug("Jwt Validation", "Jwt was successfully validated.");
 
             return verified;
-        }            
+        }
 
         public Claim[] GetClaims()
         {

@@ -20,12 +20,17 @@ namespace FWO.Middleware.Client
             this.middlewareServerUri = middlewareServerUri;
         }
 
-        public virtual async Task<MiddlewareServerResponse> SendRequest(Dictionary<string, object> parameters, string request)
+        public virtual async Task<MiddlewareServerResponse> SendRequest(Dictionary<string, object> parameters, string request, string jwt = null)
         {
             MiddlewareServerResponse result;
 
             try
             {
+                if (jwt != null)
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("auth", jwt);
+                }
+
                 // Wrap parameters
                 string wrappedParameters = JsonSerializer.Serialize(parameters);
                 StringContent requestContent = new StringContent(wrappedParameters);
@@ -40,8 +45,8 @@ namespace FWO.Middleware.Client
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Request \"{GetType().Name}\"",
-                    $"An error occured while sending request \"{GetType().Name}\".",
+                Log.WriteError($"Request \"{request}\"",
+                    $"An error occured while sending request \"{request}\".",
                     exception);
 
                 // Inform requester about errors

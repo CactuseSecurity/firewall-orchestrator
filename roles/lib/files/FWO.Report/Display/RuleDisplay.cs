@@ -136,7 +136,10 @@ namespace FWO.Ui.Display
                 string protoName = "";
                 if (service.Content.Protocol != null && service.Content.Protocol.Name != null) 
                     protoName = service.Content.Protocol.Name;
-                result.Append(service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{protoName})" : "");
+                if (service.Content.DestinationPort != null)
+                    result.Append(service.Content.DestinationPort == service.Content.DestinationPortEnd ? $" ({service.Content.DestinationPort}/{protoName})"
+                        : $" ({service.Content.DestinationPort}-{service.Content.DestinationPortEnd}/{protoName})");
+                //result.Append(service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{protoName})" : "");
                 result.AppendLine("<br>");
             }
 

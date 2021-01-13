@@ -14,7 +14,7 @@ namespace FWO.Report
     {
         public Management[] Managements { get; set; }
 
-        public override async void Generate(int changesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task Generate(int changesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
             query.QueryVariables["limit"] = changesPerFetch;

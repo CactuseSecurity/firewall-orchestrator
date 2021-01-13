@@ -7,7 +7,7 @@
 
 <div class="main h-100">
     <div class="content p-4">
-        <CascadingValue Value="@showErrorFunction">
+        <CascadingValue Value="@DisplayMessageInUiFunction">
             @Body
         </CascadingValue>
     </div>
@@ -16,10 +16,11 @@
 @if (errorDialogShow)
 {
     <div class="footer alert alert-danger">
-        <div class="d-flex flex-row justify-content-between">
-            <div>@errorDialogTitle - @errorDialogMessage See logs for details!</div>  <div class="oi oi-x" @onclick="@(() => { errorDialogShow = false; StateHasChanged();})"></div>
-        </div>
+    <div class="d-flex flex-row justify-content-between">
+        <div>@errorDialogTitle - @errorDialogMessage See logs for details!</div>
+        <div class="oi oi-x" @onclick="@(() => { errorDialogShow = false; StateHasChanged();})"></div>
     </div>
+</div>
 }
 
 @code
@@ -30,11 +31,11 @@
 
     private object errorLock = new object();
 
-    Action<string, string> showErrorFunction;
+    Action<Exception,string,string,bool> DisplayMessageInUiFunction;
 
     protected override void OnInitialized()
     {
-        showErrorFunction = ShowError;
+        DisplayMessageInUiFunction = DisplayMessageInUi;
     }
 
     private void ShowError(string title, string message)
@@ -46,6 +47,25 @@
             errorDialogMessage = message;
             errorDialogShow = true;
             InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void DisplayMessageInUi(Exception Error = null, string title = null, string message = null, bool error = false)
+    {
+        if (Error != null && Error.Message.Contains("JWTExpired"))
+        {
+            // todo: consider redirect to login page
+            Log.WriteError("Auth Token Error", "JWT expired in session.", Error);
+            ShowError("JWT Expiry Error", "JWT expired in session - please log in again.");
+        } else if (Error == null && error == false)
+        {
+            ShowError(title, message); // todo: display warnings in yellow
+            Log.WriteWarning(title, message);
+        }
+        else
+        {
+            Log.WriteError("Unspecified Error", "Unspecified error occured.", Error);
+            ShowError("Unspecified Error", "Unexpected error condition encountered.");
         }
     }
 }

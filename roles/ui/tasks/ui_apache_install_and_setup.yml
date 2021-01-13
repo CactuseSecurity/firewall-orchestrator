@@ -5,27 +5,27 @@
       with_items:
         - "{{ web_server_name }}"
 
-    - name: copy iso httpd config file to ui target
-      template:
-        src: "httpd.conf"
-        dest: "{{ http_conf_dir }}/{{ product_name }}.conf"
-        owner: root
-        group: root
-        
     - name: enable apache modules proxy proxy_http ssl
       apache2_module: state=present name={{ item }}
       loop:
+        - rewrite
         - proxy
         - proxy_http
         - ssl
-        - rewrite
         - proxy_wstunnel
 
-    - name: copy cert creation script to apache target
+    - name: copy ui httpd config file to ui target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-ui.conf"
+        owner: root
+        group: root
+        
+    - name: copy cert creation script to apache target and execute
       script: "apache_create_server_cert.sh" 
 
     - name: enable {{ product_name }} web site
-      command: "a2ensite {{ product_name }}"
+      command: "a2ensite {{ product_name }}-ui"
       # todo: I received an error with the uncommented code below: module fworch does not exist
 #      apache2_module:
 #        state: present

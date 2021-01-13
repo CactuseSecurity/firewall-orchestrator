@@ -13,6 +13,15 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Device" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="Device" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true"/>
         <Column TableItem="Device" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
@@ -25,15 +34,6 @@
             </Template>
         </Column>
         <Column TableItem="Device" Title="Import Disabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true"/>
-        <Column TableItem="Device" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
-                </div>
-            </Template>
-        </Column>
     </Table>
 </div>
 
@@ -91,10 +91,6 @@
                     <label class="form-check-label" for="deviceHideInUi"><small>Hide in UI</small></label>
                 </div>
 
-                @if (errorMessage != "")
-                {
-                    <label class="m-2">@errorMessage</label>
-                }
             </form>
         }
     </Body>
@@ -112,10 +108,6 @@
         {
             <p>Are you sure you want to delete gateway "@(actDevice.Name)"?</p>
 
-            @if (errorMessage != "")
-            {
-                <label class="m-2">@errorMessage</label>
-            }
         }
     </Body>
     <Footer>
@@ -128,6 +120,8 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
     private List<Device> devices = new List<Device>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
     private List<Management> managements = new List<Management>();
@@ -139,13 +133,18 @@
     private Device newDevice;
     private Device actDevice;
 
-    private string errorMessage = "";
-
     protected override async Task OnInitializedAsync()
     {
-        devices = (await Task.Run(() => apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails))).ToList();
-        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails))).ToList();
-        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails))).ToList();
+        try 
+        {
+            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
+            deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
+            managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception,"Error while reading gateway information",exception.Message,true);
+        }
     }
 
     private void Edit(Device device)
@@ -166,8 +165,8 @@
         {
             // Todo: checks if delete possible. Else set e.g. an archive flag?
             var Variables = new { id = device.Id };
-            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteDevice, Variables))).DeletedId;
-            if(delId == device.Id)
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
+            if (delId == device.Id)
             {
                 devices.Remove(device);
                 DeleteMode = false;
@@ -175,8 +174,7 @@
         }
         catch (Exception exception)
         {
-            Log.WriteDebug("Delete Device", $"Exception occurred: {exception}");
-            errorMessage = "Something went wrong with deleting: " + exception.Message;
+            DisplayMessageInUi(exception,"Error while deleting gateway",exception.Message,true);
         }
     }
 
@@ -216,11 +214,10 @@
                     hideInUi = actDevice.HideInUi,
                     comment = actDevice.Comment
                 };
-                actDevice.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables))).ReturnIds[0].NewId;
+                actDevice.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds[0].NewId;
                 devices.Add(actDevice);
                 AddMode = false;
                 EditMode = false;
-                errorMessage = "";
             }
             else
             {
@@ -236,10 +233,9 @@
                     hideInUi = actDevice.HideInUi,
                     comment = actDevice.Comment
                 };
-                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables))).UpdatedId;
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
                 EditMode = (udId == actDevice.Id ? false : true);
                 devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
-                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
             }
             // update actDevice for immediate display
             actDevice.DeviceType.Name = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Name;
@@ -248,8 +244,7 @@
         }
         catch (Exception exception)
         {
-            Log.WriteDebug("Save Device", $"Exception occurred: {exception}");
-            errorMessage = "Something went wrong with saving: " + exception.Message;
+            DisplayMessageInUi(exception,"Error while saving gateway",exception.Message,true);
         }
     }
 
@@ -258,6 +253,5 @@
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
-        errorMessage = "";
     }
 }

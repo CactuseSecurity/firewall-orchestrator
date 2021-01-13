@@ -140,5 +140,6 @@
 
         AuthenticationState authState = await authenticationStateTask;
         await userConfig.SetUserInformation(authState.User.FindFirstValue("x-hasura-uuid"), ApiConnection);
+        userConfig.User.Jwt = jwt;
     }
 }

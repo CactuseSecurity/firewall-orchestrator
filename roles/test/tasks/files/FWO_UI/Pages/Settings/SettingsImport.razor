@@ -1,0 +1,183 @@
+@using BlazorTable
+@using FWO.Api.Data
+@using FWO.ApiClient
+
+@page "/settings/import"
+
+@inject APIConnection apiConnection
+
+<h3 class="m-2">Import Status</h3>
+<hr />
+
+<button class="btn btn-info m-2" @onclick="Refresh">Refresh</button>
+
+<div class="m-2">
+    <Table class="table table-bordered table-responsive" TableItem="ImportStatus" Items="importStati" PageSize="0" ColumnReorder="true">
+        <Column TableItem="ImportStatus" Title="Action" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Details(context)">Details</button>
+                    @if (context.LastImport.Length > 0 && context.LastImport[0].StopTime == null)
+                    {
+                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback(context.MgmId)">Rollback</button>
+                    }
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="ImportStatus" Title="Management" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
+        <Column TableItem="ImportStatus" Title="Last Success" Field="@(x => x.LastSuccessfulImport[0].StopTime)" Sortable="true" Filterable="true" >
+            <Template>
+                @if(context.LastSuccessfulImport.Length > 0)
+                {
+                    @(context.LastSuccessfulImport[0].StopTime);
+                }
+            </Template>
+        </Column>        
+        <Column TableItem="ImportStatus" Title="Last Import" Field="@(x => x.LastImport[0].StopTime)" Sortable="true" Filterable="true" >
+            <Template>
+                @if(context.LastImport.Length > 0)
+                {
+                    @(context.LastImport[0].StopTime);
+                }
+            </Template>
+        </Column>        
+        <Column TableItem="ImportStatus" Title="Success" Field="@(x => x.LastImport[0].SuccessfulImport)" Sortable="true" Filterable="true" >
+            <Template>
+                @if(context.LastImport.Length > 0)
+                {
+                    @(context.LastImport[0].SuccessfulImport);
+                }
+            </Template>
+        </Column>        
+        <Column TableItem="ImportStatus" Title="Errors" Field="@(x => x.LastImport[0].ImportErrors)" Sortable="true" Filterable="true" >
+            <Template>
+                @if(context.LastImport.Length > 0)
+                {
+                    @(context.LastImport[0].ImportErrors);
+                }
+            </Template>
+        </Column>        
+    </Table>
+</div>
+<PopUp Title="@($"Import Status Details for {actStatus.MgmName}")" Show="@DetailsMode" Large="true" OnClose="() => DetailsMode = false">
+    <Body>
+        @if (DetailsMode)
+        {
+            <form>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label">MgmName:</div>
+                    <div class="m-2">@actStatus.MgmName</div>
+                </div>
+
+                <h6>First Import</h6>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Start:</div>
+                    <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StartTime : null)</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Stop:</div>
+                    <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StopTime : null)</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Success:</div>
+                    <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].SuccessfulImport : null)</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Errors:</div>
+                    <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].ImportErrors : null)</div>
+                </div>
+                <h6>Last Successful Import</h6>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Start:</div>
+                    <div class="m-2">@(actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StartTime : null)</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Stop:</div>
+                    <div class="m-2">@(actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StopTime : null)</div>
+                </div>
+                <h6>Last Import</h6>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Start:</div>
+                    <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StartTime : null)</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Stop:</div>
+                    <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StopTime : null)</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Success:</div>
+                    <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].SuccessfulImport : null)</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-3 col-form-label-sm">Errors:</div>
+                    <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].ImportErrors : null)</div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="CloseDetails">Ok</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code 
+{
+    [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    private List<ImportStatus> importStati = new List<ImportStatus>();
+    private bool DetailsMode = false;
+    private ImportStatus actStatus = new ImportStatus();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await fetchImportStati();
+    }
+
+    private async Task fetchImportStati()
+    {
+        try
+        {
+            importStati = (await apiConnection.SendQueryAsync<ImportStatus[]>(FWO.ApiClient.Queries.DeviceQueries.getImportStatus)).ToList();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "API error", "Error while fetching import status information.", true);
+        }
+    }
+
+    private void Details(ImportStatus status)
+    {
+        actStatus = status;
+        DetailsMode = true;
+    }
+
+    private void CloseDetails()
+    {
+        DetailsMode = false;
+    }
+
+    private async Task Rollback(int mgmId)
+    {
+        try
+        {
+            var Variables = new { mgmId = mgmId };
+            int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
+            if (affectedRows > 0)
+            {
+                Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {mgmId}");
+                await fetchImportStati();
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "API error", "Error while trying import rollback.", true);
+        }
+    }
+
+    private async Task Refresh()
+    {
+        await fetchImportStati();
+    }
+}

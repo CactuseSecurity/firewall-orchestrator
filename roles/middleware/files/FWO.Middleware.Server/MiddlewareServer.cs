@@ -178,8 +178,6 @@ namespace FWO.Middleware.Server
                 CreateInitialJWTRequestHandler createInitialJWTRequestHandler = new CreateInitialJWTRequestHandler(jwtWriterCopy);
 
                 (status, responseString) = await createInitialJWTRequestHandler.HandleRequestAsync(request);
-
-
             }
             else
             {

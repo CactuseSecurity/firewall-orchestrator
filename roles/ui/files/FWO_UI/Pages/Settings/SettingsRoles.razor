@@ -317,7 +317,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(null, "Add user", "Unexpected error occured", true);
+                DisplayMessageInUi(exception, "Add user", "Unexpected error occured", true);
             }
 
         }
@@ -351,7 +351,7 @@
                 }
                 catch (System.Exception exception)
                 {
-                    DisplayMessageInUi(null, "Delete user", "Unexpected error occured", true);
+                    DisplayMessageInUi(exception, "Delete user", "Unexpected error occured", true);
                 }
             }
         }

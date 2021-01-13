@@ -1,14 +1,15 @@
 ---
 
+# todo: replace with systemd module when importer service has been migrated
 - hosts: importers
   tasks:
     - name: stop importer service before makeing any changes
       command: "/etc/init.d/{{ product_name }}-importer stop"
       become: yes
       when: "installation_mode != 'new'"
+      ignore_errors: yes
   tags:
     - frontend
-# todo: replace with systemd module when importer service has been migrated
 
 - hosts: all
   tasks:
@@ -101,6 +102,7 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
+# todo: replace with systemd module when importer service has been migrated
 
 - hosts: all
   roles:

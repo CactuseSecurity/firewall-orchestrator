@@ -15,6 +15,7 @@
   become_user: "{{ fworch_user }}"
   register: csharp_tests
   ignore_errors: no
+  environment: "{{ proxy_env }}"
 
 - name: show test results
   debug:

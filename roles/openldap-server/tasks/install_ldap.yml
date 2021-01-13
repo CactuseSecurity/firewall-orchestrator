@@ -21,15 +21,15 @@
     pause:
       minutes: 5
 
-  - name: Delete the configuration directory
-    file: 
-      path: "{{ openldap_server_app_path }}/slapd.d"
-      state: absent
+#  - name: Delete the configuration directory
+#    file:
+#      path: "{{ openldap_server_app_path }}/slapd.d"
+#      state: absent
 
   - name: Create the configuration directory for this instance
     file:
       path: "{{ openldap_server_instance_path }}"
-      state: present
+      state: directory
 
   - name: Check if manager password exist
     stat:
@@ -62,13 +62,19 @@
   #   notify: 
   #   - restart slapd
 
-  - name: Copy the slapd.conf configuration file
-    template:
-      src: slapd.conf_{{ openldap_current_role }}.j2
-      dest: "{{ openldap_server_instance_path }}/slapd.conf"
-#    when: ansible_os_family == "Debian"
-    notify:
-    - restart slapd
+  - name: Copy slap initial file to system if not present
+    copy:
+      src: config.ldif
+      dest: /etc/ldap/slap.d/
+      force: no
+
+#  - name: Copy the slapd.conf configuration file
+#    template:
+#      src: slapd.conf_{{ openldap_current_role }}.j2
+#      dest: "{{ openldap_server_instance_path }}/slapd.conf"
+##    when: ansible_os_family == "Debian"
+#    notify:
+#    - restart slapd
   
   - name: Copy the ldap.conf configuration file
     template:

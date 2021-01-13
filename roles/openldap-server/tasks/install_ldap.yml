@@ -21,15 +21,31 @@
     pause:
       minutes: 5
 
-#  - name: Delete the configuration directory
-#    file:
-#      path: "{{ openldap_server_app_path }}/slapd.d"
-#      state: absent
-
-  - name: Create the configuration directory for this instance
+  - name: Delete the configuration directory
     file:
-      path: "{{ openldap_server_instance_path }}"
+      path: "{{ openldap_server_app_path }}/slapd.d"
+      state: absent
+    when: openldap_first_install == 'yes'
+
+  - name: Create the configuration directory
+    file:
+      path: "{{ openldap_server_app_path }}/slapd.d"
       state: directory
+
+#  - name: Copy slap initial file to system if not present
+#    copy:
+#      src: config.ldif
+#      dest: "{{ openldap_server_app_path }}/slapd.d/"
+#      force: no
+
+  - name: Initialize ldap config
+    command: slapadd -F /etc/ldap/slapd.d -n 0 -l config.ldif
+    when: openldap_first_install == 'yes'
+    register: ldap_initialization
+
+  - name: Debug ldap initialization
+    debug:
+      var: ldap_initialization.stdout_lines
 
   - name: Check if manager password exist
     stat:
@@ -61,12 +77,6 @@
   #   when: ansible_os_family == "RedHat"
   #   notify: 
   #   - restart slapd
-
-  - name: Copy slap initial file to system if not present
-    copy:
-      src: config.ldif
-      dest: /etc/ldap/slap.d/
-      force: no
 
 #  - name: Copy the slapd.conf configuration file
 #    template:

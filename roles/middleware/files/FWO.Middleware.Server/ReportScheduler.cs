@@ -82,16 +82,16 @@ namespace FWO.Middleware.Server
 
                             if (RoundUp(scheduledReport.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
                             {
-                                reportGeneratorTasks.Add(Task.Run(() =>
+                                reportGeneratorTasks.Add(Task.Run(async () =>
                                 {
                                     try
                                     {
                                         ReportBase reportRules = ReportBase.ConstructReport(scheduledReport.Template.Filter);
-                                        reportRules.Generate
+                                        await reportRules.Generate
                                         (
                                             int.MaxValue,
                                             scheduledReport.Template.Filter,
-                                            new APIConnection(apiServerUri, jwtWriter.CreateJWT(scheduledReport.Owner)),
+                                            new APIConnection(apiServerUri, await jwtWriter.CreateJWT(scheduledReport.Owner)),
                                             _ => Task.CompletedTask
                                         );
 

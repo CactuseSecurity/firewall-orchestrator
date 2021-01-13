@@ -39,7 +39,7 @@ namespace FWO.Middleware.Server
             if (user != null)
                 subject = GetClaims(await AddUserToDbAtFirstLogin(user));
             else
-                subject = GetClaims(new User() { Name = "", Password = "", Dn = "anonymous", Roles = new string[] { "anonymous" } });
+                subject = GetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new string[] { "anonymous" } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -102,12 +102,12 @@ namespace FWO.Middleware.Server
             bool userSetInDb = false;
             try
             {
-                User[] existingUserFound = await apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn });
+                UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn });
 
                 if (existingUserFound.Length == 1)
                 {
                     user.DbId = existingUserFound[0].DbId;
-                    updateLastLogin(apiConn, user.DbId);
+                    await updateLastLogin(apiConn, user.DbId);
                     userSetInDb = true;
                 }
                 else
@@ -174,8 +174,9 @@ namespace FWO.Middleware.Server
             claimsIdentity.AddClaim(new Claim("x-hasura-user-id", user.DbId.ToString()));
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
-            if (user.Tenant != null)
-            {
+                
+            if (user.Tenant != null && user.Tenant.VisibleDevices != null && user.Tenant.VisibleManagements != null)
+            { 
                 // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
                 claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));

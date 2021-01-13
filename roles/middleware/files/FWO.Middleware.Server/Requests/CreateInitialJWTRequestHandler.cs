@@ -1,5 +1,4 @@
-﻿using FWO.Middleware.Server.Data;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -17,13 +16,12 @@ namespace FWO.Middleware.Server.Requests
             this.tokenGenerator = tokenGenerator;
         }
 
-
-        protected override Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
+        protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            string jwt = tokenGenerator.CreateJWT().Result;
+            string jwt = await tokenGenerator.CreateJWT();
 
             // Return status and result
-            return Task.FromResult(WrapResult(HttpStatusCode.OK, ("jwt", jwt)));
+            return WrapResult(HttpStatusCode.OK, ("jwt", jwt));
         }
     }
 }

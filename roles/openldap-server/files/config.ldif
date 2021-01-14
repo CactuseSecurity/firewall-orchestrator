@@ -25,4 +25,5 @@ include: file:///etc/ldap/schema/inetorgperson.ldif
 include: file:///etc/ldap/schema/nis.ldif
 
 # Access control simple example, later include complex logic
-olcAccess: to * by * read
+# The next line does not work without dn
+#olcAccess: to * by * read

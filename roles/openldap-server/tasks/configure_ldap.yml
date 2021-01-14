@@ -18,12 +18,12 @@
   - name: Delete the directory for ldap certificates
     file:
       state: absent
-      path: "{{ openldap_server_instance_path }}/certs/"
+      path: "{{ openldap_server_cert_path }}/"
     when: openldap_generate_new_crypto == true
 
   - name: Create the directory for ldap certificates
     file:
-      path: "{{ openldap_server_instance_path }}/certs/"
+      path: "{{ openldap_server_cert_path }}/"
       state: directory
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
@@ -66,39 +66,40 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
-  - name: Create the directory for the supporting files
-    file:
-      path: "/etc/sysconfig/{{ openldap_server_domain_name }}/"
-      state: directory
-      owner: "{{ openldap_server_user }}"
-      group: "{{ openldap_server_user }}"
+# Alles hier drunter wird in der aktuellen Praxis nicht gebraucht. Evtl für redhat interessant
+#  - name: Create the directory for the supporting files
+#    file:
+#      path: "/etc/sysconfig/{{ openldap_server_domain_name }}/"
+#      state: directory
+#      owner: "{{ openldap_server_user }}"
+#      group: "{{ openldap_server_user }}"
 
-  - name: copy the supporting files
-    copy:
-      src: ldap
-      dest: /etc/sysconfig/{{ openldap_server_domain_name }}/ldap
-      mode: "0755"
-    when: openldap_server_enable_ssl and ansible_os_family == 'RedHat'
-    notify:
-    - restart slapd
+#  - name: copy the supporting files
+#    copy:
+#      src: ldap
+#      dest: /etc/sysconfig/{{ openldap_server_domain_name }}/ldap
+#      mode: "0755"
+#    when: openldap_server_enable_ssl and ansible_os_family == 'RedHat'
+#    notify:
+#    - restart slapd
 
-  - name: copy the supporting files
-    copy:
-      src: slapd_fedora
-      dest: /etc/sysconfig/slapd
-      mode: "0755"
-    when: openldap_server_enable_ssl and ansible_distribution == "Fedora"
-    notify:
-    - restart slapd
+#  - name: copy the supporting files
+#    copy:
+#      src: slapd_fedora
+#      dest: /etc/sysconfig/slapd
+#      mode: "0755"
+#    when: openldap_server_enable_ssl and ansible_distribution == "Fedora"
+#    notify:
+#    - restart slapd
 
-  - name: copy the supporting files
-    copy:
-      src: slapd
-      dest: /etc/default/slapd
-      mode: "0755"
-    when: openldap_server_enable_ssl and ansible_os_family == 'Debian'
-    notify:
-    - restart slapd
+#  - name: copy the supporting files
+#    copy:
+#      src: slapd
+#      dest: /etc/default/slapd
+#      mode: "0755"
+#    when: openldap_server_enable_ssl and ansible_os_family == 'Debian'
+#    notify:
+#    - restart slapd
 
   - name: start the slapd service
     service:

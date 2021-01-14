@@ -66,8 +66,12 @@
     when: not is_manger_pw_present_flag.stat.exists
 
   - name: Generate the root password hash for the config
-    shell: "slappasswd -T {{ openldap_secrets_path }}/ldap_manager_pw.txt"
+    command: "slappasswd -T {{ openldap_secrets_path }}/ldap_manager_pw.txt"
     register: root_password
+
+  - name: Debug slappasswd
+    debug:
+      var: root_password.stdout_lines
 
   # - name: Copy the slapd.conf configuration file for Redhat
   #   template:
@@ -80,7 +84,7 @@
 #  - name: Copy the slapd.conf configuration file
 #    template:
 #      src: slapd.conf_{{ openldap_current_role }}.j2
-#      dest: "{{ openldap_server_instance_path }}/slapd.conf"
+#      dest: "{{ openldap_server_app_path }}/slapd.conf"
 ##    when: ansible_os_family == "Debian"
 #    notify:
 #    - restart slapd
@@ -88,6 +92,7 @@
   - name: Copy the ldap.conf configuration file
     template:
       src: ldap.conf.j2
-      dest: "{{ openldap_server_instance_path }}/ldap.conf"
+      dest: "{{ openldap_server_app_path }}/ldap.conf"
+      force: openldap_first_install | bool
 
   become: yes

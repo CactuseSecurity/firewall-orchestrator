@@ -4,5 +4,4 @@ openldap_server_pkgs:
   - openssl
 
 openldap_server_app_path: "/etc/openldap/"
-openldap_server_instance_path: "{{ openldap_server_app_path }}{{ openldap_server_domain_name }}/"
 openldap_server_user: ldap

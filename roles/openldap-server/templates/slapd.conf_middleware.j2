@@ -43,12 +43,12 @@ access to *
                 by dn.base="{{ openldap_writer_dn }}" read
                 by * none
 
-database        bdb
-suffix          "{{ openldap_path }}"
-rootdn          "{{ openldap_superuser_dn }}"
-rootpw          {{ root_password.stdout }}
+#database        bdb
+#suffix          "{{ openldap_path }}"
+#rootdn          "{{ openldap_superuser_dn }}"
+#rootpw          {{ root_password.stdout }}
 #This directory has to be created and would contain the ldap database.
-directory       /var/lib/ldap/{{ openldap_server_domain_name }}/
+#directory       /var/lib/ldap/{{ openldap_server_domain_name }}/
 index objectClass                       eq,pres
 index ou,cn,mail,surname,givenname      eq,pres,sub
 index uidNumber,gidNumber,loginShell    eq,pres

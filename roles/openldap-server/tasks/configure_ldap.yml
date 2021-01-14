@@ -3,13 +3,6 @@
 - block:
       #hier jetzt die config änderungen für config.ldif, danach erst slapadd
 
-  - name: Add access control to config.ldif
-
-
-  - name: Add database to config.ldif
-
-
-    #nicht sicher ob ich hier mit instanzen anfangen soll
   - name: Create the directory for ldap database
     file:
       path: "/var/lib/ldap/{{ openldap_server_domain_name }}/"

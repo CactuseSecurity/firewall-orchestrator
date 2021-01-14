@@ -45,8 +45,13 @@ namespace FWO.Middleware.Server
             privateJWTKey = config.JwtPrivateKey;
             middlewareServerNativeUri = config.MiddlewareServerNativeUri;
 
+            string uriToCall = middlewareServerNativeUri;
+            if (middlewareServerNativeUri[middlewareServerNativeUri.Length - 1] != '/')
+                uriToCall += "/";
+
             // Create Http Listener
             listener = new HttpListener();
+
 
             // Handle timeouts
             //HttpListenerTimeoutManager timeoutManager = listener.TimeoutManager;
@@ -72,7 +77,7 @@ namespace FWO.Middleware.Server
             }, TaskCreationOptions.LongRunning);
 
             // Start Http Listener, todo: move to https
-            RunListenerAsync(middlewareServerNativeUri).Wait();
+            RunListenerAsync(uriToCall).Wait();
         }
 
         private async Task RunListenerAsync(string middlewareListenerUri)

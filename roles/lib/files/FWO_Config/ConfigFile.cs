@@ -69,6 +69,15 @@ namespace FWO.Config
             }
         }
 
+        private string middlewareServerNativeUri = null;
+        public string MiddlewareServerNativeUri
+        {
+            get
+            {
+                CriticalConfigValueLoaded(middlewareServerNativeUri);
+                return middlewareServerNativeUri;
+            }
+        }
         private string middlewareServerUri = null;
         public string MiddlewareServerUri
         {
@@ -114,7 +123,10 @@ namespace FWO.Config
                 // Try to read jwt public key
                 IgnoreExceptions(() => jwtPublicKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPublicKeyPath), isPrivateKey: false));
 
-                // Try to get middleware uri
+                // Try to get uri of the middleware server (http)
+                IgnoreExceptions(() => middlewareServerNativeUri = configFileData["middleware_native_uri"]);
+
+                // Try to get uri of the middleware server reverse proxy (https)
                 IgnoreExceptions(() => middlewareServerUri = configFileData["middleware_uri"]);
 
                 // Try to get api uri

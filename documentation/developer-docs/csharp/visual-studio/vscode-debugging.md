@@ -101,11 +101,10 @@ aQIDAQAB
   - 636:localhost:636
 
 
-### debugging starts the folloging local listeners on client
+### debugging starts the following local listeners on client
 
 - 5001 - blazor
-- 8888 - middleware-server
-
+- 8880 - middleware-server
 
 ## install webhook
 

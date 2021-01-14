@@ -1,4 +1,0 @@
-{
-    "dotnet-test-explorer.enableTelemetry": false,
-    "dotnet-test-explorer.testProjectPath": "${workspaceFolder}/roles/test/files/FWO_Test"
-}

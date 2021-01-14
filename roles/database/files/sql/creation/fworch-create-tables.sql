@@ -878,7 +878,6 @@ Create table "report"
 	"report_pdf" bytea,
 	"report_csv" text,
 	"report_html" text,
-	"report_filetype" varchar,
 	"report_name" varchar NOT NULL,
 	"report_owner_id" Integer NOT NULL, --FK to uiuser
 	"tenant_wide_visible" Integer,

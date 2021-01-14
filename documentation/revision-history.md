@@ -56,3 +56,4 @@ adding report template format fk and permissions
 ### 5.1.07 - 14.01.2021
 - adding https reverse proxy in front of middleware server
 - removing column report.report_filetype which has been replaced with relation report_schedule_format and extra fields report_json, report_pdf, report_csv, report_html
+- adding report_schedule_repetitions

@@ -894,6 +894,7 @@ Create table if not exists "report_schedule"
 	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 1 daily, 2 weekly, 3 monthly, 4 yearly 
 	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years
 	"report_schedule_active" Boolean Default TRUE,
+	"report_schedule_repetitions" Integer,
  	primary key ("report_schedule_id")
 );
 

@@ -21,7 +21,7 @@
     file:
       state: absent
       path: "{{ openldap_server_cert_path }}/"
-    when: openldap_generate_new_crypto == true
+    when: openldap_generate_new_crypto
 
   - name: Create the directory for ldap certificates
     file:

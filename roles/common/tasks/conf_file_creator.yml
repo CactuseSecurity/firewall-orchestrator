@@ -53,7 +53,7 @@
         
         # middleware
         middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
-        middleware_uri: {{ middleware_uri }}
+        middleware_uri: "{{ middleware_uri }}"
 
   - name: write version in config file in fresh installation
     lineinfile:

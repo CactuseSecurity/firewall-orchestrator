@@ -26,10 +26,18 @@
       state: absent
     when: openldap_first_install | bool
 
+  - name: Pause
+    pause:
+      minutes: 5
+
   - name: Create the configuration directory
     file:
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: directory
+
+  - name: Pause
+    pause:
+      minutes: 5
 
   - name: Copy slap initial file to system if not present
     copy:

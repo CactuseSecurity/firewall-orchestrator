@@ -16,6 +16,10 @@
       # when: ansible_os_family == 'Debian'
 
 ### Clean up slapd.d
+  - name: debug openldap_first_install
+    debug:
+      var: openldap_first_install
+
   - name: Delete the configuration directory
     file:
       path: "{{ openldap_server_app_path }}/slapd.d"

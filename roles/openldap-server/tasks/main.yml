@@ -20,7 +20,7 @@
     file:
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: absent
-    when: openldap_first_install
+    when: "openldap_first_install == 'yes'"
 
   - name: Create the configuration directory
     file:
@@ -60,7 +60,7 @@
     file:
       state: absent
       path: "{{ openldap_server_cert_path }}/"
-    when: openldap_generate_new_crypto
+    when: "openldap_generate_new_crypto == 'yes'"
 
   - name: Create the directory for ldap certificates
     file:
@@ -122,6 +122,7 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
+# todo: is this force working properly?
   - name: Copy the ldap.conf configuration file
     template:
       src: ldap.conf.j2
@@ -136,7 +137,7 @@
 
   - name: Initialize ldap config
     command: slapadd -F /etc/ldap/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
-    when: openldap_first_install
+    when: "openldap_first_install == 'yes'"
     register: ldap_initialization
 
   - name: Debug ldap initialization

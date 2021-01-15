@@ -131,7 +131,7 @@
     template:
       src: ldap.conf.j2
       dest: "{{ openldap_server_app_path }}/ldap.conf"
-      force: openldap_first_install
+      #force: {{ openldap_first_install }}
 
   - name: Copy slap initial file to system if not present
     template:

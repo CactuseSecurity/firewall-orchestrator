@@ -20,14 +20,6 @@
     debug:
       var: openldap_first_install
 
-  - name: set fact
-    set_fact:
-      openldap_first_install: "yes"
-
-  - name: debug openldap_first_install
-    debug:
-      var: openldap_first_install
-
   - name: debug
     debug:
       msg: passt
@@ -37,7 +29,6 @@
     file:
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: absent
-    #when: "openldap_first_install == 'yes'"
     when: openldap_first_install | bool
 
   - name: Create the configuration directory
@@ -145,7 +136,7 @@
     template:
       src: ldap.conf.j2
       dest: "{{ openldap_server_app_path }}/ldap.conf"
-      #force: {{ openldap_first_install }}
+      force: "{{ openldap_first_install }}"
 
   - name: Copy slap initial file to system if not present
     template:
@@ -155,13 +146,12 @@
 
   - name: Initialize ldap config
     command: slapadd -F /etc/ldap/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
-    #when: "openldap_first_install == 'yes'"
     when: openldap_first_install | bool
     register: ldap_initialization
 
   - name: Debug ldap initialization
     debug:
-      var: ldap_initialization.stdout_lines
+      var: ldap_initialization
 
   - name: start the slapd service
     service:

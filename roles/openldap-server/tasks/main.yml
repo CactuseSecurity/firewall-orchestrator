@@ -20,6 +20,14 @@
     debug:
       var: openldap_first_install
 
+  - name: set fact
+    set_fact:
+      openldap_first_install: yes
+
+  - name: debug openldap_first_install
+    debug:
+      var: openldap_first_install
+
   - name: Delete the configuration directory
     file:
       path: "{{ openldap_server_app_path }}/slapd.d"

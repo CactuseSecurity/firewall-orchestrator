@@ -32,7 +32,8 @@
     file:
       path: "{{ openldap_server_app_path }}/slapd.d"
       state: absent
-    when: "openldap_first_install == 'yes'"
+    #when: "openldap_first_install == 'yes'"
+    when: openldap_first_install | bool
 
   - name: Create the configuration directory
     file:
@@ -149,7 +150,8 @@
 
   - name: Initialize ldap config
     command: slapadd -F /etc/ldap/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
-    when: "openldap_first_install == 'yes'"
+    #when: "openldap_first_install == 'yes'"
+    when: openldap_first_install | bool
     register: ldap_initialization
 
   - name: Debug ldap initialization

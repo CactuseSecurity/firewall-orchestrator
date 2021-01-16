@@ -14,20 +14,28 @@
 
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <div class="p-3">
-        <h5 class="text-center">Report Type</h5>
-
+        @* <h5 class="text-center">Report Type</h5>
         <div class="list-group small mt-3">
             <a class="list-group-item list-group-item-action @(reportType==rulesReport?"active":"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
             <a class="list-group-item list-group-item-action @(reportType==changesReport?"active":"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
             <a class="list-group-item list-group-item-action @(reportType==complianceReport?"active":"")" @onclick="() => { filterInput = complianceReportDefaultFilterLine; reportType = complianceReport; }" href="report">Compliance</a>
             <a class="list-group-item list-group-item-action  @(reportType==statisticsReport?"active":"")" @onclick="() => { filterInput = statisticsReportDefaultFilterLine; reportType = statisticsReport; }" href="report">Statistics</a>
         </div>
-
         <hr />
-
         <button class="btn btn-primary btn-sm" @onclick="GenerateReport">Generate Report</button>
+        <hr /> 
+        
+        todo: 
+        - implement selection invertion
+        - issue warning if nothing is selected
+        - implement start of reporting
+        - add device selection to filter line
+        
+        *@
 
-        <hr />
+        <h5 class="text-left">Select device(s)</h5>
+        <button class="btn btn-sm btn-secondary" @onclick="() => { }">Invert selection</button>
+        <br><br>
 
         @foreach (Management management in managementsOverview)
         {
@@ -39,7 +47,7 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="@($"man{management.Id}dev{device.Id}")" value="">
                             <label class="form-check-label" for="@($"man{management.Id}dev{device.Id}")">
-                                @(device.Name)
+                                &nbsp;@(device.Name)
                             </label>
                         </div>
                     }
@@ -323,7 +331,7 @@
                 case statisticsReport:
                     @if (globalStats != null)
                     {
-                        <h6>Gobal number of Objects</h6>
+                        <h5>Gobal number of Objects</h5>
                         <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
                             <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
                             <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
@@ -446,10 +454,10 @@
     private const string inactiveRulescomplianceReportDefaultFilterLine = "type=compliance and time=now and active=false";
     private const string complianceReportDefaultFilterLine = anyObjcomplianceReportDefaultFilterLine;
     private string reportGenerationTimeLine = "";
-    private const string rulesReport = "Rules";
-    private const string changesReport = "Changes";
-    private const string complianceReport = "Compliance";
-    private const string statisticsReport = "Statistics";
+    private const string rulesReport = "rules";
+    private const string changesReport = "changes";
+    private const string complianceReport = "compliance";
+    private const string statisticsReport = "statistics";
     private string reportType = rulesReport;
 
     private CollapseState collapseSidebarAll = new CollapseState();
@@ -511,60 +519,59 @@
         });
     }
 
-    private void GenerateReport()
+    private async Task GenerateReport()
     {
         try
         {
-            Task.Run(async () =>
+            DynGraphqlQuery query = Compiler.Compile(filterInput);
+            reportType = query.ReportType;
+            DateTime startTime = DateTime.Now;
+            managementsReport = new Management[0]; // reset management data when switching between reports
+            switch (reportType.ToLower())
             {
-                DateTime startTime = DateTime.Now;
-                managementsReport = new Management[0]; // reset management data when switching between reports
-                switch (reportType)
-                {
-                    case rulesReport:
-                        ReportRules reportRules = new ReportRules();
-                        await reportRules.Generate(rulesPerFetch, filterInput, Connection,
-                            managementsReportIntermediate =>
-                            {
-                                managementsReport = managementsReportIntermediate;
-                                return InvokeAsync(StateHasChanged);
-                            });
-                        break;
+                case rulesReport:
+                    ReportRules reportRules = new ReportRules();
+                    await reportRules.Generate(rulesPerFetch, filterInput, Connection,
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            return InvokeAsync(StateHasChanged);
+                        });
+                    break;
 
-                    case changesReport:
-                        ReportChanges reportChanges = new ReportChanges();
-                        await reportChanges.Generate(rulesPerFetch, filterInput, Connection,
-                            managementsReportIntermediate =>
-                            {
-                                managementsReport = managementsReportIntermediate;
-                                return InvokeAsync(StateHasChanged);
-                            });
-                        break;
+                case changesReport:
+                    ReportChanges reportChanges = new ReportChanges();
+                    await reportChanges.Generate(rulesPerFetch, filterInput, Connection,
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            return InvokeAsync(StateHasChanged);
+                        });
+                    break;
 
-                    case statisticsReport:
-                        globalStats = new Management();
-                        ReportStatistics reportStatistics = new ReportStatistics();
-                        await reportStatistics.Generate(0, filterInput, Connection,
-                            managementsReportIntermediate =>
+                case statisticsReport:
+                    globalStats = new Management();
+                    ReportStatistics reportStatistics = new ReportStatistics();
+                    await reportStatistics.Generate(0, filterInput, Connection,
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            return InvokeAsync(() =>
                             {
-                                managementsReport = managementsReportIntermediate;
-                                return InvokeAsync(() =>
+                                foreach (Management mgm in managementsReport)
                                 {
-                                    foreach (Management mgm in managementsReport)
-                                    {
-                                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                                    }
-                                    StateHasChanged();
-                                });
+                                    globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                                }
+                                StateHasChanged();
                             });
-                        break;
-                }
-                reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
-                await InvokeAsync(StateHasChanged);
-            });
+                        });
+                    break;
+            }
+            reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
@@ -573,7 +580,7 @@
             if (exception.Message == "no such type exists in the schema: 'cidr'")
             {
                 Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
-                ShowError("Report generation", "You dont have sufficient acces rights.");
+                ShowError("Report generation", "You dont have sufficient access rights.");
             }
             else if (exception.Message == "Could not verify JWT: JWTExpired")
             {

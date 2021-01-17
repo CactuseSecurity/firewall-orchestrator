@@ -455,9 +455,6 @@
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
 
-    [CascadingParameter]
-    Action<string, string> ShowError { get; set; }
-
     protected override void OnInitialized()
     {
         Task.Run(async () =>
@@ -484,8 +481,7 @@
             }
             catch (Exception exception)
             {
-                Log.WriteError("Object Fetching Error", "Error while fetching objects from API.", exception);
-                ShowError("Object Fetching Error", "Error while fetching objects from API.");
+                DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
             }
         });
 
@@ -504,8 +500,7 @@
             }
             catch (Exception exception)
             {
-                Log.WriteError("Report Template Fetching Error", "Error while fetching report templates from API.", exception);
-                ShowError("Report Template Fetching Error", "Error while fetching report templates from API.");
+                DisplayMessageInUi(exception, "Report Template Fetch", "Error while fetching report templates from API", true);
             }
         });
     }
@@ -704,8 +699,7 @@
         }
         catch (Exception exception)
         {
-            Log.WriteError("Save report template", "Unclassified error.", exception);
-            ShowError("Save report template error", "Unclassified error.");
+            DisplayMessageInUi(exception, "Save report template", "Unclassified error.", true);
         }
     }
 
@@ -720,8 +714,7 @@
         }
         catch (Exception exception)
         {
-            Log.WriteError("Edit report template", "Unclassified error.", exception);
-            ShowError("Edit report template error", "Unclassified error.");
+            DisplayMessageInUi(exception, "Edit report template", "Unclassified error.", true);
         }
     }
 
@@ -741,8 +734,7 @@
         }
         catch (Exception exception)
         {
-            Log.WriteError("Delete report template", "Unclassified error.", exception);
-            ShowError("Delete report template error", "Unclassified error.");
+            DisplayMessageInUi(exception, "Delete report template", "Unclassified error.", true);
         }
     }
 
@@ -780,7 +772,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            ShowError("Filter Error", $"{unexpectedError.Message}\n{unexpectedError.StackTrace}");
+            DisplayMessageInUi(unexpectedError, "Filter", "Unclassified error.", false);
 #endif
         }
     }

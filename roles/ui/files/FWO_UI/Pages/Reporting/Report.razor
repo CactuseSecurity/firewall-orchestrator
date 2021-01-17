@@ -14,27 +14,9 @@
 
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <div class="p-3">
-        @* <h5 class="text-center">Report Type</h5>
-        <div class="list-group small mt-3">
-            <a class="list-group-item list-group-item-action @(reportType==rulesReport?"active":"")" @onclick="() => { filterInput = rulesReportDefaultFilterLine; reportType = rulesReport; }" href="report">@rulesReport</a>
-            <a class="list-group-item list-group-item-action @(reportType==changesReport?"active":"")" @onclick="() => { filterInput = changesReportDefaultFilterLine; reportType = changesReport; }" href="report">Changes</a>
-            <a class="list-group-item list-group-item-action @(reportType==complianceReport?"active":"")" @onclick="() => { filterInput = complianceReportDefaultFilterLine; reportType = complianceReport; }" href="report">Compliance</a>
-            <a class="list-group-item list-group-item-action  @(reportType==statisticsReport?"active":"")" @onclick="() => { filterInput = statisticsReportDefaultFilterLine; reportType = statisticsReport; }" href="report">Statistics</a>
-        </div>
-        <hr />
-        <button class="btn btn-primary btn-sm" @onclick="GenerateReport">Generate Report</button>
-        <hr /> 
-        
-        todo: 
-        - implement selection invertion
-        - issue warning if nothing is selected
-        - implement start of reporting
-        - add device selection to filter line
-        
-        *@
 
         <h5 class="text-left">Select device(s)</h5>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { }">Invert selection</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => { invertDeviceSelection(); }">Invert selection</button>
         <br><br>
 
         @foreach (Management management in managementsOverview)
@@ -45,10 +27,13 @@
                     @foreach (Device device in management.Devices)
                     {
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="@($"man{management.Id}dev{device.Id}")" value="">
-                            <label class="form-check-label" for="@($"man{management.Id}dev{device.Id}")">
-                                &nbsp;@(device.Name)
+                            <input class="form-check-input" type="checkbox" id="device.Id" @bind="device.selected" />
+                            <label class="form-check-label" for="@device.Id">
+                                &nbsp;@device.Name
                             </label>
+
+                            @* <input class="form-check-input" id="managementForceInitImport" type="checkbox" @bind="actManagement.ForceInitialImport">
+                            <label class="form-check-label" for="managementForceInitImport"><small>Force Initial Import</small></label> *@
                         </div>
                     }
                 </Collapse>
@@ -400,6 +385,7 @@
 
 @code
 {
+    private const string deviceFilterStart = "(gateway=";
     private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
     private List<RuleChange> selectedItemsReportChangeTable = new List<RuleChange>();
 
@@ -408,6 +394,8 @@
     private Management[] managementsAllObjects = new Management[0];
     private Management[] managementsWithRelevantImportId = new Management[0];
     private Management globalStats = null;
+
+    // private Dictionary<int,bool> deviceSelected = new Dictionary<int,bool>();
 
     private List<ReportTemplate> reportTemplates = new List<ReportTemplate>();
     private ReportFile[] archivedReports = new ReportFile[0];
@@ -525,9 +513,12 @@
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
             reportType = query.ReportType;
+            if (isAnyDeviceFilterSet()) // remove all existing device filters first before adding new ones
+                filterInput = replaceDeviceFilter(filterInput); 
+            query = Compiler.Compile(filterInput);  // recompile after reading device filter
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
-            switch (reportType.ToLower())
+            switch (reportType)
             {
                 case rulesReport:
                     ReportRules reportRules = new ReportRules();
@@ -595,6 +586,81 @@
         }
     }
 
+    private bool isAnyDeviceFilterSet () 
+    {
+        return true; // todo: implement
+    }
+
+    private void invertDeviceSelection ()
+    {
+        foreach (Management management in managementsOverview)
+        {
+            if (management != null)
+            {
+                foreach (Device device in management.Devices)
+                {
+                    device.selected = !(device.selected);
+                }
+            }
+        }       
+    }
+
+    private string replaceDeviceFilter(string currentInputFilter)
+    {
+        // remove old device filter part from currentInputFilter and add the new device filter from management.devices
+        string filter = removeDeviceFilterPart(currentInputFilter).TrimEnd() + deviceFilterToString();
+
+        // if the filter line (without device filter) is empty, get rid of the leading "and" of the device filter
+        filter = filter.Trim();
+        if (filter.StartsWith("and "))
+            filter = filter.Remove(0,4);
+        if (filter.EndsWith(" and"))
+            filter = filter.Remove(filter.Length-4,4);
+        return filter;
+    }
+
+    private string removeDeviceFilterPart(string filter)
+    {
+        // identify and remove device filter part from filter
+        if (filter.Contains(deviceFilterStart))
+        {
+            int startPosition = filter.IndexOf(deviceFilterStart);
+            int endPosition = filter.IndexOf(")", startPosition+deviceFilterStart.Length);
+            if (startPosition != 1 && endPosition != -1)
+                filter = filter.Remove(startPosition, endPosition-startPosition+1); // to remove the first 10 characters
+        }
+        return filter;
+    }
+
+    private String deviceFilterToString () 
+    {
+        string deviceFilter = "";
+        if (isAnyDeviceFilterSet()) {
+            deviceFilter = " and (";
+            foreach (Management management in managementsOverview)
+            {
+                if (management != null)
+                {
+                    foreach (Device device in management.Devices)
+                    {
+                        if (device.selected) 
+                        {
+                            if (deviceFilter.Length>6)  // not the first selected device
+                                deviceFilter += " or ";
+                            deviceFilter += $"gateway={device.Name}";
+                        }
+                    }
+                }
+            }
+            if (deviceFilter.Length>6)  // any filter found at all?
+                deviceFilter += ") ";
+            else
+                deviceFilter = "";
+        }
+        return deviceFilter;
+        // return " and gateway=forti";
+    }
+    
     private async Task SaveTemplate()
     {
         try

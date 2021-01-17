@@ -14,4 +14,5 @@ need to change import id in all csv-files to next id, e.g.:
                       (when you do not have a test device handy)
 -no-cleanup          - do not delete temporary files (.config, .csv) after import completed (for debugging purposes)
 -debug=x             - set debug level for import to x
+-configfile=/path/to/file - import directly from local (R8x) config file, do not copy
 ```

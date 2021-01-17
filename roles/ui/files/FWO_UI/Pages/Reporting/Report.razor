@@ -385,6 +385,9 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+
     private const string deviceFilterStart = "(gateway=";
     private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
     private List<RuleChange> selectedItemsReportChangeTable = new List<RuleChange>();
@@ -568,23 +571,7 @@
         }
         catch (Exception exception)
         {
-            //this is the default error message when user's access rights are not sufficient
-            //leave managementsReport as default = empty array
-            if (exception.Message == "no such type exists in the schema: 'cidr'")
-            {
-                Log.WriteError("Report generation", "User does not have sufficient access rights.", exception);
-                ShowError("Report generation", "You dont have sufficient access rights.");
-            }
-            else if (exception.Message == "Could not verify JWT: JWTExpired")
-            {
-                Log.WriteError("Report generation", "User's JWT has expired.", exception);
-                ShowError("Report generation", "Your JWT has expired - please login again.");
-            }
-            else
-            {
-                Log.WriteError("Report generation", "Unclassified error.", exception);
-                ShowError("Report generation error", "Unclassified error.");
-            }
+            DisplayMessageInUi(exception, "Report generation", "Unclassified error.", true);
         }
     }
 

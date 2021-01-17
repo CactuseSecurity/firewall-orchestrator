@@ -514,7 +514,9 @@
             DynGraphqlQuery query = Compiler.Compile(filterInput);
             reportType = query.ReportType;
             if (isAnyDeviceFilterSet()) // remove all existing device filters first before adding new ones
-                filterInput = replaceDeviceFilter(filterInput); 
+                filterInput = replaceDeviceFilter(filterInput);
+            else 
+                filterInput = removeDeviceFilterPart(filterInput);
             query = Compiler.Compile(filterInput);  // recompile after reading device filter
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
@@ -588,7 +590,33 @@
 
     private bool isAnyDeviceFilterSet () 
     {
-        return true; // todo: implement
+        bool firstFilterSet = false;
+        bool filterLogic = false;
+        bool anyDeviceFilterSet = false; 
+
+        foreach (Management management in managementsOverview)
+        {
+            if (management != null)
+            {
+                foreach (Device device in management.Devices)
+                {
+                    if (device != null)
+                    {
+                        if (!firstFilterSet)
+                        {
+                            firstFilterSet = true;
+                            filterLogic = device.selected;
+                        } 
+                        else 
+                        {
+                            if (device.selected != filterLogic)
+                                return true;
+                        }
+                    }
+                }
+            }
+        }       
+        return anyDeviceFilterSet;
     }
 
     private void invertDeviceSelection ()
@@ -605,18 +633,25 @@
         }       
     }
 
+    private string cleanFilter(string filter)
+    {
+        filter = filter.Trim();
+        if (filter.StartsWith("and "))
+            filter = filter.Remove(0,4);
+        if (filter.EndsWith(" and"))
+            filter = filter.Remove(filter.Length-4,4);
+        if (filter.Contains("and and"))  // remove duplicate and
+            filter = filter.Remove(filter.IndexOf("and and"), 4);
+        return filter;
+    }
+
     private string replaceDeviceFilter(string currentInputFilter)
     {
         // remove old device filter part from currentInputFilter and add the new device filter from management.devices
         string filter = removeDeviceFilterPart(currentInputFilter).TrimEnd() + deviceFilterToString();
 
         // if the filter line (without device filter) is empty, get rid of the leading "and" of the device filter
-        filter = filter.Trim();
-        if (filter.StartsWith("and "))
-            filter = filter.Remove(0,4);
-        if (filter.EndsWith(" and"))
-            filter = filter.Remove(filter.Length-4,4);
-        return filter;
+        return cleanFilter(filter); 
     }
 
     private string removeDeviceFilterPart(string filter)
@@ -629,7 +664,7 @@
             if (startPosition != 1 && endPosition != -1)
                 filter = filter.Remove(startPosition, endPosition-startPosition+1); // to remove the first 10 characters
         }
-        return filter;
+        return cleanFilter(filter); 
     }
 
     private String deviceFilterToString () 
@@ -647,7 +682,7 @@
                         {
                             if (deviceFilter.Length>6)  // not the first selected device
                                 deviceFilter += " or ";
-                            deviceFilter += $"gateway={device.Name}";
+                            deviceFilter += $"gateway=\"{device.Name}\"";
                         }
                     }
                 }

@@ -41,6 +41,8 @@ namespace FWO.Api.Data
         [JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; }
 
+        public bool selected { get; set; } = false;
+
         public Device()
         { }
 
@@ -60,7 +62,6 @@ namespace FWO.Api.Data
             ImportDisabled = device.ImportDisabled;
             HideInUi = device.HideInUi;
             Comment = device.Comment;
-            // Rules = device.Rules;
         }
     }
 

@@ -41,6 +41,7 @@ namespace FWO.ApiConfig
             ConfigFile config = new ConfigFile();
             RsaSecurityKey jwtPublicKey = config.JwtPublicKey;
             string middlewareServerUri = config.MiddlewareServerUri;
+            string middlewareServerNativeUri = config.MiddlewareServerNativeUri;
             string apiServerUri = config.ApiServerUri;
             productVersion = config.ProductVersion;
             authClient = new MiddlewareClient(middlewareServerUri);

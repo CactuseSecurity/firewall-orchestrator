@@ -7,21 +7,20 @@ using System.Net;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
-using FWO.Middleware.Server.Data;
 using FWO.Middleware.Server.Requests;
 using FWO.Config;
 using FWO.Logging;
+using FWO.Report;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading;
 using FWO.Middleware.Client;
-//using Microsoft.AspNetCore.Components.Authorization;
 
 namespace FWO.Middleware.Server
 {
     public class MiddlewareServer
     {
-        private readonly string middlewareServerUri;
+        private readonly string middlewareServerNativeUri;
         private readonly HttpListener listener;
         private const int maxConnectionsCount = 1000;
 
@@ -37,15 +36,22 @@ namespace FWO.Middleware.Server
 
         private readonly string apiUri;
 
+        private ReportScheduler reportScheduler;
+
         public MiddlewareServer()
         {
             config = new ConfigFile();
             apiUri = config.ApiServerUri;
             privateJWTKey = config.JwtPrivateKey;
-            middlewareServerUri = config.MiddlewareServerUri;
+            middlewareServerNativeUri = config.MiddlewareServerNativeUri;
+
+            string uriToCall = middlewareServerNativeUri;
+            if (middlewareServerNativeUri[middlewareServerNativeUri.Length - 1] != '/')
+                uriToCall += "/";
 
             // Create Http Listener
             listener = new HttpListener();
+
 
             // Handle timeouts
             //HttpListenerTimeoutManager timeoutManager = listener.TimeoutManager;
@@ -64,8 +70,14 @@ namespace FWO.Middleware.Server
             connectedLdaps = apiConn.SendQueryAsync<Ldap[]>(AuthQueries.getLdapConnections).Result.ToList();
             Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
+            // Create and start report scheduler
+            Task.Factory.StartNew(() =>
+            {
+                reportScheduler = new ReportScheduler(apiConn, jwtWriter);
+            }, TaskCreationOptions.LongRunning);
+
             // Start Http Listener, todo: move to https
-            RunListenerAsync(middlewareServerUri).Wait();
+            RunListenerAsync(uriToCall).Wait();
         }
 
         private async Task RunListenerAsync(string middlewareListenerUri)
@@ -83,6 +95,9 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddReportSchedule/");
+                listener.Prefixes.Add(middlewareListenerUri + "EditReportSchedule/");
+                listener.Prefixes.Add(middlewareListenerUri + "DeleteReportSchedule/");
                 listener.Prefixes.Add(middlewareListenerUri + "Test/"); // TODO: REMOVE TEST PREFIX
             }
             catch (Exception exception)
@@ -168,8 +183,6 @@ namespace FWO.Middleware.Server
                 CreateInitialJWTRequestHandler createInitialJWTRequestHandler = new CreateInitialJWTRequestHandler(jwtWriterCopy);
 
                 (status, responseString) = await createInitialJWTRequestHandler.HandleRequestAsync(request);
-
-
             }
             else
             {

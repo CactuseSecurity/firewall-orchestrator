@@ -14,11 +14,11 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "publish",
+            "label": "build_middleware",
             "command": "dotnet",
             "type": "process",
             "args": [
-                "publish",
+                "build",
                 "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/FWO.Middleware.Server.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
@@ -38,7 +38,7 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "build_FWO",
+            "label": "build_UI",
             "command": "dotnet",
             "type": "process",
             "args": [

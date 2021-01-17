@@ -6,6 +6,7 @@ mutation addReportSchedule(
   $report_schedule_repeat: Int! # 0 do not repeat, 2 daily, 2 weekly, 3 monthly, 4 yearly
   $report_schedule_every: Int! # every x days/weeks/months/years
   $report_schedule_active: Boolean!
+  $report_schedule_formats: report_schedule_format_arr_rel_insert_input! # array of foreign key to output formats
 ) {
   insert_report_schedule(
     objects: {
@@ -16,6 +17,7 @@ mutation addReportSchedule(
       report_schedule_every: $report_schedule_every
       report_template_id: $report_schedule_template_id
       report_schedule_active: $report_schedule_active
+      report_schedule_formats: $report_schedule_formats
     }
   ) {
     returning {

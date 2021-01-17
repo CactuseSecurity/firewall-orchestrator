@@ -117,7 +117,7 @@
     [CascadingParameter]
     Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
 
-    private List<LdapConnection> connectedLdaps = new List<LdapConnection>();
+    private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<Tenant> tenants = new List<Tenant>();
@@ -141,7 +141,7 @@
     {
         try
         {
-            connectedLdaps = (await apiConnection.SendQueryAsync<LdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
+            connectedLdaps = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
         }
         catch (System.Exception exception)
         {
@@ -180,7 +180,7 @@
         }
 
         // Synchronize both
-        Synchronize();
+        await Synchronize();
     }
 
     private async Task Synchronize()
@@ -223,7 +223,7 @@
 
     private async Task GetUsersFromInternalLdap()
     {
-        LdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
+        UiLdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
         if (internalLdap == null)
         {
             DisplayMessageInUi(null, "UI User", "No internal Ldap found.", true);

@@ -15,32 +15,31 @@
         - ssl
         - proxy_wstunnel
 
-    - name: copy ui httpd config file to ui target
+    - name: copy mw httpd config file to mw target
       template:
         src: "httpd.conf"
-        dest: "{{ http_conf_dir }}/{{ product_name }}-ui.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-mw.conf"
         owner: root
         group: root
         
     - name: copy cert creation script to apache target and execute
       script: "apache_create_server_cert.sh" 
 
-    - name: enable {{ product_name }} web site
-      command: "a2ensite {{ product_name }}-ui"
-      # todo: I received an error with the uncommented code below: module fworch does not exist
-#      apache2_module:
-#        state: present
-#        name: "{{ product_name }}"
+    - name: enable {{ product_name }} middleware apache site
+      command: "a2ensite {{ product_name }}-mw"
       register: testoutput
 
     - name: test
       debug:
         var: testoutput
 
-    - name: increase apache timeout to 900 seconds
+
+    - name: add mw port to apache
       lineinfile:
-        path: /etc/apache2/apache2.conf
-        line: "Timeout 900"
+        path: "/etc/apache2/ports.conf"
+        line: "Listen {{ middleware_web_listener_port }}"
+        insertafter: "<IfModule ssl_module>"
+
 
     - name: restart apache
       service:

@@ -46,8 +46,8 @@
   import_tasks: upgrade_ldap_tree.yml
   when: installation_mode == "upgrade"
 
-- name: install python modules for ansible ldap module
-  apt:
+- name: install python modules for ansible ldap module via package
+  package:
     name:
       - python3-pip
       - libsasl2-dev
@@ -55,12 +55,13 @@
       - libldap2-dev
       - libssl-dev
       - python3-setuptools
+      - python3-pyldap
   become: yes
 
-- name: install python modules for ansible ldap module
-  pip:
-    name: pyldap
-  become: yes
+# - name: install python modules for ansible ldap module via pip
+#   pip:
+#     name: pyldap
+#   become: yes
 
 - name: Set {{ middleware_ldap_internal_readonly_user }} password in ldap
   ldap_passwd:
@@ -135,3 +136,6 @@
 
 - name: install dot net
   import_tasks: middleware_install_dot_net.yml
+
+- name: install middleware https reverse proxy
+  import_tasks: mw_apache_install_and_setup.yml

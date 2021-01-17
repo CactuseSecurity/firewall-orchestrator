@@ -7,13 +7,14 @@
   loop:
     - python3-pip
     - python3-virtualenv
+    - python3-docker
   become: yes
 
-- name: install docker sdk for python via pip3
-  pip:
-    name: docker
-  become: yes
-  become_user: "{{ fworch_user }}"
+# - name: install docker sdk for python via pip3
+#   pip:
+#     name: docker
+#   become: yes
+#   become_user: "{{ fworch_user }}"
 
 - name: read jwt public key from file as JWT secret
   slurp:

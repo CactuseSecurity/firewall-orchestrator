@@ -1,4 +1,4 @@
-query getReportSchedules {
+﻿subscription subscribeReportScheduleChanges {
   report_schedule {
     report_schedule_id
     report_schedule_name
@@ -15,7 +15,7 @@ query getReportSchedules {
       report_template_name
     }
     report_schedule_formats{
-      report_schedule_format_name
+      file_format_name : report_schedule_format_name
     }
   }
 }

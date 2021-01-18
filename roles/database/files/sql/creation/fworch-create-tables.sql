@@ -869,9 +869,6 @@ Create table "report"
 (
 	"report_id" BIGSERIAL,
 	"report_template_id" Integer,
-	"start_import_id" Integer NOT NULL,
-	"stop_import_id" Integer,
-	"report_generation_time" Timestamp NOT NULL Default now(),
 	"report_start_time" Timestamp,
 	"report_end_time" Timestamp,
 	"report_json" json NOT NULL,

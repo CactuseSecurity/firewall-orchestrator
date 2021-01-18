@@ -1413,6 +1413,20 @@ tables:
       foreign_key_constraint_on: report_schedule_owner
   select_permissions:
   - permission:
+      allow_aggregations: true
+      columns:
+      - report_schedule_id
+      - report_schedule_name
+      - report_template_id
+      - report_schedule_owner
+      - report_schedule_start_time
+      - report_schedule_repeat
+      - report_schedule_every
+      - report_schedule_active
+      - report_schedule_repetitions
+      filter: {}
+    role: middleware-server
+  - permission:
       columns:
       - report_schedule_active
       - report_schedule_every
@@ -1638,6 +1652,18 @@ tables:
     using:
       foreign_key_constraint_on: report_template_owner
   select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - report_template_id
+      - report_filter
+      - report_template_name
+      - report_template_comment
+      - report_template_create
+      - report_template_owner
+      - filterline_history
+      filter: {}
+    role: middleware-server
   - permission:
       columns:
       - filterline_history

@@ -4,7 +4,10 @@
 - hosts: importers
   tasks:
     - name: stop importer service before makeing any changes
-      command: "/etc/init.d/{{ product_name }}-importer stop"
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer"
+        state: stopped
+      #command: "/etc/init.d/{{ product_name }}-importer stop"
       become: yes
       when: "installation_mode != 'new'"
       ignore_errors: yes
@@ -97,7 +100,10 @@
 - hosts: importers
   tasks:
     - name: restart importer service
-      command: "/etc/init.d/{{ product_name }}-importer restart"
+      #command: "/etc/init.d/{{ product_name }}-importer restart"
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer"
+        state: restarted
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:

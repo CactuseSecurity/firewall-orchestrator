@@ -94,6 +94,7 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "DeleteUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
+                listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromAllRoles/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddReportSchedule/");
                 listener.Prefixes.Add(middlewareListenerUri + "EditReportSchedule/");
@@ -264,6 +265,15 @@ namespace FWO.Middleware.Server
 
                                     // Try to remove user from role
                                     (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "RemoveUserFromAllRoles":
+
+                                    // Initialize Request Handler  
+                                    RemoveUserFromAllRolesRequestHandler removeUserFromAllRolesRequestHandler = new RemoveUserFromAllRolesRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to remove user from all roles
+                                    (status, responseString) = await removeUserFromAllRolesRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 case "AddLdap":

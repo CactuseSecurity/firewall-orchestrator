@@ -12,11 +12,18 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Tenant" Title="Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
+        <Column TableItem="Tenant" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Add(context)">Add Device</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete Device</button>
+                    @if (context.Id != 1)
+                    {
+                        <button class="btn btn-sm btn-success" @onclick="() => Add(context)">Add Gateway</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete Gateway</button>
+                    }
+                    else
+                    {
+                        <label class="m-2">(linked to all gateways)</label>
+                    }
                 </div>
             </Template>
         </Column>
@@ -25,7 +32,7 @@
         <Column TableItem="Tenant" Title="Project" Field="@(x => x.Project)" Sortable="true" Filterable="true" />
         <Column TableItem="Tenant" Title="View All Devices" Field="@(x => x.ViewAllDevices)" Sortable="true" Filterable="true" />
         <Column TableItem="Tenant" Title="Superadmin" Field="@(x => x.Superadmin)" Sortable="true" Filterable="true" />
-        <Column TableItem="Tenant" Title="Devices" Field="@(x => x.TenantDevices)" Sortable="false" Filterable="false">
+        <Column TableItem="Tenant" Title="Gateways" Field="@(x => x.TenantDevices)" Sortable="false" Filterable="false">
             <Template>
                 @(context.DeviceList())
             </Template>
@@ -34,13 +41,13 @@
     </Table>
 </div>
 
-<PopUp Title="@($"Add device to tenant {actTenant.Name}")" Show="@AddMode" Large="true" OnClose="() => AddMode = false">
+<PopUp Title="@($"Add gateway to tenant {actTenant.Name}")" Show="@AddMode" Large="true" OnClose="() => AddMode = false">
     <Body>
         @if (AddMode)
         {
             <form>
                 <form class="form-inline">
-                    <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">Devices:</label>
+                    <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">Gateways:</label>
                     <div class="col-sm-8">
                         <select id="tenantDevice" class="form-control form-control-sm" @bind="selectedDevice">
                             @foreach (Device device in remainingDevices)
@@ -61,13 +68,13 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@($"Delete device from tenant {actTenant.Name}")" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+<PopUp Title="@($"Delete gateway from tenant {actTenant.Name}")" Show="@DeleteMode" OnClose="() => DeleteMode = false">
     <Body>
         @if (DeleteMode)
         {
             <form>
                 <div class="form-group row">
-                    <label for="tenantDeviceDel" class="col-sm-3 col-form-label col-form-label-sm">Device:</label>
+                    <label for="tenantDeviceDel" class="col-sm-3 col-form-label col-form-label-sm">Gateway:</label>
                     <div class="col-sm-8">
                         <select id="tenantDeviceDel" class="form-control form-control-sm" @bind="selectedDevice">
                             @foreach (var device in actTenant.TenantDevices)

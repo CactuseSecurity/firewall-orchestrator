@@ -9,13 +9,13 @@
     timeout: 25
   when: "run_on_github is not defined"
 
-# curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"fritz","Password":"fritz1"}'
+# curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"user1_demo","Password":"cactus1"}'
 - name: middleware test get jwt valid creds
   command: |
     curl --request POST --insecure 
-      --url http://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/ 
+      --url https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/ 
       --header 'content-type: application/json' 
-      --data '{"Username":"fritz","Password":"fritz1"}'
+      --data '{"Username":"user1_demo","Password":"cactus1"}'
   register: sample_jwt
   changed_when: false
 
@@ -58,17 +58,17 @@
 - set_fact: jwt_payload="{{ jwt_encoded_payload|b64decode }}"
 - set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
 
-- name: middleware get jwt check valid creds output user fritz
+- name: middleware get jwt check valid creds output user user1_demo
   debug:
-    msg: "ERROR unexpected jwt test result (username does not match 'fritz'): {{ jwt_unique_user_name }}"
-  when: "jwt_unique_user_name is not match('fritz')"
+    msg: "ERROR unexpected jwt test result (username does not match 'user1_demo'): {{ jwt_unique_user_name }}"
+  when: "jwt_unique_user_name is not match('user1_demo')"
 
 - name: middleware test get jwt wrong creds
   command: |
     curl --request POST --insecure 
-      --url http://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+      --url https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
       --header 'content-type: application/json' 
-      --data '{"Username":"fritz","Password":"wrong-pwd"}'
+      --data '{"Username":"user1_demo","Password":"wrong-pwd"}'
   register: sample_jwt
   changed_when: false
 

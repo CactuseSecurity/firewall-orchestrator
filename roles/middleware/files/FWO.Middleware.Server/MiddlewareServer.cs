@@ -20,7 +20,7 @@ namespace FWO.Middleware.Server
 {
     public class MiddlewareServer
     {
-        private readonly string middlewareServerUri;
+        private readonly string middlewareServerNativeUri;
         private readonly HttpListener listener;
         private const int maxConnectionsCount = 1000;
 
@@ -43,10 +43,15 @@ namespace FWO.Middleware.Server
             config = new ConfigFile();
             apiUri = config.ApiServerUri;
             privateJWTKey = config.JwtPrivateKey;
-            middlewareServerUri = config.MiddlewareServerUri;
+            middlewareServerNativeUri = config.MiddlewareServerNativeUri;
+
+            string uriToCall = middlewareServerNativeUri;
+            if (middlewareServerNativeUri[middlewareServerNativeUri.Length - 1] != '/')
+                uriToCall += "/";
 
             // Create Http Listener
             listener = new HttpListener();
+
 
             // Handle timeouts
             //HttpListenerTimeoutManager timeoutManager = listener.TimeoutManager;
@@ -72,7 +77,7 @@ namespace FWO.Middleware.Server
             }, TaskCreationOptions.LongRunning);
 
             // Start Http Listener, todo: move to https
-            RunListenerAsync(middlewareServerUri).Wait();
+            RunListenerAsync(uriToCall).Wait();
         }
 
         private async Task RunListenerAsync(string middlewareListenerUri)
@@ -89,6 +94,7 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "DeleteUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
+                listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromAllRoles/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddReportSchedule/");
                 listener.Prefixes.Add(middlewareListenerUri + "EditReportSchedule/");
@@ -259,6 +265,15 @@ namespace FWO.Middleware.Server
 
                                     // Try to remove user from role
                                     (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "RemoveUserFromAllRoles":
+
+                                    // Initialize Request Handler  
+                                    RemoveUserFromAllRolesRequestHandler removeUserFromAllRolesRequestHandler = new RemoveUserFromAllRolesRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to remove user from all roles
+                                    (status, responseString) = await removeUserFromAllRolesRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 case "AddLdap":

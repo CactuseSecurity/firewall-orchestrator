@@ -1,4 +1,4 @@
-@using BlazorTable
+﻿@using BlazorTable
 @using FWO.Api.Data
 @using FWO.ApiClient
 
@@ -17,14 +17,21 @@
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Details(context)">Details</button>
-                    @if (context.LastImport.Length > 0 && context.LastImport[0].StopTime == null)
-                    {
-                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback(context.MgmId)">Rollback</button>
-                    }
                 </div>
             </Template>
         </Column>
         <Column TableItem="ImportStatus" Title="Management" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
+        <Column TableItem="ImportStatus" Title="Last Incomplete" Field="@(x => x.LastIncompleteImport[0].StartTime)" Sortable="true" Filterable="true" >
+            <Template>
+                @if(context.LastIncompleteImport.Length > 0)
+                {
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback(context.MgmId)">Rollback</button>
+                        @(context.LastIncompleteImport[0].StartTime)
+                    </div>
+                }
+            </Template>
+        </Column>        
         <Column TableItem="ImportStatus" Title="Last Success" Field="@(x => x.LastSuccessfulImport[0].StopTime)" Sortable="true" Filterable="true" >
             <Template>
                 @if(context.LastSuccessfulImport.Length > 0)

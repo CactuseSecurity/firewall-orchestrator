@@ -42,7 +42,7 @@ product_version: 5.1
 api_uri: "https://127.0.0.1:9443/api/v1/graphql"
 api_hasura_jwt_alg: "RS256"
 
-# auth
+# middleware
 middleware_JWT_key_file: "/usr/local/fworch/etc/secrets/jwt_private_key.pem"
 middleware_uri: "http://127.0.0.1:8880/"
 middleware_native_uri: "http://127.0.0.1:8880/"
@@ -101,11 +101,10 @@ aQIDAQAB
   - 636:localhost:636
 
 
-### debugging starts the folloging local listeners on client
+### debugging starts the following local listeners on client
 
 - 5001 - blazor
-- 8888 - middleware-server
-
+- 8880 - middleware-server
 
 ## install webhook
 

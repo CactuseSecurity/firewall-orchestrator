@@ -9,8 +9,8 @@ query getDevicesByManagement {
       where: { hide_in_gui: { _eq: false } }
       order_by: { dev_name: asc }
     ) {
-      dev_id
-      dev_name
+      id: dev_id
+      name: dev_name
     }
   }
 }

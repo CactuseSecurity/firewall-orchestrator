@@ -3,13 +3,14 @@
 @using FWO.Ui.Display
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
-@using System.Text 
+@using System.Text
 @using FWO.Ui.Services
 @using FWO.Ui.Data
 
 @inject APIConnection Connection
 @inject UserConfig userConfig
 
+@page "/"
 @page "/report"
 
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
@@ -473,8 +474,8 @@
 
                 bool newObjects = true;
 
-                // lazy fetch all objects for right sidebar
-                while (newObjects)
+            // lazy fetch all objects for right sidebar
+            while (newObjects)
                 {
                     paginationVariables.Offset += rulesPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
@@ -519,7 +520,7 @@
             {
                 DateTime startTime = DateTime.Now;
                 managementsReport = new Management[0]; // reset management data when switching between reports
-                switch (reportType)
+            switch (reportType)
                 {
                     case rulesReport:
                         ReportRules reportRules = new ReportRules();

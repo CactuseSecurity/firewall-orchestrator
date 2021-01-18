@@ -8,9 +8,15 @@ using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
+using System.Text.Json;
+using PdfSharpCore.Pdf;
+using FWO.Ui.Display;
+using VetCV.HtmlRendererCore.PdfSharpCore;
+using PdfSharpCore;
+
 namespace FWO.Report
 {
-    public class ReportRules: ReportBase
+    public class ReportRules : ReportBase
     {
         public Management[] Managements { get; set; }
 
@@ -31,7 +37,7 @@ namespace FWO.Report
             ImpIdQueryVariables["time"] = TimeFilter;
             Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
 
-            result = new Management[managementsWithRelevantImportId.Length];
+            Managements = new Management[managementsWithRelevantImportId.Length];
             int i;
 
             for (i = 0; i < managementsWithRelevantImportId.Length; i++)
@@ -42,7 +48,7 @@ namespace FWO.Report
                     query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
                 else    // managment was not yet imported at that time
                     query.QueryVariables["relevantImportId"] = -1;
-                result[i] = (await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
+                Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
             }
             while (gotNewObjects)
             {
@@ -54,9 +60,9 @@ namespace FWO.Report
                     else
                         query.QueryVariables["relevantImportId"] = -1; // managment was not yet imported at that time
                     query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                    gotNewObjects = result[i].Merge((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
+                    gotNewObjects = Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
                 }
-                await callback(result);
+                await callback(Managements);
             }
         }
 
@@ -77,12 +83,58 @@ namespace FWO.Report
 
         public override string ToHtml()
         {
-            throw new NotImplementedException();
+            StringBuilder report = new StringBuilder();
+
+            foreach (Management management in Managements)
+            {
+                report.AppendLine($"<h3>{management.Name}</h3>");
+                report.AppendLine("<hr>");
+
+                foreach (Device device in management.Devices)
+                {
+                    report.AppendLine($"<h4>{device.Name}</h4>");
+                    report.AppendLine("<hr>");
+
+                    report.AppendLine("<table>");
+                    report.AppendLine("<tr>");
+                    report.AppendLine("<th>Number</th>");
+                    report.AppendLine("<th>Name</th>");
+                    report.AppendLine("<th>Source</th>");
+                    report.AppendLine("<th>Destination</th>");
+                    report.AppendLine("<th>Services</th>");
+                    report.AppendLine("<th>Action</th>");
+                    report.AppendLine("<th>Track</th>");
+                    report.AppendLine("<th>Disabled</th>");
+                    report.AppendLine("<th>UID</th>");
+                    report.AppendLine("<th>Comment</th>");
+                    report.AppendLine("</tr>");
+
+                    foreach (Rule rule in device.Rules)
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td>{rule.DisplayNumber(device.Rules)}</td>");
+                        report.AppendLine($"<td>{rule.DisplayName()}</td>");
+                        report.AppendLine($"<td>{rule.DisplaySource()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayDestination()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayService()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayAction()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayTrack()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayDisabled()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayUid()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayComment()}</td>");
+                        report.AppendLine("</tr>");
+                    }
+
+                    report.AppendLine("</table>");
+                }
+            }
+
+            return HtmlTemplate.Replace("##Body##", report.ToString());
         }
 
-        public override string ToPdf()
+        public override string ToJson()
         {
-            throw new NotImplementedException();
+            return JsonSerializer.Serialize(Managements);
         }
     }
 }

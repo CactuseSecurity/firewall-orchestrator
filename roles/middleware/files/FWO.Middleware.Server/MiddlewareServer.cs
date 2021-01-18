@@ -24,6 +24,7 @@ namespace FWO.Middleware.Server
         private readonly HttpListener listener;
         private const int maxConnectionsCount = 1000;
 
+        private ApiSubscription<List<Ldap>> connectedLdapsSubscription;
         private List<Ldap> connectedLdaps;
 
         private readonly object changesLock = new object(); // LOCK
@@ -62,13 +63,15 @@ namespace FWO.Middleware.Server
             APIConnection apiConn = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriter));
 
             // Fetch all connectedLdaps via API (blocking).
-            connectedLdaps = apiConn.SendQueryAsync<Ldap[]>(AuthQueries.getLdapConnections).Result.ToList();
+            connectedLdaps = apiConn.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
+            connectedLdapsSubscription = apiConn.GetSubscription<List<Ldap>>(HandleSubscriptionException, AuthQueries.getLdapConnectionsSubscription);
+            connectedLdapsSubscription.OnUpdate += ConnectedLdapsSubscriptionUpdate;
             Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
             // Create and start report scheduler
             Task.Factory.StartNew(() =>
             {
-                reportScheduler = new ReportScheduler(apiConn, jwtWriter);
+                reportScheduler = new ReportScheduler(apiConn, jwtWriter, connectedLdapsSubscription);
             }, TaskCreationOptions.LongRunning);
 
             // Start Http Listener, todo: move to https
@@ -178,8 +181,6 @@ namespace FWO.Middleware.Server
                 CreateInitialJWTRequestHandler createInitialJWTRequestHandler = new CreateInitialJWTRequestHandler(jwtWriterCopy);
 
                 (status, responseString) = await createInitialJWTRequestHandler.HandleRequestAsync(request);
-
-
             }
             else
             {
@@ -263,16 +264,16 @@ namespace FWO.Middleware.Server
                                     (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
                                     break;
 
-                                case "AddLdap":
-                                    lock (changesLock)
-                                    {
-                                        // Initilaize Request Handler
-                                        AddLdapRequestHandler addLdapRequestHandler = new AddLdapRequestHandler(apiUri, ref connectedLdaps);
+                                //case "AddLdap":
+                                //    lock (changesLock)
+                                //    {
+                                //        // Initilaize Request Handler
+                                //        AddLdapRequestHandler addLdapRequestHandler = new AddLdapRequestHandler(apiUri, ref connectedLdaps);
 
-                                        // Try to add new ldap connection
-                                        (status, responseString) = addLdapRequestHandler.HandleRequestAsync(request).Result;
-                                    }
-                                    break;
+                                //        // Try to add new ldap connection
+                                //        (status, responseString) = addLdapRequestHandler.HandleRequestAsync(request).Result;
+                                //    }
+                                //    break;
 
                                 // TODO: REMOVE TEST PREFIX
                                 case "Test":
@@ -335,6 +336,19 @@ namespace FWO.Middleware.Server
         private APIConnection GetNewApiConnection(string jwt)
         {
             return new APIConnection(apiUri, jwt);
+        }
+
+        private void HandleSubscriptionException(Exception exception)
+        {
+            Log.WriteError("Subscription", "Subscription lead to exception.", exception);
+        }
+
+        private void ConnectedLdapsSubscriptionUpdate(List<Ldap> ldapsChanges)
+        {
+            lock (changesLock)
+            {
+                connectedLdaps = ldapsChanges;
+            }
         }
     }
 }

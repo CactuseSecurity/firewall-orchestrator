@@ -24,7 +24,7 @@ namespace FWO.Ui.Pages
             {
                 var queryParameter = new { reportId };
                 ReportFile file = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports, queryParameter))[0];
-                return File(file.Content, file.Type, file.Name);
+                return null;//File(file.Content, file.Type, file.Name);
             }
             catch (Exception exception)
             {

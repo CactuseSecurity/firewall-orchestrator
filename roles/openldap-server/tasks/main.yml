@@ -133,6 +133,10 @@
       dest: "{{ openldap_server_app_path }}/ldap.conf"
       force: "{{ openldap_first_install }}"
 
+  - name: Debug ansible_os_family
+    debug:
+      var: ansible_os_family
+
   - name: Copy slap initial file to system if not present
     template:
       src: config.ldif.j2

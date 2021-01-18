@@ -17,10 +17,12 @@ URI     ldap://{{ openldap_server }}:{{ openldap_port }}
 #SIZELIMIT      12
 #TIMELIMIT      15
 #DEREF          never
-TLS_CACERTDIR /etc/openldap/cacerts
 {% if ansible_os_family == 'RedHat' %}
+# This if block is outdated
+TLS_CACERTDIR /etc/openldap/cacerts
 TLS_CACERT {{ openldap_server_cert }}
 {% endif %}
 {% if ansible_os_family == 'Debian' %}
+TLS_CACERTDIR {{ openldap_server_cert_path }}
 TLS_CACERT {{ openldap_server_cert }}
 {% endif %}

@@ -1324,12 +1324,6 @@ tables:
     name: objgrp_flat
     schema: public
 - object_relationships:
-  - name: import_control
-    using:
-      foreign_key_constraint_on: stop_import_id
-  - name: importControlByStartImportId
-    using:
-      foreign_key_constraint_on: start_import_id
   - name: report_template
     using:
       foreign_key_constraint_on: report_template_id

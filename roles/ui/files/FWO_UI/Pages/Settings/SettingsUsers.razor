@@ -17,6 +17,10 @@
 <div class="form-group row">
     <button class="btn btn-success m-2" @onclick="Add">Add new user</button>
     <button class="btn btn-info m-2" @onclick="Refresh">Refresh</button>
+    @if (showSampleRemoveButton)
+    {
+        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">Remove Sample Data</button>
+    }
 </div>
 
 <div class="m-2">
@@ -112,6 +116,24 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="Remove Sample Data" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
+    <Body>
+        @if (SampleRemoveMode)
+        {
+            <p>@(sampleRemoveMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if(SampleRemoveAllowed)
+            {
+                <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">Delete</button>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
 @code 
 {
     [CascadingParameter]
@@ -120,17 +142,22 @@
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
     private List<UiUser> uiUsers = new List<UiUser>();
+    private List<UiUser> sampleUsers = new List<UiUser>();
     private List<Tenant> tenants = new List<Tenant>();
 
     private bool EditMode = false;
     private bool DeleteMode = false;
     private bool DeleteAllowed = false;
+    private bool SampleRemoveMode = false;
+    private bool SampleRemoveAllowed = false;
     private bool AddMode = false;
+    private bool showSampleRemoveButton = false;
 
     private UiUser newUser;
     private UiUser actUser;
 
     private string deleteMessage = "";
+    private string sampleRemoveMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -145,7 +172,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "UI User", "Error while fetching LDAP connections from API", true);
+            DisplayMessageInUi(exception, "UI User", "Error while fetching LDAP connections from API", false);
         }
 
         // Get all users from internal ldap
@@ -155,7 +182,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "UI User", "Error while fetching users from internal LDAP", true);
+            DisplayMessageInUi(exception, "UI User", "Error while fetching users from internal LDAP", false);
         }
 
         // Get users from uiusers table
@@ -166,7 +193,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "UI User", "Error while fetching users from API", true);
+            DisplayMessageInUi(exception, "UI User", "Error while fetching users from API", false);
         }
 
         // Get the tenants
@@ -176,11 +203,13 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "UI User", "Error while fetching tenants from API", true);
+            DisplayMessageInUi(exception, "UI User", "Error while fetching tenants from API", false);
         }
 
         // Synchronize both
         await Synchronize();
+
+        CollectSampleUsers();
     }
 
     private async Task Synchronize()
@@ -200,7 +229,7 @@
                     }
                     catch (System.Exception exception)
                     {
-                        DisplayMessageInUi(exception, "UI User", "Error while updating user data via API", true);
+                        DisplayMessageInUi(exception, "UI User", "Error while updating user data via API", false);
                     }
                 }
             }
@@ -214,11 +243,25 @@
                 }
                 catch (System.Exception exception)
                 {
-                    DisplayMessageInUi(exception, "UI User", "Error while adding user data via API", true);
+                    DisplayMessageInUi(exception, "UI User", "Error while adding user data via API", false);
                 }
                 uiUsers.Add(ldapUser);
             }
         }
+    }
+
+    private void CollectSampleUsers()
+    {
+        sampleUsers = new List<UiUser>();
+        foreach (var user in uiUsers)
+        {
+            // todo: define better criteria for sample data
+            if (user.Name.Contains("fritz"))
+            {
+                sampleUsers.Add(user);
+            }
+        }
+        showSampleRemoveButton = (sampleUsers.Count > 0);
     }
 
     private async Task GetUsersFromInternalLdap()
@@ -226,7 +269,7 @@
         UiLdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
         if (internalLdap == null)
         {
-            DisplayMessageInUi(null, "UI User", "No internal Ldap found.", true);
+            DisplayMessageInUi(null, "UI User", "No internal Ldap found.", false);
             return;
         }
 
@@ -234,7 +277,7 @@
         MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Address, userConfig.User.Jwt);
         if (usersMiddlewareResponse.Status == HttpStatusCode.BadRequest)
         {
-            DisplayMessageInUi(null, "UI User", "No users found.", true);
+            DisplayMessageInUi(null, "UI User", "No users found.", false);
         }
         else
         {
@@ -259,7 +302,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Update User Error", $"User {user.Name} could not be updated in database.", true);
+            DisplayMessageInUi(exception, "Update User Error", $"User {user.Name} could not be updated in database.", false);
         }
     }
 
@@ -280,7 +323,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Add User Error", $"User {user.Name} could not be added.", true);
+            DisplayMessageInUi(exception, "Add User Error", $"User {user.Name} could not be added.", false);
         }
     }
 
@@ -316,19 +359,19 @@
                 actUser.setNamesFromDn();
                 if (actUser.Dn == null || actUser.Dn == "" || actUser.Password == null || actUser.Password == "")
                 {
-                    DisplayMessageInUi(null, "Add User Error", "Dn and Password have to be filled", true);
+                    DisplayMessageInUi(null, "Add User Error", "Dn and Password have to be filled", false);
                 }
                 else if ( !tenants.Exists(x => x.Name == actUser.Tenant.Name) )
                 {
-                    DisplayMessageInUi(null, "Add User Error", "Unknown tenant", true);
+                    DisplayMessageInUi(null, "Add User Error", "Unknown tenant", false);
                 }
                 else
                 {
                     // insert new user to ldap
                     MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
-                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userAdded") == false)
                     {
-                        DisplayMessageInUi(null, "Add User Error", "No user could be added", true);
+                        DisplayMessageInUi(null, "Add User Error", "No user could be added", false);
                     }
                     else
                     {
@@ -343,9 +386,9 @@
             {
                 // Update existing user in ldap --> currently only email
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateUser(actUser.Dn, actUser.Email, userConfig.User.Jwt);
-                if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userUpdated") == false)
                 {
-                    DisplayMessageInUi(null, "Add User Error", "User could not be updated", true);
+                    DisplayMessageInUi(null, "Add User Error", "User could not be updated", false);
                 }
                 else
                 {
@@ -386,9 +429,9 @@
         {
             // delete user from Ldap
             MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteUser(actUser.Dn, userConfig.User.Jwt);
-            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userDeleted") == false)
             {
-                DisplayMessageInUi(null, "Delete LDAP user", "User could not be deleted", true);
+                DisplayMessageInUi(null, "Delete LDAP user", "User could not be deleted", false);
             }
             else
             {
@@ -416,8 +459,50 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Delete UIUser", $"Exception occurred: {exception.Message}", true);
+            DisplayMessageInUi(exception, "Delete UIUser", $"Exception occurred: {exception.Message}", false);
         }
+    }
+
+    private void RequestRemoveSampleData()
+    {
+        if (sampleUsers.Exists(user => user.DbId == userConfig.User.DbId))
+        {
+            sampleRemoveMessage = $"You are logged in as sample user. Delete not possible.";
+            SampleRemoveAllowed = false;
+        }
+        else
+        {
+            sampleRemoveMessage = $"Deletes all sample users in local LDAP.";
+            SampleRemoveAllowed = true;
+        }
+        SampleRemoveMode = true;
+    }
+
+    private async Task RemoveSampleData()
+    {
+        showSampleRemoveButton = false;
+        foreach (var user in sampleUsers)
+        {
+            try
+            {
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromAllRoles(user.Dn, userConfig.User.Jwt);
+                if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userRemoved") == false)
+                {
+                    DisplayMessageInUi(null, "Remove user from all roles", "User could not be removed", false);
+                    showSampleRemoveButton = true;
+                }
+                else
+                {
+                    actUser = user;
+                    await Delete();
+                }
+            }
+            catch (System.Exception exception)
+            {
+                DisplayMessageInUi(exception, "Delete sample user", "Unexpected error occured", false);
+            }
+        }
+        SampleRemoveMode = false;
     }
 
     private void Cancel()
@@ -425,6 +510,7 @@
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
+        SampleRemoveMode = false;
     }
 
     private async Task Refresh()

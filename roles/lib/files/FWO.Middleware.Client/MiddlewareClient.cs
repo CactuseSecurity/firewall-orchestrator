@@ -110,6 +110,16 @@ namespace FWO.Middleware.Client
 
             return await requestSender.SendRequest(parameters, "RemoveUserFromRole", jwt);
         }
+
+        public async Task<MiddlewareServerResponse> RemoveUserFromAllRoles(string Username, string jwt)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "Username", Username }
+            };
+
+            return await requestSender.SendRequest(parameters, "RemoveUserFromAllRoles", jwt);
+        }
     }
 }
 

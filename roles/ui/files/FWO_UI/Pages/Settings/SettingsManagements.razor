@@ -9,7 +9,13 @@
 <h3 class="m-2">Managements</h3>
 <hr />
 
-<button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+<div class="form-group row">
+    <button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+    @if (showCleanupButton)
+    {
+        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">Remove Sample Data</button>
+    }
+</div>
 
 <div class="d-flex flex-column m-2">
     <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
@@ -151,11 +157,27 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="Remove Sample Data" Show="@CleanupMode" OnClose="() => CleanupMode = false">
+    <Body>
+        @if (CleanupMode)
+        {
+            <p>@(cleanupMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">Delete</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
 @code
 {
     [CascadingParameter]
     Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
     private List<Management> managements = new List<Management>();
+    private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
 
     private ITable<Management> table;
@@ -163,30 +185,43 @@
     private bool EditMode = false;
     private bool DeleteMode = false;
     private bool DeleteAllowed = false;
+    private bool CleanupMode = false;
     private bool AddMode = false;
+    private bool showCleanupButton = false;
 
     private Management newManagement;
     private Management actManagement;
 
     private string deleteMessage = "";
+    private string cleanupMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
+            foreach (var management in managements)
+            {
+                // todo: define better criteria for sample data
+                if (management.Name.Contains("demo"))
+                {
+                    sampleManagements.Add(management);
+                }
+            }
+            showCleanupButton = (sampleManagements.Count > 0);
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "API error", "Error while fetching management info.", true);
+            DisplayMessageInUi(exception, "API error", "Error while fetching management info.", false);
         }
-         try
+
+        try
         {
             deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "API error", "Error while fetching management info.", true);
+            DisplayMessageInUi(exception, "API error", "Error while fetching management info.", false);
         }
     }
 
@@ -227,8 +262,25 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "API Error", "Error while deleting management.", true);
+            DisplayMessageInUi(exception, "API Error", "Error while deleting management.", false);
         }
+    }
+
+    private void RequestRemoveSampleData()
+    {
+        // Todo: Checks if delete possible?
+        cleanupMessage = $"Deletes all sample managements and related Gateways.";
+        CleanupMode = true;
+    }
+
+    private async Task RemoveSampleData()
+    {
+        foreach (var management in sampleManagements)
+        {
+            await Delete(management);
+        }
+        CleanupMode = false;
+        showCleanupButton = false;
     }
 
     private void Add()
@@ -307,7 +359,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "API Error", "Error while saving management.", true);
+            DisplayMessageInUi(exception, "API Error", "Error while saving management.", false);
         }
     }
 
@@ -316,5 +368,6 @@
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
+        CleanupMode = false;
     }
 }

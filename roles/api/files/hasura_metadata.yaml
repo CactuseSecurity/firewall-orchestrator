@@ -524,20 +524,6 @@ tables:
         table:
           name: objgrp
           schema: public
-  - name: reports
-    using:
-      foreign_key_constraint_on:
-        column: start_import_id
-        table:
-          name: report
-          schema: public
-  - name: reportsByStopImportId
-    using:
-      foreign_key_constraint_on:
-        column: stop_import_id
-        table:
-          name: report
-          schema: public
   - name: rule_froms
     using:
       foreign_key_constraint_on:

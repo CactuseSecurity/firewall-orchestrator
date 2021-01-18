@@ -524,17 +524,20 @@
         try
         {
             query = Compiler.Compile(filterInput);
-            if (isAnyDeviceFilterSet()) // remove all existing device filters first before adding new ones
-                filterInput = replaceDeviceFilter(filterInput);
-            else 
-                filterInput = removeDeviceFilterPart(filterInput);
-            if (!isAnyDeviceFilterSet())            // display pop-up with warning, todo: check if device is selected in filter line
+            if (!areAllDevicesSeclected())  // if all devices are selected, we do no additional filtering
             {
-                ShowNoDeviceSelectedWarning = true;
-                StateHasChanged();
-                return;
+                if (isAnyDeviceFilterSet()) // remove all existing device filters first before adding new ones
+                    filterInput = replaceDeviceFilter(filterInput);
+                else 
+                    filterInput = removeDeviceFilterPart(filterInput);
+                if (!isAnyDeviceFilterSet())            // display pop-up with warning, todo: check if device is selected in filter line
+                {
+                    ShowNoDeviceSelectedWarning = true;
+                    StateHasChanged();
+                    return;
+                }
+                query = Compiler.Compile(filterInput);  // recompile after reading device filter
             }
-            query = Compiler.Compile(filterInput);  // recompile after reading device filter
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
             switch (query.ReportType)
@@ -589,11 +592,19 @@
         }
     }
 
+    private bool areAllDevicesSeclected () 
+    {
+        foreach (Management management in managementsOverview)
+            if (management != null)
+                foreach (Device device in management.Devices)
+                    if (device != null)
+                        if (!device.selected)
+                            return false;
+        return true;
+    }
+
     private bool isAnyDeviceFilterSet () 
     {
-        bool firstFilterSet = false;
-        bool filterLogic = false;
-
         foreach (Management management in managementsOverview)
         {
             if (management != null)
@@ -602,16 +613,8 @@
                 {
                     if (device != null)
                     {
-                        if (!firstFilterSet)
-                        {
-                            firstFilterSet = true;
-                            filterLogic = device.selected;
-                        } 
-                        else 
-                        {
-                            if (device.selected != filterLogic)
-                                return true;
-                        }
+                        if (device.selected)
+                            return true;
                     }
                 }
             }

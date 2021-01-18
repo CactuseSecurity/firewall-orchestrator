@@ -16,7 +16,7 @@
     <div class="p-3">
 
         <h5 class="text-left">Select device(s)</h5>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { invertDeviceSelection(); }">Invert selection</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => { fullDeviceSelection(); }">@selectButtonText</button>
         <br><br>
 
         @foreach (Management management in managementsOverview)
@@ -31,9 +31,6 @@
                             <label class="form-check-label" for="@device.Id">
                                 &nbsp;@device.Name
                             </label>
-
-                            @* <input class="form-check-input" id="managementForceInitImport" type="checkbox" @bind="actManagement.ForceInitialImport">
-                            <label class="form-check-label" for="managementForceInitImport"><small>Force Initial Import</small></label> *@
                         </div>
                     }
                 </Collapse>
@@ -59,6 +56,17 @@
     </div>
 
     <hr />
+
+    <PopUp Title="No device(s) selected." Show="@ShowNoDeviceSelectedWarning">
+        <Body>
+            <div>
+                <p>Please select at least one device in the left side-bar before generating a report.</p>
+            </div>
+        </Body>
+        <Footer>
+            <button class="btn btn-primary" @onclick="() => ShowNoDeviceSelectedWarning = false">OK</button>
+        </Footer>        
+    </PopUp>
 
     <PopUp Title="Export Report" Show="@ShowExportDialog">
         <Body>
@@ -157,196 +165,201 @@
             <a class="btn btn-sm btn-info" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.ASCII.GetBytes("test")))"
                target="_blank" download="@("test").@("txt")">Download</a>
 
-            @switch (reportType)
+            @if (query != null)
             {
-                case rulesReport:
-                    @foreach (Management management in managementsReport)
-                    {
-                        <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+                @switch (query.ReportType)
+                {
+                    case rulesReport:
+                        @foreach (Management management in managementsReport)
+                        {
+                            <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
 
-                            @foreach (Device device in management.Devices)
-                            {
-                                <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
-                                    <Table SelectedItems="selectedItemsReportRuleTable"
-                                           RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
-                                           style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                                           PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
+                                @foreach (Device device in management.Devices)
+                                {
+                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+                                        <Table SelectedItems="selectedItemsReportRuleTable"
+                                            RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
+                                            style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
+                                            PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
 
-                                        <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayNumber(device.Rules))
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="Rule" Title="Name" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Source Zone" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplaySourceZone())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="Rule" Title="Source" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplaySource())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="Rule" Title="Destination Zone" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayDestinationZone())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="Rule" Title="Destination" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayDestination())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="Rule" Title="Services" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayService())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="Rule" Title="Action" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Track" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Disabled" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayDisabled())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="Rule" Title="UID" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="Rule" Title="Comment" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="true" Hideable="true" />
+                                            <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayNumber(device.Rules))
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="Rule" Title="Name" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true" />
+                                            <Column TableItem="Rule" Title="Source Zone" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplaySourceZone())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="Rule" Title="Source" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplaySource())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="Rule" Title="Destination Zone" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayDestinationZone())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="Rule" Title="Destination" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayDestination())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="Rule" Title="Services" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayService())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="Rule" Title="Action" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="true" Hideable="true" />
+                                            <Column TableItem="Rule" Title="Track" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="true" Hideable="true" />
+                                            <Column TableItem="Rule" Title="Disabled" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayDisabled())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="Rule" Title="UID" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="true" Hideable="true" />
+                                            <Column TableItem="Rule" Title="Comment" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="true" Hideable="true" />
 
-                                        <DetailTemplate TableItem="Rule">
-                                            <div>test</div>
-                                        </DetailTemplate>
+                                            <DetailTemplate TableItem="Rule">
+                                                <div>test</div>
+                                            </DetailTemplate>
 
-                                        <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                                    </Table>
-                                </Collapse>
-                            }
-                        </Collapse>
-                    }
-                    break;
+                                            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                                        </Table>
+                                    </Collapse>
+                                }
+                            </Collapse>
+                        }
+                        break;
 
-                case changesReport:
-                    @foreach (Management management in managementsReport)
-                    {
-                        <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+                    case changesReport:
+                        @foreach (Management management in managementsReport)
+                        {
+                            <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
 
-                            @foreach (Device device in management.Devices)
-                            {
-                                <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+                                @foreach (Device device in management.Devices)
+                                {
+                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
 
-                                    <Table SelectedItems="selectedItemsReportChangeTable"
-                                           RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
-                                           style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
-                                           PageSize="rulesPerPage" ColumnReorder="true">
+                                        <Table SelectedItems="selectedItemsReportChangeTable"
+                                            RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
+                                            style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
+                                            PageSize="rulesPerPage" ColumnReorder="true">
 
-                                        <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
-                                        <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayChangeAction())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Name" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayName())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Source Zone" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplaySourceZone())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Source" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplaySource())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Destination Zone" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayDestinationZone())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Destination" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayDestination())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Services" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayService())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Action" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayAction())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Track" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayTrack())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Disabled" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayDisabled())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="UID" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayUid())
-                                            </Template>
-                                        </Column>
-                                        <Column TableItem="RuleChange" Title="Comment" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)context.DisplayComment())
-                                            </Template>
-                                        </Column>
+                                            <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
+                                            <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayChangeAction())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Name" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayName())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Source Zone" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplaySourceZone())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Source" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplaySource())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Destination Zone" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayDestinationZone())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Destination" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayDestination())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Services" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayService())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Action" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayAction())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Track" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayTrack())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Disabled" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayDisabled())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="UID" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayUid())
+                                                </Template>
+                                            </Column>
+                                            <Column TableItem="RuleChange" Title="Comment" Hideable="true">
+                                                <Template>
+                                                    @((MarkupString)context.DisplayComment())
+                                                </Template>
+                                            </Column>
 
-                                        <DetailTemplate TableItem="RuleChange">
-                                            <div>test</div>
-                                        </DetailTemplate>
+                                            <DetailTemplate TableItem="RuleChange">
+                                                <div>test</div>
+                                            </DetailTemplate>
 
-                                        <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                                    </Table>
-                                </Collapse>
-                            }
-                        </Collapse>
-                    }
-                    break;
+                                            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                                        </Table>
+                                    </Collapse>
+                                }
+                            </Collapse>
+                        }
+                        break;
 
-                case statisticsReport:
-                    @if (globalStats != null)
-                    {
-                        <h5>Gobal number of Objects</h5>
-                        <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
-                            <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-                            <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-                            <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-                            <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
-                        </Table>
-                    }
-                    @foreach (Management management in managementsReport)
-                    {
-                        <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                            <h6>Total number of Objects per Management</h6>
-                            <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
+                    case statisticsReport:
+                        @if (globalStats != null)
+                        {
+                            <h5>Gobal number of Objects</h5>
+                            <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
                                 <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
                             </Table>
+                        }
+                        @foreach (Management management in managementsReport)
+                        {
+                            <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+                                <h6>Total number of Objects per Management</h6>
+                                <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
+                                    <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                </Table>
 
-                            <h6>Number of Rules per Gateway</h6>
-                            <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
-                                <Column TableItem="Device" Title="Gateway" Field="@(Device => Device.Name)" />
-                                <Column TableItem="Device" Title="Number of Rules" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
-                            </Table>
-                        </Collapse>
-                    }
-                    break;
+                                <h6>Number of Rules per Gateway</h6>
+                                <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
+                                    <Column TableItem="Device" Title="Gateway" Field="@(Device => Device.Name)" />
+                                    <Column TableItem="Device" Title="Number of Rules" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                </Table>
+                            </Collapse>
+                        }
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
+
             }
+
         </div>
     </div>
 </div>
@@ -407,7 +420,7 @@
     private int rulesPerFetch = 100;    // todo: rename to "elementsPerFetch" to cover all types of report/objects
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
-    private bool ShowPopUp = false;
+    private bool ShowNoDeviceSelectedWarning = false;
     private bool ShowExportDialog = false;
     private bool ShowSaveTemplateDialog = false;
     private bool ShowEditTemplateDialog = false;
@@ -449,11 +462,12 @@
     private const string changesReport = "changes";
     private const string complianceReport = "compliance";
     private const string statisticsReport = "statistics";
-    private string reportType = rulesReport;
-
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
+    private DynGraphqlQuery query = null;
+    private bool fullDeviceSelectionState = false;
+    private string selectButtonText = "Select all devices";
 
     protected override void OnInitialized()
     {
@@ -509,16 +523,21 @@
     {
         try
         {
-            DynGraphqlQuery query = Compiler.Compile(filterInput);
-            reportType = query.ReportType;
+            query = Compiler.Compile(filterInput);
             if (isAnyDeviceFilterSet()) // remove all existing device filters first before adding new ones
                 filterInput = replaceDeviceFilter(filterInput);
             else 
                 filterInput = removeDeviceFilterPart(filterInput);
+            if (!isAnyDeviceFilterSet())            // display pop-up with warning, todo: check if device is selected in filter line
+            {
+                ShowNoDeviceSelectedWarning = true;
+                StateHasChanged();
+                return;
+            }
             query = Compiler.Compile(filterInput);  // recompile after reading device filter
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
-            switch (reportType)
+            switch (query.ReportType)
             {
                 case rulesReport:
                     ReportRules reportRules = new ReportRules();
@@ -574,7 +593,6 @@
     {
         bool firstFilterSet = false;
         bool filterLogic = false;
-        bool anyDeviceFilterSet = false; 
 
         foreach (Management management in managementsOverview)
         {
@@ -597,19 +615,28 @@
                     }
                 }
             }
-        }       
-        return anyDeviceFilterSet;
+        }
+        // check if filterline contains a device filter
+        if (query.FullQuery.Contains("device: {dev_name : {_ilike:") || query.FullQuery.Contains("management: {mgm_name : {_ilike:"))
+            return true;
+        return false;
     }
 
-    private void invertDeviceSelection ()
+    private void fullDeviceSelection ()
     {
+        fullDeviceSelectionState = !fullDeviceSelectionState;
+        if (fullDeviceSelectionState)
+            selectButtonText = "Clear device selection";
+        else
+            selectButtonText = "Select all devices";
+
         foreach (Management management in managementsOverview)
         {
             if (management != null)
             {
                 foreach (Device device in management.Devices)
                 {
-                    device.selected = !(device.selected);
+                    device.selected = fullDeviceSelectionState;
                 }
             }
         }       

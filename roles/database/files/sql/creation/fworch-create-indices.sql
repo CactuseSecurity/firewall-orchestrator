@@ -121,8 +121,6 @@ Create index "IX_Relationship178" on "zone" ("zone_create");
 Create index "IX_Relationship179" on "zone" ("zone_last_seen");
 Create index "IX_Relationship183" on "temp_mgmid_importid_at_report_time" ("control_id");
 Create index "IX_Relationship185" on "import_changelog" ("control_id");
-Create index "IX_Relationship202" on "report" ("start_import_id");
-Create index "IX_Relationship203" on "report" ("stop_import_id");
 Create index "IX_Relationship136" on "request_object_change" ("log_obj_id");
 Create index "IX_Relationship63" on "changelog_object" ("import_admin");
 Create index "IX_Relationship69" on "changelog_service" ("import_admin");

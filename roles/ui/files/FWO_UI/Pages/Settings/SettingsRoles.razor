@@ -19,7 +19,7 @@
         <Column TableItem="Role" Title="Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    @if (context.Name != "middleware-server")
+                    @if (context.Name != "middleware-server" && context.Name != "anonymous")
                     {
                         <button class="btn btn-sm btn-success" @onclick="() => Add(context)">Add user</button>
                         <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete User</button>
@@ -317,7 +317,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(null, "Add user", "Unexpected error occured", true);
+                DisplayMessageInUi(exception, "Add user", "Unexpected error occured", true);
             }
 
         }
@@ -351,7 +351,7 @@
                 }
                 catch (System.Exception exception)
                 {
-                    DisplayMessageInUi(null, "Delete user", "Unexpected error occured", true);
+                    DisplayMessageInUi(exception, "Delete user", "Unexpected error occured", true);
                 }
             }
         }

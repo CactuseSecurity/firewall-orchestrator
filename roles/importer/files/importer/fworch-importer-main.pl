@@ -39,7 +39,7 @@ while (1) {
 			output_txt("Import: running on responsible importer $importer_hostname ... ");
 			$fehler = system("$importdir/fworch-importer-single.pl mgm_id=$mgm_id");
 			if ($fehler) {
-				output_txt("Import fehler: $fehler");
+				output_txt("Import error: $fehler");
 			}
 		}
 	}

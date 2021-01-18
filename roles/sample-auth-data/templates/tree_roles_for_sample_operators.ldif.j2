@@ -2,34 +2,29 @@
 dn: cn=reporter,ou=role,{{ middleware_ldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=helga,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user2_demo,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
 
 dn: cn=workflow-user,ou=role,{{ middleware_ldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=helga,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
-
-dn: cn=anonymous,ou=role,{{ middleware_ldap_path }}
-changetype: modify
-add: uniquemember
-uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user2_demo,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
 
 dn: cn=auditor,ou=role,{{ middleware_ldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=fritz,ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user1_demo,ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal
 
 dn: cn=reporter,ou=role,{{ middleware_ldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user1_demo,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
 
 dn: cn=reporter-viewall,ou=role,{{ middleware_ldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user1_demo,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
 
 dn: cn=importer,ou=role,{{ middleware_ldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user1_demo,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal

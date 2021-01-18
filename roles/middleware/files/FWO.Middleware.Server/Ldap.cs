@@ -381,6 +381,17 @@ namespace FWO.Middleware.Server
             return ModifyUserInRole(userDn, role, LdapModification.Delete);
         }
 
+        public bool RemoveUserFromAllRoles(string userDn)
+        {
+            string[] roles = GetRoles(userDn);
+            bool allRemoved = true;
+            foreach(var role in roles)
+            {
+                allRemoved &= RemoveUserFromRole(userDn, $"cn={role},{RoleSearchPath}");
+            }
+            return allRemoved;
+        }
+
         public bool ModifyUserInRole(string userDn, string role, int LdapModification)
         {
             bool userModified = false;

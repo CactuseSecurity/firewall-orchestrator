@@ -60,8 +60,6 @@ Alter table "objgrp_flat" add  foreign key ("import_last_seen") references "impo
 Alter table "objgrp_flat" add  foreign key ("objgrp_flat_id") references "object" ("obj_id") on update restrict on delete cascade;
 Alter table "objgrp_flat" add  foreign key ("objgrp_flat_member_id") references "object" ("obj_id") on update restrict on delete cascade;
 Alter table "report" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;
-Alter table "report" add foreign key ("start_import_id") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "report" add foreign key ("stop_import_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "report" add foreign key ("report_owner_id") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "report" add foreign key ("tenant_wide_visible") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "report_schedule" add foreign key ("report_template_id") references "report_template" ("report_template_id") on update restrict on delete cascade;

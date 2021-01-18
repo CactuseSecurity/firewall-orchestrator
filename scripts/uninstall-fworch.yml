@@ -187,7 +187,7 @@
         loop:
           - "{{ fworch_home }}"
           - /etc/fworch
-          - /etc/apache2/sites-available/fworch.conf
+          - /etc/apache2/sites-available/fworch-ui.conf
           - /etc/apache2/sites-available/fworch-api.conf
           - /var/lib/ldap/fworch.internal
 

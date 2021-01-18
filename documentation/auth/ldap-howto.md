@@ -33,7 +33,7 @@ Is it possible to gain all information below a tree node?
 - This only searches in and below tenent2 (can be adjusted and finetuned with Search Scope)
 - If you want to use Linux command line use ldapsearch -b "searchbase" ...
 List all users with identical login name
-- On command Line: ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=fritz -x
+- On command Line: ldapsearch -D uid=inspector,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_inspector_pw.txt uid=user1_demo -x
 - If you want to search only in tenant 1 add "-b ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal" to query
 
 
@@ -153,7 +153,7 @@ There exists a concept "memberOf" which lists the roles of an uid. https://githu
 
 ### add user to role
 
-Add user fritz to role testrole with
+Add user user1_demo to role testrole with
 
     ldapmodify -x -W -D cn=Manager,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_manager_pw.txt -f add_user.ldif
     
@@ -162,9 +162,9 @@ With add_user.ldif
     dn: cn=testrole,ou=role,dc=fworch,dc=internal
     changetype: modify
     add: uniquemember
-    uniquemember: uid=fritz,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+    uniquemember: uid=user1_demo,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
     
-Here fritz is not required to exist somewhere in the ldap tree.
+Here user1_demo is not required to exist somewhere in the ldap tree.
 
 ### communicate with multiple ldap servers
 Not tested yet!

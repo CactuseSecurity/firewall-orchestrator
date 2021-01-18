@@ -7,6 +7,7 @@ olcPidFile: /var/run/slapd/slapd.pid
 olcLogLevel: stats
 olcTLSCertificateFile: {{ openldap_server_cert }}
 olcTLSCertificateKeyFile: {{ openldap_server_private_key }}
+olcSecurity: tls=1
 
 # modules that can be loaded
 dn: cn=module{0},cn=config

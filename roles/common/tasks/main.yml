@@ -133,10 +133,10 @@
             copytruncate
             sharedscripts
                 prerotate
-                        /etc/init.d/{{ product_name }}-importer stop >/dev/null
+                        systemctl stop {{ product_name }}-importer.service >/dev/null 2>&1
                 endscript
                 postrotate
-                        /etc/init.d/{{ product_name }}-importer start >/dev/null
+                        systemctl start {{ product_name }}-importer.service >/dev/null 2>&1
                 endscript
         }
 

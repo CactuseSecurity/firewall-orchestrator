@@ -25,7 +25,7 @@ namespace FWO.Test.Api
             string middlewareServerUri = configConnection.MiddlewareServerUri;
             string apiServerUri = configConnection.ApiServerUri;
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser("fritz", "fritz1");
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser("user1_demo", "cactus1");
             string jwt = apiAuthResponse.GetResult<string>("jwt");
             apiConnection = new APIConnection(apiServerUri);
             apiConnection.SetAuthHeader(jwt);

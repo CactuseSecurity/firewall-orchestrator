@@ -7,7 +7,7 @@
   <ItemGroup>
     <PackageReference Include="BlazorTable" Version="1.14.0" />
     <PackageReference Include="HtmlRendererCore.PdfSharpCore" Version="1.0.1" />
-    <PackageReference Include="PdfSharpCore" Version="1.2.10" />
+    <PackageReference Include="PdfSharpCore" Version="1.2.11" />
   </ItemGroup>
 
   <ItemGroup>

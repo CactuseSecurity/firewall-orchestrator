@@ -9,6 +9,7 @@ BASE    {{ openldap_path }}
 {% if openldap_server_enable_ssl %}
 URI     ldaps://{{ openldap_server }}:{{ openldap_port }}
 TLS_REQCERT never
+TLS_CACERT {{ openldap_server_cert }}
 {% endif %}
 {% if not openldap_server_enable_ssl %}
 URI     ldap://{{ openldap_server }}:{{ openldap_port }}

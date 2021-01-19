@@ -2,9 +2,9 @@ version: 2
 
 updates:
     - package_ecosystem: "nuget"
-      directory: "ui"
+      directory: "/roles/*"
       schedule:
-        interval: "weekly"
+        interval: "daily"
     # - package_ecosystem: "nuget"
     #   directory: "lib"
     #   schedule:

@@ -1622,6 +1622,17 @@ tables:
         table:
           name: report_template_viewable_by_user
           schema: public
+  delete_permissions:
+  - permission:
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
   insert_permissions:
   - permission:
       backend_only: false
@@ -1699,6 +1710,35 @@ tables:
   table:
     name: report_template
     schema: public
+  update_permissions:
+  - permission:
+      check: null
+      columns:
+      - filterline_history
+      - report_template_id
+      - report_template_owner
+      - report_template_comment
+      - report_template_create
+      - report_filter
+      - report_template_name
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      check: null
+      columns:
+      - filterline_history
+      - report_template_id
+      - report_template_owner
+      - report_template_comment
+      - report_template_create
+      - report_filter
+      - report_template_name
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
 - object_relationships:
   - name: report_template
     using:

@@ -1,5 +1,5 @@
-﻿query getGeneratedReports {
-  report {
+﻿query getGeneratedReport($report_id: bigint!) {
+  report (where:{report_id: {_eq: $report_id}}) {
     report_id
     report_name
     report_start_time
@@ -10,5 +10,9 @@
     report_template {
       report_template_name
     }
+    report_csv
+    report_pdf
+    report_html
+    report_json
   }
 }

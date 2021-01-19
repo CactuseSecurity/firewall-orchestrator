@@ -16,21 +16,33 @@ namespace FWO.Api.Data
         public string Name { get; set; }
 
         [JsonPropertyName("report_start_time")]
-        public string GenerationDateStart { get; set; }
+        public DateTime GenerationDateStart { get; set; }
 
         [JsonPropertyName("report_end_time")]
-        public string GenerationDateEnd { get; set; }
-
-        [JsonPropertyName("report_filetype")]
-        public string Type { get; set; }
+        public DateTime GenerationDateEnd { get; set; }
 
         [JsonPropertyName("report_template")]
         public ReportTemplate Template { get; set; }
 
-        [JsonPropertyName("report_document")]
-        public byte[] Content { get; set; }
+        [JsonPropertyName("report_template_id")]
+        public int TemplateId { get; set; }
 
-        [JsonPropertyName("report_owner")]
-        public string Owner { get; set; }
+        [JsonPropertyName("uiuser")]
+        public UiUser Owner { get; set; }
+
+        [JsonPropertyName("report_owner_id")]
+        public int OwnerId { get; set; }
+
+        [JsonPropertyName("report_json")]
+        public string Json { get; set; }
+
+        [JsonPropertyName("report_pdf")]
+        public byte[] Pdf { get; set; }
+
+        [JsonPropertyName("report_html")]
+        public string Html { get; set; }
+
+        [JsonPropertyName("report_csv")]
+        public string Csv { get; set; }
     }
 }

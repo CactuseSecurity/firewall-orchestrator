@@ -38,8 +38,8 @@ namespace FWO.Report
                     query.QueryVariables["relevantImportId"] = -1;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
             }
-            result = resultList.ToArray();
-            await callback(result);
+            base.Managements = resultList.ToArray();
+            await callback(base.Managements);
         }
 
         public override string ToCsv()
@@ -62,7 +62,12 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public override string ToPdf()
+        public override string ToJson()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override byte[] ToPdf()
         {
             throw new NotImplementedException();
         }

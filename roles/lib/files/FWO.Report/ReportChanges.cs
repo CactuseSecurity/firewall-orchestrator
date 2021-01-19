@@ -20,14 +20,14 @@ namespace FWO.Report
             query.QueryVariables["limit"] = changesPerFetch;
             query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
-            result = new Management[0];
+            base.Managements = new Management[0];
 
-            result = await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
+            base.Managements = await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
             while (gotNewObjects)
             {
                 query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = result.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
-                await callback(result);
+                gotNewObjects = base.Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
+                await callback(base.Managements);
             }
         }
 
@@ -51,7 +51,12 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public override string ToPdf()
+        public override string ToJson()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override byte[] ToPdf()
         {
             throw new NotImplementedException();
         }

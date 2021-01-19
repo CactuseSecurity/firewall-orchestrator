@@ -1,4 +1,4 @@
-﻿@using System.Security.Claims
+﻿@*@using System.Security.Claims
 
 @page "/"
 
@@ -7,6 +7,10 @@
 <p>@_authMessage</p>
 
 @code {
+
+    [CascadingParameter]
+    private NavigationManager manger { get; set; }
+
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
@@ -26,7 +30,7 @@
             _authMessage = "The user is NOT authenticated.";
         }
     }
-}
+}*@
 
 
 

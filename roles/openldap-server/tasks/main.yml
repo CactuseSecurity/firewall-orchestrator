@@ -97,6 +97,13 @@
       csr_path: "{{ openldap_server_csr }}"
       provider: selfsigned
 
+  - name: Strange error
+    debug:
+      var: openldap_server_private_key
+
+  - pause:
+      minutes: 5
+
   - name: set permissions on key
     file:
       path: "{{ openldap_server_private_key }}"

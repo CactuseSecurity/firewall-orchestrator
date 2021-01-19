@@ -1323,7 +1323,51 @@ tables:
   table:
     name: objgrp_flat
     schema: public
-- object_relationships:
+- delete_permissions:
+  - permission:
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
+  insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_id
+      - report_template_id
+      - report_start_time
+      - report_end_time
+      - report_json
+      - report_pdf
+      - report_csv
+      - report_html
+      - report_name
+      - report_owner_id
+      - tenant_wide_visible
+    role: reporter
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_id
+      - report_template_id
+      - report_start_time
+      - report_end_time
+      - report_json
+      - report_pdf
+      - report_csv
+      - report_html
+      - report_name
+      - report_owner_id
+      - tenant_wide_visible
+    role: reporter-viewall
+  object_relationships:
   - name: report_template
     using:
       foreign_key_constraint_on: report_template_id
@@ -1333,9 +1377,83 @@ tables:
   - name: uiuser
     using:
       foreign_key_constraint_on: report_owner_id
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - report_pdf
+      - report_owner_id
+      - report_template_id
+      - tenant_wide_visible
+      - report_id
+      - report_json
+      - report_csv
+      - report_html
+      - report_end_time
+      - report_start_time
+      - report_name
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - report_pdf
+      - report_owner_id
+      - report_template_id
+      - tenant_wide_visible
+      - report_id
+      - report_json
+      - report_csv
+      - report_html
+      - report_end_time
+      - report_start_time
+      - report_name
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
   table:
     name: report
     schema: public
+  update_permissions:
+  - permission:
+      check: null
+      columns:
+      - report_pdf
+      - report_owner_id
+      - report_template_id
+      - tenant_wide_visible
+      - report_id
+      - report_json
+      - report_csv
+      - report_html
+      - report_end_time
+      - report_start_time
+      - report_name
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: reporter
+  - permission:
+      check: null
+      columns:
+      - report_pdf
+      - report_owner_id
+      - report_template_id
+      - tenant_wide_visible
+      - report_id
+      - report_json
+      - report_csv
+      - report_html
+      - report_end_time
+      - report_start_time
+      - report_name
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: reporter-viewall
 - array_relationships:
   - name: report_schedule_formats
     using:
@@ -1467,7 +1585,7 @@ tables:
               schema: public
             _where:
               tenant_id:
-                _eq: X-Hasura-User-Tenant-Id
+                _eq: X-Hasura-Tenant-Id
     role: reporter-viewall
   table:
     name: report_schedule

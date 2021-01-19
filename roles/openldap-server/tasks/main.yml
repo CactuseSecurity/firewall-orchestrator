@@ -103,6 +103,7 @@
       state: file
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
+      mode: g+r
 
   - name: set permissions on cert
     file:

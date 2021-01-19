@@ -1,6 +1,10 @@
 version: 2
 
 updates:
+    - package_ecosystem: "nuget"
+      directory: "ui"
+      schedule:
+        interval: "weekly"
     # - package_ecosystem: "nuget"
     #   directory: "lib"
     #   schedule:
@@ -12,10 +16,7 @@ updates:
     #   schedule:
     #     interval: "weekly"
 
-    - package_ecosystem: "nuget"
-      directory: "ui"
-      schedule:
-        interval: "weekly"
+
 
     # - package_ecosystem: "pip"
     #   directory: "api"

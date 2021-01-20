@@ -149,6 +149,21 @@
       recurse: yes
       owner: openldap
 
+  - name: Test if TLS might work after all
+    pause:
+      minutes: 30
+
+# Todo for TLS:
+# Edit slapd.service to listen on port 636
+# systemctl edit slapd.service
+    #
+    #[Service]
+    #ExecStart=
+    #ExecStart=/usr/sbin/slapd -u openldap -g openldap -h "ldap://127.0.0.1 ldaps:///"
+
+# This makes ldap listen on 389 for localhost and on 636
+# Then change {{openldap_url}} to ldaps:/
+
   - name: start the slapd service
     service:
       name: slapd

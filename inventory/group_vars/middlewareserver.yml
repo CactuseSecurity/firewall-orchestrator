@@ -1,4 +1,3 @@
-openldap_first_install: "yes"
 openldap_path: "dc=fworch,dc=internal"
 openldap_server: "127.0.0.1"
 openldap_port: 636

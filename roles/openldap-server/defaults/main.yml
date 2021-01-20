@@ -1,6 +1,4 @@
 ---
-openldap_first_install: "yes"
-
 #The domain prefix for ldap
 openldap_server_domain_name: example.com
 openldap_path: "dc=example,dc=com"

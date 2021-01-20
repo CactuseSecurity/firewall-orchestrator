@@ -36,4 +36,4 @@
 
 - name: add second ldap server
   import_tasks: add_ldap_server.yml
-  when: second_ldap_port is defined
+  when: second_ldap | bool

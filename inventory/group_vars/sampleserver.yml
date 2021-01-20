@@ -8,5 +8,7 @@ sting_ip: "192.168.100.110"
 sting_port: "443"
 
 # sample openldap server
+second_ldap: no
 sample_ldap_path: "dc=example,dc=com"
+sample_ldap_domain_name: example.com
 sample_ldap_superuser_name: "cn=Manager,ou=user,{{ sample_ldap_path }}"

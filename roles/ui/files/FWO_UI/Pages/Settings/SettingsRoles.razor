@@ -6,6 +6,7 @@
 @using FWO.ApiConfig
 
 @page "/settings/roles"
+@attribute [Authorize(Roles = "admin")]
 
 @inject APIConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -141,15 +142,15 @@
     </Footer>
 </PopUp>
 
-@code 
+@code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
     private List<Role> roles = new List<Role>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
-    
+
     private string newUserDn;
     private UiLdapConnection selectedLdap = new UiLdapConnection();
     private string selectedUserDn;
@@ -175,16 +176,16 @@
             {
                 foreach (var ldapRole in apiAuthResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
                 {
-                    Role role = new Role() { Dn = ldapRole.Key , Name = (new DistName(ldapRole.Key)).Role};
+                    Role role = new Role() { Dn = ldapRole.Key, Name = (new DistName(ldapRole.Key)).Role };
                     foreach (var roleAttr in ldapRole.Value)
                     {
-                        if(roleAttr.Key == "description")
+                        if (roleAttr.Key == "description")
                         {
                             role.Description = roleAttr.Value;
                         }
-                        else if(roleAttr.Key == "user")
+                        else if (roleAttr.Key == "user")
                         {
-                            UiUser newUser = new UiUser(){ Dn = roleAttr.Value , Name = (new DistName(roleAttr.Value)).UserName };
+                            UiUser newUser = new UiUser() { Dn = roleAttr.Value, Name = (new DistName(roleAttr.Value)).UserName };
                             role.Users.Add(newUser);
                         }
                     }
@@ -214,7 +215,7 @@
         catch (System.Exception exception)
         {
             DisplayMessageInUi(exception, "Fetch LDAP connections from API", "Unexpected error while fetching LDAP connections from API", true);
-        }    
+        }
     }
 
     private void Add(Role role)
@@ -234,7 +235,7 @@
         selectedLdap = connectedLdaps.Find(x => x.Id == ldapId);
 
         // get users from Ldap
-        
+
         try
         {
             MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(selectedLdap.Address, userConfig.User.Jwt);
@@ -244,12 +245,12 @@
             }
             else
             {
-                foreach(var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+                foreach (var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
                 {
-                    UiUser newUser = new UiUser(){ Dn = user.Key , Name = (new DistName(user.Key)).UserName };
+                    UiUser newUser = new UiUser() { Dn = user.Key, Name = (new DistName(user.Key)).UserName };
                     ldapUsers.Add(newUser);
                 }
-            }            
+            }
         }
         catch (System.Exception)
         {
@@ -262,37 +263,37 @@
 
     private async Task NewUser(string userDn)
     {
-        if((userDn == null) || (userDn.Length < 5))
+        if ((userDn == null) || (userDn.Length < 5))
         {
             // todo: more checks?
-           DisplayMessageInUi(null, "New user", "please define a proper user", false);
+            DisplayMessageInUi(null, "New user", "please define a proper user", false);
         }
         else
         {
-            UiUser newUser = new UiUser() {Dn = userDn , Name = (new DistName(userDn)).UserName}; 
-            await AddUser (newUser);
+            UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
+            await AddUser(newUser);
         }
     }
 
     private async Task AddUserFromUiUsers(string userDn)
     {
         UiUser selectedUser = uiUsers.Find(x => x.Dn == userDn);
-        await AddUser (selectedUser);
+        await AddUser(selectedUser);
     }
 
     private async Task AddUserFromLdap(string userDn)
     {
         UiUser selectedUser = ldapUsers.Find(x => x.Dn == userDn);
-        await AddUser (selectedUser);
+        await AddUser(selectedUser);
     }
 
     private async Task AddUser(UiUser user)
     {
-        if(user == null)
+        if (user == null)
         {
             DisplayMessageInUi(null, "Add user", "please select a user", false);
         }
-        else if(actRole.Users.Contains(user))
+        else if (actRole.Users.Contains(user))
         {
             DisplayMessageInUi(null, "Add user", "user is already assigned to this role", false);
         }
@@ -313,7 +314,7 @@
                     roles[roles.FindIndex(x => x.Name == actRole.Name)] = actRole;
                     AddMode = false;
                     SearchMode = false;
-                }                
+                }
             }
             catch (System.Exception exception)
             {
@@ -328,11 +329,11 @@
         var itemToRemove = actRole.Users.Find(x => x.Dn == userDn);
         if (itemToRemove != null)
         {
-            if(actRole.Name == "admin" && actRole.Users.Count < 2)
+            if (actRole.Name == "admin" && actRole.Users.Count < 2)
             {
                 DisplayMessageInUi(null, "Delete user", "last admin user can't be deleted", false);
             }
-            else 
+            else
             {
                 // delete user in LDAP
                 try
@@ -355,7 +356,7 @@
                 }
             }
         }
-        else 
+        else
         {
             DisplayMessageInUi(null, "Delete user", "user to delete not found", true);
         }

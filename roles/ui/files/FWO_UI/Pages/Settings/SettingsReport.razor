@@ -6,6 +6,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/report"
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin")]
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -24,7 +25,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
@@ -54,8 +55,8 @@
                     rulesPerFetch = Int32.Parse(settingsValue);
                 }
             }
-         }
-        catch(Exception exception)
+        }
+        catch (Exception exception)
         {
             DisplayMessageInUi(exception, "Read Report Settings", "Key not found or could not convert value to int: taking value 100", true);
         }

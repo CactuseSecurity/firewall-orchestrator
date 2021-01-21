@@ -3,6 +3,7 @@
 @using FWO.ApiClient
 
 @page "/settings/managements"
+@attribute [Authorize(Roles = "admin")]
 
 @inject APIConnection apiConnection
 
@@ -94,7 +95,7 @@
                 <div class="form-group row">
                     <label for="managementPrivateKey" class="col-sm-3 col-form-label col-form-label-sm">Login Secret:</label>
                     <div class="col-sm-8">
-                        <input id="managementPrivateKey" type ="password" class="form-control form-control-sm" @bind="actManagement.PrivateKey" />
+                        <input id="managementPrivateKey" type="password" class="form-control form-control-sm" @bind="actManagement.PrivateKey" />
                     </div>
                 </div>
                 <div class="form-group row">
@@ -175,7 +176,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
     private List<Management> managements = new List<Management>();
     private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
@@ -319,7 +320,7 @@
                     configPath = actManagement.ConfigPath,
                     importerHostname = actManagement.ImporterHostname,
                     comment = actManagement.Comment /*,
-                    tenantId = actManagement.TenantId */
+                tenantId = actManagement.TenantId */
                 };
                 actManagement.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds[0].NewId;
                 managements.Add(actManagement);
@@ -346,7 +347,7 @@
                     configPath = actManagement.ConfigPath,
                     importerHostname = actManagement.ImporterHostname,
                     comment = actManagement.Comment /*,
-                    tenantId = actManagement.TenantId */
+                tenantId = actManagement.TenantId */
                 };
                 int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
                 EditMode = (udId == actManagement.Id ? false : true);

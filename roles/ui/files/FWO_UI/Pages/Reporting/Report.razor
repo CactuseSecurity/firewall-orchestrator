@@ -7,11 +7,11 @@
 @using FWO.Ui.Services
 @using FWO.Ui.Data
 
-@inject APIConnection Connection
-@inject UserConfig userConfig
-
 @page "/"
 @page "/report"
+
+@inject APIConnection Connection
+@inject UserConfig userConfig
 
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <div class="p-3">
@@ -66,7 +66,7 @@
         </Body>
         <Footer>
             <button class="btn btn-primary" @onclick="() => ShowNoDeviceSelectedWarning = false">OK</button>
-        </Footer>        
+        </Footer>
     </PopUp>
 
     <PopUp Title="Export Report" Show="@ShowExportDialog">
@@ -115,7 +115,7 @@
         <Body>
             <div class="d-flex flex-column align">
                 <label class="ml-1 mr-1" for="reportExportFilename">Name:</label>
-                <input class="form-control-sm ml-1 mr-1 mb-1" id="reportExportFileName" @bind:event="oninput" @bind="reportExportFile.Name"/>
+                <input class="form-control-sm ml-1 mr-1 mb-1" id="reportExportFileName" @bind:event="oninput" @bind="reportExportFile.Name" />
                 @if (reportExportFile?.Csv != null)
                 {
                     <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Csv)))"
@@ -217,9 +217,9 @@
                                 {
                                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
                                         <Table SelectedItems="selectedItemsReportRuleTable"
-                                            RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
-                                            style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                                            PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
+                                               RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
+                                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
+                                               PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
 
                                             <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
                                                 <Template>
@@ -284,9 +284,9 @@
                                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
 
                                         <Table SelectedItems="selectedItemsReportChangeTable"
-                                            RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
-                                            style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
-                                            PageSize="rulesPerPage" ColumnReorder="true">
+                                               RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
+                                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
+                                               PageSize="rulesPerPage" ColumnReorder="true">
 
                                             <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
                                             <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
@@ -436,7 +436,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
     private const string deviceFilterStart = "(gateway=";
     private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
@@ -640,7 +640,7 @@
         }
     }
 
-    private bool areAllDevicesSeclected ()
+    private bool areAllDevicesSeclected()
     {
         foreach (Management management in managementsOverview)
             if (management != null)
@@ -651,7 +651,7 @@
         return true;
     }
 
-    private bool isAnyDeviceFilterSet ()
+    private bool isAnyDeviceFilterSet()
     {
         foreach (Management management in managementsOverview)
         {
@@ -673,7 +673,7 @@
         return false;
     }
 
-    private void fullDeviceSelection ()
+    private void fullDeviceSelection()
     {
         fullDeviceSelectionState = !fullDeviceSelectionState;
         if (fullDeviceSelectionState)
@@ -697,9 +697,9 @@
     {
         filter = filter.Trim();
         if (filter.StartsWith("and "))
-            filter = filter.Remove(0,4);
+            filter = filter.Remove(0, 4);
         if (filter.EndsWith(" and"))
-            filter = filter.Remove(filter.Length-4,4);
+            filter = filter.Remove(filter.Length - 4, 4);
         if (filter.Contains("and and"))  // remove duplicate and
             filter = filter.Remove(filter.IndexOf("and and"), 4);
         return filter;
@@ -720,17 +720,18 @@
         if (filter.Contains(deviceFilterStart))
         {
             int startPosition = filter.IndexOf(deviceFilterStart);
-            int endPosition = filter.IndexOf(")", startPosition+deviceFilterStart.Length);
+            int endPosition = filter.IndexOf(")", startPosition + deviceFilterStart.Length);
             if (startPosition != 1 && endPosition != -1)
-                filter = filter.Remove(startPosition, endPosition-startPosition+1); // to remove the first 10 characters
+                filter = filter.Remove(startPosition, endPosition - startPosition + 1); // to remove the first 10 characters
         }
         return cleanFilter(filter);
     }
 
-    private String deviceFilterToString ()
+    private String deviceFilterToString()
     {
         string deviceFilter = "";
-        if (isAnyDeviceFilterSet()) {
+        if (isAnyDeviceFilterSet())
+        {
             deviceFilter = " and (";
             foreach (Management management in managementsOverview)
             {
@@ -740,14 +741,14 @@
                     {
                         if (device.selected)
                         {
-                            if (deviceFilter.Length>6)  // not the first selected device
+                            if (deviceFilter.Length > 6)  // not the first selected device
                                 deviceFilter += " or ";
                             deviceFilter += $"gateway=\"{device.Name}\"";
                         }
                     }
                 }
             }
-            if (deviceFilter.Length>6)  // any filter found at all?
+            if (deviceFilter.Length > 6)  // any filter found at all?
                 deviceFilter += ") ";
             else
                 deviceFilter = "";
@@ -822,7 +823,7 @@
         {
             try
             {
-                reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId};
+                reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId };
 
                 if (ExportHtml)
                 {
@@ -850,10 +851,10 @@
                     {
                         report_name = reportExportFile.Name,
                         report_start_time = DateTime.Now, // TODO: Change to correct dates
-                        report_end_time = DateTime.Now,
+                    report_end_time = DateTime.Now,
                         report_owner_id = reportExportFile.OwnerId,
                         report_csv = reportExportFile.Csv,
-                        report_pdf =  Convert.FromBase64String(reportExportFile.Pdf),
+                        report_pdf = Convert.FromBase64String(reportExportFile.Pdf),
                         report_html = reportExportFile.Html,
                         report_json = reportExportFile.Json,
                     };

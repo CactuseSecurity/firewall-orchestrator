@@ -6,6 +6,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/language"
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
@@ -28,7 +29,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
     string selectedLanguage;
 
     protected override void OnInitialized()
@@ -45,7 +46,7 @@
             await userConfig.ChangeLanguage(language, apiConnection);
             userConfig.User.Language = language;
         }
-        catch(Exception exception)
+        catch (Exception exception)
         {
             DisplayMessageInUi(exception, "Change Lanaguage error", exception.Message, true);
         }

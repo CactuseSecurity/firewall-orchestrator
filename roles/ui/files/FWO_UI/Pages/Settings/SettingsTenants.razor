@@ -4,6 +4,7 @@
 @using FWO.ApiClient
 
 @page "/settings/tenants"
+@attribute [Authorize(Roles = "admin")]
 
 @inject APIConnection apiConnection
 
@@ -99,7 +100,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
     private List<Tenant> tenants = new List<Tenant>();
     private List<Device> devices = new List<Device>();
@@ -141,26 +142,26 @@
     {
         try
         {
-            var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
+            var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
             int newId = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables)).ReturnIds[0].NewId;
-            if(newId == deviceId)
+            if (newId == deviceId)
             {
-                Device newDevice = new Device() {Id = deviceId, Name = devices.Find(x => x.Id == deviceId).Name};
-                actTenant.TenantDevices = actTenant.TenantDevices.Append(new TenantDevice(){ VisibleDevice = newDevice }).ToArray();
+                Device newDevice = new Device() { Id = deviceId, Name = devices.Find(x => x.Id == deviceId).Name };
+                actTenant.TenantDevices = actTenant.TenantDevices.Append(new TenantDevice() { VisibleDevice = newDevice }).ToArray();
                 AddMode = false;
             }
         }
         catch (System.Exception exception)
         {
             DisplayMessageInUi(exception, "Add device to tenant", "Unexpected error occured", false);
-        }          
+        }
     }
 
     private async Task DeleteDevice(int deviceId)
     {
         try
         {
-            var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
+            var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteDeviceFromTenant, Variables)).DeletedId;
             if (delId == deviceId)
             {
@@ -170,7 +171,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception,"Error while deleting device from tenant", exception.Message, false);
+            DisplayMessageInUi(exception, "Error while deleting device from tenant", exception.Message, false);
         }
     }
 

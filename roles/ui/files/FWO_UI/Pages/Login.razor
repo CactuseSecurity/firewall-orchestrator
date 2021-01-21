@@ -58,9 +58,6 @@
 
     private string errorMessage = "";
 
-    [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
-
     private ElementReference usernameInput;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

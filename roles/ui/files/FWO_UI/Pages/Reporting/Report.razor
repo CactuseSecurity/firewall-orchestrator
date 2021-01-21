@@ -7,11 +7,11 @@
 @using FWO.Ui.Services
 @using FWO.Ui.Data
 
-@inject APIConnection Connection
-@inject UserConfig userConfig
-
 @page "/"
 @page "/report"
+
+@inject APIConnection Connection
+@inject UserConfig userConfig
 
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <div class="p-3">
@@ -66,7 +66,7 @@
         </Body>
         <Footer>
             <button class="btn btn-primary" @onclick="() => ShowNoDeviceSelectedWarning = false">OK</button>
-        </Footer>        
+        </Footer>
     </PopUp>
 
     <PopUp Title="Export Report" Show="@ShowExportDialog">
@@ -74,34 +74,72 @@
             <div>
                 <p>Export as...</p>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="radioReportExport" id="reportExportPdf" checked>
+                    <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
                     <label class="form-check-label" for="reportExportPdf">
                         PDF
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="radioReportExport" id="reportExportHtml">
+                    <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
                     <label class="form-check-label" for="reportExportHtml">
                         HTML
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="radioReportExport" id="reportExportCsv">
+                    <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
                     <label class="form-check-label" for="reportExportCsv">
                         CSV
                     </label>
                 </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="reportExportJson" @bind="ExportJson">
+                    <label class="form-check-label" for="reportExportJson">
+                        JSON
+                    </label>
+                </div>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="" id="flexCheckChecked" checked>
-                <label class="form-check-label" for="flexCheckChecked">
+                <input class="form-check-input" type="checkbox" id="reportExportArchive" @bind="ExportArchive">
+                <label class="form-check-label" for="reportExportArchive">
                     Archive
                 </label>
             </div>
         </Body>
         <Footer>
-            <button class="btn btn-primary" @onclick="() => { }">Export</button>
-            <button class="btn btn-secondary" @onclick="() => ShowExportDialog = false">Cancel</button>
+            <button class="btn btn-sm btn-primary" @onclick="async () => { await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; }">Export</button>
+            <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">Cancel</button>
+        </Footer>
+    </PopUp>
+
+    <PopUp Title="Export Report Download" Show="@ShowExportDownloadDialog">
+        <Body>
+            <div class="d-flex flex-column align">
+                <label class="ml-1 mr-1" for="reportExportFilename">Name:</label>
+                <input class="form-control-sm ml-1 mr-1 mb-1" id="reportExportFileName" @bind:event="oninput" @bind="reportExportFile.Name" />
+                @if (reportExportFile?.Csv != null)
+                {
+                    <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Csv)))"
+                       target="_blank" download="@(reportExportFile.Name).@("csv")">Download CSV</a>
+                }
+                @if (reportExportFile?.Pdf != null)
+                {
+                    <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportExportFile.Pdf)"
+                       target="_blank" download="@(reportExportFile.Name).@("pdf")">Download PDF</a>
+                }
+                @if (reportExportFile?.Html != null)
+                {
+                    <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Html)))"
+                       target="_blank" download="@(reportExportFile.Name).@("html")">Download HTML</a>
+                }
+                @if (reportExportFile?.Json != null)
+                {
+                    <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Json)))"
+                       target="_blank" download="@(reportExportFile.Name).@("json")">Download JSON</a>
+                }
+            </div>
+        </Body>
+        <Footer>
+            <button class="btn btn-sm btn-danger" @onclick="() => ShowExportDownloadDialog = false">Close</button>
         </Footer>
     </PopUp>
 
@@ -183,9 +221,9 @@
                                 {
                                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
                                         <Table SelectedItems="selectedItemsReportRuleTable"
-                                            RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
-                                            style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                                            PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
+                                               RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
+                                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
+                                               PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
 
                                             <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
                                                 <Template>
@@ -250,9 +288,9 @@
                                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
 
                                         <Table SelectedItems="selectedItemsReportChangeTable"
-                                            RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
-                                            style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
-                                            PageSize="rulesPerPage" ColumnReorder="true">
+                                               RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
+                                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
+                                               PageSize="rulesPerPage" ColumnReorder="true">
 
                                             <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
                                             <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
@@ -362,9 +400,7 @@
                     default:
                         break;
                 }
-
             }
-
         </div>
     </div>
 </div>
@@ -404,7 +440,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
@@ -421,7 +457,6 @@
     // private Dictionary<int,bool> deviceSelected = new Dictionary<int,bool>();
 
     private List<ReportTemplate> reportTemplates = new List<ReportTemplate>();
-    private ReportFile[] archivedReports = new ReportFile[0];
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
     private int rulesPerFetch = 100;    // todo: rename to "elementsPerFetch" to cover all types of report/objects
@@ -429,6 +464,7 @@
 
     private bool ShowNoDeviceSelectedWarning = false;
     private bool ShowExportDialog = false;
+    private bool ShowExportDownloadDialog = false;
     private bool ShowSaveTemplateDialog = false;
     private bool ShowEditTemplateDialog = false;
     private bool ShowDeleteTemplateDialog = false;
@@ -441,7 +477,16 @@
 
     private ReportTemplate reportTemplateInEdit = null;
 
+    private ReportBase currentReport;
+
     private int reportFileId = 0;
+
+    private bool ExportPdf = false;
+    private bool ExportJson = false;
+    private bool ExportHtml = false;
+    private bool ExportCsv = false;
+    private bool ExportArchive = false;
+    private ReportFile reportExportFile;
 
     private int scheduledReportId = 0;
     private string scheduledReportName = "";
@@ -490,8 +535,8 @@
 
                 bool newObjects = true;
 
-            // lazy fetch all objects for right sidebar
-            while (newObjects)
+                // lazy fetch all objects for right sidebar
+                while (newObjects)
                 {
                     paginationVariables.Offset += rulesPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
@@ -552,8 +597,8 @@
             switch (query.ReportType)
             {
                 case rulesReport:
-                    ReportRules reportRules = new ReportRules();
-                    await reportRules.Generate(rulesPerFetch, filterInput, Connection,
+                    currentReport = new ReportRules();
+                    await currentReport.Generate(rulesPerFetch, filterInput, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -562,8 +607,8 @@
                     break;
 
                 case changesReport:
-                    ReportChanges reportChanges = new ReportChanges();
-                    await reportChanges.Generate(rulesPerFetch, filterInput, Connection,
+                    currentReport = new ReportChanges();
+                    await currentReport.Generate(rulesPerFetch, filterInput, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -573,8 +618,8 @@
 
                 case statisticsReport:
                     globalStats = new Management();
-                    ReportStatistics reportStatistics = new ReportStatistics();
-                    await reportStatistics.Generate(0, filterInput, Connection,
+                    currentReport = new ReportStatistics();
+                    await currentReport.Generate(0, filterInput, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -600,7 +645,7 @@
             DisplayMessageInUi(exception, "Report generation", "Unclassified error.", true);
         }
     }
-
+      
     private async Task SaveTemplate()
     {
         try
@@ -663,11 +708,56 @@
         }
     }
 
-    private void Export()
+    private async Task Export()
     {
-        ReportRulesExporter exporter = new ReportRulesExporter() { Managements = managementsReport };
-        string text = exporter.ToHtml();
-        exporter.ToPdf();
+        await Task.Run(async () =>
+        {
+            try
+            {
+                reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId };
+
+                if (ExportHtml)
+                {
+                    reportExportFile.Html = currentReport.ToHtml();
+                }
+
+                if (ExportPdf)
+                {
+                    reportExportFile.Pdf = Convert.ToBase64String(currentReport.ToPdf());
+                }
+
+                if (ExportCsv)
+                {
+                    reportExportFile.Csv = currentReport.ToCsv();
+                }
+
+                if (ExportJson)
+                {
+                    reportExportFile.Json = currentReport.ToJson();
+                }
+
+                if (ExportArchive)
+                {
+                    var queryVariables = new
+                    {
+                        report_name = reportExportFile.Name,
+                        report_start_time = DateTime.Now, // TODO: Change to correct dates
+                        report_end_time = DateTime.Now,
+                        report_owner_id = reportExportFile.OwnerId,
+                        report_csv = reportExportFile.Csv,
+                        report_pdf = reportExportFile.Pdf,
+                        report_html = reportExportFile.Html,
+                        report_json = reportExportFile.Json,
+                    };
+
+                    await Connection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, "Export report", "Unclassified error.", true);
+            }
+        });
     }
 
     private void TryFilter(ChangeEventArgs changeArgs)

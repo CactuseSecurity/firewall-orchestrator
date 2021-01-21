@@ -3,6 +3,7 @@
 @using FWO.ApiClient
 
 @page "/settings/ldap"
+@attribute [Authorize(Roles = "admin")]
 
 @inject APIConnection apiConnection
 
@@ -140,10 +141,10 @@
     </Footer>
 </PopUp>
 
-@code 
+@code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
 
@@ -229,7 +230,7 @@
     private void Add()
     {
         AddMode = true;
-        newLdapConnection = new UiLdapConnection(){TenantLevel = 1};
+        newLdapConnection = new UiLdapConnection() { TenantLevel = 1 };
         Edit(newLdapConnection);
     }
 

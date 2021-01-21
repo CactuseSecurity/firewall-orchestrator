@@ -58,6 +58,8 @@
     [Parameter]
     public int InitialWidth { get; set; } = 300;
 
+    private bool Collapsed = false;
+
     [CascadingParameter]
     private Action<string, string> ShowError { get; set; }
 
@@ -66,51 +68,66 @@
     private int WidthBeforeMinimize;
 
     private string minMaxButtonSymbol = "collapse-right";
-    private string overflowSidebar = "auto";
+    private string overflowSidebar = "scroll";
 
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
+        {
             Width = InitialWidth;
+            AdjustSidebarOverflow();
+        }
     }
 
     private void ResizeStart(DragEventArgs dragArgs)
     {
-        dragArgs.DataTransfer.DropEffect = "link";
-        dragArgs.DataTransfer.EffectAllowed = "copyMove";
-        resizeStartX = dragArgs.ScreenX;
+        if (!Collapsed)
+        {
+            dragArgs.DataTransfer.DropEffect = "link";
+            dragArgs.DataTransfer.EffectAllowed = "copyMove";
+            resizeStartX = dragArgs.ScreenX;
+        }
     }
 
     private void Resize(DragEventArgs mouseArgs)
     {
-        int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
+        if (!Collapsed)
+        {
+            int postitionDiffrence = (int)(resizeStartX - mouseArgs.ScreenX);
 
-        if (PositionLeft)
-            postitionDiffrence = -postitionDiffrence;
+            if (PositionLeft)
+                postitionDiffrence = -postitionDiffrence;
 
-        Width = (int)(Width + postitionDiffrence);
-        WidthChanged.InvokeAsync(Width);
+            Width = (int)(Width + postitionDiffrence) > 0 ? (int)(Width + postitionDiffrence) : 1;
+            AdjustSidebarOverflow();
+            WidthChanged.InvokeAsync(Width);
+        }
     }
 
     private void MinMaxSidebar()
     {
-        if (Width == 0)
+        if (Collapsed)
         {
-            overflowSidebar = "hidden";
             minMaxButtonSymbol = "collapse-right";
 
             Width = WidthBeforeMinimize;
             WidthChanged.InvokeAsync(Width);
         }
-
         else
         {
-            overflowSidebar = "auto";
             minMaxButtonSymbol = "collapse-left";
 
             WidthBeforeMinimize = Width;
             Width = 0;
             WidthChanged.InvokeAsync(Width);
         }
+
+        Collapsed = !Collapsed;
+        AdjustSidebarOverflow();
+    }
+
+    private void AdjustSidebarOverflow()
+    {
+        overflowSidebar = Width < 5 ? "hidden" : "scroll";
     }
 }

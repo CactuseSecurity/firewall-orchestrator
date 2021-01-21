@@ -37,7 +37,7 @@ namespace FWO.Api.Data
         public string Json { get; set; }
 
         [JsonPropertyName("report_pdf")]
-        public byte[] Pdf { get; set; }
+        public string Pdf { get; set; }
 
         [JsonPropertyName("report_html")]
         public string Html { get; set; }

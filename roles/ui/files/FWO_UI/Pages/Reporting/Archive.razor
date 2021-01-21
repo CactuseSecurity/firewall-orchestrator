@@ -7,11 +7,6 @@
 <h3>Archive</h3>
 
 <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportFile" Items="archivedReports">
-    <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
-    <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
-    @*<Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" /> TODO: ADD TYPE*@
-    <Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" />
-    <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner.Name)" />
     <Column TableItem="ReportFile" Title="Actions">
         <Template>
             <div class="btn-group">
@@ -20,6 +15,12 @@
             </div>
         </Template>
     </Column>
+    <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
+    <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
+    @*<Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" /> TODO: ADD TYPE*@
+    @*<Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" /> TODO: Template (is not always defined - report export)*@
+    <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner.Name)" />
+
 </Table>
 
 <PopUp Show="ShowDeleteReportFileDialog" Title="Generated Report">
@@ -35,24 +36,24 @@
 <PopUp Show="ShowDownloadReportFileDialog" Title="Generated Report">
     <Body>
         <div class="d-flex flex-column align">
-            @if (reportFileContext.Csv != null)
+            @if (reportFileContext?.Csv != null)
             {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.ASCII.GetBytes(reportFileContext.Csv)))"
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Csv)))"
                    target="_blank" download="@(reportFileContext.Name).@("csv")">Download as CSV</a>
             }
-            @if (reportFileContext.Pdf != null)
+            @if (reportFileContext?.Pdf != null)
             {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(reportFileContext.Pdf))"
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportFileContext.Pdf)"
                    target="_blank" download="@(reportFileContext.Name).@("pdf")">Download as PDF</a>
             }
-            @if (reportFileContext.Html != null)
+            @if (reportFileContext?.Html != null)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Html)))"
                    target="_blank" download="@(reportFileContext.Name).@("html")">Download as HTML</a>
             }
-            @if (reportFileContext.Json != null)
+            @if (reportFileContext?.Json != null)
             {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.ASCII.GetBytes(reportFileContext.Json)))"
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Json)))"
                    target="_blank" download="@(reportFileContext.Name).@("json")">Download as JSON</a>
             }
         </div>

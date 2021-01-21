@@ -1805,7 +1805,7 @@ tables:
       filter:
         _or:
         - report_template_owner:
-            _is_null: true
+            _eq: 0
         - report_template_owner:
             _eq: X-Hasura-User-Id
     role: reporter
@@ -1821,7 +1821,7 @@ tables:
       filter:
         _or:
         - report_template_owner:
-            _is_null: true
+            _eq: 0
         - report_template_owner:
             _eq: X-Hasura-User-Id
     role: reporter-viewall

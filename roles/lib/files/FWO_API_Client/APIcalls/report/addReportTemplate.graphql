@@ -3,6 +3,7 @@ mutation addReportTemplate(
   $reportFilterLine: String!
   $reportTemplateCreate: timestamp!
   $reportTemplateComment: String!
+  $reportTemplateOwner: Int
 ) {
   insert_report_template(
     objects: {
@@ -10,6 +11,7 @@ mutation addReportTemplate(
       report_filter: $reportFilterLine
       report_template_create: $reportTemplateCreate
       report_template_comment: $reportTemplateComment
+      report_template_owner: $reportTemplateOwner
     }
   ) {
     returning {

@@ -9,6 +9,7 @@ mutation addReportTemplateWithPermissions(
       {
         report_template_name: $reportTemplateName
         report_filter: $reportFilterLine
+        report_template_owner: $userId
         report_template_viewable_by_users: { data: { uiuser_id: $userId } }
         report_template_viewable_by_tenants: { data: { tenant_id: $tenantId } }
       }

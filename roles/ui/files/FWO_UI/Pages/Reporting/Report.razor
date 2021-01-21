@@ -17,7 +17,7 @@
     <div class="p-3">
 
         <h5 class="text-left">Select device(s)</h5>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { fullDeviceSelection(); }">@selectButtonText</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => { fullDeviceSelectionState = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceSelectionState, out selectButtonText); }">@selectButtonText</button>
         <br><br>
 
         @foreach (Management management in managementsOverview)
@@ -146,8 +146,12 @@
                         <Template>
                             <div class="btn-group">
                                 <button class="btn btn-sm btn-success" @onclick="() => filterInput = context.Filter">Load</button>
-                                <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = context; ShowEditTemplateDialog = true; }">Edit</button>
-                                <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = context; ShowDeleteTemplateDialog = true; }">Delete</button>
+                                @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
+                                @if (context.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == "admin") != null)
+                                {
+                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = context; ShowEditTemplateDialog = true; }">Edit</button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = context; ShowDeleteTemplateDialog = true; }">Delete</button>
+                                }
                             </div>
                         </Template>
                     </Column>
@@ -402,7 +406,9 @@
     [CascadingParameter]
     Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
 
-    private const string deviceFilterStart = "(gateway=";
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
     private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
     private List<RuleChange> selectedItemsReportChangeTable = new List<RuleChange>();
 
@@ -525,13 +531,13 @@
         try
         {
             query = Compiler.Compile(filterInput);
-            if (!areAllDevicesSeclected())  // if all devices are selected, we do no additional filtering
+            if (!DeviceFilter.areAllDevicesSeclected(managementsOverview))  // if all devices are selected, we do no additional filtering
             {
-                if (isAnyDeviceFilterSet()) // remove all existing device filters first before adding new ones
-                    filterInput = replaceDeviceFilter(filterInput);
+                if (DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query)) // remove all existing device filters first before adding new ones
+                    filterInput = DeviceFilter.replaceDeviceFilter(filterInput, managementsOverview, query);
                 else 
-                    filterInput = removeDeviceFilterPart(filterInput);
-                if (!isAnyDeviceFilterSet())            // display pop-up with warning, todo: check if device is selected in filter line
+                    filterInput = DeviceFilter.removeDeviceFilterPart(filterInput);
+                if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))            // display pop-up with warning, todo: check if device is selected in filter line
                 {
                     ShowNoDeviceSelectedWarning = true;
                     StateHasChanged();
@@ -539,7 +545,7 @@
                 }
             }
             else
-                filterInput = removeDeviceFilterPart(filterInput);
+                filterInput = DeviceFilter.removeDeviceFilterPart(filterInput);
             query = Compiler.Compile(filterInput);  // recompile after reading device filter
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
@@ -595,122 +601,6 @@
         }
     }
 
-    private bool areAllDevicesSeclected () 
-    {
-        foreach (Management management in managementsOverview)
-            if (management != null)
-                foreach (Device device in management.Devices)
-                    if (device != null)
-                        if (!device.selected)
-                            return false;
-        return true;
-    }
-
-    private bool isAnyDeviceFilterSet () 
-    {
-        foreach (Management management in managementsOverview)
-        {
-            if (management != null)
-            {
-                foreach (Device device in management.Devices)
-                {
-                    if (device != null)
-                    {
-                        if (device.selected)
-                            return true;
-                    }
-                }
-            }
-        }
-        // check if filterline contains a device filter
-        if (query.FullQuery.Contains("device: {dev_name : {_ilike:") || query.FullQuery.Contains("management: {mgm_name : {_ilike:"))
-            return true;
-        return false;
-    }
-
-    private void fullDeviceSelection ()
-    {
-        fullDeviceSelectionState = !fullDeviceSelectionState;
-        if (fullDeviceSelectionState)
-            selectButtonText = "Clear device selection";
-        else
-            selectButtonText = "Select all devices";
-
-        foreach (Management management in managementsOverview)
-        {
-            if (management != null)
-            {
-                foreach (Device device in management.Devices)
-                {
-                    device.selected = fullDeviceSelectionState;
-                }
-            }
-        }       
-    }
-
-    private string cleanFilter(string filter)
-    {
-        filter = filter.Trim();
-        if (filter.StartsWith("and "))
-            filter = filter.Remove(0,4);
-        if (filter.EndsWith(" and"))
-            filter = filter.Remove(filter.Length-4,4);
-        if (filter.Contains("and and"))  // remove duplicate and
-            filter = filter.Remove(filter.IndexOf("and and"), 4);
-        return filter;
-    }
-
-    private string replaceDeviceFilter(string currentInputFilter)
-    {
-        // remove old device filter part from currentInputFilter and add the new device filter from management.devices
-        string filter = removeDeviceFilterPart(currentInputFilter).TrimEnd() + deviceFilterToString();
-
-        // if the filter line (without device filter) is empty, get rid of the leading "and" of the device filter
-        return cleanFilter(filter); 
-    }
-
-    private string removeDeviceFilterPart(string filter)
-    {
-        // identify and remove device filter part from filter
-        if (filter.Contains(deviceFilterStart))
-        {
-            int startPosition = filter.IndexOf(deviceFilterStart);
-            int endPosition = filter.IndexOf(")", startPosition+deviceFilterStart.Length);
-            if (startPosition != 1 && endPosition != -1)
-                filter = filter.Remove(startPosition, endPosition-startPosition+1); // to remove the first 10 characters
-        }
-        return cleanFilter(filter); 
-    }
-
-    private String deviceFilterToString () 
-    {
-        string deviceFilter = "";
-        if (isAnyDeviceFilterSet()) {
-            deviceFilter = " and (";
-            foreach (Management management in managementsOverview)
-            {
-                if (management != null)
-                {
-                    foreach (Device device in management.Devices)
-                    {
-                        if (device.selected) 
-                        {
-                            if (deviceFilter.Length>6)  // not the first selected device
-                                deviceFilter += " or ";
-                            deviceFilter += $"gateway=\"{device.Name}\"";
-                        }
-                    }
-                }
-            }
-            if (deviceFilter.Length>6)  // any filter found at all?
-                deviceFilter += ") ";
-            else
-                deviceFilter = "";
-        }
-        return deviceFilter;
-        // return " and gateway=forti";
-    }
-    
     private async Task SaveTemplate()
     {
         try
@@ -722,13 +612,15 @@
                 reportTemplateName = reportTemplateInEdit.Name,
                 reportFilterLine = reportTemplateInEdit.Filter,
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
-                reportTemplateComment = reportTemplateInEdit.Comment
+                reportTemplateComment = reportTemplateInEdit.Comment,
+                reportTemplateOwner = userConfig.User.DbId
             };
 
             reportTemplateInEdit.Id = (await Connection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds[0].NewId;
             reportTemplates.Add(reportTemplateInEdit);
 
             ShowSaveTemplateDialog = false;
+            StateHasChanged();
         }
         catch (Exception exception)
         {

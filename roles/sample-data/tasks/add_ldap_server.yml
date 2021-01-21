@@ -1,4 +1,18 @@
 ---
+- name: create sample ldap database directory
+  file:
+    path: "/var/lib/ldap/{{ openldap_server_domain_name }}/"
+    state: directory
+    owner: "{{ openldap_server_user }}"
+    group: "{{ openldap_server_user }}"
+
+- name: Create the DB_CONFIG file
+  copy:
+    src: DB_CONFIG
+    dest: /var/lib/ldap/{{ openldap_server_domain_name }}/DB_CONFIG
+    owner: "{{ openldap_server_user }}"
+    group: "{{ openldap_server_user }}"
+
 - name: copy the ldif templates to system
   template:
     src: "{{ item }}"
@@ -8,7 +22,7 @@
   become: yes
 
 - name: enhance ldap with ldif files
-  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f /tmp/{{ item }}.ldif"
+  command: "ldapmodify -H {{ openldap_url }} -D cn=config -w {{ ldap_manager_pwd }} -x -f /tmp/{{ item }}.ldif"
   loop:
     - second_db
     - ext_role

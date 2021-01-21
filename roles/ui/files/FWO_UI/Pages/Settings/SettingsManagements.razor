@@ -202,8 +202,7 @@
             managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
             foreach (var management in managements)
             {
-                // todo: define better criteria for sample data
-                if (management.Name.Contains("demo"))
+                if (management.Name.EndsWith("_demo"))
                 {
                     sampleManagements.Add(management);
                 }
@@ -269,7 +268,7 @@
     private void RequestRemoveSampleData()
     {
         // Todo: Checks if delete possible?
-        cleanupMessage = $"Deletes all sample managements and related Gateways.";
+        cleanupMessage = $"Deletes all sample managements (ending with '_demo') and related Gateways.";
         CleanupMode = true;
     }
 

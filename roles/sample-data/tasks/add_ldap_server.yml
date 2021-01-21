@@ -4,4 +4,7 @@
     src: second_db.ldif.j2
     dest: /tmp
 
-- name:
+- name: enhance ldap with ldif files
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f /tmp/{{ item }}.ldif"
+  loop:
+    - second_db

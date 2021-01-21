@@ -43,7 +43,7 @@
             }
             @if (reportFileContext?.Pdf != null)
             {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportFileContext.Pdf)"
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Pdf))))"
                    target="_blank" download="@(reportFileContext.Name).@("pdf")">Download as PDF</a>
             }
             @if (reportFileContext?.Html != null)

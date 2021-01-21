@@ -54,6 +54,7 @@ objectClass: olcBdbConfig
 olcDatabase: bdb
 olcSuffix: {{ sample_ldap_path }}
 olcDbDirectory: /var/lib/ldap/{{ sample_ldap_domain_name }}/
+olcRootDN: cn=Manager,{{ sample_ldap_path }}
 olcDbIndex: objectClass eq
 olcAccess: to *
     by * write

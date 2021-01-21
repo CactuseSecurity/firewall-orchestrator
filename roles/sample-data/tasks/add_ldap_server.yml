@@ -5,6 +5,7 @@
     state: directory
     owner: "{{ openldap_server_user }}"
     group: "{{ openldap_server_user }}"
+  become: yes
 
 - name: Create the DB_CONFIG file
   copy:
@@ -12,6 +13,7 @@
     dest: /var/lib/ldap/{{ sample_ldap_domain_name }}/DB_CONFIG
     owner: "{{ openldap_server_user }}"
     group: "{{ openldap_server_user }}"
+  become: yes
 
 - name: copy the ldif templates to system
   template:

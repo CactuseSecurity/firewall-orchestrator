@@ -118,6 +118,14 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
+                    ReportFile reportFile = new ReportFile                    
+                    { 
+                        Name = $"{report.Name}_{dateTimeNowRounded.ToShortDateString()}",
+                        GenerationDateStart = DateTime.Now,
+                        TemplateId = report.Template.Id,
+                        OwnerId = report.Owner.DbId,
+                    };
+
                     DateTime reportGenerationStartDate = DateTime.Now;
 
                     // get uiuser roles + tenant
@@ -135,39 +143,24 @@ namespace FWO.Middleware.Server
                         _ => Task.CompletedTask
                     );
 
-                    ////$report_name: String!
-                    ////$report_start_time: timestamp!
-                    ////$report_generation_time: timestamp!
-                    ////$report_owner_id: Int!
-                    ////$report_template_id: Int!
-                    //$report_pdf: bytea
-                    //$report_csv: String
-                    //$report_html: String
-                    //$report_json: json
-
-                    string reportCsv = null;
-                    string reportHtml = null;
-                    string reportJson = null;
-                    byte[] reportPdf = null;
-
                     foreach (FileFormat format in report.OutputFormat)
                     {
                         switch (format.Name)
                         {
                             case "csv":
-                                reportCsv = reportRules.ToCsv();
+                                reportFile.Csv = reportRules.ToCsv();
                                 break;
 
                             case "html":
-                                reportHtml = reportRules.ToHtml();
+                                reportFile.Html = reportRules.ToHtml();
                                 break;
 
                             case "pdf":
-                                reportPdf = reportRules.ToPdf();
+                                reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf());
                                 break;
 
                             case "json":
-                                reportJson = reportRules.ToJson();
+                                reportFile.Json = reportRules.ToJson();
                                 break;
 
                             default:
@@ -175,19 +168,20 @@ namespace FWO.Middleware.Server
                         }
                     }
 
+                    reportFile.GenerationDateEnd = DateTime.Now;
+
                     var queryVariables = new
                     {
-                        report_name = $"{report.Name}_{dateTimeNowRounded.ToShortDateString()}",
-                        report_start_time = reportGenerationStartDate,
-                        report_end_time = DateTime.Now,
-                        report_owner_id = report.Owner.DbId,
-                        report_template_id = report.Template.Id,
-                        report_pdf = reportPdf,
-                        report_csv = reportCsv,
-                        report_html = reportHtml,
-                        report_json = reportJson,
+                        report_name = reportFile.Name,
+                        report_start_time = reportFile.GenerationDateStart,
+                        report_end_time = reportFile.GenerationDateEnd,
+                        report_owner_id = reportFile.OwnerId,
+                        report_template_id = reportFile.TemplateId,
+                        report_pdf = Convert.FromBase64String(reportFile.Pdf),
+                        report_csv = reportFile.Csv,
+                        report_html = reportFile.Html,
+                        report_json = reportFile.Json,
                     };
-
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
                 }
@@ -201,17 +195,6 @@ namespace FWO.Middleware.Server
         private static DateTime RoundUp(DateTime dateTime, TimeSpan roundInterval)
         {
             return new DateTime((dateTime.Ticks + roundInterval.Ticks - 1) / roundInterval.Ticks * roundInterval.Ticks, dateTime.Kind);
-        }
-
-        class ReportData
-        {
-            public string Csv { get; set; }
-
-            public string Html { get; set; }
-
-            public byte[] Pdf { get; set; }
-
-            public string Json { get; set; }
         }
     }
 }

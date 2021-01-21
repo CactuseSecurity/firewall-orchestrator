@@ -12,22 +12,20 @@ namespace FWO.Report
 {
     public class ReportChanges : ReportBase
     {
-        public Management[] Managements { get; set; }
-
         public override async Task Generate(int changesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
             query.QueryVariables["limit"] = changesPerFetch;
             query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
-            base.Managements = new Management[0];
+            Managements = Array.Empty<Management>();
 
-            base.Managements = await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
+            Managements = await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
             while (gotNewObjects)
             {
                 query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = base.Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
-                await callback(base.Managements);
+                gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
+                await callback(Managements);
             }
         }
 
@@ -47,11 +45,6 @@ namespace FWO.Report
         }
 
         public override string ToHtml()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override string ToJson()
         {
             throw new NotImplementedException();
         }

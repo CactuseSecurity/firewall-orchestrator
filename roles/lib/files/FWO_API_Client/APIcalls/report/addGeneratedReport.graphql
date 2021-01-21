@@ -7,7 +7,7 @@
   $report_csv: String
   $report_html: String
   $report_json: json
-  $report_template_id: Int!
+  $report_template_id: Int
 ) {
     insert_report(
       objects: {

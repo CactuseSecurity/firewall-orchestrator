@@ -135,11 +135,7 @@
         // Tell api connection to use jwt as authentication
         ApiConnection.SetAuthHeader(jwt);
 
-        // Try to auth with jwt (validates it, gets roles, ...).
-        ((AuthStateProvider)AuthService).AuthenticateUser(jwt);
-
-        AuthenticationState authState = await authenticationStateTask;
-        await userConfig.SetUserInformation(authState.User.FindFirstValue("x-hasura-uuid"), ApiConnection);
-        userConfig.User.Jwt = jwt;
+        // Try to auth with jwt (validates it and creates user context on UI side).
+        await ((AuthStateProvider)AuthService).AuthenticateUser(jwt, userConfig, ApiConnection);
     }
 }

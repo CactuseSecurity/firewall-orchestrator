@@ -35,7 +35,6 @@ include: file:///etc/ldap/schema/nis.ldif
 dn: olcDatabase=config,cn=config
 objectClass: olcDatabaseConfig
 olcDatabase: config
-olcRootDN: {{ openldap_superuser_dn }}
 olcRootPW: {{ root_password.stdout }}
 olcAccess: to * by * none
 
@@ -46,8 +45,8 @@ objectClass: olcBdbConfig
 olcDatabase: bdb
 olcSuffix: {{ openldap_path }}
 olcDbDirectory: /var/lib/ldap/{{ openldap_server_domain_name }}/
-# olcRootDN: {{ openldap_superuser_dn }}
-# olcRootPW: {{ root_password.stdout }}
+olcRootDN: {{ openldap_superuser_dn }}
+olcRootPW: {{ root_password.stdout }}
 olcDbIndex: objectClass pres,eq
 olcDbIndex: ou,cn,mail,surname,givenname pres,eq,sub
 olcDbIndex: uidNumber,gidNumber,loginShell pres,eq

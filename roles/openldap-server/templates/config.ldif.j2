@@ -45,21 +45,3 @@ olcDbIndex: ou,cn,mail,surname,givenname pres,eq,sub
 olcDbIndex: uidNumber,gidNumber,loginShell pres,eq
 olcDbIndex: uid,memberUid pres,eq,sub
 olcDbIndex: nisMapName,nisMapEntry pres,eq,sub
-
-{% if second_ldap | bool -%}
-# add sample database
-dn: olcDatabase=bdb,cn=config
-objectClass: olcDatabaseConfig
-objectClass: olcBdbConfig
-olcDatabase: bdb
-olcSuffix: {{ sample_ldap_path }}
-olcDbDirectory: /var/lib/ldap/{{ sample_ldap_domain_name }}/
-olcRootDN: cn=Manager,{{ sample_ldap_path }}
-olcDbIndex: objectClass eq
-olcAccess: to *
-    by * write
-    by * auth
-    by * read
-
-{%- endif %}
-

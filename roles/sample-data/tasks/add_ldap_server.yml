@@ -7,6 +7,9 @@
     - ../templates/*.j2
   become: yes
 
+- name: add second database
+  command: "ldapmodify -Y EXTERNAL -H {{ openldap_url }} -f /tmp/{{ item }}.ldif"
+
 - name: enhance ldap with ldif files
   command: "ldapmodify -H {{ openldap_url }} -x -f /tmp/{{ item }}.ldif"
   loop:

@@ -23,10 +23,12 @@
     - ../templates/*.j2
   become: yes
 
-- name: enhance ldap with ldif files
-  command: "ldapmodify -H {{ openldap_url }} -D cn=config -w {{ ldap_manager_pwd }} -x -f /tmp/{{ item }}.ldif"
+- name: add new sample database to ldap
+  command: "ldapmodify -H {{ openldap_url }} -D cn=config -w {{ ldap_manager_pwd }} -x -f /tmp/second_db.ldif"
+
+- name: enhance sample ldap with test users and groups
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f /tmp/{{ item }}.ldif"
   loop:
-    - second_db
     - ext_role
     - ext_user
     - ext_roles

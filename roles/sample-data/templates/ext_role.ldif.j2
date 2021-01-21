@@ -1,3 +1,10 @@
+dn: {{ sample_ldap_path }}
+changetype: add
+objectClass: dcObject
+objectClass: organization
+o: root of example.com
+
+
 dn: ou=user,{{ sample_ldap_path }}
 changetype: add
 objectClass: top

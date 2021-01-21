@@ -8,7 +8,7 @@ query getTenants {
     tenant_is_superadmin
     tenant_to_devices {
       device {
-        dev_id
+        id: dev_id
         name: dev_name
       }
     }

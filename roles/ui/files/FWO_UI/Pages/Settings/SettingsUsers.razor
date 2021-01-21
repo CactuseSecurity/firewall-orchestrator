@@ -255,8 +255,7 @@
         sampleUsers = new List<UiUser>();
         foreach (var user in uiUsers)
         {
-            // todo: define better criteria for sample data
-            if (user.Name.Contains("fritz"))
+            if (user.Name.EndsWith("_demo"))
             {
                 sampleUsers.Add(user);
             }
@@ -472,7 +471,7 @@
         }
         else
         {
-            sampleRemoveMessage = $"Deletes all sample users in local LDAP.";
+            sampleRemoveMessage = $"Deletes all sample users (ending with '_demo') in local LDAP.";
             SampleRemoveAllowed = true;
         }
         SampleRemoveMode = true;

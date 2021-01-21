@@ -537,8 +537,10 @@
                     StateHasChanged();
                     return;
                 }
-                query = Compiler.Compile(filterInput);  // recompile after reading device filter
             }
+            else
+                filterInput = removeDeviceFilterPart(filterInput);
+            query = Compiler.Compile(filterInput);  // recompile after reading device filter
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
             switch (query.ReportType)

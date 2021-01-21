@@ -216,6 +216,7 @@
                 };
                 actDevice.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds[0].NewId;
                 devices.Add(actDevice);
+                await addDeviceToTenant0(actDevice.Id);
                 AddMode = false;
                 EditMode = false;
             }
@@ -246,6 +247,19 @@
         {
             DisplayMessageInUi(exception,"Error while saving gateway",exception.Message,true);
         }
+    }
+
+    private async Task addDeviceToTenant0(int deviceId)
+    {
+        try
+        {
+            var Variables = new { tenantId = 1, deviceId = deviceId };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "Add device to tenant0", "Unexpected error occured", false);
+        }          
     }
 
     private void Cancel()

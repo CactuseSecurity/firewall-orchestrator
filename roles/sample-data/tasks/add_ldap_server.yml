@@ -4,7 +4,7 @@
     src: "{{ item }}"
     dest: "/tmp/{{ item | basename | regex_replace('\\.j2$', '') }}"
   with_fileglob:
-    - ../templates/ldif_files/*.j2
+    - ../templates/*.j2
   become: yes
 
 - name: enhance ldap with ldif files

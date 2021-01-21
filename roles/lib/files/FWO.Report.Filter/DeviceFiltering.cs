@@ -5,7 +5,7 @@ namespace FWO.Report.Filter
 {
     public class DeviceFilter
     {
-        public static bool areAllDevicesSeclected(ref Management[] managements)
+        public static bool areAllDevicesSeclected(Management[] managements)
         {
             foreach (Management management in managements)
                 if (management != null)
@@ -16,7 +16,7 @@ namespace FWO.Report.Filter
             return true;
         }
 
-        public static bool isAnyDeviceFilterSet(ref Management[] managements, DynGraphqlQuery query)
+        public static bool isAnyDeviceFilterSet(Management[] managements, DynGraphqlQuery query)
         {
             foreach (Management management in managements)
                 if (management != null)
@@ -30,7 +30,7 @@ namespace FWO.Report.Filter
             return false;
         }
 
-        public static void fullDeviceSelection(ref Management[] managements, ref bool fullDeviceSelectionState, out string selectButtonText)
+        public static bool fullDeviceSelection(Management[] managements, bool fullDeviceSelectionState, out string selectButtonText)
         {
             fullDeviceSelectionState = !fullDeviceSelectionState;
             if (fullDeviceSelectionState)
@@ -48,6 +48,7 @@ namespace FWO.Report.Filter
                     }
                 }
             }
+            return fullDeviceSelectionState;
         }
 
         public static string cleanFilter(string filter)
@@ -62,10 +63,10 @@ namespace FWO.Report.Filter
             return filter;
         }
 
-        public static string replaceDeviceFilter(string currentInputFilter, ref Management[] managements, DynGraphqlQuery query)
+        public static string replaceDeviceFilter(string currentInputFilter, Management[] managements, DynGraphqlQuery query)
         {
             // remove old device filter part from currentInputFilter and add the new device filter from management.devices
-            string filter = removeDeviceFilterPart(currentInputFilter).TrimEnd() + deviceFilterToString(ref managements, query);
+            string filter = removeDeviceFilterPart(currentInputFilter).TrimEnd() + deviceFilterToString(managements, query);
 
             // if the filter line (without device filter) is empty, get rid of the leading "and" of the device filter
             return cleanFilter(filter);
@@ -86,10 +87,10 @@ namespace FWO.Report.Filter
             return cleanFilter(filter);
         }
 
-        public static String deviceFilterToString(ref Management[] managements, DynGraphqlQuery query)
+        public static String deviceFilterToString(Management[] managements, DynGraphqlQuery query)
         {
             string deviceFilter = "";
-            if (isAnyDeviceFilterSet(ref managements, query))
+            if (isAnyDeviceFilterSet(managements, query))
             {
                 deviceFilter = " and (";
                 foreach (Management management in managements)

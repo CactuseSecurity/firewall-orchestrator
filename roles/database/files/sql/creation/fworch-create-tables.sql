@@ -872,7 +872,7 @@ Create table "report"
 	"report_start_time" Timestamp,
 	"report_end_time" Timestamp,
 	"report_json" json NOT NULL,
-	"report_pdf" bytea,
+	"report_pdf" text,
 	"report_csv" text,
 	"report_html" text,
 	"report_name" varchar NOT NULL,

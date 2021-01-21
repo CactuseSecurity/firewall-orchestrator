@@ -1,0 +1,12 @@
+dn: ou=user,dc=example,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: user
+
+
+dn: ou=role,dc=example,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: role

@@ -1,0 +1,106 @@
+---
+
+- block:
+  - name: Create the directory for ldap database
+    file:
+      path: "/var/lib/ldap/{{ openldap_server_domain_name }}/"
+      state: directory
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  - name: delete the directory for ldap certificates
+    file:
+      state: absent
+      path: "{{ openldap_server_app_path }}/certs/"
+    when: generate_new_ldap_crypto == true
+
+  - name: Create the directory for ldap certificates
+    file:
+      path: "{{ openldap_server_app_path }}/certs/"
+      state: directory
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  - name: Generate an OpenSSL private key
+    openssl_privatekey:
+      path: "{{ openldap_server_private_key }}"
+      size: 3072
+      type: RSA
+
+  - name: Generate an OpenSSL Certificate Signing Request with Subject information
+    openssl_csr:
+      path: "{{ openldap_server_csr }}"
+      privatekey_path: "{{ openldap_server_private_key }}"
+      country_name: "{{ openldap_server_country }}"
+      state_or_province_name: "{{ openldap_server_state }}"
+      locality_name: "{{ openldap_server_location }}"
+      organization_name: "{{ openldap_server_organization }}"
+      #email_address: "{{ email_address }}"
+      common_name: "{{ ansible_hostname }}"
+
+  - name: Generate a self signed OpenSSL Certificate
+    openssl_certificate:
+      path: "{{ openldap_server_cert }}"
+      privatekey_path: "{{ openldap_server_private_key }}"
+      csr_path: "{{ openldap_server_csr }}"
+      provider: selfsigned
+
+  - name: set permissions on key
+    file:
+      path: "{{ openldap_server_private_key }}"
+      state: file
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  - name: set permissions on cert
+    file:
+      path: "{{ openldap_server_cert }}"
+      state: file
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  - name: copy the supporting files
+    copy:
+      src: ldap
+      dest: /etc/sysconfig/ldap
+      mode: "0755"
+    when: openldap_server_enable_ssl and ansible_os_family == 'RedHat'
+    notify:
+    - restart slapd
+
+  - name: copy the supporting files
+    copy:
+      src: slapd_fedora
+      dest: /etc/sysconfig/slapd
+      mode: "0755"
+    when: openldap_server_enable_ssl and ansible_distribution == "Fedora"
+    notify:
+    - restart slapd
+
+  - name: copy the supporting files
+    copy:
+      src: slapd
+      dest: /etc/default/slapd
+      mode: "0755"
+    when: openldap_server_enable_ssl and ansible_os_family == 'Debian'
+    notify:
+    - restart slapd
+
+  - name: start the slapd service
+    service:
+      name: slapd
+      state: restarted
+      enabled: yes
+
+  - name: Copy the template for creating base dn
+    template:
+      src: "{{ openldap_server_ldif }}.j2"
+      dest: /tmp/{{ openldap_server_ldif }}
+
+  - name: add the base domain
+    shell: "ldapadd -x -D \"{{ middleware_ldap_superuser_name }}\" -w {{ openldap_server_random_rootpw }} -f /tmp/{{ openldap_server_ldif }} && touch {{ openldap_server_app_path }}/rootdn_created"
+    args:
+      creates: "{{ openldap_server_app_path }}/rootdn_created"
+    when: not is_manger_pw_present_flag.stat.exists
+
+  become: yes

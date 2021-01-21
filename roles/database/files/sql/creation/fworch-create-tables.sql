@@ -886,7 +886,7 @@ Create table if not exists "report_schedule"
 	"report_schedule_id" BIGSERIAL,
 	"report_schedule_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
 	"report_template_id" Integer, --FK
-	"report_schedule_owner" Integer, --FK
+	"report_schedule_owner" Integer NOT NULL, --FK
 	"report_schedule_start_time" Timestamp NOT NULL,  -- if day is bigger than 28, simply use the 1st of the next month, 00:00 am
 	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 1 daily, 2 weekly, 3 monthly, 4 yearly 
 	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years

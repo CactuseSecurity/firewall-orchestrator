@@ -8,9 +8,8 @@
   become: yes
 
 - name: enhance ldap with ldif files
-  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f /tmp/{{ item }}.ldif"
+  command: "ldapmodify -H {{ openldap_url }} -x -f /tmp/{{ item }}.ldif"
   loop:
-    - second_db
     - ext_role
     - ext_user
     - ext_roles

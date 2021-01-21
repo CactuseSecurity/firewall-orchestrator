@@ -1,11 +1,11 @@
-dn: ou=user,dc=example,dc=com
+dn: ou=user,{{ sample_ldap_path }}
 changetype: add
 objectClass: top
 objectClass: organizationalUnit
 ou: user
 
 
-dn: ou=role,dc=example,dc=com
+dn: ou=role,{{ sample_ldap_path }}
 changetype: add
 objectClass: top
 objectClass: organizationalUnit

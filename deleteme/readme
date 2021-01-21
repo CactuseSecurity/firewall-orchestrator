@@ -1,8 +1,0 @@
-change the following vars in roles/openldap-server/defaults/main.yml
-1. fworch_home
-2. fworch_user
-3. with_sample_users
-
-then install with
-ansible-playbook ldap-playbook.yml -K
-

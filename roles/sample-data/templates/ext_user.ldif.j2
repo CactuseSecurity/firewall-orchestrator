@@ -1,4 +1,4 @@
-dn: uid=anke,ou=user,dc=example,dc=com
+dn: uid=anke,ou=user,{{ sample_ldap_path }}
 changetype: add
 objectClass: top
 objectClass: inetorgperson
@@ -6,7 +6,7 @@ cn: anke
 sn: a
 
 
-dn: uid=berta,ou=user,dc=example,dc=com
+dn: uid=berta,ou=user,{{ sample_ldap_path }}
 changetype: add
 objectClass: top
 objectClass: inetorgperson
@@ -14,7 +14,7 @@ cn: berta
 sn: b
 
 
-dn: uid=cloe,ou=user,dc=example,dc=com
+dn: uid=cloe,ou=user,{{ sample_ldap_path }}
 changetype: add
 objectClass: top
 objectClass: inetorgperson

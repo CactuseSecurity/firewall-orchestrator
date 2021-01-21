@@ -1,4 +1,4 @@
-dn: cn=A,ou=role,dc=example,dc=com
+dn: cn=A,ou=role,{{ sample_ldap_path }}
 changetype: add
 objectClass: top
 objectClass: groupofuniquenames
@@ -7,7 +7,7 @@ uniqueMember:
 description: des A
 
 
-dn: cn=B,ou=role,dc=example,dc=com
+dn: cn=B,ou=role,{{ sample_ldap_path }}
 changetype: add
 objectClass: top
 objectClass: groupofuniquenames

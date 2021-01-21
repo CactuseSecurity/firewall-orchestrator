@@ -1,28 +1,7 @@
 version: 2
 
 updates:
-    # - package_ecosystem: "nuget"
-    #   directory: "lib"
-    #   schedule:
-    #     interval: "weekly"
-
-    # - package_ecosystem: "nuget"
-    #   directory: "auth"
-    #     - ui
-    #   schedule:
-    #     interval: "weekly"
-
-    - package_ecosystem: "nuget"
-      directory: "ui"
-      schedule:
-        interval: "weekly"
-
-    # - package_ecosystem: "pip"
-    #   directory: "api"
-    #   schedule:
-    #     interval: "weekly"
-
-    # - package_ecosystem: "docker"
-    #   directory: "api"
-    #   schedule:
-    #     interval: "weekly"
+  - package-ecosystem: "nuget"
+    directory: "/roles/"
+    schedule:
+      interval: "daily"

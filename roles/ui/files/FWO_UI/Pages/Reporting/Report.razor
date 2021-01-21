@@ -854,7 +854,7 @@
                         report_end_time = DateTime.Now,
                         report_owner_id = reportExportFile.OwnerId,
                         report_csv = reportExportFile.Csv,
-                        report_pdf = Convert.FromBase64String(reportExportFile.Pdf),
+                        report_pdf = reportExportFile.Pdf,
                         report_html = reportExportFile.Html,
                         report_json = reportExportFile.Json,
                     };

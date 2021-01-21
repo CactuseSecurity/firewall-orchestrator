@@ -177,7 +177,7 @@ namespace FWO.Middleware.Server
                         report_end_time = reportFile.GenerationDateEnd,
                         report_owner_id = reportFile.OwnerId,
                         report_template_id = reportFile.TemplateId,
-                        report_pdf = Convert.FromBase64String(reportFile.Pdf),
+                        report_pdf = reportFile.Pdf,
                         report_csv = reportFile.Csv,
                         report_html = reportFile.Html,
                         report_json = reportFile.Json,

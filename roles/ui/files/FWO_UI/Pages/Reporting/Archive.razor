@@ -18,7 +18,7 @@
     <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
     <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
     @*<Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" /> TODO: ADD TYPE*@
-    @*<Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" />*@
+    @*<Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" /> TODO: Template (is not always defined - report export)*@
     <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner.Name)" />
 
 </Table>
@@ -43,7 +43,7 @@
             }
             @if (reportFileContext?.Pdf != null)
             {
-                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Pdf))))"
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportFileContext.Pdf)"
                    target="_blank" download="@(reportFileContext.Name).@("pdf")">Download as PDF</a>
             }
             @if (reportFileContext?.Html != null)

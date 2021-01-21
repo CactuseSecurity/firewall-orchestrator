@@ -1,0 +1,37 @@
+---
+- name: create etc dir
+  file:
+    path: "{{ fworch_home }}/etc"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
+    mode: '0755'
+  become: yes
+
+- name: create dir for passwords
+  file:
+    path: "{{ fworch_home }}/etc/secrets"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_user }}"
+    mode: '0700'
+  become: yes
+
+- include: install_ldap.yml
+- include: configure_ldap.yml
+
+- name: copy ldif files to system
+  copy:
+    src: ldif
+    dest: /tmp
+  when: with_sample_users == 'yes'
+
+- name: add example ldap structure
+  command: "ldapmodify -D {{ middleware_ldap_superuser_name }} -y {{ fworch_home }}/etc/secrets/ldap_manager_pw.txt -x -f /tmp/ldif/{{ item }}"
+  when: with_sample_users == 'yes'
+  with_items:
+    - ext_role.ldif
+    - ext_user.ldif
+    - ext_roles.ldif
+    - ext_add_user.ldif
+

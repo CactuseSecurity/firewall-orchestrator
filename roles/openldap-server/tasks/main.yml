@@ -50,7 +50,7 @@
     debug:
       var: root_password.stdout_lines
 
-# TLS
+### TLS
   - name: Delete the directory for ldap certificates
     file:
       state: absent
@@ -148,6 +148,7 @@
       recurse: yes
       owner: openldap
 
+### systemctl
   - name: Create dir to enable TLS for slapd service
     file:
       path: /etc/systemd/system/slapd.service.d

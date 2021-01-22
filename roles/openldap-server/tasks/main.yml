@@ -1,7 +1,4 @@
 ---
-#- include: install_ldap.yml
-#- include: configure_ldap.yml
-
 - block:
 ### OS basics
   - name: Add the OS specific varibles
@@ -155,18 +152,17 @@
     pause:
       minutes: 30
 
-# Todo for TLS:
-# Edit slapd.service to listen on port 636
-# systemctl edit slapd.service
-    #
-    #[Service]
-    #ExecStart=
-    #ExecStart=/usr/sbin/slapd -u openldap -g openldap -h "ldap://127.0.0.1 ldaps:///"
+  - name: Create dir to enable TLS for slapd service
+    file:
+      path: /etc/systemd/system/slapd.service.d
+      recurse: yes
 
-# This makes ldap listen on 389 for localhost and on 636
-# Then change {{openldap_url}} to ldaps:/
+  - name: Enable TLS for slapd service
+    template:
+      src: override.conf.j2
+      dest: /etc/systemd/system/slapd.service.d/override.conf
 
-  - name: start the slapd service
+  - name: Start the slapd service
     service:
       name: slapd
       state: restarted

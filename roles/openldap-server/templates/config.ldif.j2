@@ -52,3 +52,36 @@ olcDbIndex: ou,cn,mail,surname,givenname pres,eq,sub
 olcDbIndex: uidNumber,gidNumber,loginShell pres,eq
 olcDbIndex: uid,memberUid pres,eq,sub
 olcDbIndex: nisMapName,nisMapEntry pres,eq,sub
+olcAccess: to attrs=userPassword
+    by self write
+    by anonymous auth
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" read
+    by * none
+olcAccess: to attrs=userPassword
+    by self write
+    by anonymous auth
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" read
+    by * none
+olcAccess: to attrs=shadowLastChange
+    by self write
+    by * read
+olcAccess: to dn.children="{{ openldap_std_role_dn }}"
+    by dn.base="{{ openldap_writer_dn }}" write
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by * none
+olcAccess: to dn.children="{{ openldap_std_user_dn }}"
+    by dn.base="{{ openldap_writer_dn }}" write
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by * none
+olcAccess: to *
+    by self write
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" read
+    by * none

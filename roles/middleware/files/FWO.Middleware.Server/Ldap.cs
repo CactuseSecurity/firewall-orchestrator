@@ -1,12 +1,11 @@
-﻿using FWO.Middleware.Server.Data;
-using FWO.Logging;
+﻿using FWO.Logging;
 using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
-
+using FWO.Api.Data;
 
 namespace FWO.Middleware.Server
 {
@@ -79,7 +78,7 @@ namespace FWO.Middleware.Server
             return (WriteUser != null && WriteUser != "");
         }
 
-        public string ValidateUser(User user)
+        public string ValidateUser(UiUser user)
         {
             Log.WriteInfo("User Validation", $"Validating User: \"{user.Name}\" ...");
             try         
@@ -380,6 +379,17 @@ namespace FWO.Middleware.Server
         {
             Log.WriteInfo("Remove User from Role", $"Trying to remove User: \"{userDn}\" from Role: \"{role}\"");
             return ModifyUserInRole(userDn, role, LdapModification.Delete);
+        }
+
+        public bool RemoveUserFromAllRoles(string userDn)
+        {
+            string[] roles = GetRoles(userDn);
+            bool allRemoved = true;
+            foreach(var role in roles)
+            {
+                allRemoved &= RemoveUserFromRole(userDn, $"cn={role},{RoleSearchPath}");
+            }
+            return allRemoved;
         }
 
         public bool ModifyUserInRole(string userDn, string role, int LdapModification)

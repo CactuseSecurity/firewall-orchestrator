@@ -52,3 +52,21 @@ adding first compliance report template (any rules)
 
 ### 5.1.06 - 10.01.2021
 adding report template format fk and permissions
+
+### 5.1.07 - 14.01.2021
+- adding https reverse proxy in front of middleware server
+- removing column report.report_filetype which has been replaced with relation report_schedule_format and extra fields report_json, report_pdf, report_csv, report_html
+- adding report_schedule_repetitions
+
+### 5.1.08 - 18.01.2021
+- removing report table columns which are not needed:
+  - start_import_id
+  - stop_import_id
+  - report_generation_time
+
+### 5.1.09 - 20.01.2021
+- report_template fixes
+  - default templates get report_template_owner id=0 instead of null
+  - fixing template edit/delete buttons
+  - changing report.report_pdf type from bytea to TEXT
+  

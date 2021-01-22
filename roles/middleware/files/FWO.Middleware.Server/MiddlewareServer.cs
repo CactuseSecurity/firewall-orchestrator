@@ -7,24 +7,24 @@ using System.Net;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
-using FWO.Middleware.Server.Data;
 using FWO.Middleware.Server.Requests;
 using FWO.Config;
 using FWO.Logging;
+using FWO.Report;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading;
 using FWO.Middleware.Client;
-//using Microsoft.AspNetCore.Components.Authorization;
 
 namespace FWO.Middleware.Server
 {
     public class MiddlewareServer
     {
-        private readonly string middlewareServerUri;
+        private readonly string middlewareServerNativeUri;
         private readonly HttpListener listener;
         private const int maxConnectionsCount = 1000;
 
+        private ApiSubscription<List<Ldap>> connectedLdapsSubscription;
         private List<Ldap> connectedLdaps;
 
         private readonly object changesLock = new object(); // LOCK
@@ -37,15 +37,22 @@ namespace FWO.Middleware.Server
 
         private readonly string apiUri;
 
+        private ReportScheduler reportScheduler;
+
         public MiddlewareServer()
         {
             config = new ConfigFile();
             apiUri = config.ApiServerUri;
             privateJWTKey = config.JwtPrivateKey;
-            middlewareServerUri = config.MiddlewareServerUri;
+            middlewareServerNativeUri = config.MiddlewareServerNativeUri;
+
+            string uriToCall = middlewareServerNativeUri;
+            if (middlewareServerNativeUri[middlewareServerNativeUri.Length - 1] != '/')
+                uriToCall += "/";
 
             // Create Http Listener
             listener = new HttpListener();
+
 
             // Handle timeouts
             //HttpListenerTimeoutManager timeoutManager = listener.TimeoutManager;
@@ -61,11 +68,19 @@ namespace FWO.Middleware.Server
             APIConnection apiConn = GetNewApiConnection(GetNewSelfSignedJwt(jwtWriter));
 
             // Fetch all connectedLdaps via API (blocking).
-            connectedLdaps = apiConn.SendQueryAsync<Ldap[]>(AuthQueries.getLdapConnections).Result.ToList();
+            connectedLdaps = apiConn.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
+            connectedLdapsSubscription = apiConn.GetSubscription<List<Ldap>>(HandleSubscriptionException, AuthQueries.getLdapConnectionsSubscription);
+            connectedLdapsSubscription.OnUpdate += ConnectedLdapsSubscriptionUpdate;
             Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
 
+            // Create and start report scheduler
+            Task.Factory.StartNew(() =>
+            {
+                reportScheduler = new ReportScheduler(apiConn, jwtWriter, connectedLdapsSubscription);
+            }, TaskCreationOptions.LongRunning);
+
             // Start Http Listener, todo: move to https
-            RunListenerAsync(middlewareServerUri).Wait();
+            RunListenerAsync(uriToCall).Wait();
         }
 
         private async Task RunListenerAsync(string middlewareListenerUri)
@@ -82,7 +97,11 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "DeleteUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
+                listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromAllRoles/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddReportSchedule/");
+                listener.Prefixes.Add(middlewareListenerUri + "EditReportSchedule/");
+                listener.Prefixes.Add(middlewareListenerUri + "DeleteReportSchedule/");
                 listener.Prefixes.Add(middlewareListenerUri + "Test/"); // TODO: REMOVE TEST PREFIX
             }
             catch (Exception exception)
@@ -168,8 +187,6 @@ namespace FWO.Middleware.Server
                 CreateInitialJWTRequestHandler createInitialJWTRequestHandler = new CreateInitialJWTRequestHandler(jwtWriterCopy);
 
                 (status, responseString) = await createInitialJWTRequestHandler.HandleRequestAsync(request);
-
-
             }
             else
             {
@@ -253,15 +270,23 @@ namespace FWO.Middleware.Server
                                     (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
                                     break;
 
-                                case "AddLdap":
-                                    lock (changesLock)
-                                    {
-                                        // Initilaize Request Handler
-                                        AddLdapRequestHandler addLdapRequestHandler = new AddLdapRequestHandler(apiUri, ref connectedLdaps);
+                                //case "AddLdap":
+                                //    lock (changesLock)
+                                //    {
+                                //        // Initilaize Request Handler
+                                //        AddLdapRequestHandler addLdapRequestHandler = new AddLdapRequestHandler(apiUri, ref connectedLdaps);
+                                //        // Try to add new ldap connection
+                                //        (status, responseString) = addLdapRequestHandler.HandleRequestAsync(request).Result;
+                                //    }
+                                //    break;
 
-                                        // Try to add new ldap connection
-                                        (status, responseString) = addLdapRequestHandler.HandleRequestAsync(request).Result;
-                                    }
+                                case "RemoveUserFromAllRoles":
+
+                                    // Initialize Request Handler  
+                                    RemoveUserFromAllRolesRequestHandler removeUserFromAllRolesRequestHandler = new RemoveUserFromAllRolesRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to remove user from all roles
+                                    (status, responseString) = await removeUserFromAllRolesRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 // TODO: REMOVE TEST PREFIX
@@ -325,6 +350,19 @@ namespace FWO.Middleware.Server
         private APIConnection GetNewApiConnection(string jwt)
         {
             return new APIConnection(apiUri, jwt);
+        }
+
+        private void HandleSubscriptionException(Exception exception)
+        {
+            Log.WriteError("Subscription", "Subscription lead to exception.", exception);
+        }
+
+        private void ConnectedLdapsSubscriptionUpdate(List<Ldap> ldapsChanges)
+        {
+            lock (changesLock)
+            {
+                connectedLdaps = ldapsChanges;
+            }
         }
     }
 }

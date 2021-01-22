@@ -1,49 +1,49 @@
 
 # These are test users with plain text passwords
 
-dn: uid=fritz,ou=tenant1,ou=operator,ou=user,{{ openldap_path }}
+dn: uid=user1_demo,ou=tenant1,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
-cn: fritz
-givenName: Fritz
+cn: user1_demo
+givenName: user1_demo
 sn: Gelb
-userPassword: fritz1
+userPassword: cactus1
 {%- endif %}
 
 
-dn: uid=helga,ou=tenant1,ou=operator,ou=user,{{ openldap_path }}
+dn: uid=user2_demo,ou=tenant1,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
-cn: helga
-givenName: Helga
+cn: user2_demo
+givenName: user2_demo
 sn: Gelb
-userPassword: helga1
+userPassword: cactus1
 {%- endif %}
 
 
-dn: uid=fritz,ou=tenant2,ou=operator,ou=user,{{ openldap_path }}
+dn: uid=user1_demo,ou=tenant2,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
-cn: fritz
-givenName: Fritz
+cn: user1_demo
+givenName: user1_demo
 sn: Gelb
-userPassword: fritz2
+userPassword: cactus2
 {%- endif %}
 
 
-dn: uid=helga,ou=tenant2,ou=operator,ou=user,{{ openldap_path }}
+dn: uid=user2_demo,ou=tenant2,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
-cn: helga
-givenName: Helga
+cn: user2_demo
+givenName: user2_demo
 sn: Rot
-userPassword: helga2
+userPassword: cactus2
 {%- endif %}

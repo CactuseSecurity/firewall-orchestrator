@@ -31,7 +31,10 @@
   import_tasks: setup-config-changes.yml
 
 # - name: restart importing sample configs
-#   command: "/etc/init.d/{{ product_name }}-importer restart"
+#   #command: "/etc/init.d/{{ product_name }}-importer restart"
+#   ansible.builtin.systemd:
+#     name: "{{ product_name }}-importer"
+#     state: restarted
 #   become: yes
 
 - name: add second ldap database

@@ -28,4 +28,5 @@
     regexp: "product_version:"
     line: "product_version: {{ product_version }}"
   when: installation_mode == "upgrade"
+  
   become: yes

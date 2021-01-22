@@ -37,20 +37,20 @@
                 </NavLink>
             </li>
             @* <li class="nav-item px-2">
-            <NavLink class="nav-link" href="#">
-                <span class="oi oi-book"></span> @(userConfig.Translate["documentation"])
-            </NavLink>
-        </li>
-        <li class="nav-item px-2">
-            <NavLink class="nav-link" href="#">
-                <span class="oi oi-comment-square"></span> @(userConfig.Translate["request"])
-            </NavLink>
-        </li> *@
+                    <NavLink class="nav-link" href="#">
+                        <span class="oi oi-book"></span> @(userConfig.Translate["documentation"])
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="#">
+                        <span class="oi oi-comment-square"></span> @(userConfig.Translate["request"])
+                    </NavLink>
+                </li> *@
         </ul>
 
         <ul class="navbar-nav">
             <li class="nav-item px-2">
-                <NavLink class="nav-link" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("newWindow", args: "/test-help"))">
+                <NavLink class="nav-link" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("newWindow", args: "/help"))">
                     <span class="oi oi-info"></span> @(userConfig.Translate["help"])
                 </NavLink>
             </li>
@@ -92,5 +92,8 @@
         collapseNavMenu = !collapseNavMenu;
     }
 
-    private async void OnChange(object _, EventArgs __) => await InvokeAsync(StateHasChanged);
+    private async Task OnChange(UserConfig _)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
 }

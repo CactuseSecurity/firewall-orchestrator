@@ -10,83 +10,77 @@
     <div class="m-2 mt-4">
         <ul class="navbar-nav flex-column">
             <AuthorizeView Roles="admin, importer">
-                <Authorized>
-                    <li class="nav-item px-2">
-                        <h5>Devices</h5>
-                    </li>
-                    <AuthorizeView Roles="admin">
-                        <Authorized Context="onlyAdmin">
-                            <li class="nav-item px-2">
-                                <NavLink class="nav-link" href="settings/managements">
-                                    Managements <span class="oi oi-inbox"></span>
-                                </NavLink>
-                            </li>
-                            <li class="nav-item px-2">
-                                <NavLink class="nav-link" href="settings/gateways">
-                                    Gateways <span class="oi oi-shield"></span>
-                                </NavLink>
-                            </li>
-                        </Authorized>
-                    </AuthorizeView>
-                        <li class="nav-item px-2">
-                            <NavLink class="nav-link" href="settings/import">
-                                Import <span class="oi oi-arrow-thick-bottom"></span>
-                            </NavLink>
-                        </li>
-                    <hr />
-                </Authorized>
+                <li class="nav-item px-2">
+                    <h5>Devices</h5>
+                </li>
             </AuthorizeView>
             <AuthorizeView Roles="admin">
-                <Authorized>
-                    <li class="nav-item px-2">
-                        <h5>Authorization</h5>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="settings/ldap">
-                            LDAP <span class="oi oi-key"></span>
-                        </NavLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="settings/tenants">
-                            Tenants <span class="oi oi-command"></span>
-                        </NavLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="settings/users">
-                            Users <span class="oi oi-people"></span>
-                        </NavLink>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="settings/roles">
-                            Roles <span class="oi oi-tags"></span>
-                        </NavLink>
-                    </li>
-                    <hr />
-                    <li class="nav-item px-2">
-                        <h5>Defaults</h5>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="settings/defaults">
-                            Defaults <span class="oi oi-cog"></span>
-                        </NavLink>
-                    </li>
-                    <hr />
-                </Authorized>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/managements">
+                        Managements <span class="oi oi-inbox"></span>
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/gateways">
+                        Gateways <span class="oi oi-shield"></span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+            <AuthorizeView Roles="admin, importer">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/import">
+                        Import <span class="oi oi-arrow-thick-bottom"></span>
+                    </NavLink>
+                </li>
+                <hr />
+            </AuthorizeView>
+            <AuthorizeView Roles="admin">
+                <li class="nav-item px-2">
+                    <h5>Authorization</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/ldap">
+                        LDAP <span class="oi oi-key"></span>
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/tenants">
+                        Tenants <span class="oi oi-command"></span>
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/users">
+                        Users <span class="oi oi-people"></span>
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/roles">
+                        Roles <span class="oi oi-tags"></span>
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2">
+                    <h5>Defaults</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/defaults">
+                        Defaults <span class="oi oi-cog"></span>
+                    </NavLink>
+                </li>
+                <hr />
             </AuthorizeView>
             <AuthorizeView Roles="admin, reporter, reporter-viewall, workflow-user, workflow-admin">
-                <Authorized>
-                    <li class="nav-item px-2">
-                        <h5>Personal</h5>
-                    </li>
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="settings/language">
-                            Language <span class="oi oi-comment-square"></span>
-                        </NavLink>
-                        <NavLink class="nav-link" href="settings/report">
-                            Reporting <span class="oi oi-list"></span>
-                        </NavLink>
-                    </li>
-                </Authorized>
+                <li class="nav-item px-2">
+                    <h5>Personal</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/language">
+                        Language <span class="oi oi-comment-square"></span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="settings/report">
+                        Reporting <span class="oi oi-list"></span>
+                    </NavLink>
+                </li>
             </AuthorizeView>
         </ul>
     </div>

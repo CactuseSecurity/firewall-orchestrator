@@ -69,8 +69,6 @@ namespace FWO.Ui
             
             services.AddScoped<UserConfig>(_ => new UserConfig(globalConfig));
 
-            services.AddScoped<DownloadManagerService>(_ => new DownloadManagerService());
-
             services.AddBlazorTable();
         }
 

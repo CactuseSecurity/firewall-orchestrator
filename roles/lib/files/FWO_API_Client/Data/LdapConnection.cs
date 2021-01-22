@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
-    public class LdapConnection
+    public class UiLdapConnection
     {
         [JsonPropertyName("ldap_connection_id")]
         public int Id { get; set; }
@@ -49,11 +49,11 @@ namespace FWO.Api.Data
             get => TenantId?.ToString()?? "null";
             set => TenantId = value == "null" ? null :(int?)int.Parse(value);
         }
-        
-        public LdapConnection()
+
+        public UiLdapConnection()
         {}
-        
-        public LdapConnection(LdapConnection ldapConnection)
+
+        public UiLdapConnection(UiLdapConnection ldapConnection)
         {
             Id = ldapConnection.Id;
             Address = ldapConnection.Address;
@@ -73,6 +73,5 @@ namespace FWO.Api.Data
         {
             return Address + ":" + Port;
         }
-
     }
 }

@@ -1,8 +1,10 @@
 ﻿@using BlazorTable
+@using System.Linq
 @using FWO.Api.Data
 @using FWO.ApiClient
 
 @page "/settings/tenants"
+@attribute [Authorize(Roles = "admin")]
 
 @inject APIConnection apiConnection
 
@@ -10,15 +12,28 @@
 <hr />
 
 <div class="m-2">
-    <Table class="table table-bordered table-responsive" TableItem="Tenant" Items="tenants" PageSize="0"
-        ColumnReorder="true">
+    <Table class="table table-bordered table-responsive" TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Tenant" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    @if (context.Id != 1)
+                    {
+                        <button class="btn btn-sm btn-success" @onclick="() => Add(context)">Add Gateway</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Delete Gateway</button>
+                    }
+                    else
+                    {
+                        <label class="m-2">(linked to all gateways)</label>
+                    }
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="Tenant" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="Tenant" Title="Comment" Field="@(x => x.Comment)" Sortable="true" Filterable="true" />
         <Column TableItem="Tenant" Title="Project" Field="@(x => x.Project)" Sortable="true" Filterable="true" />
-        <Column TableItem="Tenant" Title="View All Devices" Field="@(x => x.ViewAllDevices)" Sortable="true"
-            Filterable="true" />
+        <Column TableItem="Tenant" Title="View All Devices" Field="@(x => x.ViewAllDevices)" Sortable="true" Filterable="true" />
         <Column TableItem="Tenant" Title="Superadmin" Field="@(x => x.Superadmin)" Sortable="true" Filterable="true" />
-        <Column TableItem="Tenant" Title="Devices" Field="@(x => x.TenantDevices)" Sortable="false" Filterable="false">
+        <Column TableItem="Tenant" Title="Gateways" Field="@(x => x.TenantDevices)" Sortable="false" Filterable="false">
             <Template>
                 @(context.DeviceList())
             </Template>
@@ -27,23 +42,142 @@
     </Table>
 </div>
 
+<PopUp Title="@($"Add gateway to tenant {actTenant.Name}")" Show="@AddMode" Large="true" OnClose="() => AddMode = false">
+    <Body>
+        @if (AddMode)
+        {
+            <form>
+                <form class="form-inline">
+                    <label for="tenantDevice" class="col-sm-2 col-form-label col-form-label-sm">Gateways:</label>
+                    <div class="col-sm-8">
+                        <select id="tenantDevice" class="form-control form-control-sm" @bind="selectedDevice">
+                            @foreach (Device device in remainingDevices)
+                            {
+                                <option value="@device.Id">@(device.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </form>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-success" @onclick="() => AddDevice(selectedDevice)" @onclick:preventDefault>Add</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@($"Delete gateway from tenant {actTenant.Name}")" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+    <Body>
+        @if (DeleteMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="tenantDeviceDel" class="col-sm-3 col-form-label col-form-label-sm">Gateway:</label>
+                    <div class="col-sm-8">
+                        <select id="tenantDeviceDel" class="form-control form-control-sm" @bind="selectedDevice">
+                            @foreach (var device in actTenant.TenantDevices)
+                            {
+                                <option value="@device.VisibleDevice.Id">@(device.VisibleDevice.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteDevice(selectedDevice)" @onclick:preventDefault>Delete</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
 
 @code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
     private List<Tenant> tenants = new List<Tenant>();
+    private List<Device> devices = new List<Device>();
+    private List<Device> remainingDevices = new List<Device>();
+
+    private Tenant actTenant = new Tenant();
+    private int selectedDevice;
+
+    private bool AddMode = false;
+    private bool DeleteMode = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
+            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception,null,null,true);
+            DisplayMessageInUi(exception, "get tenant data", "error getting tenant data", false);
         }
+    }
+
+    private void Add(Tenant tenant)
+    {
+        actTenant = tenant;
+        remainingDevices = devices.FindAll(x => !Array.Exists(actTenant.TenantDevices, y => y.VisibleDevice.Id == x.Id));
+        AddMode = true;
+    }
+
+    private void Delete(Tenant tenant)
+    {
+        DeleteMode = true;
+        actTenant = tenant;
+    }
+
+    private async Task AddDevice(int deviceId)
+    {
+        try
+        {
+            var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
+            int newId = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables)).ReturnIds[0].NewId;
+            if (newId == deviceId)
+            {
+                Device newDevice = new Device() { Id = deviceId, Name = devices.Find(x => x.Id == deviceId).Name };
+                actTenant.TenantDevices = actTenant.TenantDevices.Append(new TenantDevice() { VisibleDevice = newDevice }).ToArray();
+                AddMode = false;
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "Add device to tenant", "Unexpected error occured", false);
+        }
+    }
+
+    private async Task DeleteDevice(int deviceId)
+    {
+        try
+        {
+            var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteDeviceFromTenant, Variables)).DeletedId;
+            if (delId == deviceId)
+            {
+                actTenant.TenantDevices = actTenant.TenantDevices.Where(x => x.VisibleDevice.Id != deviceId).ToArray();
+                DeleteMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Error while deleting device from tenant", exception.Message, false);
+        }
+    }
+
+    private void Cancel()
+    {
+        AddMode = false;
+        DeleteMode = false;
     }
 }

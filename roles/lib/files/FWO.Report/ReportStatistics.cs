@@ -10,10 +10,8 @@ using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 namespace FWO.Report
 {
-    public class ReportStatistics : Report
+    public class ReportStatistics : ReportBase
     {
-        public Management[] Managements { get; set; }
-
         public override async Task Generate(int _, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
@@ -38,8 +36,8 @@ namespace FWO.Report
                     query.QueryVariables["relevantImportId"] = -1;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
             }
-            result = resultList.ToArray();
-            await callback(result);
+            Managements = resultList.ToArray();
+            await callback(Managements);
         }
 
         public override string ToCsv()
@@ -62,7 +60,7 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public override string ToPdf()
+        public override byte[] ToPdf()
         {
             throw new NotImplementedException();
         }

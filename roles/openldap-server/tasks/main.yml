@@ -148,10 +148,6 @@
       recurse: yes
       owner: openldap
 
-  - name: Test if TLS might work after all
-    pause:
-      minutes: 30
-
   - name: Create dir to enable TLS for slapd service
     file:
       path: /etc/systemd/system/slapd.service.d

@@ -161,7 +161,7 @@
   - name: Start the slapd service
     service:
       name: slapd
-      state: restarted
+      state: reloaded
       enabled: yes
 
   become: yes

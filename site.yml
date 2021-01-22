@@ -1,13 +1,11 @@
 ---
 
-# todo: replace with systemd module when importer service has been migrated
 - hosts: importers
   tasks:
-    - name: stop importer service before makeing any changes
+    - name: stop importer service before making any changes
       ansible.builtin.systemd:
         name: "{{ product_name }}-importer"
         state: stopped
-      #command: "/etc/init.d/{{ product_name }}-importer stop"
       become: yes
       when: "installation_mode != 'new'"
       ignore_errors: yes
@@ -96,11 +94,9 @@
     - backend
   # todo: add a meta dependency on role sample-data
 
-# restart importer to make sure it works correctly with sample data
 - hosts: importers
   tasks:
-    - name: restart importer service
-      #command: "/etc/init.d/{{ product_name }}-importer restart"
+    - name: restart importer service to make sure it works correctly with sample data
       ansible.builtin.systemd:
         name: "{{ product_name }}-importer"
         state: restarted
@@ -108,7 +104,6 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
-# todo: replace with systemd module when importer service has been migrated
 
 - hosts: all
   roles:

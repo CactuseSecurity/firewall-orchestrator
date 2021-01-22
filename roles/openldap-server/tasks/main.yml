@@ -159,12 +159,10 @@
       dest: /etc/systemd/system/slapd.service.d/override.conf
 
   - name: Start the slapd service
-    service:
+    systemd:
       name: slapd
-      state: reloaded
+      state: restarted
       enabled: yes
+      daemon_reload: yes
 
   become: yes
-
-
-

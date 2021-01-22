@@ -193,7 +193,11 @@
                             </div>
                         </Template>
                     </Column>
-                    <Column Title="Name" TableItem="ReportTemplate" Field="x => x.Name" />
+                    <Column Title="Name" TableItem="ReportTemplate">
+                        <Template>
+                            @if (context.Owner==0) { <b>@context.Name</b>} else { @context.Name }
+                        </Template>
+                    </Column>
                     <Column Title="Comment" TableItem="ReportTemplate" Field="x => x.Comment" />
                     <Column Title="Creation Date" TableItem="ReportTemplate" Field="x => x.CreationDate" />
                     <Column Title="Filter" TableItem="ReportTemplate" Field="x => x.Filter" />

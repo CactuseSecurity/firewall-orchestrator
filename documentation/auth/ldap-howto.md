@@ -16,6 +16,18 @@
 - if you don't choose a bind option, you bind as anonymous
 - ldap is currently rwe by user manager and read only by inspector (their dn's are in the examples later)
 
+## second ldap database
+
+- for test purposes you may install an additional domain example.com with test users and roles
+- install with 
+
+    cd firewall-orchestrator; ansible-playbook -i inventory -e "second_ldap_db=yes" site.yml -K
+
+- to access you have to bind with the fworch.internal manager dn (-D) and password (-w/-y) and change the searchbase (-b). E.g
+
+    sudo ldapsearch -b dc=example,dc=com -D cn=Manager,ou=systemuser,ou=user,dc=fworch,dc=internal -y /usr/local/fworch/etc/secrets/ldap_manager_pw.txt
+
+
 ## some specific questions
 
 Is it possible to gain all information below a tree node?

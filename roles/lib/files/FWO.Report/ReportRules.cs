@@ -18,8 +18,6 @@ namespace FWO.Report
 {
     public class ReportRules : ReportBase
     {
-        public Management[] Managements { get; set; }
-
         public override async Task Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
@@ -130,11 +128,6 @@ namespace FWO.Report
             }
 
             return HtmlTemplate.Replace("##Body##", report.ToString());
-        }
-
-        public override string ToJson()
-        {
-            return JsonSerializer.Serialize(Managements);
         }
     }
 }

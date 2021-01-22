@@ -49,13 +49,16 @@ namespace FWO.Report
     </body>
 </html>";
 
-        protected Management[] Managements = null;
+        public Management[] Managements = null;
 
         public abstract Task Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback);
         
         public abstract string ToCsv();
 
-        public abstract string ToJson();
+        public virtual string ToJson()
+        {
+            return JsonSerializer.Serialize(Managements, new JsonSerializerOptions { WriteIndented = true });
+        }
 
         public abstract string ToHtml();
 

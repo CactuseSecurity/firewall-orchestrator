@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.Logging;
+using FWO.ApiConfig;
+using FWO.ApiClient;
 
 namespace FWO.Ui.Auth
 {
@@ -17,7 +19,7 @@ namespace FWO.Ui.Auth
             return Task.FromResult(new AuthenticationState(user));
         }
 
-        public void AuthenticateUser(string jwtString)
+        public async Task AuthenticateUser(string jwtString, UserConfig userConfig, APIConnection apiConnection)
         {
             JwtReader jwt = new JwtReader(jwtString);
 
@@ -32,6 +34,9 @@ namespace FWO.Ui.Auth
                 );
 
                 ClaimsPrincipal user = new ClaimsPrincipal(identity);
+
+                await userConfig.SetUserInformation(user.FindFirstValue("x-hasura-uuid"), apiConnection);
+                userConfig.User.Jwt = jwtString;
 
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
             }

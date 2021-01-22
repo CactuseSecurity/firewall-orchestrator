@@ -12,8 +12,6 @@ namespace FWO.Report
 {
     public class ReportStatistics : ReportBase
     {
-        public Management[] Managements { get; set; }
-
         public override async Task Generate(int _, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
@@ -38,8 +36,8 @@ namespace FWO.Report
                     query.QueryVariables["relevantImportId"] = -1;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
             }
-            base.Managements = resultList.ToArray();
-            await callback(base.Managements);
+            Managements = resultList.ToArray();
+            await callback(Managements);
         }
 
         public override string ToCsv()
@@ -58,11 +56,6 @@ namespace FWO.Report
         }
 
         public override string ToHtml()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override string ToJson()
         {
             throw new NotImplementedException();
         }

@@ -100,8 +100,6 @@ namespace FWO.Config
 
         public ConfigFile()
         {
-            #region Config File
-
             try
             {              
                 // Read config as yaml from file
@@ -115,7 +113,7 @@ namespace FWO.Config
                 // Deserialize yaml config to dictionary
                 Dictionary<string, string> configFileData = yamlDeserializer.Deserialize<Dictionary<string, string>>(yamlConfig);
 
-                // Errors can be ignored. If requested from outside this class error is thrown. See NotNullCriticalConfigValue()
+                // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See NotNullCriticalConfigValue()
 
                 // Try to read jwt private key
                 IgnoreExceptions(() => jwtPrivateKey = KeyImporter.ExtractKeyFromPem(File.ReadAllText(jwtPrivateKeyPath), isPrivateKey: true));
@@ -141,8 +139,6 @@ namespace FWO.Config
                 Log.WriteError("Config file read", $"Config file could not be found.", configFileReadException);
                 Environment.Exit(1); // Exit with error
             }
-
-            #endregion
         }
 
         private void CriticalConfigValueLoaded(object configValue)

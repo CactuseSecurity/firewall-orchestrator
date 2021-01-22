@@ -1,3 +1,0 @@
-dn: {{ middleware_ldap_path }}
-objectClass: domain
-dc: {{ openldap_server_domain_name.split('.')[0] }}

@@ -1,18 +1,18 @@
-dn: uid={{ middleware_ldap_internal_readonly_user }},ou=systemuser,ou=user,{{ middleware_ldap_path }}
+dn: uid={{ openldap_readonly_user_name }},ou=systemuser,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
-cn: {{ middleware_ldap_internal_readonly_user }}
-sn: {{ middleware_ldap_internal_readonly_user }}
+cn: {{ openldap_readonly_user_name }}
+sn: {{ openldap_readonly_user_name }}
 {%- endif %}
 
 
-dn: {{ middleware_ldap_writer_fq }}
+dn: {{ openldap_writer_dn }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
-cn: {{ middleware_ldap_writer }}
-sn: {{ middleware_ldap_writer }}
+cn: {{ openldap_writer_name }}
+sn: {{ openldap_writer_name }}
 {%- endif %}

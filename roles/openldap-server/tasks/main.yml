@@ -1,3 +1,169 @@
 ---
-- include: install_ldap.yml
-- include: configure_ldap.yml
+- block:
+### OS basics
+  - name: Add the OS specific varibles
+    include_vars: "{{ ansible_os_family }}.yml"
+
+  - name: Install the openldap and required Packages for Ubuntu
+    package:
+      name: "{{ item }}"
+      state: present
+    loop: "{{ openldap_server_pkgs }}"
+      # environment: env
+      # when: ansible_os_family == 'Debian'
+
+### Clean up slapd.d
+
+  - name: Create the empty configuration directory
+    file:
+      path: "{{ openldap_server_app_path }}/slapd.d"
+      state: "{{ item }}"
+    with_items:
+      - absent
+      - directory
+
+### Root password
+  - name: Check if manager password exist
+    stat:
+      path: "{{ openldap_secrets_path }}/ldap_manager_pw.txt"
+    register: is_manger_pw_present_flag
+
+  - name: Decide on random manager password
+    set_fact:
+      openldap_server_random_rootpw: "{{ random_generated_pw }}"
+    when: not is_manger_pw_present_flag.stat.exists
+
+  - name: Write random manager password to file
+    copy:
+      content: "{{ openldap_server_random_rootpw }}"
+      dest: "{{ openldap_secrets_path }}/ldap_manager_pw.txt"
+      mode: '0600'
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+    when: not is_manger_pw_present_flag.stat.exists
+
+  - name: Generate the root password hash for the config
+    command: "slappasswd -T {{ openldap_secrets_path }}/ldap_manager_pw.txt"
+    register: root_password
+
+  - name: Debug slappasswd
+    debug:
+      var: root_password.stdout_lines
+
+### TLS
+  - name: Delete the directory for ldap certificates
+    file:
+      state: absent
+      path: "{{ openldap_server_cert_path }}/"
+    when: "openldap_generate_new_crypto == 'yes'"
+
+  - name: Create the directory for ldap certificates
+    file:
+      path: "{{ openldap_server_cert_path }}/"
+      state: directory
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  - name: Generate an OpenSSL private key
+    openssl_privatekey:
+      path: "{{ openldap_server_private_key }}"
+      size: 3072
+      type: RSA
+
+  - name: Generate an OpenSSL Certificate Signing Request with Subject information
+    openssl_csr:
+      path: "{{ openldap_server_csr }}"
+      privatekey_path: "{{ openldap_server_private_key }}"
+      country_name: "{{ openldap_server_country }}"
+      state_or_province_name: "{{ openldap_server_state }}"
+      locality_name: "{{ openldap_server_location }}"
+      organization_name: "{{ openldap_server_organization }}"
+      #email_address: "{{ email_address }}"
+      common_name: "{{ ansible_hostname }}"
+
+  - name: Generate a self signed OpenSSL Certificate
+    openssl_certificate:
+      path: "{{ openldap_server_cert }}"
+      privatekey_path: "{{ openldap_server_private_key }}"
+      csr_path: "{{ openldap_server_csr }}"
+      provider: selfsigned
+
+  - name: set permissions on key
+    file:
+      path: "{{ openldap_server_private_key }}"
+      state: file
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+      mode: g+r
+
+  - name: set permissions on cert
+    file:
+      path: "{{ openldap_server_cert }}"
+      state: file
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+### Config files
+  - name: Create the directory for ldap database
+    file:
+      path: "/var/lib/ldap/{{ openldap_server_domain_name }}/"
+      state: directory
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  - name: Create the DB_CONFIG file
+    copy:
+      src: DB_CONFIG
+      dest: /var/lib/ldap/{{ openldap_server_domain_name }}/DB_CONFIG
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  - name: Copy the ldap.conf configuration file
+    template:
+      src: ldap.conf.j2
+      dest: "{{ openldap_server_app_path }}/ldap.conf"
+
+  - name: Debug ansible_os_family
+    debug:
+      var: ansible_os_family
+
+  - name: Copy slapd.d initial file to system if not present
+    template:
+      src: config.ldif.j2
+      dest: "{{ openldap_server_app_path }}/slapd.d/config.ldif"
+      force: no
+
+  - name: Initialize ldap config
+    command: slapadd -F {{ openldap_server_app_path }}/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
+    register: ldap_initialization
+
+  - name: Debug ldap initialization
+    debug:
+      var: ldap_initialization
+
+  - name: Change slapd files permissions to openldap
+    file:
+      path: "{{ openldap_server_app_path }}/slapd.d"
+      state: directory
+      recurse: yes
+      owner: openldap
+
+### systemctl
+  - name: Create dir to enable TLS for slapd service
+    file:
+      path: /etc/systemd/system/slapd.service.d
+      recurse: yes
+
+  - name: Enable TLS for slapd service
+    template:
+      src: override.conf.j2
+      dest: /etc/systemd/system/slapd.service.d/override.conf
+
+  - name: Start the slapd service
+    systemd:
+      name: slapd
+      state: restarted
+      enabled: yes
+      daemon_reload: yes
+
+  become: yes

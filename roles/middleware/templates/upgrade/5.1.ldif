@@ -1,13 +1,13 @@
 # test
 
-dn: uid=admin2,ou=tenant0,ou=operator,ou=user,{{ middleware_ldap_path }}
+dn: uid=admin2,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
 changetype: add
 objectClass: top
 objectclass: inetorgperson
 cn: admin2
 sn: admin2
 
-dn: cn=admin,ou=role,{{ middleware_ldap_path }}
+dn: cn=admin,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
 uniquemember: uid=admin2,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal

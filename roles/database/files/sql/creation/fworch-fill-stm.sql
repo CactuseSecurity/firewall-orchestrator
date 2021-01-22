@@ -1,29 +1,26 @@
 
-INSERT INTO "report_format" ("report_format_name") VALUES ('json');
-INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
-INSERT INTO "report_format" ("report_format_name") VALUES ('csv');
-INSERT INTO "report_format" ("report_format_name") VALUES ('html');
-
--- INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
---     VALUES ('type=rules and time=now ','Current Rules','Show currently active rules of all gateways', select uiuser_id FROM uiuser where uiuser_username='admin');
--- INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
---     VALUES ('type=changes and time="this year" ','This year''s Rule Changes','Show all rule change performed in the current year', select uiuser_id FROM uiuser where uiuser_username='admin');
--- INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
---     VALUES ('type=statistics and time=now ','Basic Statistics','Show number of objects and rules per device', select uiuser_id FROM uiuser where uiuser_username='admin');
-
-INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
-    VALUES ('type=rules and time=now ','Current Rules','Show currently active rules of all gateways', NULL);
-INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
-    VALUES ('type=changes and time="this year" ','This year''s Rule Changes','Show all rule change performed in the current year', NULL);
-INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
-    VALUES ('type=statistics and time=now ','Basic Statistics','Show number of objects and rules per device', NULL);
-
 INSERT INTO language (name) VALUES('German');
 INSERT INTO language (name) VALUES('English');
 
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
+
+INSERT INTO "report_format" ("report_format_name") VALUES ('json');
+INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');
+INSERT INTO "report_format" ("report_format_name") VALUES ('csv');
+INSERT INTO "report_format" ("report_format_name") VALUES ('html');
+
+-- default report templates belong to user 0 
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
+    VALUES ('type=rules and time=now ','Current Rules','Currently active rules of all gateways', 0);
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
+    VALUES ('type=changes and time="this year" ','This year''s Rule Changes','All rule change performed in the current year', 0);
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
+    VALUES ('type=statistics and time=now ','Basic Statistics','Number of objects and rules per device', 0);
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
+    VALUES ('type=rules and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny) ',
+        'Compliance: Pass rules with ANY','All pass rules that contain any as source, destination or service', 0);
 
 insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');

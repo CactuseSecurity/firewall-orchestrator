@@ -1,5 +1,4 @@
-﻿using FWO.Middleware.Server.Data;
-using FWO.Logging;
+﻿using FWO.Logging;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using System;
@@ -8,6 +7,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using FWO.Api.Data;
 
 namespace FWO.Middleware.Server.Requests
 {
@@ -40,7 +40,7 @@ namespace FWO.Middleware.Server.Requests
             string password = GetRequestParameter<string>("Password", notNull: true);
 
             // Create User from given parameters
-            User user = new User() { Name = username, Password = password };
+            UiUser user = new UiUser() { Name = username, Password = password };
 
             // Authenticate user
             string jwt = await AuthorizeUserAsync(user);
@@ -53,12 +53,11 @@ namespace FWO.Middleware.Server.Requests
         /// 
         /// </summary>
         /// <param name="user"></param>
-        /// <param name="tokenGenerator"></param>
         /// <returns>jwt if credentials are valid</returns>
-        private async Task<string> AuthorizeUserAsync(User user)
+        private async Task<string> AuthorizeUserAsync(UiUser user)
         {
             // Validate user credentials and get ldap distinguish name
-            user.Dn = await GetLdapDistinguishName(user);
+            user.Dn = await GetLdapDistinguishedName(user);
 
             // User has valid credentials / is anonymous user. Otherwise exception would have been thrown and handled in base class
 
@@ -69,18 +68,16 @@ namespace FWO.Middleware.Server.Requests
             user.Tenant = await GetTenantAsync(user);
 
             // Create JWT for validated user with roles and tenant
-            return tokenGenerator.CreateJWT(user);
+            return (await tokenGenerator.CreateJWT(user));
         }
 
-        public async Task<string> GetLdapDistinguishName(User user)
+        public async Task<string> GetLdapDistinguishedName(UiUser user)
         {
             Log.WriteDebug("User validation", $"Trying to validate {user.Name}...");
 
-            // Anonymous case
             if (user.Name == "")
             {
-                Log.WriteWarning("Anonymous/empty user", "No username was provided. Using anonymous username.");
-                return "anonymous";
+                throw new Exception("Invalid credentials. Username must not be empty.");
             }
 
             else
@@ -126,42 +123,33 @@ namespace FWO.Middleware.Server.Requests
             throw new Exception("Invalid credentials.");
         }
 
-        public async Task<string[]> GetRoles(User user)
+        public async Task<string[]> GetRoles(UiUser user)
         {
             string UserDn = user.Dn;
 
             List<string> UserRoles = new List<string>();
 
-            // Anonymous case
-            if (UserDn == "anonymous")
-            {
-                Log.WriteWarning("Anonymous/empty user", $"Using anonymous role.");
-                UserRoles.Add("anonymous");
-            }
-            else
-            {
-                List<Task> ldapRoleRequests = new List<Task>();
+            List<Task> ldapRoleRequests = new List<Task>();
 
-                foreach (Ldap currentLdap in Ldaps)
+            foreach (Ldap currentLdap in Ldaps)
+            {
+                ldapRoleRequests.Add(Task.Run(() =>
                 {
-                    ldapRoleRequests.Add(Task.Run(() =>
+                    // if current Ldap has roles stored
+                    if (currentLdap.RoleSearchPath != "")
                     {
-                        // if current Ldap has roles stored
-                        if (currentLdap.RoleSearchPath != "")
+                        // Get roles from current Ldap
+                        string[] currentRoles = currentLdap.GetRoles(UserDn);
+
+                        lock(rolesLock)
                         {
-                            // Get roles from current Ldap
-                            string[] currentRoles = currentLdap.GetRoles(UserDn);
-
-                            lock(rolesLock)
-                            {
-                                UserRoles.AddRange(currentRoles);
-                            }
+                            UserRoles.AddRange(currentRoles);
                         }
-                    }));
-                }
-
-                await Task.WhenAll(ldapRoleRequests);
+                    }
+                }));
             }
+
+            await Task.WhenAll(ldapRoleRequests);
 
             // If no roles found
             if (UserRoles.Count == 0)
@@ -174,14 +162,16 @@ namespace FWO.Middleware.Server.Requests
             return UserRoles.ToArray();
         }
 
-        public async Task<Tenant> GetTenantAsync(User user)
+        public async Task<Tenant> GetTenantAsync(UiUser user)
         {
-            Tenant tenant = new Tenant();
+            // TODO: All three api calls in this method can be shortened to to a single query / api call
+
+            Tenant tenant = new Tenant();
             if(fixedTenantId != null)
             {
                 Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {fixedTenantId.Value}");
                 tenant.Id = fixedTenantId.Value;
-                // todo: do we also need the tenant name here?
+                // TODO: do we also need the tenant name here?
             }
             else
             {

@@ -3,16 +3,32 @@
 @using FWO.ApiClient
 
 @page "/settings/managements"
+@attribute [Authorize(Roles = "admin")]
 
 @inject APIConnection apiConnection
 
 <h3 class="m-2">Managements</h3>
 <hr />
 
-<button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+<div class="form-group row">
+    <button class="btn btn-success m-2" @onclick="Add">Add new management</button>
+    @if (showCleanupButton)
+    {
+        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">Remove Sample Data</button>
+    }
+</div>
 
 <div class="d-flex flex-column m-2">
     <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                </div>
+            </Template>
+        </Column>
         <Column TableItem="Management" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
@@ -27,15 +43,6 @@
         <Column TableItem="Management" Title="Config Path" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Importer Host" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Import Disabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" />
-        <Column TableItem="Management" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
-            <Template>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
-                </div>
-            </Template>
-        </Column>
     </Table>
 </div>
 
@@ -88,7 +95,7 @@
                 <div class="form-group row">
                     <label for="managementPrivateKey" class="col-sm-3 col-form-label col-form-label-sm">Login Secret:</label>
                     <div class="col-sm-8">
-                        <input id="managementPrivateKey" type ="password" class="form-control form-control-sm" @bind="actManagement.PrivateKey" />
+                        <input id="managementPrivateKey" type="password" class="form-control form-control-sm" @bind="actManagement.PrivateKey" />
                     </div>
                 </div>
                 <div class="form-group row">
@@ -122,11 +129,6 @@
                     <input class="form-check-input" id="managementHideInUi" type="checkbox" @bind="actManagement.HideInUi">
                     <label class="form-check-label" for="managementHideInUi"><small>Hide in UI</small></label>
                 </div>
-
-                @if (errorMessage != "")
-                {
-                    <label class="m-2">@errorMessage</label>
-                }
             </form>
         }
     </Body>
@@ -143,11 +145,6 @@
         @if (DeleteMode)
         {
             <p>@(deleteMessage)</p>
-
-            @if (errorMessage != "")
-            {
-                <label class="m-2">@errorMessage</label>
-            }
         }
     </Body>
     <Footer>
@@ -161,9 +158,27 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="Remove Sample Data" Show="@CleanupMode" OnClose="() => CleanupMode = false">
+    <Body>
+        @if (CleanupMode)
+        {
+            <p>@(cleanupMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">Delete</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
 @code
 {
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
     private List<Management> managements = new List<Management>();
+    private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
 
     private ITable<Management> table;
@@ -171,18 +186,43 @@
     private bool EditMode = false;
     private bool DeleteMode = false;
     private bool DeleteAllowed = false;
+    private bool CleanupMode = false;
     private bool AddMode = false;
+    private bool showCleanupButton = false;
 
     private Management newManagement;
     private Management actManagement;
 
     private string deleteMessage = "";
-    private string errorMessage = "";
+    private string cleanupMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
-        managements = (await Task.Run(() => apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails))).ToList();
-        deviceTypes = (await Task.Run(() => apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails))).ToList();
+        try
+        {
+            managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
+            foreach (var management in managements)
+            {
+                if (management.Name.EndsWith("_demo"))
+                {
+                    sampleManagements.Add(management);
+                }
+            }
+            showCleanupButton = (sampleManagements.Count > 0);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "API error", "Error while fetching management info.", false);
+        }
+
+        try
+        {
+            deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "API error", "Error while fetching management info.", false);
+        }
     }
 
     private void Edit(Management management)
@@ -213,7 +253,7 @@
         try
         {
             var Variables = new { id = management.Id };
-            int delId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables))).DeletedId;
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == management.Id)
             {
                 managements.Remove(management);
@@ -222,9 +262,25 @@
         }
         catch (Exception exception)
         {
-            Log.WriteDebug("Delete Management", $"Exception occurred: {exception}");
-            errorMessage = "Something went wrong with deleting: " + exception.Message;
+            DisplayMessageInUi(exception, "API Error", "Error while deleting management.", false);
         }
+    }
+
+    private void RequestRemoveSampleData()
+    {
+        // Todo: Checks if delete possible?
+        cleanupMessage = $"Deletes all sample managements (ending with '_demo') and related Gateways.";
+        CleanupMode = true;
+    }
+
+    private async Task RemoveSampleData()
+    {
+        foreach (var management in sampleManagements)
+        {
+            await Delete(management);
+        }
+        CleanupMode = false;
+        showCleanupButton = false;
     }
 
     private void Add()
@@ -264,13 +320,12 @@
                     configPath = actManagement.ConfigPath,
                     importerHostname = actManagement.ImporterHostname,
                     comment = actManagement.Comment /*,
-                    tenantId = actManagement.TenantId */
+                tenantId = actManagement.TenantId */
                 };
-                actManagement.Id = (await Task.Run(() => apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables))).ReturnIds[0].NewId;
+                actManagement.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds[0].NewId;
                 managements.Add(actManagement);
                 AddMode = false;
                 EditMode = false;
-                errorMessage = "";
             }
             else
             {
@@ -292,12 +347,11 @@
                     configPath = actManagement.ConfigPath,
                     importerHostname = actManagement.ImporterHostname,
                     comment = actManagement.Comment /*,
-                    tenantId = actManagement.TenantId */
+                tenantId = actManagement.TenantId */
                 };
-                int udId = (await Task.Run(() => apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables))).UpdatedId;
+                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
                 EditMode = (udId == actManagement.Id ? false : true);
                 managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
-                errorMessage = (EditMode ? "Something went wrong with saving changes" : "");
             }
             // update actManagement
             actManagement.DeviceType.Name = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Name;
@@ -305,9 +359,7 @@
         }
         catch (Exception exception)
         {
-            // Todo: Error message? Ignore?
-            Log.WriteDebug("Save Management", $"Exception occurred: {exception}");
-            errorMessage = "Something went wrong with saving: " + exception.Message;
+            DisplayMessageInUi(exception, "API Error", "Error while saving management.", false);
         }
     }
 
@@ -316,6 +368,6 @@
         AddMode = false;
         EditMode = false;
         DeleteMode = false;
-        errorMessage = "";
+        CleanupMode = false;
     }
 }

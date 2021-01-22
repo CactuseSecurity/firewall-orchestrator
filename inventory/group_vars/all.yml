@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.1.04"
+product_version: "5.1.09"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -30,6 +30,8 @@ test_packages:
   - postgresql-client
   - curl
 
+server_admin: "root@{{ api_ip_address }}"
+
 ### database
 fworch_db_port: 5432
 # fworch_db_host: 10.1.1.83
@@ -41,11 +43,20 @@ fworch_dbadmin_name: dbadmin
 #middleware_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
 jwt_private_key_file: "{{ fworch_home }}/etc/secrets/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_home }}/etc/secrets/jwt_public_key.pem"
+ldif_dir: "{{ fworch_home }}/etc/ldif"
 
 middleware_hostname: "127.0.0.1"
-middleware_web_listener_port: 8888
 ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
+
+
+# middleware web server
+middleware_server_name: 127.0.0.1
+middleware_web_listener_port: 8888
+middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
+##### application server data
+middleware_internal_port: 8880
+web_server_name: "{{ middleware_server_name }}"
 
 ### database & api
 api_service_name: fworch-hasura-docker-api
@@ -64,7 +75,7 @@ dotnet_mode: "Release"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 
-### ldap
+### password generation
 random_generated_pw: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
 
 ### logging
@@ -83,7 +94,7 @@ http_conf_dir: /etc/{{ web_server_name }}/sites-available/
 ################# testing #########################
 
 test_dir: "{{ fworch_home }}/test"
-ui_test_start_dir: "{{ fworch_home }}/test/ui/FWO_Test"
+csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO_Test"
 
 ################# to be removed ###################
 

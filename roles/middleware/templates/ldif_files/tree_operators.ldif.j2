@@ -1,4 +1,4 @@
-dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ middleware_ldap_path }}
+dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -9,7 +9,7 @@ sn: admin
 
 
 {% if ldif_changetype != 'delete' -%}
-dn: cn=admin,ou=role,{{ middleware_ldap_path }}
+dn: cn=admin,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
 uniquemember: uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal

@@ -869,16 +869,12 @@ Create table "report"
 (
 	"report_id" BIGSERIAL,
 	"report_template_id" Integer,
-	"start_import_id" Integer NOT NULL,
-	"stop_import_id" Integer,
-	"report_generation_time" Timestamp NOT NULL Default now(),
 	"report_start_time" Timestamp,
 	"report_end_time" Timestamp,
 	"report_json" json NOT NULL,
-	"report_pdf" bytea,
+	"report_pdf" text,
 	"report_csv" text,
 	"report_html" text,
-	"report_filetype" varchar,
 	"report_name" varchar NOT NULL,
 	"report_owner_id" Integer NOT NULL, --FK to uiuser
 	"tenant_wide_visible" Integer,
@@ -890,11 +886,12 @@ Create table if not exists "report_schedule"
 	"report_schedule_id" BIGSERIAL,
 	"report_schedule_name" Varchar, --  NOT NULL Default "Report_"|"report_id"::VARCHAR,  -- user given name of a report
 	"report_template_id" Integer, --FK
-	"report_schedule_owner" Integer, --FK
+	"report_schedule_owner" Integer NOT NULL, --FK
 	"report_schedule_start_time" Timestamp NOT NULL,  -- if day is bigger than 28, simply use the 1st of the next month, 00:00 am
 	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 1 daily, 2 weekly, 3 monthly, 4 yearly 
 	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years
 	"report_schedule_active" Boolean Default TRUE,
+	"report_schedule_repetitions" Integer,
  	primary key ("report_schedule_id")
 );
 

@@ -1,13 +1,12 @@
 ﻿query getGeneratedReports {
   report {
+    report_id
     report_name
     report_start_time
-    report_generation_time
+    report_end_time
     uiuser {
       uiuser_username
     }
-    report_document
-    report_filetype
     report_template {
       report_template_name
     }

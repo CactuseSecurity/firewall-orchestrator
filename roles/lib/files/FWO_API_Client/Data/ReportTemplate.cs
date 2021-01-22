@@ -21,6 +21,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("report_template_comment")]
         public string Comment { get; set; }
 
+        [JsonPropertyName("report_template_owner")]
+        public int Owner { get; set; }
+
         [JsonPropertyName("report_filter")]
         public string Filter { get; set; }
     }

@@ -1,5 +1,17 @@
 ---
 
+- hosts: importers
+  tasks:
+    - name: stop importer service before making any changes
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer"
+        state: stopped
+      become: yes
+      when: "installation_mode != 'new'"
+      ignore_errors: yes
+  tags:
+    - frontend
+
 - hosts: all
   tasks:
     - name: uninstall product
@@ -82,11 +94,12 @@
     - backend
   # todo: add a meta dependency on role sample-data
 
-# restart importer to make sure it works correctly with sample data
 - hosts: importers
   tasks:
-    - name: restart importer service
-      command: "/etc/init.d/{{ product_name }}-importer restart"
+    - name: restart importer service to make sure it works correctly with sample data
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer"
+        state: restarted
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:

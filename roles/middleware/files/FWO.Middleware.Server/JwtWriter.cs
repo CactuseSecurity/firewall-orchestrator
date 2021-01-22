@@ -1,5 +1,4 @@
-﻿using FWO.Middleware.Server.Data;
-using FWO.ApiClient;
+﻿using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
 using FWO.Config;
@@ -9,27 +8,38 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
+using FWO.Api.Data;
+using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server
 {
-    class JwtWriter
+    public class JwtWriter
     {
         private const string issuer = "FWO Middleware Module";
         private const string audience = "FWO";
         private readonly RsaSecurityKey jwtPrivateKey;
-        private readonly int hoursValid;
+        private readonly int JwtMinutesValid;
 
-        public JwtWriter(RsaSecurityKey jwtPrivateKey, int hoursValid)
+        public JwtWriter(RsaSecurityKey jwtPrivateKey, int JwtMinutesValid)
         {
-            this.hoursValid = hoursValid;
+            this.JwtMinutesValid = JwtMinutesValid;
             this.jwtPrivateKey = jwtPrivateKey;
         }
 
-        public string CreateJWT(User user)
+        public async Task<string> CreateJWT(UiUser user = null)
         {
-            Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
+            if (user != null)
+                Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");
+            else
+                Log.WriteDebug("Jwt generation", "Generating empty JWT (startup)");
+
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            ClaimsIdentity subject = GetClaims(AddUserToDbAtFirstLogin(user));
+
+            ClaimsIdentity subject;
+            if (user != null)
+                subject = GetClaims(await AddUserToDbAtFirstLogin(user));
+            else
+                subject = GetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new string[] { "anonymous" } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -40,13 +50,15 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddHours(hoursValid),
+                expires: DateTime.UtcNow.AddMinutes(JwtMinutesValid),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
 
             string GeneratedToken = tokenHandler.WriteToken(token);
-
-            Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
+            if (user != null)
+                Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken} for User {user.Name}");
+            else
+                Log.WriteInfo("Jwt generation", $"Generated JWT {GeneratedToken}");
             return GeneratedToken;
         }
 
@@ -60,8 +72,8 @@ namespace FWO.Middleware.Server
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = new ClaimsIdentity();
             subject.AddClaim(new Claim("unique_name", "middleware-server"));
-            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "middleware-server" }), JsonClaimValueTypes.JsonArray));
-            subject.AddClaim(new Claim("x-hasura-default-role", "middleware-server"));
+            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "admin"/*"middleware-server"*/ }), JsonClaimValueTypes.JsonArray));
+            subject.AddClaim(new Claim("x-hasura-default-role", "admin"/*"middleware-server"*/));
 
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
@@ -70,7 +82,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddMinutes(1),
+                expires: DateTime.UtcNow.AddYears(200),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);
@@ -84,45 +96,40 @@ namespace FWO.Middleware.Server
         /// the user id is needed for allowing access to report_templates
         /// </summary>
         /// <returns> user including its db id </returns>
-        private User AddUserToDbAtFirstLogin(User user)
+        private async Task<UiUser> AddUserToDbAtFirstLogin(UiUser user)
         {
-            if (user.Dn != "anonymous")
+            APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, CreateJWTMiddlewareServer());
+            bool userSetInDb = false;
+            try
             {
-                APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, CreateJWTMiddlewareServer());
-                bool userSetInDb = false;
-                try
-                {
-                    User[] existingUserFound = apiConn.SendQueryAsync<User[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn }).Result;
-                    if (existingUserFound != null)
-                    {
-                        if (existingUserFound.Length == 1)
-                        {
-                            user.DbId = existingUserFound[0].DbId;
-                            updateLastLogin(apiConn, user.DbId);
-                            userSetInDb = true;
-                        }
-                        else
-                        {
-                            Log.WriteError("User not found", $"Couldn't find {user.Name} exactly once!");
-                        }
-                    }
-                }
-                catch(Exception exeption)
-                {
-                    Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
-                }
+                UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn });
 
-                if(!userSetInDb)
+                if (existingUserFound.Length == 1)
                 {
-                    Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
-                    addUser(apiConn, user);
+                    user.DbId = existingUserFound[0].DbId;
+                    await updateLastLogin(apiConn, user.DbId);
+                    userSetInDb = true;
                 }
+                else
+                {
+                    Log.WriteError("User not found", $"Couldn't find {user.Name} exactly once!");
+                }
+            }
+            catch(Exception exeption)
+            {
+                Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
+            }
+
+            if(!userSetInDb)
+            {
+                Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
+                await addUser(apiConn, user);
             }
             // for anonymous access, just return the unmodified user
             return user;
         }
 
-        private void addUser(APIConnection apiConn, User user)
+        private async Task addUser(APIConnection apiConn, UiUser user)
         {
             try          
             {
@@ -132,9 +139,10 @@ namespace FWO.Middleware.Server
                     uuid = user.Dn, 
                     uiuser_username = user.Name,
                     email = user.Email,
+                    tenant = user.Tenant.Id,
                     loginTime = DateTime.UtcNow
                 };
-                user.DbId = apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables).Result.ReturnIds[0].NewId;
+                user.DbId = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
             }
             catch (Exception exeption)
             {
@@ -142,7 +150,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private void updateLastLogin(APIConnection apiConn, int id) // TODO: Wrong location
+        private async Task updateLastLogin(APIConnection apiConn, int id) // TODO: Wrong location
         {
             try
             {
@@ -151,7 +159,7 @@ namespace FWO.Middleware.Server
                     id = id, 
                     loginTime = DateTime.UtcNow
                 };
-                apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLastLogin, Variables);
+                await apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLastLogin, Variables);
             }
             catch(Exception exeption)
             {
@@ -159,15 +167,16 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private ClaimsIdentity GetClaims(User user)
+        private ClaimsIdentity GetClaims(UiUser user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
             claimsIdentity.AddClaim(new Claim("x-hasura-user-id", user.DbId.ToString()));
             if (user.Dn != null && user.Dn.Length > 0)
                 claimsIdentity.AddClaim(new Claim("x-hasura-uuid", user.Dn));   // UUID used for access to reports via API
-            if (user.Tenant != null)
-            {
+                
+            if (user.Tenant != null && user.Tenant.VisibleDevices != null && user.Tenant.VisibleManagements != null)
+            { 
                 // Hasura needs object {} instead of array [] notation      (TODO: Changable?)
                 claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
                 claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", $"{{ {string.Join(",", user.Tenant.VisibleManagements)} }}"));

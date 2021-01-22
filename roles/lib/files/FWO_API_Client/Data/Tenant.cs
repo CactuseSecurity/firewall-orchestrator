@@ -24,12 +24,29 @@ namespace FWO.Api.Data
         public bool Superadmin { get; set; }
 
         [JsonPropertyName("tenant_to_devices")]
-        public TenantDevice[] TenantDevices { get; set; }
+        public TenantDevice[] TenantDevices { get; set; } // TODO: Replace with Device[] (probably not possible)
+
+        public int[] VisibleDevices { get; set; } // TODO: Remove later (probably not possible)
+        public int[] VisibleManagements { get; set; } // TODO: Remove later (probably not possible)
+
+        public Tenant()
+        {}
+
+        public Tenant(Tenant tenant)
+        {
+            Id = tenant.Id;
+            Name = tenant.Name;
+            Comment = tenant.Comment;
+            Project = tenant.Project;
+            ViewAllDevices = tenant.ViewAllDevices;
+            Superadmin = tenant.Superadmin;
+            TenantDevices = tenant.TenantDevices;
+        }
 
         public string DeviceList()
         {
             List<string> deviceList = new List<string>();
-            foreach(TenantDevice device in TenantDevices)
+            foreach (TenantDevice device in TenantDevices)
             {
                 deviceList.Add(device.VisibleDevice.Name);
             }
@@ -41,5 +58,17 @@ namespace FWO.Api.Data
     {
         [JsonPropertyName("device")]
         public Device VisibleDevice { get; set; }
+    }
+
+    public class DeviceId
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+    }
+
+    public class ManagementId
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
     }
 }

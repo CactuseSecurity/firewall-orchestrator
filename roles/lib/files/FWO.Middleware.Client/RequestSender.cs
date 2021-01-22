@@ -12,26 +12,51 @@ namespace FWO.Middleware.Client
     internal class RequestSender
     {
         readonly HttpClient httpClient;
+        readonly HttpClientHandler httpClientHandler;
         readonly string middlewareServerUri;
 
         public RequestSender(string middlewareServerUri)
         {
-            httpClient = new HttpClient();
+
+            var handler = new HttpClientHandler();
+            handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+            handler.ServerCertificateCustomValidationCallback = 
+                (httpRequestMessage, cert, cetChain, policyErrors) =>
+            {
+                return true;
+            };
+
+            httpClient = new HttpClient(handler);
+
+
             this.middlewareServerUri = middlewareServerUri;
         }
 
-        public virtual async Task<MiddlewareServerResponse> SendRequest(Dictionary<string, object> parameters, string request)
+        public virtual async Task<MiddlewareServerResponse> SendRequest(Dictionary<string, object> parameters, string request, string jwt = null)
         {
             MiddlewareServerResponse result;
 
             try
             {
+                if (jwt != null)
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("auth", jwt);
+                }
+
                 // Wrap parameters
                 string wrappedParameters = JsonSerializer.Serialize(parameters);
                 StringContent requestContent = new StringContent(wrappedParameters);
 
                 // Send request, Receive answer
-                HttpResponseMessage httpResponse = await httpClient.PostAsync($"{middlewareServerUri}{request}/", requestContent);
+                // sanitize uri
+                string uriToCall = middlewareServerUri;
+                if (middlewareServerUri[middlewareServerUri.Length-1] != '/')
+                    uriToCall += "/";
+                uriToCall += request;
+                if (request[request.Length-1] != '/')
+                    uriToCall += "/";
+
+                HttpResponseMessage httpResponse = await httpClient.PostAsync(uriToCall, requestContent);
                 
                 // Unwrap result
                 string wrappedResult = await httpResponse.Content.ReadAsStringAsync();
@@ -40,8 +65,8 @@ namespace FWO.Middleware.Client
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Request \"{GetType().Name}\"",
-                    $"An error occured while sending request \"{GetType().Name}\".",
+                Log.WriteError($"Request \"{request}\"",
+                    $"An error occured while sending request \"{request}\".",
                     exception);
 
                 // Inform requester about errors

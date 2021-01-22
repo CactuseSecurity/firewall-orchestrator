@@ -7,13 +7,14 @@
   loop:
     - python3-pip
     - python3-virtualenv
+    - python3-docker
   become: yes
 
-- name: install docker sdk for python via pip3
-  pip:
-    name: docker
-  become: yes
-  become_user: "{{ fworch_user }}"
+# - name: install docker sdk for python via pip3
+#   pip:
+#     name: docker
+#   become: yes
+#   become_user: "{{ fworch_user }}"
 
 - name: read jwt public key from file as JWT secret
   slurp:
@@ -35,6 +36,7 @@
       HASURA_GRAPHQL_LOG_LEVEL:        "{{ api_log_level }}"
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: '{{ api_HASURA_GRAPHQL_ENABLED_LOG_TYPES }}'
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
+      HASURA_GRAPHQL_CORS_DOMAIN:       "*"
       HASURA_GRAPHQL_JWT_SECRET:       '
                                         {
                                           "type": "{{ api_hasura_jwt_alg|quote }}",

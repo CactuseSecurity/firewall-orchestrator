@@ -6,6 +6,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/defaults"
+@attribute [Authorize(Roles = "admin")]
 
 @inject APIConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -33,6 +34,8 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
     ConfigDbAccess config;
     int rulesPerFetch;
     string selectedDefaultLanguage;
@@ -45,9 +48,10 @@
             selectedDefaultLanguage = config.Get(ConfigDbAccess.kDefaultLanguage);
             Log.WriteDebug("Default language", $"got language: {selectedDefaultLanguage}");
         }
-        catch(Exception exception)
+        catch (Exception exception)
         {
-            Log.WriteError("Read Config", $"Key not found: taking English ", exception);
+            // Log.WriteError("Read Config", $"Key not found: taking English ", exception);
+            DisplayMessageInUi(exception, "Read Config", "Key not found: taking default English ", false);
             selectedDefaultLanguage = "English";
         }
 
@@ -56,9 +60,10 @@
             string confValue = config.Get(ConfigDbAccess.kRulesPerFetch);
             rulesPerFetch = (confValue != "" ? Int32.Parse(confValue) : 10);
         }
-        catch(Exception exception)
+        catch (Exception exception)
         {
-            Log.WriteError("Read Config", $"Error reading Config for rulesPerFetch: taking value 10 ", exception);
+            // Log.WriteError("Read Config", $"Error reading Config for rulesPerFetch: taking value 10 ", exception);
+            DisplayMessageInUi(exception, "Read Config", "Error reading Config for rulesPerFetch: taking value 10 ", false);
             rulesPerFetch = 10;
         }
     }
@@ -69,7 +74,7 @@
         await config.Set(ConfigDbAccess.kDefaultLanguage, language);
         selectedDefaultLanguage = language;
     }
-    
+
     private async Task SaveRulesPerFetch()
     {
         await config.Set(ConfigDbAccess.kRulesPerFetch, rulesPerFetch.ToString());

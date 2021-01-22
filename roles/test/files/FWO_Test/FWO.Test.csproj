@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NUnit" Version="3.12.0" />
+    <PackageReference Include="NUnit" Version="3.13.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.3" />
   </ItemGroup>
@@ -14,6 +14,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\lib\files\FWO.Report.Filter\FWO.Report.Filter.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO_API_Client\FWO.ApiClient.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO_Config\FWO.Config.File.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO_Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Middleware.Client/FWO.Middleware.Client.csproj" />
   </ItemGroup>
 
 </Project>

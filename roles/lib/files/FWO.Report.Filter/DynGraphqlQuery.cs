@@ -1,19 +1,5 @@
 using FWO.Report.Filter.Ast;
-using System;
 using System.Collections.Generic;
-using System.Text;
-using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Dynamic;
-using System.Net.Http;
-using System.Threading.Tasks;
-using FWO.Logging;
-using GraphQL;
-using GraphQL.Client.Http;
-using GraphQL.Client.Serializer.SystemTextJson;
-using GraphQL.Client.Abstractions;
-using System.Linq;
 using FWO.ApiClient.Queries;
 using System.Text.RegularExpressions;
 
@@ -67,7 +53,6 @@ namespace FWO.Report.Filter
                             }}
                             order_by: {{ mgm_name: asc }}
                         ) 
-
                         {{
                             name: mgm_name
                             id: mgm_id

@@ -1,12 +1,15 @@
 ---
-
 #The domain prefix for ldap
 openldap_server_domain_name: example.com
+openldap_path: "dc=example,dc=com"
+openldap_server: "127.0.0.1"
+openldap_port: 636
 
 #The paths to key, csr and cert
-openldap_server_private_key: "{{ openldap_server_app_path }}/certs/openldap_private_key.pem"
-openldap_server_csr: "{{ openldap_server_app_path }}/certs/openldap_private_key.csr"
-openldap_server_cert: "{{ openldap_server_app_path }}/certs/openldap_cert.crt"
+openldap_server_cert_path: "{{ openldap_server_app_path }}/certs/{{ openldap_server_domain_name }}"
+openldap_server_private_key: "{{ openldap_server_cert_path }}/openldap_private_key.pem"
+openldap_server_csr: "{{ openldap_server_cert_path }}/openldap_private_key.csr"
+openldap_server_cert: "{{ openldap_server_cert_path }}/openldap_cert.crt"
 
 #The self signed ssl parameters
 openldap_server_country: US
@@ -14,18 +17,10 @@ openldap_server_state: oregon
 openldap_server_location: portland
 openldap_server_organization: IT
 
-openldap_server_enable_ssl: true
+openldap_server_enable_ssl: yes
 
-#The ldif file
-openldap_server_ldif: domain.ldif
+#The path to the pw dir
+openldap_secrets_path: /tmp
 
-#These vars are not defined in this role
-  #fworch_home
-  #random_generated_pw
-  #generate_new_ldap_crypto
-  #fworch_user
-  #middleware_ldap_superuser_name
-  #middleware_ldap_path
-  #middleware_ldap_internal_readonly_user_fq
-  #middleware_ldap_writer
-  #The file {{ fworch_home }}/etc/secrets does not exist
+#The current ansible user
+fworch_user: openldap

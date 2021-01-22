@@ -1,4 +1,4 @@
-dn: ou=user,{{ middleware_ldap_path }}
+dn: ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -7,7 +7,7 @@ ou: user
 {%- endif %}
 
 
-dn: ou=role,{{ middleware_ldap_path }}
+dn: ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top

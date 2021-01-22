@@ -11,7 +11,7 @@
   set_fact:
     sample_ssh_priv_key: "{{ sample_ssh_priv_key_dict['content'] | b64decode }}"
 
-#  this assumes that we only use sample data for single machine installations and taht the ansible_hostname is the real hostname
+#  this assumes that we only use sample data for single machine installations and that the ansible_hostname is the real hostname
 - set_fact: importer_hostname="{{ ansible_hostname }}" 
 
 - block:
@@ -21,10 +21,10 @@
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN
-          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='fortigate-test') THEN 
+          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='fortigate_demo') THEN 
           insert into management 
           (dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname)
-          VALUES (10,'fortigate-test','{{ sample_ssh_priv_key }}','','{{ import_sample_server }}','{{ sample_config_user }}',false,'sample-configs/fortinet_demo/','{{ importer_hostname }}');
+          VALUES (10,'fortigate_demo','{{ sample_ssh_priv_key }}','','{{ import_sample_server }}','{{ sample_config_user }}',false,'sample-configs/fortinet_demo/','{{ importer_hostname }}');
           END IF; END $do$ 
 
     - name: insert test fortinet gateway
@@ -32,9 +32,9 @@
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='fortigate-test') THEN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='fortigate_demo') THEN 
           insert into device (mgm_id,dev_name,dev_rulebase,dev_typ_id) 
-          VALUES ((select mgm_id from management where mgm_name='fortigate-test'),'fortigate-test','fortigate-test',10);
+          VALUES ((select mgm_id from management where mgm_name='fortigate_demo'),'fortigate_demo','fortigate_demo',10);
           END IF; END $do$ 
 
     - name: insert test check point R7x management
@@ -42,9 +42,9 @@
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='checkpoint-demo') THEN 
+          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='checkpoint_demo') THEN 
           insert into management (dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname) 
-          VALUES (7,'checkpoint-demo','{{ sample_ssh_priv_key }}','','{{ import_sample_server }}','{{ sample_config_user }}',false, 'sample-configs/checkpoint_demo/','{{ importer_hostname }}'); 
+          VALUES (7,'checkpoint_demo','{{ sample_ssh_priv_key }}','','{{ import_sample_server }}','{{ sample_config_user }}',false, 'sample-configs/checkpoint_demo/','{{ importer_hostname }}'); 
           END IF; END $do$ 
 
     - name: insert test CPR7x device
@@ -52,9 +52,9 @@
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='checkpoint-demo') THEN
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='checkpoint_demo') THEN
           insert into device (mgm_id,dev_name,dev_rulebase,dev_typ_id)
-          VALUES ((select mgm_id from management where mgm_name='checkpoint-demo'),'checkpoint-demo','IsoAAAA',7); 
+          VALUES ((select mgm_id from management where mgm_name='checkpoint_demo'),'checkpoint_demo','IsoAAAA',7); 
           END IF; END $do$ 
 
   become: yes

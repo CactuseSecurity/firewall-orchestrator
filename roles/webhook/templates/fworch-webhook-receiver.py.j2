@@ -81,51 +81,51 @@ def post_handler():
       if 'head_commit' in req_data:
          now = datetime.now() # current date and time
          f.write('--- webhook call received '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n')
-         modified_files = req_data['head_commit']['modified']
-         f.write('found modified files: ' + json.dumps(modified_files) + '\n')
-         relevant_change = False
-         pattern = '^roles\/|^scripts\/|^inventory\/|^site.yml$'
-         for modified_file in modified_files:
-            if (re.match(pattern, modified_file)):
-               relevant_change = True
-         pattern = '^scripts\/fworch-webhook-receiver.py$'
-         webhook_script_changed = False
-         for modified_file in modified_files:
-            if (re.match(pattern, modified_file)):
-               webhook_script_changed = True
-         if (relevant_change):
-            f.write('Relevant change: start building\n')
-            # prepare a clean path for git cloning
-            os.system('rm -rf ' + tmp_git_dir)
-            os.system('mkdir -p ' + tmp_git_dir)
-            target_path  =  tmp_git_dir
-            clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone ssh://git@" + github_hostname + project_path + "'"
-            f.write('executing ' + clone_cmd + '\n')
-            os.system(clone_cmd) # Cloning
-            if (webhook_script_changed):
-               os.system("cp " + tmp_git_dir + "/firewall-orchestrator/scripts/fworch-webhook-receiver.py " + root_dir)
-               # might not work due to user rights:
-               # os.system("systemctl restart fworch-webhook-receiver.service")
+         if 'modified' in req_data['head_commit']:
+            modified_files = req_data['head_commit']['modified']
+            f.write('found modified files: ' + json.dumps(modified_files) + '\n')
+            relevant_change = False
+            pattern = '^roles\/|^scripts\/|^inventory\/|^site.yml$'
+            for modified_file in modified_files:
+               if (re.match(pattern, modified_file)):
+                  relevant_change = True
+            pattern = '^scripts\/fworch-webhook-receiver.py$'
+            webhook_script_changed = False
+            for modified_file in modified_files:
+               if (re.match(pattern, modified_file)):
+                  webhook_script_changed = True
+            if (relevant_change):
+               f.write('Relevant change: start building\n')
+               # prepare a clean path for git cloning
+               os.system('rm -rf ' + tmp_git_dir)
+               os.system('mkdir -p ' + tmp_git_dir)
+               target_path  =  tmp_git_dir
+               clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone ssh://git@" + github_hostname + project_path + "'"
+               f.write('executing ' + clone_cmd + '\n')
+               os.system(clone_cmd) # Cloning
+               if (webhook_script_changed):
+                  os.system("cp " + tmp_git_dir + "/firewall-orchestrator/scripts/fworch-webhook-receiver.py " + root_dir)
+                  # might not work due to user rights:
+                  # os.system("systemctl restart fworch-webhook-receiver.service")
+
 {% if webhook_install_mode == 'reinstall' -%}
-
-            uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"installation_mode=uninstall\""
-            f.write('executing uninstall command: ' + uninstall_cmd + '\n')
-            os.system(uninstall_cmd) # remove fworch
-            # fresh install: 
-            build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=new\" --skip-tags \"test\""
+               uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"installation_mode=uninstall\""
+               f.write('executing uninstall command: ' + uninstall_cmd + '\n')
+               os.system(uninstall_cmd) # remove fworch
+               # fresh install: 
+               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=new\" "
 {% else -%}
-
-            # upgrade 
-            build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" --skip-tags \"test\""
+               # upgrade 
+               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" "
 {%- endif %}
 
-            f.write('executing build command: ' + build_cmd + '\n')
-            os.system(build_cmd) # building fworch
-            now = datetime.now() # current date and time
-            f.write('--- build completed '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n')
-         else:
-            f.write('No relevant change found, not re-building.\n')
-         return '{"success":"true"}'
+               f.write('executing build command: ' + build_cmd + '\n')
+               os.system(build_cmd) # building fworch
+               now = datetime.now() # current date and time
+               f.write('--- build completed '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n')
+            else:
+               f.write('No relevant change found, not re-building.\n')
+            return '{"success":"true"}'
 
    return '{"success":"false"}'
    f.close()

@@ -13,10 +13,6 @@
 See [Server installation instructions](blob/master/documentation/installer/server-install.md)
 If your system lives behind a proxy or you have other specific installation needs like in a distributed installation, see [advanced server installation instructions](documentation/installer/install-advanced.md)
 
-### Client installation
-
-see [client installation instructions](documentation/installer/client-eto-install.md)
-
 ## Further documentation
 
 See [Getting started with Firewall Orchestrator](documentation/get-started.MD)

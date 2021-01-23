@@ -44,6 +44,13 @@
     <input class="form-check-input col-sm-2" id="autoFillRightSidebar" type="checkbox" @bind="autoFillRightSidebar">
     <button class="btn btn-sm btn-primary" @onclick="SaveAutoFillRightSidebar" @onclick:preventDefault>Save</button>
 </form>
+<form class="form-inline">
+    <label for="dataRetentionTime" class="col-form-label col-sm-3">Data retention time (in days):</label>
+    <div class="col-sm-2">
+        <input id="dataRetentionTime" type="text" class="form-control form-control-sm" @bind="dataRetentionTime" />
+    </div>
+    <button class="btn btn-sm btn-primary" @onclick="SaveDataRetentionTime" @onclick:preventDefault>Save</button>
+</form>
 
 @code
 {
@@ -54,6 +61,7 @@
     int maxInitFetch = 10;
     bool autoFillRightSidebar = false;
     string selectedDefaultLanguage = "English";
+    int dataRetentionTime = 731;
 
     protected override void OnInitialized()
     {
@@ -97,6 +105,16 @@
         {
             DisplayMessageInUi(exception, "Read Config", "Error reading Config for AutoFillRightSidebar: taking value false", false);
         }
+
+        try
+        {
+            string confValue = config.Get(GlobalConfig.kDataRetentionTime);
+            dataRetentionTime = (confValue != "" ? Int32.Parse(confValue) : 731);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Read Config", "Error reading Config for dataRetentionTime: taking value 731 ", false);
+        }
     }
 
     private async Task SaveDefaultLanguage(string language)
@@ -122,5 +140,10 @@
     {
         await config.Set(GlobalConfig.kAutoFillRightSidebar, autoFillRightSidebar.ToString());
         await userConfig.ReloadDefaults(apiConnection);
+    }
+
+    private async Task SaveDataRetentionTime()
+    {
+        await config.Set(GlobalConfig.kDataRetentionTime, dataRetentionTime.ToString());
     }
 }

@@ -29,6 +29,7 @@ namespace FWO.ApiConfig
         public static readonly string kElementsPerFetch = "elementsPerFetch";
         public static readonly string kMaxInitialFetchesRightSidebar = "maxInitialFetchesRightSidebar";
         public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
+        public static readonly string kDataRetentionTime = "dataRetentionTime";
 
         public string productVersion { get; set; }
         public UiText[] uiTexts { get; set; }

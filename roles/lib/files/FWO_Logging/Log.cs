@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -8,11 +9,10 @@ namespace FWO.Logging
     {
         private static object logLock = new object();
 
+        [Conditional("DEBUG")]
         public static void WriteDebug(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-#if DEBUG
             WriteLog("Debug", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.White);
-#endif
         }
 
         public static void WriteInfo(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)

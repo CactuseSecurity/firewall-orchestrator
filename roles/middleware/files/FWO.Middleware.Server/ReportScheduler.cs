@@ -2,9 +2,11 @@
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
+using FWO.Middleware.Server.Requests;
 using FWO.Report;
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
@@ -15,18 +17,24 @@ namespace FWO.Middleware.Server
     {
         private readonly object scheduledReportsLock = new object();
         private List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
-
-        private readonly string apiServerUri;
-        private readonly ApiSubscription<ScheduledReport[]> scheduledReportsSubscription;
-
-        private readonly JwtWriter jwtWriter;
-
         private readonly TimeSpan CheckScheduleInterval = TimeSpan.FromMinutes(1);
 
-        public ReportScheduler(APIConnection apiConnection, JwtWriter jwtWriter)
+        private readonly string apiServerUri;
+        private readonly APIConnection apiConnection;
+        private readonly ApiSubscription<ScheduledReport[]> scheduledReportsSubscription;
+        private readonly JwtWriter jwtWriter;
+
+        private readonly object ldapLock = new object();
+        private List<Ldap> connectedLdaps;
+
+        public ReportScheduler(APIConnection apiConnection, JwtWriter jwtWriter, ApiSubscription<List<Ldap>> connectedLdapsSubscription)
         {
-            this.jwtWriter = jwtWriter;
+            this.jwtWriter = jwtWriter;            
+            this.apiConnection = apiConnection;
             apiServerUri = apiConnection.APIServerURI;
+
+            connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
+            connectedLdapsSubscription.OnUpdate += OnLdapUpdate;
 
             //scheduledReports = apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules).Result.ToList();
             scheduledReportsSubscription = apiConnection.GetSubscription<ScheduledReport[]>(ApiExceptionHandler, ReportQueries.subscribeReportScheduleChanges);
@@ -37,6 +45,14 @@ namespace FWO.Middleware.Server
             checkScheduleTimer.Interval = CheckScheduleInterval.TotalMilliseconds;
             checkScheduleTimer.AutoReset = true;
             checkScheduleTimer.Start();
+        }
+
+        private void OnLdapUpdate(List<Ldap> connectedLdaps)
+        {
+            lock(ldapLock)
+            {
+                this.connectedLdaps = connectedLdaps;
+            }
         }
 
         private void OnScheduleUpdate(ScheduledReport[] scheduledReports)
@@ -82,45 +98,7 @@ namespace FWO.Middleware.Server
 
                             if (RoundUp(scheduledReport.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
                             {
-                                reportGeneratorTasks.Add(Task.Run(async () =>
-                                {
-                                    try
-                                    {
-                                        ReportBase reportRules = ReportBase.ConstructReport(scheduledReport.Template.Filter);
-                                        await reportRules.Generate
-                                        (
-                                            int.MaxValue,
-                                            scheduledReport.Template.Filter,
-                                            new APIConnection(apiServerUri, await jwtWriter.CreateJWT(scheduledReport.Owner)),
-                                            _ => Task.CompletedTask
-                                        );
-
-                                        foreach (FileFormat format in scheduledReport.OutputFormat)
-                                        {
-                                            switch (format.Name)
-                                            {
-                                                case "csv":
-                                                    break;
-
-                                                case "html":
-                                                    break;
-
-                                                case "pdf":
-                                                    break;
-
-                                                case "json":
-                                                    break;
-
-                                                default:
-                                                    throw new NotSupportedException("Output format is not supported.");
-                                            }
-                                        }
-                                    }
-                                    catch (Exception exception)
-                                    {
-                                        Log.WriteError("Report Scheduling", $"Generating scheduled report \"{scheduledReport.Name}\" lead to exception.", exception);
-                                    }
-                                }));
+                                reportGeneratorTasks.Add(GenerateReport(scheduledReport, dateTimeNowRounded));
                             }
                         }
                     }
@@ -132,6 +110,86 @@ namespace FWO.Middleware.Server
             }
 
             await Task.WhenAll(reportGeneratorTasks);
+        }
+
+        private Task GenerateReport(ScheduledReport report, DateTime dateTimeNowRounded)
+        {
+            return Task.Run(async () =>
+            {
+                try
+                {
+                    ReportFile reportFile = new ReportFile                    
+                    { 
+                        Name = $"{report.Name}_{dateTimeNowRounded.ToShortDateString()}",
+                        GenerationDateStart = DateTime.Now,
+                        TemplateId = report.Template.Id,
+                        OwnerId = report.Owner.DbId,
+                    };
+
+                    DateTime reportGenerationStartDate = DateTime.Now;
+
+                    // get uiuser roles + tenant
+                    AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
+                    report.Owner.Roles = await authHandler.GetRoles(report.Owner);
+                    report.Owner.Tenant = await authHandler.GetTenantAsync(report.Owner);
+                    APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, await jwtWriter.CreateJWT(report.Owner));
+
+                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter);
+                    await reportRules.Generate
+                    (
+                        int.MaxValue,
+                        report.Template.Filter,
+                        apiConnectionUserContext, 
+                        _ => Task.CompletedTask
+                    );
+
+                    foreach (FileFormat format in report.OutputFormat)
+                    {
+                        switch (format.Name)
+                        {
+                            case "csv":
+                                reportFile.Csv = reportRules.ToCsv();
+                                break;
+
+                            case "html":
+                                reportFile.Html = reportRules.ToHtml();
+                                break;
+
+                            case "pdf":
+                                reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf());
+                                break;
+
+                            case "json":
+                                reportFile.Json = reportRules.ToJson();
+                                break;
+
+                            default:
+                                throw new NotSupportedException("Output format is not supported.");
+                        }
+                    }
+
+                    reportFile.GenerationDateEnd = DateTime.Now;
+
+                    var queryVariables = new
+                    {
+                        report_name = reportFile.Name,
+                        report_start_time = reportFile.GenerationDateStart,
+                        report_end_time = reportFile.GenerationDateEnd,
+                        report_owner_id = reportFile.OwnerId,
+                        report_template_id = reportFile.TemplateId,
+                        report_pdf = reportFile.Pdf,
+                        report_csv = reportFile.Csv,
+                        report_html = reportFile.Html,
+                        report_json = reportFile.Json,
+                    };
+
+                    await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("Report Scheduling", $"Generating scheduled report \"{report.Name}\" lead to exception.", exception);
+                }
+            });
         }
 
         private static DateTime RoundUp(DateTime dateTime, TimeSpan roundInterval)

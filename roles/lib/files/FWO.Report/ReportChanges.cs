@@ -12,22 +12,20 @@ namespace FWO.Report
 {
     public class ReportChanges : ReportBase
     {
-        public Management[] Managements { get; set; }
-
         public override async Task Generate(int changesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
             query.QueryVariables["limit"] = changesPerFetch;
             query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
-            result = new Management[0];
+            Managements = Array.Empty<Management>();
 
-            result = await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
+            Managements = await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
             while (gotNewObjects)
             {
                 query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = result.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
-                await callback(result);
+                gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
+                await callback(Managements);
             }
         }
 
@@ -51,7 +49,7 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public override string ToPdf()
+        public override byte[] ToPdf()
         {
             throw new NotImplementedException();
         }

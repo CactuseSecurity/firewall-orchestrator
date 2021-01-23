@@ -1,23 +1,26 @@
-﻿@inject APIConnection apiConnection
+﻿@using System.Text
+
+@inject APIConnection apiConnection
 
 @page "/archive"
 
 <h3>Archive</h3>
 
 <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportFile" Items="archivedReports">
-    <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
-    <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
-    <Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" />
-    <Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" />
-    <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner)" />
     <Column TableItem="ReportFile" Title="Actions">
         <Template>
             <div class="btn-group">
-                <button class="btn btn-sm btn-info" @onclick="() => { reportFileContext = context; ShowDownloadReportFileDialog = true; }">Download</button>
+                <button class="btn btn-sm btn-info" @onclick="async () => { await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; }">Download</button>
                 <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">Delete</button>
             </div>
         </Template>
     </Column>
+    <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
+    <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
+    @*<Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" /> TODO: ADD TYPE*@
+    @*<Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" /> TODO: Template (is not always defined - report export)*@
+    <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner.Name)" />
+
 </Table>
 
 <PopUp Show="ShowDeleteReportFileDialog" Title="Generated Report">
@@ -25,15 +28,35 @@
         <p>Do you really want to delete generated report "@reportFileContext.Name" ?</p>
     </Body>
     <Footer>
-        <button class="btn btn-danger" @onclick="DeleteGeneratedReport">Delete</button>
-        <button class="btn btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">Cancel</button>
+        <button class="btn btn-sm btn-danger" @onclick="DeleteGeneratedReport">Delete</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">Cancel</button>
     </Footer>
 </PopUp>
 
 <PopUp Show="ShowDownloadReportFileDialog" Title="Generated Report">
     <Body>
-        <a class="btn btn-sm btn-info" href="data:application/octet-stream;base64,@(Convert.ToBase64String(reportFileContext.Content))"
-           target="_blank" download="@(reportFileContext.Name).@(reportFileContext.Type)">Download</a>
+        <div class="d-flex flex-column align">
+            @if (reportFileContext?.Csv != null)
+            {
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Csv)))"
+                   target="_blank" download="@(reportFileContext.Name).@("csv")">Download as CSV</a>
+            }
+            @if (reportFileContext?.Pdf != null)
+            {
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportFileContext.Pdf)"
+                   target="_blank" download="@(reportFileContext.Name).@("pdf")">Download as PDF</a>
+            }
+            @if (reportFileContext?.Html != null)
+            {
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Html)))"
+                   target="_blank" download="@(reportFileContext.Name).@("html")">Download as HTML</a>
+            }
+            @if (reportFileContext?.Json != null)
+            {
+                <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Json)))"
+                   target="_blank" download="@(reportFileContext.Name).@("json")">Download as JSON</a>
+            }
+        </div>
     </Body>
     <Footer>
         <button class="btn btn-secondary" @onclick="() => ShowDownloadReportFileDialog = false">Cancel</button>
@@ -42,6 +65,9 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<string, string> ShowError { get; set; }
+
     private List<ReportFile> archivedReports = new List<ReportFile>();
 
     private ReportFile reportFileContext;
@@ -53,15 +79,43 @@
         archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
     }
 
+    private async Task GetGeneratedReportContent(int reportId)
+    {
+        try
+        {
+            var queryVariables = new
+            {
+                report_id = reportId
+            };
+
+            reportFileContext = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReport, queryVariables))[0];
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Fetch downloads of generated report", "Unclassified error.", exception);
+            ShowError("Error while fetching downloads of generated report", "Unclassified error.");
+        }
+    }
+
     private async Task DeleteGeneratedReport()
     {
-        var queryVariables = new
+        try
         {
-            report_id = reportFileContext.Id
-        };
+            var queryVariables = new
+            {
+                report_id = reportFileContext.Id
+            };
 
-        await apiConnection.SendQueryAsync<object>(ReportQueries.deleteGeneratedReport, queryVariables);
+            await apiConnection.SendQueryAsync<object>(ReportQueries.deleteGeneratedReport, queryVariables);
 
-        archivedReports.Remove(reportFileContext);
+            archivedReports.Remove(reportFileContext);
+
+            ShowDeleteReportFileDialog = false;
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Delete generated report", "Unclassified error.", exception);
+            ShowError("Error while deleting generated report", "Unclassified error.");
+        }
     }
 }

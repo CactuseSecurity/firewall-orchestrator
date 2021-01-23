@@ -6,6 +6,7 @@
 @using FWO.ApiConfig
 
 @page "/settings/users"
+@attribute [Authorize(Roles = "admin")]
 
 @inject APIConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -32,7 +33,7 @@
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
                     <button class="btn btn-sm btn-info" @onclick="() => CleanUpUser(context)">Clean Up</button>
-               </div>
+                </div>
             </Template>
         </Column>
         <Column TableItem="UiUser" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
@@ -77,7 +78,7 @@
                     <div class="form-group row">
                         <label for="userPassword" class="col-sm-3 col-form-label col-form-label-sm">Password:</label>
                         <div class="col-sm-8">
-                            <input id="userPassword" type ="password" class="form-control form-control-sm" @bind="actUser.Password" />
+                            <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
                         </div>
                     </div>
                 }
@@ -125,7 +126,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            @if(SampleRemoveAllowed)
+            @if (SampleRemoveAllowed)
             {
                 <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">Delete</button>
             }
@@ -134,10 +135,10 @@
     </Footer>
 </PopUp>
 
-@code 
+@code
 {
     [CascadingParameter]
-    Action<Exception,string,string,bool> DisplayMessageInUi { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
@@ -255,8 +256,7 @@
         sampleUsers = new List<UiUser>();
         foreach (var user in uiUsers)
         {
-            // todo: define better criteria for sample data
-            if (user.Name.Contains("fritz"))
+            if (user.Name.EndsWith("_demo"))
             {
                 sampleUsers.Add(user);
             }
@@ -281,9 +281,9 @@
         }
         else
         {
-            foreach(var user in usersMiddlewareResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+            foreach (var user in usersMiddlewareResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
             {
-                UiUser newUser = new UiUser(){ Dn = user.Key , Name = (new DistName(user.Key)).UserName, Email = user.Value };
+                UiUser newUser = new UiUser() { Dn = user.Key, Name = (new DistName(user.Key)).UserName, Email = user.Value };
                 ldapUsers.Add(newUser);
             }
         }
@@ -291,7 +291,7 @@
 
     private async Task updateUserInDb(UiUser user)
     {
-        try          
+        try
         {
             var Variables = new
             {
@@ -308,13 +308,13 @@
 
     private async Task addUserToDb(UiUser user)
     {
-        try          
+        try
         {
             user.Tenant.Id = tenants.Find(x => x.Name == user.Tenant.Name).Id;
 
             var Variables = new
             {
-                uuid = user.Dn, 
+                uuid = user.Dn,
                 uiuser_username = user.Name,
                 email = user.Email,
                 tenant = user.Tenant.Id
@@ -361,7 +361,7 @@
                 {
                     DisplayMessageInUi(null, "Add User Error", "Dn and Password have to be filled", false);
                 }
-                else if ( !tenants.Exists(x => x.Name == actUser.Tenant.Name) )
+                else if (!tenants.Exists(x => x.Name == actUser.Tenant.Name))
                 {
                     DisplayMessageInUi(null, "Add User Error", "Unknown tenant", false);
                 }
@@ -379,7 +379,7 @@
                         uiUsers.Add(actUser);
                         AddMode = false;
                         EditMode = false;
-                    }                
+                    }
                 }
             }
             else
@@ -436,7 +436,7 @@
             else
             {
                 await CleanUpUser(actUser);
-                uiUsers.Remove(actUser);           
+                uiUsers.Remove(actUser);
                 DeleteMode = false;
             }
         }
@@ -472,7 +472,7 @@
         }
         else
         {
-            sampleRemoveMessage = $"Deletes all sample users in local LDAP.";
+            sampleRemoveMessage = $"Deletes all sample users (ending with '_demo') in local LDAP.";
             SampleRemoveAllowed = true;
         }
         SampleRemoveMode = true;

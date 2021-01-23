@@ -72,8 +72,8 @@ namespace FWO.Middleware.Server
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = new ClaimsIdentity();
             subject.AddClaim(new Claim("unique_name", "middleware-server"));
-            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "middleware-server" }), JsonClaimValueTypes.JsonArray));
-            subject.AddClaim(new Claim("x-hasura-default-role", "middleware-server"));
+            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "admin"/*"middleware-server"*/ }), JsonClaimValueTypes.JsonArray));
+            subject.AddClaim(new Claim("x-hasura-default-role", "admin"/*"middleware-server"*/));
 
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
@@ -82,7 +82,7 @@ namespace FWO.Middleware.Server
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),
-                expires: DateTime.UtcNow.AddMinutes(1),
+                expires: DateTime.UtcNow.AddYears(200),
                 signingCredentials: new SigningCredentials(jwtPrivateKey, SecurityAlgorithms.RsaSha256)
             );
             string GeneratedToken = tokenHandler.WriteToken(token);

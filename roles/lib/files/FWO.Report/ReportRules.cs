@@ -50,6 +50,7 @@ namespace FWO.Report
             }
             while (gotNewObjects)
             {
+                gotNewObjects = false;
                 query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
                 for (i = 0; i < managementsWithRelevantImportId.Length; i++)
                 {
@@ -58,7 +59,7 @@ namespace FWO.Report
                     else
                         query.QueryVariables["relevantImportId"] = -1; // managment was not yet imported at that time
                     query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                    gotNewObjects = Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
+                    gotNewObjects = gotNewObjects | Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
                 }
                 await callback(Managements);
             }

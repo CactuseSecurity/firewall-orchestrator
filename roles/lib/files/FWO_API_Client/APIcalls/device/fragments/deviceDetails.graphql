@@ -17,6 +17,7 @@ fragment deviceDetails on device
     importDisabled: do_not_import
     forceInitialImport: force_initial_import
     hideInUi: hide_in_gui
+    debugLevel: debug_level
     # createDate: (only display this)
     creationDate: dev_create
     # updateDate: (only display this)

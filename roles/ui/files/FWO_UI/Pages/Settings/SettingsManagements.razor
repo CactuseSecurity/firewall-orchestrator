@@ -301,61 +301,71 @@
     {
         try
         {
-            // Todo: Value checks?
-            if (AddMode)
+            if (actManagement.Name == null || actManagement.Name == "" || 
+                actManagement.Hostname == null || actManagement.Hostname == "" || 
+                actManagement.ImportUser == null || actManagement.ImportUser == "" || 
+                actManagement.PrivateKey == null ||actManagement.PrivateKey == "" || 
+                actManagement.PublicKey == null || actManagement.PublicKey == "")
             {
-                // insert new management
-                var Variables = new
-                {
-                    name = actManagement.Name,
-                    devTypeId = actManagement.DeviceType.Id,
-                    hostname = actManagement.Hostname,
-                    importUser = actManagement.ImportUser,
-                    importUserSecret = actManagement.PrivateKey,
-                    port = actManagement.Port,
-                    sshPublicKey = actManagement.PublicKey,
-                    importDisabled = actManagement.ImportDisabled,
-                    forceInitialImport = actManagement.ForceInitialImport,
-                    hideInUi = actManagement.HideInUi,
-                    configPath = actManagement.ConfigPath,
-                    importerHostname = actManagement.ImporterHostname,
-                    comment = actManagement.Comment /*,
-                tenantId = actManagement.TenantId */
-                };
-                actManagement.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds[0].NewId;
-                managements.Add(actManagement);
-                AddMode = false;
-                EditMode = false;
+                DisplayMessageInUi(null, "Save Management", "Please fill all mandatory fields.", false);
             }
             else
             {
-                // Update existing management
-                // Todo: handle TenantId
-                var Variables = new
+                if (AddMode)
                 {
-                    id = actManagement.Id,
-                    name = actManagement.Name,
-                    devTypeId = actManagement.DeviceType.Id,
-                    hostname = actManagement.Hostname,
-                    importUser = actManagement.ImportUser,
-                    importUserSecret = actManagement.PrivateKey,
-                    port = actManagement.Port,
-                    sshPublicKey = actManagement.PublicKey,
-                    importDisabled = actManagement.ImportDisabled,
-                    forceInitialImport = actManagement.ForceInitialImport,
-                    hideInUi = actManagement.HideInUi,
-                    configPath = actManagement.ConfigPath,
-                    importerHostname = actManagement.ImporterHostname,
-                    comment = actManagement.Comment /*,
-                tenantId = actManagement.TenantId */
-                };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
-                EditMode = (udId == actManagement.Id ? false : true);
-                managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
+                    // insert new management
+                    var Variables = new
+                    {
+                        name = actManagement.Name,
+                        devTypeId = actManagement.DeviceType.Id,
+                        hostname = actManagement.Hostname,
+                        importUser = actManagement.ImportUser,
+                        importUserSecret = actManagement.PrivateKey,
+                        port = actManagement.Port,
+                        sshPublicKey = actManagement.PublicKey,
+                        importDisabled = actManagement.ImportDisabled,
+                        forceInitialImport = actManagement.ForceInitialImport,
+                        hideInUi = actManagement.HideInUi,
+                        configPath = actManagement.ConfigPath,
+                        importerHostname = actManagement.ImporterHostname,
+                        comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */
+                    };
+                    actManagement.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds[0].NewId;
+                    managements.Add(actManagement);
+                    AddMode = false;
+                    EditMode = false;
+                }
+                else
+                {
+                    // Update existing management
+                    // Todo: handle TenantId
+                    var Variables = new
+                    {
+                        id = actManagement.Id,
+                        name = actManagement.Name,
+                        devTypeId = actManagement.DeviceType.Id,
+                        hostname = actManagement.Hostname,
+                        importUser = actManagement.ImportUser,
+                        importUserSecret = actManagement.PrivateKey,
+                        port = actManagement.Port,
+                        sshPublicKey = actManagement.PublicKey,
+                        importDisabled = actManagement.ImportDisabled,
+                        forceInitialImport = actManagement.ForceInitialImport,
+                        hideInUi = actManagement.HideInUi,
+                        configPath = actManagement.ConfigPath,
+                        importerHostname = actManagement.ImporterHostname,
+                        comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
+                    EditMode = (udId == actManagement.Id ? false : true);
+                    managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
+                }
+                // update actManagement
+                actManagement.DeviceType.Name = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Name;
+                actManagement.DeviceType.Version = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Version;
             }
-            // update actManagement
-            actManagement.DeviceType.Name = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Name;
-            actManagement.DeviceType.Version = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Version;
         }
         catch (Exception exception)
         {

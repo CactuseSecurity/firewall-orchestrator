@@ -44,6 +44,7 @@ Create table "device" -- contains an entry for each firewall gateway
 	"clearing_import_ran" Boolean NOT NULL Default FALSE,
 	"force_initial_import" Boolean NOT NULL Default FALSE,
 	"hide_in_gui" Boolean NOT NULL Default false,
+	"debug_level" Integer,
  primary key ("dev_id")
 );
 

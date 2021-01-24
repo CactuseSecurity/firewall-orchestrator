@@ -51,6 +51,13 @@
     </div>
     <button class="btn btn-sm btn-primary" @onclick="SaveDataRetentionTime" @onclick:preventDefault>Save</button>
 </form>
+<form class="form-inline">
+    <label for="importSleepTime" class="col-form-label col-sm-3">Import sleep time (in seconds):</label>
+    <div class="col-sm-2">
+        <input id="importSleepTime" type="text" class="form-control form-control-sm" @bind="importSleepTime" />
+    </div>
+    <button class="btn btn-sm btn-primary" @onclick="SaveImportSleepTime" @onclick:preventDefault>Save</button>
+</form>
 
 @code
 {
@@ -62,6 +69,7 @@
     bool autoFillRightSidebar = false;
     string selectedDefaultLanguage = "English";
     int dataRetentionTime = 731;
+    int importSleepTime = 40;
 
     protected override void OnInitialized()
     {
@@ -115,6 +123,16 @@
         {
             DisplayMessageInUi(exception, "Read Config", "Error reading Config for dataRetentionTime: taking value 731 ", false);
         }
+
+        try
+        {
+            string confValue = config.Get(GlobalConfig.kImportSleepTime);
+            importSleepTime = (confValue != "" ? Int32.Parse(confValue) : 40);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Read Config", "Error reading Config for importSleepTime: taking value 40 ", false);
+        }
     }
 
     private async Task SaveDefaultLanguage(string language)
@@ -145,5 +163,10 @@
     private async Task SaveDataRetentionTime()
     {
         await config.Set(GlobalConfig.kDataRetentionTime, dataRetentionTime.ToString());
+    }
+
+    private async Task SaveImportSleepTime()
+    {
+        await config.Set(GlobalConfig.kImportSleepTime, importSleepTime.ToString());
     }
 }

@@ -6,6 +6,7 @@ mutation newDevice(
   $importDisabled: Boolean!
   $hideInUi: Boolean!
   $comment: String
+  $debugLevel: Int
 ) {
   insert_device(
     objects: {
@@ -16,6 +17,7 @@ mutation newDevice(
       do_not_import: $importDisabled
       hide_in_gui: $hideInUi
       dev_comment: $comment
+      debug_level: $debugLevel
     }
   ) {
     returning {

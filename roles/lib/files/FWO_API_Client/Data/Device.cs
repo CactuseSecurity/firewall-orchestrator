@@ -32,6 +32,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("comment")]
         public string Comment { get; set; }
 
+        [JsonPropertyName("debugLevel")]
+        public int? DebugLevel { get; set; }
+
         [JsonPropertyName("rules")]
         public Rule[] Rules { get; set; }
 
@@ -62,6 +65,7 @@ namespace FWO.Api.Data
             ImportDisabled = device.ImportDisabled;
             HideInUi = device.HideInUi;
             Comment = device.Comment;
+            DebugLevel = device.DebugLevel;
         }
     }
 

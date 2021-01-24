@@ -35,6 +35,7 @@
             </Template>
         </Column>
         <Column TableItem="Device" Title="Import Disabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" />
+        <Column TableItem="Device" Title="Debug Level" Field="@(x => x.DebugLevel)" Sortable="true" Filterable="true" />
     </Table>
 </div>
 
@@ -81,6 +82,12 @@
                     <label for="deviceRulebase" class="col-sm-3 col-form-label col-form-label-sm">Rulebase:</label>
                     <div class="col-sm-8">
                         <input id="deviceRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.Rulebase" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="deviceDebugLevel" class="col-sm-3 col-form-label col-form-label-sm">Debug Level (0-9):</label>
+                    <div class="col-sm-8">
+                        <input id="deviceDebugLevel" type="text" class="form-control form-control-sm" @bind="actDevice.DebugLevel" />
                     </div>
                 </div>
                 <div class="form-check form-check-inline">
@@ -201,48 +208,60 @@
     {
         try
         {
-            // Todo: Value checks?
-            if (AddMode)
+            if (actDevice.Name == null || actDevice.Name == "" || actDevice.Rulebase == null || actDevice.Rulebase == "")
             {
-                // insert new device
-                var Variables = new
-                {
-                    name = actDevice.Name,
-                    devTypeId = actDevice.DeviceType.Id,
-                    managementId = actDevice.Management.Id,
-                    rulebase = actDevice.Rulebase,
-                    importDisabled = actDevice.ImportDisabled,
-                    hideInUi = actDevice.HideInUi,
-                    comment = actDevice.Comment
-                };
-                actDevice.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds[0].NewId;
-                devices.Add(actDevice);
-                await addDeviceToTenant0(actDevice.Id);
-                AddMode = false;
-                EditMode = false;
+                DisplayMessageInUi(null, "Save Gateway", "Please fill all mandatory fields.", false);
+            }
+            else if (actDevice.DebugLevel != null && (actDevice.DebugLevel < 0 || actDevice.DebugLevel > 9))
+            {
+                DisplayMessageInUi(null, "Set Debug Level", "Value for Debug Level has to be in the range 0 - 9.", false);
             }
             else
-            {
-                // Update existing device
-                var Variables = new
+            {    
+                if (AddMode)
                 {
-                    id = actDevice.Id,
-                    name = actDevice.Name,
-                    devTypeId = actDevice.DeviceType.Id,
-                    managementId = actDevice.Management.Id,
-                    rulebase = actDevice.Rulebase,
-                    importDisabled = actDevice.ImportDisabled,
-                    hideInUi = actDevice.HideInUi,
-                    comment = actDevice.Comment
-                };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
-                EditMode = (udId == actDevice.Id ? false : true);
-                devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
+                    // insert new device
+                    var Variables = new
+                    {
+                        name = actDevice.Name,
+                        devTypeId = actDevice.DeviceType.Id,
+                        managementId = actDevice.Management.Id,
+                        rulebase = actDevice.Rulebase,
+                        importDisabled = actDevice.ImportDisabled,
+                        hideInUi = actDevice.HideInUi,
+                        comment = actDevice.Comment,
+                        debugLevel = actDevice.DebugLevel
+                    };
+                    actDevice.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds[0].NewId;
+                    devices.Add(actDevice);
+                    await addDeviceToTenant0(actDevice.Id);
+                    AddMode = false;
+                    EditMode = false;
+                }
+                else
+                {
+                    // Update existing device
+                    var Variables = new
+                    {
+                        id = actDevice.Id,
+                        name = actDevice.Name,
+                        devTypeId = actDevice.DeviceType.Id,
+                        managementId = actDevice.Management.Id,
+                        rulebase = actDevice.Rulebase,
+                        importDisabled = actDevice.ImportDisabled,
+                        hideInUi = actDevice.HideInUi,
+                        comment = actDevice.Comment,
+                        debugLevel = actDevice.DebugLevel
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
+                    EditMode = (udId == actDevice.Id ? false : true);
+                    devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
+                }
+                // update actDevice for immediate display
+                actDevice.DeviceType.Name = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Name;
+                actDevice.DeviceType.Version = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Version;
+                actDevice.Management.Name = managements.Find(x => x.Id == actDevice.Management.Id).Name;
             }
-            // update actDevice for immediate display
-            actDevice.DeviceType.Name = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Name;
-            actDevice.DeviceType.Version = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Version;
-            actDevice.Management.Name = managements.Find(x => x.Id == actDevice.Management.Id).Name;
         }
         catch (Exception exception)
         {

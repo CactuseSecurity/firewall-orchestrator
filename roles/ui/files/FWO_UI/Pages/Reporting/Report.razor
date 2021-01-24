@@ -223,7 +223,7 @@
 
                                 @foreach (Device device in management.Devices)
                                 {
-                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                                         <Table SelectedItems="selectedItemsReportRuleTable"
                                                RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
                                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
@@ -289,7 +289,7 @@
 
                                 @foreach (Device device in management.Devices)
                                 {
-                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
 
                                         <Table SelectedItems="selectedItemsReportChangeTable"
                                                RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
@@ -422,8 +422,6 @@
             <Tab Title="Report">
                 <div class="btn btn-secondary" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
                 <CascadingValue Value="collapseSidebarReport">
-                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                     <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                  NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>

@@ -9,9 +9,6 @@ namespace FWO.ApiConfig
 {
     public class ConfigDbAccess
     {
-        public static string kDefaultLanguage = "DefaultLanguage";
-        public static string kRulesPerFetch = "rulesPerFetch";
-
         public Dictionary<String, String> configItems;
         static APIConnection apiConnection;
         int userid;

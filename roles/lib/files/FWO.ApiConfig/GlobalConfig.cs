@@ -25,6 +25,12 @@ namespace FWO.ApiConfig
         /// </summary>
         private readonly APIConnection apiConnection;
 
+        public static readonly string kDefaultLanguage = "DefaultLanguage";
+        public static readonly string kElementsPerFetch = "elementsPerFetch";
+        public static readonly string kMaxInitialFetchesRightSidebar = "maxInitialFetchesRightSidebar";
+        public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
+        public static readonly string kDataRetentionTime = "dataRetentionTime";
+
         public string productVersion { get; set; }
         public UiText[] uiTexts { get; set; }
 
@@ -51,7 +57,7 @@ namespace FWO.ApiConfig
             ConfigDbAccess configTable = new ConfigDbAccess(apiConnection, 0);
             try
             {
-                defaultLanguage = configTable.Get(ConfigDbAccess.kDefaultLanguage);
+                defaultLanguage = configTable.Get(kDefaultLanguage);
             }
             catch(Exception exception)
             {

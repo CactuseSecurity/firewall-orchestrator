@@ -463,7 +463,7 @@
     private List<ReportTemplate> reportTemplates = new List<ReportTemplate>();
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
-    private int rulesPerFetch = 100;    // todo: rename to "elementsPerFetch" to cover all types of report/objects
+    private int elementsPerFetch = 100;
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
     private bool ShowNoDeviceSelectedWarning = false;
@@ -476,6 +476,8 @@
     private bool ShowEditScheduledReportDialog = false;
     private bool ShowDeleteScheduledReportDialog = false;
 
+    private bool autoFillRightSidebar = false;
+    private int maxInitFetchRightSidebar = 10;
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
@@ -532,19 +534,24 @@
             try
             {
                 GetSettings();
-                PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
 
-                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                await InvokeAsync(StateHasChanged);
-
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = elementsPerFetch, Offset = 0 };
                 bool newObjects = true;
+                int fetchCount = 0;
 
                 // lazy fetch all objects for right sidebar
-                while (newObjects)
+                while (newObjects && ( ++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
                 {
-                    paginationVariables.Offset += rulesPerFetch;
+                    paginationVariables.Offset += elementsPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                    newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
+                    if (fetchCount == 1)
+                    {
+                        managementsAllObjects = managementsCurrentFetch;
+                    }
+                    else
+                    {
+                        newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
+                    }
 
                     await InvokeAsync(StateHasChanged);
                 }
@@ -602,7 +609,7 @@
             {
                 case rulesReport:
                     currentReport = new ReportRules();
-                    await currentReport.Generate(rulesPerFetch, filterInput, Connection,
+                    await currentReport.Generate(elementsPerFetch, filterInput, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -612,7 +619,7 @@
 
                 case changesReport:
                     currentReport = new ReportChanges();
-                    await currentReport.Generate(rulesPerFetch, filterInput, Connection,
+                    await currentReport.Generate(elementsPerFetch, filterInput, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -800,11 +807,20 @@
     {
         try
         {
-            string settingsValue = userConfig.GetConfigValue(ConfigDbAccess.kRulesPerFetch);
+            string settingsValue = userConfig.GetConfigValue(GlobalConfig.kElementsPerFetch);
             if (settingsValue != "")
             {
-                rulesPerFetch = Int32.Parse(settingsValue);
+                elementsPerFetch = Int32.Parse(settingsValue);
             }
+
+            settingsValue = userConfig.GetConfigValue(GlobalConfig.kMaxInitialFetchesRightSidebar);
+            if (settingsValue != "")
+            {
+                maxInitFetchRightSidebar = Int32.Parse(settingsValue);
+            }
+
+            settingsValue = userConfig.GetConfigValue(GlobalConfig.kAutoFillRightSidebar);
+            autoFillRightSidebar = (settingsValue == "True" ? true : false);
         }
         catch (Exception exception)
         {

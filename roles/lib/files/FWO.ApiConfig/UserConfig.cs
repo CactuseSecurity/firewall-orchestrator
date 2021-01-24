@@ -20,9 +20,6 @@ namespace FWO.ApiConfig
         private Dictionary<string, string> userConfigItems;
         private Dictionary<string, string> defaultConfigItems;
 
-        public static readonly string kDefaultLanguage = "DefaultLanguage";
-        public static readonly string kRulesPerFetch = "rulesPerFetch";
-
         public Dictionary<string, string> Translate {get; set; }
 
         public UiUser User { private set; get; }
@@ -49,9 +46,14 @@ namespace FWO.ApiConfig
             
             if(User.Language == null)
             {
-                User.Language = GetConfigValue(kDefaultLanguage);
+                User.Language = GetConfigValue(GlobalConfig.kDefaultLanguage);
             }
             await ChangeLanguage(User.Language, apiConnection);
+        }
+
+        public async Task ReloadDefaults(APIConnection apiConnection)
+        {
+            defaultConfigItems = await GetConfigItems(0, apiConnection);
         }
 
         private async Task<Dictionary<string, string>> GetConfigItems(int userId, APIConnection apiConnection)

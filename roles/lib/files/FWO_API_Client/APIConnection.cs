@@ -71,7 +71,7 @@ namespace FWO.ApiClient
             try
             {
                 // Log.WriteDebug("API Response", $"API Call variables: { variables }");
-                Log.WriteDebug("API call", $"Sending API call {operationName}.");
+                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0,30)}.");
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
                 Log.WriteDebug("API call", "API call received.");
 

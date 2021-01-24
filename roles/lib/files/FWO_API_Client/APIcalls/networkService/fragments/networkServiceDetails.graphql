@@ -17,8 +17,8 @@ fragment networkServiceDetails on service {
   }
   svc_comment
   svc_color_id
-  ip_proto_id
   protocol_name: stm_ip_proto {
+    id: ip_proto_id
     name: ip_proto_name
   }
   svc_member_names

@@ -4,15 +4,28 @@
   register: docker_is_installed
 
 - block:
+#    - name: check if api container is running
+#      command: "docker ps -q --filter name={{ api_container_name }}"
+#      become: yes
+#      register: api_running
+
     - name: check if api container is running
-      command: "docker ps -q --filter name={{ api_container_name }}"
+      docker_container_info: "docker ps -q --filter name={{ api_container_name }}"
+        name: "{{ api_container_name }}"
       become: yes
       register: api_running
 
+#    - name: stop api container
+#      command: "docker stop {{ api_container_name }}"
+#      become: yes
+#      when: not api_running.stdout == ""
+
     - name: stop api container
-      command: "docker stop {{ api_container_name }}"
+      docker_container: "docker stop {{ api_container_name }}"
+        name: "{{ api_container_name }}"
+        state: stopped
       become: yes
-      when: not api_running.stdout == ""
+      when: not api_running.container.Id == ""
 
     - name: check if api container exists
       command: "docker ps --all -q --filter name={{ api_container_name }}"

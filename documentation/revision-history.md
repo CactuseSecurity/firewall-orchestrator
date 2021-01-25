@@ -70,5 +70,5 @@ adding report template format fk and permissions
   - fixing template edit/delete buttons
   - changing report.report_pdf type from bytea to TEXT
 
-### 5.1.10 - 24.01.2021
-- add debug_level to table device
+### 5.1.10 - 25.01.2021
+- add debug_level to table management

@@ -43,6 +43,7 @@
         <Column TableItem="Management" Title="Config Path" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Importer Host" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="Import Disabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" />
+        <Column TableItem="Management" Title="Debug Level" Field="@(x => x.DebugLevel)" Sortable="true" Filterable="true" />
     </Table>
 </div>
 
@@ -114,6 +115,12 @@
                     <label for="managementImporterHostname" class="col-sm-3 col-form-label col-form-label-sm">Importer Hostname:</label>
                     <div class="col-sm-8">
                         <input id="managementImporterHostname" type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementDebugLevel" class="col-sm-3 col-form-label col-form-label-sm">Debug Level (0-9):</label>
+                    <div class="col-sm-8">
+                        <input id="managementDebugLevel" type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
                     </div>
                 </div>
 
@@ -294,6 +301,7 @@
     {
         AddMode = true;
         newManagement = new Management(management);
+        newManagement.Id = 0;
         Edit(newManagement);
     }
 
@@ -301,15 +309,7 @@
     {
         try
         {
-            if (actManagement.Name == null || actManagement.Name == "" || 
-                actManagement.Hostname == null || actManagement.Hostname == "" || 
-                actManagement.ImportUser == null || actManagement.ImportUser == "" || 
-                actManagement.PrivateKey == null ||actManagement.PrivateKey == "" || 
-                actManagement.PublicKey == null || actManagement.PublicKey == "")
-            {
-                DisplayMessageInUi(null, "Save Management", "Please fill all mandatory fields.", false);
-            }
-            else
+            if (CheckValues())
             {
                 if (AddMode)
                 {
@@ -328,6 +328,7 @@
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
                         importerHostname = actManagement.ImporterHostname,
+                        debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment /*,
                     tenantId = actManagement.TenantId */
                     };
@@ -355,6 +356,7 @@
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
                         importerHostname = actManagement.ImporterHostname,
+                        debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment /*,
                     tenantId = actManagement.TenantId */
                     };
@@ -371,6 +373,36 @@
         {
             DisplayMessageInUi(exception, "API Error", "Error while saving management.", false);
         }
+    }
+
+    private bool CheckValues()
+    {
+        if (actManagement.Name == null || actManagement.Name == "" || 
+            actManagement.Hostname == null || actManagement.Hostname == "" || 
+            actManagement.ImportUser == null || actManagement.ImportUser == "" || 
+            actManagement.PrivateKey == null ||actManagement.PrivateKey == "" || 
+            actManagement.PublicKey == null || actManagement.PublicKey == "")
+        {
+            DisplayMessageInUi(null, "Save Management", "Please fill all mandatory fields.", false);
+            return false;
+        }
+        if (actManagement.Port < 1 || actManagement.Port > 65535)
+        {
+            DisplayMessageInUi(null, "Save Management", "Port has to be in the range 1 - 65535.", false);
+            return false;
+        }
+        else if (actManagement.DebugLevel != null && (actManagement.DebugLevel < 0 || actManagement.DebugLevel > 9))
+        {
+            DisplayMessageInUi(null, "Save Management", "Value for Debug Level has to be in the range 0 - 9.", false);
+            return false;
+        }
+        if (!actManagement.ImportDisabled && managements.FirstOrDefault(mgt => mgt.Hostname == actManagement.Hostname && mgt.Port == actManagement.Port 
+            && mgt.ConfigPath == actManagement.ConfigPath && mgt.Id != actManagement.Id && !mgt.ImportDisabled) != null)
+        {
+            DisplayMessageInUi(null, "Save Management", "There is already a management in the same configuration with import enabled.", false);
+            return false;
+        }
+        return true;
     }
 
     private void Cancel()

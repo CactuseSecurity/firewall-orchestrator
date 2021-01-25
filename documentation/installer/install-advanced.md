@@ -124,7 +124,7 @@ api docu can then be accessed at <https://server/api_schema/index.html>
 
 ### Parameter "second_ldap_db" to install second ldap database
 
-if you want to install a second ldap database "dc=examole,dc=com"
+if you want to install a second ldap database "dc=example,dc=com"
 
 ```console
 cd firewall-orchestrator; ansible-playbook -i inventory -e "second_ldap_db=yes" site.yml -K

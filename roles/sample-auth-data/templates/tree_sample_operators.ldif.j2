@@ -1,7 +1,7 @@
 
 # These are test users with plain text passwords
 
-dn: uid=user1_demo,ou=tenant1,ou=operator,ou=user,{{ middleware_ldap_path }}
+dn: uid=user1_demo,ou=tenant1,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -13,7 +13,7 @@ userPassword: cactus1
 {%- endif %}
 
 
-dn: uid=user2_demo,ou=tenant1,ou=operator,ou=user,{{ middleware_ldap_path }}
+dn: uid=user2_demo,ou=tenant1,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -25,7 +25,7 @@ userPassword: cactus1
 {%- endif %}
 
 
-dn: uid=user1_demo,ou=tenant2,ou=operator,ou=user,{{ middleware_ldap_path }}
+dn: uid=user1_demo,ou=tenant2,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -37,7 +37,7 @@ userPassword: cactus2
 {%- endif %}
 
 
-dn: uid=user2_demo,ou=tenant2,ou=operator,ou=user,{{ middleware_ldap_path }}
+dn: uid=user2_demo,ou=tenant2,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top

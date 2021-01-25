@@ -25,7 +25,7 @@
   become: yes
 
 - name: add tree
-  command: "ldapmodify -H {{ middleware_ldap_internal_url }} -D {{ middleware_ldap_superuser_name }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_server_base_dir }}/ldif/tree_{{ item }}.ldif"
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_server_base_dir }}/ldif/tree_{{ item }}.ldif"
   loop:
     - level_0
     - level_1

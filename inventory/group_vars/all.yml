@@ -43,6 +43,7 @@ fworch_dbadmin_name: dbadmin
 #middleware_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
 jwt_private_key_file: "{{ fworch_home }}/etc/secrets/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_home }}/etc/secrets/jwt_public_key.pem"
+ldif_dir: "{{ fworch_home }}/etc/ldif"
 
 middleware_hostname: "127.0.0.1"
 ldif_changetype: add
@@ -74,7 +75,7 @@ dotnet_mode: "Release"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 
-### ldap
+### password generation
 random_generated_pw: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
 
 ### logging

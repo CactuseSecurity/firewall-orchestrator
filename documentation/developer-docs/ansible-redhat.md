@@ -1,6 +1,7 @@
 # How to make installer also run on Red Hat
 ## Installation Instructions Red Hat
 - tested with RHEL 8.3
+- you need to create an account with Red Hat
 - download OS (in my case dvd iso with 9 GB) from <https://developers.redhat.com/products/rhel/download>
 - create vbox with Linux Red Hat 64 bit 2048 MB RAM, 24 GB HDD
 - install OS

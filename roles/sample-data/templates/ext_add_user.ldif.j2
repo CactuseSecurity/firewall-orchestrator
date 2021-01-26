@@ -1,0 +1,22 @@
+dn: cn=A,ou=role,{{ sample_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=anke,ou=user,{{ sample_ldap_path }}
+
+
+dn: cn=A,ou=role,{{ sample_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=cloe,ou=user,{{ sample_ldap_path }}
+
+
+dn: cn=B,ou=role,{{ sample_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=berta,ou=user,{{ sample_ldap_path }}
+
+
+dn: cn=B,ou=role,{{ sample_ldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=cloe,ou=user,{{ sample_ldap_path }}

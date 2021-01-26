@@ -5,22 +5,25 @@
 # See ldap.conf(5) for details
 # This file should be world readable but not world writable.
 
-BASE    {{ middleware_ldap_path }}
+BASE    {{ openldap_path }}
 {% if openldap_server_enable_ssl %}
-URI     ldaps://localhost
+URI     ldaps://{{ openldap_server }}:{{ openldap_port }}
 TLS_REQCERT never
+TLS_CACERT {{ openldap_server_cert }}
 {% endif %}
 {% if not openldap_server_enable_ssl %}
-URI     ldap://localhost
+URI     ldap://{{ openldap_server }}:{{ openldap_port }}
 {% endif %}
 
 #SIZELIMIT      12
 #TIMELIMIT      15
 #DEREF          never
-TLS_CACERTDIR /etc/openldap/cacerts
 {% if ansible_os_family == 'RedHat' %}
+# This if block is outdated
+TLS_CACERTDIR /etc/openldap/cacerts
 TLS_CACERT {{ openldap_server_cert }}
 {% endif %}
 {% if ansible_os_family == 'Debian' %}
+TLS_CACERTDIR {{ openldap_server_cert_path }}
 TLS_CACERT {{ openldap_server_cert }}
 {% endif %}

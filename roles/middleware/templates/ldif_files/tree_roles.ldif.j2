@@ -1,4 +1,4 @@
-dn: cn=anonymous,ou=role,{{ middleware_ldap_path }}
+dn: cn=anonymous,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -9,7 +9,7 @@ description: anonymous users can only access the login page and health statistic
 {%- endif %}
 
 
-dn: cn=middleware-server,ou=role,{{ middleware_ldap_path }}
+dn: cn=middleware-server,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -20,7 +20,7 @@ description: allows the middleware server to read necessary tables (ldap_connect
 {%- endif %}
 
 
-dn: cn=reporter,ou=role,{{ middleware_ldap_path }}
+dn: cn=reporter,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -31,7 +31,7 @@ description: reporters have access to basic tables (stm_...) and limited rights 
 {%- endif %}
 
 
-dn: cn=reporter-viewall,ou=role,{{ middleware_ldap_path }}
+dn: cn=reporter-viewall,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -42,7 +42,7 @@ description: reporter role for full read access to all devices
 {%- endif %}
 
 
-dn: cn=importer,ou=role,{{ middleware_ldap_path }}
+dn: cn=importer,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -53,7 +53,7 @@ description: users can import config changes into the database
 {%- endif %}
 
 
-dn: cn=dbbackup,ou=role,{{ middleware_ldap_path }}
+dn: cn=dbbackup,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -64,7 +64,7 @@ description: users that are able to read data tables for backup purposes
 {%- endif %}
 
 
-dn: cn=auditor,ou=role,{{ middleware_ldap_path }}
+dn: cn=auditor,ou=role,{{ openldap_path }}
 {% if ldif_changetype != 'delete' -%}
 changetype: {{ ldif_changetype }}
 objectClass: top
@@ -75,7 +75,7 @@ description: users that can view all data & settings (in the UI) but cannot make
 {%- endif %}
 
 
-dn: cn=workflow-user,ou=role,{{ middleware_ldap_path }}
+dn: cn=workflow-user,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -86,7 +86,7 @@ description: (for future use) users who can request firewall changes
 {%- endif %}
 
 
-dn: cn=workflow-admin,ou=role,{{ middleware_ldap_path }}
+dn: cn=workflow-admin,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -97,7 +97,7 @@ description: (for future use) users who can create change request workflows
 {%- endif %}
 
 
-dn: cn=fw-admin,ou=role,{{ middleware_ldap_path }}
+dn: cn=fw-admin,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
@@ -108,7 +108,7 @@ description: users who can document open changes
 {%- endif %}
 
 
-dn: cn=admin,ou=role,{{ middleware_ldap_path }}
+dn: cn=admin,ou=role,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top

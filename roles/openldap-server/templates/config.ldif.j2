@@ -1,0 +1,87 @@
+# example config file - global configuration entry
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcArgsFile: /var/run/slapd/slapd.args
+olcPidFile: /var/run/slapd/slapd.pid
+olcLogLevel: stats
+olcTLSCertificateFile: {{ openldap_server_cert }}
+olcTLSCertificateKeyFile: {{ openldap_server_private_key }}
+#These don't work yet
+#olcSecurity: tls=1
+#olcTLSCipherSuite: TLSv1+RSA:!NULL
+#olcTLSCRLCheck: none
+#olcTLSVerifyClient: never
+
+# modules that can be loaded
+dn: cn=module{0},cn=config
+objectClass: olcModuleList
+cn: module{0}
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: back_bdb.la
+
+# internal schema
+dn: cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: schema
+
+# include the core schemata
+include: file:///etc/ldap/schema/core.ldif
+include: file:///etc/ldap/schema/cosine.ldif
+include: file:///etc/ldap/schema/inetorgperson.ldif
+include: file:///etc/ldap/schema/nis.ldif
+
+# configure config database
+dn: olcDatabase=config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: config
+olcRootPW: {{ root_password.stdout }}
+olcAccess: to * by * none
+
+# add database
+dn: olcDatabase=bdb,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcBdbConfig
+olcDatabase: bdb
+olcSuffix: {{ openldap_path }}
+olcDbDirectory: /var/lib/ldap/{{ openldap_server_domain_name }}/
+olcRootDN: {{ openldap_superuser_dn }}
+olcRootPW: {{ root_password.stdout }}
+olcDbIndex: objectClass pres,eq
+olcDbIndex: ou,cn,mail,surname,givenname pres,eq,sub
+olcDbIndex: uidNumber,gidNumber,loginShell pres,eq
+olcDbIndex: uid,memberUid pres,eq,sub
+olcDbIndex: nisMapName,nisMapEntry pres,eq,sub
+olcAccess: to attrs=userPassword
+    by self write
+    by anonymous auth
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" read
+    by * none
+olcAccess: to attrs=userPassword
+    by self write
+    by anonymous auth
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" read
+    by * none
+olcAccess: to attrs=shadowLastChange
+    by self write
+    by * read
+olcAccess: to dn.children="{{ openldap_std_role_dn }}"
+    by dn.base="{{ openldap_writer_dn }}" write
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by * none
+olcAccess: to dn.children="{{ openldap_std_user_dn }}"
+    by dn.base="{{ openldap_writer_dn }}" write
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by * none
+olcAccess: to *
+    by self write
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" read
+    by * none

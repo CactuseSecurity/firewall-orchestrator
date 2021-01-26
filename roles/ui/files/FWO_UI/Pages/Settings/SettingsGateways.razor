@@ -194,6 +194,7 @@
     {
         AddMode = true;
         newDevice = new Device(device);
+        newDevice.Id = 0;
         Edit(newDevice);
     }
 
@@ -201,53 +202,71 @@
     {
         try
         {
-            // Todo: Value checks?
-            if (AddMode)
-            {
-                // insert new device
-                var Variables = new
+            if (CheckValues())
+            {    
+                if (AddMode)
                 {
-                    name = actDevice.Name,
-                    devTypeId = actDevice.DeviceType.Id,
-                    managementId = actDevice.Management.Id,
-                    rulebase = actDevice.Rulebase,
-                    importDisabled = actDevice.ImportDisabled,
-                    hideInUi = actDevice.HideInUi,
-                    comment = actDevice.Comment
-                };
-                actDevice.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds[0].NewId;
-                devices.Add(actDevice);
-                await addDeviceToTenant0(actDevice.Id);
-                AddMode = false;
-                EditMode = false;
-            }
-            else
-            {
-                // Update existing device
-                var Variables = new
+                    // insert new device
+                    var Variables = new
+                    {
+                        name = actDevice.Name,
+                        devTypeId = actDevice.DeviceType.Id,
+                        managementId = actDevice.Management.Id,
+                        rulebase = actDevice.Rulebase,
+                        importDisabled = actDevice.ImportDisabled,
+                        hideInUi = actDevice.HideInUi,
+                        comment = actDevice.Comment
+                    };
+                    actDevice.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds[0].NewId;
+                    devices.Add(actDevice);
+                    await addDeviceToTenant0(actDevice.Id);
+                    AddMode = false;
+                    EditMode = false;
+                }
+                else
                 {
-                    id = actDevice.Id,
-                    name = actDevice.Name,
-                    devTypeId = actDevice.DeviceType.Id,
-                    managementId = actDevice.Management.Id,
-                    rulebase = actDevice.Rulebase,
-                    importDisabled = actDevice.ImportDisabled,
-                    hideInUi = actDevice.HideInUi,
-                    comment = actDevice.Comment
-                };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
-                EditMode = (udId == actDevice.Id ? false : true);
-                devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
+                    // Update existing device
+                    var Variables = new
+                    {
+                        id = actDevice.Id,
+                        name = actDevice.Name,
+                        devTypeId = actDevice.DeviceType.Id,
+                        managementId = actDevice.Management.Id,
+                        rulebase = actDevice.Rulebase,
+                        importDisabled = actDevice.ImportDisabled,
+                        hideInUi = actDevice.HideInUi,
+                        comment = actDevice.Comment
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
+                    EditMode = (udId == actDevice.Id ? false : true);
+                    devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
+                }
+                // update actDevice for immediate display
+                actDevice.DeviceType.Name = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Name;
+                actDevice.DeviceType.Version = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Version;
+                actDevice.Management.Name = managements.Find(x => x.Id == actDevice.Management.Id).Name;
             }
-            // update actDevice for immediate display
-            actDevice.DeviceType.Name = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Name;
-            actDevice.DeviceType.Version = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Version;
-            actDevice.Management.Name = managements.Find(x => x.Id == actDevice.Management.Id).Name;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, "Error while saving gateway", exception.Message, true);
         }
+    }
+
+    private bool CheckValues()
+    {
+        if (actDevice.Name == null || actDevice.Name == "" || actDevice.Rulebase == null || actDevice.Rulebase == "")
+        {
+            DisplayMessageInUi(null, "Save Gateway", "Please fill all mandatory fields.", false);
+            return false;
+        }
+        if (!actDevice.ImportDisabled && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
+            && dev.Rulebase == actDevice.Rulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
+        {
+            DisplayMessageInUi(null, "Save Gateway", "There is already a gateway in the same configuration with import enabled.", false);
+            return false;
+        }
+        return true;
     }
 
     private async Task addDeviceToTenant0(int deviceId)

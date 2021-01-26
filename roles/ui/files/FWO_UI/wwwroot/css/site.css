@@ -121,6 +121,10 @@ app {
     word-wrap: break-word;
 }
 
+.word-break {
+    word-break: break-all;
+}
+
 .error-underline {
     text-decoration-line: underline;
     text-decoration-style: double;

@@ -1,0 +1,9 @@
+dn: olcDatabase=bdb,cn=config
+changetype: add
+objectClass: olcDatabaseConfig
+objectClass: olcBdbConfig
+olcDatabase: bdb
+olcSuffix: {{ sample_ldap_path }}
+olcDbDirectory: /var/lib/ldap/{{ sample_ldap_domain_name }}/
+olcRootDN: {{ openldap_superuser_dn }}
+olcDbIndex: objectClass eq

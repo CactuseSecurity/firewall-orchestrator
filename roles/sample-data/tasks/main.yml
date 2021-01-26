@@ -36,3 +36,7 @@
 #     name: "{{ product_name }}-importer"
 #     state: restarted
 #   become: yes
+
+- name: add second ldap database
+  import_tasks: add_second_ldap_db.yml
+  when: second_ldap_db | bool

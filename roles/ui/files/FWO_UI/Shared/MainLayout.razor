@@ -53,28 +53,40 @@
         }
     }
 
-    private void DisplayMessageInUi(Exception Error = null, string title = null, string message = null, bool error = false)
+    private void DisplayMessageInUi(Exception exception = null, string title = null, string message = null, bool showException = false)
     {
-        if (Error != null && Error.Message.Contains("JWTExpired"))
+        if (exception == null)
         {
-            // todo: consider redirect to login page
-            Log.WriteError("Auth Token Error", "JWT expired in session.", Error);
-            ShowError("JWT Expiry Error", "JWT expired in session - please log in again.");
-        }
-        else if (Error.Message == "no such type exists in the schema: 'cidr'")
-        {
-            // this is the default error message when user's access rights are not sufficient for API access
-            ShowError("API access", "Insufficient access rights.");
-        }
-        else if (Error == null && error == false)
-        {
+            // User message to be displayed
             ShowError(title, message); // todo: display warnings in yellow
             Log.WriteWarning(title, message);
         }
         else
         {
-            Log.WriteError("Unspecified Error", "Unspecified error occured.", Error);
-            ShowError("Unspecified Error", $"Unexpected error condition encountered: {Error.Message}");
+            // first some recurring specific messages
+            if (exception.Message.Contains("JWTExpired"))
+            {
+                // todo: consider redirect to login page
+                Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
+                ShowError("JWT Expiry Error", "JWT expired in session - please log in again.");
+            }
+            else if (exception.Message == "no such type exists in the schema: 'cidr'")
+            {
+                // this is the default error message when user's access rights are not sufficient for API access
+                ShowError("API access", "Insufficient access rights.");
+            }
+            else if (showException)
+            {
+                // the exception message is shown to the user
+                Log.WriteError((title != null ? title : "Unspecified Error"), (message != null ? message : "Unspecified error occured: "), exception);
+                ShowError((title != null ? title : "Unspecified Error"), $"{(message != null ? message : "Unexpected error condition encountered")}: {exception.Message}");
+            }
+            else
+            {
+                // only title and message (if given) or unspecific error message is shown to the user
+                Log.WriteError((title != null ? title : "Unspecified Error"), (message != null ? message : "Unspecified error occured: "), exception);
+                ShowError((title != null ? title : "Unspecified Error"), $"{(message != null ? message : "Unexpected error condition encountered.")}");
+            }
         }
     }
 }

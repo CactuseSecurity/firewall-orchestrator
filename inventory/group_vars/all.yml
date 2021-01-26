@@ -4,6 +4,11 @@ ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
 
+# operating system specifics
+arch: x86_64
+redhat_major_version: "8"
+redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
+
 # installation_mode options:
 #   new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
 #   uninstall     - runs uninstall-fworch.yml

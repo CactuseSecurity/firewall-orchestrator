@@ -58,6 +58,10 @@
       - ui
       - lib
 
+  - name: include redhat install basics
+    include_tasks: redhat_preps.yml
+    when: installation_mode == "new" and ansible_os_family == "RedHat"
+
   - name: update operating system packages .deb based
     apt:
       upgrade: dist

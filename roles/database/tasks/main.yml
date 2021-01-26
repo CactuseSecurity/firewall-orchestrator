@@ -1,13 +1,44 @@
 - block:
-    - name: install package postgresql and python3-psycopg2
+
+    - name: include redhat db install parts
+      include_tasks: redhat_preps.yml
+      when: installation_mode == "new" and ansible_os_family == "RedHat"
+
+    - name: install package postgresql packages for redhat
       package:
         name: "{{ item }}"
         state: present
       loop:
-        - "{{ postgresql_package }}"
+        - postgresql-server
+        - python3-psycopg2
+        #- libpq-devel
+      when: ansible_os_family == "RedHat"
+      # todo: check if we need and if yes, how to install libpq-dev(el)
+
+    - name: install package postgresql packages for debian n ubuntu
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - postgresql
         - python3-psycopg2
         - libpq-dev
-        - "{{ postgresql_test_package }}"
+      when: ansible_os_family == "Debian"
+
+    - name: initdb redhat
+      command: "postgresql-setup --initdb"
+      become: yes
+      when: ansible_os_family == "RedHat"
+
+    # - name: install package postgresql and python3-psycopg2
+    #   package:
+    #     name: "{{ item }}"
+    #     state: present
+    #   loop:
+    #     - "{{ postgresql_package }}"
+    #     - python3-psycopg2
+    #     - "{{ postgresql_c_client_library_header_files }}"
+    #     - "{{ postgresql_test_package }}"
 
     - name: find out installed postgres version
       script: get_pg_version.sh
@@ -21,6 +52,8 @@
       set_fact: pg_version={{ pg_version | int }}
       when: pg_version|int >= 10
 
+
+    # redhat: /var/lib/pgsql/data/postgresql.conf
     - name: edit postgresql.conf log_destination
       lineinfile:
         path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"

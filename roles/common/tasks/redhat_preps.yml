@@ -1,0 +1,20 @@
+- name: fetch EPEL
+  get_url:
+    url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+    dest: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+  environment: "{{ proxy_env }}"
+
+- name: add EPEL repos
+  yum:
+    name: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+    state: present
+
+- name: remove file EPEL repo
+  file:
+    name: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+    state: absent
+
+- name: enable repo via subscription manager
+  command: subscription-manager repos --enable "codeready-builder-for-rhel-{{ redhat_major_version }}-{{ arch }}-rpms"
+  environment: "{{ proxy_env }}"
+  become: yes

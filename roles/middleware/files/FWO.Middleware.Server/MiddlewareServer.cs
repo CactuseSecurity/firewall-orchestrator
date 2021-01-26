@@ -202,9 +202,10 @@ namespace FWO.Middleware.Server
 
                     if (jwt.Validate())
                     {
+                        // Find correct way to handle request.
                         if (jwt.JwtContainsAdminRole())
                         {
-                            // Find correct way to handle request.
+                            // first the operations allowed for the admin
                             switch (requestName)
                             {
                                 case "GetAllRoles":
@@ -295,6 +296,35 @@ namespace FWO.Middleware.Server
                                     break;
 
                                 // Listened to a request but could not handle it. In theory impossible. FATAL ERROR
+                                default:
+                                    Log.WriteError("Internal Error", $"We received a request we could not handle: {request.RawUrl}", LogStackTrace: true);
+                                    status = HttpStatusCode.InternalServerError;
+                                    break;
+                            }
+                        }
+                        else if (jwt.JwtContainsAuditorRole())
+                        {
+                            // read operations allowed also for auditor
+                            switch (requestName)
+                            {
+                                case "GetAllRoles":
+
+                                    // Initialize Request Handler  
+                                    GetAllRolesRequestHandler getAllRolesRequestHandler = new GetAllRolesRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to get all roles with users
+                                    (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "GetUsers":
+
+                                    // Initialize Request Handler  
+                                    GetUsersRequestHandler getUsersRequestHandler = new GetUsersRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to get all users from Ldap
+                                    (status, responseString) = await getUsersRequestHandler.HandleRequestAsync(request);
+                                    break;
+
                                 default:
                                     Log.WriteError("Internal Error", $"We received a request we could not handle: {request.RawUrl}", LogStackTrace: true);
                                     status = HttpStatusCode.InternalServerError;

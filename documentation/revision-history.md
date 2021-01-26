@@ -69,4 +69,6 @@ adding report template format fk and permissions
   - default templates get report_template_owner id=0 instead of null
   - fixing template edit/delete buttons
   - changing report.report_pdf type from bytea to TEXT
-  
+
+### 5.1.10 - 25.01.2021
+- add debug_level to table management

@@ -30,6 +30,7 @@ namespace FWO.ApiConfig
         public static readonly string kMaxInitialFetchesRightSidebar = "maxInitialFetchesRightSidebar";
         public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
         public static readonly string kDataRetentionTime = "dataRetentionTime";
+        public static readonly string kImportSleepTime = "importSleepTime";
 
         public string productVersion { get; set; }
         public UiText[] uiTexts { get; set; }

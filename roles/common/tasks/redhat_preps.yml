@@ -18,3 +18,12 @@
   command: subscription-manager repos --enable "codeready-builder-for-rhel-{{ redhat_major_version }}-{{ arch }}-rpms"
   environment: "{{ proxy_env }}"
   become: yes
+
+- name: setting default locale in /etc/profile
+  blockinfile:
+    path: /etc/profile
+    block: >
+      export LANG="en_US.utf8"
+      export LANGUAGE="en_US.utf8"
+      export LC_ALL="en_US.utf8"
+  become: yes

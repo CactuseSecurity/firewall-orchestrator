@@ -16,6 +16,11 @@
     name: /tmp/pgdg-redhat-repo-latest.noarch.rpm 
     state: absent
 
+- name: install glibc-langpack-en for postgresql to handle utf-8
+  package:
+    name: glibc-langpack-en
+  become: yes
+
 # - name: setting postgres package names for redhat
 #   set_fact:
 #     vars:

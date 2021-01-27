@@ -9,12 +9,12 @@
 <Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" InitialWidth="sidebarWidth" @bind-Width="sidebarWidth">
     <div class="m-2 mt-4">
         <ul class="navbar-nav flex-column">
-            <AuthorizeView Roles="admin, importer">
+            <AuthorizeView Roles="admin, importer, auditor">
                 <li class="nav-item px-2">
                     <h5>Devices</h5>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, auditor">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/managements">
                         Managements <span class="oi oi-inbox"></span>
@@ -26,7 +26,7 @@
                     </NavLink>
                 </li>
             </AuthorizeView>
-            <AuthorizeView Roles="admin, importer">
+            <AuthorizeView Roles="admin, importer, auditor">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/import">
                         Import <span class="oi oi-arrow-thick-bottom"></span>
@@ -34,7 +34,7 @@
                 </li>
                 <hr />
             </AuthorizeView>
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Roles="admin, auditor">
                 <li class="nav-item px-2">
                     <h5>Authorization</h5>
                 </li>
@@ -69,7 +69,7 @@
                 </li>
                 <hr />
             </AuthorizeView>
-            <AuthorizeView Roles="admin, reporter, reporter-viewall, workflow-user, workflow-admin">
+            <AuthorizeView Roles="admin, reporter, reporter-viewall, workflow-user, workflow-admin, auditor">
                 <li class="nav-item px-2">
                     <h5>Personal</h5>
                 </li>

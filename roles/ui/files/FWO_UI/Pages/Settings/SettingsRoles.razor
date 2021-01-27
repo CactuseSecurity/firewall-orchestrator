@@ -6,7 +6,7 @@
 @using FWO.ApiConfig
 
 @page "/settings/roles"
-@attribute [Authorize(Roles = "admin")]
+@attribute [Authorize(Roles = "admin, auditor")]
 
 @inject APIConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -69,14 +69,18 @@
                             }
                         </select>
                     </div>
-                    <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUserDn)" @onclick:preventDefault>Add</button>
+                    <AuthorizeView Roles="admin">
+                        <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUserDn)" @onclick:preventDefault>Add</button>
+                    </AuthorizeView>
                 </form>
                 <form class="form-inline">
                     <label for="newUser" class="col-sm-2 col-form-label col-form-label-sm">New (Dn):</label>
                     <div class="col-sm-8">
                         <input id="newUser" type="text" class="form-control form-control-sm" @bind="newUserDn" />
                     </div>
-                    <button class="btn btn-sm btn-success" @onclick="() => NewUser(newUserDn)" @onclick:preventDefault>Add</button>
+                    <AuthorizeView Roles="admin">
+                        <button class="btn btn-sm btn-success" @onclick="() => NewUser(newUserDn)" @onclick:preventDefault>Add</button>
+                    </AuthorizeView>
                 </form>
             </form>
         }
@@ -109,7 +113,9 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserDn)" @onclick:preventDefault>Delete</button>
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserDn)" @onclick:preventDefault>Delete</button>
+            </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
@@ -136,7 +142,9 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedUserDn)" @onclick:preventDefault>Add</button>
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedUserDn)" @onclick:preventDefault>Add</button>
+            </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="CancelSearch">Cancel</button>
         </div>
     </Footer>

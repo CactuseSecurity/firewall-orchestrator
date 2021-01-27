@@ -6,7 +6,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/defaults"
-@attribute [Authorize(Roles = "admin")]
+@attribute [Authorize(Roles = "admin, auditor")]
 
 @inject APIConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -23,40 +23,52 @@
             <option value="@(language.Name)">@(language.Name)</option>
         }
     </select>
-    <button class="btn btn-sm btn-primary" @onclick="async () => { await SaveDefaultLanguage(selectedDefaultLanguage); StateHasChanged(); }" @onclick:preventDefault>Save</button>
+    <AuthorizeView Roles="admin">
+        <button class="btn btn-sm btn-primary" @onclick="async () => { await SaveDefaultLanguage(selectedDefaultLanguage); StateHasChanged(); }" @onclick:preventDefault>Save</button>
+    </AuthorizeView>
 </form>
 <form class="form-inline">
     <label for="elementsPerFetch" class="col-form-label col-sm-3">Elements per fetch:</label>
     <div class="col-sm-2">
         <input id="elementsPerFetch" type="text" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>
-    <button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch" @onclick:preventDefault>Save</button>
+    <AuthorizeView Roles="admin">
+        <button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch" @onclick:preventDefault>Save</button>
+    </AuthorizeView>
 </form>
 <form class="form-inline">
     <label for="maxInitFetch" class="col-form-label col-sm-3">Max initial fetches right sidebar:</label>
     <div class="col-sm-2">
         <input id="maxInitFetch" type="text" class="form-control form-control-sm" @bind="maxInitFetch" />
     </div>
-    <button class="btn btn-sm btn-primary" @onclick="SaveMaxInitFetch" @onclick:preventDefault>Save</button>
+    <AuthorizeView Roles="admin">
+        <button class="btn btn-sm btn-primary" @onclick="SaveMaxInitFetch" @onclick:preventDefault>Save</button>
+    </AuthorizeView>
 </form>
 <form class="form-inline">
     <label for="autoFillRightSidebar" class="col-form-label col-sm-3">Completely auto-fill right sidebar:</label>
     <input class="form-check-input col-sm-2" id="autoFillRightSidebar" type="checkbox" @bind="autoFillRightSidebar">
-    <button class="btn btn-sm btn-primary" @onclick="SaveAutoFillRightSidebar" @onclick:preventDefault>Save</button>
+    <AuthorizeView Roles="admin">
+        <button class="btn btn-sm btn-primary" @onclick="SaveAutoFillRightSidebar" @onclick:preventDefault>Save</button>
+    </AuthorizeView>
 </form>
 <form class="form-inline">
     <label for="dataRetentionTime" class="col-form-label col-sm-3">Data retention time (in days):</label>
     <div class="col-sm-2">
         <input id="dataRetentionTime" type="text" class="form-control form-control-sm" @bind="dataRetentionTime" />
     </div>
-    <button class="btn btn-sm btn-primary" @onclick="SaveDataRetentionTime" @onclick:preventDefault>Save</button>
+    <AuthorizeView Roles="admin">
+        <button class="btn btn-sm btn-primary" @onclick="SaveDataRetentionTime" @onclick:preventDefault>Save</button>
+    </AuthorizeView>
 </form>
 <form class="form-inline">
     <label for="importSleepTime" class="col-form-label col-sm-3">Import sleep time (in seconds):</label>
     <div class="col-sm-2">
         <input id="importSleepTime" type="text" class="form-control form-control-sm" @bind="importSleepTime" />
     </div>
-    <button class="btn btn-sm btn-primary" @onclick="SaveImportSleepTime" @onclick:preventDefault>Save</button>
+    <AuthorizeView Roles="admin">
+        <button class="btn btn-sm btn-primary" @onclick="SaveImportSleepTime" @onclick:preventDefault>Save</button>
+    </AuthorizeView>
 </form>
 
 @code

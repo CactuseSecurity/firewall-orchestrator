@@ -56,29 +56,27 @@
   #       middleware_uri: "{{ middleware_uri }}"
   #   when: installation_mode == "new"
 
-  - name: edit central conf file
-    blockinfile:
-      path: "{{ fworch_conf_file }}"
-      create: yes
-      marker: ""
-      marker_begin: ""
-      marker_end: ""
-      block: >
-        {
-          "fworch_home": "{{ fworch_home }}", 
-          "dotnet_mode": "{{ dotnet_mode }}", 
-          "api_uri": "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql", 
-          "api_hasura_jwt_alg": "{{ api_hasura_jwt_alg }}", 
-          "middleware_native_uri": "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/", 
-          "middleware_uri": "{{ middleware_uri }}"
-        }
+  - name: set config values
+    set_fact:
+      config_json:
+        fworch_home: "{{ fworch_home }}"
+        dotnet_mode: "{{ dotnet_mode }}" 
+        api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+        api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
+        middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
+        middleware_uri: "{{ middleware_uri }}"
+
+  - name: acreate central conf file
+    copy: 
+      content: "{{ config_json | to_nice_json }}" 
+      dest: "{{ fworch_conf_file }}"
     when: installation_mode == "new"
 
   - name: write version in config file in fresh installation
     lineinfile:
       path: "{{ fworch_conf_file }}"
       create: yes
-      line: "product_version: {{ product_version }}"
+      line: "    \"product_version\": \"{{ product_version }}\","
       insertafter: "{"
     when: installation_mode == "new"
     # keep old version number in config file until end of upgrade

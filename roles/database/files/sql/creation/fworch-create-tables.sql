@@ -71,6 +71,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"config_path" Varchar,
 	"hide_in_gui" Boolean NOT NULL Default false,
 	"importer_hostname" Varchar,
+	"debug_level" Integer,
  primary key ("mgm_id")
 );
 

@@ -3,7 +3,7 @@
 @using FWO.ApiClient
 
 @page "/settings/import"
-@attribute [Authorize(Roles = "admin, importer")]
+@attribute [Authorize(Roles = "admin, importer, auditor")]
 
 @inject APIConnection apiConnection
 
@@ -27,7 +27,9 @@
                 @if (context.LastIncompleteImport.Length > 0)
                 {
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback(context.MgmId)">Rollback</button>
+                        <AuthorizeView Roles="admin, importer" Context="xxx">
+                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback(context.MgmId)">Rollback</button>
+                        </AuthorizeView>
                         @(context.LastIncompleteImport[0].StartTime)
                     </div>
                 }

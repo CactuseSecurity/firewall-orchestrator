@@ -6,7 +6,7 @@
 @using FWO.ApiConfig
 
 @page "/settings/users"
-@attribute [Authorize(Roles = "admin")]
+@attribute [Authorize(Roles = "admin, auditor")]
 
 @inject APIConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -32,7 +32,9 @@
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
-                    <button class="btn btn-sm btn-info" @onclick="() => CleanUpUser(context)">Clean Up</button>
+                    <AuthorizeView Roles="admin" Context="xxx">
+                        <button class="btn btn-sm btn-info" @onclick="() => CleanUpUser(context)">Clean Up</button>
+                    </AuthorizeView>
                 </div>
             </Template>
         </Column>
@@ -93,7 +95,9 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-primary" @onclick="() => Save()">Save</button>
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-primary" @onclick="() => Save()">Save</button>
+            </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
@@ -110,7 +114,9 @@
         <div class="btn-group">
             @if (DeleteAllowed)
             {
-                <button class="btn btn-sm btn-danger" @onclick="() => Delete()">Delete</button>
+                <AuthorizeView Roles="admin">
+                    <button class="btn btn-sm btn-danger" @onclick="() => Delete()">Delete</button>
+                </AuthorizeView>
             }
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
@@ -128,7 +134,9 @@
         <div class="btn-group">
             @if (SampleRemoveAllowed)
             {
-                <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">Delete</button>
+                <AuthorizeView Roles="admin">
+                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">Delete</button>
+                </AuthorizeView>
             }
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>

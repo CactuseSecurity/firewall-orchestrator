@@ -4,18 +4,18 @@
 
 <div class="w-100 card @Class">
     <div class="btn-group w-100">
-        <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show == ".show" ? "collapse-up" : "collapse-down")"></span> </button>
+        <button class="btn btn-sm btn-@Style" @onclick="ToggleCollapse"> <span class="oi oi-@(show ? "collapse-up" : "collapse-down")"></span> </button>
         <button class="btn btn-sm btn-block btn-@Style disabled text-left" @ondblclick="ToggleCollapse">@Title</button>
     </div>
-    <div class="@($"collapse{show}") p-2">
+    <div class="@(show ? "collapse.show" : "collapse") p-2">
         @ChildContent
     </div>
 </div>
 
 @code
 {
-    [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    [CascadingParameter]
+    public CollapseState collapseState { get; set; }
 
     [Parameter]
     public string Title { get; set; }
@@ -29,29 +29,31 @@
     [Parameter]
     public string Class { get; set; } = "";
 
-    [CascadingParameter]
-    public CollapseState collapseState { get; set; }
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
 
-    private string show;
+    private bool show;
 
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
         {
-            show = StartToggled ? "" : ".show";
+            show = !StartToggled;
             if (collapseState != null)
                 collapseState.OnCollapseAll += ForceCollapse;
+            StateHasChanged();
         }
     }
 
     private void ForceCollapse(bool s)
     {
-        show = s ? ".show" : "";
+        show = s;
+        StateHasChanged();
     }
 
     private void ToggleCollapse()
     {
-        show = show == "" ? ".show" : "";
+        show = !show;
     }
 
     void IDisposable.Dispose()

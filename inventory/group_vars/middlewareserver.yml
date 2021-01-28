@@ -19,7 +19,7 @@ middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Se
 middleware_change_local_ldap: "yes"
 
 # use static jwt generation test key if set to 1 - only for testing, not for production environment
-testkeys: "no"
+testkeys: no
 
 ########## test data only ##############
 

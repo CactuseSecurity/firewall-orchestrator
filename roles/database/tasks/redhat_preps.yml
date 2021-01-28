@@ -1,0 +1,29 @@
+
+- name: add postgresql repo for rpms
+  get_url:
+    url: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ redhat_major_version}}-{{ arch }}/pgdg-redhat-repo-latest.noarch.rpm"
+    dest: "/tmp/pgdg-redhat-repo-latest.noarch.rpm"
+  environment: "{{ proxy_env }}"
+
+- name: install postgresql repo
+  yum:
+    name: /tmp/pgdg-redhat-repo-latest.noarch.rpm
+    state: present
+  become: yes
+
+- name: remove postgresql repo file
+  file:
+    name: /tmp/pgdg-redhat-repo-latest.noarch.rpm 
+    state: absent
+
+- name: install glibc-langpack-en for postgresql to handle utf-8
+  package:
+    name: glibc-langpack-en
+  become: yes
+
+# - name: setting postgres package names for redhat
+#   set_fact:
+#     vars:
+#       postgresql_c_client_library_header_files: libpq-devel
+#       postgresql_test_package: pgtap12
+#       postgresql_package: postgresql-server

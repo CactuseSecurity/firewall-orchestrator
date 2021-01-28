@@ -1314,6 +1314,7 @@ tables:
       foreign_key_constraint_on: zone_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - obj_id
       - last_change_admin

@@ -98,10 +98,13 @@
         format: csv
     when: installation_mode == "new"
 
-  - name: add base data to database
+# non-ascii sql file cannot be executed under red hat
+# revert to command + psql?
+  - name: add base data to database fworch-fill-stm.sql
     postgresql_query:
       db: "{{ fworch_db_name }}"
       path_to_script: "{{ database_install_dir }}/sql/creation/fworch-fill-stm.sql"
+      # encoding: UTF-8
 
   become: yes
   become_user: postgres

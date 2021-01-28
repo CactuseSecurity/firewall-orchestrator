@@ -76,7 +76,7 @@
     lineinfile:
       path: "{{ fworch_conf_file }}"
       create: yes
-      line: "   \"product_version\": \"{{ product_version }}\","
+      line: "    \"product_version\": \"{{ product_version }}\","
       insertafter: "{"
     when: installation_mode == "new"
     # keep old version number in config file until end of upgrade

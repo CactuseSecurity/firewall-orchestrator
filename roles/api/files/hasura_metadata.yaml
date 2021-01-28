@@ -74,6 +74,29 @@ tables:
       foreign_key_constraint_on: import_admin
   select_permissions:
   - permission:
+      columns:
+      - log_rule_id
+      - doku_admin
+      - control_id
+      - import_admin
+      - new_rule_id
+      - old_rule_id
+      - implicit_change
+      - abs_change_id
+      - change_action
+      - changelog_rule_comment
+      - documented
+      - docu_time
+      - mgm_id
+      - dev_id
+      - change_type_id
+      - security_relevant
+      - change_request_info
+      - change_time
+      - unique_name
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - log_rule_id
@@ -199,6 +222,16 @@ tables:
         config_user:
           _eq: X-Hasura-User-Id
       columns:
+      - config_key
+      - config_value
+      - config_user
+    role: auditor
+  - permission:
+      backend_only: false
+      check:
+        config_user:
+          _eq: X-Hasura-User-Id
+      columns:
       - config_user
       - config_key
       - config_value
@@ -229,6 +262,13 @@ tables:
     role: anonymous
   - permission:
       columns:
+      - config_user
+      - config_key
+      - config_value
+      filter: {}
+    role: auditor
+  - permission:
+      columns:
       - config_key
       - config_value
       - config_user
@@ -255,6 +295,16 @@ tables:
     name: config
     schema: public
   update_permissions:
+  - permission:
+      check: null
+      columns:
+      - config_user
+      - config_key
+      - config_value
+      filter:
+        config_user:
+          _eq: X-Hasura-User-Id
+    role: auditor
   - permission:
       check: null
       columns:
@@ -311,6 +361,24 @@ tables:
     using:
       foreign_key_constraint_on: tenant_id
   select_permissions:
+  - permission:
+      columns:
+      - dev_id
+      - mgm_id
+      - dev_name
+      - dev_rulebase
+      - dev_typ_id
+      - tenant_id
+      - dev_active
+      - dev_comment
+      - dev_create
+      - dev_update
+      - do_not_import
+      - clearing_import_ran
+      - force_initial_import
+      - hide_in_gui
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -369,6 +437,12 @@ tables:
       - name
     role: middleware-server
   select_permissions:
+  - permission:
+      columns:
+      - id
+      - name
+      filter: {}
+    role: auditor
   - permission:
       columns:
       - id
@@ -693,6 +767,24 @@ tables:
   - permission:
       allow_aggregations: true
       columns:
+      - control_id
+      - start_time
+      - stop_time
+      - is_initial_import
+      - delimiter_group
+      - delimiter_zone
+      - delimiter_user
+      - delimiter_list
+      - mgm_id
+      - last_change_in_config
+      - successful_import
+      - changes_found
+      - import_errors
+      filter: {}
+    role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
       - changes_found
       - is_initial_import
       - successful_import
@@ -909,6 +1001,11 @@ tables:
       - name
       filter: {}
     role: anonymous
+  - permission:
+      columns:
+      - name
+      filter: {}
+    role: auditor
   table:
     name: language
     schema: public
@@ -917,6 +1014,22 @@ tables:
     using:
       foreign_key_constraint_on: tenant_id
   select_permissions:
+  - permission:
+      columns:
+      - ldap_connection_id
+      - ldap_server
+      - ldap_port
+      - ldap_tls
+      - ldap_searchpath_for_users
+      - ldap_searchpath_for_roles
+      - ldap_tenant_level
+      - ldap_search_user
+      - ldap_search_user_pwd
+      - ldap_write_user
+      - tenant_id
+      - ldap_write_user_pwd
+      filter: {}
+    role: auditor
   - permission:
       columns:
       - ldap_connection_id
@@ -1029,6 +1142,34 @@ tables:
     using:
       foreign_key_constraint_on: tenant_id
   select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - dev_typ_id
+      - mgm_name
+      - mgm_comment
+      - tenant_id
+      - mgm_create
+      - mgm_update
+      - ssh_public_key
+      - ssh_private_key
+      - ssh_hostname
+      - ssh_port
+      - ssh_user
+      - last_import_md5_complete_config
+      - last_import_md5_rules
+      - last_import_md5_objects
+      - last_import_md5_users
+      - do_not_import
+      - clearing_import_ran
+      - force_initial_import
+      - config_path
+      - hide_in_gui
+      - importer_hostname
+      - debug_level
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -1205,6 +1346,41 @@ tables:
       - active
       - obj_create
       - obj_last_seen
+      filter: {}
+    role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - obj_id
+      - last_change_admin
+      - zone_id
+      - mgm_id
+      - obj_name
+      - obj_comment
+      - obj_uid
+      - obj_typ_id
+      - obj_location
+      - obj_member_names
+      - obj_member_refs
+      - initial_config
+      - obj_sw
+      - obj_ip
+      - obj_ip_end
+      - obj_nat
+      - nattyp_id
+      - obj_nat_ip
+      - obj_nat_ip_end
+      - obj_nat_install
+      - obj_color_id
+      - obj_sys_name
+      - obj_sys_location
+      - obj_sys_contact
+      - obj_sys_desc
+      - obj_sys_readcom
+      - obj_sys_writecom
+      - active
+      - obj_create
+      - obj_last_seen
       filter:
         mgm_id:
           _in: X-Hasura-visible-managements
@@ -1262,6 +1438,16 @@ tables:
       foreign_key_constraint_on: objgrp_member_id
   select_permissions:
   - permission:
+      columns:
+      - objgrp_id
+      - objgrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - objgrp_id
@@ -1300,6 +1486,16 @@ tables:
       foreign_key_constraint_on: objgrp_flat_member_id
   select_permissions:
   - permission:
+      columns:
+      - objgrp_flat_id
+      - objgrp_flat_member_id
+      - active
+      - import_created
+      - import_last_seen
+      - negated
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - objgrp_flat_id
@@ -1328,6 +1524,11 @@ tables:
       filter:
         report_owner_id:
           _eq: X-Hasura-User-Id
+    role: auditor
+  - permission:
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       filter:
@@ -1335,6 +1536,22 @@ tables:
           _eq: X-Hasura-User-Id
     role: reporter-viewall
   insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_id
+      - report_template_id
+      - report_start_time
+      - report_end_time
+      - report_json
+      - report_pdf
+      - report_csv
+      - report_html
+      - report_name
+      - report_owner_id
+      - tenant_wide_visible
+    role: auditor
   - permission:
       backend_only: false
       check: {}
@@ -1379,6 +1596,21 @@ tables:
       foreign_key_constraint_on: report_owner_id
   select_permissions:
   - permission:
+      columns:
+      - report_id
+      - report_template_id
+      - report_start_time
+      - report_end_time
+      - report_json
+      - report_pdf
+      - report_csv
+      - report_html
+      - report_name
+      - report_owner_id
+      - tenant_wide_visible
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - report_pdf
@@ -1418,6 +1650,24 @@ tables:
     name: report
     schema: public
   update_permissions:
+  - permission:
+      check: null
+      columns:
+      - report_owner_id
+      - report_template_id
+      - tenant_wide_visible
+      - report_id
+      - report_json
+      - report_csv
+      - report_html
+      - report_pdf
+      - report_end_time
+      - report_start_time
+      - report_name
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: auditor
   - permission:
       check: null
       columns:
@@ -1467,6 +1717,11 @@ tables:
       columns:
       - report_format_name
       filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - report_format_name
+      filter: {}
     role: reporter
   - permission:
       columns:
@@ -1489,6 +1744,11 @@ tables:
       filter:
         report_schedule_owner:
           _eq: X-Hasura-User-Id
+    role: auditor
+  - permission:
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       filter:
@@ -1496,6 +1756,19 @@ tables:
           _eq: X-Hasura-User-Id
     role: reporter-viewall
   insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_schedule_active
+      - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_schedule_start_time
+      - report_template_id
+    role: auditor
   - permission:
       backend_only: false
       check: {}
@@ -1530,6 +1803,19 @@ tables:
     using:
       foreign_key_constraint_on: report_schedule_owner
   select_permissions:
+  - permission:
+      columns:
+      - report_schedule_id
+      - report_schedule_name
+      - report_template_id
+      - report_schedule_owner
+      - report_schedule_start_time
+      - report_schedule_repeat
+      - report_schedule_every
+      - report_schedule_active
+      - report_schedule_repetitions
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -1596,6 +1882,21 @@ tables:
       columns:
       - report_schedule_active
       - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_schedule_start_time
+      - report_template_id
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: auditor
+  - permission:
+      check: null
+      columns:
+      - report_schedule_active
+      - report_schedule_every
       - report_schedule_owner
       - report_schedule_repeat
       - report_template_id
@@ -1627,6 +1928,12 @@ tables:
         report_schedule:
           report_schedule_owner:
             _eq: X-Hasura-User-Id
+    role: auditor
+  - permission:
+      filter:
+        report_schedule:
+          report_schedule_owner:
+            _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       filter:
@@ -1635,6 +1942,16 @@ tables:
             _eq: X-Hasura-User-Id
     role: reporter-viewall
   insert_permissions:
+  - permission:
+      backend_only: false
+      check:
+        report_schedule:
+          report_schedule_owner:
+            _eq: X-Hasura-User-Id
+      columns:
+      - report_schedule_format_name
+      - report_schedule_id
+    role: auditor
   - permission:
       backend_only: false
       check:
@@ -1667,6 +1984,12 @@ tables:
       columns:
       - report_schedule_format_name
       - report_schedule_id
+      filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - report_schedule_format_name
+      - report_schedule_id
       filter:
         report_schedule:
           report_schedule_owner:
@@ -1685,6 +2008,16 @@ tables:
     name: report_schedule_format
     schema: public
   update_permissions:
+  - permission:
+      check: null
+      columns:
+      - report_schedule_id
+      - report_schedule_format_name
+      filter:
+        report_schedule:
+          report_schedule_owner:
+            _eq: X-Hasura-User-Id
+    role: auditor
   - permission:
       check:
         report_schedule:
@@ -1745,6 +2078,11 @@ tables:
       filter:
         report_template_owner:
           _eq: X-Hasura-User-Id
+    role: auditor
+  - permission:
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       filter:
@@ -1752,6 +2090,18 @@ tables:
           _eq: X-Hasura-User-Id
     role: reporter-viewall
   insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_template_id
+      - report_filter
+      - report_template_name
+      - report_template_comment
+      - report_template_create
+      - report_template_owner
+      - filterline_history
+    role: auditor
   - permission:
       backend_only: false
       check: {}
@@ -1781,6 +2131,17 @@ tables:
     using:
       foreign_key_constraint_on: report_template_owner
   select_permissions:
+  - permission:
+      columns:
+      - report_template_id
+      - report_filter
+      - report_template_name
+      - report_template_comment
+      - report_template_create
+      - report_template_owner
+      - filterline_history
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -1829,6 +2190,20 @@ tables:
     name: report_template
     schema: public
   update_permissions:
+  - permission:
+      check: null
+      columns:
+      - filterline_history
+      - report_template_id
+      - report_template_owner
+      - report_template_comment
+      - report_template_create
+      - report_filter
+      - report_template_name
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
+    role: auditor
   - permission:
       check: null
       columns:
@@ -2047,6 +2422,43 @@ tables:
       foreign_key_constraint_on: rule_to_zone
   select_permissions:
   - permission:
+      columns:
+      - rule_id
+      - last_change_admin
+      - rule_name
+      - mgm_id
+      - active
+      - rule_num
+      - rule_num_numeric
+      - rule_ruleid
+      - rule_uid
+      - rule_disabled
+      - rule_src_neg
+      - rule_dst_neg
+      - rule_svc_neg
+      - action_id
+      - track_id
+      - rule_src
+      - rule_dst
+      - rule_svc
+      - rule_src_refs
+      - rule_dst_refs
+      - rule_svc_refs
+      - rule_from_zone
+      - rule_to_zone
+      - rule_action
+      - rule_track
+      - rule_installon
+      - rule_time
+      - rule_comment
+      - rule_head_text
+      - rule_implied
+      - rule_create
+      - rule_last_seen
+      - dev_id
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - rule_id
@@ -2145,6 +2557,18 @@ tables:
       foreign_key_constraint_on: user_id
   select_permissions:
   - permission:
+      columns:
+      - rule_from_id
+      - rf_create
+      - rf_last_seen
+      - rule_id
+      - obj_id
+      - user_id
+      - active
+      - negated
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - rule_from_id
@@ -2197,6 +2621,16 @@ tables:
       foreign_key_constraint_on: svc_id
   select_permissions:
   - permission:
+      columns:
+      - rule_id
+      - svc_id
+      - active
+      - rs_create
+      - rs_last_seen
+      - negated
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - rule_id
@@ -2234,6 +2668,16 @@ tables:
     using:
       foreign_key_constraint_on: rule_id
   select_permissions:
+  - permission:
+      columns:
+      - rule_id
+      - obj_id
+      - rt_create
+      - rt_last_seen
+      - active
+      - negated
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -2332,6 +2776,43 @@ tables:
       foreign_key_constraint_on: last_change_admin
   select_permissions:
   - permission:
+      columns:
+      - svc_id
+      - svc_uid
+      - svc_name
+      - svc_typ_id
+      - mgm_id
+      - svc_comment
+      - svc_prod_specific
+      - svc_member_names
+      - svc_member_refs
+      - svc_color_id
+      - ip_proto_id
+      - svc_port
+      - svc_port_end
+      - initial_config
+      - srv_keeponinstall
+      - svc_rpcnr
+      - svc_code
+      - svc_match
+      - svc_source_port
+      - svc_source_port_end
+      - svc_tcp_res
+      - svc_accept_rep
+      - svc_accept_rep_any
+      - svc_mfa
+      - svc_timeout_std
+      - svc_timeout
+      - svc_sync
+      - svc_sync_delay
+      - svc_sync_delay_start
+      - active
+      - last_change_admin
+      - svc_create
+      - svc_last_seen
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - svc_id
@@ -2426,6 +2907,12 @@ tables:
       - action_id
       - action_name
       filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - action_id
+      - action_name
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -2467,6 +2954,12 @@ tables:
           name: changelog_user
           schema: public
   select_permissions:
+  - permission:
+      columns:
+      - change_type_id
+      - change_type_name
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -2514,6 +3007,14 @@ tables:
       - color_rgb
       - color_comment
       filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - color_id
+      - color_name
+      - color_rgb
+      - color_comment
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -2543,6 +3044,21 @@ tables:
           name: management
           schema: public
   select_permissions:
+  - permission:
+      columns:
+      - dev_typ_is_mgmt
+      - dev_typ_id
+      - dev_typ_comment
+      - dev_typ_predef_obj
+      - dev_typ_predef_svc
+      - dev_typ_config_file_basic_objects
+      - dev_typ_config_file_rules
+      - dev_typ_config_file_users
+      - dev_typ_manufacturer
+      - dev_typ_name
+      - dev_typ_version
+      filter: {}
+    role: auditor
   - permission:
       columns:
       - dev_typ_id
@@ -2592,6 +3108,13 @@ tables:
       - ip_proto_name
       - ip_proto_comment
       filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - ip_proto_id
+      - ip_proto_name
+      - ip_proto_comment
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -2630,6 +3153,13 @@ tables:
       - obj_typ_name
       - obj_typ_comment
       filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - obj_typ_id
+      - obj_typ_name
+      - obj_typ_comment
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -2651,6 +3181,13 @@ tables:
           name: service
           schema: public
   select_permissions:
+  - permission:
+      columns:
+      - svc_typ_id
+      - svc_typ_name
+      - svc_typ_comment
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -2684,6 +3221,12 @@ tables:
       - track_id
       - track_name
       filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - track_id
+      - track_name
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -2704,6 +3247,12 @@ tables:
           name: usr
           schema: public
   select_permissions:
+  - permission:
+      columns:
+      - usr_typ_id
+      - usr_typ_name
+      filter: {}
+    role: auditor
   - permission:
       columns:
       - usr_typ_id
@@ -2734,6 +3283,16 @@ tables:
     using:
       foreign_key_constraint_on: svcgrp_member_id
   select_permissions:
+  - permission:
+      columns:
+      - svcgrp_id
+      - svcgrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -2772,6 +3331,16 @@ tables:
     using:
       foreign_key_constraint_on: svcgrp_flat_member_id
   select_permissions:
+  - permission:
+      columns:
+      - svcgrp_flat_id
+      - svcgrp_flat_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -2917,6 +3486,18 @@ tables:
           schema: public
   select_permissions:
   - permission:
+      columns:
+      - tenant_id
+      - tenant_name
+      - tenant_projekt
+      - tenant_comment
+      - tenant_report
+      - tenant_can_view_all_devices
+      - tenant_is_superadmin
+      - tenant_create
+      filter: {}
+    role: auditor
+  - permission:
       allow_aggregations: true
       columns:
       - tenant_id
@@ -2956,6 +3537,13 @@ tables:
   - name: tenant
     using:
       foreign_key_constraint_on: tenant_id
+  select_permissions:
+  - permission:
+      columns:
+      - tenant_id
+      - device_id
+      filter: {}
+    role: auditor
   table:
     name: tenant_to_device
     schema: public
@@ -2991,6 +3579,13 @@ tables:
       - text_msg_ger
       - text_msg_eng
       filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - text_msg_id
+      - text_msg_ger
+      - text_msg_eng
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3016,6 +3611,13 @@ tables:
       - txt
       filter: {}
     role: anonymous
+  - permission:
+      columns:
+      - id
+      - language
+      - txt
+      filter: {}
+    role: auditor
   table:
     name: txt
     schema: public
@@ -3169,6 +3771,24 @@ tables:
   select_permissions:
   - permission:
       columns:
+      - uiuser_password_must_be_changed
+      - uiuser_end_date
+      - uiuser_start_date
+      - tenant_id
+      - uiuser_id
+      - uiuser_pwd_history
+      - uiuser_last_login
+      - uiuser_last_password_change
+      - uiuser_email
+      - uiuser_first_name
+      - uiuser_language
+      - uiuser_last_name
+      - uiuser_username
+      - uuid
+      filter: {}
+    role: auditor
+  - permission:
+      columns:
       - uiuser_id
       - uiuser_username
       - uuid
@@ -3246,6 +3866,27 @@ tables:
       - uiuser_last_name
       - uiuser_username
       - uuid
+      filter:
+        uuid:
+          _eq: X-Hasura-uuid
+    role: auditor
+  - permission:
+      check: null
+      columns:
+      - uiuser_password_must_be_changed
+      - uiuser_end_date
+      - uiuser_start_date
+      - tenant_id
+      - uiuser_id
+      - uiuser_pwd_history
+      - uiuser_last_login
+      - uiuser_last_password_change
+      - uiuser_email
+      - uiuser_first_name
+      - uiuser_language
+      - uiuser_last_name
+      - uiuser_username
+      - uuid
       filter: {}
     role: middleware-server
   - permission:
@@ -3278,6 +3919,15 @@ tables:
     using:
       foreign_key_constraint_on: usergrp_member_id
   select_permissions:
+  - permission:
+      columns:
+      - usergrp_id
+      - usergrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -3314,6 +3964,15 @@ tables:
     using:
       foreign_key_constraint_on: usergrp_flat_member_id
   select_permissions:
+  - permission:
+      columns:
+      - active
+      - usergrp_flat_id
+      - usergrp_flat_member_id
+      - import_created
+      - import_last_seen
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -3416,6 +4075,32 @@ tables:
     using:
       foreign_key_constraint_on: last_change_admin
   select_permissions:
+  - permission:
+      columns:
+      - user_id
+      - usr_typ_id
+      - user_color_id
+      - mgm_id
+      - user_name
+      - active
+      - user_member_names
+      - user_member_refs
+      - user_authmethod
+      - user_valid_from
+      - user_valid_until
+      - src_restrict
+      - dst_restrict
+      - time_restrict
+      - user_create
+      - user_last_seen
+      - user_comment
+      - user_uid
+      - user_firstname
+      - user_lastname
+      - last_change_admin
+      - tenant_id
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:
@@ -3559,6 +4244,16 @@ tables:
     using:
       foreign_key_constraint_on: mgm_id
   select_permissions:
+  - permission:
+      columns:
+      - zone_id
+      - zone_create
+      - zone_last_seen
+      - mgm_id
+      - zone_name
+      - active
+      filter: {}
+    role: auditor
   - permission:
       allow_aggregations: true
       columns:

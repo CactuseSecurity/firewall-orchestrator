@@ -26,4 +26,4 @@
 
 - name: api create documentation
   import_tasks: api-create-docu.yml
-  when: "api_docu is defined and api_docu == 'yes'"
+  when: api_docu | bool

@@ -3,7 +3,7 @@
 @using FWO.ApiClient
 
 @page "/settings/gateways"
-@attribute [Authorize(Roles = "admin")]
+@attribute [Authorize(Roles = "admin, auditor")]
 
 @inject APIConnection apiConnection
 
@@ -97,7 +97,9 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+            </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
@@ -113,7 +115,9 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-danger" @onclick="() => Delete(actDevice)">Delete</button>
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete(actDevice)">Delete</button>
+            </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>

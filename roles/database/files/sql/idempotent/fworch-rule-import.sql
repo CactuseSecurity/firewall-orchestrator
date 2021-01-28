@@ -190,6 +190,7 @@ DECLARE
     i_control_id ALIAS FOR $4;
     b_is_initial_import ALIAS FOR $5;
     r_to_import   RECORD;    -- der zu importierende Datensatz aus import_rule
+    r_meta   RECORD;    -- rule meta data record
     i_rule_num    INTEGER;   -- fuer Regelnummer
     s_track       VARCHAR;   -- track-string
     i_action_id   INTEGER;   -- action_id
@@ -240,16 +241,14 @@ BEGIN
 	IF (r_to_import.rule_uid IS NULL) THEN -- removed char_length-check due to utf-8 problems
 		PERFORM error_handling('ERR_RULE_NOT_IDENTIFYABLE');
 	END IF;
-	SELECT INTO r_existing * FROM rule LEFT JOIN rule_order USING (rule_id) WHERE
-		rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule_order.dev_id=i_dev_id AND rule.active;
+	SELECT INTO r_existing * FROM rule WHERE
+		rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active;
 	IF FOUND THEN  -- Regel existiert schon
 		IF ( NOT (
 			are_equal(r_existing.rule_uid, r_to_import.rule_uid) AND
 			are_equal(r_existing.rule_ruleid,r_to_import.rule_ruleid) AND
---			wohl auch eher unwahrscheinlich, dass sich die Zone aendert
 			are_equal(r_existing.rule_from_zone,i_fromzone) AND
 			are_equal(r_existing.rule_to_zone,i_tozone) AND
---			rule_num wird nicht verglichen, da sich diese z.B. bei CP jederzeit aendern kann 
 			are_equal(r_existing.rule_disabled, r_to_import.rule_disabled) AND
 			are_equal(r_existing.rule_src, r_to_import.rule_src) AND
 			are_equal(r_existing.rule_dst, r_to_import.rule_dst) AND
@@ -293,6 +292,17 @@ BEGIN
 			RAISE NOTICE 'rule_change with svc, dst or svc = NULL: %', r_to_import.rule_uid;			
 		ELSE
 			RAISE DEBUG 'rule_change_or_insert_before_insert: %', r_to_import.rule_uid;
+
+			SELECT INTO r_meta rule_metadata_id FROM rule_metadata WHERE mgm_id=i_mgm_id AND rule_uid=r_to_import.rule_uid;
+
+			IF FOUND THEN
+				UPDATE rule_metadata SET rule_last_modified=now() WHERE mgm_id=i_mgm_id AND rule_uid=CAST(r_to_import.rule_uid AS TEXT);
+			ELSE
+				INSERT INTO rule_metadata (rule_uid, mgm_id) VALUES(rule_uid, i_mgm_id);
+			END IF;
+
+			RAISE DEBUG 'rule_change_after_rule_metadata change: %', r_to_import.rule_uid;
+
 			INSERT INTO rule
 				(mgm_id,rule_name,rule_num,rule_ruleid,rule_uid,rule_disabled,rule_src_neg,rule_dst_neg,rule_svc_neg,
 				action_id,track_id,rule_src,rule_dst,rule_svc,rule_src_refs,rule_dst_refs,rule_svc_refs,rule_action,rule_track,rule_installon,rule_time,
@@ -305,6 +315,7 @@ BEGIN
 				lower(r_to_import.rule_action),r_to_import.rule_track,r_to_import.rule_installon,r_to_import.rule_time,
 				i_fromzone,i_tozone, r_to_import.rule_comment,r_to_import.rule_implied,r_to_import.rule_head_text,i_admin_id,
 				i_control_id,i_control_id, i_dev_id);
+			
 			-- changelog-Eintrag
 			RAISE DEBUG 'rule_change_or_insert_before_select_into: %', r_to_import.rule_uid;
 			SELECT INTO i_new_rule_id MAX(rule_id) FROM rule WHERE mgm_id=i_mgm_id; -- ein bisschen fragwuerdig

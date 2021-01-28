@@ -1099,6 +1099,13 @@ tables:
         table:
           name: object
           schema: public
+  - name: rule_metadata
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table:
+          name: rule_metadata
+          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
@@ -2405,6 +2412,15 @@ tables:
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
+  - name: rule_metadatum
+    using:
+      manual_configuration:
+        column_mapping:
+          mgm_id: mgm_id
+          rule_uid: rule_uid
+        remote_table:
+          name: rule_metadata
+          schema: public
   - name: stm_action
     using:
       foreign_key_constraint_on: action_id
@@ -2596,6 +2612,153 @@ tables:
   table:
     name: rule_from
     schema: public
+- array_relationships:
+  - name: rules
+    using:
+      manual_configuration:
+        column_mapping:
+          mgm_id: mgm_id
+          rule_uid: rule_uid
+        remote_table:
+          name: rule
+          schema: public
+  delete_permissions:
+  - permission:
+      filter: {}
+    role: importer
+  insert_permissions:
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - rule_to_be_removed
+      - last_change_admin
+      - mgm_id
+      - rule_last_certifier
+      - rule_owner
+      - rule_hit_counter
+      - rule_metadata_id
+      - rule_uid
+      - rule_created
+      - rule_first_hit
+      - rule_last_certified
+      - rule_last_hit
+      - rule_last_modified
+      - rule_group_owner
+    role: importer
+  object_relationships:
+  - name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - name: uiuser
+    using:
+      foreign_key_constraint_on: rule_owner
+  - name: uiuserByRuleLastCertifier
+    using:
+      foreign_key_constraint_on: rule_last_certifier
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - rule_metadata_id
+      - mgm_id
+      - rule_uid
+      - rule_created
+      - rule_last_modified
+      - rule_first_hit
+      - rule_last_hit
+      - rule_hit_counter
+      - rule_last_certified
+      - rule_last_certifier
+      - rule_owner
+      - rule_group_owner
+      - rule_to_be_removed
+      - last_change_admin
+      filter: {}
+    role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - rule_to_be_removed
+      - last_change_admin
+      - mgm_id
+      - rule_last_certifier
+      - rule_owner
+      - rule_hit_counter
+      - rule_metadata_id
+      - rule_uid
+      - rule_created
+      - rule_first_hit
+      - rule_last_certified
+      - rule_last_hit
+      - rule_last_modified
+      - rule_group_owner
+      filter: {}
+    role: importer
+  - permission:
+      allow_aggregations: true
+      columns:
+      - rule_metadata_id
+      - mgm_id
+      - rule_uid
+      - rule_created
+      - rule_last_modified
+      - rule_first_hit
+      - rule_last_hit
+      - rule_hit_counter
+      - rule_last_certified
+      - rule_last_certifier
+      - rule_owner
+      - rule_group_owner
+      - rule_to_be_removed
+      - last_change_admin
+      filter:
+        mgm_id:
+          _in:
+          - X-Hasura-visible-managements
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - rule_to_be_removed
+      - last_change_admin
+      - mgm_id
+      - rule_last_certifier
+      - rule_owner
+      - rule_hit_counter
+      - rule_metadata_id
+      - rule_uid
+      - rule_created
+      - rule_first_hit
+      - rule_last_certified
+      - rule_last_hit
+      - rule_last_modified
+      - rule_group_owner
+      filter: {}
+    role: reporter-viewall
+  table:
+    name: rule_metadata
+    schema: public
+  update_permissions:
+  - permission:
+      check: null
+      columns:
+      - rule_to_be_removed
+      - last_change_admin
+      - mgm_id
+      - rule_last_certifier
+      - rule_owner
+      - rule_hit_counter
+      - rule_metadata_id
+      - rule_uid
+      - rule_created
+      - rule_first_hit
+      - rule_last_certified
+      - rule_last_hit
+      - rule_last_modified
+      - rule_group_owner
+      filter: {}
+    role: importer
 - object_relationships:
   - name: rule
     using:
@@ -3719,6 +3882,20 @@ tables:
         column: uiuser_id
         table:
           name: report_template_viewable_by_user
+          schema: public
+  - name: rule_metadata
+    using:
+      foreign_key_constraint_on:
+        column: rule_last_certifier
+        table:
+          name: rule_metadata
+          schema: public
+  - name: ruleMetadataByRuleOwner
+    using:
+      foreign_key_constraint_on:
+        column: rule_owner
+        table:
+          name: rule_metadata
           schema: public
   - name: rules
     using:

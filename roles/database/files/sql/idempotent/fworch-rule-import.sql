@@ -298,7 +298,7 @@ BEGIN
 			IF FOUND THEN
 				UPDATE rule_metadata SET rule_last_modified=now() WHERE mgm_id=i_mgm_id AND rule_uid=CAST(r_to_import.rule_uid AS TEXT);
 			ELSE
-				INSERT INTO rule_metadata (rule_uid, mgm_id) VALUES(rule_uid, i_mgm_id);
+				INSERT INTO rule_metadata (rule_uid, mgm_id) VALUES(r_to_import.rule_uid, i_mgm_id);
 			END IF;
 
 			RAISE DEBUG 'rule_change_after_rule_metadata change: %', r_to_import.rule_uid;

@@ -1,8 +1,4 @@
 
--- SET client_encoding=UTF8
-\encoding UTF8
-
-
 INSERT INTO language (name) VALUES('German');
 INSERT INTO language (name) VALUES('English');
 

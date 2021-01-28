@@ -1,82 +1,87 @@
 ---
 - block:  
-     - set_fact: ansible_user="{{ lookup('env','USER') }}"
+  - set_fact: ansible_user="{{ lookup('env','USER') }}"
 
-     - name: Install packages for docker download n installation
-       package:
-         name: "{{ item }}"
-       loop:
-         - gnupg2
-         - apt-transport-https
-         - ca-certificates 
-         - curl 
-         - software-properties-common
+  - name: Install packages for docker download n installation
+    package:
+      name: "{{ item }}"
+    loop:
+      - gnupg2
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
 
-     - name: add apt signing key for docker
-       shell: "wget -qO - -e use_proxy=yes -e https_proxy={{ https_proxy }} https://download.docker.com/linux/ubuntu/gpg | apt-key add -"
-       when: https_proxy is defined
+  - name: add apt signing key for docker
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+    environment:
+      https_proxy: "{{ https_proxy }}"
+    when: https_proxy is defined
 
-     - name: add docker repo
-       lineinfile:
-         path: "/etc/apt/sources.list.d/docker.list"
-         create: yes
-         line: "deb [arch=amd64] https://download.docker.com/linux/debian buster stable"
+  - name: add docker repo
+    lineinfile:
+      path: "/etc/apt/sources.list.d/docker.list"
+      create: yes
+      line: "deb [arch=amd64] https://download.docker.com/linux/debian buster stable"
 
-     - name: apt update
-       apt: update_cache=true
-       environment: "{{ proxy_env }}"
+  - name: apt update
+    apt: update_cache=true
+    environment: "{{ proxy_env }}"
 
-     - name: Install all packages for docker
-       package:
-         name: "{{ item }}"
-       loop:
-         - docker-ce
-         - docker-ce-cli
-         - containerd.io
+  - name: Install all packages for docker
+    package:
+      name: "{{ item }}"
+    loop:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
        
-     - name: Add the group 'docker' for {{ ansible_user }} and {{ fworch_user }} to allow running docker
-       user:
-           name: "{{ item }}"
-           groups: docker 
-           append: yes
-       loop:
-          -  "{{ ansible_user }}"
-          -  "{{ fworch_user }}"
+  - name: Add the group 'docker' for {{ ansible_user }} and {{ fworch_user }} to allow running docker
+    user:
+        name: "{{ item }}"
+        groups: docker
+        append: yes
+    loop:
+      -  "{{ ansible_user }}"
+      -  "{{ fworch_user }}"
 
-     - name: create systemd dir for docker
-       file:
-          state: directory
-          path: /etc/systemd/system/docker.service.d
+  - name: create systemd dir for docker
+    file:
+      state: directory
+      path: /etc/systemd/system/docker.service.d
 
-     - name: http-proxy-config for docker
-       blockinfile:
-         create: yes
-         path:  /etc/systemd/system/docker.service.d/http-proxy.conf
-         block: |
-            [Service]
-            Environment="HTTP_PROXY={{ http_proxy }}"
+  - name: http-proxy-config for docker
+    blockinfile:
+      create: yes
+      path:  /etc/systemd/system/docker.service.d/http-proxy.conf
+      block: |
+        [Service]
+        Environment="HTTP_PROXY={{ http_proxy }}"
 
-     - name: restart service docker
-       service:
-         name: docker
-         state: restarted
+  - name: restart service docker
+    service:
+      name: docker
+      state: restarted
 
-     - name: Reload service systemctl
-       command: "systemctl daemon-reload"
+  - name: Reload service systemctl
+    systemd:
+      daemon_reload: yes
             
-     - name: create local user docker config dir .docker
-       file:
-         dest: "{{ fworch_home }}/.docker"
-         state: directory
-         owner: "{{ fworch_user }}"
-         group: "{{ fworch_user }}"
-         mode: "0775"
+  - name: create local user docker config dir .docker
+    file:
+      dest: "{{ fworch_home }}/.docker"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+      mode: "0775"
 
-     - name: create local user docker config file .docker/config.json
-       template:
-         src: docker_config.j2
-         dest: "{{ fworch_home }}/.docker/config.json"
-         owner: "{{ fworch_user }}"
-         group: "{{ fworch_user }}"
-         mode: "0644"
+  - name: create local user docker config file .docker/config.json
+    template:
+      src: docker_config.j2
+      dest: "{{ fworch_home }}/.docker/config.json"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_user }}"
+      mode: "0644"
   become: yes

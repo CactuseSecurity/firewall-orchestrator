@@ -7,7 +7,7 @@
         name: "{{ product_name }}-importer"
         state: stopped
       become: yes
-      when: "installation_mode != 'new'"
+      when: "not installation_mode == 'new'"
       ignore_errors: yes
   tags:
     - frontend
@@ -45,8 +45,8 @@
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
-    - { role: api, when: "run_on_github is not defined and not installation_mode == 'uninstall'" }
+    - { role: docker, when: "not run_on_github|bool and not installation_mode == 'uninstall'" }
+    - { role: api, when: "not run_on_github|bool and not installation_mode == 'uninstall'" }
   tags:
     - backend
    # todo: make api (and docker) work with github actions
@@ -80,7 +80,7 @@
 
 - hosts: sampleserver
   roles:
-    - { role: sample-data, when: "without_sample_data is not defined and not installation_mode == 'uninstall'" }
+    - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
     - { role: sample-data-connect-sting, when: "connect_sting is defined and not installation_mode == 'uninstall'" }
   tags:
     - samples
@@ -88,7 +88,7 @@
 
 - hosts: middlewareserver
   roles:
-    - { role: sample-auth-data, when: "without_sample_data is not defined and not installation_mode == 'uninstall'" }
+    - { role: sample-auth-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend
@@ -125,7 +125,7 @@
 
 - hosts: testservers
   roles:
-    - { role: webhook, when: "install_webhook == 'yes'" }
+    - { role: webhook, when: install_webhook|bool }
   tags:
     - test
     

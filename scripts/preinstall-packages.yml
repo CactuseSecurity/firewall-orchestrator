@@ -24,9 +24,8 @@
         - python3-pip
         - python3-virtualenv
         - python3-psycopg2
-        - libpq-dev
+        - "{{ postgresql_c_client_library_header_files }}"
         - "{{ postgresql_package }}"
-        - libpq-dev
         - postgresql-client
         - git
 

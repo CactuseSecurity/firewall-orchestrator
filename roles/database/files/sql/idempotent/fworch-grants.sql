@@ -56,6 +56,7 @@ Grant update on "management" to group "configimporters";
 Grant update,insert on "object" to group "configimporters";
 Grant update,insert on "objgrp" to group "configimporters";
 Grant update,insert on "rule" to group "configimporters";
+Grant update,insert on "rule_metadata" to group "configimporters";
 Grant update,insert on "rule_from" to group "configimporters";
 Grant update,insert on "rule_review" to group "configimporters";
 Grant update,insert on "rule_service" to group "configimporters";

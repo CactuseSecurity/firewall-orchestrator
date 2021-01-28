@@ -21,7 +21,6 @@ installation_mode options:
 ### Installation behind a proxy (no direct Internet connection)
 
 e.g. with IP 1.2.3.4, listening on port 3128<br>
-note: this does not yet work 100%
 
 ```console
 ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
@@ -80,17 +79,12 @@ ansible-playbook -i inventory -e "installation_mode=uninstall" site.yml -K
 ansible-playbook -i inventory -e "installation_mode=new" site.yml -K
 ```
 
-
-```console
-ansible-playbook -i inventory -e "clean_install=1" site.yml -K
-```
-
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::
 
 ```console
-ansible-playbook -i inventory -e "api_no_metadata=1" site.yml -K
+ansible-playbook -i inventory -e "api_no_metadata=yes" site.yml -K
 ```
 
 ### Parameter "without_sample_data" to not create sample data (i.e. in production)
@@ -98,7 +92,7 @@ ansible-playbook -i inventory -e "api_no_metadata=1" site.yml -K
 The following command prevents the creation of sample data in the database:
 
 ```console
-ansible-playbook -i inventory -e "without_sample_data=1" site.yml -K
+ansible-playbook -i inventory -e "without_sample_data=yes" site.yml -K
 ```
 
 ### Parameter "connect_sting" to add Cactus test firewall CP R8x
@@ -106,7 +100,7 @@ ansible-playbook -i inventory -e "without_sample_data=1" site.yml -K
 The following command adds the sting test firewall to your fw orch system (needs VPN tunnel to Cactus)
 
 ```console
-ansible-playbook -i inventory -e "connect_sting=1" site.yml -K
+ansible-playbook -i inventory -e "connect_sting=yes" site.yml -K
 ```
 
 ### Parameter "api_docu" to install API documentation
@@ -117,7 +111,7 @@ Generating a full hasura (all tables, etc. tracked) API documentation  currently
 - 4 minutes to generate
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "create api_docu=yes" site.yml -K
+cd firewall-orchestrator; ansible-playbook -i inventory -e "api_docu=yes" site.yml -K
 ```
 
 api docu can then be accessed at <https://server/api_schema/index.html>

@@ -162,6 +162,7 @@ Create table "rule"
 -- rule_metadata contains rule related data that does not change when the rule itself is changed
 Create table "rule_metadata"
 (
+	-- todo: add dev_id? 
 	"rule_metadata_id" BIGSERIAL,
 	"mgm_id" Integer NOT NULL,
 	"rule_uid" Text,

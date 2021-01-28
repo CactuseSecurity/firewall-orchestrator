@@ -3,20 +3,20 @@
   - name: fetch remote config file
     fetch:
       src: "{{ fworch_conf_file }}"
-      dest: "temp_remote_config_file.yml"
+      dest: "temp_remote_config_file.json"
       flat: yes
     when: already_installed and installation_mode == "upgrade"
 
   - name: read config file of currently installed product
     include_vars: 
-      file: "temp_remote_config_file.yml"
+      file: "temp_remote_config_file.json"
       name: config
     when: already_installed and installation_mode == "upgrade"
 
   - name: remove local copy of remote config file
     file:
       state: absent
-      name: "temp_remote_config_file.yml"
+      name: "temp_remote_config_file.json"
 
   - name: create symlink /usr/local/fworch/etc to /etc/fworch
     file:
@@ -38,22 +38,38 @@
   #     backup: yes
   #   when: installation_mode == "upgrade"
 
+  # - name: edit central conf file
+  #   blockinfile:
+  #     path: "{{ fworch_conf_file }}"
+  #     create: yes
+  #     block: |
+  #       # general settings
+  #       fworch_home: "{{ fworch_home }}"
+  #       dotnet_mode: "{{ dotnet_mode }}"
+       
+  #       # api
+  #       api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+  #       api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
+        
+  #       # middleware
+  #       middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
+  #       middleware_uri: "{{ middleware_uri }}"
+  #   when: installation_mode == "new"
+
   - name: edit central conf file
     blockinfile:
       path: "{{ fworch_conf_file }}"
       create: yes
       block: |
-        # general settings
-        fworch_home: "{{ fworch_home }}"
-        dotnet_mode: "{{ dotnet_mode }}"
-       
-        # api
-        api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
-        api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
-        
-        # middleware
-        middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
-        middleware_uri: "{{ middleware_uri }}"
+        {
+          "fworch_home": "{{ fworch_home }}", 
+          "dotnet_mode": "{{ dotnet_mode }}", 
+          "api_uri": "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql", 
+          "api_hasura_jwt_alg": "{{ api_hasura_jwt_alg }}", 
+          "middleware_native_uri": "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/", 
+          "middleware_uri": "{{ middleware_uri }}"
+        }
+    when: installation_mode == "new"
 
   - name: write version in config file in fresh installation
     lineinfile:

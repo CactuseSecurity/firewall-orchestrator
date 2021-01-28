@@ -13,11 +13,11 @@
       - software-properties-common
 
   - name: add apt signing key for docker
-    shell: "wget -qO - -e use_proxy=yes -e https_proxy={{ https_proxy }} https://download.docker.com/linux/ubuntu/gpg | apt-key add -"
-    get_url:
+    apt_key:
       url: https://download.docker.com/linux/ubuntu/gpg
-      use_proxy: yes
-
+      state: present
+    environment:
+      https_proxy: "{{ https_proxy }}"
     when: https_proxy is defined
 
   - name: add docker repo

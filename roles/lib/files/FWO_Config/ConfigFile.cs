@@ -3,11 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
+using System.Text.Json;
 
 namespace FWO.Config
 {
@@ -16,7 +12,7 @@ namespace FWO.Config
         /// <summary>
         /// Path to config file
         /// </summary>
-        private const string configPath = "/etc/fworch/fworch.yaml";
+        private const string configPath = "/etc/fworch/fworch.json";
 
         /// <summary>
         /// Path to jwt public key
@@ -102,16 +98,11 @@ namespace FWO.Config
         {
             try
             {              
-                // Read config as yaml from file
-                string yamlConfig = File.ReadAllText(configPath).TrimEnd();
+                // Read config as json from file
+                string configFile = File.ReadAllText(configPath).TrimEnd();
 
-                // Create yaml deserializer
-                IDeserializer yamlDeserializer = new DeserializerBuilder()
-                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                    .Build();
-
-                // Deserialize yaml config to dictionary
-                Dictionary<string, string> configFileData = yamlDeserializer.Deserialize<Dictionary<string, string>>(yamlConfig);
+                // Deserialize config to dictionary
+                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFile);
 
                 // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See NotNullCriticalConfigValue()
 

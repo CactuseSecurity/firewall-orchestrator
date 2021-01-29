@@ -159,6 +159,27 @@ Create table "rule"
  primary key ("rule_id")
 );
 
+-- rule_metadata contains rule related data that does not change when the rule itself is changed
+Create table "rule_metadata"
+(
+	-- todo: add dev_id? 
+	"rule_metadata_id" BIGSERIAL,
+	"mgm_id" Integer NOT NULL,
+	"rule_uid" Text,
+	"rule_created" Timestamp NOT NULL Default now(),
+	"rule_last_modified" Timestamp NOT NULL Default now(),
+	"rule_first_hit" Timestamp,
+	"rule_last_hit" Timestamp,
+	"rule_hit_counter" BIGINT,
+	"rule_last_certified" Timestamp,
+	"rule_last_certifier" Integer,
+	"rule_owner" Integer,
+	"rule_group_owner" Varchar, -- distinguished name pointing to ldap group
+	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
+	"last_change_admin" Integer,
+ primary key ("rule_metadata_id")
+);
+
 Create table "rule_from"
 (
 	"rule_from_id" BIGSERIAL,

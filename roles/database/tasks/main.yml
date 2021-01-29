@@ -1,13 +1,35 @@
 - block:
-    - name: install package postgresql and python3-psycopg2
+
+    - name: include redhat db install parts
+      include_tasks: redhat_preps.yml
+      when: installation_mode == "new" and ansible_os_family == "RedHat"
+
+    - name: install package postgresql packages for redhat
       package:
         name: "{{ item }}"
         state: present
       loop:
-        - "{{ postgresql_package }}"
+        - postgresql-server
+        - python3-psycopg2
+        #- libpq-devel
+      when: ansible_os_family == "RedHat"
+      # todo: check if we need and if yes, how to install libpq-dev(el)
+
+    - name: install package postgresql packages for debian n ubuntu
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - postgresql
         - python3-psycopg2
         - libpq-dev
-        - "{{ postgresql_test_package }}"
+      when: ansible_os_family == "Debian"
+
+    - name: initdb redhat
+      #command: "postgresql-setup --initdb --locale=en_US.UTF-8"
+      shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
+      become: yes
+      when: ansible_os_family == "RedHat"
 
     - name: find out installed postgres version
       script: get_pg_version.sh
@@ -21,58 +43,70 @@
       set_fact: pg_version={{ pg_version | int }}
       when: pg_version|int >= 10
 
+    - name: set postgresql config path for Debian based systems
+      set_fact:
+        postgresql_config_file: /etc/postgresql/{{ pg_version }}/main/postgresql.conf
+        postgresql_hba_file: /etc/postgresql/{{ pg_version }}/main/pg_hba.conf
+      when: ansible_os_family == 'Debian'
+
+    - name: set postgresql config path for RedHat
+      set_fact:
+        postgresql_config_file: /var/lib/pgsql/data/postgresql.conf
+        postgresql_hba_file: /var/lib/pgsql/data/pg_hba.conf
+      when: ansible_os_family == 'RedHat'
+
     - name: edit postgresql.conf log_destination
       lineinfile:
-        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        path: "{{ postgresql_config_file }}"
         line: log_destination = 'syslog'
         regexp: '\s*log_destination'
         backup: yes
 
     - name: edit postgresql.conf client_min_messages
       lineinfile:
-        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        path: "{{ postgresql_config_file }}"
         line: client_min_messages = log
         regexp: '\s*client_min_messages'
         backup: yes
           
     - name: edit postgresql.conf log_min_messages
       lineinfile:
-        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        path: "{{ postgresql_config_file }}"
         line: log_min_messages = WARNING
         regexp: '\s*log_min_messages'
         backup: yes
           
     - name: edit postgresql.conf application_name
       lineinfile:
-        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        path: "{{ postgresql_config_file }}"
         line: application_name = {{ product_name }}-database
         regexp: '\s*application_name'
         backup: yes
 
     - name: edit postgresql.conf log_error_verbosity
       lineinfile:
-        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        path: "{{ postgresql_config_file }}"
         line: log_error_verbosity = DEFAULT
         regexp: '\s*log_error_verbosity'
         backup: yes
 
     - name: edit postgresql.conf log_min_error_statement
       lineinfile:
-        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        path: "{{ postgresql_config_file }}"
         line: log_min_error_statement = DEBUG2
         regexp: '\s*log_min_error_statement'
         backup: yes
 
     - name: edit postgresql.conf log_line_prefix
       lineinfile:
-        path: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        path: "{{ postgresql_config_file }}"
         line: log_line_prefix = '%d '
         regexp: '\s*log_line_prefix'
         backup: yes
 
     - name: edit pg_hba.conf
       blockinfile:
-        path: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+        path: "{{ postgresql_hba_file }}"
         backup: yes
         insertbefore: '# IPv4 local connections:'
         block: |

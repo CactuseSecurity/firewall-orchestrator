@@ -90,11 +90,19 @@ Alter table "rule" add  foreign key ("rule_from_zone") references "zone" ("zone_
 Alter table "rule" add  foreign key ("rule_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("rule_to_zone") references "zone" ("zone_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("track_id") references "stm_track" ("track_id") on update restrict on delete cascade;
+Alter table "rule" add constraint "rule_metadata_mgm_id_rule_uid_f_key"
+  foreign key ("mgm_id", "rule_uid") references "rule_metadata" ("mgm_id", "rule_uid") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("rf_create") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("rf_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("user_id") references "usr" ("user_id") on update restrict on delete cascade;
+Alter table "rule_metadata" add constraint "rule_metadata_management_mgm_id_f_key"
+    foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+Alter table "rule_metadata" add constraint "rule_metadata_rule_last_certifier_uiuser_uiuser_id_f_key"
+  foreign key ("rule_last_certifier") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
+Alter table "rule_metadata" add constraint "rule_metadata_rule_owner_uiuser_uiuser_id_f_key"
+  foreign key ("rule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "rule_order" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule_order" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
 Alter table "rule_order" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;

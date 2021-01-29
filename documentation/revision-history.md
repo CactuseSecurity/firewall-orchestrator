@@ -72,3 +72,7 @@ adding report template format fk and permissions
 
 ### 5.1.10 - 25.01.2021
 - add debug_level to table management
+
+### 5.1.11 - 27.01.2021
+- add rule_metadata table and fill it during import
+- removing rule_order from import rule process

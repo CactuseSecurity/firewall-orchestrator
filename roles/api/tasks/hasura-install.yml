@@ -88,7 +88,7 @@
   become: yes
   become_user: "{{ fworch_user }}"
 
-- name: Print the status of the container
+- name: Print the status of the container in case of problems only
   fail: 
     msg: "The container status is: {{ result }}"
   when: result.exists and result.container['State']['Status'] == 'exited'

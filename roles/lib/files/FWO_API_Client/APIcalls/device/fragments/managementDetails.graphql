@@ -19,6 +19,7 @@ fragment ManagementDetails on management
     hideInUi: hide_in_gui
     importerHostname: importer_hostname
     comment: mgm_comment
+    debugLevel: debug_level
     creationDate: mgm_create
     updateDate: mgm_update
     lastConfigHash: last_import_md5_complete_config

@@ -48,6 +48,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("comment")]
         public string Comment { get; set; }
 
+        [JsonPropertyName("debugLevel")]
+        public int? DebugLevel { get; set; }
+
         [JsonPropertyName("tenant_id")]
         public int TenantId { get; set; }
 
@@ -103,6 +106,7 @@ namespace FWO.Api.Data
             ForceInitialImport = management.ForceInitialImport;
             HideInUi = management.HideInUi;
             Comment = management.Comment;
+            DebugLevel = management.DebugLevel;
             TenantId = management.TenantId;
             Import = management.Import;
             if (management.Import != null && management.Import.ImportAggregate != null &&

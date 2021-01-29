@@ -6,7 +6,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/report"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin, auditor")]
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -15,11 +15,11 @@
 <hr />
 
 <form class="form-inline">
-    <label for="rulesPerFetch" class="col-form-label mr-2">Rules per fetch:</label>
+    <label for="elementsPerFetch" class="col-form-label mr-2">Elements per fetch:</label>
     <div class="col-sm-2">
-        <input id="rulesPerFetch" type="number" class="form-control form-control-sm" @bind="rulesPerFetch" />
+        <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>
-    <button class="btn btn-sm btn-primary" @onclick="SaveRulesPerFetch">Save</button>
+    <button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch">Save</button>
 </form>
 
 @code
@@ -31,7 +31,7 @@
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     ConfigDbAccess config;
-    int rulesPerFetch = 100;
+    int elementsPerFetch = 100;
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,19 +40,19 @@
         config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
         try
         {
-            string settingsValue = config.Get(ConfigDbAccess.kRulesPerFetch);
+            string settingsValue = config.Get(GlobalConfig.kElementsPerFetch);
             if (settingsValue != "")
             {
-                rulesPerFetch = Int32.Parse(settingsValue);
+                elementsPerFetch = Int32.Parse(settingsValue);
             }
             else
             {
                 // get default value
                 ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection, 0);
-                settingsValue = defaultConfig.Get(ConfigDbAccess.kRulesPerFetch);
+                settingsValue = defaultConfig.Get(GlobalConfig.kElementsPerFetch);
                 if (settingsValue != "")
                 {
-                    rulesPerFetch = Int32.Parse(settingsValue);
+                    elementsPerFetch = Int32.Parse(settingsValue);
                 }
             }
         }
@@ -62,12 +62,12 @@
         }
     }
 
-    private async Task SaveRulesPerFetch()
+    private async Task SaveElementsPerFetch()
     {
-        string rulesPerFetchString = rulesPerFetch.ToString();
+        string elementsPerFetchString = elementsPerFetch.ToString();
         try
         {
-            await userConfig.ChangeConfigValue(ConfigDbAccess.kRulesPerFetch, rulesPerFetchString, apiConnection);
+            await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetchString, apiConnection);
         }
         catch (System.Exception exception)
         {

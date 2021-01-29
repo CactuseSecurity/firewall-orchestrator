@@ -6,7 +6,7 @@
 @using FWO.Ui.Services
 
 @page "/settings/language"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin, auditor")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig

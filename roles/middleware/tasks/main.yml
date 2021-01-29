@@ -90,7 +90,7 @@
 - name: Set "{{ audit_user }}" password in ldap
   ldap_passwd:
     dn: "cn={{ audit_user }},ou=systemuser,ou=user,{{ openldap_path }}"
-    passwd: "{{ ldap_auditor_pw }}"
+    passwd: "{{ audit_pwd }}"
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"

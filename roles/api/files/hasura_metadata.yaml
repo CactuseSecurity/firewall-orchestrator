@@ -2385,13 +2385,6 @@ tables:
         table:
           name: rule_to
           schema: public
-  - name: temp_filtered_rule_ids
-    using:
-      foreign_key_constraint_on:
-        column: rule_id
-        table:
-          name: temp_filtered_rule_ids
-          schema: public
   object_relationships:
   - name: device
     using:
@@ -3514,13 +3507,6 @@ tables:
     role: reporter-viewall
   table:
     name: svcgrp_flat
-    schema: public
-- object_relationships:
-  - name: rule
-    using:
-      foreign_key_constraint_on: rule_id
-  table:
-    name: temp_filtered_rule_ids
     schema: public
 - object_relationships:
   - name: import_control

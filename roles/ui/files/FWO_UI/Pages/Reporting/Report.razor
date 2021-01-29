@@ -193,7 +193,11 @@
                             </div>
                         </Template>
                     </Column>
-                    <Column Title="Name" TableItem="ReportTemplate" Field="x => x.Name" />
+                    <Column Title="Name" TableItem="ReportTemplate">
+                        <Template>
+                            @if (context.Owner==0) { <b>@context.Name</b>} else { @context.Name }
+                        </Template>
+                    </Column>
                     <Column Title="Comment" TableItem="ReportTemplate" Field="x => x.Comment" />
                     <Column Title="Creation Date" TableItem="ReportTemplate" Field="x => x.CreationDate" />
                     <Column Title="Filter" TableItem="ReportTemplate" Field="x => x.Filter" />
@@ -219,7 +223,7 @@
 
                                 @foreach (Device device in management.Devices)
                                 {
-                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                                         <Table SelectedItems="selectedItemsReportRuleTable"
                                                RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
                                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
@@ -285,7 +289,7 @@
 
                                 @foreach (Device device in management.Devices)
                                 {
-                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false">
+                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
 
                                         <Table SelectedItems="selectedItemsReportChangeTable"
                                                RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
@@ -418,8 +422,6 @@
             <Tab Title="Report">
                 <div class="btn btn-secondary" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
                 <CascadingValue Value="collapseSidebarReport">
-                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                     <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                  NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
@@ -459,7 +461,7 @@
     private List<ReportTemplate> reportTemplates = new List<ReportTemplate>();
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
-    private int rulesPerFetch = 100;    // todo: rename to "elementsPerFetch" to cover all types of report/objects
+    private int elementsPerFetch = 100;
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
     private bool ShowNoDeviceSelectedWarning = false;
@@ -472,6 +474,8 @@
     private bool ShowEditScheduledReportDialog = false;
     private bool ShowDeleteScheduledReportDialog = false;
 
+    private bool autoFillRightSidebar = false;
+    private int maxInitFetchRightSidebar = 10;
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
@@ -528,19 +532,24 @@
             try
             {
                 GetSettings();
-                PaginationVariables paginationVariables = new PaginationVariables() { Limit = rulesPerFetch, Offset = 0 };
 
-                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                await InvokeAsync(StateHasChanged);
-
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = elementsPerFetch, Offset = 0 };
                 bool newObjects = true;
+                int fetchCount = 0;
 
                 // lazy fetch all objects for right sidebar
-                while (newObjects)
+                while (newObjects && ( ++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
                 {
-                    paginationVariables.Offset += rulesPerFetch;
+                    paginationVariables.Offset += elementsPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                    newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
+                    if (fetchCount == 1)
+                    {
+                        managementsAllObjects = managementsCurrentFetch;
+                    }
+                    else
+                    {
+                        newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
+                    }
 
                     await InvokeAsync(StateHasChanged);
                 }
@@ -598,7 +607,7 @@
             {
                 case rulesReport:
                     currentReport = new ReportRules();
-                    await currentReport.Generate(rulesPerFetch, filterInput, Connection,
+                    await currentReport.Generate(elementsPerFetch, filterInput, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -608,7 +617,7 @@
 
                 case changesReport:
                     currentReport = new ReportChanges();
-                    await currentReport.Generate(rulesPerFetch, filterInput, Connection,
+                    await currentReport.Generate(elementsPerFetch, filterInput, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -796,11 +805,20 @@
     {
         try
         {
-            string settingsValue = userConfig.GetConfigValue(ConfigDbAccess.kRulesPerFetch);
+            string settingsValue = userConfig.GetConfigValue(GlobalConfig.kElementsPerFetch);
             if (settingsValue != "")
             {
-                rulesPerFetch = Int32.Parse(settingsValue);
+                elementsPerFetch = Int32.Parse(settingsValue);
             }
+
+            settingsValue = userConfig.GetConfigValue(GlobalConfig.kMaxInitialFetchesRightSidebar);
+            if (settingsValue != "")
+            {
+                maxInitFetchRightSidebar = Int32.Parse(settingsValue);
+            }
+
+            settingsValue = userConfig.GetConfigValue(GlobalConfig.kAutoFillRightSidebar);
+            autoFillRightSidebar = (settingsValue == "True" ? true : false);
         }
         catch (Exception exception)
         {

@@ -372,17 +372,17 @@ ALTER TABLE service
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
         
-ALTER TABLE temp_mgmid_importid_at_report_time
-    DROP CONSTRAINT temp_mgmid_importid_at_report_time_control_id_fkey,
-    ADD CONSTRAINT temp_mgmid_importid_at_report_time_control_id_fkey FOREIGN KEY (control_id)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT temp_mgmid_importid_at_report_time_mgm_id_fkey,
-    ADD CONSTRAINT temp_mgmid_importid_at_report_time_mgm_id_fkey FOREIGN KEY (mgm_id)
-        REFERENCES public.management (mgm_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE;
+-- ALTER TABLE temp_mgmid_importid_at_report_time
+--     DROP CONSTRAINT temp_mgmid_importid_at_report_time_control_id_fkey,
+--     ADD CONSTRAINT temp_mgmid_importid_at_report_time_control_id_fkey FOREIGN KEY (control_id)
+--         REFERENCES public.import_control (control_id) MATCH SIMPLE
+--         ON UPDATE RESTRICT
+--         ON DELETE CASCADE,
+--     DROP CONSTRAINT temp_mgmid_importid_at_report_time_mgm_id_fkey,
+--     ADD CONSTRAINT temp_mgmid_importid_at_report_time_mgm_id_fkey FOREIGN KEY (mgm_id)
+--         REFERENCES public.management (mgm_id) MATCH SIMPLE
+--         ON UPDATE RESTRICT
+--         ON DELETE CASCADE;
 
 ALTER TABLE zone
     DROP CONSTRAINT zone_mgm_id_fkey,
@@ -621,12 +621,12 @@ ALTER TABLE rule_service
         ON UPDATE RESTRICT
         ON DELETE CASCADE;  
         
-ALTER TABLE temp_filtered_rule_ids
-	DROP CONSTRAINT temp_filtered_rule_ids_rule_id_fkey,
-	ADD CONSTRAINT temp_filtered_rule_ids_rule_id_fkey FOREIGN KEY (rule_id)
-        REFERENCES public.rule (rule_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE;
+-- ALTER TABLE temp_filtered_rule_ids
+-- 	DROP CONSTRAINT temp_filtered_rule_ids_rule_id_fkey,
+-- 	ADD CONSTRAINT temp_filtered_rule_ids_rule_id_fkey FOREIGN KEY (rule_id)
+--         REFERENCES public.rule (rule_id) MATCH SIMPLE
+--         ON UPDATE RESTRICT
+--         ON DELETE CASCADE;
 
 ALTER TABLE report        
     DROP CONSTRAINT report_tenant_id_fkey,

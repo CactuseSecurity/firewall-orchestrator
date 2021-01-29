@@ -46,13 +46,26 @@ Alter table "rule_metadata" add constraint "rule_metadata_device_dev_id_f_key"
 Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
   foreign key ("dev_id", "rule_uid") references "rule_metadata" ("dev_id", "rule_uid") on update restrict on delete cascade;
 
--------------
+------------- rule_order
 
-DROP TABLE "rule_order" CASCADE;
--- Alter table "report_template" drop CONSTRAINT if exists report_template_report_typ_id_fkey;
+DROP TABLE IF EXISTS "rule_order" CASCADE;
+DROP table IF EXISTS "temp_table_for_tenant_filtered_rule_ids" CASCADE;
+DROP table IF EXISTS "temp_filtered_rule_ids" CASCADE;
+DROP table IF EXISTS "temp_mgmid_importid_at_report_time" CASCADE;
 
--- Alter table "rule_order" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
--- Alter table "rule_order" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
--- Alter table "rule_order" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+------------ rule_review
 
+Alter table "rule_review" ADD COLUMN IF NOT EXISTS "rr_approved" Boolean NOT NULL Default true;
+select concat('alter table "rule_review" DROP Constraint ', constraint_name) as my_query
+	from information_schema.table_constraints
+	where table_schema = 'public'
+    	and table_name = 'rule_review'
+      and constraint_type = 'PRIMARY KEY';
+Alter table "rule_review" drop column if exists "rule_id";
+Alter table "rule_review" Add column if not exists "rule_metadata_id" BIGINT NOT NULL;
 
+Alter table "rule_review" ADD Constraint rule_review_pk primary key ("rule_metadata_id","tenant_id");
+
+Alter table "rule_review" add constraint "rule_review_rule_metadata_id_f_key"
+    foreign key ("rule_metadata_id") references "rule_metadata" ("rule_metadata_id") on update restrict on delete cascade;
+Create index "rule_review_rule_metadata_id" on "rule_review" ("rule_metadata_id");

@@ -37,38 +37,38 @@
 
 -- RETURNS:		Menge der relevanten Changes (abs_change_id : set of integer)
 --
-CREATE OR REPLACE FUNCTION get_tenant_relevant_changes(INTEGER, INTEGER, INTEGER, TIMESTAMP, TIMESTAMP) RETURNS SETOF BIGINT AS $$
-DECLARE
-	i_tenant_id	ALIAS FOR $1;
-	i_mgm_id	ALIAS FOR $2;
-	i_dev_id	ALIAS FOR $3;
-	t_start		ALIAS FOR $4;
-	t_end		ALIAS FOR $5;
-	r_change	RECORD;
-	v_sql		VARCHAR;
-BEGIN
-	-- delete content of temp table anf fill it again with all rule_ids of the requested tenant
-	DELETE FROM temp_table_for_tenant_filtered_rule_ids;
-	INSERT INTO temp_table_for_tenant_filtered_rule_ids SELECT rule_id FROM view_tenant_rules WHERE tenant_id=i_tenant_id;
-	v_sql := 'SELECT abs_change_id FROM view_changes_by_changed_element_id WHERE TRUE';
-	-- apply filter criteria if set
-	IF NOT i_mgm_id=NULL THEN v_sql := v_sql || ' AND mgm_id=' || i_mgm_id; END IF;
-	IF NOT i_dev_id=NULL THEN v_sql := v_sql || ' AND dev_id=' || i_dev_id; END IF;
-	IF NOT t_start=NULL THEN v_sql := v_sql || ' AND change_time>=' || t_start; END IF;
-	IF NOT t_end=NULL THEN v_sql := v_sql || ' AND change_time<=' || t_end; END IF;
-	-- now the various individual change elements
-	v_sql := v_sql || '	AND	((change_element=''service'' and element_id in (select * from get_svc_ids_for_tenant())) ' ||
-		'OR (change_element=''user'' and element_id in (select * from get_user_ids_for_tenant())) ' ||
-		'OR (change_element=''object'' and element_id in (select * from get_obj_ids_for_tenant())) ' ||
-		'OR (change_element=''rule'' and element_id in (select * from temp_table_for_tenant_filtered_rule_ids))' ||
-		') GROUP BY abs_change_id';
-	FOR r_change IN EXECUTE v_sql
-	LOOP
-		RETURN NEXT r_change.abs_change_id;
-	END LOOP;
-	RETURN;
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION get_tenant_relevant_changes(INTEGER, INTEGER, INTEGER, TIMESTAMP, TIMESTAMP) RETURNS SETOF BIGINT AS $$
+-- DECLARE
+-- 	i_tenant_id	ALIAS FOR $1;
+-- 	i_mgm_id	ALIAS FOR $2;
+-- 	i_dev_id	ALIAS FOR $3;
+-- 	t_start		ALIAS FOR $4;
+-- 	t_end		ALIAS FOR $5;
+-- 	r_change	RECORD;
+-- 	v_sql		VARCHAR;
+-- BEGIN
+-- 	-- delete content of temp table anf fill it again with all rule_ids of the requested tenant
+-- 	DELETE FROM temp_table_for_tenant_filtered_rule_ids;
+-- 	INSERT INTO temp_table_for_tenant_filtered_rule_ids SELECT rule_id FROM view_tenant_rules WHERE tenant_id=i_tenant_id;
+-- 	v_sql := 'SELECT abs_change_id FROM view_changes_by_changed_element_id WHERE TRUE';
+-- 	-- apply filter criteria if set
+-- 	IF NOT i_mgm_id=NULL THEN v_sql := v_sql || ' AND mgm_id=' || i_mgm_id; END IF;
+-- 	IF NOT i_dev_id=NULL THEN v_sql := v_sql || ' AND dev_id=' || i_dev_id; END IF;
+-- 	IF NOT t_start=NULL THEN v_sql := v_sql || ' AND change_time>=' || t_start; END IF;
+-- 	IF NOT t_end=NULL THEN v_sql := v_sql || ' AND change_time<=' || t_end; END IF;
+-- 	-- now the various individual change elements
+-- 	v_sql := v_sql || '	AND	((change_element=''service'' and element_id in (select * from get_svc_ids_for_tenant())) ' ||
+-- 		'OR (change_element=''user'' and element_id in (select * from get_user_ids_for_tenant())) ' ||
+-- 		'OR (change_element=''object'' and element_id in (select * from get_obj_ids_for_tenant())) ' ||
+-- 		'OR (change_element=''rule'' and element_id in (select * from temp_table_for_tenant_filtered_rule_ids))' ||
+-- 		') GROUP BY abs_change_id';
+-- 	FOR r_change IN EXECUTE v_sql
+-- 	LOOP
+-- 		RETURN NEXT r_change.abs_change_id;
+-- 	END LOOP;
+-- 	RETURN;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:	get_svc_ids_of_tenant
@@ -76,47 +76,47 @@ $$ LANGUAGE plpgsql;
 -- Annahme:		die Menge der Regeln steht in temp_table_for_tenant_filtered_rule_ids
 -- RETURNS:		Menge der Dienst-IDs (svc_id)
 --
-CREATE OR REPLACE FUNCTION get_svc_ids_for_tenant() RETURNS SETOF BIGINT AS $$
-DECLARE
-	r_svc				RECORD;
-BEGIN		
-	FOR r_svc IN
-		SELECT service.svc_id FROM rule
-			LEFT JOIN rule_service USING (rule_id) 
-			LEFT JOIN svcgrp_flat ON (rule_service.svc_id=svcgrp_flat_id)
-			LEFT JOIN service ON (svcgrp_flat_member_id=service.svc_id)
-		WHERE rule.rule_id IN (SELECT rule_id FROM temp_table_for_tenant_filtered_rule_ids)
-		GROUP BY service.svc_id		
-	LOOP
-		RETURN NEXT r_svc.svc_id;
-	END LOOP;
-	RETURN;
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION get_svc_ids_for_tenant() RETURNS SETOF BIGINT AS $$
+-- DECLARE
+-- 	r_svc				RECORD;
+-- BEGIN		
+-- 	FOR r_svc IN
+-- 		SELECT service.svc_id FROM rule
+-- 			LEFT JOIN rule_service USING (rule_id) 
+-- 			LEFT JOIN svcgrp_flat ON (rule_service.svc_id=svcgrp_flat_id)
+-- 			LEFT JOIN service ON (svcgrp_flat_member_id=service.svc_id)
+-- 		WHERE rule.rule_id IN (SELECT rule_id FROM temp_table_for_tenant_filtered_rule_ids)
+-- 		GROUP BY service.svc_id		
+-- 	LOOP
+-- 		RETURN NEXT r_svc.svc_id;
+-- 	END LOOP;
+-- 	RETURN;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:	get_user_ids_of_tenant
 -- Zweck:		liefert zu einem tenant alle User zurueck, die in fuer ihn relevanten regeln vorkommen
 -- Annahme:		die Menge der Regeln steht in temp_table_for_tenant_filtered_rule_ids
 -- RETURNS:		Menge der User-IDs (user_id)
---
-CREATE OR REPLACE FUNCTION get_user_ids_for_tenant() RETURNS SETOF BIGINT AS $$
-DECLARE
-	r_user			RECORD;
-BEGIN			 
-	FOR r_user IN
-		SELECT usr.user_id FROM rule
-			LEFT JOIN rule_from USING (rule_id) 
-			LEFT JOIN usergrp_flat ON (rule_user.user_id=usergrp_flat_id)
-			LEFT JOIN usr ON (usergrp_flat_member_id=usr.user_id)
-		WHERE rule.rule_id IN (SELECT rule_id FROM temp_table_for_tenant_filtered_rule_ids)
-		GROUP BY usr.user_id
-	LOOP
-		RETURN NEXT r_user.user_id;
-	END LOOP;
-	RETURN;
-END;
-$$ LANGUAGE plpgsql;
+-- --
+-- CREATE OR REPLACE FUNCTION get_user_ids_for_tenant() RETURNS SETOF BIGINT AS $$
+-- DECLARE
+-- 	r_user			RECORD;
+-- BEGIN			 
+-- 	FOR r_user IN
+-- 		SELECT usr.user_id FROM rule
+-- 			LEFT JOIN rule_from USING (rule_id) 
+-- 			LEFT JOIN usergrp_flat ON (rule_user.user_id=usergrp_flat_id)
+-- 			LEFT JOIN usr ON (usergrp_flat_member_id=usr.user_id)
+-- 		WHERE rule.rule_id IN (SELECT rule_id FROM temp_table_for_tenant_filtered_rule_ids)
+-- 		GROUP BY usr.user_id
+-- 	LOOP
+-- 		RETURN NEXT r_user.user_id;
+-- 	END LOOP;
+-- 	RETURN;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:	get_obj_ids_of_tenant
@@ -124,29 +124,29 @@ $$ LANGUAGE plpgsql;
 -- Annahme:		die Menge der Regeln steht in temp_table_for_tenant_filtered_rule_ids
 -- RETURNS:		Menge der object-IDs (obj_id)
 --
-CREATE OR REPLACE FUNCTION get_obj_ids_for_tenant() RETURNS SETOF BIGINT AS $$
-DECLARE
-	r_obj				RECORD;
-BEGIN		
-	FOR r_obj IN
-		SELECT object.obj_id FROM rule
-			LEFT JOIN rule_from USING (rule_id) 
-			LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat_id)
-			LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
-		WHERE rule.rule_id IN (SELECT rule_id FROM temp_table_for_tenant_filtered_rule_ids)
-		UNION 
-		SELECT object.obj_id FROM rule
-			LEFT JOIN rule_to USING (rule_id) 
-			LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat_id)
-			LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)		
-		WHERE rule.rule_id IN (SELECT rule_id FROM temp_table_for_tenant_filtered_rule_ids)
-		GROUP BY object.obj_id		
-	LOOP
-		RETURN NEXT r_obj.obj_id;
-	END LOOP;
-	RETURN;
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION get_obj_ids_for_tenant() RETURNS SETOF BIGINT AS $$
+-- DECLARE
+-- 	r_obj				RECORD;
+-- BEGIN		
+-- 	FOR r_obj IN
+-- 		SELECT object.obj_id FROM rule
+-- 			LEFT JOIN rule_from USING (rule_id) 
+-- 			LEFT JOIN objgrp_flat ON (rule_from.obj_id=objgrp_flat_id)
+-- 			LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)
+-- 		WHERE rule.rule_id IN (SELECT rule_id FROM temp_table_for_tenant_filtered_rule_ids)
+-- 		UNION 
+-- 		SELECT object.obj_id FROM rule
+-- 			LEFT JOIN rule_to USING (rule_id) 
+-- 			LEFT JOIN objgrp_flat ON (rule_to.obj_id=objgrp_flat_id)
+-- 			LEFT JOIN object ON (objgrp_flat_member_id=object.obj_id)		
+-- 		WHERE rule.rule_id IN (SELECT rule_id FROM temp_table_for_tenant_filtered_rule_ids)
+-- 		GROUP BY object.obj_id		
+-- 	LOOP
+-- 		RETURN NEXT r_obj.obj_id;
+-- 	END LOOP;
+-- 	RETURN;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:	get_tenant_ip_filter

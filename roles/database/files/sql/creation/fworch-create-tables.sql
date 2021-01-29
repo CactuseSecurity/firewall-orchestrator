@@ -162,7 +162,6 @@ Create table "rule"
 -- rule_metadata contains rule related data that does not change when the rule itself is changed
 Create table "rule_metadata"
 (
-	-- todo: add dev_id? 
 	"rule_metadata_id" BIGSERIAL,
 	"dev_id" Integer NOT NULL,
 	"rule_uid" Text,
@@ -193,11 +192,14 @@ Create table "rule_from"
  primary key ("rule_from_id")
 );
 
+
+-- reference rule_metatdata intead?
 Create table "rule_review"
 (
-	"rule_id" BIGINT NOT NULL,
+	"rule_metadata_id" BIGINT NOT NULL,
 	"tenant_id" Integer NOT NULL,
 	"rr_comment" Text,
+	"rr_approved" Boolean NOT NULL Default true,
 	"rr_visible" Boolean NOT NULL Default true,
 	"rr_create" Timestamp NOT NULL Default now(),
 	"rr_update" Timestamp NOT NULL Default now(),

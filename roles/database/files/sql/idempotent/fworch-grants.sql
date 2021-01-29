@@ -84,10 +84,10 @@ Grant ALL on "request_object_change" to group "secuadmins";
 Grant ALL on "request_service_change" to group "secuadmins";
 Grant ALL on "request_rule_change" to group "secuadmins";
 Grant ALL on "request_user_change" to group "secuadmins";
-Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "secuadmins";
+-- Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "secuadmins";
 Grant ALL on "tenant_username" to group "secuadmins";
-Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
-Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
+-- Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
+-- Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
 
 Grant update on "uiuser" to group "secuadmins";
 Grant update,insert on "changelog_object" to group "secuadmins";
@@ -99,9 +99,9 @@ Grant insert on "report" to group "secuadmins";
 
 -- reporters:
 
-Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "reporters";
-Grant ALL on "temp_filtered_rule_ids" to group "reporters";
-Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
+-- Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "reporters";
+-- Grant ALL on "temp_filtered_rule_ids" to group "reporters";
+-- Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
 
 Grant update on "uiuser" to group "reporters";
 Grant insert on "error_log" to group "reporters";

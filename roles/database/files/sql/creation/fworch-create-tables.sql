@@ -164,7 +164,7 @@ Create table "rule_metadata"
 (
 	-- todo: add dev_id? 
 	"rule_metadata_id" BIGSERIAL,
-	"mgm_id" Integer NOT NULL,
+	"dev_id" Integer NOT NULL,
 	"rule_uid" Text,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),

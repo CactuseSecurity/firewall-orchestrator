@@ -8,207 +8,207 @@
 #
 # caveat: run this script with "wipe_packages" switch only if you are on an fworch-exclusive system
 
-  - name: stop docker container
-    command: docker stop fworch-api
-    ignore_errors: true
+- name: stop docker container
+  command: docker stop fworch-api
+  ignore_errors: true
 
-  - name: remove docker container
-    command: docker rm fworch-api
-    ignore_errors: true
+- name: remove docker container
+  command: docker rm fworch-api
+  ignore_errors: true
 
-  - name: restart postgres to make sure no connections are blocking the database removal
-    service:
-      name: postgresql
-      state: restarted
-    when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
-    ignore_errors: true
+- name: restart postgres to make sure no connections are blocking the database removal
+  service:
+    name: postgresql
+    state: restarted
+  when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
+  ignore_errors: true
 
-  - set_fact: 
-      distribution_version: "debian/10"
-      when: ansible_facts['distribution']|lower == 'debian'
+- set_fact:
+    distribution_version: "debian/10"
+    when: ansible_facts['distribution']|lower == 'debian'
 
-  - set_fact: 
-      distribution_version: "ubuntu/20.04"
-      when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
+- set_fact:
+    distribution_version: "ubuntu/20.04"
+    when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '20.04'
 
-  - set_fact: 
-      distribution_version: "ubuntu/18.04"
-      when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
+- set_fact:
+    distribution_version: "ubuntu/18.04"
+    when: ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_version'] == '18.04'
 
-  - name: find out installed postgres version
-    script: "get_pg_version.sh"
-    register: pg_version_result
-    changed_when: false
+- name: find out installed postgres version
+  script: "get_pg_version.sh"
+  register: pg_version_result
+  changed_when: false
 
-  - name: set fact pg_version
-    set_fact:
-        pg_version: "{{ pg_version_result.stdout }}"      
+- name: set fact pg_version
+  set_fact:
+      pg_version: "{{ pg_version_result.stdout }}"
 
-  - set_fact:
-      postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
+- set_fact:
+    postgresql_dev_package: "{{ postgresql_dev_package_prefix }}-{{ pg_version }}"
 
-  - block:
-      - name: remove database pre pg_version 13
-        postgresql_db:
-          name: fworchdb
-          state: absent
-        become_user: postgres
-        register: drop_db
-        ignore_errors: true
+- block:
+    - name: remove database pre pg_version 13
+      postgresql_db:
+        name: fworchdb
+        state: absent
+      become_user: postgres
+      register: drop_db
+      ignore_errors: true
 
-      - name: fail when drop db failed
-        fail:
-          msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
-        when: drop_db.failed
+    - name: fail when drop db failed
+      fail:
+        msg: database could not be dropped {{ drop_db.msg }}. Try to stop all sessions connected to the database before running uninstall again.
+      when: drop_db.failed
+  when: pg_version|int < 13
 
-    when: pg_version|int < 13
+- block:
+    - name: remove database for pg_version starting from 13
+      command: psql -c 'drop database if exists fworchdb with ( force )'
+      become_user: postgres
+      register: drop_db
 
-  - block:
-      - name: remove database for pg_version starting from 13
-        command: psql -c 'drop database if exists fworchdb with ( force )'
-        become_user: postgres
-        register: drop_db
+    - name: fail when drop db failed
+      fail:
+        msg: database could not be dropped {{ drop_db }}. Try to stop all sessions connected to the database before running uninstall again.
+      when: drop_db.failed
+  when: pg_version|int >= 13
 
-      - name: fail when drop db failed
-        fail:
-          msg: database could not be dropped {{ drop_db }}. Try to stop all sessions connected to the database before running uninstall again.
-        when: drop_db.failed
+- name: remove db groups
+  postgresql_user:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ database_groups }}"
+  become_user: postgres
 
-    when: pg_version|int >= 13
+- name: remove db users
+  postgresql_user:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ database_users }}"
+  become_user: postgres
 
-  - name: remove db groups
-    postgresql_user:
-      name: "{{ item }}"
-      state: absent
-    loop: "{{ database_groups }}"
-    become_user: postgres
+- name: stop and disable slapd
+  service:
+    name: slapd
+    state: stopped
+    enabled: no
+  when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
+  ignore_errors: true
 
-  - name: remove db users
-    postgresql_user:
-      name: "{{ item }}"
-      state: absent
-    loop: "{{ database_users }}"
-    become_user: postgres
+- name: stop and disable fworch-ui
+  service:
+    name: fworch-ui
+    state: stopped
+    enabled: no
+  ignore_errors: true
 
-  - name: stop and disable slapd
-    service:
-      name: slapd
-      state: stopped
-      enabled: no
-    when: ansible_facts['distribution']|lower == 'debian' or ansible_facts['distribution']|lower == 'ubuntu'
-    ignore_errors: true
+- name: stop and disable fworch-middleware
+  service:
+    name: fworch-middleware
+    state: stopped
+    enabled: no
+  ignore_errors: true
 
-  - name: stop and disable fworch-ui
-    service:
-      name: fworch-ui
-      state: stopped
-      enabled: no
-    ignore_errors: true
+- name: stop and disable hasura-docker-api
+  service:
+    name: hasura-docker-api
+    state: stopped
+    enabled: no
+  ignore_errors: true
 
-  - name: stop and disable fworch-middleware
-    service:
-      name: fworch-middleware
-      state: stopped
-      enabled: no
-    ignore_errors: true
+- block:
+    - name: disable apache sites
+      command: a2dissite fworch-ui
+      ignore_errors: true
 
-  - name: stop and disable hasura-docker-api
-    service:
-      name: hasura-docker-api
-      state: stopped
-      enabled: no
-    ignore_errors: true
+    - name: disable apache modules (due to a bug with php mod not properly getting purged)
+      apache2_module: state=absent name={{ item }}
+      loop:
+        - php
+        - proxy_http
+        - rewrite
+        - proxy_wstunnel
+      ignore_errors: true
 
-  - block:
+    - name: uninstall all packages for fworch, keeping git and ansible
+      package:
+        state: absent
+        name: "{{ item }}"
+        purge: yes
+      loop:
+        - rsyslog
+        - apache2
+        - gnupg2
+        - apt-transport-https
+        - software-properties-common
+        - npm
+        - python3-pip
+        - python3-virtualenv
+        - python3-psycopg2
+        - libpq-dev
+        - "{{ postgresql_package }}"
+        - libpq-dev
+        - postgresql-client
+        - ldap-utils
+        - libldap-common
+        - libldap
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - dotnet-sdk-3.1
+        - make
+        - "{{ postgresql_dev_package }}"
+        - "{{ postgresql_test_package }}"
+        - apache2
+        - php
+        - libapache2-mod-php
+        - php-pgsql
+        - php-pear
+        - libdbi-perl
+        - libdbd-pg-perl
+        - libdate-calc-perl
+        - psmisc
+        - libnet-cidr-perl
+        - libsys-syslog-perl
+        - libexpect-perl
+        - libcgi-pm-perl
+      when: wipe_packages is defined and wipe_packages == "yes"
 
-      - name: disable apache sites
-        command: a2dissite fworch-ui
-        ignore_errors: true
+    - name: uninstall openldap
+      package:
+        state: absent
+        name: slapd
+        purge: yes
 
-      - name: disable apache modules (due to a bug with php mod not properly getting purged)
-        apache2_module: state=absent name={{ item }}
-        loop:
-          - php
-          - proxy_http
-          - rewrite
-          - proxy_wstunnel
-        ignore_errors: true
-
-      - name: uninstall all packages for fworch, keeping git and ansible
-        package:
-          state: absent
-          name: "{{ item }}"
-          purge: yes
-        loop:
-          - rsyslog
-          - apache2
-          - gnupg2
-          - apt-transport-https
-          - software-properties-common
-          - npm
-          - python3-pip
-          - python3-virtualenv
-          - python3-psycopg2
-          - libpq-dev
-          - "{{ postgresql_package }}"
-          - libpq-dev
-          - postgresql-client
-          - slapd
-          - ldap-utils
-          - libldap-common
-          - libldap
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - dotnet-sdk-3.1
-          - make
-          - "{{ postgresql_dev_package }}"
-          - "{{ postgresql_test_package }}"
-          - apache2
-          - php
-          - libapache2-mod-php
-          - php-pgsql
-          - php-pear
-          - libdbi-perl 
-          - libdbd-pg-perl 
-          - libdate-calc-perl 
-          - psmisc 
-          - libnet-cidr-perl 
-          - libsys-syslog-perl 
-          - libexpect-perl
-          - libcgi-pm-perl
-    
-        when: wipe_packages is defined and wipe_packages == "yes"
-
-      - name: remove fworch dirs
-        file: 
-          name: "{{ item }}"
-          state: absent
-        loop:
-          - "{{ fworch_home }}"
-          - /etc/fworch
-          - /etc/apache2/sites-available/fworch-ui.conf
-          - /etc/apache2/sites-available/fworch-api.conf
-          - /var/lib/ldap/fworch.internal
+    - name: remove fworch dirs
+      file:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ fworch_home }}"
+        - /etc/fworch
+        - /etc/apache2/sites-available/fworch-ui.conf
+        - /etc/apache2/sites-available/fworch-api.conf
+        - /var/lib/ldap/fworch.internal
 
       # - name: delete complete ldap tree
       #   command: "ldapdelete -r -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ middleware_manager_pwd }} -x '{{ openldap_path }}'"
       #   ignore_errors: yes
         # todo: only execute if this is an ldap server (maybe just ignore_errors)
 
-      - name: remove OS users and delete home directories
-        user:
-          name: "{{ item }}"
-          force: yes
-          remove: yes
-          state: absent
-        loop:
-          - "{{ fworch_user }}"
-          - "fworchsample"
+    - name: remove OS users and delete home directories
+      user:
+        name: "{{ item }}"
+        force: yes
+        remove: yes
+        state: absent
+      loop:
+        - "{{ fworch_user }}"
+        - "fworchsample"
 
-      - name: remove OS group
-        group:
-          name: "{{ fworch_group }}"
-          state: absent
-
-    become: yes
+    - name: remove OS group
+      group:
+        name: "{{ fworch_group }}"
+        state: absent
+  become: yes

@@ -13,3 +13,4 @@ Alter Table "temp_filtered_rule_ids" add Constraint "temp_filtered_rule_ids_alt_
 Alter Table "temp_mgmid_importid_at_report_time" add Constraint "Alter_Key13" UNIQUE ("control_id","mgm_id","report_id");
 Alter Table "usr" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
 Alter Table "zone" add Constraint "Alter_Key10" UNIQUE ("mgm_id","zone_name");
+Alter Table "rule_metadata" add Constraint "rule_metadata_alt_key" UNIQUE ("rule_uid","mgm_id");

@@ -703,13 +703,6 @@ tables:
         table:
           name: svcgrp
           schema: public
-  - name: temp_mgmid_importid_at_report_times
-    using:
-      foreign_key_constraint_on:
-        column: control_id
-        table:
-          name: temp_mgmid_importid_at_report_time
-          schema: public
   - name: usergrp_flats
     using:
       foreign_key_constraint_on:
@@ -1119,13 +1112,6 @@ tables:
         column: mgm_id
         table:
           name: service
-          schema: public
-  - name: temp_mgmid_importid_at_report_times
-    using:
-      foreign_key_constraint_on:
-        column: mgm_id
-        table:
-          name: temp_mgmid_importid_at_report_time
           schema: public
   - name: usrs
     using:
@@ -3507,19 +3493,6 @@ tables:
     role: reporter-viewall
   table:
     name: svcgrp_flat
-    schema: public
-- object_relationships:
-  - name: import_control
-    using:
-      foreign_key_constraint_on: control_id
-  - name: management
-    using:
-      foreign_key_constraint_on: mgm_id
-  table:
-    name: temp_mgmid_importid_at_report_time
-    schema: public
-- table:
-    name: temp_table_for_tenant_filtered_rule_ids
     schema: public
 - array_relationships:
   - name: devices

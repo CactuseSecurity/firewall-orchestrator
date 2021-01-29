@@ -59,13 +59,6 @@ olcAccess: to attrs=userPassword
     by dn.base="{{ openldap_readonly_user_dn }}" read
     by dn.base="{{ openldap_writer_dn }}" read
     by * none
-olcAccess: to attrs=userPassword
-    by self write
-    by anonymous auth
-    by dn.base="{{ openldap_superuser_dn }}" write
-    by dn.base="{{ openldap_readonly_user_dn }}" read
-    by dn.base="{{ openldap_writer_dn }}" read
-    by * none
 olcAccess: to attrs=shadowLastChange
     by self write
     by * read

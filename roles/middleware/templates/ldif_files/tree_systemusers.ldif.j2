@@ -17,6 +17,7 @@ cn: {{ openldap_writer_name }}
 sn: {{ openldap_writer_name }}
 {%- endif %}
 
+
 {% if audit_user is defined -%}
 dn: cn={{ audit_user }},ou=systemuser,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}

@@ -43,7 +43,7 @@
     connect_timeout: 1
     delay: 10
     timeout: 25
-  when: "run_on_github is not defined"
+  when: "not run_on_github|bool"
 
 - name: import hasura metadata
   command: "{{ api_hasura_cli_bin }} metadata apply --from-file"

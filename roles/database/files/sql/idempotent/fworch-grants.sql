@@ -67,7 +67,7 @@ Grant update,insert on "usr" to group "configimporters";
 Grant update,insert on "zone" to group "configimporters";
 Grant update,insert on "usergrp" to group "configimporters";
 Grant update,insert on "usergrp_flat" to group "configimporters";
-Grant update,insert on "rule_order" to group "configimporters";
+-- Grant update,insert on "rule_order" to group "configimporters";
 Grant update,insert on "objgrp_flat" to group "configimporters";
 Grant update,insert on "svcgrp_flat" to group "configimporters";
 Grant update,insert on "tenant_user" to group "configimporters";

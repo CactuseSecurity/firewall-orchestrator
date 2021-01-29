@@ -401,22 +401,22 @@ ALTER TABLE zone
         ON UPDATE RESTRICT
         ON DELETE CASCADE;
 
-ALTER TABLE rule_order
-    DROP CONSTRAINT rule_order_control_id_fkey,
-    ADD CONSTRAINT rule_order_control_id_fkey FOREIGN KEY (control_id)
-        REFERENCES public.import_control (control_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT rule_order_dev_id_fkey,
-    ADD CONSTRAINT rule_order_dev_id_fkey FOREIGN KEY (dev_id)
-        REFERENCES public.device (dev_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE,
-    DROP CONSTRAINT rule_order_rule_id_fkey,
-    ADD CONSTRAINT rule_order_rule_id_fkey FOREIGN KEY (rule_id)
-        REFERENCES public.rule (rule_id) MATCH SIMPLE
-        ON UPDATE RESTRICT
-        ON DELETE CASCADE;
+-- ALTER TABLE rule_order
+--     DROP CONSTRAINT rule_order_control_id_fkey,
+--     ADD CONSTRAINT rule_order_control_id_fkey FOREIGN KEY (control_id)
+--         REFERENCES public.import_control (control_id) MATCH SIMPLE
+--         ON UPDATE RESTRICT
+--         ON DELETE CASCADE,
+--     DROP CONSTRAINT rule_order_dev_id_fkey,
+--     ADD CONSTRAINT rule_order_dev_id_fkey FOREIGN KEY (dev_id)
+--         REFERENCES public.device (dev_id) MATCH SIMPLE
+--         ON UPDATE RESTRICT
+--         ON DELETE CASCADE,
+--     DROP CONSTRAINT rule_order_rule_id_fkey,
+--     ADD CONSTRAINT rule_order_rule_id_fkey FOREIGN KEY (rule_id)
+--         REFERENCES public.rule (rule_id) MATCH SIMPLE
+--         ON UPDATE RESTRICT
+--         ON DELETE CASCADE;
         
 ALTER TABLE objgrp
     DROP CONSTRAINT objgrp_import_created_fkey,

@@ -45,3 +45,14 @@ Alter table "rule_metadata" add constraint "rule_metadata_device_dev_id_f_key"
 
 Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
   foreign key ("dev_id", "rule_uid") references "rule_metadata" ("dev_id", "rule_uid") on update restrict on delete cascade;
+
+-------------
+
+DROP TABLE "rule_order" CASCADE;
+-- Alter table "report_template" drop CONSTRAINT if exists report_template_report_typ_id_fkey;
+
+-- Alter table "rule_order" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
+-- Alter table "rule_order" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
+-- Alter table "rule_order" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+
+

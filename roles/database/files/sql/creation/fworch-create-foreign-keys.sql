@@ -103,9 +103,9 @@ Alter table "rule_metadata" add constraint "rule_metadata_rule_last_certifier_ui
   foreign key ("rule_last_certifier") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "rule_metadata" add constraint "rule_metadata_rule_owner_uiuser_uiuser_id_f_key"
   foreign key ("rule_owner") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
-Alter table "rule_order" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "rule_order" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
-Alter table "rule_order" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+-- Alter table "rule_order" add  foreign key ("control_id") references "import_control" ("control_id") on update restrict on delete cascade;
+-- Alter table "rule_order" add  foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
+-- Alter table "rule_order" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_review" add  foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_review" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "rule_service" add  foreign key ("rs_create") references "import_control" ("control_id") on update restrict on delete cascade;

@@ -960,31 +960,31 @@ Create table "config"
 
 -- not needed for 5.0:  -------------------------------------------
 
-Create table "temp_table_for_tenant_filtered_rule_ids"
-(
-	"rule_id" Integer NOT NULL,
-	"report_id" Integer NOT NULL,
-	primary key ("rule_id","report_id")
-);
+-- Create table "temp_table_for_tenant_filtered_rule_ids"
+-- (
+-- 	"rule_id" Integer NOT NULL,
+-- 	"report_id" Integer NOT NULL,
+-- 	primary key ("rule_id","report_id")
+-- );
 
-Create table "temp_filtered_rule_ids"
-(
-	"report_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL
-);
+-- Create table "temp_filtered_rule_ids"
+-- (
+-- 	"report_id" Integer NOT NULL,
+-- 	"rule_id" Integer NOT NULL
+-- );
 
-Create table "temp_mgmid_importid_at_report_time"
-(
-	"control_id" Integer,
-	"mgm_id" Integer,
-	"report_id" Integer NOT NULL
-);
+-- Create table "temp_mgmid_importid_at_report_time"
+-- (
+-- 	"control_id" Integer,
+-- 	"mgm_id" Integer,
+-- 	"report_id" Integer NOT NULL
+-- );
 
-Create table "rule_order"
-(
-	"control_id" Integer NOT NULL,
-	"dev_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL,
-	"rule_number" Integer NOT NULL,
- primary key ("control_id","dev_id","rule_id")
-);
+-- Create table "rule_order"
+-- (
+-- 	"control_id" Integer NOT NULL,
+-- 	"dev_id" Integer NOT NULL,
+-- 	"rule_id" Integer NOT NULL,
+-- 	"rule_number" Integer NOT NULL,
+--  primary key ("control_id","dev_id","rule_id")
+-- );

@@ -203,7 +203,7 @@ Create table "rule_review"
 	"rr_visible" Boolean NOT NULL Default true,
 	"rr_create" Timestamp NOT NULL Default now(),
 	"rr_update" Timestamp NOT NULL Default now(),
- primary key ("rule_id","tenant_id")
+ primary key ("rule_metadata_id","tenant_id")
 );
 
 Create table "rule_service"

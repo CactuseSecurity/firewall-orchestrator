@@ -2726,16 +2726,6 @@ tables:
       filter: {}
     role: importer
 - object_relationships:
-  - name: rule
-    using:
-      foreign_key_constraint_on: rule_id
-  - name: tenant
-    using:
-      foreign_key_constraint_on: tenant_id
-  table:
-    name: rule_review
-    schema: public
-- object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: rs_create
@@ -3536,13 +3526,6 @@ tables:
         column: tenant_id
         table:
           name: request
-          schema: public
-  - name: rule_reviews
-    using:
-      foreign_key_constraint_on:
-        column: tenant_id
-        table:
-          name: rule_review
           schema: public
   - name: tenant_networks
     using:

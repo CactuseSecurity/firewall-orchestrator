@@ -1,9 +1,15 @@
 #!/usr/bin/python3
+import logging
+import logging.config
+import fworch_session_cp_r8x_api as ses
+import fworch_logging_cp_r8x_api as log
+import json, argparse, os
 
-import fworch_session_cp_r8x_api.py as ses
-import fworch_logging_cp_r8x_api.py as log
-import json, argparse
+logging.config.fileConfig(fname='discovery_logging.conf', disable_existing_loggers=False)
 
+logger = logging.getLogger(__name__)
+
+logger.info("START")
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--hostname', metavar='api_host', required=True, help='Check Point R8x management server')
 parser.add_argument('-w', '--password', metavar='api_password', required=True, help='password for management server')
@@ -37,27 +43,20 @@ offset = 0
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
-
-log.set_log_level(0,int(args.debug))
 ssl_verification = ses.set_ssl_verification(args.ssl)
 
-
-# show package name "New_Standard_Package_1" --format json
 xsid = ses.login(args.user, args.password, args.hostname, args.port, domain, base_url, ssl_verification, proxy_string)
 api_versions = ses.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, ssl_verification, proxy_string, xsid)
-
 api_version = api_versions["current-version"]
 api_supported = api_versions["supported-versions"]
 v_url = ses.set_api_url(base_url,args.version,api_supported,args.hostname)
+logger.debug ("current version: "+ api_version )
+logger.debug ("supported versions: "+ ', '.join(api_supported) )
+logger.debug ("limit:"+ args.limit )
+logger.debug ("Domain:"+ args.domain )
+logger.debug ("login:"+ args.user )
+logger.debug ("sid:"+ xsid )
 
-log.logging.debug ("fworch_get_dom_pkg_layer_cp_r8x_api - current version: "+ api_version )
-log.logging.debug ("fworch_get_dom_pkg_layer_cp_r8x_api - supported versions: "+ ', '.join(api_supported) )
-log.logging.debug ("fworch_get_dom_pkg_layer_cp_r8x_api - limit:"+ args.limit )
-log.logging.debug ("fworch_get_dom_pkg_layer_cp_r8x_api - Domain:"+ args.domain )
-log.logging.debug ("fworch_get_dom_pkg_layer_cp_r8x_api - login:"+ args.user )
-log.logging.debug ("fworch_get_dom_pkg_layer_cp_r8x_api - sid:"+ xsid )
-
-    #packages = ses.api_call(args.hostname, args.port, 'show-access-layers', {"limit" : 50, "offset" : 0, "details-level" : "standard", "domains-to-process" : "ALL_DOMAINS_ON_THIS_SERVER"}, sid)
 result = ses.api_call(args.hostname, args.port,  v_url, api_command, {"limit" : args.limit, "offset" : offset, "details-level" : api_details_level}, ssl_verification, proxy_string, xsid)
 if args.debug == "1" or args.debug == "3":
     print ("\ndump of result:\n" + json.dumps(result, indent=4))

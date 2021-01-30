@@ -1,16 +1,30 @@
 dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
-{% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
 cn: admin
-sn: admin
+sn: user
+
+
+{% if audit_user is defined -%}
+dn: uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+objectClass: top
+objectclass: inetorgperson
+cn: audit
+sn: user
 {%- endif %}
 
 
-{% if ldif_changetype != 'delete' -%}
 dn: cn=admin,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
 uniquemember: uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
+
+
+{% if audit_user is defined -%}
+dn: cn=auditor,ou=role,{{ openldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
 {%- endif %}

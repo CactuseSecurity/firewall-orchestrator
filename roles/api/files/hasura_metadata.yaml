@@ -2585,6 +2585,13 @@ tables:
     name: rule_from
     schema: public
 - array_relationships:
+  - name: rule_reviews
+    using:
+      foreign_key_constraint_on:
+        column: rule_metadata_id
+        table:
+          name: rule_review
+          schema: public
   - name: rules
     using:
       manual_configuration:
@@ -2731,6 +2738,16 @@ tables:
       - rule_group_owner
       filter: {}
     role: importer
+- object_relationships:
+  - name: rule_metadatum
+    using:
+      foreign_key_constraint_on: rule_metadata_id
+  - name: tenant
+    using:
+      foreign_key_constraint_on: tenant_id
+  table:
+    name: rule_review
+    schema: public
 - object_relationships:
   - name: import_control
     using:
@@ -3532,6 +3549,13 @@ tables:
         column: tenant_id
         table:
           name: request
+          schema: public
+  - name: rule_reviews
+    using:
+      foreign_key_constraint_on:
+        column: tenant_id
+        table:
+          name: rule_review
           schema: public
   - name: tenant_networks
     using:

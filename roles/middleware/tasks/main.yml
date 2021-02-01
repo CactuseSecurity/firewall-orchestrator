@@ -86,6 +86,15 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+
+- name: Set "{{ audit_user }}" password in ldap
+  ldap_passwd:
+    dn: "uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
+    passwd: "{{ audit_pwd }}"
+    server_uri: "{{ openldap_url }}"
+    bind_dn: "{{ openldap_superuser_dn }}"
+    bind_pw: "{{ ldap_manager_pwd }}"
+  when: audit_user is defined
   
 - name: insert admin tenant0 to database
   postgresql_query:

@@ -163,7 +163,7 @@ Create table "rule"
 Create table "rule_metadata"
 (
 	"rule_metadata_id" BIGSERIAL,
-	"mgm_id" Integer NOT NULL,
+	"dev_id" Integer NOT NULL,
 	"rule_uid" Text,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),
@@ -192,15 +192,18 @@ Create table "rule_from"
  primary key ("rule_from_id")
 );
 
+
+-- reference rule_metatdata intead?
 Create table "rule_review"
 (
-	"rule_id" BIGINT NOT NULL,
+	"rule_metadata_id" BIGINT NOT NULL,
 	"tenant_id" Integer NOT NULL,
 	"rr_comment" Text,
+	"rr_approved" Boolean NOT NULL Default true,
 	"rr_visible" Boolean NOT NULL Default true,
 	"rr_create" Timestamp NOT NULL Default now(),
 	"rr_update" Timestamp NOT NULL Default now(),
- primary key ("rule_id","tenant_id")
+ primary key ("rule_metadata_id","tenant_id")
 );
 
 Create table "rule_service"
@@ -959,31 +962,31 @@ Create table "config"
 
 -- not needed for 5.0:  -------------------------------------------
 
-Create table "temp_table_for_tenant_filtered_rule_ids"
-(
-	"rule_id" Integer NOT NULL,
-	"report_id" Integer NOT NULL,
-	primary key ("rule_id","report_id")
-);
+-- Create table "temp_table_for_tenant_filtered_rule_ids"
+-- (
+-- 	"rule_id" Integer NOT NULL,
+-- 	"report_id" Integer NOT NULL,
+-- 	primary key ("rule_id","report_id")
+-- );
 
-Create table "temp_filtered_rule_ids"
-(
-	"report_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL
-);
+-- Create table "temp_filtered_rule_ids"
+-- (
+-- 	"report_id" Integer NOT NULL,
+-- 	"rule_id" Integer NOT NULL
+-- );
 
-Create table "temp_mgmid_importid_at_report_time"
-(
-	"control_id" Integer,
-	"mgm_id" Integer,
-	"report_id" Integer NOT NULL
-);
+-- Create table "temp_mgmid_importid_at_report_time"
+-- (
+-- 	"control_id" Integer,
+-- 	"mgm_id" Integer,
+-- 	"report_id" Integer NOT NULL
+-- );
 
-Create table "rule_order"
-(
-	"control_id" Integer NOT NULL,
-	"dev_id" Integer NOT NULL,
-	"rule_id" Integer NOT NULL,
-	"rule_number" Integer NOT NULL,
- primary key ("control_id","dev_id","rule_id")
-);
+-- Create table "rule_order"
+-- (
+-- 	"control_id" Integer NOT NULL,
+-- 	"dev_id" Integer NOT NULL,
+-- 	"rule_id" Integer NOT NULL,
+-- 	"rule_number" Integer NOT NULL,
+--  primary key ("control_id","dev_id","rule_id")
+-- );

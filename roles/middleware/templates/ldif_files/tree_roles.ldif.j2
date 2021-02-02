@@ -71,9 +71,6 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: auditor
 uniqueMember:
-{% if audit_user is defined %}
-uniqueMember: cn={{ audit_user }},ou=systemuser,ou=user,{{ openldap_path }}
-{% endif %}
 description: users that can view all data & settings (in the UI) but cannot make any changes
 {%- endif %}
 

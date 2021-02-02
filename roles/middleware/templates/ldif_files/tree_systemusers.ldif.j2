@@ -16,15 +16,3 @@ objectclass: inetorgperson
 cn: {{ openldap_writer_name }}
 sn: {{ openldap_writer_name }}
 {%- endif %}
-
-
-{% if audit_user is defined -%}
-dn: cn={{ audit_user }},ou=systemuser,ou=user,{{ openldap_path }}
-changetype: {{ ldif_changetype }}
-{% if ldif_changetype != 'delete' %}
-objectClass: top
-objectclass: inetorgperson
-cn: {{ audit_user }}
-sn: {{ audit_user }}
-{% endif %}
-{%- endif %}

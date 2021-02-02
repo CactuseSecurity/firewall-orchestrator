@@ -253,7 +253,7 @@ BEGIN
 		DELETE FROM usr					WHERE user_create=i_cur_ctrl_id;
 		DELETE FROM rule				WHERE rule_create=i_cur_ctrl_id;
 		-- Loeschen der Regelreihenfolge
-		DELETE FROM rule_order			WHERE control_id=i_cur_ctrl_id;
+		-- DELETE FROM rule_order			WHERE control_id=i_cur_ctrl_id;
 		-- abschliessend Loeschen des Control-Eintrags
 		DELETE FROM import_control		WHERE control_id = i_cur_ctrl_id;
 --	ELSE  -- TODO: Fehlerbehandlung - was, wenn kein Import laeuft?
@@ -291,7 +291,7 @@ BEGIN
 		DELETE FROM object		WHERE obj_create=i_cur_ctrl_id;
 		DELETE FROM usr			WHERE user_create=i_cur_ctrl_id;
 		DELETE FROM rule		WHERE rule_create=i_cur_ctrl_id;
-		DELETE FROM rule_order		WHERE control_id=i_cur_ctrl_id; 		-- Loeschen der Regelreihenfolge
+		-- DELETE FROM rule_order		WHERE control_id=i_cur_ctrl_id; 		-- Loeschen der Regelreihenfolge
 		DELETE FROM import_control	WHERE control_id = i_cur_ctrl_id; 		-- abschliessend Loeschen des Control-Eintrags
 	ELSE  
 		RAISE NOTICE 'No running import found for management id %', i_mgm_id;

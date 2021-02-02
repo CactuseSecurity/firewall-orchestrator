@@ -56,6 +56,7 @@ Grant update on "management" to group "configimporters";
 Grant update,insert on "object" to group "configimporters";
 Grant update,insert on "objgrp" to group "configimporters";
 Grant update,insert on "rule" to group "configimporters";
+Grant update,insert on "rule_metadata" to group "configimporters";
 Grant update,insert on "rule_from" to group "configimporters";
 Grant update,insert on "rule_review" to group "configimporters";
 Grant update,insert on "rule_service" to group "configimporters";
@@ -66,7 +67,7 @@ Grant update,insert on "usr" to group "configimporters";
 Grant update,insert on "zone" to group "configimporters";
 Grant update,insert on "usergrp" to group "configimporters";
 Grant update,insert on "usergrp_flat" to group "configimporters";
-Grant update,insert on "rule_order" to group "configimporters";
+-- Grant update,insert on "rule_order" to group "configimporters";
 Grant update,insert on "objgrp_flat" to group "configimporters";
 Grant update,insert on "svcgrp_flat" to group "configimporters";
 Grant update,insert on "tenant_user" to group "configimporters";
@@ -83,10 +84,10 @@ Grant ALL on "request_object_change" to group "secuadmins";
 Grant ALL on "request_service_change" to group "secuadmins";
 Grant ALL on "request_rule_change" to group "secuadmins";
 Grant ALL on "request_user_change" to group "secuadmins";
-Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "secuadmins";
+-- Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "secuadmins";
 Grant ALL on "tenant_username" to group "secuadmins";
-Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
-Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
+-- Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
+-- Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
 
 Grant update on "uiuser" to group "secuadmins";
 Grant update,insert on "changelog_object" to group "secuadmins";
@@ -98,9 +99,9 @@ Grant insert on "report" to group "secuadmins";
 
 -- reporters:
 
-Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "reporters";
-Grant ALL on "temp_filtered_rule_ids" to group "reporters";
-Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
+-- Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "reporters";
+-- Grant ALL on "temp_filtered_rule_ids" to group "reporters";
+-- Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
 
 Grant update on "uiuser" to group "reporters";
 Grant insert on "error_log" to group "reporters";

@@ -24,9 +24,9 @@
 
   - name: make sure /var/run/slapd exists for pid file
     file:
-      path: /var/run/slapd exists
+      path: /var/run/slapd
       state: directory
-      user: openldap
+      owner: openldap
       group: openldap
 
 ### Root password

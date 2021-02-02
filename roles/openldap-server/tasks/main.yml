@@ -22,6 +22,13 @@
       - absent
       - directory
 
+  - name: make sure /var/run/slapd exists for pid file
+    file:
+      path: /var/run/slapd
+      state: directory
+      owner: openldap
+      group: openldap
+
 ### Root password
   - name: Check if manager password exist
     stat:

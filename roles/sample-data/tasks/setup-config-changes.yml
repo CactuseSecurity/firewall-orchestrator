@@ -20,10 +20,11 @@
       cron:
         name: change fw config with enlarge_rule.py
         weekday: "*"
-        minute: "15"
+        minute: "{{ item }}"
         hour: "*"
         user: "{{ sample_config_user }}"
-        job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py"
+        job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py {{ item }}"
         cron_file: ansible_FWOrch_enlarge_rule
+      with_sequence: start=1 end=56 stride=5
 
   become: yes

@@ -43,13 +43,13 @@ rule_mapping_count = 0
 for line in data:
     if fnmatch.filter([line], 'config firewall policy\n'):
         rule_area_flag = True
-    elif fnmatch.filter([line], '    edit *\n') & rule_area_flag:
+    elif fnmatch.filter([line], '    edit *\n') and rule_area_flag:
         uid = int(re.findall(r'\d+', line)[0])
         if rule_mapping_count == input_index:
             break
         else:
             rule_mapping_count = rule_mapping_count + 1
-    elif fnmatch.filter([line], 'end\n') & rule_area_flag:
+    elif fnmatch.filter([line], 'end\n') and rule_area_flag:
         break
 
 

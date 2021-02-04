@@ -6,6 +6,7 @@ sample_config_hostname: isosrv
 importer_hostname: localhost
 sting_ip: "192.168.100.110"
 sting_port: "443"
+sample-data-rate: medium
 
 # sample openldap server
 second_ldap_db: no

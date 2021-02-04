@@ -25,6 +25,18 @@
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py {{ item }}"
         cron_file: ansible_FWOrch_enlarge_rule
-      with_sequence: start=1 end=56 stride=5
+      with_sequence: start=0 end=59 stride=1
+      when: sample-data-rate == 'high'
+
+    - name: Executes enlarge_rule.py as cronjob in /etc/cron.d
+      cron:
+        name: change fw config with enlarge_rule.py
+        weekday: "*"
+        minute: "15"
+        hour: "*"
+        user: "{{ sample_config_user }}"
+        job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py"
+        cron_file: ansible_FWOrch_enlarge_rule
+      when: sample-data-rate != 'high'
 
   become: yes

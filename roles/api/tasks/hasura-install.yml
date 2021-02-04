@@ -38,6 +38,7 @@
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_user }}"
+  become: yes
 
 - name: set hasura env variable
   set_fact:

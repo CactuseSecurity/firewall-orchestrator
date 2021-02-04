@@ -134,12 +134,12 @@ if you want to install a second ldap database "dc=example,dc=com"
 cd firewall-orchestrator; ansible-playbook -i inventory -e "second_ldap_db=yes" site.yml -K
 ```
 
-### Parameter "sample-data-rate" to ramp up sample data
+### Parameter "sample_data_rate" to ramp up sample data
 
-if you want to create sample-data changes every minute set sample-data-rate to high
+if you want to create sample-data changes every minute set sample_data_rate to high
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "sample-data-rate=high" site.yml -K
+cd firewall-orchestrator; ansible-playbook -i inventory -e "sample_data_rate=high" site.yml -K
 ```
 
 

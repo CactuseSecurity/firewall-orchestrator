@@ -6,6 +6,13 @@ using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
+    public enum LdapType
+    {
+        Default = 0,
+        ActiveDirectory = 1,
+        OpenLdap = 2
+    }
+
     public class UiLdapConnection
     {
         [JsonPropertyName("ldap_connection_id")]
@@ -16,6 +23,12 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("ldap_port")]
         public int Port { get; set; }
+
+        [JsonPropertyName("ldap_type")]
+        public int Type { get; set; }
+
+        [JsonPropertyName("ldap_pattern_length")]
+        public int PatternLength { get; set; }
 
         [JsonPropertyName("ldap_search_user")]
         public string SearchUser { get; set; }
@@ -34,6 +47,9 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
+
+        [JsonPropertyName("ldap_searchpath_for_groups")]
+        public string GroupSearchPath { get; set; }
 
         [JsonPropertyName("ldap_write_user")]
         public string WriteUser { get; set; }
@@ -58,12 +74,15 @@ namespace FWO.Api.Data
             Id = ldapConnection.Id;
             Address = ldapConnection.Address;
             Port = ldapConnection.Port;
+            Type = ldapConnection.Type;
+            PatternLength = ldapConnection.PatternLength;
             SearchUser = ldapConnection.SearchUser;
             Tls = ldapConnection.Tls;
             TenantLevel = ldapConnection.TenantLevel;
             SearchUserPwd = ldapConnection.SearchUserPwd;
             UserSearchPath = ldapConnection.UserSearchPath;
             RoleSearchPath = ldapConnection.RoleSearchPath;
+            GroupSearchPath = ldapConnection.GroupSearchPath;
             WriteUser = ldapConnection.WriteUser;
             WriteUserPwd = ldapConnection.WriteUserPwd;
             TenantId = ldapConnection.TenantId;

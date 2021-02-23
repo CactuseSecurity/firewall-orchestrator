@@ -91,6 +91,7 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "CreateInitialJWT/");
                 listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
+                listener.Prefixes.Add(middlewareListenerUri + "GetGroups/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetUsers/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "UpdateUser/");
@@ -217,6 +218,15 @@ namespace FWO.Middleware.Server
                                     (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
                                     break;
 
+                                case "GetGroups":
+
+                                    // Initialize Request Handler  
+                                    GetGroupsRequestHandler getGroupsRequestHandler = new GetGroupsRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to get all users from Ldap
+                                    (status, responseString) = await getGroupsRequestHandler.HandleRequestAsync(request);
+                                    break;
+
                                 case "GetUsers":
 
                                     // Initialize Request Handler  
@@ -314,6 +324,15 @@ namespace FWO.Middleware.Server
 
                                     // Try to get all roles with users
                                     (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "GetGroups":
+
+                                    // Initialize Request Handler  
+                                    GetGroupsRequestHandler getGroupsRequestHandler = new GetGroupsRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to get all users from Ldap
+                                    (status, responseString) = await getGroupsRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 case "GetUsers":

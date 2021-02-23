@@ -282,7 +282,7 @@
         }
 
         // get users from Ldap
-        MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Address, userConfig.User.Jwt);
+        MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Address, "", userConfig.User.Jwt);
         if (usersMiddlewareResponse.Status == HttpStatusCode.BadRequest)
         {
             DisplayMessageInUi(null, "UI User", "No users found.", false);

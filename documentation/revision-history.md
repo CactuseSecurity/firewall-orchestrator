@@ -80,3 +80,6 @@ adding report template format fk and permissions
 ### 5.1.12 - 29.01.2021
 - replacing rule_metadata.mgm_id with dev_id
 - removing rule_order commpletely
+
+### 5.1.13 - 19.02.2021
+- add ldap_searchpath_for_groups, ldap_type and ldap_pattern_length to ldap_connection

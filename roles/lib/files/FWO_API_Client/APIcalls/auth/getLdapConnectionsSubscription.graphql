@@ -2,6 +2,8 @@
   ldap_connection {
     ldap_server
     ldap_port
+    ldap_type
+    ldap_pattern_length
     ldap_search_user
     ldap_tls
     ldap_tenant_level
@@ -9,6 +11,7 @@
     ldap_search_user_pwd
     ldap_searchpath_for_users
     ldap_searchpath_for_roles
+    ldap_searchpath_for_groups
     ldap_write_user
     ldap_write_user_pwd
     tenant_id

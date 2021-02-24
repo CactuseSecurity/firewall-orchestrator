@@ -199,6 +199,7 @@ userPrincipalName: tim@int.cactus.de
 ```
 #### search for groups
     ldapsearch -x -W -H "ldap://192.168.100.8" -D "ad-readonly@int.cactus.de" -b "DC=int,DC=cactus,DC=de" -y ./pwd "(objectClass=group)"
+    ldapsearch -x -W -H "ldap://192.168.100.8" -D "ad-readonly@int.cactus.de" -b "DC=int,DC=cactus,DC=de" -y ./pwd "(&(name=T2*)(objectClass=group))"
     
 #### TLS-Fehler stringray
 

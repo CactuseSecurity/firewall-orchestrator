@@ -149,7 +149,7 @@
       ldap_searchpath_for_roles='{{ openldap_std_role_dn }}', ldap_tenant_level=1,
       ldap_search_user='{{ openldap_readonly_user_dn }}',
       ldap_search_user_pwd='{{ ldap_inspector_pw }}',
-      ldap_write_user= '{{ openldap_writer_dn }}', ldap_write_user_pwd='{{ ldap_writer_pw }}, ldap_type=2'
+      ldap_write_user= '{{ openldap_writer_dn }}', ldap_write_user_pwd='{{ ldap_writer_pw }}', ldap_type=2
       WHERE ldap_server='{{ openldap_server }}';
       END IF; END $do$
   become: yes

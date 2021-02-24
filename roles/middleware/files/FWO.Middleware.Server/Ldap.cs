@@ -116,7 +116,7 @@ namespace FWO.Middleware.Server
             if(Type == (int)LdapType.ActiveDirectory)
             {
                 groupFilter = "(objectClass=group)";
-                searchFilter = $"(cn={searchPattern})";
+                searchFilter = $"(|(cn={searchPattern})(name={searchPattern}))";
             }
             else if(Type == (int)LdapType.OpenLdap)
             {

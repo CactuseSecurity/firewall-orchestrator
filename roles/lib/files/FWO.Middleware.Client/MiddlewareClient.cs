@@ -46,11 +46,23 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "GetAllRoles", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> GetUsers(string Ldap, string jwt)
+        public async Task<MiddlewareServerResponse> GetGroups(string Ldap, string SearchPattern, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
-                { "Ldap", Ldap }
+                { "Ldap", Ldap },
+                { "SearchPattern", SearchPattern }
+            };
+
+            return await requestSender.SendRequest(parameters, "GetGroups", jwt);
+        }
+
+        public async Task<MiddlewareServerResponse> GetUsers(string Ldap, string SearchPattern, string jwt)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "Ldap", Ldap },
+                { "SearchPattern", SearchPattern }
             };
 
             return await requestSender.SendRequest(parameters, "GetUsers", jwt);

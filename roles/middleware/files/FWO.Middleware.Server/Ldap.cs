@@ -23,6 +23,12 @@ namespace FWO.Middleware.Server
         [JsonPropertyName("ldap_port")]
         public int Port { get; set; }
 
+        [JsonPropertyName("ldap_type")]
+        public int Type { get; set; }
+
+        [JsonPropertyName("ldap_pattern_length")]
+        public int PatternLength { get; set; }
+
         [JsonPropertyName("ldap_search_user")]
         public string SearchUser { get; set; }
 
@@ -40,6 +46,9 @@ namespace FWO.Middleware.Server
 
         [JsonPropertyName("ldap_searchpath_for_roles")]
         public string RoleSearchPath { get; set; }
+
+        [JsonPropertyName("ldap_searchpath_for_groups")]
+        public string GroupSearchPath { get; set; }
 
         [JsonPropertyName("ldap_write_user")]
         public string WriteUser { get; set; }
@@ -76,6 +85,50 @@ namespace FWO.Middleware.Server
         public bool IsInternal()
         {
             return (WriteUser != null && WriteUser != "");
+        }
+
+        private string getUserSearchFilter(string searchPattern)
+        {
+            string userFilter;
+            string searchFilter;
+            if(Type == (int)LdapType.ActiveDirectory)
+            {
+                userFilter = "(&(objectclass=user)(!(objectclass=computer)))";
+                searchFilter = $"(|(cn={searchPattern})(sAMAccountName={searchPattern}))";
+            }
+            else if(Type == (int)LdapType.OpenLdap)
+            {
+                userFilter = "(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))";
+                searchFilter = $"(|(cn={searchPattern})(uid={searchPattern}))";
+            }
+            else // LdapType.Default
+            {
+                userFilter = "(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(!(objectclass=computer)))";
+                searchFilter = $"(|(cn={searchPattern})(uid={searchPattern})(userPrincipalName={searchPattern})(mail={searchPattern}))";
+            }
+            return ((searchPattern == null || searchPattern == "") ? userFilter : $"(&{userFilter}{searchFilter})");
+        }
+
+        private string getGroupSearchFilter(string searchPattern)
+        {
+            string groupFilter;
+            string searchFilter;
+            if(Type == (int)LdapType.ActiveDirectory)
+            {
+                groupFilter = "(objectClass=group)";
+                searchFilter = $"(|(cn={searchPattern})(name={searchPattern}))";
+            }
+            else if(Type == (int)LdapType.OpenLdap)
+            {
+                groupFilter = "(|(objectclass=group)(objectclass=groupofnames)(objectclass=groupofuniquenames))";
+                searchFilter = $"(cn={searchPattern})";
+            }
+            else // LdapType.Default
+            {
+                groupFilter = "(|(objectclass=group)(objectclass=groupofnames)(objectclass=groupofuniquenames))";
+                searchFilter = $"(|(dc={searchPattern})(o={searchPattern})(ou={searchPattern})(cn={searchPattern})(uid={searchPattern})(mail={searchPattern}))";
+            }
+            return ((searchPattern == null || searchPattern == "") ? groupFilter : $"(&{groupFilter}{searchFilter})");
         }
 
         public string ValidateUser(UiUser user)
@@ -210,7 +263,7 @@ namespace FWO.Middleware.Server
                     connection.Bind(SearchUser, SearchUserPwd);
 
                     // Search for Ldap roles in given directory          
-                    int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scobe?
+                    int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
                     string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
                     LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath, searchScope, searchFilter, null, false);                
 
@@ -236,7 +289,29 @@ namespace FWO.Middleware.Server
             return roleUsers;
         }
 
-        public List<KeyValuePair<string, string>> GetAllUsers()
+        public List<string> GetAllGroups(string searchPattern)
+        {
+            List<string> allGroups = new List<string>();
+
+            // Connect to Ldap
+            using (LdapConnection connection = Connect())
+            {     
+                // Authenticate as search user
+                connection.Bind(SearchUser, SearchUserPwd);
+
+                // Search for Ldap groups in given directory          
+                int searchScope = LdapConnection.ScopeSub;
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(GroupSearchPath, searchScope, getGroupSearchFilter(searchPattern), null, false);                
+
+                foreach (LdapEntry entry in searchResults)
+                {
+                    allGroups.Add(entry.Dn);
+                }
+            }
+            return allGroups;
+        }
+
+        public List<KeyValuePair<string, string>> GetAllUsers(string searchPattern)
         {
             List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
 
@@ -248,8 +323,7 @@ namespace FWO.Middleware.Server
 
                 // Search for Ldap users in given directory          
                 int searchScope = LdapConnection.ScopeSub;
-                string searchFilter = $"(&(objectClass=person)(uid=*))";
-                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath, searchScope, searchFilter, null, false);                
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath, searchScope, getUserSearchFilter(searchPattern), null, false);                
 
                 foreach (LdapEntry entry in searchResults)
                 {

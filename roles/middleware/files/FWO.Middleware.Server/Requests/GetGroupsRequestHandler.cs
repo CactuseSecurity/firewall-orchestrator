@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server.Requests
 {
-    class GetUsersRequestHandler : RequestHandler
+    class GetGroupsRequestHandler : RequestHandler
     {
         private APIConnection ApiConn;
         
@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server.Requests
         /// </summary>
         private List<Ldap> Ldaps;
 
-        public GetUsersRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
+        public GetGroupsRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
         {
             this.Ldaps = Ldaps;
             this.ApiConn = ApiConn;
@@ -25,7 +25,7 @@ namespace FWO.Middleware.Server.Requests
             string ldap = GetRequestParameter<string>("Ldap", notNull: true);
             string searchPattern = GetRequestParameter<string>("SearchPattern", notNull: true);
 
-            List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
+            List<string> allGroups = new List<string>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
@@ -34,13 +34,13 @@ namespace FWO.Middleware.Server.Requests
                     await Task.Run(() =>
                     {
                         // Get all users from current Ldap
-                        allUsers = currentLdap.GetAllUsers(searchPattern);
+                        allGroups = currentLdap.GetAllGroups(searchPattern);
                     });
                 }
             }
 
             // Return status and result
-            return WrapResult(HttpStatusCode.OK, ("allUsers", allUsers));
+            return WrapResult(HttpStatusCode.OK, ("allGroups", allGroups));
         }
     }
 }

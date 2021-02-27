@@ -949,6 +949,9 @@ Create table "ldap_connection"
 	"ldap_write_user" Varchar,
 	"tenant_id" Integer,
 	"ldap_write_user_pwd" Varchar,
+	"ldap_searchpath_for_groups" Varchar,
+	"ldap_type" Integer NOT NULL Default 0,
+	"ldap_pattern_length" Integer NOT NULL Default 0,
 	primary key ("ldap_connection_id")
 );
 

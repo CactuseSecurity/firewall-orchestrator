@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server.Requests
 {
-    class GetGroupsRequestHandler : RequestHandler
+    class GetInternalGroupsRequestHandler : RequestHandler
     {
         private APIConnection ApiConn;
         
@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server.Requests
         /// </summary>
         private List<Ldap> Ldaps;
 
-        public GetGroupsRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
+        public GetInternalGroupsRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
         {
             this.Ldaps = Ldaps;
             this.ApiConn = ApiConn;
@@ -22,19 +22,18 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            string ldap = GetRequestParameter<string>("Ldap", notNull: true);
-            string searchPattern = GetRequestParameter<string>("SearchPattern", notNull: true);
+            // No parameters
 
-            List<string> allGroups = new List<string>();
+            List<KeyValuePair<string, List<string>>> allGroups = new List<KeyValuePair<string, List<string>>>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                if (currentLdap.Address == ldap)
+                if (currentLdap.IsInternal() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
                 {
                     await Task.Run(() =>
                     {
-                        // Get all groups from current Ldap
-                        allGroups = currentLdap.GetAllGroups(searchPattern);
+                        // Get all groups from internal Ldap
+                        allGroups = currentLdap.GetAllInternalGroups();
                     });
                 }
             }

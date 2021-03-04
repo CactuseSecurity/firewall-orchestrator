@@ -1,6 +1,7 @@
 ﻿using FWO.Logging;
 using Novell.Directory.Ldap;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -171,6 +172,20 @@ namespace FWO.Middleware.Server
                                 {
                                     user.Email = currentUser.GetAttribute("mail").StringValue;
                                 }
+                                // ToDo: Currently doesn't work properly as the search doesn't deliver the memberofs for unknown reason.
+                                // ldapsearch on command line shows the correct memberof attributes.
+                                //
+                                // Simplest way as most ldap types should provide the memberof attribute.
+                                // - Probably this doesn't work for nested groups.
+                                // - Some systtems may only save the "primaryGroupID", then we would have to resolve the name.
+                                // - Some others may force us to look into all groups to find the membership.
+                                foreach(var attribute in currentUser.GetAttributeSet())
+                                {
+                                    if (attribute.Name.ToLower() == "memberof")
+                                    {
+                                        user.Groups.Add(attribute.StringValue);
+                                    }
+                                }
                                 return currentUser.Dn;
                             }
 
@@ -200,12 +215,22 @@ namespace FWO.Middleware.Server
             return "";
         }
 
-        public string[] GetRoles(string userDn)
+        public string[] GetRoles(List<string> dnList)
         {
-            List<string> userRoles = new List<string>();
+            return GetMemberships(dnList, RoleSearchPath).ToArray();
+        }
 
-            // If this Ldap is containing roles
-            if (RoleSearchPath != null)
+        public List<string> GetGroups(List<string> dnList)
+        {
+            return GetMemberships(dnList, GroupSearchPath);
+        }
+
+        public List<string> GetMemberships(List<string> dnList, string searchPath)
+        {
+            List<string> userMemberships = new List<string>();
+
+            // If this Ldap is containing roles / groups
+            if (searchPath != null)
             {
                 // Connect to Ldap
                 using (LdapConnection connection = Connect())
@@ -213,31 +238,31 @@ namespace FWO.Middleware.Server
                     // Authenticate as search user
                     connection.Bind(SearchUser, SearchUserPwd);
 
-                    // Search for Ldap roles in given directory          
-                    int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scobe?
+                    // Search for Ldap roles / groups in given directory          
+                    int searchScope = LdapConnection.ScopeSub; // TODO: Correct search scope?
                     string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(RoleSearchPath, searchScope, searchFilter, null, false);                
+                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(searchPath, searchScope, searchFilter, null, false);                
 
-                    // Foreach found role
+                    // Foreach found role / group
                     foreach (LdapEntry entry in searchResults)
                     {
-                        Log.WriteDebug("Ldap Roles", $"Try to get roles from ldap entry {entry.GetAttribute("cn").StringValue}");
+                        Log.WriteDebug("Ldap Roles/Groups", $"Try to get roles / groups from ldap entry {entry.GetAttribute("cn").StringValue}");
 
-                        // Get dn of users having current role
-                        LdapAttribute roleMembers = entry.GetAttribute("uniqueMember");
-                        string[] roleMemberDn = roleMembers.StringValueArray;
+                        // Get dn of users having current role / group
+                        LdapAttribute members = entry.GetAttribute("uniqueMember");
+                        string[] memberDn = members.StringValueArray;
 
                         // Foreach user 
-                        foreach (string currentDn in roleMemberDn)
+                        foreach (string currentDn in memberDn)
                         {
-                            Log.WriteDebug("Ldap Roles", $"Checking if current Dn: \"{currentDn}\" is user Dn. Then user has current role.");
+                            Log.WriteDebug("Ldap Roles/Groups", $"Checking if current Dn: \"{currentDn}\" is user Dn. Then user has current role / group.");
 
-                            // Check if current user dn is matching with given user dn => Given user has current role
-                            if (currentDn == userDn)
+                            // Check if current user dn is matching with given user dn => Given user has current role / group
+                            if (dnList.Contains(currentDn))
                             {
-                                // Get role name and add it to list of roles of given user
-                                string role = entry.GetAttribute("cn").StringValue;
-                                userRoles.Add(role);
+                                // Get name and add it to list of roles / groups of given user
+                                string name = entry.GetAttribute("cn").StringValue;
+                                userMemberships.Add(name);
                                 break;
                             }
                         }
@@ -245,8 +270,8 @@ namespace FWO.Middleware.Server
                 }
             }
 
-            Log.WriteDebug($"Found the following roles for user {userDn} in {Address}:", string.Join("\n", userRoles));
-            return userRoles.ToArray();
+            Log.WriteDebug($"Found the following roles / groups for user {dnList.FirstOrDefault()} in {Address}:", string.Join("\n", userMemberships));
+            return userMemberships;
         }
 
         public List<KeyValuePair<string, List<KeyValuePair<string, string>>>> GetAllRoles()
@@ -306,6 +331,37 @@ namespace FWO.Middleware.Server
                 foreach (LdapEntry entry in searchResults)
                 {
                     allGroups.Add(entry.Dn);
+                }
+            }
+            return allGroups;
+        }
+
+        public List<KeyValuePair<string, List<string>>> GetAllInternalGroups()
+        {
+            List<KeyValuePair<string, List<string>>> allGroups = new List<KeyValuePair<string, List<string>>>();
+
+            // Connect to Ldap
+            using (LdapConnection connection = Connect())
+            {     
+                // Authenticate as search user
+                connection.Bind(SearchUser, SearchUserPwd);
+
+                // Search for Ldap groups in given directory          
+                int searchScope = LdapConnection.ScopeSub;
+                LdapSearchResults searchResults = (LdapSearchResults)connection.Search(GroupSearchPath, searchScope, getGroupSearchFilter(""), null, false);                
+
+                foreach (LdapEntry entry in searchResults)
+                {
+                    List<string> members = new List<string>();
+                    string[] groupMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
+                    foreach (string currentDn in groupMemberDn)
+                    {
+                        if (currentDn != "")
+                        {
+                            members.Add(currentDn);
+                        }
+                    }
+                    allGroups.Add(new KeyValuePair<string, List<string>>(entry.Dn, members));
                 }
             }
             return allGroups;
@@ -443,30 +499,148 @@ namespace FWO.Middleware.Server
             return userDeleted;
         }
 
-        public bool AddUserToRole(string userDn, string role)
+        public string AddGroup(string groupName)
         {
-            Log.WriteInfo("Add User to Role", $"Trying to add User: \"{userDn}\" to Role: \"{role}\"");
-            return ModifyUserInRole(userDn, role, LdapModification.Add);
-        }
-        
-        public bool RemoveUserFromRole(string userDn, string role)
-        {
-            Log.WriteInfo("Remove User from Role", $"Trying to remove User: \"{userDn}\" from Role: \"{role}\"");
-            return ModifyUserInRole(userDn, role, LdapModification.Delete);
+            Log.WriteInfo("Add Group", $"Trying to add Group: \"{groupName}\"");
+            bool groupAdded = false;
+            string groupDn = "";
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    groupDn = $"cn={groupName},{GroupSearchPath}";
+                    LdapAttributeSet attributeSet = new LdapAttributeSet();
+                    attributeSet.Add( new LdapAttribute("objectclass", "groupofuniquenames"));
+                    attributeSet.Add( new LdapAttribute("uniqueMember", ""));
+
+                    LdapEntry newEntry = new LdapEntry( groupDn, attributeSet );
+
+                    try
+                    {
+                        //Add the entry to the directory
+                        connection.Add(newEntry);
+                        groupAdded = true;
+                        Log.WriteDebug("Add group", $"Group {groupName} added in {Address}");
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Add Group", $"couldn't add group to LDAP {Address}: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to add group", exception);
+            }
+            return (groupAdded ? groupDn : "");
         }
 
-        public bool RemoveUserFromAllRoles(string userDn)
+        public string UpdateGroup(string oldName, string newName)
         {
-            string[] roles = GetRoles(userDn);
+            Log.WriteInfo("Update Group", $"Trying to update Group: \"{oldName}\"");
+            bool groupUpdated = false;
+            string oldGroupDn = $"cn={oldName},{GroupSearchPath}";
+            string newGroupRdn = $"cn={newName}";
+
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    try
+                    {
+                        //Add the entry to the directory
+                        connection.Rename(oldGroupDn, newGroupRdn, true);
+                        groupUpdated = true;
+                        Log.WriteDebug("Update group", $"Group {oldName} renamed to {newName} in {Address}");
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Update Group", $"couldn't update group in LDAP {Address}: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to update group", exception);
+            }
+            return (groupUpdated ? $"{newGroupRdn},{GroupSearchPath}" : "");
+        }
+
+        public bool DeleteGroup(string groupName)
+        {
+            Log.WriteInfo("Delete Group", $"Trying to delete Group: \"{groupName}\"");
+            bool groupDeleted = false;
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    try
+                    {
+                        //Delete the entry in the directory
+                        string groupDn = $"cn={groupName},{GroupSearchPath}";
+                        connection.Delete(groupDn);
+                        groupDeleted = true;
+                        Log.WriteDebug("Delete group", $"Group {groupName} deleted in {Address}");
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Delete Group", $"couldn't delete group in LDAP {Address}: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to delete group", exception);
+            }
+            return groupDeleted;
+        }
+
+        public bool AddUserToEntry(string userDn, string entry)
+        {
+            Log.WriteInfo("Add User to Entry", $"Trying to add User: \"{userDn}\" to Entry: \"{entry}\"");
+            return ModifyUserInEntry(userDn, entry, LdapModification.Add);
+        }
+        
+        public bool RemoveUserFromEntry(string userDn, string entry)
+        {
+            Log.WriteInfo("Remove User from Entry", $"Trying to remove User: \"{userDn}\" from Entry: \"{entry}\"");
+            return ModifyUserInEntry(userDn, entry, LdapModification.Delete);
+        }
+
+        public bool RemoveUserFromAllEntries(string userDn)
+        {
+            List<string> dnList = new List<string>();
+            dnList.Add(userDn); // group memberships do not need to be regarded here
+            string[] roles = GetRoles(dnList);
             bool allRemoved = true;
             foreach(var role in roles)
             {
-                allRemoved &= RemoveUserFromRole(userDn, $"cn={role},{RoleSearchPath}");
+                allRemoved &= RemoveUserFromEntry(userDn, $"cn={role},{RoleSearchPath}");
+            }
+            if(GroupSearchPath != null && GroupSearchPath != "")
+            {
+                List<string> groups = GetGroups(dnList);
+                foreach(var group in groups)
+                {
+                    allRemoved &= RemoveUserFromEntry(userDn, $"cn={group},{GroupSearchPath}");
+                }
             }
             return allRemoved;
         }
 
-        public bool ModifyUserInRole(string userDn, string role, int LdapModification)
+        public bool ModifyUserInEntry(string userDn, string entry, int LdapModification)
         {
             bool userModified = false;
             try         
@@ -484,13 +658,13 @@ namespace FWO.Middleware.Server
                     try
                     {
                         //Modify the entry in the directory
-                        connection.Modify (role, mods);
+                        connection.Modify (entry, mods);
                         userModified = true;
-                        Log.WriteDebug("Modify Role", $"Role {role} modified in {Address}");
+                        Log.WriteDebug("Modify Entry", $"Entry {entry} modified in {Address}");
                     }
                     catch(Exception exception)
                     {
-                        Log.WriteInfo("Modify Role", $"maybe role doesn't exist in this LDAP {Address}: {exception.ToString()}");
+                        Log.WriteInfo("Modify Entry", $"maybe entry doesn't exist in this LDAP {Address}: {exception.ToString()}");
                     }
                 }
             }

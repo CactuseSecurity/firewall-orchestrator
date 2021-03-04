@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server.Requests
 {
-    class RemoveUserFromAllRolesRequestHandler : RequestHandler
+    class RemoveUserFromAllEntriesRequestHandler : RequestHandler
     {
         private APIConnection ApiConn;
         
@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server.Requests
         /// </summary>
         private List<Ldap> Ldaps;
 
-        public RemoveUserFromAllRolesRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
+        public RemoveUserFromAllEntriesRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
         {
             this.Ldaps = Ldaps;
             this.ApiConn = ApiConn;
@@ -33,7 +33,7 @@ namespace FWO.Middleware.Server.Requests
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
                     // if current Ldap has roles stored: Try to remove user from all roles in current Ldap
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.RemoveUserFromAllRoles(userDn))
+                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.RemoveUserFromAllEntries(userDn))
                     {
                         userRemoved = true;
                     }

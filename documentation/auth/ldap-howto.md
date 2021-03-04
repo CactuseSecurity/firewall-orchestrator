@@ -178,7 +178,9 @@ Here user1_demo is not required to exist somewhere in the ldap tree.
 Not tested yet!
 
     ldapsearch -H "ldaps://localhost:636,ldaps://127.0.0.1" -x
+    
 ### querying AD
+#### search user
 currently works via ldap not ldaps.
 Example:
 ```console
@@ -195,7 +197,10 @@ objectSid:: AQUAAAAAAAUVAAAA2YTAfH0kWZgXgpVqUAQAAA==
 sAMAccountName: tim
 userPrincipalName: tim@int.cactus.de
 ```
-
+#### search for groups
+    ldapsearch -x -W -H "ldap://192.168.100.8" -D "ad-readonly@int.cactus.de" -b "DC=int,DC=cactus,DC=de" -y ./pwd "(objectClass=group)"
+    ldapsearch -x -W -H "ldap://192.168.100.8" -D "ad-readonly@int.cactus.de" -b "DC=int,DC=cactus,DC=de" -y ./pwd "(&(name=T2*)(objectClass=group))"
+    
 #### TLS-Fehler stringray
 
 Auf dem System ist keine Standard-Serverreferenz vorhanden. Serveranwendungen, die Standard-Systemreferenzen verwenden, werden keine SSL-Verbindungen akzeptieren. Als Beispiel einer solchen Anwendung dient der Verzeichnisserver. Dies hat keine Auswirkung auf Anwendungen wie der Internet Information Server, die die eigenen Referenzen verwalten, .

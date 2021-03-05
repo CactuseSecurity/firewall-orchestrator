@@ -254,6 +254,7 @@
         AddMode = true;
         actRole = role;
         selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.FirstOrDefault().Dn);
+        selectedLdapId = connectedLdaps.FirstOrDefault().Id;
     }
 
     private void Delete(Role role)

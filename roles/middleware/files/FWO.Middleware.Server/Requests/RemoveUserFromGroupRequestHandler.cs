@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server.Requests
 {
-    class RemoveUserFromRoleRequestHandler : RequestHandler
+    class RemoveUserFromGroupRequestHandler : RequestHandler
     {
         private APIConnection ApiConn;
         
@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server.Requests
         /// </summary>
         private List<Ldap> Ldaps;
 
-        public RemoveUserFromRoleRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
+        public RemoveUserFromGroupRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
         {
             this.Ldaps = Ldaps;
             this.ApiConn = ApiConn;
@@ -22,26 +22,23 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            // Get parameters from request. Expected parameters: "Username", "Role" from Type string
+            // Get parameters from request. Expected parameters: "Username", "Group" from Type string
             string userDn = GetRequestParameter<string>("Username", notNull: true);
-            string role = GetRequestParameter<string>("Role", notNull: true);
+            string group = GetRequestParameter<string>("Group", notNull: true);
 
             bool userRemoved = false;
-            List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                // if current Ldap is internal: Try to remove user from group in current Ldap
+                if (currentLdap.IsInternal() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
                 {
-                    // if current Ldap has roles stored: Try to remove user from role in current Ldap
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.RemoveUserFromEntry(userDn, role))
+                    await Task.Run(() =>
                     {
-                        userRemoved = true;
-                    }
-                }));
+                        userRemoved = currentLdap.RemoveUserFromEntry(userDn, group);
+                    });
+                }
             }
-
-            await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result
             return WrapResult(HttpStatusCode.OK, ("userRemoved", userRemoved));

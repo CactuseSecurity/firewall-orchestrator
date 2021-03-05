@@ -83,7 +83,7 @@ namespace FWO.Api.Data
 
         public string getTenant (int tenantLevel = 1)
         {
-            return (Path.Count >= tenantLevel ? Path[tenantLevel - 1] : "");
+            return ((tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[tenantLevel - 1] : "");
         }
     }
 }

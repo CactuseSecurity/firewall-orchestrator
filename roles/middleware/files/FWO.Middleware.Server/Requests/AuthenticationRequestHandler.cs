@@ -125,7 +125,12 @@ namespace FWO.Middleware.Server.Requests
 
         public async Task<string[]> GetRoles(UiUser user)
         {
-            string UserDn = user.Dn;
+            List<string> dnList = new List<string>();
+            dnList.Add(user.Dn);
+            if (user.Groups != null && user.Groups.Count > 0)
+            {
+                dnList.AddRange(user.Groups);
+            }
 
             List<string> UserRoles = new List<string>();
 
@@ -139,7 +144,7 @@ namespace FWO.Middleware.Server.Requests
                     if (currentLdap.RoleSearchPath != "")
                     {
                         // Get roles from current Ldap
-                        string[] currentRoles = currentLdap.GetRoles(UserDn);
+                        string[] currentRoles = currentLdap.GetRoles(dnList);
 
                         lock(rolesLock)
                         {
@@ -155,7 +160,7 @@ namespace FWO.Middleware.Server.Requests
             if (UserRoles.Count == 0)
             {
                 // Use anonymous role
-                Log.WriteWarning("Missing roles", $"No roles for user \"{UserDn}\" could be found. Using anonymous role.");
+                Log.WriteWarning("Missing roles", $"No roles for user \"{user.Dn}\" could be found. Using anonymous role.");
                 UserRoles.Add("anonymous");
             }
 

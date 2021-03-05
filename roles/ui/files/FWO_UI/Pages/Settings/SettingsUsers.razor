@@ -493,10 +493,10 @@
         {
             try
             {
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromAllRoles(user.Dn, userConfig.User.Jwt);
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromAllEntries(user.Dn, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userRemoved") == false)
                 {
-                    DisplayMessageInUi(null, "Remove user from all roles", "User could not be removed", false);
+                    DisplayMessageInUi(null, "Remove user from all roles and groups", "User could not be removed", false);
                     showSampleRemoveButton = true;
                 }
                 else

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server.Requests
 {
-    class GetGroupsRequestHandler : RequestHandler
+    class DeleteGroupRequestHandler : RequestHandler
     {
         private APIConnection ApiConn;
         
@@ -14,7 +14,7 @@ namespace FWO.Middleware.Server.Requests
         /// </summary>
         private List<Ldap> Ldaps;
 
-        public GetGroupsRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
+        public DeleteGroupRequestHandler(List<Ldap> Ldaps, APIConnection ApiConn)
         {
             this.Ldaps = Ldaps;
             this.ApiConn = ApiConn;
@@ -22,25 +22,25 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            string ldap = GetRequestParameter<string>("Ldap", notNull: true);
-            string searchPattern = GetRequestParameter<string>("SearchPattern", notNull: true);
+            // Get parameters from request. Expected parameters: "GroupName" from Type string
+            string groupDn = GetRequestParameter<string>("GroupName", notNull: true);
 
-            List<string> allGroups = new List<string>();
+            bool groupDeleted = false;
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                if (currentLdap.Address == ldap)
+                // if current Ldap is internal: Try to delete group in current Ldap
+                if (currentLdap.IsInternal() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
                 {
                     await Task.Run(() =>
                     {
-                        // Get all groups from current Ldap
-                        allGroups = currentLdap.GetAllGroups(searchPattern);
+                        groupDeleted = currentLdap.DeleteGroup(groupDn);
                     });
                 }
             }
 
             // Return status and result
-            return WrapResult(HttpStatusCode.OK, ("allGroups", allGroups));
+            return WrapResult(HttpStatusCode.OK, ("groupDeleted", groupDeleted));
         }
     }
 }

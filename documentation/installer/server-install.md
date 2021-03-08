@@ -44,7 +44,11 @@ git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 (or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git, needs ssh key to be uploaded)
 ```
 
-4) install (on localhost)
+4) if ansible version < 2.8 (older systems like ubuntu 18.04, debian 10), install latest ansible 
+
+       cd firewall-orchestrator; ansible-playbook -i inventory/ scripts/install-latest-ansible.yml -K
+
+5) install (on localhost)
 
 If your system does not have an ansible client with version >=2.8, you may want to install before running it via running
 ```console

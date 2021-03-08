@@ -22,12 +22,19 @@
       - absent
       - directory
 
-  - name: make sure /var/run/slapd exists for pid file
+  - name: Create directory for ldap pid
     file:
-      path: /var/run/slapd
+      path: "/var/run/slapd"
       state: directory
-      owner: openldap
-      group: openldap
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+
+  # - name: make sure /var/run/slapd exists for pid file
+  #   file:
+  #     path: /var/run/slapd
+  #     state: directory
+  #     owner: openldap
+  #     group: openldap
 
 ### Root password
   - name: Check if manager password exist

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using FWO.ApiClient;
@@ -10,10 +9,6 @@ using FWO.ApiClient.Queries;
 using FWO.Middleware.Server.Requests;
 using FWO.Config;
 using FWO.Logging;
-using FWO.Report;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Threading;
 using FWO.Middleware.Client;
 
 namespace FWO.Middleware.Server
@@ -90,6 +85,7 @@ namespace FWO.Middleware.Server
                 // Add prefixes to listen to 
                 listener.Prefixes.Add(middlewareListenerUri + "CreateInitialJWT/");
                 listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "ChangePassword/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetGroups/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetInternalGroups/");
@@ -215,6 +211,15 @@ namespace FWO.Middleware.Server
                             // first the operations allowed for the admin
                             switch (requestName)
                             {
+                                case "ChangePassword":
+
+                                    // Initialize Request Handler  
+                                    ChangePasswordRequestHandler changePasswordRequestHandler = new ChangePasswordRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to change password for user
+                                    (status, responseString) = await changePasswordRequestHandler.HandleRequestAsync(request);
+                                    break;
+
                                 case "GetAllRoles":
 
                                     // Initialize Request Handler  
@@ -411,6 +416,26 @@ namespace FWO.Middleware.Server
 
                                     // Try to get all users from Ldap
                                     (status, responseString) = await getUsersRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                default:
+                                    Log.WriteError("Internal Error", $"We received a request we could not handle: {request.RawUrl}", LogStackTrace: true);
+                                    status = HttpStatusCode.InternalServerError;
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            // read operations allowed also for "normal" users
+                            switch (requestName)
+                            {
+                                case "ChangePassword":
+
+                                    // Initialize Request Handler  
+                                    ChangePasswordRequestHandler changePasswordRequestHandler = new ChangePasswordRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to change password for user
+                                    (status, responseString) = await changePasswordRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 default:

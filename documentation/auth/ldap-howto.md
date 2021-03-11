@@ -21,7 +21,7 @@
 - for test purposes you may install an additional domain example.com with test users and roles
 - install with 
 
-    cd firewall-orchestrator; ansible-playbook -i inventory -e "second_ldap_db=yes" site.yml -K
+    cd firewall-orchestrator; ansible-playbook -e "second_ldap_db=yes" site.yml -K
 
 - to access you have to bind with the fworch.internal manager dn (-D) and password (-w/-y) and change the searchbase (-b). E.g
 

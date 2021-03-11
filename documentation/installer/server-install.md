@@ -46,14 +46,14 @@ git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 
 4) if ansible version < 2.8 (older systems like ubuntu 18.04, debian 10), install latest ansible 
 
-       cd firewall-orchestrator; ansible-playbook -i inventory/ scripts/install-latest-ansible.yml -K
+       cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
 
 5) install (on localhost)
 
 Otherwise, directly run:
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
+cd firewall-orchestrator; ansible-playbook site.yml -K
 ```
 Enter sudo password when prompted "BECOME or SUDO password:"
 

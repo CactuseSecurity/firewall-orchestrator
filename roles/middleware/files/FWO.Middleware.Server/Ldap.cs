@@ -142,13 +142,14 @@ namespace FWO.Middleware.Server
                 {
                     // Authenticate as search user
                     connection.Bind(SearchUser, SearchUserPwd);
+                    String[] attrList = new String[]{"*", "memberof"};
 
                     // Search for users in ldap with same name as user to validate
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(
                         UserSearchPath,             // top-level path under which to search for user
                         LdapConnection.ScopeSub,    // search all levels beneath
                         $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
-                        null,
+                        attrList,
                         typesOnly: false
                     );
 
@@ -172,13 +173,12 @@ namespace FWO.Middleware.Server
                                 {
                                     user.Email = currentUser.GetAttribute("mail").StringValue;
                                 }
-                                // ToDo: Currently doesn't work properly as the search doesn't deliver the memberofs for unknown reason.
-                                // ldapsearch on command line shows the correct memberof attributes.
-                                //
+
                                 // Simplest way as most ldap types should provide the memberof attribute.
                                 // - Probably this doesn't work for nested groups.
                                 // - Some systtems may only save the "primaryGroupID", then we would have to resolve the name.
                                 // - Some others may force us to look into all groups to find the membership.
+                                user.Groups = new List<string>();
                                 foreach(var attribute in currentUser.GetAttributeSet())
                                 {
                                     if (attribute.Name.ToLower() == "memberof")

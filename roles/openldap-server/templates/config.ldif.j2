@@ -20,6 +20,7 @@ cn: module{0}
 olcModulePath: /usr/lib/ldap
 olcModuleLoad: {0}back_bdb.la
 olcModuleLoad: {1}memberof.la
+olcModuleLoad: {2}refint.la
 
 # internal schema
 dn: cn=schema,cn=config
@@ -98,3 +99,13 @@ olcMemberOfRefInt: TRUE
 olcMemberOfGroupOC: groupOfUniqueNames
 olcMemberOfMemberAD: uniqueMember
 olcMemberOfMemberOfAD: memberOf
+
+# Referential integrity overlay
+dn: olcOverlay=refint,olcDatabase={1}bdb,cn=config
+objectClass: olcConfig
+objectClass: olcOverlayConfig
+objectClass: olcRefintConfig
+objectClass: top
+olcOverlay: refint
+olcRefintAttribute: memberOf
+olcRefintAttribute: uniqueMember

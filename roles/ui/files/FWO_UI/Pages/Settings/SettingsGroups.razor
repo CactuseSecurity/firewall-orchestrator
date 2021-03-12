@@ -25,11 +25,17 @@
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="UserGroup" Items="groups" PageSize="0" ColumnReorder="true">
-        <Column TableItem="UserGroup" Title="Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
+        <Column TableItem="UserGroup" Title="Group Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-warning" @onclick="() => EditGroup(context)">Edit Group</button>
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteGroup(context)">Delete Group</button>
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="UserGroup" Title="User Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => AddUser(context)">Add User</button>
                     <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(context)">Delete User</button>
                 </div>

@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Text.Json;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Cryptography;
-using System.Linq;
-using System.Net;
 
 namespace FWO.Middleware.Client
 {
@@ -36,6 +29,18 @@ namespace FWO.Middleware.Client
             Dictionary<string, object> parameters = new Dictionary<string, object> { };
 
             return await requestSender.SendRequest(parameters, "CreateInitialJWT");
+        }
+
+        public async Task<MiddlewareServerResponse> ChangePassword(string UserDn, string oldPassword, string newPassword, string jwt)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "UserDn", UserDn },
+                { "oldPassword", oldPassword },
+                { "newPassword", newPassword }
+            };
+
+            return await requestSender.SendRequest(parameters, "ChangePassword", jwt);
         }
 
         public async Task<MiddlewareServerResponse> GetAllRoles(string jwt)

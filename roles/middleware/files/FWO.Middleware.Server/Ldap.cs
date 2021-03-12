@@ -183,7 +183,13 @@ namespace FWO.Middleware.Server
                                 {
                                     if (attribute.Name.ToLower() == "memberof")
                                     {
-                                        user.Groups.Add(attribute.StringValue);
+                                        foreach(string membership in attribute.StringValueArray)
+                                        {
+                                            if(membership.EndsWith(GroupSearchPath))
+                                            {
+                                                user.Groups.Add(membership);
+                                            }
+                                        }
                                     }
                                 }
                                 return currentUser.Dn;

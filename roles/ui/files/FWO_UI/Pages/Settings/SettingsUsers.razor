@@ -246,6 +246,7 @@
             {
                 // Add new user to UiUsers table
                 ldapUser.setNamesFromDn();
+                ldapUser.PasswordMustBeChanged = false;
                 try
                 {
                     await addUserToDb(ldapUser);
@@ -327,7 +328,7 @@
                 uiuser_username = user.Name,
                 email = user.Email,
                 tenant = user.Tenant.Id,
-                passwordMustBeChanged = true
+                passwordMustBeChanged = user.PasswordMustBeChanged
             };
             user.DbId = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
         }
@@ -390,6 +391,7 @@
                     }
                     else
                     {
+                        actUser.PasswordMustBeChanged = true;
                         await addUserToDb(actUser);
                         uiUsers.Add(actUser);
                         AddMode = false;

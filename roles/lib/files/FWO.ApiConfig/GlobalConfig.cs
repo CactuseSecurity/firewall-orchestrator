@@ -31,6 +31,11 @@ namespace FWO.ApiConfig
         public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
         public static readonly string kDataRetentionTime = "dataRetentionTime";
         public static readonly string kImportSleepTime = "importSleepTime";
+        public static readonly string kPwMinLength = "pwMinLength";
+        public static readonly string kPwUpperCaseRequired = "pwUpperCaseRequired";
+        public static readonly string kPwLowerCaseRequired = "pwLowerCaseRequired";
+        public static readonly string kPwNumberRequired = "pwNumberRequired";
+        public static readonly string kPwSpecialCharactersRequired = "pwSpecialCharactersRequired";
 
         public string productVersion { get; set; }
         public UiText[] uiTexts { get; set; }

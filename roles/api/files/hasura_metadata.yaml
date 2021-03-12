@@ -1028,22 +1028,28 @@ tables:
       - ldap_write_user
       - tenant_id
       - ldap_write_user_pwd
+      - ldap_searchpath_for_groups
+      - ldap_type
+      - ldap_pattern_length
       filter: {}
     role: auditor
   - permission:
       columns:
-      - ldap_connection_id
+      - ldap_tls
+      - ldap_pattern_length
       - ldap_port
+      - ldap_tenant_level
+      - ldap_type
+      - tenant_id
+      - ldap_connection_id
+      - ldap_searchpath_for_groups
+      - ldap_searchpath_for_roles
+      - ldap_searchpath_for_users
       - ldap_search_user
       - ldap_search_user_pwd
-      - ldap_searchpath_for_users
-      - ldap_searchpath_for_roles
       - ldap_server
-      - ldap_tenant_level
-      - ldap_tls
       - ldap_write_user
       - ldap_write_user_pwd
-      - tenant_id
       filter: {}
     role: middleware-server
   table:

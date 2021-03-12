@@ -4,6 +4,7 @@
 @using FWO.ApiClient
 @using FWO.Middleware.Client
 @using FWO.ApiConfig
+@using FWO.Ui.Services
 
 @page "/settings/users"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -33,19 +34,18 @@
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
                     <AuthorizeView Roles="admin" Context="xxx">
-                        <button class="btn btn-sm btn-info" @onclick="() => CleanUpUser(context)">Clean Up</button>
+                        <button class="btn btn-sm btn-info" @onclick="() => CleanUpUser(context)">Reset</button>
                     </AuthorizeView>
                 </div>
             </Template>
         </Column>
         <Column TableItem="UiUser" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Dn" Field="@(x => x.Dn)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Tenant" Field="@(x => x.Tenant.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Email" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Language" Field="@(x => x.Language)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="Last Login" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Last Password Change" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Password Must Be Changed" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Last Pwd Change" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="Pwd Chg Req" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" />
     </Table>
 </div>
 
@@ -55,15 +55,15 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="userName" class="col-sm-3 col-form-label col-form-label-sm">Name:</label>
+                    <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">Name:</label>
                     <label class="m-2">@actUser.Name</label>
                 </div>
                 <div class="form-group row">
-                    <label for="userTenant" class="col-sm-3 col-form-label col-form-label-sm">Tenant:</label>
+                    <label for="userTenant" class="col-sm-2 col-form-label col-form-label-sm">Tenant:</label>
                     <label class="m-2">@actUser.Tenant.Name</label>
                 </div>
                 <div class="form-group row">
-                    <label for="userDn" class="col-sm-3 col-form-label col-form-label-sm">Dn:</label>
+                    <label for="userDn" class="col-sm-2 col-form-label col-form-label-sm">Dn:</label>
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
@@ -78,14 +78,14 @@
                 @if (AddMode)
                 {
                     <div class="form-group row">
-                        <label for="userPassword" class="col-sm-3 col-form-label col-form-label-sm">Password:</label>
+                        <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">Password:</label>
                         <div class="col-sm-8">
                             <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
                         </div>
                     </div>
                 }
                 <div class="form-group row">
-                    <label for="userEmail" class="col-sm-3 col-form-label col-form-label-sm">Email:</label>
+                    <label for="userEmail" class="col-sm-2 col-form-label col-form-label-sm">Email:</label>
                     <div class="col-sm-8">
                         <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
                     </div>
@@ -246,6 +246,7 @@
             {
                 // Add new user to UiUsers table
                 ldapUser.setNamesFromDn();
+                ldapUser.PasswordMustBeChanged = false;
                 try
                 {
                     await addUserToDb(ldapUser);
@@ -274,6 +275,7 @@
 
     private async Task GetUsersFromInternalLdap()
     {
+        ldapUsers.Clear();
         UiLdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
         if (internalLdap == null)
         {
@@ -291,7 +293,7 @@
         {
             foreach (var user in usersMiddlewareResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
             {
-                UiUser newUser = new UiUser() { Dn = user.Key, Name = (new DistName(user.Key)).UserName, Email = user.Value };
+                UiUser newUser = new UiUser() { Dn = user.Key, Name = (new DistName(user.Key)).UserName, Email = user.Value, PasswordMustBeChanged = true };
                 ldapUsers.Add(newUser);
             }
         }
@@ -325,7 +327,8 @@
                 uuid = user.Dn,
                 uiuser_username = user.Name,
                 email = user.Email,
-                tenant = user.Tenant.Id
+                tenant = user.Tenant.Id,
+                passwordMustBeChanged = user.PasswordMustBeChanged
             };
             user.DbId = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
         }
@@ -364,10 +367,15 @@
             if (AddMode)
             {
                 // Todo: Further value checks?
+                string errorMsg;
                 actUser.setNamesFromDn();
                 if (actUser.Dn == null || actUser.Dn == "" || actUser.Password == null || actUser.Password == "")
                 {
                     DisplayMessageInUi(null, "Add User Error", "Dn and Password have to be filled", false);
+                }
+                else if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
+                {
+                    DisplayMessageInUi(null, "Add User Error", errorMsg, false);
                 }
                 else if (!tenants.Exists(x => x.Name == actUser.Tenant.Name))
                 {
@@ -383,6 +391,7 @@
                     }
                     else
                     {
+                        actUser.PasswordMustBeChanged = true;
                         await addUserToDb(actUser);
                         uiUsers.Add(actUser);
                         AddMode = false;

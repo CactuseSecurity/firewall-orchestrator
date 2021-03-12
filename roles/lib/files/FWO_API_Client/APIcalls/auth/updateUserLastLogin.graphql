@@ -8,6 +8,6 @@ mutation updateUserLastLogin(
       uiuser_last_login: $loginTime
     }
   ) {
-    UpdatedId: uiuser_id
+    PasswordMustBeChanged: uiuser_password_must_be_changed
   }
 }

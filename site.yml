@@ -126,7 +126,7 @@
 
 - hosts: testservers
   roles:
-    - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall'}
+    - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
   tags:
     - test
     

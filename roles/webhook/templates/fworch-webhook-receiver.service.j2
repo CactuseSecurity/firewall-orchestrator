@@ -2,8 +2,8 @@
 Description=FW Orch Webhook receiver for github
 After=network.target remote-fs.target nss-lookup.target
 [Service]
-WorkingDirectory=/home/fworchtest
-ExecStart=/usr/bin/python3 /home/fworchtest/fworch-webhook-receiver.py
+WorkingDirectory={{ fworchtest_home }}
+ExecStart=/usr/bin/python3 {{ fworchtest_home }}/fworch-webhook-receiver.py
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=fworch-webhook

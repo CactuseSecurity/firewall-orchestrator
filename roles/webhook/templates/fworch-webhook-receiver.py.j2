@@ -1,3 +1,4 @@
+#jinja2: lstrip_blocks: "False", trim_blocks: "False"
 #!/usr/bin/python3
 # source: https://github.com/Esri/webhooks-samples/tree/master/python/receiver/flask
 
@@ -109,18 +110,15 @@ def post_handler():
                   # might not work due to user rights:
                   # os.system("systemctl restart fworch-webhook-receiver.service")
 {% if webhook_install_mode == 'reinstall' -%}
-
                uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"installation_mode=uninstall\""
                f.write('executing uninstall command: ' + uninstall_cmd + '\n')
                os.system(uninstall_cmd) # remove fworch
                # fresh install: 
                build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=new\" "
 {% else -%}
-
                # upgrade 
                build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=upgrade\" "
 {%- endif %}
-
                f.write('executing build command: ' + build_cmd + '\n')
                os.system(build_cmd) # building fworch
                now = datetime.now() # current date and time

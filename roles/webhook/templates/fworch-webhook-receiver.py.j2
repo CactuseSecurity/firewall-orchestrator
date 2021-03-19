@@ -77,10 +77,11 @@ def post_handler():
 
       req_data = request.get_json()
       req_data_str = json.dumps(req_data)
+      f.write('--- webhook call received '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n')
+      f.write('request: ' + req_data_str + '\n')
       now = datetime.now() # current date and time
       if 'head_commit' in req_data:
          now = datetime.now() # current date and time
-         f.write('--- webhook call received '+ now.strftime("%Y-%m-%d %H:%M:%S") +' ---\n')
          if 'modified' in req_data['head_commit']:
             modified_files = req_data['head_commit']['modified']
             f.write('found modified files: ' + json.dumps(modified_files) + '\n')
@@ -107,18 +108,16 @@ def post_handler():
                   os.system("cp " + tmp_git_dir + "/firewall-orchestrator/scripts/fworch-webhook-receiver.py " + root_dir)
                   # might not work due to user rights:
                   # os.system("systemctl restart fworch-webhook-receiver.service")
-
-{% if webhook_install_mode == 'reinstall' -%}
-               uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"installation_mode=uninstall\""
+{% if webhook_install_mode == 'reinstall' %}
+               uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"installation_mode=uninstall\""
                f.write('executing uninstall command: ' + uninstall_cmd + '\n')
                os.system(uninstall_cmd) # remove fworch
                # fresh install: 
-               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=new\" "
-{% else -%}
+               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=new\" "
+{% else %}
                # upgrade 
-               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook -i inventory site.yml -e \"testkeys=yes installation_mode=upgrade\" "
-{%- endif %}
-
+               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=upgrade\" "
+{% endif %}
                f.write('executing build command: ' + build_cmd + '\n')
                os.system(build_cmd) # building fworch
                now = datetime.now() # current date and time

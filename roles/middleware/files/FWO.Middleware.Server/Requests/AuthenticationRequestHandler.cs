@@ -4,8 +4,6 @@ using FWO.ApiClient.Queries;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using FWO.Api.Data;
 
@@ -17,6 +15,7 @@ namespace FWO.Middleware.Server.Requests
         private APIConnection ApiConn;
         private int tenantLevel = 1;
         private int? fixedTenantId;
+        private bool internalLdap = false;
 
         private object rolesLock = new object();
         private object dnLock = new object();
@@ -46,7 +45,16 @@ namespace FWO.Middleware.Server.Requests
             string jwt = await AuthorizeUserAsync(user);
 
             // Return status and result
-            return WrapResult(HttpStatusCode.OK, ("jwt", jwt));
+            HttpStatusCode status;
+            if(user.Roles.Length == 0 || user.Roles[0] == "anonymous")
+            {
+                status = HttpStatusCode.PreconditionFailed;
+            }
+            else
+            {
+                status = HttpStatusCode.OK;
+            }
+            return WrapResult(status, ("jwt", jwt));
         }
 
         /// <summary>
@@ -103,6 +111,7 @@ namespace FWO.Middleware.Server.Requests
                                 tenantLevel = currentLdap.TenantLevel;
                                 userDn = currentDn;
                                 fixedTenantId = currentLdap.TenantId;
+                                internalLdap = currentLdap.IsInternal();
                             }
                         }
                     }));
@@ -125,7 +134,12 @@ namespace FWO.Middleware.Server.Requests
 
         public async Task<string[]> GetRoles(UiUser user)
         {
-            string UserDn = user.Dn;
+            List<string> dnList = new List<string>();
+            dnList.Add(user.Dn);
+            if (user.Groups != null && user.Groups.Count > 0)
+            {
+                dnList.AddRange(user.Groups);
+            }
 
             List<string> UserRoles = new List<string>();
 
@@ -139,7 +153,7 @@ namespace FWO.Middleware.Server.Requests
                     if (currentLdap.RoleSearchPath != "")
                     {
                         // Get roles from current Ldap
-                        string[] currentRoles = currentLdap.GetRoles(UserDn);
+                        string[] currentRoles = currentLdap.GetRoles(dnList);
 
                         lock(rolesLock)
                         {
@@ -155,7 +169,7 @@ namespace FWO.Middleware.Server.Requests
             if (UserRoles.Count == 0)
             {
                 // Use anonymous role
-                Log.WriteWarning("Missing roles", $"No roles for user \"{UserDn}\" could be found. Using anonymous role.");
+                Log.WriteWarning("Missing roles", $"No roles for user \"{user.Dn}\" could be found. Using anonymous role.");
                 UserRoles.Add("anonymous");
             }
 

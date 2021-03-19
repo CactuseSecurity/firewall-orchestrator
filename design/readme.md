@@ -1,5 +1,9 @@
 # Design topics
 
+## competition
+
+https://www.networkstraining.com/best-firewall-management-software-tools
+
 ## Design goals
 
 - simple & enjoyable development in an easily expandable team

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.IO;
 using FWO.Logging;
 
@@ -20,6 +17,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string updateUserEmail;
         public static readonly string updateUserLanguage;
         public static readonly string updateUserLastLogin;
+        public static readonly string updateUserPasswordChange;
         public static readonly string deleteUser;
         public static readonly string assertUserExists;
         public static readonly string getVisibleDeviceIdsPerTenant;
@@ -49,6 +47,7 @@ namespace FWO.ApiClient.Queries
                 updateUserEmail = File.ReadAllText(QueryPath + "auth/updateUserEmail.graphql");
                 updateUserLanguage = File.ReadAllText(QueryPath + "auth/updateUserLanguage.graphql");
                 updateUserLastLogin = File.ReadAllText(QueryPath + "auth/updateUserLastLogin.graphql");
+                updateUserPasswordChange = File.ReadAllText(QueryPath + "auth/updateUserPasswordChange.graphql");
                 deleteUser = File.ReadAllText(QueryPath + "auth/deleteUser.graphql");
                 assertUserExists = File.ReadAllText(QueryPath + "auth/assertUserExists.graphql");
                 newLdapConnection = File.ReadAllText(QueryPath + "auth/newLdapConnection.graphql");

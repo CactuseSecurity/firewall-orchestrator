@@ -28,9 +28,31 @@
                 @(context.Host())
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="Search User" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiLdapConnection" Title="Write User" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiLdapConnection" Title="Role Search Path" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiLdapConnection" Title="Type" Field="@(x => x.Type)" Sortable="true" Filterable="true">
+            <Template>
+                @(Enum.GetName(typeof(LdapType), context.Type))
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="Search User" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true">
+            <Template>
+                @((context.SearchUser != null && context.SearchUser != "") ? "\u2714" : "" )
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="Write User" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true">
+            <Template>
+                @((context.WriteUser != null && context.WriteUser != "") ? "\u2714" : "" )
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="Role handling" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true">
+            <Template>
+                @((context.RoleSearchPath != null && context.RoleSearchPath != "") ? "\u2714" : "" )
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="Group handling" Field="@(x => (x.GroupSearchPath))" Sortable="true" Filterable="true">
+            <Template>
+                @((context.GroupSearchPath != null && context.GroupSearchPath != "") ? "\u2714" : "" )
+            </Template>
+        </Column>
         <Column TableItem="UiLdapConnection" Title="Tenant" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
             <Template>
                 @(context.TenantId != null ? tenants.Find(x => x.Id == context.TenantId).Name : "" )
@@ -59,21 +81,24 @@
                         <input class="form-check-input" id="ldapTls" type="checkbox" @bind="actLdapConnection.Tls">
                         <label class="form-check-label" for="ldapTls"><small>Tls</small></label>
                     </div>
-                    <label for="ldapTenantLevel" class="col-sm-3 col-form-label col-form-label-sm">TenantLevel:</label>
+                    <label for="ldapTenantLevel" class="col-sm-3 col-form-label col-form-label-sm">Tenant Level:</label>
                     <div class="col-sm-2">
                         <input id="ldapTenantLevel" type="text" class="form-control form-control-sm" @bind="actLdapConnection.TenantLevel" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUser" class="col-sm-3 col-form-label col-form-label-sm">Search User:</label>
-                    <div class="col-sm-8">
-                        <input id="ldapSearchUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
+                    <label for="ldapType" class="col-sm-3 col-form-label col-form-label-sm">Type:</label>
+                    <div class="col-sm-4">
+                        <select id="ldapType" class="form-control form-control-sm" @bind="actLdapConnection.Type">
+                            @foreach (int type in Enum.GetValues(typeof(LdapType)))
+                            {
+                                <option value="@type">@(Enum.GetName(typeof(LdapType), type))</option>
+                            }
+                        </select>
                     </div>
-                </div>
-                <div class="form-group row">
-                    <label for="ldapSearchUserPwd" class="col-sm-3 col-form-label col-form-label-sm">Search User Pwd:</label>
-                    <div class="col-sm-8">
-                        <input id="ldapSearchUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
+                    <label for="ldapPattern" class="col-sm-2 col-form-label col-form-label-sm">Pattern Length:</label>
+                    <div class="col-sm-2">
+                        <input id="ldapPattern" type="text" class="form-control form-control-sm" @bind="actLdapConnection.PatternLength" />
                     </div>
                 </div>
                 <div class="form-group row">
@@ -86,6 +111,24 @@
                     <label for="ldapRoleSearchPath" class="col-sm-3 col-form-label col-form-label-sm">Role Search Path:</label>
                     <div class="col-sm-8">
                         <input id="ldapRoleSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.RoleSearchPath" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapGroupSearchPath" class="col-sm-3 col-form-label col-form-label-sm">Group Search Path:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapGroupSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.GroupSearchPath" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapSearchUser" class="col-sm-3 col-form-label col-form-label-sm">Search User:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapSearchUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapSearchUserPwd" class="col-sm-3 col-form-label col-form-label-sm">Search User Pwd:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapSearchUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
                     </div>
                 </div>
                 <div class="form-group row">
@@ -256,12 +299,15 @@
                 {
                     address = actLdapConnection.Address,
                     port = actLdapConnection.Port,
+                    type = actLdapConnection.Type,
+                    patternLength = actLdapConnection.PatternLength,
                     searchUser = actLdapConnection.SearchUser,
                     tls = actLdapConnection.Tls,
                     tenantLevel = actLdapConnection.TenantLevel,
                     searchUserPwd = actLdapConnection.SearchUserPwd,
                     searchpathForUsers = actLdapConnection.UserSearchPath,
                     searchpathForRoles = actLdapConnection.RoleSearchPath,
+                    searchpathForGroups = actLdapConnection.GroupSearchPath,
                     writeUser = actLdapConnection.WriteUser,
                     writeUserPwd = actLdapConnection.WriteUserPwd,
                     tenantId = actLdapConnection.TenantId
@@ -278,12 +324,15 @@
                     id = actLdapConnection.Id,
                     address = actLdapConnection.Address,
                     port = actLdapConnection.Port,
+                    type = actLdapConnection.Type,
+                    patternLength = actLdapConnection.PatternLength,
                     searchUser = actLdapConnection.SearchUser,
                     tls = actLdapConnection.Tls,
                     tenantLevel = actLdapConnection.TenantLevel,
                     searchUserPwd = actLdapConnection.SearchUserPwd,
                     searchpathForUsers = actLdapConnection.UserSearchPath,
                     searchpathForRoles = actLdapConnection.RoleSearchPath,
+                    searchpathForGroups = actLdapConnection.GroupSearchPath,
                     writeUser = actLdapConnection.WriteUser,
                     writeUserPwd = actLdapConnection.WriteUserPwd,
                     tenantId = actLdapConnection.TenantId

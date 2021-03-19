@@ -34,7 +34,7 @@ namespace FWO.Middleware.Server.Requests
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
                     // if current Ldap has roles stored: Try to add user to role in current Ldap
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.AddUserToRole(userDn, role))
+                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.AddUserToEntry(userDn, role))
                     {
                         userAdded = true;
                     }

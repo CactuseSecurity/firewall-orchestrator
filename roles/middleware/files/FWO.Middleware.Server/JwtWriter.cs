@@ -1,7 +1,4 @@
-﻿using FWO.ApiClient;
-using FWO.ApiClient.Queries;
-using FWO.Logging;
-using FWO.Config;
+﻿using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -37,7 +34,7 @@ namespace FWO.Middleware.Server
 
             ClaimsIdentity subject;
             if (user != null)
-                subject = GetClaims(await AddUserToDbAtFirstLogin(user));
+                subject = GetClaims(await (new UiUserHandler()).handleUiUserAtLogin(user, CreateJWTMiddlewareServer()));
             else
                 subject = GetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new string[] { "anonymous" } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
@@ -90,83 +87,6 @@ namespace FWO.Middleware.Server
             return GeneratedToken;
         }
 
-        /// <summary>
-        /// if the user logs in for the first time, user details (excluding password) are written to DB bia API
-        /// the database id is retrieved and added to the user 
-        /// the user id is needed for allowing access to report_templates
-        /// </summary>
-        /// <returns> user including its db id </returns>
-        private async Task<UiUser> AddUserToDbAtFirstLogin(UiUser user)
-        {
-            APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, CreateJWTMiddlewareServer());
-            bool userSetInDb = false;
-            try
-            {
-                UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn });
-
-                if (existingUserFound.Length == 1)
-                {
-                    user.DbId = existingUserFound[0].DbId;
-                    await updateLastLogin(apiConn, user.DbId);
-                    userSetInDb = true;
-                }
-                else
-                {
-                    Log.WriteError("User not found", $"Couldn't find {user.Name} exactly once!");
-                }
-            }
-            catch(Exception exeption)
-            {
-                Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
-            }
-
-            if(!userSetInDb)
-            {
-                Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
-                await addUser(apiConn, user);
-            }
-            // for anonymous access, just return the unmodified user
-            return user;
-        }
-
-        private async Task addUser(APIConnection apiConn, UiUser user)
-        {
-            try          
-            {
-                // add new user to uiuser
-                var Variables = new
-                {
-                    uuid = user.Dn, 
-                    uiuser_username = user.Name,
-                    email = user.Email,
-                    tenant = user.Tenant.Id,
-                    loginTime = DateTime.UtcNow
-                };
-                user.DbId = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
-            }
-            catch (Exception exeption)
-            {
-                Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", exeption);
-            }
-        }
-
-        private async Task updateLastLogin(APIConnection apiConn, int id) // TODO: Wrong location
-        {
-            try
-            {
-                var Variables = new
-                {
-                    id = id, 
-                    loginTime = DateTime.UtcNow
-                };
-                await apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserLastLogin, Variables);
-            }
-            catch(Exception exeption)
-            {
-                Log.WriteError("Update User Error", $"User {id} could not be updated in database.", exeption);
-            }
-        }
-
         private ClaimsIdentity GetClaims(UiUser user)
         {
             ClaimsIdentity claimsIdentity = new ClaimsIdentity();
@@ -208,13 +128,10 @@ namespace FWO.Middleware.Server
                     defaultRole = "auditor";
                 else if (hasuraRolesList.Contains("reporter-viewall"))
                     defaultRole = "reporter-viewall";
+                else if (hasuraRolesList.Contains("reporter"))
+                    defaultRole = "reporter";
                 else
-                {
-                    if (hasuraRolesList.Contains("reporter"))
-                        defaultRole = "reporter";
-                    else
-                        defaultRole = roles[0]; // pick first role at random (todo: might need to be changed)
-                }
+                    defaultRole = roles[0]; // pick first role at random (todo: might need to be changed)
             }
             else
             {

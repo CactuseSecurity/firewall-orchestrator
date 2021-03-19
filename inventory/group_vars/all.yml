@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.1.12"
+product_version: "5.1.13"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -63,7 +63,7 @@ middleware_web_listener_port: 8888
 middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
 ##### application server data
 middleware_internal_port: 8880
-web_server_name: "{{ middleware_server_name }}"
+# currently not used: web_server_name: "{{ middleware_server_name }}"
 
 ### database & api
 api_service_name: fworch-hasura-docker-api
@@ -95,8 +95,8 @@ ldap_syslog_id: slapd
 api_log_level: info
 
 ### apache: both package and dir name (needed both on ui and api hosts):
-web_server_name: apache2
-http_conf_dir: /etc/{{ web_server_name }}/sites-available/
+webserver_package_name: apache2
+http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 
 ################# testing #########################
 

@@ -32,7 +32,7 @@ namespace FWO.Middleware.Server.Requests
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
                     // if current Ldap has roles stored
-                    if (currentLdap.RoleSearchPath != "")
+                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "")
                     {
                         // Get all roles from current Ldap
                         List<KeyValuePair<string, List<KeyValuePair<string, string>>>> currentRoles = currentLdap.GetAllRoles();

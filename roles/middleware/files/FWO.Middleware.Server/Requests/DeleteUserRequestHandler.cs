@@ -32,7 +32,7 @@ namespace FWO.Middleware.Server.Requests
             {
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
-                    // if current Ldap has roles stored: Try to add user to role in current Ldap
+                    // if current Ldap has is internal: Try to delete user in current Ldap
                     if (currentLdap.IsInternal() && currentLdap.DeleteUser(userDn))
                     {
                         userDeleted = true;

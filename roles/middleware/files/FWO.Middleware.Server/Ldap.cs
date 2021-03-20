@@ -217,7 +217,7 @@ namespace FWO.Middleware.Server
                 Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to validate user", exception);
             }
 
-            Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\".");
+            Log.WriteInfo("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{ user.Name}\" on {Address}:{Port}.");
             return "";
         }
 

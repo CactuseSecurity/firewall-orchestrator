@@ -3,7 +3,7 @@
 
 # starting with: python3 /home/fworchtest/fworch-webhook-receiver.py
 # in github settings webhook:
-#   https://cactus.de:60344/fwo
+#   https://cactus.de:{{ webhook_port }}/fwo
 #   content-type: application/json
 #   trigger: just the push-event
 #   Disable SSL verification
@@ -131,4 +131,4 @@ def post_handler():
 
 if __name__ == "__main__":
    context = ('ssl.cert', 'ssl.key') # certificate and key file. Cannot be self signed certs
-   app.run(host='0.0.0.0', port=60344, ssl_context='adhoc', threaded=True, debug=True)
+   app.run(host='0.0.0.0', port={{ webhook_port }}, ssl_context='adhoc', threaded=True, debug=True)

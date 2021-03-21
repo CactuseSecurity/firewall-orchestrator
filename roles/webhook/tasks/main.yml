@@ -18,12 +18,14 @@
         path: /etc/sudoers
         line: "{{ fworchtest_user }} ALL=(ALL) NOPASSWD:ALL"
 
+    # ansible is needed for running auto install on the fwo host itself
     - name: Install packages for webhook receiver
       package:
         name: "{{ item }}"
       loop:
         - python3-flask
-
+        - ansible
+        
     - name: create webhook dir {{ fworchtest_home }}/webhook
       file:
         dest: "{{ fworchtest_home }}/webhook"

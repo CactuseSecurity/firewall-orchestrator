@@ -57,7 +57,7 @@
         state: restarted
 
     - name: create webhook secret file
-      lineinfile: fworch-webhook.secret containing webhook secret
+      lineinfile:
         path: "{{ fworchtest_home }}/fworch-webhook.secret"
         line: "{{ webhook_secret }}"
         create: yes

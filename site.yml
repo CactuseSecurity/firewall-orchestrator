@@ -5,7 +5,7 @@
 - hosts: importers
   tasks:
     - name: stop importer service before making any changes
-      ansible.builtin.systemd:
+      systemd:
         name: "{{ product_name }}-importer"
         state: stopped
       become: yes

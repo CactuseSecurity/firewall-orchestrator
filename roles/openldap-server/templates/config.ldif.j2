@@ -2,8 +2,8 @@
 dn: cn=config
 objectClass: olcGlobal
 cn: config
-olcArgsFile: /var/run/openldap/slapd.args
-olcPidFile: /var/run/openldap/slapd.pid
+olcArgsFile: /var/run/slapd.args
+olcPidFile: /var/run/slapd.pid
 olcLogLevel: stats
 olcTLSCertificateFile: {{ openldap_server_cert }}
 olcTLSCertificateKeyFile: {{ openldap_server_private_key }}

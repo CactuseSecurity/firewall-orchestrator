@@ -1,4 +1,4 @@
-# example config file - global configuration entry
+# global configuration entry
 dn: cn=config
 objectClass: olcGlobal
 cn: config
@@ -18,7 +18,8 @@ dn: cn=module{0},cn=config
 objectClass: olcModuleList
 cn: module{0}
 olcModulePath: /usr/lib/ldap
-olcModuleLoad: back_bdb.la
+olcModuleLoad: {0}back_bdb.la
+olcModuleLoad: {1}ppolicy.la
 
 # internal schema
 dn: cn=schema,cn=config
@@ -78,3 +79,39 @@ olcAccess: to *
     by dn.base="{{ openldap_readonly_user_dn }}" read
     by dn.base="{{ openldap_writer_dn }}" read
     by * none
+
+# default password policy container
+dn: ou=pwpolicy,{{ openldap_superuser_dn }}
+objectClass: organizationalUnit
+objectClass: top
+ou: pwpolicy
+
+dn: olcOverlay=ppolicy,olcDatabase={1}bdb,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcPPolicyConfig
+olcOverlay: ppolicy
+olcPPolicyDefault: cn=default,ou=pwpolicy,{{ openldap_superuser_dn }}
+olcPPolicyHashCleartext: TRUE
+
+dn: cn=default,ou=pwpolicy,{{ openldap_superuser_dn }}
+objectClass: person
+objectClass: pwdPolicyChecker
+objectClass: pwdPolicy
+cn: pwpolicy
+sn: pwpolicy
+pwdAttribute: userPassword
+pwdMinAge: 0
+pwdMaxAge: 5184000
+pwdInHistory: 5
+pwdCheckQuality: 2
+pwdMinLength: 12
+pwdExpireWarning: 432000
+pwdGraceAuthNLimit: 5
+pwdLockout: TRUE
+pwdLockoutDuration: 0
+pwdMaxFailure: 3
+pwdFailureCountInterval: 0
+pwdReset: TRUE
+pwdMustChange: TRUE
+pwdAllowUserChange: TRUE
+pwdSafeModify: FALSE

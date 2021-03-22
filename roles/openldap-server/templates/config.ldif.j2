@@ -81,10 +81,10 @@ olcAccess: to *
     by * none
 
 # default password policy container
-dn: ou=pwpolicy,{{ openldap_superuser_dn }}
-objectClass: organizationalUnit
-objectClass: top
-ou: pwpolicy
+#dn: ou=pwpolicy,{{ openldap_superuser_dn }}
+#objectClass: organizationalUnit
+#objectClass: top
+#ou: pwpolicy
 
 #dn: olcOverlay=ppolicy,olcDatabase={1}bdb,cn=config
 #objectClass: olcOverlayConfig

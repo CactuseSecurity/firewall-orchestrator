@@ -540,7 +540,6 @@
                 // lazy fetch all objects for right sidebar
                 while (newObjects && ( ++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
                 {
-                    paginationVariables.Offset += elementsPerFetch;
                     Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                     if (fetchCount == 1)
                     {
@@ -552,7 +551,11 @@
                     }
 
                     await InvokeAsync(StateHasChanged);
+
+                    paginationVariables.Offset += elementsPerFetch;
                 }
+
+                Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycles ({elementsPerFetch} at a time)");
             }
             catch (Exception exception)
             {

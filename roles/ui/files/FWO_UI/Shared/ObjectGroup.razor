@@ -101,9 +101,6 @@
                         <Detail Title="Source Port" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
                         <Detail Title="Destination Port" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
                         <Detail Title="Protocol" Data=@context.Protocol?.Name />
-                         @{
-                             Console.WriteLine($"ID: {context.Protocol?.Id}");
-                         }
                         <Detail Title="Code" Data=@context.Code />
                         <Detail Title="Timeout" Data=@context.Timeout.ToString() />
                         @if (context.Type.Name == "group")

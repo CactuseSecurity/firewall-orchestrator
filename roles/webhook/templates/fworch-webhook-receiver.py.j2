@@ -28,6 +28,7 @@ project_path = '/CactuseSecurity/firewall-orchestrator.git'
 ssh_priv_key_file = root_dir + '.ssh/id_github_deploy'
 webhook_log_file_basename = 'webhookPayloads.txt'
 webhook_logfile = root_dir + webhook_log_file_basename
+prox="http_proxy={{ http_proxy }}"
 
 Path(webhook_logfile).touch()
 
@@ -107,14 +108,14 @@ def post_handler():
                   # might not work due to user rights:
                   # os.system("systemctl restart fworch-webhook-receiver.service")
 {% if webhook_install_mode == 'reinstall' %}
-               uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"installation_mode=uninstall\""
+               uninstall_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"installation_mode=uninstall " + prox + "\""
                f.write('executing uninstall command: ' + uninstall_cmd + '\n')
                os.system(uninstall_cmd) # remove fworch
                # fresh install: 
-               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=new\" "
+               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=new " + prox + "\""
 {% else %}
                # upgrade 
-               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=upgrade\" "
+               build_cmd = "cd " + tmp_git_dir + "/firewall-orchestrator && ansible-playbook site.yml -e \"testkeys=yes installation_mode=upgrade " + prox + "\""
 {% endif %}
                f.write('executing build command: ' + build_cmd + '\n')
                os.system(build_cmd) # building fworch

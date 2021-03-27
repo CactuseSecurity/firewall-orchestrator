@@ -15,7 +15,7 @@ namespace FWO.Test.Api
         APIConnection apiConnection;
 
         [SetUp]
-        public async Task EtablishConnectionToServer()
+        public void EtablishConnectionToServer()
         {
             ConfigFile configConnection = new ConfigFile();
             string ApiUri = configConnection.ApiServerUri;
@@ -25,10 +25,11 @@ namespace FWO.Test.Api
             string middlewareServerUri = configConnection.MiddlewareServerUri;
             string apiServerUri = configConnection.ApiServerUri;
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser("user1_demo", "cactus1");
+            MiddlewareServerResponse apiAuthResponse = middlewareClient.AuthenticateUser("user1_demo", "cactus1").Result;
             string jwt = apiAuthResponse.GetResult<string>("jwt");
             apiConnection = new APIConnection(apiServerUri);
             apiConnection.SetAuthHeader(jwt);
+            return;
         }
 
         [Test]

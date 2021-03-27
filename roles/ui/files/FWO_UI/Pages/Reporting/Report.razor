@@ -224,8 +224,8 @@
                                 @foreach (Device device in management.Devices)
                                 {
                                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
-                                        <Table SelectedItems="selectedItemsReportRuleTable"
-                                               RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
+                                        <Table SelectedItems="selectedItemsRuleReportTable.Keys.ToList()"
+                                               RowClickAction="tableItem => { if (!selectedItemsRuleReportTable.Remove(tableItem)) selectedItemsRuleReportTable.Add(tableItem, device); StateHasChanged(); }"
                                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
                                                PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
 
@@ -291,8 +291,8 @@
                                 {
                                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
 
-                                        <Table SelectedItems="selectedItemsReportChangeTable"
-                                               RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
+                                        <Table SelectedItems="selectedItemsChangeReportTable.Keys.ToList()"
+                                               RowClickAction="tableItem => { if (!selectedItemsChangeReportTable.Remove(tableItem)) selectedItemsChangeReportTable.Add(tableItem, device); StateHasChanged(); }"
                                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
                                                PageSize="rulesPerPage" ColumnReorder="true">
 
@@ -411,28 +411,39 @@
 
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarRightWidth" PositionLeft="false" @bind-Width="sidebarRightWidth">
     <div class="p-3">
+        <div class="card mb-1">
+            <div class="card-body text-center p-1">
+                Objects
+            </div>
+        </div>
         <TabSet>
             <Tab Title="All">
-                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarAll.CollapseAll())">collapse all</div>
+                <div class="d-md-flex justify-content-md-end">
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">collapse all</div>
+                </div>
                 <CascadingValue Value="collapseSidebarAll">
                     <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                  NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
             <Tab Title="Report">
-                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
+                <div class="d-md-flex justify-content-md-end">
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
+                </div>
                 <CascadingValue Value="collapseSidebarReport">
                     <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                  NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
             <Tab Title="Rule">
-                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
+                <div class="d-md-flex justify-content-md-end">
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
+                </div>
                 <CascadingValue Value="collapseSidebarRule">
-                    <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
-                                 NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
-                                 NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                 NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                    <ObjectGroup StartCollapsed="false" InputDataType="KeyValuePair<Rule, Device>" Data="selectedItemsRuleReportTable" NameExtractor=@(rule_dev => $"{rule_dev.Value.Name} - Rule {rule_dev.Key.Id} {rule_dev.Key.Name}")
+                                    NetworkObjectExtractor="rule_dev => Array.ConvertAll(rule_dev.Key.Tos.Concat(rule_dev.Key.Froms).ToArray(), location => location.Object)"
+                                    NetworkServiceExtractor="rule_dev => Array.ConvertAll(rule_dev.Key.Services, wrapper => wrapper.Content)"
+                                    NetworkUserExtractor="rule_dev => Array.FindAll(Array.ConvertAll(rule_dev.Key.Tos.Concat(rule_dev.Key.Froms).ToArray(), location => location.User), user => user != null)" />
                 </CascadingValue>
             </Tab>
         </TabSet>
@@ -447,8 +458,8 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-    private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
-    private List<RuleChange> selectedItemsReportChangeTable = new List<RuleChange>();
+    private Dictionary<Rule, Device> selectedItemsRuleReportTable = new Dictionary<Rule, Device>();
+    private Dictionary<RuleChange, Device> selectedItemsChangeReportTable = new Dictionary<RuleChange, Device>();
 
     private Management[] managementsOverview = new Management[0];
     private Management[] managementsReport = new Management[0];
@@ -585,6 +596,8 @@
 
     private async Task GenerateReport()
     {
+        selectedItemsRuleReportTable = new Dictionary<Rule, Device>(); // clear selected rules
+        selectedItemsChangeReportTable = new Dictionary<RuleChange, Device>();
         try
         {
             query = Compiler.Compile(filterInput);
@@ -592,7 +605,7 @@
             {
                 if (DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query)) // remove all existing device filters first before adding new ones
                     filterInput = DeviceFilter.replaceDeviceFilter(filterInput, managementsOverview, query);
-                else 
+                else
                     filterInput = DeviceFilter.removeDeviceFilterPart(filterInput);
                 if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))            // display pop-up with warning, todo: check if device is selected in filter line
                 {
@@ -657,7 +670,7 @@
             DisplayMessageInUi(exception, "Report generation", "Unclassified error.", true);
         }
     }
-      
+
     private async Task SaveTemplate()
     {
         try

@@ -9,7 +9,7 @@
 {
     @foreach (InputDataType obj in Data)
     {
-        <Collapse Title="@NameExtractor(obj)" Style="@("primary")" StartToggled="true">
+        <Collapse Title="@NameExtractor(obj)" Style="@("primary")" StartToggled="StartCollapsed">
             <Collapse Title="Network Objects" StartToggled="true">
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" Class="word-break">
@@ -33,7 +33,7 @@
                         <Detail Title="UID" Data=@context.Uid />
                         <Detail Title="IP" Data=@context.IP />
                         <Detail Title="Zone" Data=@context.Zone?.Name />
-                        @if (context.Type.Name == "group")
+                        @if (context.Type.Name == "group" && context.ObjectGroups != null && context.ObjectGroupFlats != null)
                         {
                             <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
                                 <Content1>
@@ -103,7 +103,7 @@
                         <Detail Title="Protocol" Data=@context.Protocol?.Name />
                         <Detail Title="Code" Data=@context.Code />
                         <Detail Title="Timeout" Data=@context.Timeout.ToString() />
-                        @if (context.Type.Name == "group")
+                        @if (context.Type.Name == "group" && context.ServiceGroups != null && context.ServiceGroupFlats != null)
                         {
                             <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
                                 <Content1>
@@ -159,10 +159,10 @@
                         </Template>
                     </Column>
                     <DetailTemplate TableItem="NetworkUser">
-                        <Detail Title="Type" Data=@context.Type.Name />
+                        <Detail Title="Type" Data=@context.Type?.Name />
                         <Detail Title="UID" Data=@context.Uid />
                         <Detail Title="Real Name" Data=@($"{context.FirstName} {context.LastName}") />
-                        @if (context.Type.Name == "group")
+                        @if (context.Type != null && context.Type.Name == "group" && context.UserGroups != null && context.UserGroupFlats != null)
                         {
                             <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
                                 <Content1>
@@ -211,6 +211,9 @@
 {
     [Parameter]
     public int PageSize { get; set; }
+
+    [Parameter]
+    public bool StartCollapsed { get; set; } = true;
 
     [Parameter]
     public IEnumerable<InputDataType> Data { get; set; }

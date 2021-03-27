@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 
 namespace FWO.Ui.Data
 {
-    public delegate void Notify(bool show);
+    public delegate void NotifyCollapse(bool show);
     public class CollapseState
     {
-        public event Notify OnCollapseAll;
+        public event NotifyCollapse OnCollapseAll;
 
         public void CollapseAll()
         {

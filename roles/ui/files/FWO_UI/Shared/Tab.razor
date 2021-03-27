@@ -1,11 +1,11 @@
 ﻿<li class="nav-item">
-    <div @onclick="ActivateTab" class="d-flex justify-content-center nav-link @CssClass @(ContainerTabSet.ActiveTab == this ? "active" : "")">
+    <a @onclick="ActivateTab" class="nav-link text-dark @CssClass @(ContainerTabSet.ActiveTab == this ? "active" : "")" href="javascript:void(0);">
         @Title
         @*@if (Closeable)
         {
             <div class="ml-1 oi oi-x"></div>
         }*@
-    </div>
+    </a>
 </li>
 
 @code {

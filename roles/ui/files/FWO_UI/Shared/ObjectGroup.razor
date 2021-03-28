@@ -10,7 +10,7 @@
     @foreach (InputDataType obj in Data)
     {
         <Collapse Title="@NameExtractor(obj)" Style="@("primary")" StartToggled="StartCollapsed">
-            <Collapse Title="Network Objects" StartToggled="true">
+            <Collapse Title="Network Objects" StartToggled="StartCollapsed">
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" Class="word-break">
                         <Template>
@@ -81,7 +81,7 @@
                     </DetailTemplate>
                 </Table>
             </Collapse>
-            <Collapse Title="Services" StartToggled="true">
+            <Collapse Title="Services" StartToggled="StartCollapsed">
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkService" Title="Name" Field="@(x => x.Name)" Class="word-break">
                         <Template>
@@ -144,7 +144,7 @@
                     </DetailTemplate>
                 </Table>
             </Collapse>
-            <Collapse Title="Users" StartToggled="true">
+            <Collapse Title="Users" StartToggled="StartCollapsed">
                 <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
                     <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" Class="word-break">
                         <Template>

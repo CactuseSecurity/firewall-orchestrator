@@ -261,13 +261,13 @@
     {
         if (actDevice.Name == null || actDevice.Name == "" || actDevice.Rulebase == null || actDevice.Rulebase == "")
         {
-            DisplayMessageInUi(null, "Save Gateway", "Please fill all mandatory fields.", false);
+            DisplayMessageInUi(null, "Save Gateway", "Please fill all mandatory fields.", true);
             return false;
         }
         if (!actDevice.ImportDisabled && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
             && dev.Rulebase == actDevice.Rulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
         {
-            DisplayMessageInUi(null, "Save Gateway", "There is already a gateway in the same configuration with import enabled.", false);
+            DisplayMessageInUi(null, "Save Gateway", "There is already a gateway in the same configuration with import enabled.", true);
             return false;
         }
         return true;

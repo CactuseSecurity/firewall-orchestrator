@@ -16,8 +16,17 @@
 {
     <div class="footer alert alert-danger">
         <div class="d-flex flex-row justify-content-between">
-            <div>@errorDialogTitle - @errorDialogMessage See logs for details!</div>
+            <div>@dialogTitle - @dialogMessage See logs for details!</div>
             <div class="oi oi-x" @onclick="@(() => { errorDialogShow = false; StateHasChanged();})"></div>
+        </div>
+    </div>
+}
+@if (successDialogShow)
+{
+    <div class="footer alert alert-success">
+        <div class="d-flex flex-row justify-content-between">
+            <div>@dialogTitle - @dialogMessage</div>
+            <div class="oi oi-x" @onclick="@(() => { successDialogShow = false; StateHasChanged();})"></div>
         </div>
     </div>
 }
@@ -25,8 +34,9 @@
 @code
 {
     private bool errorDialogShow = false;
-    private string errorDialogTitle;
-    private string errorDialogMessage;
+    private bool successDialogShow = false;
+    private string dialogTitle;
+    private string dialogMessage;
 
     private object errorLock = new object();
 
@@ -46,20 +56,42 @@
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            errorDialogTitle = title;
-            errorDialogMessage = message;
+            dialogTitle = title;
+            dialogMessage = message;
             errorDialogShow = true;
+            successDialogShow = false;
             InvokeAsync(StateHasChanged);
         }
     }
 
-    private void DisplayMessageInUi(Exception exception = null, string title = null, string message = null, bool showException = false)
+    private void ShowSuccess(string title, string message)
+    {
+        // Needed so there is no chance an error is announced by 2 threads at the same time.
+        lock (errorLock)
+        {
+            dialogTitle = title;
+            dialogMessage = message;
+            errorDialogShow = false;
+            successDialogShow = true;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void DisplayMessageInUi(Exception exception = null, string title = null, string message = null, bool ErrorFlag = false)
     {
         if (exception == null)
         {
-            // User message to be displayed
-            ShowError(title, message); // todo: display warnings in yellow
-            Log.WriteWarning(title, message);
+            if (ErrorFlag)
+            {
+                // User message to be displayed as error
+                ShowError(title, message); // todo: display warnings in yellow
+                Log.WriteWarning(title, message);
+            }
+            else
+            {
+                // User message is no error
+                ShowSuccess(title, message);
+            }
         }
         else
         {
@@ -75,7 +107,7 @@
                 // this is the default error message when user's access rights are not sufficient for API access
                 ShowError("API access", "Insufficient access rights.");
             }
-            else if (showException)
+            else if (ErrorFlag)
             {
                 // the exception message is shown to the user
                 Log.WriteError((title != null ? title : "Unspecified Error"), (message != null ? message : "Unspecified error occured: "), exception);

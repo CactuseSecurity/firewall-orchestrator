@@ -19,8 +19,9 @@
     <div class="col-sm-2">
         <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>
-    <button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch">Save</button>
 </form>
+<button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch">Save</button>
+
 
 @code
 {
@@ -68,6 +69,7 @@
         try
         {
             await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetchString, apiConnection);
+            DisplayMessageInUi(null, "Report Config", "report settings changed", false);
         }
         catch (System.Exception exception)
         {

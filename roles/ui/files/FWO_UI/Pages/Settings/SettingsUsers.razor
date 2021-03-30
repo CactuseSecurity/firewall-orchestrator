@@ -279,7 +279,7 @@
         UiLdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
         if (internalLdap == null)
         {
-            DisplayMessageInUi(null, "UI User", "No internal Ldap found.", false);
+            DisplayMessageInUi(null, "UI User", "No internal Ldap found.", true);
             return;
         }
 
@@ -287,7 +287,7 @@
         MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Address, "", userConfig.User.Jwt);
         if (usersMiddlewareResponse.Status == HttpStatusCode.BadRequest)
         {
-            DisplayMessageInUi(null, "UI User", "No users found.", false);
+            DisplayMessageInUi(null, "UI User", "No users found.", true);
         }
         else
         {
@@ -371,15 +371,15 @@
                 actUser.setNamesFromDn();
                 if (actUser.Dn == null || actUser.Dn == "" || actUser.Password == null || actUser.Password == "")
                 {
-                    DisplayMessageInUi(null, "Add User Error", "Dn and Password have to be filled", false);
+                    DisplayMessageInUi(null, "Add User Error", "Dn and Password have to be filled", true);
                 }
                 else if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
                 {
-                    DisplayMessageInUi(null, "Add User Error", errorMsg, false);
+                    DisplayMessageInUi(null, "Add User Error", errorMsg, true);
                 }
                 else if (!tenants.Exists(x => x.Name == actUser.Tenant.Name))
                 {
-                    DisplayMessageInUi(null, "Add User Error", "Unknown tenant", false);
+                    DisplayMessageInUi(null, "Add User Error", "Unknown tenant", true);
                 }
                 else
                 {
@@ -387,7 +387,7 @@
                     MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
                     if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userAdded") == false)
                     {
-                        DisplayMessageInUi(null, "Add User Error", "No user could be added", false);
+                        DisplayMessageInUi(null, "Add User Error", "No user could be added", true);
                     }
                     else
                     {
@@ -405,7 +405,7 @@
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateUser(actUser.Dn, actUser.Email, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userUpdated") == false)
                 {
-                    DisplayMessageInUi(null, "Add User Error", "User could not be updated", false);
+                    DisplayMessageInUi(null, "Add User Error", "User could not be updated", true);
                 }
                 else
                 {
@@ -448,7 +448,7 @@
             MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteUser(actUser.Dn, userConfig.User.Jwt);
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userDeleted") == false)
             {
-                DisplayMessageInUi(null, "Delete LDAP user", "User could not be deleted", false);
+                DisplayMessageInUi(null, "Delete LDAP user", "User could not be deleted", true);
             }
             else
             {
@@ -505,7 +505,7 @@
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromAllEntries(user.Dn, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userRemoved") == false)
                 {
-                    DisplayMessageInUi(null, "Remove user from all roles and groups", "User could not be removed", false);
+                    DisplayMessageInUi(null, "Remove user from all roles and groups", "User could not be removed", true);
                     showSampleRemoveButton = true;
                 }
                 else

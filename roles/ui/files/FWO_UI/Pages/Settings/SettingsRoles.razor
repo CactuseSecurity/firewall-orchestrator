@@ -323,7 +323,7 @@
         if ((userDn == null) || (userDn.Length < 5))
         {
             // todo: more checks?
-            DisplayMessageInUi(null, "New user", "please define a proper user", false);
+            DisplayMessageInUi(null, "New user", "please define a proper user", true);
         }
         else
         {
@@ -353,11 +353,11 @@
     {
         if (user == null)
         {
-            DisplayMessageInUi(null, "Add user", "please select a user", false);
+            DisplayMessageInUi(null, "Add user", "please select a user", true);
         }
         else if (actRole.Users.Contains(user))
         {
-            DisplayMessageInUi(null, "Add user", "user is already assigned to this role", false);
+            DisplayMessageInUi(null, "Add user", "user is already assigned to this role", true);
         }
         else
         {
@@ -391,7 +391,7 @@
         {
             if (actRole.Name == "admin" && actRole.Users.Count < 2)
             {
-                DisplayMessageInUi(null, "Delete user", "last admin user can't be deleted", false);
+                DisplayMessageInUi(null, "Delete user", "last admin user can't be deleted", true);
             }
             else
             {
@@ -401,7 +401,7 @@
                     MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromRole(userDn, actRole.Dn, userConfig.User.Jwt);
                     if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
                     {
-                        DisplayMessageInUi(null, "Delete user", "user could not be removed from any role in ldaps", false);
+                        DisplayMessageInUi(null, "Delete user", "user could not be removed from any role in ldaps", true);
                     }
                     else
                     {

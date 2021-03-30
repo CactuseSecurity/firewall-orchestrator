@@ -276,11 +276,11 @@
             {
                 if (newGroupName == null || newGroupName == "")
                 {
-                    DisplayMessageInUi(null, "Add Group Error", "Name has to be filled", false);
+                    DisplayMessageInUi(null, "Add Group Error", "Name has to be filled", true);
                 }
                 else if(groups.Exists(x => x.Name == newGroupName))
                 {
-                    DisplayMessageInUi(null, "Add Group Error", "Name is already existing", false);
+                    DisplayMessageInUi(null, "Add Group Error", "Name is already existing", true);
                 }
                 else
                 {
@@ -289,7 +289,7 @@
                     actGroup.Dn = apiAuthResponse.GetResult<string>("groupAdded");
                     if (apiAuthResponse.Status == HttpStatusCode.BadRequest || actGroup.Dn == "")
                     {
-                        DisplayMessageInUi(null, "Add Group Error", "No group could be added", false);
+                        DisplayMessageInUi(null, "Add Group Error", "No group could be added", true);
                     }
                     else
                     {
@@ -307,7 +307,7 @@
                 string newDn = apiAuthResponse.GetResult<string>("groupUpdated");
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest || newDn == "")
                 {
-                    DisplayMessageInUi(null, "Add Group Error", "Group could not be updated", false);
+                    DisplayMessageInUi(null, "Add Group Error", "Group could not be updated", true);
                 }
                 else
                 {
@@ -348,7 +348,7 @@
             MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteGroup(actGroup.Name, userConfig.User.Jwt);
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("groupDeleted") == false)
             {
-                DisplayMessageInUi(null, "Delete LDAP group", "Group could not be deleted", false);
+                DisplayMessageInUi(null, "Delete LDAP group", "Group could not be deleted", true);
             }
             else
             {
@@ -381,11 +381,11 @@
         UiUser user = uiUsers.Find(x => x.Dn == userDn);
         if (user == null)
         {
-            DisplayMessageInUi(null, "Add user", "please select a user", false);
+            DisplayMessageInUi(null, "Add user", "please select a user", true);
         }
         else if (actGroup.Users.Contains(user))
         {
-            DisplayMessageInUi(null, "Add user", "user is already assigned to this group", false);
+            DisplayMessageInUi(null, "Add user", "user is already assigned to this group", true);
         }
         else
         {
@@ -422,7 +422,7 @@
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromGroup(userDn, actGroup.Dn, userConfig.User.Jwt);
                 if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
                 {
-                    DisplayMessageInUi(null, "Delete user", "user could not be removed from any group in ldaps", false);
+                    DisplayMessageInUi(null, "Delete user", "user could not be removed from any group in ldaps", true);
                 }
                 else
                 {

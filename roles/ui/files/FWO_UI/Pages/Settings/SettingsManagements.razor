@@ -388,23 +388,23 @@
             actManagement.ImportUser == null || actManagement.ImportUser == "" || 
             actManagement.PrivateKey == null || actManagement.PrivateKey == "")
         {
-            DisplayMessageInUi(null, "Save Management", "Please fill all mandatory fields.", false);
+            DisplayMessageInUi(null, "Save Management", "Please fill all mandatory fields.", true);
             return false;
         }
         if (actManagement.Port < 1 || actManagement.Port > 65535)
         {
-            DisplayMessageInUi(null, "Save Management", "Port has to be in the range 1 - 65535.", false);
+            DisplayMessageInUi(null, "Save Management", "Port has to be in the range 1 - 65535.", true);
             return false;
         }
         else if (actManagement.DebugLevel != null && (actManagement.DebugLevel < 0 || actManagement.DebugLevel > 9))
         {
-            DisplayMessageInUi(null, "Save Management", "Value for Debug Level has to be in the range 0 - 9.", false);
+            DisplayMessageInUi(null, "Save Management", "Value for Debug Level has to be in the range 0 - 9.", true);
             return false;
         }
         if (!actManagement.ImportDisabled && managements.FirstOrDefault(mgt => mgt.Hostname == actManagement.Hostname && mgt.Port == actManagement.Port 
             && mgt.ConfigPath == actManagement.ConfigPath && mgt.Id != actManagement.Id && !mgt.ImportDisabled) != null)
         {
-            DisplayMessageInUi(null, "Save Management", "There is already a management in the same configuration with import enabled.", false);
+            DisplayMessageInUi(null, "Save Management", "There is already a management in the same configuration with import enabled.", true);
             return false;
         }
         return true;

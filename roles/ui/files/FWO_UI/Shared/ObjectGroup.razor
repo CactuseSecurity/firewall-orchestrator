@@ -1,211 +1,213 @@
 ﻿@using BlazorTable
-@using FWO.Api.Data
 @using FWO.Ui.Data
-@using Microsoft.AspNetCore.Components.Web
+@using FWO.ApiClient
+@using FWO.ApiClient.Queries
+@using FWO.Api.Data
 
 @typeparam InputDataType
 
-@if (Data != null)
-{
-    @foreach (InputDataType obj in Data)
-    {
-        <Collapse Title="@NameExtractor(obj)" Style="@("primary")" StartToggled="StartCollapsed">
-            <Collapse Title="Network Objects" StartToggled="StartCollapsed">
-                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
-                    <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" Class="word-break">
-                        <Template>
-                            @if (context.Type.Name=="group")
+<Collapse Title="@NameExtractor(Content)" Style="@("primary")" StartToggled="StartCollapsed" OnOpen="FetchContent">
+    <Collapse Title="Network Objects" StartToggled="StartCollapsed">
+        <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+            <Column TableItem="NetworkObject" Title="Name" Field="@(x => x.Name)" Class="word-break">
+                <Template>
+                    @if (context.Type.Name == "group")
+                    {
+                        <span class="oi oi-list-rich">&nbsp;</span>
+                        <b id="nwobj@(context.Id)">@(context.Name)</b>
+                    }
+                    else if (context.Type.Name == "network")
+                    {
+                        <span class="oi oi-rss">&nbsp;</span>
+                        <b id="nwobj@(context.Id)">@(context.Name)</b>
+                    }
+                    else
+                    {
+                        <span class="oi oi-laptop">&nbsp;</span>
+                        <b id="nwobj@(context.Id)">@(context.Name)</b>
+                    }
+                </Template>
+            </Column>
+            <DetailTemplate TableItem="NetworkObject">
+                <Detail Title="Type" Data=@context.Type.Name />
+                <Detail Title="UID" Data=@context.Uid />
+                <Detail Title="IP" Data=@context.IP />
+                <Detail Title="Zone" Data=@context.Zone?.Name />
+                @if (context.Type.Name == "group" && context.ObjectGroups != null && context.ObjectGroupFlats != null)
+                {
+                    <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
+                        <Content1>
+                            @foreach (Group<NetworkObject> member in context.ObjectGroups)
                             {
-                                <span class="oi oi-list-rich">&nbsp;</span><b id="nwobj@(context.Id)">@(context.Name)</b>
+                                @if (member.Object.Type.Name == "group")
+                                {
+                                    <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                                else if (member.Object.Type.Name == "network")
+                                {
+                                    <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-rss">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                                else
+                                {
+                                    <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-laptop">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
                             }
-                            else if (context.Type.Name=="network")
+                        </Content1>
+                        <Content2>
+                            @{ List<int> shownMemberIds = new List<int>(); }
+                            @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
                             {
-                                <span class="oi oi-rss">&nbsp;</span><b id="nwobj@(context.Id)">@(context.Name)</b>
+                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                    continue;
+                                shownMemberIds.Add(member.Object.Id);
+                                @if (member.Object.Type.Name == "group")
+                                {
+                                    <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                                else if (member.Object.Type.Name == "network")
+                                {
+                                    <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-rss">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                                else
+                                {
+                                    <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-laptop">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
                             }
-                            else
+                        </Content2>
+                    </ContentSwap>
+                }
+                <Detail Title="Last changed" Data=@context.Create.ToString() />
+                <Detail Title="Comment" Data=@context.Comment />
+            </DetailTemplate>
+        </Table>
+    </Collapse>
+    <Collapse Title="Services" StartToggled="StartCollapsed">
+        <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+            <Column TableItem="NetworkService" Title="Name" Field="@(x => x.Name)" Class="word-break">
+                <Template>
+                    @if (context.Type.Name == "group")
+                    {
+                        <span class="oi oi-list-rich">&nbsp;</span>
+                        <b id="svc@(context.Id)">@(context.Name)</b>
+                    }
+                    else
+                    {
+                        <span class="oi oi-wrench">&nbsp;</span>
+                        <b id="svc@(context.Id)">@(context.Name)</b>
+                    }
+                </Template>
+            </Column>
+            <DetailTemplate TableItem="NetworkService">
+                <Detail Title="Type" Data=@context.Type.Name />
+                <Detail Title="UID" Data=@context.Uid />
+                <Detail Title="Source Port" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
+                <Detail Title="Destination Port" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
+                <Detail Title="Protocol" Data=@context.Protocol?.Name />
+                <Detail Title="Code" Data=@context.Code />
+                <Detail Title="Timeout" Data=@context.Timeout.ToString() />
+                @if (context.Type.Name == "group" && context.ServiceGroups != null && context.ServiceGroupFlats != null)
+                {
+                    <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
+                        <Content1>
+                            @foreach (Group<NetworkService> member in context.ServiceGroups)
                             {
-                                <span class="oi oi-laptop">&nbsp;</span><b id="nwobj@(context.Id)">@(context.Name)</b>
+                                @if (member.Object.Type.Name == "group")
+                                {
+                                    <a href="report#svc@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                                else
+                                {
+                                    <a href="report#svc@(member.Object.Id)" target="_top"><span class="oi oi-wrench">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
                             }
-                        </Template>
-                    </Column>
-                    <DetailTemplate TableItem="NetworkObject">
-                        <Detail Title="Type" Data=@context.Type.Name />
-                        <Detail Title="UID" Data=@context.Uid />
-                        <Detail Title="IP" Data=@context.IP />
-                        <Detail Title="Zone" Data=@context.Zone?.Name />
-                        @if (context.Type.Name == "group" && context.ObjectGroups != null && context.ObjectGroupFlats != null)
-                        {
-                            <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
-                                <Content1>
-                                    @foreach (Group<NetworkObject> member in context.ObjectGroups)
-                                    {
-                                        @if (member.Object.Type.Name=="group")
-                                        {
-                                            <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                        else if (member.Object.Type.Name=="network")
-                                        {
-                                            <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-rss">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                        else
-                                        {
-                                            <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-laptop">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                    }
-                                </Content1>
-                                <Content2>
-                                    @{ List<int> shownMemberIds = new List<int>(); }
-                                    @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
-                                    {
-                                        if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
-                                            continue;
-                                        shownMemberIds.Add(member.Object.Id);
-                                        @if (member.Object.Type.Name=="group")
-                                        {
-                                            <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                        else if (member.Object.Type.Name=="network")
-                                        {
-                                            <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-rss">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                        else
-                                        {
-                                            <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="oi oi-laptop">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                    }
-                                </Content2>
-                            </ContentSwap>
-                        }
-                        <Detail Title="Last changed" Data=@context.Create.ToString() />
-                        <Detail Title="Comment" Data=@context.Comment />
-                    </DetailTemplate>
-                </Table>
-            </Collapse>
-            <Collapse Title="Services" StartToggled="StartCollapsed">
-                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
-                    <Column TableItem="NetworkService" Title="Name" Field="@(x => x.Name)" Class="word-break">
-                        <Template>
-                            @if (context.Type.Name=="group")
+                        </Content1>
+                        <Content2>
+                            @{ List<int> shownMemberIds = new List<int>(); }
+                            @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
                             {
-                                <span class="oi oi-list-rich">&nbsp;</span><b id="svc@(context.Id)">@(context.Name)</b>
-                            }
-                            else
-                            {
-                                <span class="oi oi-wrench">&nbsp;</span><b id="svc@(context.Id)">@(context.Name)</b>
-                            }
-                        </Template>
-                    </Column>
-                     <DetailTemplate TableItem="NetworkService">
-                        <Detail Title="Type" Data=@context.Type.Name />
-                        <Detail Title="UID" Data=@context.Uid />
-                        <Detail Title="Source Port" Data=@(context.SourcePort == context.SourcePortEnd ? context.SourcePort.ToString() : $"{context.SourcePort.ToString()}-{context.SourcePortEnd.ToString()}") />
-                        <Detail Title="Destination Port" Data=@(context.DestinationPort == context.DestinationPortEnd ? context.DestinationPort.ToString() : $"{context.DestinationPort.ToString()}-{context.DestinationPortEnd.ToString()}") />
-                        <Detail Title="Protocol" Data=@context.Protocol?.Name />
-                        <Detail Title="Code" Data=@context.Code />
-                        <Detail Title="Timeout" Data=@context.Timeout.ToString() />
-                        @if (context.Type.Name == "group" && context.ServiceGroups != null && context.ServiceGroupFlats != null)
-                        {
-                            <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
-                                <Content1>
-                                    @foreach (Group<NetworkService> member in context.ServiceGroups)
-                                    {
-                                        @if (member.Object.Type.Name=="group")
-                                        {
-                                            <a href="report#svc@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                        else
-                                        {
-                                            <a href="report#svc@(member.Object.Id)" target="_top"><span class="oi oi-wrench">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                    }
-                                </Content1>
-                                <Content2>
-                                    @{ List<int> shownMemberIds = new List<int>(); }
-                                    @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
-                                    {
-                                        if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
-                                            continue;
-                                        shownMemberIds.Add(member.Object.Id);
-                                        
-                                        @if (member.Object.Type.Name=="group")
-                                        {
-                                            <a href="report#svc@(member.Object.Id) target="_top""><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                        else
-                                        {
-                                            <a href="report#svc@(member.Object.Id)" target="_top"><span class="oi oi-wrench">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                    }
-                                </Content2>
-                            </ContentSwap>
-                        }
-                        <Detail Title="Last changed" Data=@context.Create.ToString() />
-                        <Detail Title="Comment" Data=@context.Comment />
-                    </DetailTemplate>
-                </Table>
-            </Collapse>
-            <Collapse Title="Users" StartToggled="StartCollapsed">
-                <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(obj)" PageSize="PageSize" ColumnReorder="true">
-                    <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" Class="word-break">
-                        <Template>
-                            @if (context.Type != null && context.Type.Name=="group")
-                            {
-                                <span class="oi oi-people">&nbsp;</span><b id="user@(context.Id)">@(context.Name)</b>
-                            }
-                            else
-                            {
-                                <span class="oi oi-person">&nbsp;</span><b id="nwobj@(context.Id)">@(context.Name)</b>
-                            }
-                        </Template>
-                    </Column>
-                    <DetailTemplate TableItem="NetworkUser">
-                        <Detail Title="Type" Data=@context.Type?.Name />
-                        <Detail Title="UID" Data=@context.Uid />
-                        <Detail Title="Real Name" Data=@($"{context.FirstName} {context.LastName}") />
-                        @if (context.Type != null && context.Type.Name == "group" && context.UserGroups != null && context.UserGroupFlats != null)
-                        {
-                            <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
-                                <Content1>
-                                    @foreach (Group<NetworkUser> member in context.UserGroups)
-                                    {
-                                        @if (member.Object.Type.Name=="group")
-                                        {
-                                            <a href="report#user@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                        else
-                                        {
-                                            <a href="report#user@(member.Object.Id)" target="_top"><span class="oi oi-person">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                   }
-                                </Content1>
-                                <Content2>
-                                    @{ List<int> shownMemberIds = new List<int>(); }
-                                    @foreach (GroupFlat<NetworkUser> member in context.UserGroupFlats)
-                                    {
-                                        if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
-                                            continue;
-                                        shownMemberIds.Add(member.Object.Id);
-                                        @if (member.Object.Type.Name=="group")
-                                        {
-                                            <a href="report#user@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
-                                        else
-                                        {
-                                            <a href="report#user@(member.Object.Id)" target="_top"><span class="oi oi-person">&nbsp;</span>@(member.Object.Name)</a><br>
-                                        }
+                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                    continue;
+                                shownMemberIds.Add(member.Object.Id);
 
-                                    }
-                                </Content2>
-                            </ContentSwap>
-                        }
-                        <Detail Title="Last changed" Data=@context.Create.ToString() />
-                        <Detail Title="Comment" Data=@context.Comment />
-                    </DetailTemplate>
-                </Table>
-            </Collapse>
-        </Collapse>
-    }
-}
+                                @if (member.Object.Type.Name == "group")
+                                {
+                                    <a href="report#svc@(member.Object.Id) target=" _top""><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                                else
+                                {
+                                    <a href="report#svc@(member.Object.Id)" target="_top"><span class="oi oi-wrench">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                            }
+                        </Content2>
+                    </ContentSwap>
+                }
+                <Detail Title="Last changed" Data=@context.Create.ToString() />
+                <Detail Title="Comment" Data=@context.Comment />
+            </DetailTemplate>
+        </Table>
+    </Collapse>
+    <Collapse Title="Users" StartToggled="StartCollapsed">
+        <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
+            <Column TableItem="NetworkUser" Title="Name" Field="@(x => x.Name)" Class="word-break">
+                <Template>
+                    @if (context.Type != null && context.Type.Name == "group")
+                    {
+                        <span class="oi oi-people">&nbsp;</span>
+                        <b id="user@(context.Id)">@(context.Name)</b>
+                    }
+                    else
+                    {
+                        <span class="oi oi-person">&nbsp;</span>
+                        <b id="nwobj@(context.Id)">@(context.Name)</b>
+                    }
+                </Template>
+            </Column>
+            <DetailTemplate TableItem="NetworkUser">
+                <Detail Title="Type" Data=@context.Type?.Name />
+                <Detail Title="UID" Data=@context.Uid />
+                <Detail Title="Real Name" Data=@($"{context.FirstName} {context.LastName}") />
+                @if (context.Type != null && context.Type.Name == "group" && context.UserGroups != null && context.UserGroupFlats != null)
+                {
+                    <ContentSwap Title1="Group Members" Title2="Group Members (flattened)">
+                        <Content1>
+                            @foreach (Group<NetworkUser> member in context.UserGroups)
+                            {
+                                @if (member.Object.Type.Name == "group")
+                                {
+                                    <a href="report#user@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                                else
+                                {
+                                    <a href="report#user@(member.Object.Id)" target="_top"><span class="oi oi-person">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                            }
+                        </Content1>
+                        <Content2>
+                            @{ List<int> shownMemberIds = new List<int>(); }
+                            @foreach (GroupFlat<NetworkUser> member in context.UserGroupFlats)
+                            {
+                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                    continue;
+                                shownMemberIds.Add(member.Object.Id);
+                                @if (member.Object.Type.Name == "group")
+                                {
+                                    <a href="report#user@(member.Object.Id)" target="_top"><span class="oi oi-list-rich">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+                                else
+                                {
+                                    <a href="report#user@(member.Object.Id)" target="_top"><span class="oi oi-person">&nbsp;</span>@(member.Object.Name)</a><br>
+                                }
+
+                            }
+                        </Content2>
+                    </ContentSwap>
+                }
+                <Detail Title="Last changed" Data=@context.Create.ToString() />
+                <Detail Title="Comment" Data=@context.Comment />
+            </DetailTemplate>
+        </Table>
+    </Collapse>
+</Collapse>
 
 @code
 {
@@ -216,10 +218,13 @@
     public bool StartCollapsed { get; set; } = true;
 
     [Parameter]
-    public IEnumerable<InputDataType> Data { get; set; }
+    public bool StartContentDetailed { get; set; } = false;
 
     [Parameter]
     public Func<InputDataType, string> NameExtractor { get; set; }
+
+    [Parameter]
+    public InputDataType InitialContent { get; set; }
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkObject>> NetworkObjectExtractor { get; set; }
@@ -229,4 +234,152 @@
 
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>> NetworkUserExtractor { get; set; }
-}
+
+    [CascadingParameter]
+    public APIConnection Connection { get; set; }
+
+    // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
+    public InputDataType Content { get; set; }
+    public bool ContentIsDetailed { get; private set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Content = InitialContent;
+        if (StartContentDetailed)
+            await FetchContent();
+        else
+            ContentIsDetailed = false;
+    }
+
+    private async Task FetchContent()
+    {
+        if (!ContentIsDetailed)
+        {
+            Console.WriteLine($"Type of Content: {Content.GetType()}");
+            switch (Content)
+            {
+                case KeyValuePair<Rule, Device> r_d:
+
+                    try
+                    {
+                        Management[] managementsAllObjects = new Management[0];
+
+                        int elementsPerFetch = 100; // TODO magic limit of 300
+                        int maxInitFetch = 10;
+                        bool autoFill = false;
+
+                        PaginationVariables paginationVariables = new RulePaginationVariables() { Offset = 0, Limit = elementsPerFetch, RuleUid = r_d.Key.Uid };
+
+                        bool newObjects = true;
+                        int fetchCount = 0;
+
+                        // lazy fetch all objects for right sidebar
+                        while (newObjects && (++fetchCount <= maxInitFetch || autoFill))
+                        {
+                            Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getRuleDetails, paginationVariables);
+                            if (fetchCount == 1)
+                            {
+                                managementsAllObjects = managementsCurrentFetch;
+                            }
+                            else
+                            {
+                                newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
+                            }
+
+                            Rule r_updated = managementsAllObjects.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
+
+                            if (r_updated != null)
+                                Content = (InputDataType)(Object)new KeyValuePair<Rule, Device>(r_updated, r_d.Value);
+
+                            await InvokeAsync(StateHasChanged);
+
+                            paginationVariables.Offset += elementsPerFetch;
+                        }
+
+                        Log.WriteDebug("Lazy Fetch", $"Fetched sidebar rule objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+
+                        // <DEBUG>
+                        Console.WriteLine($"Sent: {ObjectQueries.getRuleDetails} with rule_uid = {r_d.Key.Uid}");
+                        foreach (Management m in managementsAllObjects)
+                        {
+                            Console.WriteLine($"\tManagement {m?.Name}");
+                            foreach (Device d in m.Devices)
+                            {
+                                Console.WriteLine($"\t\tDevice {d?.Name}");
+                                foreach (Rule r in d.Rules)
+                                {
+                                    Console.WriteLine($"\t\t\tRule {r?.Id} Src {r?.Source}");
+                                }
+                            }
+                        }
+                        // </DEBUG>
+
+                        // different flavors of "working with generics in c#"
+
+                        //Content = (InputDataType)Activator.CreateInstance(typeof(InputDataType), r_updated, r_d.Value);
+                        //typeof(KeyValuePair<Rule, Device>).GetProperty("Key").SetValue(Content, r_updated); readonly :(
+                        //if (Content is KeyValuePair<Rule, Device>)
+                        //if (typeof(InputDataType).IsAssignableFrom(typeof(KeyValuePair<Rule, Device>)))
+                    }
+                    catch (Exception exception)
+                    {
+                        //DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
+                        // TODO: Error Interface for all Components, that enables displaying a message in the ui
+                    }
+
+                    break;
+
+                case Management m:
+
+                    try
+                    {
+                        Management[] managementsAllObjects = new Management[0];
+
+                        int elementsPerFetch = 100; // TODO magic limit of 300
+                        int maxInitFetch = 10;
+                        bool autoFill = false;
+
+                        PaginationVariables paginationVariables = new PaginationVariables() { Limit = elementsPerFetch, Offset = 0, ManagementId = m.Id };
+
+                        bool newObjects = true;
+                        int fetchCount = 0;
+
+                        // lazy fetch all objects for right sidebar
+                        while (newObjects && (++fetchCount <= maxInitFetch || autoFill))
+                        {
+                            Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                            if (fetchCount == 1)
+                            {
+                                managementsAllObjects = managementsCurrentFetch;
+                            }
+                            else
+                            {
+                                newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
+                            }
+
+                            Management m_updated = managementsAllObjects.FirstOrDefault();
+
+                            if (m_updated != null)
+                                Content = (InputDataType)(Object)m_updated;
+
+                            await InvokeAsync(StateHasChanged);
+
+                            paginationVariables.Offset += elementsPerFetch;
+                        }
+
+                        Log.WriteDebug("Lazy Fetch", $"Fetched sidebar rule objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+                    }
+                    catch (Exception exception)
+                    {
+                        //DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
+                        // TODO: Error Interface for all Components, that enables displaying a message in the ui
+                    }
+
+                    break;
+            }
+
+            ContentIsDetailed = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    }

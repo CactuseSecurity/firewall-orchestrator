@@ -416,34 +416,41 @@
                 Objects
             </div>
         </div>
-        <TabSet>
+        <TabSet KeepPanelsAlive="true">
             <Tab Title="All">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">collapse all</div>
                 </div>
-                <CascadingValue Value="collapseSidebarAll">
-                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                <CascadingValue Value="Connection">
+                    <CascadingValue Value="collapseSidebarAll">
+                        <ObjectGroupCollection InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                               NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    </CascadingValue>
                 </CascadingValue>
             </Tab>
             <Tab Title="Report">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
                 </div>
-                <CascadingValue Value="collapseSidebarReport">
-                    <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                <CascadingValue Value="Connection">
+                    <CascadingValue Value="collapseSidebarReport">
+                        <ObjectGroupCollection InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                               NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    </CascadingValue>
                 </CascadingValue>
             </Tab>
             <Tab Title="Rule">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
                 </div>
-                <CascadingValue Value="collapseSidebarRule">
-                    <ObjectGroup StartCollapsed="false" InputDataType="KeyValuePair<Rule, Device>" Data="selectedItemsRuleReportTable" NameExtractor=@(rule_dev => $"{rule_dev.Value.Name} - Rule {rule_dev.Key.Id} {rule_dev.Key.Name}")
-                                    NetworkObjectExtractor="rule_dev => Array.ConvertAll(rule_dev.Key.Tos.Concat(rule_dev.Key.Froms).ToArray(), location => location.Object)"
-                                    NetworkServiceExtractor="rule_dev => Array.ConvertAll(rule_dev.Key.Services, wrapper => wrapper.Content)"
-                                    NetworkUserExtractor="rule_dev => Array.FindAll(Array.ConvertAll(rule_dev.Key.Tos.Concat(rule_dev.Key.Froms).ToArray(), location => location.User), user => user != null)" />
+                <CascadingValue Value="Connection">
+                    <CascadingValue Value="collapseSidebarRule">
+                        <ObjectGroupCollection StartCollapsed="false" InputDataType="KeyValuePair<Rule, Device>" Data="selectedItemsRuleReportTable"
+                                     NameExtractor=@(rule_dev => $"{rule_dev.Value.Name} - Rule {rule_dev.Key.Id} {rule_dev.Key.Name}")
+                                     NetworkObjectExtractor="rule_dev => Array.ConvertAll(rule_dev.Key.Tos.Concat(rule_dev.Key.Froms).ToArray(), location => location.Object)"
+                                     NetworkServiceExtractor="rule_dev => Array.ConvertAll(rule_dev.Key.Services, wrapper => wrapper.Content)"
+                                     NetworkUserExtractor="rule_dev => Array.FindAll(Array.ConvertAll(rule_dev.Key.Tos.Concat(rule_dev.Key.Froms).ToArray(), location => location.User), user => user != null)" />
+                    </CascadingValue>
                 </CascadingValue>
             </Tab>
         </TabSet>
@@ -544,29 +551,11 @@
             {
                 GetSettings();
 
-                PaginationVariables paginationVariables = new PaginationVariables() { Limit = elementsPerFetch, Offset = 0 };
-                bool newObjects = true;
-                int fetchCount = 0;
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
 
-                // lazy fetch all objects for right sidebar
-                while (newObjects && ( ++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
-                {
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                    if (fetchCount == 1)
-                    {
-                        managementsAllObjects = managementsCurrentFetch;
-                    }
-                    else
-                    {
-                        newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
-                    }
+                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
 
-                    await InvokeAsync(StateHasChanged);
-
-                    paginationVariables.Offset += elementsPerFetch;
-                }
-
-                Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycles ({elementsPerFetch} at a time)");
+                await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {

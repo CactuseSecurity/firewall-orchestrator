@@ -29,9 +29,12 @@ namespace FWO.Report.Filter
 
         public static DynGraphqlQuery Generate(AstNode ast)
         {
+            // this.ast = ast;
             string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
 
             DynGraphqlQuery query = new DynGraphqlQuery();
+
+            // now we convert the ast into a graphql query:
             ast.Extract(ref query);
 
             // if any filter is set, optionally leave out all header texts

@@ -8,14 +8,17 @@ namespace FWO.Report.Filter
 {
     public class Compiler
     {
-        public static DynGraphqlQuery Compile(string input)
+        public static AstNode CompileToAst(string input)
         {
             Scanner scanner = new Scanner(input);
             List<Token> tokens = scanner.Scan();
             Parser parser = new Parser(tokens);
-            AstNode root = parser.Parse();
-            DynGraphqlQuery query = DynGraphqlQuery.Generate(root);
-            return query;
+            return parser.Parse();
+        }
+
+        public static DynGraphqlQuery Compile(string input)
+        {
+            return DynGraphqlQuery.Generate(CompileToAst(input));
         }
     }
 }

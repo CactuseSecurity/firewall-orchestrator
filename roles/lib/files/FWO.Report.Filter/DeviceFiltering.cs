@@ -148,7 +148,6 @@ namespace FWO.Report.Filter
                 for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
                     if (filteredGatewayList.Contains(LSBFilter[midx].Devices[didx].Name))
                         LSBFilter[midx].Devices[didx].selected = true;
-            return;
         }
     }
 }

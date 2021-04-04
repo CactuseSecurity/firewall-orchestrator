@@ -40,7 +40,7 @@
     - name: activate as_single_query if ansible_version is sufficient
       set_fact:
         postgresql_query_as_single_query: yes
-      when: ansible_version >= 2.10
+      when: ansible_version.string is version_compare('2.10', '>=')
 
     - name: pg_version to int when possible
       set_fact: pg_version={{ pg_version | int }}

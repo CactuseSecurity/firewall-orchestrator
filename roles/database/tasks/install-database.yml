@@ -62,7 +62,7 @@
       - fworch-create-constraints.sql
       - fworch-create-foreign-keys.sql
       - fworch-create-indices.sql
-    when: installation_mode == "new" and ansible_version.string is version_compare('2.10', <
+    when: installation_mode == "new" and ansible_version.string is version_compare('2.10', '<')
 
   - name: create db users with group memmberships
     import_tasks: create-users.yml

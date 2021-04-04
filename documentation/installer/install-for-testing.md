@@ -2,9 +2,7 @@
 
 always change into the firewwall-orchestrator directory before starting the installation!
 
-## Install parameters
-
-### Test - with fixed jwt keys - not for production use
+## Test - with fixed jwt keys - not for production use
 
 Use the test switch to always use the same fixed jwt generation keys
 
@@ -24,14 +22,14 @@ You need to
 
         sudo ssh -i /home/tim/.ssh/id_rsa -p 60333 developer@cactus.de -L 9443:localhost:9443 -L 636:localhost:636
 
-### Debugging
+## Debugging
 
 Set debug level for extended debugging info during installation.
 
 ```console
 ansible-playbook/ site.yml -e "debug_level='2'" -K
 ```
-### Testing
+## Running tests after installation
 
 To only run tests (for an existing installation) use tags as follows:
 
@@ -39,7 +37,7 @@ To only run tests (for an existing installation) use tags as follows:
 ansible-playbook/ site.yml --tags test -K
 ```
 
-### Parameter "api_no_metadata" to prevent meta data import
+## Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::
 
@@ -47,7 +45,7 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 ansible-playbook -e "api_no_metadata=yes" site.yml -K
 ```
 
-### Parameter "without_sample_data" to not create sample data (i.e. in production)
+## Parameter "without_sample_data" to not create sample data (i.e. in production)
 
 The following command prevents the creation of sample data in the database:
 
@@ -55,7 +53,15 @@ The following command prevents the creation of sample data in the database:
 ansible-playbook -e "without_sample_data=yes" site.yml -K
 ```
 
-### Parameter "connect_sting" to add Cactus test firewall CP R8x
+note: demo/sample data can also be removed via settings menues.
+
+## Parameter "test_ldap_external_ad_add_connection" to add test AD server
+
+```console
+ansible-playbook -e "test_ldap_external_ad_add_connection=yes" site.yml -K
+```
+
+## Parameter "connect_sting" to add Cactus test firewall CP R8x
 
 The following command adds the sting test firewall to your fw orch system (needs VPN tunnel to Cactus)
 
@@ -63,7 +69,7 @@ The following command adds the sting test firewall to your fw orch system (needs
 ansible-playbook -e "connect_sting=yes" site.yml -K
 ```
 
-### Parameter "second_ldap_db" to install second ldap database
+## Parameter "second_ldap_db" to install second ldap database
 
 if you want to install a second (local) ldap database "dc=example,dc=com"
 

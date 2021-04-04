@@ -17,7 +17,13 @@
     <div class="p-3">
 
         <h5 class="text-left">Select device(s)</h5>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { fullDeviceSelectionState = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceSelectionState, out selectButtonText); filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput); }">@selectButtonText</button>
+        <button class="btn btn-sm btn-secondary" 
+            @onclick="() => { 
+                fullDeviceSelectionState = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceSelectionState, out selectButtonText); 
+                filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput);
+            }">
+            @selectButtonText
+        </button>
         <br><br>
 
         @foreach (Management management in managementsOverview)
@@ -28,7 +34,10 @@
                     @foreach (Device device in management.Devices)
                     {
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="device.Id" @bind="device.selected"/>
+                            <input class="form-check-input" type="checkbox" id="device.Id"
+                                @bind="device.selected"
+                                @oninput="() => { device.selected = !device.selected; filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput); }"
+                            />
                             <label class="form-check-label" for="@device.Id">
                                 &nbsp;@device.Name
                             </label>
@@ -606,25 +615,21 @@
     {
         selectedItemsRuleReportTable = new Dictionary<Rule, Device>(); // clear selected rules
         selectedItemsChangeReportTable = new Dictionary<RuleChange, Device>();
+
+        // when generating report, filter line overrules LSB filter, as this can be triggered by changing 
+        // the filter line and pressing enter
+
         try
         {
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, ref managementsOverview);
             query = Compiler.Compile(filterInput);
-            if (!DeviceFilter.areAllDevicesSelected(managementsOverview))  // if all devices are selected, we do no additional filtering
+            if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))            // display pop-up with warning, todo: check if device is selected in filter line
             {
-                if (DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query)) // remove all existing device filters first before adding new ones
-                    filterInput = DeviceFilter.replaceDeviceFilter(filterInput, managementsOverview, query);
-                else
-                    filterInput = DeviceFilter.removeDeviceFilterPart(filterInput);
-                if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))            // display pop-up with warning, todo: check if device is selected in filter line
-                {
-                    ShowNoDeviceSelectedWarning = true;
-                    StateHasChanged();
-                    return;
-                }
+                ShowNoDeviceSelectedWarning = true;
+                StateHasChanged();
+                return;
             }
-            else
-                filterInput = DeviceFilter.removeDeviceFilterPart(filterInput);
-            query = Compiler.Compile(filterInput);  // recompile after reading device filter
+
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
             switch (query.ReportType)

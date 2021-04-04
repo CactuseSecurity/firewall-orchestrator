@@ -56,26 +56,25 @@ namespace FWO.Report.Filter
 
         public static string cleanFilter(string filter)
         {
+            // todo: this mess needs to be cleaned up - should really not be necessary 
             filter = filter.Trim().ToLower();
             if (filter.StartsWith("and "))
                 filter = filter.Remove(0, 4);
             if (filter.EndsWith(" and"))
                 filter = filter.Remove(filter.Length - 4, 4);
+            if (filter.EndsWith(" and "))
+                filter = filter.Remove(filter.Length - 5, 5);
+            if (filter.IndexOf("( or )")>=0)
+                filter = filter.Remove(filter.IndexOf("( or )"), 6);
+            if (filter.IndexOf("( and )")>=0)
+                filter = filter.Remove(filter.IndexOf("( or )"), 7);
+            if (filter.IndexOf("and ()")>=0)
+                filter = filter.Remove(filter.IndexOf("and ()"), 6);
             if (filter.Contains("and and"))  // remove duplicate and
                 filter = filter.Remove(filter.IndexOf("and and"), 4);
-            return filter;
-        }
-
-        public static string replaceDeviceFilter(string currentInputFilter, Management[] managements, DynGraphqlQuery query)
-        {
-            // remove old device filter part from currentInputFilter and add the new device filter from management.devices
-            string filter = removeDeviceFilterPart(currentInputFilter).TrimEnd() + deviceFilterToString(managements, query);
-            // todo: this currently removes filtering completely when loading a template with device filtering
-            // we need to convert the loaded filter line into the management.devices structure after loading
-            // probably need to see that LSB dev filter is always equal to filter line content
-
-            // if the filter line (without device filter) is empty, get rid of the leading "and" of the device filter
-            return cleanFilter(filter);
+            if (filter=="()")
+                filter = "";
+            return filter.Trim();
         }
 
         /// <summary>
@@ -83,24 +82,37 @@ namespace FWO.Report.Filter
         /// </summary>
         public static string syncLSBFilterToFilterLine(Management[] managements, string filterLine)
         {
-            string filter = cleanFilter(removeDeviceFilterPart(filterLine));
+            // remove all traces of device filterin from filter line before copying from LSB
+            filterLine = filterLine.ToLower();
+            bool match = true;
+            while (match)
+            {
+                Match m = Regex.Match(filterLine, @"(gateway|gw|device|firewall)(\s*\=\=?\s*""?)(\w+""?)");
+                if (!m.Success)
+                    match = false;
+                else {
+                    // remove the gw expression from filter line
+                    int matchLength = m.Value.Length;
+                    int matchPosition = m.Index;
+                    filterLine = filterLine.Remove(matchPosition, matchLength);
+               }
+            }
+            string filterWithoutDev = cleanFilter(filterLine);
             string devFilter = "";
+
             foreach (Management mgm in managements)
                 foreach (Device dev in mgm.Devices)
                     if (dev.selected)
                         devFilter += $"gateway={dev.Name} or ";
             if (devFilter.Length>0)
-            {
-                devFilter = devFilter.Remove(devFilter.Length - 4);  // remove final " or "
-                devFilter = "(" + devFilter + ")";  
-                if (filter.Length>0)
-                    devFilter = " and " + devFilter;  
-            }
-            return filter + devFilter;
+                devFilter = $"({devFilter.Remove(devFilter.Length -4)})"; // remove final 4 chars " or "
+            if (filterWithoutDev.Length>0)
+                devFilter = $" and {devFilter}";
+            return cleanFilter(filterWithoutDev + devFilter);
         }
 
         /// <summary>
-        /// clears current dev filter from left side bar and sets it to  device & management filters from filter line
+        /// clears current dev filter from left side bar and sets it to device & management filters from filter line
         /// </summary>
         public static void syncFilterLineToLSBFilter(string currentFilterLine, ref Management[] LSBFilter)
         {
@@ -122,16 +134,12 @@ namespace FWO.Report.Filter
 
             foreach (Match gwExpressionMatch in gwFilterRgx.Matches(filterLine))
             {
-                Console.WriteLine("Found gwExpression '{0}' at position {1}", gwExpressionMatch.Groups[2].Value, gwExpressionMatch.Groups[2].Index);
                 Regex gwRgx = new Regex($@"{gwExpressionMatch.Groups[2].Value}");
                 foreach (string gw in gatewayList)
                 {
                     Match m = gwRgx.Match(gw);
                     if (m.Success)
-                    {
-                        Console.WriteLine("Found matching gateway '{0}' at position {1}.", m.Value, m.Index);
                         filteredGatewayList.Add(gw);
-                    }
                 }
             }
 
@@ -141,51 +149,6 @@ namespace FWO.Report.Filter
                     if (filteredGatewayList.Contains(LSBFilter[midx].Devices[didx].Name))
                         LSBFilter[midx].Devices[didx].selected = true;
             return;
-        }
-
-        public static string removeDeviceFilterPart(string filter)
-        {
-            const string deviceFilterStart = "(gateway=";
-
-            // identify and remove device filter part from filter
-            if (filter.Contains(deviceFilterStart))
-            {
-                int startPosition = filter.IndexOf(deviceFilterStart);
-                int endPosition = filter.IndexOf(")", startPosition + deviceFilterStart.Length);
-                if (startPosition != 1 && endPosition != -1)
-                    filter = filter.Remove(startPosition, endPosition - startPosition + 1); // to remove the first 10 characters
-            }
-            return cleanFilter(filter);
-        }
-
-        public static String deviceFilterToString(Management[] managements, DynGraphqlQuery query)
-        {
-            string deviceFilter = "";
-            if (isAnyDeviceFilterSet(managements, query))
-            {
-                deviceFilter = " and (";
-                foreach (Management management in managements)
-                {
-                    if (management != null)
-                    {
-                        foreach (Device device in management.Devices)
-                        {
-                            if (device.selected)
-                            {
-                                if (deviceFilter.Length > 6)  // not the first selected device
-                                    deviceFilter += " or ";
-                                deviceFilter += $"gateway=\"{device.Name}\"";
-                            }
-                        }
-                    }
-                }
-                if (deviceFilter.Length > 6)  // any filter found at all?
-                    deviceFilter += ") ";
-                else
-                    deviceFilter = "";
-            }
-            return deviceFilter;
-            // return " and gateway=forti";
         }
     }
 }

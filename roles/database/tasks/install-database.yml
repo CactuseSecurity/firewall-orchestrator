@@ -45,6 +45,7 @@
     postgresql_query:
       db: "{{ fworch_db_name }}"
       path_to_script: "{{ database_install_dir }}/sql/creation/{{ item }}"
+      as_single_query: yes
     loop:
       - fworch-create-tables.sql
       - fworch-create-constraints.sql
@@ -104,6 +105,7 @@
     postgresql_query:
       db: "{{ fworch_db_name }}"
       path_to_script: "{{ database_install_dir }}/sql/creation/fworch-fill-stm.sql"
+      as_single_query: yes
       # encoding: UTF-8
 
   become: yes

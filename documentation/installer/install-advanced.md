@@ -12,6 +12,13 @@ The following switch can be used to set the type of installation to perform
 ansible-playbook -e "installation_mode=upgrade" site.yml -K
 ```
 
+If you want to drop the database and re-install from scratch, do the following:
+
+```console
+ansible-playbook -e "installation_mode=uninstall" site.yml -K
+ansible-playbook -e "installation_mode=new" site.yml -K
+```
+
 installation_mode options:
 - new (default) - assumes that no fworch is installed on the target devices - fails if it finds an installation
 - uninstall     - uninstalls the product including any data (database, ldap, files)!
@@ -31,21 +38,6 @@ With the following option the old php based user interface will be installed in 
 
 ```console
 ansible-playbook -e "ui_php=1 ui_php_web_port=44310" site.yml -K
-```
-
-### Parameter "installation_mode" to do re-install, uninstall, upgrade
-
-if you want to drop the database and re-install from scratch, do the following:
-
-```console
-ansible-playbook -e "installation_mode=uninstall" site.yml -K
-ansible-playbook -e "installation_mode=new" site.yml -K
-```
-
-if you want to upgrade an existing installation, do the following:
-
-```console
-ansible-playbook -e "installation_mode=upgrade" site.yml -K
 ```
 
 ### Parameter "api_no_metadata" to prevent meta data import

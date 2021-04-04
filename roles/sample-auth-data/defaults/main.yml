@@ -1,1 +1,1 @@
-test_ldap_external_ad_add_connection = no
+test_ldap_external_ad_add_connection: no

@@ -112,12 +112,19 @@
 
 # non-ascii sql file cannot be executed under red hat
 # revert to command + psql?
+
   - name: add base data to database fworch-fill-stm.sql
     postgresql_query:
       db: "{{ fworch_db_name }}"
       path_to_script: "{{ database_install_dir }}/sql/creation/fworch-fill-stm.sql"
       as_single_query: yes
-      # encoding: UTF-8
+    when: ansible_version.string is version_compare('2.10', '>=')
+
+  - name: add base data to database fworch-fill-stm.sql
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      path_to_script: "{{ database_install_dir }}/sql/creation/fworch-fill-stm.sql"
+    when: ansible_version.string is version_compare('2.10', '<')
 
   become: yes
   become_user: postgres

@@ -58,20 +58,18 @@ namespace FWO.Report.Filter
         {
             // todo: this mess needs to be cleaned up - should really not be necessary 
             filter = filter.Trim().ToLower();
+            if (filter.IndexOf("( or )")>=0)
+                filter = filter.Remove(filter.IndexOf("( or )"), 6).Trim();
+            if (filter.IndexOf("( and )")>=0)
+                filter = filter.Remove(filter.IndexOf("( or )"), 7).Trim();
+            if (filter.IndexOf("and ()")>=0)
+                filter = filter.Remove(filter.IndexOf("and ()"), 6).Trim();
+            if (filter.Contains("and and"))  // remove duplicate and
+                filter = filter.Remove(filter.IndexOf("and and"), 4).Trim();
             if (filter.StartsWith("and "))
                 filter = filter.Remove(0, 4);
             if (filter.EndsWith(" and"))
                 filter = filter.Remove(filter.Length - 4, 4);
-            if (filter.EndsWith(" and "))
-                filter = filter.Remove(filter.Length - 5, 5);
-            if (filter.IndexOf("( or )")>=0)
-                filter = filter.Remove(filter.IndexOf("( or )"), 6);
-            if (filter.IndexOf("( and )")>=0)
-                filter = filter.Remove(filter.IndexOf("( or )"), 7);
-            if (filter.IndexOf("and ()")>=0)
-                filter = filter.Remove(filter.IndexOf("and ()"), 6);
-            if (filter.Contains("and and"))  // remove duplicate and
-                filter = filter.Remove(filter.IndexOf("and and"), 4);
             if (filter=="()")
                 filter = "";
             return filter.Trim();
@@ -104,6 +102,7 @@ namespace FWO.Report.Filter
                 foreach (Device dev in mgm.Devices)
                     if (dev.selected)
                         devFilter += $"gateway={dev.Name} or ";
+
             if (devFilter.Length>0)
                 devFilter = $"({devFilter.Remove(devFilter.Length -4)})"; // remove final 4 chars " or "
             if (filterWithoutDev.Length>0)

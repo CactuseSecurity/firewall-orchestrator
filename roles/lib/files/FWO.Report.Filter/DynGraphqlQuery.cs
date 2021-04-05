@@ -136,10 +136,10 @@ namespace FWO.Report.Filter
             }
 
             // remove line breaks and duplicate whitespaces
-            Regex pattern = new Regex("\n");
-            pattern.Replace(query.FullQuery, "");
-            pattern = new Regex("[ ]{2}");
-            pattern.Replace(query.FullQuery, "");
+            Regex pattern = new Regex("\\n");
+            query.FullQuery = pattern.Replace(query.FullQuery, "");
+            pattern = new Regex("\\s+");
+            query.FullQuery = pattern.Replace(query.FullQuery, " ");
             return query;
         }
     }

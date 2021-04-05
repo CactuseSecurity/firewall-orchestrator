@@ -1,10 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Threading;
 using System.Threading.Tasks;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Authorization;
-using FWO.Logging;
 using FWO.ApiConfig;
 using FWO.ApiClient;
 
@@ -12,6 +10,8 @@ namespace FWO.Ui.Auth
 {
     public class AuthStateProvider : AuthenticationStateProvider
     {
+        private ClaimsPrincipal authenticatedUser;
+
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             var identity = new ClaimsIdentity();
@@ -33,12 +33,15 @@ namespace FWO.Ui.Auth
                     roleType: "role"
                 );
 
-                ClaimsPrincipal user = new ClaimsPrincipal(identity);
+                authenticatedUser = new ClaimsPrincipal(identity);
 
-                await userConfig.SetUserInformation(user.FindFirstValue("x-hasura-uuid"), apiConnection);
+                await userConfig.SetUserInformation(authenticatedUser.FindFirstValue("x-hasura-uuid"), apiConnection);
                 userConfig.User.Jwt = jwtString;
 
-                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+                if(!userConfig.User.PasswordMustBeChanged)
+                {
+                    NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(authenticatedUser)));
+                }
             }
 
             else
@@ -50,9 +53,14 @@ namespace FWO.Ui.Auth
         public void Deauthenticate()
         {           
             ClaimsIdentity identity = new ClaimsIdentity();
-            ClaimsPrincipal user = new ClaimsPrincipal(identity);
+            ClaimsPrincipal emptyUser = new ClaimsPrincipal(identity);
 
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(emptyUser)));
+        }
+
+        public void ConfirmPasswordChanged()
+        {           
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(authenticatedUser)));
         }
     }
 }

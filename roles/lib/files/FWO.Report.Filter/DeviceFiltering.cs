@@ -54,26 +54,33 @@ namespace FWO.Report.Filter
             return fullDeviceSelectionState;
         }
 
+        /// <summary>
+        /// removes all residue remaining after gw filters have been removed
+        /// </summary>
         public static string cleanFilter(string filter)
         {
-            // todo: this mess needs to be cleaned up - should really not be necessary 
+            bool match = true;
             filter = filter.Trim().ToLower();
-            if (filter.StartsWith("and "))
-                filter = filter.Remove(0, 4);
-            if (filter.EndsWith(" and"))
-                filter = filter.Remove(filter.Length - 4, 4);
-            if (filter.EndsWith(" and "))
-                filter = filter.Remove(filter.Length - 5, 5);
-            if (filter.IndexOf("( or )")>=0)
-                filter = filter.Remove(filter.IndexOf("( or )"), 6);
-            if (filter.IndexOf("( and )")>=0)
-                filter = filter.Remove(filter.IndexOf("( or )"), 7);
-            if (filter.IndexOf("and ()")>=0)
-                filter = filter.Remove(filter.IndexOf("and ()"), 6);
-            if (filter.Contains("and and"))  // remove duplicate and
-                filter = filter.Remove(filter.IndexOf("and and"), 4);
-            if (filter=="()")
-                filter = "";
+            string[] patterns = { @"(\(\s*or\s*\))", @"(and\s*\(\))", @"(^\s*and\s+)", @"\s*(and\s*$)", @"(\(\s*\))" };
+            while (match)
+            {
+                match = false;
+                foreach (string pattern in patterns)
+                {
+                    Match m = Regex.Match(filter, pattern);
+                    if (m.Success)
+                    {
+                        match = true;
+                        int matchLength = m.Value.Length;
+                        int matchPosition = m.Index;
+                        filter = filter.Remove(matchPosition, matchLength);
+                    }
+                }
+            }
+            // finally removing duplicate ands:
+            Match m2 = Regex.Match(filter, @"(and\s+and)");
+            if (m2.Success)
+                filter = filter.Remove(m2.Index, 4);
             return filter.Trim();
         }
 
@@ -87,28 +94,30 @@ namespace FWO.Report.Filter
             bool match = true;
             while (match)
             {
-                Match m = Regex.Match(filterLine, @"(gateway|gw|device|firewall)(\s*\=\=?\s*""?)(\w+""?)");
+                Match m = Regex.Match(filterLine, @"(or|and)?\s*(gateway|gw|device|firewall)(\s*\=\=?\s*""?)(\w+""?)\s*(or|and)?");
                 if (!m.Success)
                     match = false;
-                else {
+                else
+                {
                     // remove the gw expression from filter line
                     int matchLength = m.Value.Length;
                     int matchPosition = m.Index;
                     filterLine = filterLine.Remove(matchPosition, matchLength);
-               }
+                }
             }
-            string filterWithoutDev = cleanFilter(filterLine);
+            string filterWithoutDev = cleanFilter(filterLine); // removing syntax issues that remain after removing gw filter parts
             string devFilter = "";
 
             foreach (Management mgm in managements)
                 foreach (Device dev in mgm.Devices)
                     if (dev.selected)
                         devFilter += $"gateway={dev.Name} or ";
-            if (devFilter.Length>0)
-                devFilter = $"({devFilter.Remove(devFilter.Length -4)})"; // remove final 4 chars " or "
-            if (filterWithoutDev.Length>0)
+
+            if (devFilter.Length > 0)
+                devFilter = $"({devFilter.Remove(devFilter.Length - 4)})"; // remove final 4 chars " or "
+            if (filterWithoutDev.Length > 0 && devFilter.Length>0)
                 devFilter = $" and {devFilter}";
-            return cleanFilter(filterWithoutDev + devFilter);
+            return filterWithoutDev + devFilter;
         }
 
         /// <summary>

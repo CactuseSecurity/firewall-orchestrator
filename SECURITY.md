@@ -9,7 +9,7 @@
 
 ## Reporting a Vulnerability
 
-In case you discover a security issue/vulnerability, please contact security@opensoar.org
+In case you discover a security issue/vulnerability, please contact security@cactus.de
 
 ## NEEDS TO BE EDITED
 

@@ -457,7 +457,8 @@
                 </CascadingValue>
             </Tab>
             <Tab Title="Rule">
-                <div class="d-md-flex justify-content-md-end">
+                <div class="d-md-flex justify-content-md-between">
+                    <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable = new Dictionary<Rule, Device>())">clear all</div>
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
                 </div>
                 <CascadingValue Value="Connection">

@@ -67,13 +67,13 @@
         {
             <form>
                 <div class="form-group row">
-                    <label for="ldapAddress" class="col-sm-3 col-form-label col-form-label-sm">Address:</label>
+                    <label for="ldapAddress" class="col-sm-3 col-form-label col-form-label-sm">Address*:</label>
                     <div class="col-sm-8">
                         <input id="ldapAddress" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Address" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapPort" class="col-sm-3 col-form-label col-form-label-sm">Port:</label>
+                    <label for="ldapPort" class="col-sm-3 col-form-label col-form-label-sm">Port*:</label>
                     <div class="col-sm-2">
                         <input id="ldapPort" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
                     </div>
@@ -87,7 +87,7 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapType" class="col-sm-3 col-form-label col-form-label-sm">Type:</label>
+                    <label for="ldapType" class="col-sm-3 col-form-label col-form-label-sm">Type*:</label>
                     <div class="col-sm-4">
                         <select id="ldapType" class="form-control form-control-sm" @bind="actLdapConnection.Type">
                             @foreach (int type in Enum.GetValues(typeof(LdapType)))
@@ -102,7 +102,7 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapUserSearchPath" class="col-sm-3 col-form-label col-form-label-sm">User Search Path:</label>
+                    <label for="ldapUserSearchPath" class="col-sm-3 col-form-label col-form-label-sm">User Search Path*:</label>
                     <div class="col-sm-8">
                         <input id="ldapUserSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.UserSearchPath" />
                     </div>
@@ -120,13 +120,13 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUser" class="col-sm-3 col-form-label col-form-label-sm">Search User:</label>
+                    <label for="ldapSearchUser" class="col-sm-3 col-form-label col-form-label-sm">Search User*:</label>
                     <div class="col-sm-8">
                         <input id="ldapSearchUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUserPwd" class="col-sm-3 col-form-label col-form-label-sm">Search User Pwd:</label>
+                    <label for="ldapSearchUserPwd" class="col-sm-3 col-form-label col-form-label-sm">Search User Pwd*:</label>
                     <div class="col-sm-8">
                         <input id="ldapSearchUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
                     </div>
@@ -292,62 +292,76 @@
     {
         try
         {
-            // Todo: Value checks?
-            if (AddMode)
-            {
-                var Variables = new
+            if (CheckValues())
+            {    
+                if (AddMode)
                 {
-                    address = actLdapConnection.Address,
-                    port = actLdapConnection.Port,
-                    type = actLdapConnection.Type,
-                    patternLength = actLdapConnection.PatternLength,
-                    searchUser = actLdapConnection.SearchUser,
-                    tls = actLdapConnection.Tls,
-                    tenantLevel = actLdapConnection.TenantLevel,
-                    searchUserPwd = actLdapConnection.SearchUserPwd,
-                    searchpathForUsers = actLdapConnection.UserSearchPath,
-                    searchpathForRoles = actLdapConnection.RoleSearchPath,
-                    searchpathForGroups = actLdapConnection.GroupSearchPath,
-                    writeUser = actLdapConnection.WriteUser,
-                    writeUserPwd = actLdapConnection.WriteUserPwd,
-                    tenantId = actLdapConnection.TenantId
-                };
-                actLdapConnection.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.newLdapConnection, Variables)).ReturnIds[0].NewId;
-                connectedLdaps.Add(actLdapConnection);
-                AddMode = false;
-                EditMode = false;
-            }
-            else
-            {
-                var Variables = new
+                    var Variables = new
+                    {
+                        address = actLdapConnection.Address,
+                        port = actLdapConnection.Port,
+                        type = actLdapConnection.Type,
+                        patternLength = actLdapConnection.PatternLength,
+                        searchUser = actLdapConnection.SearchUser,
+                        tls = actLdapConnection.Tls,
+                        tenantLevel = actLdapConnection.TenantLevel,
+                        searchUserPwd = actLdapConnection.SearchUserPwd,
+                        searchpathForUsers = actLdapConnection.UserSearchPath,
+                        searchpathForRoles = actLdapConnection.RoleSearchPath,
+                        searchpathForGroups = actLdapConnection.GroupSearchPath,
+                        writeUser = actLdapConnection.WriteUser,
+                        writeUserPwd = actLdapConnection.WriteUserPwd,
+                        tenantId = actLdapConnection.TenantId
+                    };
+                    actLdapConnection.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.newLdapConnection, Variables)).ReturnIds[0].NewId;
+                    connectedLdaps.Add(actLdapConnection);
+                    AddMode = false;
+                    EditMode = false;
+                }
+                else
                 {
-                    id = actLdapConnection.Id,
-                    address = actLdapConnection.Address,
-                    port = actLdapConnection.Port,
-                    type = actLdapConnection.Type,
-                    patternLength = actLdapConnection.PatternLength,
-                    searchUser = actLdapConnection.SearchUser,
-                    tls = actLdapConnection.Tls,
-                    tenantLevel = actLdapConnection.TenantLevel,
-                    searchUserPwd = actLdapConnection.SearchUserPwd,
-                    searchpathForUsers = actLdapConnection.UserSearchPath,
-                    searchpathForRoles = actLdapConnection.RoleSearchPath,
-                    searchpathForGroups = actLdapConnection.GroupSearchPath,
-                    writeUser = actLdapConnection.WriteUser,
-                    writeUserPwd = actLdapConnection.WriteUserPwd,
-                    tenantId = actLdapConnection.TenantId
-                };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateLdapConnection, Variables)).UpdatedId;
-                EditMode = (udId == actLdapConnection.Id ? false : true);
-                connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
+                    var Variables = new
+                    {
+                        id = actLdapConnection.Id,
+                        address = actLdapConnection.Address,
+                        port = actLdapConnection.Port,
+                        type = actLdapConnection.Type,
+                        patternLength = actLdapConnection.PatternLength,
+                        searchUser = actLdapConnection.SearchUser,
+                        tls = actLdapConnection.Tls,
+                        tenantLevel = actLdapConnection.TenantLevel,
+                        searchUserPwd = actLdapConnection.SearchUserPwd,
+                        searchpathForUsers = actLdapConnection.UserSearchPath,
+                        searchpathForRoles = actLdapConnection.RoleSearchPath,
+                        searchpathForGroups = actLdapConnection.GroupSearchPath,
+                        writeUser = actLdapConnection.WriteUser,
+                        writeUserPwd = actLdapConnection.WriteUserPwd,
+                        tenantId = actLdapConnection.TenantId
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateLdapConnection, Variables)).UpdatedId;
+                    EditMode = (udId == actLdapConnection.Id ? false : true);
+                    connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
+                }
             }
         }
         catch (Exception exception)
         {
-            // Todo: Error message? Ignore?
             // Log.WriteDebug("Save Ldap Connection", $"Exception occurred: {exception}");
             DisplayMessageInUi(exception, "Edit Ldap Connection", "Error while saving changes.", true);
         }
+    }
+
+    private bool CheckValues()
+    {
+        if (actLdapConnection.Address == null || actLdapConnection.Address == "" ||
+            actLdapConnection.SearchUser == null || actLdapConnection.SearchUser == "" ||
+            actLdapConnection.SearchUserPwd == null || actLdapConnection.SearchUserPwd == "" ||
+            actLdapConnection.UserSearchPath == null || actLdapConnection.UserSearchPath == "")
+        {
+            DisplayMessageInUi(null, "Save Ldap Connection", "Please fill all mandatory fields.", true);
+            return false;
+        }
+        return true;
     }
 
     private void Cancel()

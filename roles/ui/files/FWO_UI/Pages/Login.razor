@@ -5,7 +5,6 @@
 @using FWO.Middleware.Client
 @using FWO.ApiConfig
 @using FWO.Ui.Services
-@using System.Security.Claims
 
 @inject MiddlewareClient middlewareClient
 @inject ProtectedSessionStorage sessionStorage
@@ -42,14 +41,45 @@
     </div>
 }
 
-
+@if (showPasswordChangeForm)
+{
+    <div class="row m-4 justify-content-center">
+        <div>
+            <h2 class="text-center"> Change Password </h2>
+            <div class="shadow-sm card p-3" style="width: 250px;">
+                <form class="d-flex flex-column">
+                    <div class="form-group">
+                        <input type="password" class="form-control @InputClass" id="OldPasswordInput" placeholder="Old Password" @bind="oldPassword" @bind:event="oninput" @onkeypress="ClearInputClass">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" class="form-control @InputClass" id="NewPasswordInput1" placeholder="New Password" @bind="newPassword1" @bind:event="oninput" @onkeypress="ClearInputClass">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" class="form-control @InputClass" id="NewPasswordInput2" placeholder="New Password" @bind="newPassword2" @bind:event="oninput" @onkeypress="ClearInputClass">
+                    </div>
+                    @if (passwordChangeInProgress == false)
+                    {
+                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="ChangePassword"><div class="oi oi-account-login"></div></button>
+                    }
+                    else
+                    {
+                        <div class="spinner-border text-primary align-self-center" role="status"></div>
+                    }
+                    <label class="m-2">@chgPwErrorMessage</label>
+                </form>
+            </div>
+        </div>
+    </div>
+}
 
 @code
 {
     // dont immediately show login page because session storage is only available after render, so there might be a immediate redirect
     private bool showLoginForm = false;
-
+    private bool showPasswordChangeForm = false;
+    
     private bool loginInProgress = false;
+    private bool passwordChangeInProgress = false;
 
     private string Username = "";
     private string Password = "";
@@ -59,6 +89,11 @@
     private string errorMessage = "";
 
     private ElementReference usernameInput;
+    
+    private string oldPassword = "";
+    private string newPassword1 = "";
+    private string newPassword2 = "";
+    private string chgPwErrorMessage = "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -104,13 +139,26 @@
 
                 // Add all user relevant information to the current session. Also used when reloading page.
                 await CreateUserContext(jwt);
-
+                
+                if(userConfig.User.PasswordMustBeChanged)
+                {
+                    showLoginForm = false;
+                    showPasswordChangeForm = true;
+                    StateHasChanged();
+                }
                 loginInProgress = false;
             }
             else
             {
                 // There was an error trying to authenticate the user. Probably invalid credentials
-                errorMessage = apiAuthResponse.Error + " See log for details!";
+                if(apiAuthResponse.Status == HttpStatusCode.PreconditionFailed)
+                {
+                    errorMessage = "Valid user but no role assigned. Please contact administrator";
+                }
+                else
+                {
+                    errorMessage = apiAuthResponse.Error + " See log for details!";
+                }
 
                 // Visualisize there was an error by making border of inputboxes red
                 InputClass = "is-invalid";
@@ -124,7 +172,9 @@
     private async Task focusInput()
     {
         if (showLoginForm)
+        {
             await usernameInput.FocusAsync();
+        }
     }
 
     private async Task CreateUserContext(string jwt)
@@ -134,5 +184,27 @@
 
         // Try to auth with jwt (validates it and creates user context on UI side).
         await ((AuthStateProvider)AuthService).AuthenticateUser(jwt, userConfig, ApiConnection);
+    }
+
+    private async Task ChangePassword()
+    {
+        if(passwordChangeInProgress == false)                    
+        {
+            passwordChangeInProgress = true;
+            try
+            {
+                chgPwErrorMessage = await (new PasswordChanger(middlewareClient)).ChangePassword(oldPassword, newPassword1, newPassword2, userConfig);
+                if(chgPwErrorMessage == "")
+                {
+                    showPasswordChangeForm = false;
+                    ((AuthStateProvider)AuthService).ConfirmPasswordChanged();
+                }
+            }
+            catch (Exception exception)
+            {
+                chgPwErrorMessage = exception.Message;
+            }
+            passwordChangeInProgress = false;
+        }
     }
 }

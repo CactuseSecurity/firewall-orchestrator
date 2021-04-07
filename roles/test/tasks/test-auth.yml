@@ -65,8 +65,11 @@
 - name: show jwt decoded payload
   debug: var=jwt_payload
 
-# - set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
+- set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
+  when: "'unique_name' in jwt_payload"
+
 - set_fact: jwt_unique_user_name="{{ jwt_payload.name }}"
+  when: "'name' in jwt_payload"
 
 - name: middleware get jwt check valid creds output user user1_demo
   debug:

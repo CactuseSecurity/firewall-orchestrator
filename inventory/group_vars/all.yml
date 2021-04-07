@@ -20,7 +20,7 @@ fworch_group: "{{ fworch_user }}"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworchtest_user: "{{ product_name }}test"
-fworchtest_home: "{{ fworch_home }}/{{ fworchtest_user }}"
+fworchtest_home: "/home/{{ fworchtest_user }}"
 #fworch_conf_file: "{{ fworch_home }}/etc/fworch.yaml"
 fworch_conf_file: "{{ fworch_home }}/etc/fworch.json"
 http_proxy: ""
@@ -30,7 +30,10 @@ proxy_exceptions: ""
 proxy_env:
         http_proxy: "{{ http_proxy }}"
         https_proxy: "{{ https_proxy }}"
+        HTTP_PROXY: "{{ http_proxy }}"
+        HTTPS_PROXY: "{{ https_proxy }}"
         validate_certs: false
+# proxy in capitals needed for debian and ubuntu <20
 test_packages:
   - postgresql-client
   - curl

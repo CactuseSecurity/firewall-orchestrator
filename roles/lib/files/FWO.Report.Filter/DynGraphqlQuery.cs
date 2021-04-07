@@ -29,9 +29,12 @@ namespace FWO.Report.Filter
 
         public static DynGraphqlQuery Generate(AstNode ast)
         {
+            // this.ast = ast;
             string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
 
             DynGraphqlQuery query = new DynGraphqlQuery();
+
+            // now we convert the ast into a graphql query:
             ast.Extract(ref query);
 
             // if any filter is set, optionally leave out all header texts
@@ -133,10 +136,10 @@ namespace FWO.Report.Filter
             }
 
             // remove line breaks and duplicate whitespaces
-            Regex pattern = new Regex("\n");
-            pattern.Replace(query.FullQuery, "");
-            pattern = new Regex("[ ]{2}");
-            pattern.Replace(query.FullQuery, "");
+            Regex pattern = new Regex("\\n");
+            query.FullQuery = pattern.Replace(query.FullQuery, "");
+            pattern = new Regex("\\s+");
+            query.FullQuery = pattern.Replace(query.FullQuery, " ");
             return query;
         }
     }

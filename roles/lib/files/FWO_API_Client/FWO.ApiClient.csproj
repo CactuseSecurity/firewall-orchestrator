@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="GraphQL.Client" Version="3.2.3" />
-    <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="3.2.2" />
+    <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="3.2.3" />
   </ItemGroup>
 
   <ItemGroup>

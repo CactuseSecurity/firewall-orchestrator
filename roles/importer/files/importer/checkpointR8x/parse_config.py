@@ -43,7 +43,7 @@ elif debug_level == 3:
 with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
-logging.debug ("get_config_cp_r8x_api - args"+ "\nf:" +args.config_file +"\ni: "+ args.import_id +"\nm: "+ args.management_name +"\nr: "+ args.rulebase +"\nn: "+ str(args.network_objects) +"\ns: "+ str(args.service_objects) +"\nu: "+ str(args.users) +"\nd: "+ str(args.debug))
+logging.debug ("parse_config - args"+ "\nf:" +args.config_file +"\ni: "+ args.import_id +"\nm: "+ args.management_name +"\nr: "+ args.rulebase +"\nn: "+ str(args.network_objects) +"\ns: "+ str(args.service_objects) +"\nu: "+ str(args.users) +"\nd: "+ str(args.debug))
 
 
 if args.rulebase != '':

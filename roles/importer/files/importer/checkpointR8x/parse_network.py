@@ -59,7 +59,7 @@ def collect_nw_objects(object_table):
                     for member in obj['members']:
                         member_refs += member + list_delimiter
                     member_refs = member_refs[:-1]
-                ip_addr = get_ip_of_obj(obj)
+                ip_addr = common.get_ip_of_obj(obj)
                 obj_type = obj['type']
                 if obj_type == 'address-range':
                     obj_type = 'ip_range'  # TODO: change later?

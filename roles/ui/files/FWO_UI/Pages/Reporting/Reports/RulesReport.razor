@@ -61,6 +61,10 @@
                                 <div>test</div>
                             </DetailTemplate>
 
+                            <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
+                                <td class="bg-light" colspan="13"><div class="font-weight-bold">@(context.SectionHeader)</div></td>
+                            </CustomRow>
+
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
                         </Table>
                     </Collapse>

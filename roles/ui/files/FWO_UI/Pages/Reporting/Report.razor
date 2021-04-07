@@ -117,14 +117,14 @@
             <div class="card-body">
                 <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates">
                     <Column Title="Actions" TableItem="ReportTemplate">
-                        <Template>
+                        <Template Context="template">
                             <div class="btn-group">
-                                <button class="btn btn-sm btn-success" @onclick="() => { filterInput = context.Filter; DeviceFilter.syncFilterLineToLSBFilter(context.Filter, ref managementsOverview); }">Load</button>
+                                <button class="btn btn-sm btn-success" @onclick="() => { filterInput = template.Filter; DeviceFilter.syncFilterLineToLSBFilter(template.Filter, ref managementsOverview); }">Load</button>
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                                @if (context.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == "admin") != null)
+                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == "admin") != null)
                                 {
-                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = context; ShowEditTemplateDialog = true; }">Edit</button>
-                                    <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = context; ShowDeleteTemplateDialog = true; }">Delete</button>
+                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = template; ShowEditTemplateDialog = true; }">Edit</button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">Delete</button>
                                 }
                             </div>
                         </Template>
@@ -462,6 +462,7 @@
         try
         {
             reportTemplateInEdit.CreationDate = DateTime.Now;
+            reportTemplateInEdit.Owner = userConfig.User.DbId;
 
             var queryVariables = new
             {
@@ -469,7 +470,7 @@
                 reportFilterLine = reportTemplateInEdit.Filter,
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
                 reportTemplateComment = reportTemplateInEdit.Comment,
-                reportTemplateOwner = userConfig.User.DbId
+                reportTemplateOwner = reportTemplateInEdit.Owner
             };
 
             reportTemplateInEdit.Id = (await Connection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds[0].NewId;

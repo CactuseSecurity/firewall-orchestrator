@@ -78,6 +78,7 @@
     - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
     - frontend
+    - importer
 
 - hosts: sampleserver
   roles:

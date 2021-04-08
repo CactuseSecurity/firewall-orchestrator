@@ -12,6 +12,3 @@ api_no_metadata: false
 # debug > info > warn > error
 api_HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, websocket-log"
 # api_HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, websocket-log, query-log"
-
-# to move:
-#api_hasura_admin_secret: "st8chelt1er"

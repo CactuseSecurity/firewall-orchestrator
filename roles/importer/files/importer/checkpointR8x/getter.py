@@ -54,7 +54,6 @@ def collect_uids_from_rule(rule, debug_text):
         for src in rule["source"]:
             if src['type'] == 'LegacyUserAtLocation':
                 nw_uids_found.append(src["location"])
-                #print ("Legacy found nw uid: " + src["location"] + ", " + debug_text)
             elif src['type'] == 'access-role':
                 if isinstance(src['networks'], str):  # just a single source
                     if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
@@ -62,13 +61,14 @@ def collect_uids_from_rule(rule, debug_text):
                 else:  # more than one source
                     for nw in src['networks']:
                         nw_uids_found.append(nw)
-            else:  # standard network objects as source
-                #print ("found nw uid (standard, no usr rule): " + src["uid"] + ", " + debug_text)
+            else:  # standard network objects as source, only here we have an uid value
                 nw_uids_found.append(src['uid'])
         for dst in rule["destination"]:
             nw_uids_found.append(dst['uid'])
         for svc in rule["service"]:
             svc_uids_found.append(svc['uid'])
+        logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
+        logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
         return (nw_uids_found, svc_uids_found)
     else: # recurse into rulebase within rule
         return collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
@@ -97,38 +97,6 @@ def collect_uids_from_rulebase(rulebase, debug_text):
     return (nw_uids_found, svc_uids_found)
 
 
-# def collect_uids_from_rulebase(rulebase, debug_text):
-#     logging.debug ("getter - entering collect_uids_from_rulebase" )
-#     nw_uids_found = []
-#     svc_uids_found = []
-#     nw_uids_from_sub_rulebase = []
-#     svc_uids_from_sub_rulebase = []
-
-#     if 'layerchunks' in rulebase:
-#         logging.debug ("getter::collect_uids_from_rulebase found layerchunks " )
-#         for layer_chunk in rulebase['layerchunks']:
-#             logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + "with uid " + layer_chunk['uid'] )
-#             for rule in layer_chunk['rulebase']:
-#                 # logging.debug ("getter::collect_uids_from_rulebase found rule: " + str(rule) )
-#                 (nw_uids_from_sub_rulebase, svc_uids_from_sub_rulebase) = collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
-#                 if (nw_uids_from_sub_rulebase is not None):
-#                     nw_uids_found.extend(nw_uids_from_sub_rulebase)
-#                 if (svc_uids_from_sub_rulebase is not None):
-#                     svc_uids_found.extend(svc_uids_from_sub_rulebase)
-#     else:
-#         for rule in rulebase:
-#             # logging.debug ("getter::collect_uids_from_rulebase found rule: " + str(rule) )
-#             (nw_uids_from_sub_rulebase, svc_uids_from_sub_rulebase) = collect_uids_from_rule(rule, debug_text)
-#             if (nw_uids_from_sub_rulebase is not None):
-#                 nw_uids_found.extend(nw_uids_from_sub_rulebase)
-#             if (svc_uids_from_sub_rulebase is not None):
-#                 svc_uids_found.extend(svc_uids_from_sub_rulebase)
-
-#     logging.debug ("getter::collect_uids_from_rulebase nw_uids_found: " + str(nw_uids_found))
-#     logging.debug ("getter::collect_uids_from_rulebase svc_uids_found: " + str(svc_uids_found))
-#     return (nw_uids_found, svc_uids_found)
-
-
 def get_all_uids_of_a_type(object_table, obj_table_names):
     all_uids = []
 
@@ -152,22 +120,6 @@ def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
             broken_uids.append(uid)
             logging.debug ("getter - found missing uid from obj_tables: " + uid )
     return list(set(broken_uids))
-
-
-# def get_ip_of_obj(obj):
-#     if 'ipv4-address' in obj:
-#         ip_addr = obj['ipv4-address']
-#     elif 'ipv6-address' in obj:
-#         ip_addr = obj['ipv6-address']
-#     elif 'subnet4' in obj:
-#         ip_addr = obj['subnet4'] + '/' + str(obj['mask-length4'])
-#     elif 'subnet6' in obj:
-#         ip_addr = obj['subnet6'] + '/' + str(obj['mask-length6'])
-#     elif 'obj_typ' in obj and obj['obj_typ'] == 'group':
-#         ip_addr = ''
-#     else:
-#         ip_addr = '0.0.0.0/0'
-#     return ip_addr
 
 
 def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string):

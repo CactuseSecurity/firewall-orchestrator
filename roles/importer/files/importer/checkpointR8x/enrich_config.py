@@ -122,7 +122,7 @@ for missing_obj in missing_nw_object_uids:
                         'type': 'CpmiAnyObject', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
             config['object_tables'].append(json_obj)
-        elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain'):
+        elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'interop'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
 
                 "objects": [ {
@@ -131,7 +131,7 @@ for missing_obj in missing_nw_object_uids:
                 } ] } ] }
             config['object_tables'].append(json_obj)
         else:
-            logging.debug ( "WARNING - checkpointR8x/enrich_config - missing nw obj of unexpected type: " + missing_obj )
+            logging.debug ( "WARNING - checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
             #print ("missing nw obj: " + missing_obj)
 
     logging.debug ( "enrich_config - missing nw obj: " + missing_obj )

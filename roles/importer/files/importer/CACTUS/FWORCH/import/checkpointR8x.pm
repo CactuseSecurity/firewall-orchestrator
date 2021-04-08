@@ -208,20 +208,11 @@ sub copy_config_from_mgm_to_iso {
 		$api_port_setting = "-p $api_port"; 
 	}
 
-
-	############### new ##################
-	# $lib_path = "$base_path/checkpointR8x";
-	# $get_config_bin = "$lib_path/get_config.py";
-	# $enrich_config_bin = "$lib_path/enrich_config.py";
-	# $get_cmd = "$python_bin $get_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-	# $enrich_cmd = "$python_bin $enrich_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -c '$cfg_dir/$obj_file_base'";
-
-	############### old ##################
-	$lib_path = $base_path;
-	$get_config_bin = "$lib_path/fworch_get_config_cp_r8x_api.py";
-	$enrich_config_bin = "$lib_path/fworch_get_config_cp_r8x_api.py";
-	$get_cmd = "$python_bin $get_config_bin -m get -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-	$enrich_cmd = "$python_bin $enrich_config_bin -m enrich -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
+	$lib_path = "$base_path/checkpointR8x";
+	$get_config_bin = "$lib_path/get_config.py";
+	$enrich_config_bin = "$lib_path/enrich_config.py";
+	$get_cmd = "$python_bin $get_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
+	$enrich_cmd = "$python_bin $enrich_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -c '$cfg_dir/$obj_file_base'";
 
 	print("getting config with command: $get_cmd\n");
 	$return_code = system($get_cmd); if ( $return_code != 0 ) { $fehler_count++; }

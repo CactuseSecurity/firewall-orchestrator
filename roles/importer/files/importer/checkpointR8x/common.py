@@ -27,7 +27,7 @@ def get_ip_of_obj(obj):
 
 
 # logging config
-debug_level = 1
+debug_level = 0
 
 if debug_level == 1:
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')

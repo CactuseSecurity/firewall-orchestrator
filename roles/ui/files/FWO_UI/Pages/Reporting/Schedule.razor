@@ -8,14 +8,14 @@
 
 <h3>Schedule</h3>
 
-<button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport(); ShowSaveScheduledReportDialog = true; }">Add</button>
+<button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">Add</button>
 
 <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ScheduledReport" Items="scheduledReports">
     <Column TableItem="ScheduledReport" Title="Name" Field="@(scheduledReport => scheduledReport.Name)" />
     <Column TableItem="ScheduledReport" Title="Start Time" Field="@(scheduledReport => scheduledReport.StartTime)" />
     <Column TableItem="ScheduledReport" Title="Repeat Interval" Field="@(scheduledReport => scheduledReport.RepeatOffset)">
         <Template>
-            @(context.RepeatOffset) @(context.RepeatInterval)
+            @(context.RepeatInterval != Interval.Never ? context.RepeatOffset : "") @(context.RepeatInterval)
         </Template>
     </Column>
     <Column TableItem="ScheduledReport" Title="Template" Field="@(scheduledReport => scheduledReport.Template.Name)" />
@@ -61,7 +61,8 @@
                 </div>
                 <div class="col-sm-4">
                     <select class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatInterval">
-                        <option value="@Interval.Days" selected>Day(s)</option>
+                        <option value="@Interval.Never" selected>Never</option>
+                        <option value="@Interval.Days">Day(s)</option>
                         <option value="@Interval.Weeks">Week(s)</option>
                         <option value="@Interval.Months">Month(s)</option>
                         <option value="@Interval.Years">Year(s)</option>

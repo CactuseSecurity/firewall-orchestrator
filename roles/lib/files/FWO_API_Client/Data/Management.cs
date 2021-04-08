@@ -121,7 +121,7 @@ namespace FWO.Api.Data
         public string Host()
         {
             return Hostname + ":" + Port;
-        }
+        }      
     }
 
     public static class ManagementUtility

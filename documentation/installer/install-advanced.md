@@ -71,6 +71,22 @@ cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1" site.yml -K
 
 The initial password will be "fworch.2"
 
+### Parameter "second_ldap_db" to install second ldap database
+
+if you want to install a second ldap database "dc=example,dc=com"
+
+```console
+cd firewall-orchestrator; ansible-playbook -i inventory -e "second_ldap_db=yes" site.yml -K
+```
+
+### Parameter "sample_data_rate" to ramp up sample data
+
+if you want to create sample-data changes every minute set sample_data_rate to high
+
+```console
+cd firewall-orchestrator; ansible-playbook -i inventory -e "sample_data_rate=high" site.yml -K
+```
+
 ## Distributed setup with multiple servers
 
 if you want to distribute functionality to different hosts:

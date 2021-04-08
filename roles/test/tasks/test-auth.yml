@@ -47,6 +47,8 @@
 
 - set_fact: jwt_encoded_payload="{{ sample_jwt.stdout.split('.')[1] }}"
 
+- name: show jwt encoded payload pre padding
+  debug: var=jwt_encoded_payload
 ## adding potentially missing base64 = padding to payload:
 - set_fact: jwt_encoded_payload="{{ jwt_encoded_payload }}=" cacheable=yes
   when: "jwt_encoded_payload|length % 4 > 0"
@@ -55,8 +57,19 @@
     - 2
     - 3
 
+- name: show jwt encoded payload post padding
+  debug: var=jwt_encoded_payload
+
 - set_fact: jwt_payload="{{ jwt_encoded_payload|b64decode }}"
+
+- name: show jwt decoded payload
+  debug: var=jwt_payload
+
 - set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
+  when: "'unique_name' in jwt_payload"
+
+- set_fact: jwt_unique_user_name="{{ jwt_payload.name }}"
+  when: "'name' in jwt_payload"
 
 - name: middleware get jwt check valid creds output user user1_demo
   debug:

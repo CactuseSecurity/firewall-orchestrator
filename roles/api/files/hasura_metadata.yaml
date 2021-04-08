@@ -1028,22 +1028,28 @@ tables:
       - ldap_write_user
       - tenant_id
       - ldap_write_user_pwd
+      - ldap_searchpath_for_groups
+      - ldap_type
+      - ldap_pattern_length
       filter: {}
     role: auditor
   - permission:
       columns:
-      - ldap_connection_id
+      - ldap_tls
+      - ldap_pattern_length
       - ldap_port
+      - ldap_tenant_level
+      - ldap_type
+      - tenant_id
+      - ldap_connection_id
+      - ldap_searchpath_for_groups
+      - ldap_searchpath_for_roles
+      - ldap_searchpath_for_users
       - ldap_search_user
       - ldap_search_user_pwd
-      - ldap_searchpath_for_users
-      - ldap_searchpath_for_roles
       - ldap_server
-      - ldap_tenant_level
-      - ldap_tls
       - ldap_write_user
       - ldap_write_user_pwd
-      - tenant_id
       filter: {}
     role: middleware-server
   table:
@@ -1431,6 +1437,7 @@ tables:
       foreign_key_constraint_on: objgrp_member_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - objgrp_id
       - objgrp_member_id
@@ -1479,6 +1486,7 @@ tables:
       foreign_key_constraint_on: objgrp_flat_member_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - objgrp_flat_id
       - objgrp_flat_member_id
@@ -2410,6 +2418,7 @@ tables:
       foreign_key_constraint_on: rule_to_zone
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - rule_id
       - last_change_admin
@@ -2918,6 +2927,7 @@ tables:
       foreign_key_constraint_on: last_change_admin
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - svc_id
       - svc_uid
@@ -3426,6 +3436,7 @@ tables:
       foreign_key_constraint_on: svcgrp_member_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - svcgrp_id
       - svcgrp_member_id
@@ -3474,6 +3485,7 @@ tables:
       foreign_key_constraint_on: svcgrp_flat_member_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - svcgrp_flat_id
       - svcgrp_flat_member_id
@@ -4056,6 +4068,7 @@ tables:
       foreign_key_constraint_on: usergrp_member_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - usergrp_id
       - usergrp_member_id
@@ -4101,6 +4114,7 @@ tables:
       foreign_key_constraint_on: usergrp_flat_member_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - active
       - usergrp_flat_id
@@ -4212,6 +4226,7 @@ tables:
       foreign_key_constraint_on: last_change_admin
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - user_id
       - usr_typ_id
@@ -4381,6 +4396,7 @@ tables:
       foreign_key_constraint_on: mgm_id
   select_permissions:
   - permission:
+      allow_aggregations: true
       columns:
       - zone_id
       - zone_create

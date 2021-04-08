@@ -1,10 +1,10 @@
 ---
-# installation options: see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
+# installation options: see docs at https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
 - hosts: importers
   tasks:
     - name: stop importer service before making any changes
-      ansible.builtin.systemd:
+      systemd:
         name: "{{ product_name }}-importer"
         state: stopped
       become: yes
@@ -126,7 +126,7 @@
 
 - hosts: testservers
   roles:
-    - { role: webhook, when: install_webhook|bool }
+    - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
   tags:
     - test
     

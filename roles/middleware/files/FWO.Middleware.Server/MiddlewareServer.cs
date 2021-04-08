@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using FWO.ApiClient;
@@ -10,10 +9,6 @@ using FWO.ApiClient.Queries;
 using FWO.Middleware.Server.Requests;
 using FWO.Config;
 using FWO.Logging;
-using FWO.Report;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Threading;
 using FWO.Middleware.Client;
 
 namespace FWO.Middleware.Server
@@ -90,14 +85,22 @@ namespace FWO.Middleware.Server
                 // Add prefixes to listen to 
                 listener.Prefixes.Add(middlewareListenerUri + "CreateInitialJWT/");
                 listener.Prefixes.Add(middlewareListenerUri + "AuthenticateUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "ChangePassword/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetAllRoles/");
+                listener.Prefixes.Add(middlewareListenerUri + "GetGroups/");
+                listener.Prefixes.Add(middlewareListenerUri + "GetInternalGroups/");
                 listener.Prefixes.Add(middlewareListenerUri + "GetUsers/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "UpdateUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "DeleteUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddGroup/");
+                listener.Prefixes.Add(middlewareListenerUri + "UpdateGroup/");
+                listener.Prefixes.Add(middlewareListenerUri + "DeleteGroup/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddUserToRole/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromRole/");
-                listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromAllRoles/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddUserToGroup/");
+                listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromGroup/");
+                listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromAllEntries/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddReportSchedule/");
                 listener.Prefixes.Add(middlewareListenerUri + "EditReportSchedule/");
@@ -208,6 +211,15 @@ namespace FWO.Middleware.Server
                             // first the operations allowed for the admin
                             switch (requestName)
                             {
+                                case "ChangePassword":
+
+                                    // Initialize Request Handler  
+                                    ChangePasswordRequestHandler changePasswordRequestHandler = new ChangePasswordRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to change password for user
+                                    (status, responseString) = await changePasswordRequestHandler.HandleRequestAsync(request);
+                                    break;
+
                                 case "GetAllRoles":
 
                                     // Initialize Request Handler  
@@ -215,6 +227,24 @@ namespace FWO.Middleware.Server
 
                                     // Try to get all roles with users
                                     (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "GetGroups":
+
+                                    // Initialize Request Handler  
+                                    GetGroupsRequestHandler getGroupsRequestHandler = new GetGroupsRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to get all groups from Ldap (with search pattern)
+                                    (status, responseString) = await getGroupsRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "GetInternalGroups":
+
+                                    // Initialize Request Handler  
+                                    GetInternalGroupsRequestHandler getInternalGroupsRequestHandler = new GetInternalGroupsRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to get all groups from internal Ldap
+                                    (status, responseString) = await getInternalGroupsRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 case "GetUsers":
@@ -231,7 +261,7 @@ namespace FWO.Middleware.Server
                                     // Initialize Request Handler  
                                     AddUserRequestHandler addUserRequestHandler = new AddUserRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                    // Try to add user to role
+                                    // Try to add user to Ldap
                                     (status, responseString) = await addUserRequestHandler.HandleRequestAsync(request);
                                     break;
 
@@ -240,7 +270,7 @@ namespace FWO.Middleware.Server
                                     // Initialize Request Handler  
                                     UpdateUserRequestHandler updateUserRequestHandler = new UpdateUserRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                    // Try to add user to role
+                                    // Try to update user in Ldap
                                     (status, responseString) = await updateUserRequestHandler.HandleRequestAsync(request);
                                     break;
 
@@ -249,8 +279,35 @@ namespace FWO.Middleware.Server
                                     // Initialize Request Handler  
                                     DeleteUserRequestHandler deleteUserRequestHandler = new DeleteUserRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                    // Try to add user to role
+                                    // Try to delete user in Ldap
                                     (status, responseString) = await deleteUserRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "AddGroup":
+
+                                    // Initialize Request Handler  
+                                    AddGroupRequestHandler addGroupRequestHandler = new AddGroupRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to add group to Ldap
+                                    (status, responseString) = await addGroupRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "UpdateGroup":
+
+                                    // Initialize Request Handler  
+                                    UpdateGroupRequestHandler updateGroupRequestHandler = new UpdateGroupRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to update group in Ldap
+                                    (status, responseString) = await updateGroupRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "DeleteGroup":
+
+                                    // Initialize Request Handler  
+                                    DeleteGroupRequestHandler deleteGroupRequestHandler = new DeleteGroupRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to delete group in Ldap
+                                    (status, responseString) = await deleteGroupRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 case "AddUserToRole":
@@ -271,6 +328,24 @@ namespace FWO.Middleware.Server
                                     (status, responseString) = await removeUserFromRoleRequestHandler.HandleRequestAsync(request);
                                     break;
 
+                                case "AddUserToGroup":
+
+                                    // Initialize Request Handler  
+                                    AddUserToGroupRequestHandler addUserToGroupRequestHandler = new AddUserToGroupRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to add user to group
+                                    (status, responseString) = await addUserToGroupRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "RemoveUserFromGroup":
+
+                                    // Initialize Request Handler  
+                                    RemoveUserFromGroupRequestHandler removeUserFromGroupRequestHandler = new RemoveUserFromGroupRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to remove user from group
+                                    (status, responseString) = await removeUserFromGroupRequestHandler.HandleRequestAsync(request);
+                                    break;
+
                                 //case "AddLdap":
                                 //    lock (changesLock)
                                 //    {
@@ -281,13 +356,13 @@ namespace FWO.Middleware.Server
                                 //    }
                                 //    break;
 
-                                case "RemoveUserFromAllRoles":
+                                case "RemoveUserFromAllEntries":
 
                                     // Initialize Request Handler  
-                                    RemoveUserFromAllRolesRequestHandler removeUserFromAllRolesRequestHandler = new RemoveUserFromAllRolesRequestHandler(ldapsCopy, apiConnectionCopy);
+                                    RemoveUserFromAllEntriesRequestHandler removeUserFromAllEntriesRequestHandler = new RemoveUserFromAllEntriesRequestHandler(ldapsCopy, apiConnectionCopy);
 
-                                    // Try to remove user from all roles
-                                    (status, responseString) = await removeUserFromAllRolesRequestHandler.HandleRequestAsync(request);
+                                    // Try to remove user from all roles and groups
+                                    (status, responseString) = await removeUserFromAllEntriesRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 // TODO: REMOVE TEST PREFIX
@@ -316,6 +391,24 @@ namespace FWO.Middleware.Server
                                     (status, responseString) = await getAllRolesRequestHandler.HandleRequestAsync(request);
                                     break;
 
+                                case "GetGroups":
+
+                                    // Initialize Request Handler  
+                                    GetGroupsRequestHandler getGroupsRequestHandler = new GetGroupsRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to get all groups from Ldap (with search pattern)
+                                    (status, responseString) = await getGroupsRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "GetInternalGroups":
+
+                                    // Initialize Request Handler  
+                                    GetInternalGroupsRequestHandler getInternalGroupsRequestHandler = new GetInternalGroupsRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to get all groups from internal Ldap
+                                    (status, responseString) = await getInternalGroupsRequestHandler.HandleRequestAsync(request);
+                                    break;
+
                                 case "GetUsers":
 
                                     // Initialize Request Handler  
@@ -323,6 +416,26 @@ namespace FWO.Middleware.Server
 
                                     // Try to get all users from Ldap
                                     (status, responseString) = await getUsersRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                default:
+                                    Log.WriteError("Internal Error", $"We received a request we could not handle: {request.RawUrl}", LogStackTrace: true);
+                                    status = HttpStatusCode.InternalServerError;
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            // read operations allowed also for "normal" users
+                            switch (requestName)
+                            {
+                                case "ChangePassword":
+
+                                    // Initialize Request Handler  
+                                    ChangePasswordRequestHandler changePasswordRequestHandler = new ChangePasswordRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to change password for user
+                                    (status, responseString) = await changePasswordRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 default:

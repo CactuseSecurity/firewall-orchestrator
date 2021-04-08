@@ -70,5 +70,7 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("section_header")]
         public string SectionHeader { get; set; }
+
+        public string DeviceName { get; set; }
     }
 }

@@ -60,6 +60,12 @@
         [Service]
         Environment="HTTP_PROXY={{ http_proxy }}"
 
+  - name: setting proxy in /etc/default/docker for eg debian
+    lineinfile:
+      create: yes
+      path:  /etc/default/docker
+      line: export http_proxy="{{ http_proxy }}"
+
   - name: restart service docker
     service:
       name: docker

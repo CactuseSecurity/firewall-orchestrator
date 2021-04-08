@@ -10,7 +10,7 @@
 ## Installation instructions
 ### Server installation
 
-See [Server installation instructions](blob/master/documentation/installer/server-install.md)
+See [Server installation instructions](documentation/installer/server-install.md)
 If your system lives behind a proxy or you have other specific installation needs like in a distributed installation, see [advanced server installation instructions](documentation/installer/install-advanced.md)
 
 ## Further documentation

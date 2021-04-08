@@ -39,6 +39,7 @@ namespace FWO.Api.Data
 
     public enum Interval
     {
+        Never = 0,
         Days = 2,
         Weeks = 3,
         Months = 4,

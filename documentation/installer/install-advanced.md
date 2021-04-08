@@ -9,7 +9,14 @@ always change into the firewwall-orchestrator directory before starting the inst
 The following switch can be used to set the type of installation to perform
 
 ```console
-ansible-playbook -i inventory -e "installation_mode=upgrade" site.yml -K
+ansible-playbook -e "installation_mode=upgrade" site.yml -K
+```
+
+If you want to drop the database and re-install from scratch, do the following:
+
+```console
+ansible-playbook -e "installation_mode=uninstall" site.yml -K
+ansible-playbook -e "installation_mode=new" site.yml -K
 ```
 
 installation_mode options:
@@ -23,60 +30,14 @@ installation_mode options:
 e.g. with IP 1.2.3.4, listening on port 3128<br>
 
 ```console
-ansible-playbook -i inventory -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
+ansible-playbook -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
-
-### Test - with fixed jwt keys - not for production use
-
-Use the test switch to always use the same fixed jwt generation keys
-
-```console
-ansible-playbook -i inventory/ site.yml -e "testkeys=yes" -K
-```
-
-This helps with debugging c# code in visual studio (code) - you can use a static backend (ldap & api) with these keys.
-
-You need to
-- add the config file and keys once on your local development machine
-- set up an ssh tunnel to the back end machine
-
-        sudo ssh -i /home/tim/.ssh/id_rsa -p 10222 tim@localhost -L 9443:localhost:9443 -L 636:localhost:636
-
-    or to the central test server
-
-        sudo ssh -i /home/tim/.ssh/id_rsa -p 60333 developer@cactus.de -L 9443:localhost:9443 -L 636:localhost:636
-
-### Debugging
-
-Set debug level for extended debugging info during installation.
-
-```console
-ansible-playbook -i inventory/ site.yml -e "debug_level='2'" -K
-```
-### Testing
-
-To only run tests (for an existing installation) use tags as follows:
-
-```console
-ansible-playbook -i inventory/ site.yml --tags test -K
-```
-
 ### Parameter "ui_php" to additionally install old php UI
 
 With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
 
 ```console
-ansible-playbook -i inventory -e "ui_php=1 ui_php_web_port=44310" site.yml -K
-```
-
-### Parameter "clean_install" to start with fresh database
-
-if you want to drop the database and re-install from scratch, simply add the variable clean_install as follows:
-NB: this switch has been removed in favor of the "cleaner" method:
-
-```console
-ansible-playbook -i inventory -e "installation_mode=uninstall" site.yml -K
-ansible-playbook -i inventory -e "installation_mode=new" site.yml -K
+ansible-playbook -e "ui_php=1 ui_php_web_port=44310" site.yml -K
 ```
 
 ### Parameter "api_no_metadata" to prevent meta data import
@@ -84,23 +45,7 @@ ansible-playbook -i inventory -e "installation_mode=new" site.yml -K
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::
 
 ```console
-ansible-playbook -i inventory -e "api_no_metadata=yes" site.yml -K
-```
-
-### Parameter "without_sample_data" to not create sample data (i.e. in production)
-
-The following command prevents the creation of sample data in the database:
-
-```console
-ansible-playbook -i inventory -e "without_sample_data=yes" site.yml -K
-```
-
-### Parameter "connect_sting" to add Cactus test firewall CP R8x
-
-The following command adds the sting test firewall to your fw orch system (needs VPN tunnel to Cactus)
-
-```console
-ansible-playbook -i inventory -e "connect_sting=yes" site.yml -K
+ansible-playbook -e "api_no_metadata=yes" site.yml -K
 ```
 
 ### Parameter "api_docu" to install API documentation
@@ -111,7 +56,7 @@ Generating a full hasura (all tables, etc. tracked) API documentation  currently
 - 4 minutes to generate
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "api_docu=yes" site.yml -K
+cd firewall-orchestrator; ansible-playbook -e "api_docu=yes" site.yml -K
 ```
 
 api docu can then be accessed at <https://server/api_schema/index.html>
@@ -121,7 +66,7 @@ api docu can then be accessed at <https://server/api_schema/index.html>
 if you want to have an extra read-only audit-user called e.g. auditor1, use the following switch:
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "audit_user=auditor1" site.yml -K
+cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1" site.yml -K
 ```
 
 The initial password will be "fworch.2"
@@ -141,7 +86,6 @@ if you want to create sample-data changes every minute set sample_data_rate to h
 ```console
 cd firewall-orchestrator; ansible-playbook -i inventory -e "sample_data_rate=high" site.yml -K
 ```
-
 
 ## Distributed setup with multiple servers
 

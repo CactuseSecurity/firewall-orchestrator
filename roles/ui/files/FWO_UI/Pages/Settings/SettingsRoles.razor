@@ -34,7 +34,7 @@
         </Column>
         <Column TableItem="Role" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="Role" Title="Description" Field="@(x => x.Description)" Sortable="true" Filterable="true" />
-        <Column TableItem="Role" Title="Users" Field="@(x => x.Users)" Sortable="false" Filterable="false">
+        <Column TableItem="Role" Title="Users/Groups" Field="@(x => x.Users)" Sortable="false" Filterable="false">
             <Template>
                 @(context.UserList())
             </Template>
@@ -49,7 +49,7 @@
             <form>
                 <form class="form-inline">
                     <label for="ldapUser" class="col-sm-2 col-form-label col-form-label-sm">from Ldap:</label>
-                    <div class="col-sm-8">
+                    <div class="col-sm-3">
                         <select id="ldapUser" class="form-control form-control-sm" @bind="selectedLdapId">
                             @foreach (UiLdapConnection ldap in connectedLdaps)
                             {
@@ -57,12 +57,16 @@
                             }
                         </select>
                     </div>
+                    <label for="searchpattern" class="col-sm-2 col-form-label col-form-label-sm">Search Pattern:</label>
+                    <div class="col-sm-3">
+                        <input id="searchpattern" type="text" class="form-control form-control-sm" @bind="searchPattern" />
+                    </div>
                     <button class="btn btn-sm btn-success" @onclick="async() => await SearchUser(selectedLdapId)" @onclick:preventDefault>Search</button>
                 </form>
                 <form class="form-inline">
                     <label for="roleUser" class="col-sm-2 col-form-label col-form-label-sm">Active User:</label>
                     <div class="col-sm-8">
-                        <select id="roleUser" class="form-control form-control-sm" @bind="selectedUserDn">
+                        <select id="roleUser" class="form-control form-control-sm" @bind="selectedUiUser">
                             @foreach (UiUser user in uiUsers)
                             {
                                 <option value="@user.Dn">@(user.Dn)</option>
@@ -70,7 +74,7 @@
                         </select>
                     </div>
                     <AuthorizeView Roles="admin">
-                        <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUserDn)" @onclick:preventDefault>Add</button>
+                        <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>Add</button>
                     </AuthorizeView>
                 </form>
                 <form class="form-inline">
@@ -100,7 +104,7 @@
                 <div class="form-group row">
                     <label for="roleUserdel" class="col-sm-3 col-form-label col-form-label-sm">User:</label>
                     <div class="col-sm-8">
-                        <select id="roleUserdel" class="form-control form-control-sm" @bind="selectedUserDn">
+                        <select id="roleUserdel" class="form-control form-control-sm" @bind="selectedUserToDelete">
                             @foreach (UiUser user in actRole.Users)
                             {
                                 <option value="@user.Dn">@(user.Dn)</option>
@@ -114,37 +118,51 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserDn)" @onclick:preventDefault>Delete</button>
+                <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserToDelete)" @onclick:preventDefault>Delete</button>
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="@($"Get user from ldap {selectedLdap.Host()}")" Show="@SearchMode" OnClose="() => SearchMode = false">
+<PopUp Title="@($"Get user from ldap {selectedLdap.Host()}")" Show="@SearchMode" Large="true" OnClose="() => SearchMode = false">
     <Body>
         @if (SearchMode)
         {
             <form>
                 <div class="form-group row">
-                    <label for="roleUsersearch" class="col-sm-3 col-form-label col-form-label-sm">User:</label>
+                    <label for="roleUsersearch" class="col-sm-2 col-form-label col-form-label-sm">User:</label>
                     <div class="col-sm-8">
-                        <select id="roleUsersearch" class="form-control form-control-sm" @bind="selectedUserDn">
+                        <select id="roleUsersearch" class="form-control form-control-sm" @bind="selectedLdapUser">
                             @foreach (UiUser user in ldapUsers)
                             {
                                 <option value="@user.Dn">@(user.Dn)</option>
                             }
                         </select>
                     </div>
+                    <AuthorizeView Roles="admin">
+                        <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedLdapUser)" @onclick:preventDefault>Add</button>
+                    </AuthorizeView>
+                </div>
+                <div class="form-group row">
+                    <label for="roleGroupsearch" class="col-sm-2 col-form-label col-form-label-sm">Group:</label>
+                    <div class="col-sm-8">
+                        <select id="roleGroupsearch" class="form-control form-control-sm" @bind="selectedGroup">
+                            @foreach (string group in groupList)
+                            {
+                                <option value="@group">@(group)</option>
+                            }
+                        </select>
+                    </div>
+                    <AuthorizeView Roles="admin">
+                        <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap(selectedGroup)" @onclick:preventDefault>Add</button>
+                    </AuthorizeView>
                 </div>
             </form>
         }
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedUserDn)" @onclick:preventDefault>Add</button>
-            </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="CancelSearch">Cancel</button>
         </div>
     </Footer>
@@ -158,12 +176,17 @@
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
+    private List<string> groupList = new List<string>();
 
     private string newUserDn;
     private UiLdapConnection selectedLdap = new UiLdapConnection();
-    private string selectedUserDn;
+    private string selectedUiUser;
+    private string selectedLdapUser;
+    private string selectedUserToDelete;
+    private string selectedGroup;
     private int selectedLdapId;
-
+    private string searchPattern = "";
+    
     private Role actRole = new Role();
 
     private bool AddMode = false;
@@ -230,43 +253,69 @@
     {
         AddMode = true;
         actRole = role;
+        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.FirstOrDefault().Dn);
+        selectedLdapId = connectedLdaps.FirstOrDefault().Id;
     }
 
     private void Delete(Role role)
     {
         DeleteMode = true;
         actRole = role;
+        selectedUserToDelete = (actRole.Users.Count == 0 ? "" : actRole.Users.FirstOrDefault().Dn);
     }
 
     private async Task SearchUser(int ldapId)
     {
         selectedLdap = connectedLdaps.Find(x => x.Id == ldapId);
 
-        // get users from Ldap
-
-        try
+        if(searchPattern.Length < selectedLdap.PatternLength)
         {
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(selectedLdap.Address, userConfig.User.Jwt);
-            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            DisplayMessageInUi(null, "Search LDAP Users", $"please use pattern of min length {selectedLdap.PatternLength}", true);
+        }
+        else
+        {
+            // get users and groups from Ldap
+            try
             {
-                DisplayMessageInUi(null, "Fetch LDAP Users", "no users frond", true);
-            }
-            else
-            {
-                foreach (var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+                ldapUsers.Clear();
+                groupList.Clear();
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(selectedLdap.Address, searchPattern, userConfig.User.Jwt);
+                if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
                 {
-                    UiUser newUser = new UiUser() { Dn = user.Key, Name = (new DistName(user.Key)).UserName };
-                    ldapUsers.Add(newUser);
+                    DisplayMessageInUi(null, "Fetch LDAP Users", "no users found", true);
+                }
+                else
+                {
+                    foreach (var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+                    {
+                        UiUser newUser = new UiUser() { Dn = user.Key, Name = (new DistName(user.Key)).UserName };
+                        ldapUsers.Add(newUser);
+                    }
+                }
+
+                if(selectedLdap.GroupSearchPath != null && selectedLdap.GroupSearchPath != "")
+                {
+                    apiAuthResponse = await middlewareClient.GetGroups(selectedLdap.Address, searchPattern, userConfig.User.Jwt);
+                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                    {
+                        DisplayMessageInUi(null, "Fetch LDAP groups", "no groups found", true);
+                    }
+                    else
+                    {
+                        groupList = apiAuthResponse.GetResult<List<string>>("allGroups");
+                    }
                 }
             }
-        }
-        catch (System.Exception)
-        {
-            DisplayMessageInUi(null, "Fetch LDAP Users", "Unexpected error while fetching LDAP users.", true);
-        }
+            catch (System.Exception)
+            {
+                DisplayMessageInUi(null, "Fetch LDAP Users", "Unexpected error while fetching LDAP users and groups.", true);
+            }
 
-        SearchMode = true;
-        AddMode = false;
+            selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.FirstOrDefault().Dn);
+            selectedGroup = (groupList.Count == 0 ? "" : groupList.FirstOrDefault());
+            SearchMode = true;
+            AddMode = false;
+        }
     }
 
     private async Task NewUser(string userDn)
@@ -274,7 +323,7 @@
         if ((userDn == null) || (userDn.Length < 5))
         {
             // todo: more checks?
-            DisplayMessageInUi(null, "New user", "please define a proper user", false);
+            DisplayMessageInUi(null, "New user", "please define a proper user", true);
         }
         else
         {
@@ -295,20 +344,24 @@
         await AddUser(selectedUser);
     }
 
+    private async Task AddGroupFromLdap(string groupDn)
+    {
+        await AddUser(new UiUser(){ Dn = groupDn , Name = (new DistName(groupDn)).Group});
+    }
+
     private async Task AddUser(UiUser user)
     {
         if (user == null)
         {
-            DisplayMessageInUi(null, "Add user", "please select a user", false);
+            DisplayMessageInUi(null, "Add user", "please select a user", true);
         }
         else if (actRole.Users.Contains(user))
         {
-            DisplayMessageInUi(null, "Add user", "user is already assigned to this role", false);
+            DisplayMessageInUi(null, "Add user", "user is already assigned to this role", true);
         }
         else
         {
             // add user in LDAP
-
             try
             {
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUserToRole(user.Dn, actRole.Dn, userConfig.User.Jwt);
@@ -328,7 +381,6 @@
             {
                 DisplayMessageInUi(exception, "Add user", "Unexpected error occured", true);
             }
-
         }
     }
 
@@ -339,7 +391,7 @@
         {
             if (actRole.Name == "admin" && actRole.Users.Count < 2)
             {
-                DisplayMessageInUi(null, "Delete user", "last admin user can't be deleted", false);
+                DisplayMessageInUi(null, "Delete user", "last admin user can't be deleted", true);
             }
             else
             {
@@ -349,7 +401,7 @@
                     MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromRole(userDn, actRole.Dn, userConfig.User.Jwt);
                     if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
                     {
-                        DisplayMessageInUi(null, "Delete user", "user could not be removed from any role in ldaps", false);
+                        DisplayMessageInUi(null, "Delete user", "user could not be removed from any role in ldaps", true);
                     }
                     else
                     {

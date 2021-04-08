@@ -1,0 +1,480 @@
+﻿@using BlazorTable
+@using System.Net
+@using FWO.Api.Data
+@using FWO.ApiClient
+@using FWO.Middleware.Client
+@using FWO.ApiConfig
+
+@page "/settings/groups"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject APIConnection apiConnection
+@inject MiddlewareClient middlewareClient
+@inject UserConfig userConfig
+
+<h3 class="m-2">Groups</h3>
+<hr />
+
+<div class="form-group row">
+    <button class="btn btn-success m-2" @onclick="NewGroup">Add New Group</button>
+    @if (showSampleRemoveButton)
+    {
+        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">Remove Sample Data</button>
+    }
+</div>
+
+<div class="m-2">
+    <Table class="table table-bordered table-responsive" TableItem="UserGroup" Items="groups" PageSize="0" ColumnReorder="true">
+        <Column TableItem="UserGroup" Title="Group Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-warning" @onclick="() => EditGroup(context)">Edit Group</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteGroup(context)">Delete Group</button>
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="UserGroup" Title="User Action" Field="(x => x.Name)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => AddUser(context)">Add User</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(context)">Delete User</button>
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="UserGroup" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UserGroup" Title="Users" Field="@(x => x.Users)" Sortable="false" Filterable="false">
+            <Template>
+                @(context.UserList())
+            </Template>
+        </Column>
+    </Table>
+</div>
+
+<PopUp Title="Edit Group" Show="@EditGroupMode" OnClose="() => EditGroupMode = false">
+    <Body>
+        @if (EditGroupMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="groupName" class="col-sm-2 col-form-label col-form-label-sm">Name*:</label>
+                    <input id="groupName" type="text" class="form-control form-control-sm col-sm-6" @bind="newGroupName" />
+                </div>
+           </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-primary" @onclick="() => Save()">Save</button>
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="Delete Group" Show="@DeleteGroupMode" OnClose="() => DeleteGroupMode = false">
+    <Body>
+        @if (DeleteGroupMode)
+        {
+            <p>@(deleteGroupMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (DeleteGroupAllowed)
+            {
+                <AuthorizeView Roles="admin">
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteGroup()">Delete</button>
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@($"Add user to group {actGroup.Name}")" Show="@AddUserMode" Large="true" OnClose="() => AddUserMode = false">
+    <Body>
+        @if (AddUserMode)
+        {
+            <form>
+                <form class="form-inline">
+                    <label for="groupUser" class="col-sm-2 col-form-label col-form-label-sm">Active User:</label>
+                    <div class="col-sm-8">
+                        <select id="groupUser" class="form-control form-control-sm" @bind="selectedUiUser">
+                            @foreach (UiUser user in uiUsers)
+                            {
+                                <option value="@user.Dn">@(user.Dn)</option>
+                            }
+                        </select>
+                    </div>
+                    <AuthorizeView Roles="admin">
+                        <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>Add</button>
+                    </AuthorizeView>
+                </form>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@($"Delete user from group {actGroup.Name}")" Show="@DeleteUserMode" OnClose="() => DeleteUserMode = false">
+    <Body>
+        @if (DeleteUserMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="groupUserdel" class="col-sm-3 col-form-label col-form-label-sm">User:</label>
+                    <div class="col-sm-8">
+                        <select id="groupUserdel" class="form-control form-control-sm" @bind="selectedUserToDelete">
+                            @foreach (UiUser user in actGroup.Users)
+                            {
+                                <option value="@user.Dn">@(user.Dn)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserToDelete)" @onclick:preventDefault>Delete</button>
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="Remove Sample Data" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
+    <Body>
+        @if (SampleRemoveMode)
+        {
+            <p>@(sampleRemoveMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            @if (SampleRemoveAllowed)
+            {
+                <AuthorizeView Roles="admin">
+                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">Delete</button>
+                </AuthorizeView>
+            }
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    private List<UserGroup> groups = new List<UserGroup>();
+    private List<UserGroup> sampleGroups = new List<UserGroup>();
+    private List<UiUser> uiUsers = new List<UiUser>();
+
+    private string selectedUiUser;
+    private string selectedUserToDelete;
+    private bool showSampleRemoveButton = false;
+
+    private UserGroup actGroup = new UserGroup();
+    private string newGroupName = "";
+
+    private bool AddGroupMode = false;
+    private bool EditGroupMode = false;
+    private bool DeleteGroupMode = false;
+    private bool AddUserMode = false;
+    private bool DeleteUserMode = false;
+    private bool SampleRemoveMode = false;
+
+    private bool SampleRemoveAllowed = false;
+    private bool DeleteGroupAllowed = false;
+
+    private string sampleRemoveMessage = "";
+    private string deleteGroupMessage = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        // get groups from internal LDAP
+        try
+        {
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetInternalGroups(userConfig.User.Jwt);
+            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            {
+                DisplayMessageInUi(null, "Fetch LDAP groups", "no groups found", true);
+            }
+            else
+            {
+                foreach (var ldapUserGroup in apiAuthResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allGroups"))
+                {
+                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
+                    foreach (var userDn in ldapUserGroup.Value)
+                    {
+                        UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
+                        group.Users.Add(newUser);
+                    }
+                    groups.Add(group);
+                }
+            }
+        }
+        catch (System.Exception)
+        {
+            DisplayMessageInUi(null, "Fetch LDAP Groups", "Unexpected error while fetching LDAP groups.", true);
+        }
+        
+        CollectSampleGroups();
+
+        try
+        {
+            uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
+            uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, "Fetch Users from API", "Unexpected error while fetching UI users from API", true);
+        }
+    }
+
+    private void CollectSampleGroups()
+    {
+        sampleGroups = new List<UserGroup>();
+        foreach (var group in groups)
+        {
+            if (group.Name.EndsWith("_demo"))
+            {
+                sampleGroups.Add(group);
+            }
+        }
+        showSampleRemoveButton = (sampleGroups.Count > 0);
+    }
+
+    private void NewGroup()
+    {
+        EditGroup(new UserGroup());
+        AddGroupMode = true;
+    }
+
+    private void EditGroup(UserGroup group)
+    {
+        actGroup = group;
+        newGroupName = actGroup.Name;
+        EditGroupMode = true;
+    }
+
+    private async Task Save()
+    {
+        EditGroupMode = false;
+        try
+        {
+            if (AddGroupMode)
+            {
+                if (newGroupName == null || newGroupName == "")
+                {
+                    DisplayMessageInUi(null, "Add Group Error", "Name has to be filled", true);
+                }
+                else if(groups.Exists(x => x.Name == newGroupName))
+                {
+                    DisplayMessageInUi(null, "Add Group Error", "Name is already existing", true);
+                }
+                else
+                {
+                    // insert new group to ldap
+                    MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddGroup(newGroupName, userConfig.User.Jwt);
+                    actGroup.Dn = apiAuthResponse.GetResult<string>("groupAdded");
+                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest || actGroup.Dn == "")
+                    {
+                        DisplayMessageInUi(null, "Add Group Error", "No group could be added", true);
+                    }
+                    else
+                    {
+                        actGroup.Name = newGroupName;
+                        groups.Add(actGroup);
+                        AddGroupMode = false;
+                        EditGroupMode = false;
+                    }
+                }
+            }
+            else
+            {
+                // Update existing group in ldap --> currently only name
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateGroup(actGroup.Name, newGroupName, userConfig.User.Jwt);
+                string newDn = apiAuthResponse.GetResult<string>("groupUpdated");
+                if (apiAuthResponse.Status == HttpStatusCode.BadRequest || newDn == "")
+                {
+                    DisplayMessageInUi(null, "Add Group Error", "Group could not be updated", true);
+                }
+                else
+                {
+                    int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
+                    groups[changedGroup].Dn = newDn;
+                    groups[changedGroup].Name = newGroupName;
+                    EditGroupMode = false;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Save Group in Ldap", $"Error: {exception.Message}", true);
+        }
+    }
+
+    private void RequestDeleteGroup(UserGroup group)
+    {
+        actGroup = group;
+        if (actGroup.Users.Count > 0)
+        {
+            deleteGroupMessage = $"Deletion of group {actGroup.Name} not allowed as there are still users assigned.";
+            DeleteGroupAllowed = false;
+        }
+        else
+        {
+            deleteGroupMessage = $"Are you sure you want to delete group {actGroup.Name}?";
+            DeleteGroupAllowed = true;
+        }
+        DeleteGroupMode = true;
+    }
+
+    private async Task DeleteGroup()
+    {
+        try
+        {
+            // delete group from Ldap
+            MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteGroup(actGroup.Name, userConfig.User.Jwt);
+            if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("groupDeleted") == false)
+            {
+                DisplayMessageInUi(null, "Delete LDAP group", "Group could not be deleted", true);
+            }
+            else
+            {
+                groups.Remove(actGroup);
+                DeleteGroupMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Delete LDAP group", $"Group could not be deleted: {exception}", true);
+        }
+    }
+
+    private void AddUser(UserGroup group)
+    {
+        AddUserMode = true;
+        actGroup = group;
+        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.FirstOrDefault().Dn);
+    }
+
+    private void DeleteUser(UserGroup group)
+    {
+        DeleteUserMode = true;
+        actGroup = group;
+        selectedUserToDelete = (actGroup.Users.Count == 0 ? "" : actGroup.Users.FirstOrDefault().Dn);
+    }
+
+    private async Task AddUserFromUiUsers(string userDn)
+    {
+        UiUser user = uiUsers.Find(x => x.Dn == userDn);
+        if (user == null)
+        {
+            DisplayMessageInUi(null, "Add user", "please select a user", true);
+        }
+        else if (actGroup.Users.Contains(user))
+        {
+            DisplayMessageInUi(null, "Add user", "user is already assigned to this group", true);
+        }
+        else
+        {
+            // add user in LDAP
+            try
+            {
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUserToGroup(user.Dn, actGroup.Dn, userConfig.User.Jwt);
+                if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userAdded") == false))
+                {
+                    DisplayMessageInUi(null, "Add user", "user could not be added to group in ldap", true);
+                }
+                else
+                {
+                    actGroup.Users.Add(user);
+                    groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
+                    AddUserMode = false;
+                }
+            }
+            catch (System.Exception exception)
+            {
+                DisplayMessageInUi(exception, "Add user", "Unexpected error occured", true);
+            }
+        }
+    }
+
+    private async Task DeleteUser(string userDn)
+    {
+        var itemToRemove = actGroup.Users.Find(x => x.Dn == userDn);
+        if (itemToRemove != null)
+        {
+            // delete user in LDAP
+            try
+            {
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromGroup(userDn, actGroup.Dn, userConfig.User.Jwt);
+                if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
+                {
+                    DisplayMessageInUi(null, "Delete user", "user could not be removed from any group in ldaps", true);
+                }
+                else
+                {
+                    actGroup.Users.Remove(itemToRemove);
+                    groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
+                    DeleteUserMode = false;
+                }
+            }
+            catch (System.Exception exception)
+            {
+                DisplayMessageInUi(exception, "Delete user", "Unexpected error occured", true);
+            }
+        }
+        else
+        {
+            DisplayMessageInUi(null, "Delete user", "user to delete not found", true);
+        }
+    }
+
+    private void RequestRemoveSampleData()
+    {
+        if (sampleGroups.Exists(group => (group.Users.Exists(user => !user.Name.EndsWith("_demo")))))
+        {
+            sampleRemoveMessage = $"Non-sample user assigned to group. Delete not possible.";
+            SampleRemoveAllowed = false;
+        }
+        else
+        {
+            sampleRemoveMessage = $"Deletes all sample groups (ending with '_demo') in local LDAP.";
+            SampleRemoveAllowed = true;
+        }
+        SampleRemoveMode = true;
+    }
+
+    private async Task RemoveSampleData()
+    {
+        showSampleRemoveButton = false;
+        foreach (var group in sampleGroups)
+        {
+            actGroup = group;
+            await DeleteGroup();
+        }
+        SampleRemoveMode = false;
+    }
+
+    private void Cancel()
+    {
+        AddGroupMode = false;
+        EditGroupMode = false;
+        DeleteGroupMode = false;
+        AddUserMode = false;
+        DeleteUserMode = false;
+        SampleRemoveMode = false;
+    }
+}

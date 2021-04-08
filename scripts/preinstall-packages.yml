@@ -14,7 +14,7 @@
         - git
         - ansible
         - rsyslog
-        - "{{ web_server_name }}"
+        - "{{ webserver_package_name }}"
         - gnupg2
         - apt-transport-https
         - ca-certificates 

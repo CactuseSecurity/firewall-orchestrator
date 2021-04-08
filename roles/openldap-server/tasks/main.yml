@@ -164,10 +164,10 @@
       src: override.conf.j2
       dest: /etc/systemd/system/slapd.service.d/override.conf
 
-  - name: Create runtime directory at start
-    template:
-      src: override2.conf.j2
-      dest: /etc/systemd/system/slapd.service.d/override2.conf
+#  - name: Create runtime directory at start
+#    template:
+#      src: override2.conf.j2
+#      dest: /etc/systemd/system/slapd.service.d/override2.conf
 
   - name: Start the slapd service
     systemd:

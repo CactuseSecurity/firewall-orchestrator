@@ -69,8 +69,8 @@ namespace FWO.Middleware.Server
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             ClaimsIdentity subject = new ClaimsIdentity();
             subject.AddClaim(new Claim("unique_name", "middleware-server"));
-            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { /*"admin"*/"middleware-server" }), JsonClaimValueTypes.JsonArray));
-            subject.AddClaim(new Claim("x-hasura-default-role", /*"admin"*/"middleware-server"));
+            subject.AddClaim(new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(new string[] { "middleware-server" }), JsonClaimValueTypes.JsonArray));
+            subject.AddClaim(new Claim("x-hasura-default-role", "middleware-server"));
 
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (

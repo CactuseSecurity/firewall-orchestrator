@@ -18,6 +18,8 @@ namespace FWO.Report
 {
     public class ReportRules : ReportBase
     {
+        private const int ColumnCount = 10;
+
         public override async Task Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
@@ -110,18 +112,27 @@ namespace FWO.Report
 
                     foreach (Rule rule in device.Rules)
                     {
-                        report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{rule.DisplayNumber(device.Rules)}</td>");
-                        report.AppendLine($"<td>{rule.DisplayName()}</td>");
-                        report.AppendLine($"<td>{rule.DisplaySource()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayDestination()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayService()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayAction()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayTrack()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayDisabled()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayUid()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayComment()}</td>");
-                        report.AppendLine("</tr>");
+                        if (string.IsNullOrEmpty(rule.SectionHeader))
+                        {
+                            report.AppendLine("<tr>");
+                            report.AppendLine($"<td>{rule.DisplayNumber(device.Rules)}</td>");
+                            report.AppendLine($"<td>{rule.DisplayName()}</td>");
+                            report.AppendLine($"<td>{rule.DisplaySource()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayDestination()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayService()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayAction()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayTrack()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayDisabled()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayUid()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayComment()}</td>");
+                            report.AppendLine("</tr>");
+                        }
+                        else
+                        {
+                            report.AppendLine("<tr>");
+                            report.AppendLine($"<td style=\"background-color: #f0f0f0;\" colspan=\"{ColumnCount}\">{rule.SectionHeader}</td>");
+                            report.AppendLine("</tr>");
+                        }
                     }
 
                     report.AppendLine("</table>");

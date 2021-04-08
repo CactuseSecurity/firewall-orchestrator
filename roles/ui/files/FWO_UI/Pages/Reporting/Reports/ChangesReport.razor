@@ -12,7 +12,7 @@
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRuleChanges"
-                               RowClickAction="rule => { rule.DeviceName = device.Name; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); StateHasChanged(); }"
+                               RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); OnSelectedRulesChange(SelectedRuleChanges); }"
                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
                                PageSize="RulesPerPage" ColumnReorder="true">
 
@@ -93,6 +93,9 @@
 
 @code
 {
+    [Parameter]
+    public Action<List<RuleChange>> OnSelectedRulesChange { get; set; }
+
     [Parameter]
     public List<RuleChange> SelectedRuleChanges { get; set; }
 

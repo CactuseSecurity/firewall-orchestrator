@@ -5,7 +5,7 @@
 @inject APIConnection apiConnection
 
 <div class="mr-1 ml-1 mb-1 shadow">
-    <Collapse Title="Templates" Style="@("primary")">
+    <Collapse Title="Templates" Style="@("primary")" @ref="collapseControl">
         <div class="card-body">
             <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates">
                 <Column Title="Actions" TableItem="ReportTemplate">
@@ -88,9 +88,11 @@
     public List<ReportTemplate> reportTemplates { get; set; }
     public ReportTemplate reportTemplateInEdit = null;
 
-    bool ShowSaveTemplateDialog = false;
-    bool ShowEditTemplateDialog = false;
-    bool ShowDeleteTemplateDialog = false;
+    private bool ShowSaveTemplateDialog = false;
+    private bool ShowEditTemplateDialog = false;
+    private bool ShowDeleteTemplateDialog = false;
+
+    private Collapse collapseControl;
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,6 +105,11 @@
         {
             DisplayMessageInUi(exception, "Report Template Fetch", "Error while fetching report templates from API", true);
         }
+    }
+
+    public void Collapse()
+    {
+        collapseControl.ForceCollapse(false);
     }
 
     public void NewTemplate(string filterInput)

@@ -48,7 +48,6 @@ namespace FWO.Middleware.Server
             // Create Http Listener
             listener = new HttpListener();
 
-
             // Handle timeouts
             //HttpListenerTimeoutManager timeoutManager = listener.TimeoutManager;
             //timeoutManager.IdleConnection = TimeSpan.FromSeconds(10);

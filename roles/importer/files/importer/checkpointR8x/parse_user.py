@@ -1,5 +1,5 @@
-import argparse
-import json
+#import argparse
+#import json
 import re
 import logging
 
@@ -10,9 +10,8 @@ found_rulebase = False
 section_header_uids=[]
 
 
-def csv_dump_user(user_name):
-    user_dict = users[user_name]
-    user_line = '"' + args.import_id + '"' + csv_delimiter
+def csv_dump_user(user_name, user_dict, import_id):
+    user_line = '"' + import_id + '"' + csv_delimiter
     user_line += '"' + user_name + '"' + csv_delimiter
     user_line += '"' + user_dict['user_type'] + '"' + csv_delimiter  # user_typ
     user_line += csv_delimiter  # user_member_names

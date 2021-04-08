@@ -58,7 +58,7 @@ if args.rulebase != '':
         current_layer_name = rulebase['layername']
         if current_layer_name == args.rulebase:
             found_rulebase = True
-            result = parse_rule.csv_dump_rules(rulebase, args.rulebase, rule_num=1, header_uids=[], number_of_section_headers_so_far=0)
+            result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=1, header_uids=[], number_of_section_headers_so_far=0)
 
 if args.network_objects:
     result = ''
@@ -90,7 +90,8 @@ if args.users:
     for rulebase in config['rulebases']:
         parse_user.collect_users_from_rulebase(rulebase)
     for user in users.keys():
-        result += parse_user.csv_dump_user(user)
+        user_dict = users[user_name]
+        result += parse_user.csv_dump_user(user, user_dict, args.import_id)
 
 if args.rulebase != '' and not found_rulebase:
     print("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")

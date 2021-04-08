@@ -123,7 +123,7 @@ namespace FWO.Report.Filter
         /// <summary>
         /// clears current dev filter from left side bar and sets it to device & management filters from filter line
         /// </summary>
-        public static void syncFilterLineToLSBFilter(string currentFilterLine, ref Management[] LSBFilter)
+        public static void syncFilterLineToLSBFilter(string currentFilterLine, Management[] LSBFilter)
         {
             List<string> filteredGatewayList = new List<string>();
             List<string> gatewayList = new List<string>();

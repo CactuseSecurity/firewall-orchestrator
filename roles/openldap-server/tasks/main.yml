@@ -168,25 +168,15 @@
       path: /etc/systemd/system/slapd.service.d
       recurse: yes
 
-  - name: Start the slapd service
-    systemd:
-      name: slapd
-      state: stopped
-
   - name: Enable TLS for slapd service
     template:
       src: override.conf.j2
       dest: /etc/systemd/system/slapd.service.d/override.conf
 
-#  - name: Create runtime directory at start
-#    template:
-#      src: override2.conf.j2
-#      dest: /etc/systemd/system/slapd.service.d/override2.conf
-
   - name: Start the slapd service
     systemd:
       name: slapd
-      state: started
+      state: restarted
       enabled: yes
       daemon_reload: yes
 

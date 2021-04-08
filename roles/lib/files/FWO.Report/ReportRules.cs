@@ -100,7 +100,9 @@ namespace FWO.Report
                     report.AppendLine("<tr>");
                     report.AppendLine("<th>Number</th>");
                     report.AppendLine("<th>Name</th>");
+                    report.AppendLine("<th>Source Zone</th>");
                     report.AppendLine("<th>Source</th>");
+                    report.AppendLine("<th>Destination Zone</th>");
                     report.AppendLine("<th>Destination</th>");
                     report.AppendLine("<th>Services</th>");
                     report.AppendLine("<th>Action</th>");
@@ -117,7 +119,9 @@ namespace FWO.Report
                             report.AppendLine("<tr>");
                             report.AppendLine($"<td>{rule.DisplayNumber(device.Rules)}</td>");
                             report.AppendLine($"<td>{rule.DisplayName()}</td>");
+                            report.AppendLine($"<td>{rule.DisplaySourceZone()}</td>");
                             report.AppendLine($"<td>{rule.DisplaySource()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayDestinationZone()}</td>");
                             report.AppendLine($"<td>{rule.DisplayDestination()}</td>");
                             report.AppendLine($"<td>{rule.DisplayService()}</td>");
                             report.AppendLine($"<td>{rule.DisplayAction()}</td>");

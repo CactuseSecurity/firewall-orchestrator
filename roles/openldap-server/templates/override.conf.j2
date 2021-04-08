@@ -2,3 +2,13 @@
 ExecStart=
 #ExecStart=/usr/bin/echo $RANDOM > /run/slapd/slapd.pid
 ExecStart=/usr/sbin/slapd -u {{ openldap_server_user }} -g {{ openldap_server_user }} -h "ldap://127.0.0.1 ldaps:///"
+# Apache2 settings that might help
+Restart=on-abort
+#GuessMainPID=yes
+MainPID=5975
+ExecMainPID=5975
+#PrivateTmp=yes
+#IgnoreSIGPIPE=yes
+KillMode=control-group
+#RequiresMountsFor=/var/tmp /tmp
+#CanReload=yes

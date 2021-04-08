@@ -46,8 +46,10 @@
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "not run_on_github|bool and not installation_mode == 'uninstall'" }
-    - { role: api, when: "not run_on_github|bool and not installation_mode == 'uninstall'" }
+    - { role: docker, when: "not installation_mode == 'uninstall'" }
+    - { role: api, when: "not installation_mode == 'uninstall'" }
+#    - { role: docker, when: "not run_on_github|bool and not installation_mode == 'uninstall'" }
+#    - { role: api, when: "not run_on_github|bool and not installation_mode == 'uninstall'" }
   tags:
     - backend
    # todo: make api (and docker) work with github actions

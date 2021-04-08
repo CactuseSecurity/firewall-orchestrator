@@ -97,7 +97,8 @@ sub parse_config {
 	my $result;
 	my $cmd;
 	my $return_code = 0;
-	my $parser_py = "/usr/bin/python3 ./fworch_parse_config_cp_r8x_api.py";
+	# my $parser_py = "/usr/bin/python3 ./fworch_parse_config_cp_r8x_api.py";
+	my $parser_py = "/usr/bin/python3 ./checkpointR8x/parse_config.py";
 	my $users_csv = "$output_dir/${mgm_name}_users.csv";
 	my $users_delimiter = "%"; # value is defined in parser_py = ./fworch_parse_config_cp_r8x_api.py !!!
 

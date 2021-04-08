@@ -51,16 +51,16 @@ if args.rulebase != '':
         current_layer_name = rulebase['layername']
         if current_layer_name == args.rulebase:
             found_rulebase = True
-            result = csv_dump_rules(rulebase, args.rulebase)
+            result = parse_rule.csv_dump_rules(rulebase, args.rulebase)
 
 if args.network_objects:
     result = ''
     if args.network_objects != '':
         for obj_table in config['object_tables']:
-            parser.collect_nw_objects(obj_table)
+            parse_network.collect_nw_objects(obj_table)
         for idx in range(0, len(nw_objects)-1):
             if nw_objects[idx]['obj_typ'] == 'group':
-                add_member_names_for_nw_group(idx)
+                parse_network.add_member_names_for_nw_group(idx)
     
     for nw_obj in nw_objects:
         result += csv_dump_nw_obj(nw_obj)
@@ -69,21 +69,21 @@ if args.service_objects:
     result = ''
     if args.service_objects != '':
         for obj_table in config['object_tables']:
-            collect_svc_objects(obj_table)
+            parse_service.collect_svc_objects(obj_table)
         for idx in range(0, len(svc_objects)-1):
             if svc_objects[idx]['svc_typ'] == 'group':
-                add_member_names_for_svc_group(idx)
+                parse_service.add_member_names_for_svc_group(idx)
 
     for svc_obj in svc_objects:
-        result += csv_dump_svc_obj(svc_obj)
+        result += parse_service.csv_dump_svc_obj(svc_obj)
 
 if args.users:
     users = {}
     result = ''
     for rulebase in config['rulebases']:
-        collect_users_from_rulebase(rulebase)
+        parse_user.collect_users_from_rulebase(rulebase)
     for user in users.keys():
-        result += csv_dump_user(user)
+        result += parse_user.csv_dump_user(user)
 
 if args.rulebase != '' and not found_rulebase:
     print("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")

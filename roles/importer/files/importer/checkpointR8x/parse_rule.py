@@ -12,15 +12,13 @@ section_header_uids=[]
 # the following is the static across all installations unique any obj uid 
 # cannot fetch the Any object via API (<=1.7) at the moment
 # therefore we have a workaround adding the object manually (as svc and nw)
-any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 # todo: read this from config (vom API 1.6 on it is fetched)
 
 # ###################### rule handling ###############################################
 
 
-def create_section_header(section_name, layer_name, rule_uid):
-    global rule_num
-    global any_obj_uid
+def create_section_header(section_name, layer_name, rule_uid, rule_num, any_obj_uid):
+    # global rule_num
 
     section_header_uids.append(rule_uid)
     header_rule_csv = '"' + args.import_id + '"' + csv_delimiter  # control_id
@@ -30,13 +28,13 @@ def create_section_header(section_name, layer_name, rule_uid):
     header_rule_csv += '"' + 'false' + '"' + csv_delimiter  # rule_disabled
     header_rule_csv += '"' + 'False' + '"' + csv_delimiter  # rule_src_neg
     header_rule_csv += '"' + 'Any' + '"' + csv_delimiter  # src
-    header_rule_csv += '"' + any_obj_uid + '"' + csv_delimiter  # src_refs
+    header_rule_csv += '"' + common.any_obj_uid + '"' + csv_delimiter  # src_refs
     header_rule_csv += '"' + 'False' + '"' + csv_delimiter  # rule_dst_neg
     header_rule_csv += '"' + 'Any' + '"' + csv_delimiter  # dst
-    header_rule_csv += '"' + any_obj_uid + '"' + csv_delimiter  # dst_refs
+    header_rule_csv += '"' + common.any_obj_uid + '"' + csv_delimiter  # dst_refs
     header_rule_csv += '"' + 'False' + '"' + csv_delimiter  # rule_svc_neg
     header_rule_csv += '"' + 'Any' + '"' + csv_delimiter  # svc
-    header_rule_csv += '"' + any_obj_uid + '"' + csv_delimiter  # svc_refs
+    header_rule_csv += '"' + common.any_obj_uid + '"' + csv_delimiter  # svc_refs
     header_rule_csv += '"' + 'Accept' + '"' + csv_delimiter  # action
     header_rule_csv += '"' + 'Log' + '"' + csv_delimiter  # track
     header_rule_csv += '"' + 'Policy Targets' + '"' + csv_delimiter  # install-on
@@ -59,10 +57,9 @@ def csv_add_field(content, csv_del, apostrophe):
     return field_result
 
 
-def csv_dump_rule(rule, layer_name):
-    global rule_num
-    global number_of_section_headers_so_far
-    global any_obj_uid
+def csv_dump_rule(rule, layer_name, rule_num, number_of_section_headers_so_far):
+    # global rule_num
+    # global number_of_section_headers_so_far
     apostrophe = '"'
     rule_csv = ''
 
@@ -108,7 +105,7 @@ def csv_dump_rule(rule, layer_name):
             elif src['type'] == 'access-role':
                 if isinstance(src['networks'], str):  # just a single source
                     if src['networks'] == 'any':
-                        rule_src_ref += src['uid'] + '@' + any_obj_uid + list_delimiter
+                        rule_src_ref += src['uid'] + '@' + common.any_obj_uid + list_delimiter
                     else:
                         rule_src_ref += src['uid'] + '@' + src['networks'] + list_delimiter
                 else:  # more than one source
@@ -185,29 +182,29 @@ def csv_dump_rule(rule, layer_name):
     return rule_csv
 
 
-def csv_dump_rules(rulebase, layer_name):
-    global rule_num
-    global section_header_uids
+def csv_dump_rules(rulebase, layer_name, rule_num, header_uids, number_of_section_headers_so_far):
+    # global rule_num
+    # global section_header_uids
     result = ''
 
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
             for rules_chunk in chunk['rulebase']:
-                result += csv_dump_rules(rules_chunk, layer_name)
+                result += csv_dump_rules(rules_chunk, layer_name, rule_num, header_uids, number_of_section_headers_so_far)
     else:
         if 'rulebase' in rulebase:
             # add section header, but only if it does not exist yet (can happen by chunking a section)
-            if rulebase['type'] == 'access-section' and not rulebase['uid'] in section_header_uids:
+            if rulebase['type'] == 'access-section' and not rulebase['uid'] in header_uids:
                 section_name = ""
                 if 'name' in rulebase:
                     section_name = rulebase['name']
                 #else:
                 #     print ("warning: found access-section without defined rulebase.name, rulebase uid=" + rulebase['uid'])
                 rule_num = rule_num + 1
-                section_header = create_section_header(section_name, layer_name, rulebase['uid'])
+                section_header = create_section_header(section_name, layer_name, rulebase['uid'], rule_num)
                 result += section_header
             for rule in rulebase['rulebase']:
-                result += csv_dump_rule(rule, layer_name)
+                result += csv_dump_rule(rule, layer_name, rule_num, number_of_section_headers_so_far)
         if 'rule-number' in rulebase:
-            result += csv_dump_rule(rulebase, layer_name)
+            result += csv_dump_rule(rulebase, layer_name, rule_num, number_of_section_headers_so_far)
     return result

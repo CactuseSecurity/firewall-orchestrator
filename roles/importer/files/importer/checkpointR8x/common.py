@@ -9,6 +9,12 @@ line_delimiter = "\n"
 found_rulebase = False
 section_header_uids=[]
 
+# the following is the static across all installations unique any obj uid 
+# cannot fetch the Any object via API (<=1.7) at the moment
+# therefore we have a workaround adding the object manually (as svc and nw)
+any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
+# todo: read this from config (vom API 1.6 on it is fetched)
+
 
 def get_ip_of_obj(obj):
     if 'ipv4-address' in obj:

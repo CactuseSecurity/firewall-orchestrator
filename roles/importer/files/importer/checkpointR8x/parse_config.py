@@ -40,6 +40,13 @@ elif debug_level == 3:
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+args = parser.parse_args()
+config_filename = args.config_file
+#test_version = args.testing
+json_indent=2
+use_object_dictionary = 'false'
+
+
 with open(args.config_file, "r") as json_data:
     config = json.load(json_data)
 
@@ -51,7 +58,7 @@ if args.rulebase != '':
         current_layer_name = rulebase['layername']
         if current_layer_name == args.rulebase:
             found_rulebase = True
-            result = parse_rule.csv_dump_rules(rulebase, args.rulebase)
+            result = parse_rule.csv_dump_rules(rulebase, args.rulebase, rule_num=1, header_uids=[], number_of_section_headers_so_far=0)
 
 if args.network_objects:
     result = ''

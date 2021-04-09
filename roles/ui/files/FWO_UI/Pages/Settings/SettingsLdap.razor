@@ -361,6 +361,21 @@
             DisplayMessageInUi(null, "Save Ldap Connection", "Please fill all mandatory fields.", true);
             return false;
         }
+        if (actLdapConnection.Port < 1 || actLdapConnection.Port > 65535)
+        {
+            DisplayMessageInUi(null, "Save Ldap Connection", "Port has to be in the range 1 - 65535.", true);
+            return false;
+        }
+        if (actLdapConnection.PatternLength < 0)
+        {
+            DisplayMessageInUi(null, "Save Ldap Connection", "Pattern Length has to be >= 0.", true);
+            return false;
+        }
+        if (connectedLdaps.FirstOrDefault(x => x.Address == actLdapConnection.Address && x.Port == actLdapConnection.Port) != null)
+        {
+            DisplayMessageInUi(null, "Save Ldap Connection", "There is already an Ldap connection with the same address and port.", true);
+            return false;
+        }
         return true;
     }
 

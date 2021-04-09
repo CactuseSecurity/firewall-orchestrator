@@ -103,7 +103,7 @@ namespace FWO.Report
                     report.AppendLine("<th>Services</th>");
                     report.AppendLine("<th>Action</th>");
                     report.AppendLine("<th>Track</th>");
-                    report.AppendLine("<th>Disabled</th>");
+                    report.AppendLine("<th>Enabled</th>");
                     report.AppendLine("<th>UID</th>");
                     report.AppendLine("<th>Comment</th>");
                     report.AppendLine("</tr>");
@@ -118,7 +118,7 @@ namespace FWO.Report
                         report.AppendLine($"<td>{rule.DisplayService()}</td>");
                         report.AppendLine($"<td>{rule.DisplayAction()}</td>");
                         report.AppendLine($"<td>{rule.DisplayTrack()}</td>");
-                        report.AppendLine($"<td>{rule.DisplayDisabled()}</td>");
+                        report.AppendLine($"<td>{rule.DisplayEnabled()}</td>");
                         report.AppendLine($"<td>{rule.DisplayUid()}</td>");
                         report.AppendLine($"<td>{rule.DisplayComment()}</td>");
                         report.AppendLine("</tr>");

@@ -92,6 +92,7 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "GetUsers/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "UpdateUser/");
+                listener.Prefixes.Add(middlewareListenerUri + "SetPassword/");
                 listener.Prefixes.Add(middlewareListenerUri + "DeleteUser/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddGroup/");
                 listener.Prefixes.Add(middlewareListenerUri + "UpdateGroup/");
@@ -272,6 +273,15 @@ namespace FWO.Middleware.Server
 
                                     // Try to update user in Ldap
                                     (status, responseString) = await updateUserRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "SetPassword":
+
+                                    // Initialize Request Handler  
+                                    SetPasswordRequestHandler setPasswordRequestHandler = new SetPasswordRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to set password in Ldap
+                                    (status, responseString) = await setPasswordRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 case "DeleteUser":

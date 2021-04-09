@@ -89,11 +89,11 @@
                 @switch (query.ReportType)
                 {
                     case rulesReport:
-                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRules="selectedItemsRuleReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></RulesReport>
                         break;
 
                     case changesReport:
-                        <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRuleChanges="selectedItemsChangeReportTable"></ChangesReport>
+                        <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRuleChanges="selectedItemsChangeReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></ChangesReport>
                         break;
 
                     case statisticsReport:
@@ -316,9 +316,11 @@
         selectedItemsRuleReportTable.Clear();
         selectedItemsChangeReportTable.Clear();
 
+        // collapse report templates
+        reportTemplateControl.Collapse();
+
         // when generating report, filter line overrules LSB filter, as this can be triggered by changing 
         // the filter line and pressing enter
-
         try
         {
             DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
@@ -443,7 +445,7 @@
 
     private void test(ReportTemplate template)
     {
-        filterInput = template.Filter; 
+        filterInput = template.Filter;
         DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
         StateHasChanged();
     }

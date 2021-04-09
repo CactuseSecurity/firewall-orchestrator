@@ -43,6 +43,7 @@
     - { role: middleware, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
+    - csharp
 
 - hosts: apiserver
   roles:
@@ -65,6 +66,7 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - backend
+    - csharp
 
 - hosts: frontends
   roles:
@@ -74,12 +76,14 @@
     - { role: frontend-php, when: "ui_php is defined and not installation_mode == 'uninstall'"}
   tags:
     - frontend
+    - csharp
 
 - hosts: importers
   roles:
     - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
     - frontend
+    - importer
 
 - hosts: sampleserver
   roles:

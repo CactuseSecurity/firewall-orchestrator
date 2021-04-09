@@ -1568,6 +1568,22 @@ tables:
       - report_name
       - report_owner_id
       - tenant_wide_visible
+    role: middleware-server
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_id
+      - report_template_id
+      - report_start_time
+      - report_end_time
+      - report_json
+      - report_pdf
+      - report_csv
+      - report_html
+      - report_name
+      - report_owner_id
+      - tenant_wide_visible
     role: reporter
   - permission:
       backend_only: false

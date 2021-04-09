@@ -27,7 +27,8 @@ api_port = args.port
 config_filename = args.configfile
 api_password = args.password
 api_domain = args.domain
-proxy_string = { "http"  : args.proxy, "https" : args.proxy }
+test_version = args.testing
+proxy_string = { "http" : args.proxy, "https" : args.proxy }
 offset = 0
 limit = args.limit
 details_level = "full"    # 'standard'
@@ -40,20 +41,11 @@ nw_objects = []
 nw_objs_from_obj_tables = []
 svc_objs_from_obj_tables = []
 
-#limit="25"
-
 # logging config
 debug_level = int(args.debug)
+common.set_log_level(log_level=debug_level, debug_level=debug_level)
 # todo: save the initial value, reset initial value at the end
 # todo: switch to native syslog
-
-if debug_level == 1:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-elif debug_level == 2:
-    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-if debug_level == 3:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ssl_verification mode
 ssl_verification_mode = args.ssl
@@ -61,7 +53,7 @@ if ssl_verification_mode == '':
     ssl_verification = False
 else:
     ssl_verification = ssl_verification_mode
-    # todo: supplement error handling: redable file, etc
+    # todo: supplement error handling: readable file, etc
 
 starttime = int(time.time())
 
@@ -69,9 +61,11 @@ starttime = int(time.time())
 with open(config_filename, "r") as json_data:
     config = json.load(json_data)
 
+#print(json.dumps(config, indent=json_indent))
+
 # get all object uids (together with type) from all rules in fields src, dst, svc
 for rulebase in config['rulebases']:
-    #print ("\n\nsearching for all uids in rulebase: " + rulebase['layername'])
+    logging.debug ( "enrich_config - searching for all uids in rulebase: " + rulebase['layername'] )
     (nw_uids, svc_uids) = getter.collect_uids_from_rulebase(rulebase, "top_level")
     nw_objects.extend(nw_uids)
     svc_objects.extend(svc_uids)
@@ -80,25 +74,35 @@ for rulebase in config['rulebases']:
 svc_objects = list(set(svc_objects))
 nw_objects = list(set(nw_objects))
 
+for svc in svc_objects:
+    logging.debug ( "enrich_config - svc: " + svc )
+
+for nwobj in nw_objects:
+    logging.debug ( "enrich_config - nw obj: " + nwobj )
+
 # get all uids in objects tables
 for obj_table in config['object_tables']:
-    nw_objs_from_obj_tables.extend(get_all_uids_of_a_type(obj_table, nw_obj_table_names))
-    svc_objs_from_obj_tables.extend(get_all_uids_of_a_type(obj_table, svc_obj_table_names))
+    nw_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, getter.nw_obj_table_names))
+    svc_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, getter.svc_obj_table_names))
 
 # identify all objects (by type) that are missing in objects tables but present in rulebase
-missing_nw_object_uids  = get_broken_object_uids(nw_objs_from_obj_tables, nw_objects)
-missing_svc_object_uids = get_broken_object_uids(svc_objs_from_obj_tables, svc_objects)
+missing_nw_object_uids  = getter.get_broken_object_uids(nw_objs_from_obj_tables, nw_objects)
+missing_svc_object_uids = getter.get_broken_object_uids(svc_objs_from_obj_tables, svc_objects)
+
+logging.debug ( "enrich_config - found missing nw objects: '" + ",".join(missing_nw_object_uids) + "'" )
+logging.debug ( "enrich_config - found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
 
 if args.noapi == 'false':
-    sid = login(args.user,api_password,api_host,args.port,api_domain)
-    v_url = get_api_url (sid)
+    sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string)
+    v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
+    logging.debug ( "enrich_config - logged into api" )
 
 # if an object is not there:
 #   make api call: show object details-level full uid "<uid>" and add object to respective json
 for missing_obj in missing_nw_object_uids:
     if args.noapi == 'false':
         show_params_host = {'details-level':details_level,'uid':missing_obj}
-        obj = api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid)
+        obj = getter.api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
         obj = obj['object']
         #print(json.dumps(obj, indent=json_indent))
         if (obj['type'] == 'CpmiAnyObject'):
@@ -109,25 +113,25 @@ for missing_obj in missing_nw_object_uids:
                         'type': 'CpmiAnyObject', 'ipv4-address': '0.0.0.0/0',
                         } ] } ] }
             config['object_tables'].append(json_obj)
-        elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain'):
+        elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'interop'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
 
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': common.get_ip_of_obj(obj),
                 } ] } ] }
             config['object_tables'].append(json_obj)
         else:
-            logging.debug ( "WARNING - get_config_cp_r8x_api - missing nw obj of unexpected type: " + missing_obj )
+            logging.debug ( "WARNING - checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
             #print ("missing nw obj: " + missing_obj)
 
-    logging.debug ( "get_config_cp_r8x_api - missing nw obj: " + missing_obj )
+    logging.debug ( "enrich_config - missing nw obj: " + missing_obj )
     print ("INFO: adding nw  obj missing from standard api call results: " + missing_obj)
 
 for missing_obj in missing_svc_object_uids:
     if args.noapi == 'false':
         show_params_host = {'details-level':details_level,'uid':missing_obj}
-        obj = api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid)
+        obj = getter.api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
         obj = obj['object']
         # print(json.dumps(obj))
         # currently no svc objects are found missing, not even the any obj?
@@ -140,9 +144,9 @@ for missing_obj in missing_svc_object_uids:
                         } ] } ] }
             config['object_tables'].append(json_obj)
         else:
-            logging.debug ( "WARNING - get_config_cp_r8x_api - missing svc obj of unexpected type: " + missing_obj )
-            print ("WARNING - get_config_cp_r8x_api - missing svc obj of unexpected type: " + missing_obj)
-    logging.debug ( "get_config_cp_r8x_api - missing svc obj: " + missing_obj )
+            logging.debug ( "WARNING - enrich_config - missing svc obj of unexpected type: " + missing_obj )
+            print ("WARNING - enrich_config - missing svc obj of unexpected type: " + missing_obj)
+    logging.debug ( "enrich_config - missing svc obj: " + missing_obj )
     print ("INFO: adding svc obj missing from standard api call results: " + missing_obj)
 
 # dump new json file
@@ -153,7 +157,8 @@ if args.noapi == 'false':
         json_data.write(json.dumps(config,indent=json_indent))
 
 if args.noapi == 'false':
-    logout_result = api_call(api_host, args.port, base_url, 'logout', {}, sid)
+    logout_result = getter.api_call(api_host, args.port, v_url, 'logout', '', sid, ssl_verification, proxy_string)
+    #logout_result = api_call(api_host, args.port, base_url, 'logout', {}, sid)
 duration = int(time.time()) - starttime
 logging.debug ( "checkpointR8x/enrich_config - duration: " + str(duration) + "s" )
 

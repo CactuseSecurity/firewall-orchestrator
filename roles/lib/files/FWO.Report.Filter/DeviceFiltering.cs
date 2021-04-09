@@ -94,7 +94,7 @@ namespace FWO.Report.Filter
             bool match = true;
             while (match)
             {
-                Match m = Regex.Match(filterLine, @"(or|and)?\s*(gateway|gw|device|firewall)(\s*\=\=?\s*""?)(\w+""?)\s*(or|and)?");
+                Match m = Regex.Match(filterLine, @"(or|and)?\s*(gateway|gw|device|firewall)(\s*\=\=?\s*""?)([\w\-\s]+""?)\s*(or|and)?");
                 if (!m.Success)
                     match = false;
                 else
@@ -111,7 +111,7 @@ namespace FWO.Report.Filter
             foreach (Management mgm in managements)
                 foreach (Device dev in mgm.Devices)
                     if (dev.selected)
-                        devFilter += $"gateway={dev.Name} or ";
+                        devFilter += $"gateway=\"{dev.Name}\" or ";
 
             if (devFilter.Length > 0)
                 devFilter = $"({devFilter.Remove(devFilter.Length - 4)})"; // remove final 4 chars " or "

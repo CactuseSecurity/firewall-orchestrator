@@ -64,10 +64,10 @@ if args.network_objects:
     result = ''
     if args.network_objects != '':
         for obj_table in config['object_tables']:
-            parse_network.collect_nw_objects(obj_table)
+            nw_objects.extend(parse_network.collect_nw_objects(obj_table))
         for idx in range(0, len(nw_objects)-1):
             if nw_objects[idx]['obj_typ'] == 'group':
-                parse_network.add_member_names_for_nw_group(idx)
+                parse_network.add_member_names_for_nw_group(idx, nw_objects)
     
     for nw_obj in nw_objects:
         result += csv_dump_nw_obj(nw_obj)
@@ -88,10 +88,10 @@ if args.users:
     users = {}
     result = ''
     for rulebase in config['rulebases']:
-        parse_user.collect_users_from_rulebase(rulebase)
-    for user in users.keys():
-        user_dict = users[user_name]
-        result += parse_user.csv_dump_user(user, user_dict, args.import_id)
+        parse_user.collect_users_from_rulebase(rulebase, users)
+
+    for user in users:
+        result += parse_user.csv_dump_user(user_name, user, args.import_id)
 
 if args.rulebase != '' and not found_rulebase:
     print("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")

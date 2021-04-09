@@ -29,7 +29,7 @@ result = ""
 
 # logging config
 debug_level = int(args.debug)
-set_log_level(log_level=debug_level, debug_level=debug_level)
+common.set_log_level(log_level=debug_level, debug_level=debug_level)
 # todo: save the initial value, reset initial value at the end
 # todo: switch to native syslog
 

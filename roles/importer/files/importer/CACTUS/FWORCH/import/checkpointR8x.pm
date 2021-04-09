@@ -94,6 +94,7 @@ sub parse_config {
 	my $audit_log_file= shift;
 	my $prev_import_time= shift;
 	my $parse_full_audit_log = shift;
+	my $debug_level   = shift;
 	my $result;
 	my $cmd;
 	my $return_code = 0;
@@ -107,7 +108,7 @@ sub parse_config {
 	my $rulebase_names = get_ruleset_name_list($rulebase_name);
 	my @rulebase_name_ar = split /,/, $rulebase_names;
 	foreach my $rulebase (@rulebase_name_ar) {
-		$cmd = "$parser_py -m $mgm_name -i $import_id -r \"$rulebase\" -f \"$object_file\" > \"$output_dir/${rulebase}_rulebase.csv\"";
+		$cmd = "$parser_py -m $mgm_name -i $import_id -r \"$rulebase\" -f \"$object_file\" -d $debug_level > \"$output_dir/${rulebase}_rulebase.csv\"";
 #		print("DEBUG - cmd = $cmd\n");
 		$return_code = system($cmd); 
 		if ( $return_code != 0 ) { print("ERROR in parse_config found: $return_code\n") }
@@ -180,6 +181,7 @@ sub copy_config_from_mgm_to_iso {
 	my $api_port		= shift;
 	my $config_path_on_mgmt		= shift;
 	my $rulebase_names_hash_ref	= shift;
+	my $debug_level     = shift;
 	my $return_code;
 	my $fehler_count = 0;
 	my $domain_setting = "";
@@ -212,8 +214,8 @@ sub copy_config_from_mgm_to_iso {
 	$lib_path = "$base_path/checkpointR8x";
 	$get_config_bin = "$lib_path/get_config.py";
 	$enrich_config_bin = "$lib_path/enrich_config.py";
-	$get_cmd = "$python_bin $get_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base'";
-	$enrich_cmd = "$python_bin $enrich_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -c '$cfg_dir/$obj_file_base'";
+	$get_cmd = "$python_bin $get_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base' -d $debug_level";
+	$enrich_cmd = "$python_bin $enrich_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -c '$cfg_dir/$obj_file_base' -d $debug_level";
 
 	print("getting config with command: $get_cmd\n");
 	$return_code = system($get_cmd); if ( $return_code != 0 ) { $fehler_count++; }

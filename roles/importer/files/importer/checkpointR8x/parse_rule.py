@@ -3,7 +3,7 @@ import logging
 import common
 
 
-def create_section_header(section_name, layer_name, import_id, rule_uid, rule_num):
+def create_section_header(section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids):
     section_header_uids.append(rule_uid)
     header_rule_csv = '"' + import_id + '"' + common.csv_delimiter  # control_id
     header_rule_csv += '"' + str(rule_num) + '"' + common.csv_delimiter  # rule_num
@@ -46,7 +46,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_heade
     rule_csv = ''
 
     if 'rule-number' in rule:  # standard rule, no section header
-        rule_csv += csv_add_field(args.import_id, common.csv_delimiter, apostrophe)  # control_id
+        rule_csv += csv_add_field(import_id, common.csv_delimiter, apostrophe)  # control_id
         rule_num = rule['rule-number'] + number_of_section_headers_so_far
         rule_csv += csv_add_field(str(rule_num), common.csv_delimiter, apostrophe)  # rule_num
         rule_csv += csv_add_field(layer_name, common.csv_delimiter, apostrophe)  # rulebase_name
@@ -62,20 +62,20 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_heade
         rule_src_name = ''
         for src in rule["source"]:
             if src['type'] == 'LegacyUserAtLocation':
-                rule_src_name += src['name'] + list_delimiter
+                rule_src_name += src['name'] + common.list_delimiter
             elif src['type'] == 'access-role':
                 if isinstance(src['networks'], str):  # just a single source
                     if src['networks'] == 'any':
-                        rule_src_name += src["name"] + '@' + 'Any' + list_delimiter
+                        rule_src_name += src["name"] + '@' + 'Any' + common.list_delimiter
                     else:
-                        rule_src_name += src["name"] + '@' + src['networks'] + list_delimiter
+                        rule_src_name += src["name"] + '@' + src['networks'] + common.list_delimiter
                 else:  # more than one source
                     for nw in src['networks']:
                         rule_src_name += src[
                                              # TODO: this is not correct --> need to reverse resolve name from given UID
-                                             "name"] + '@' + nw + list_delimiter
+                                             "name"] + '@' + nw + common.list_delimiter
             else:  # standard network objects as source
-                rule_src_name += src["name"] + list_delimiter
+                rule_src_name += src["name"] + common.list_delimiter
         rule_src_name = rule_src_name[:-1]  # removing last list_delimiter
         rule_csv += csv_add_field(rule_src_name, common.csv_delimiter, apostrophe)  # src_names
 
@@ -83,18 +83,18 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_heade
         rule_src_ref = ''
         for src in rule["source"]:
             if src['type'] == 'LegacyUserAtLocation':
-                rule_src_ref += src["userGroup"] + '@' + src["location"] + list_delimiter
+                rule_src_ref += src["userGroup"] + '@' + src["location"] + common.list_delimiter
             elif src['type'] == 'access-role':
                 if isinstance(src['networks'], str):  # just a single source
                     if src['networks'] == 'any':
-                        rule_src_ref += src['uid'] + '@' + common.any_obj_uid + list_delimiter
+                        rule_src_ref += src['uid'] + '@' + common.any_obj_uid + common.list_delimiter
                     else:
-                        rule_src_ref += src['uid'] + '@' + src['networks'] + list_delimiter
+                        rule_src_ref += src['uid'] + '@' + src['networks'] + common.list_delimiter
                 else:  # more than one source
                     for nw in src['networks']:
-                        rule_src_ref += src['uid'] + '@' + nw + list_delimiter
+                        rule_src_ref += src['uid'] + '@' + nw + common.list_delimiter
             else:  # standard network objects as source
-                rule_src_ref += src["uid"] + list_delimiter
+                rule_src_ref += src["uid"] + common.list_delimiter
         rule_src_ref = rule_src_ref[:-1]  # removing last list_delimiter
         rule_csv += csv_add_field(rule_src_ref, common.csv_delimiter, apostrophe)  # src_refs
 
@@ -102,13 +102,13 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_heade
 
         rule_dst_name = ''
         for dst in rule["destination"]:
-            rule_dst_name += dst["name"] + list_delimiter
+            rule_dst_name += dst["name"] + common.list_delimiter
         rule_dst_name = rule_dst_name[:-1]
         rule_csv += csv_add_field(rule_dst_name, common.csv_delimiter, apostrophe)  # rule dest_name
 
         rule_dst_ref = ''
         for dst in rule["destination"]:
-            rule_dst_ref += dst["uid"] + list_delimiter
+            rule_dst_ref += dst["uid"] + common.list_delimiter
         rule_dst_ref = rule_dst_ref[:-1]
         rule_csv += csv_add_field(rule_dst_ref, common.csv_delimiter, apostrophe)  # rule_dest_refs
 
@@ -116,14 +116,14 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_heade
         rule_svc_name = ''
         rule_svc_name += str(rule['service-negate']) + '"' + common.csv_delimiter + '"'
         for svc in rule["service"]:
-            rule_svc_name += svc["name"] + list_delimiter
+            rule_svc_name += svc["name"] + common.list_delimiter
         rule_svc_name = rule_svc_name[:-1]
         rule_csv += csv_add_field(rule_svc_name, common.csv_delimiter, apostrophe)  # rule svc name
 
         # SERVICE refs
         rule_svc_ref = ''
         for svc in rule["service"]:
-            rule_svc_ref += svc["uid"] + list_delimiter
+            rule_svc_ref += svc["uid"] + common.list_delimiter
         rule_svc_ref = rule_svc_ref[:-1]
         rule_csv += csv_add_field(rule_svc_ref, common.csv_delimiter, apostrophe)  # rule svc ref
 
@@ -166,6 +166,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_heade
 
 def csv_dump_rules(rulebase, layer_name, import_id, rule_num, header_uids, number_of_section_headers_so_far):
     result = ''
+    section_header_uids = []
 
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
@@ -181,7 +182,7 @@ def csv_dump_rules(rulebase, layer_name, import_id, rule_num, header_uids, numbe
                 #else:
                 #     print ("warning: found access-section without defined rulebase.name, rulebase uid=" + rulebase['uid'])
                 rule_num = rule_num + 1
-                section_header = create_section_header(section_name, layer_name, import_id, rulebase['uid'], rule_num)
+                section_header = create_section_header(section_name, layer_name, import_id, rulebase['uid'], rule_num, section_header_uids)
                 result += section_header
             for rule in rulebase['rulebase']:
                 result += csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_headers_so_far)

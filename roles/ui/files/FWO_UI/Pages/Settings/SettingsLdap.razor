@@ -177,12 +177,9 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            @if (DeleteAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actLdapConnection)">Delete</button>
-                </AuthorizeView>
-            }
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete(actLdapConnection)">Delete</button>
+            </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
@@ -199,7 +196,6 @@
 
     private bool EditMode = false;
     private bool DeleteMode = false;
-    private bool DeleteAllowed = false;
     private bool AddMode = false;
 
     private UiLdapConnection newLdapConnection;
@@ -239,20 +235,17 @@
         // Checks if delete possible. Todo: further checks?
         if (connectedLdaps.Count == 1)
         {
-            deleteMessage = $"Deletion of ldapConnection {actLdapConnection.Address} not allowed as it is the last one.";
-            DeleteAllowed = false;
+            DisplayMessageInUi(null, "Delete Ldap Connection", $"Deletion of ldapConnection {actLdapConnection.Address} not allowed as it is the last one.", true);
         }
         else if (actLdapConnection.RoleSearchPath != null && actLdapConnection.RoleSearchPath != "")
         {
-            deleteMessage = $"Deletion of ldapConnection {actLdapConnection.Address} not allowed as it contains role search path. Delete it first if possible.";
-            DeleteAllowed = false;
+            DisplayMessageInUi(null, "Delete Ldap Connection", $"Deletion of ldapConnection {actLdapConnection.Address} not allowed as it contains role search path. Delete it first if possible.", true);
         }
         else
         {
             deleteMessage = $"Are you sure you want to delete ldapConnection {actLdapConnection.Address}?";
-            DeleteAllowed = true;
+            DeleteMode = true;
         }
-        DeleteMode = true;
     }
 
     private async Task Delete(UiLdapConnection ldapConnection)

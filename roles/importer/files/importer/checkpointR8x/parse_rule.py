@@ -41,13 +41,12 @@ def csv_add_field(content, csv_del, apostrophe):
     return field_result
 
 
-def csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_headers_so_far):
+def csv_dump_rule(rule, layer_name, import_id, rule_num):
     apostrophe = '"'
     rule_csv = ''
 
     if 'rule-number' in rule:  # standard rule, no section header
         rule_csv += csv_add_field(import_id, common.csv_delimiter, apostrophe)  # control_id
-        rule_num = rule['rule-number'] + number_of_section_headers_so_far
         rule_csv += csv_add_field(str(rule_num), common.csv_delimiter, apostrophe)  # rule_num
         rule_csv += csv_add_field(layer_name, common.csv_delimiter, apostrophe)  # rulebase_name
         rule_csv += csv_add_field('', common.csv_delimiter, apostrophe)  # rule_ruleid is empty
@@ -164,28 +163,30 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_heade
     return rule_csv
 
 
-def csv_dump_rules(rulebase, layer_name, import_id, rule_num, header_uids, number_of_section_headers_so_far):
+def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uids):
     result = ''
-    section_header_uids = []
 
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
             for rules_chunk in chunk['rulebase']:
-                result += csv_dump_rules(rules_chunk, layer_name, import_id, rule_num, header_uids, number_of_section_headers_so_far)
+                rule_num, rules_in_csv = csv_dump_rules(rules_chunk, layer_name, import_id, rule_num, section_header_uids)
+                result += rules_in_csv
     else:
         if 'rulebase' in rulebase:
             # add section header, but only if it does not exist yet (can happen by chunking a section)
-            if rulebase['type'] == 'access-section' and not rulebase['uid'] in header_uids:
+            if rulebase['type'] == 'access-section' and not rulebase['uid'] in section_header_uids:
                 section_name = ""
                 if 'name' in rulebase:
                     section_name = rulebase['name']
                 #else:
                 #     print ("warning: found access-section without defined rulebase.name, rulebase uid=" + rulebase['uid'])
-                rule_num = rule_num + 1
                 section_header = create_section_header(section_name, layer_name, import_id, rulebase['uid'], rule_num, section_header_uids)
+                rule_num += 1
                 result += section_header
             for rule in rulebase['rulebase']:
-                result += csv_dump_rule(rule, layer_name, import_id, rule_num, number_of_section_headers_so_far)
+                result += csv_dump_rule(rule, layer_name, import_id, rule_num)
+                rule_num += 1
         if 'rule-number' in rulebase:
-            result += csv_dump_rule(rulebase, layer_name, import_id, rule_num, number_of_section_headers_so_far)
-    return result
+            result += csv_dump_rule(rulebase, layer_name, import_id, rule_num)
+            rule_num += 1
+    return rule_num, result

@@ -60,15 +60,17 @@ use_object_dictionary = 'false'
 
 # logging config
 debug_level = int(args.debug)
+set_log_level(log_level=debug_level, debug_level=debug_level)
+
 # todo: save the initial value, reset initial value at the end
 # todo: switch to native syslog
-if debug_level == 1:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-elif debug_level == 2:
-    logging.basicConfig(filename='/var/tmp/get_config.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-if debug_level == 3:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    logging.basicConfig(filename='/var/tmp/get_config.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# if debug_level == 1:
+#     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# elif debug_level == 2:
+#     logging.basicConfig(filename='/var/tmp/get_config.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# if debug_level == 3:
+#     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+#     logging.basicConfig(filename='/var/tmp/get_config.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ssl_verification mode
 ssl_verification_mode = args.ssl

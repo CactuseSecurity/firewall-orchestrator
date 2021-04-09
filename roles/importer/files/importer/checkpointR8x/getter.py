@@ -10,7 +10,6 @@ offset = 0
 details_level = "full"    # 'standard'
 json_indent=2
 use_object_dictionary = 'false'
-#limit="25"
 
 # all obj table names to look at:
 api_obj_types = [

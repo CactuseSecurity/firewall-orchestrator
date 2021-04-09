@@ -44,10 +44,7 @@ svc_objs_from_obj_tables = []
 # logging config
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
-# todo: save the initial value, reset initial value at the end
-# todo: switch to native syslog
 
-# ssl_verification mode
 ssl_verification_mode = args.ssl
 if ssl_verification_mode == '':
     ssl_verification = False
@@ -63,6 +60,62 @@ with open(config_filename, "r") as json_data:
 
 #print(json.dumps(config, indent=json_indent))
 
+#################################################################################
+# get all inline layers contained in config
+#################################################################################
+
+# get config --> yields rules containing actions name "inner layer" with inline-layer attribute containing "name" of the inline layer and
+# "uid": "5dffc910-a1e1-4f92-ad0d-77348d9a1e28",
+# "name": "InlineLayer1",
+# "type": "access-layer",
+# "parent-layer": "0f45100c-e4ea-4dc1-bf22-74d9d98a4811",
+# "firewall": true,
+
+
+def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
+    if 'layerchunks' in rulebase:
+        for chunk in rulebase['layerchunks']:
+            for rules_chunk in chunk['rulebase']:
+                get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
+    else:
+        if 'rulebase' in rulebase:
+            # logging.debug ( "enrich_config - searching for inline layers in layer " + rulebase['layername'] )
+            # add section header, but only if it does not exist yet (can happen by chunking a section)
+            for rule in rulebase['rulebase']:
+                if 'inline-layer' in rule:
+                    inline_layers.append(rule['inline-layer']['name'])
+
+        if 'rule-number' in rulebase:   # not a rulebase but a single rule
+            if 'inline-layer' in rulebase:
+                inline_layers.append(rulebase['inline-layer']['name'])
+                # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
+
+
+found_new_inline_layers = True
+old_inline_layers = []
+while found_new_inline_layers is True:
+    # sweep existing rules for inline layer links
+    inline_layers = []
+    for rulebase in config['rulebases']:
+        get_inline_layer_names_from_rulebase(rulebase, inline_layers)
+
+    if len(inline_layers) == len(old_inline_layers):
+        found_new_inline_layers = False
+    else:
+        old_inline_layers = inline_layers
+        for layer in inline_layers:
+            logging.debug ( "enrich_config - found inline layer " + layer )
+            # enrich config --> get additional layers referenced in top level layers by name
+            # also handle possible recursion (inline layer containing inline layer(s))
+            # get layer rules from api
+            # add layer rules to config
+
+# next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
+
+
+#################################################################################
+# get object data which is only contained as uid in config by making addtional api calls
+#################################################################################
 # get all object uids (together with type) from all rules in fields src, dst, svc
 for rulebase in config['rulebases']:
     logging.debug ( "enrich_config - searching for all uids in rulebase: " + rulebase['layername'] )

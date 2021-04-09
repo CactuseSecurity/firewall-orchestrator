@@ -95,8 +95,8 @@ def collect_uids_from_rule(rule, debug_text):
             nw_uids_found.append(dst['uid'])
         for svc in rule["service"]:
             svc_uids_found.append(svc['uid'])
-        logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
-        logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
+        #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
+        #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
         return (nw_uids_found, svc_uids_found)
     else: # recurse into rulebase within rule
         return collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
@@ -120,8 +120,8 @@ def collect_uids_from_rulebase(rulebase, debug_text):
         for rule in rulebase:
             (nw_uids_found, svc_uids_found) = collect_uids_from_rule(rule, debug_text)
 
-    logging.debug ("getter::collect_uids_from_rulebase nw_uids_found: " + str(nw_uids_found))
-    logging.debug ("getter::collect_uids_from_rulebase svc_uids_found: " + str(svc_uids_found))
+    #logging.debug ("getter::collect_uids_from_rulebase nw_uids_found: " + str(nw_uids_found))
+    #logging.debug ("getter::collect_uids_from_rulebase svc_uids_found: " + str(svc_uids_found))
     return (nw_uids_found, svc_uids_found)
 
 
@@ -131,9 +131,6 @@ def get_all_uids_of_a_type(object_table, obj_table_names):
     if object_table['object_type'] in obj_table_names:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
-                # if 'members' in obj:   # add group member refs
-                #     for member in obj['members']:
-                #         all_uids.append(member)
                 all_uids.append(obj['uid'])  # add non-group (simple) refs
     all_uids = list(set(all_uids)) # remove duplicates
     return all_uids
@@ -143,7 +140,7 @@ def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
     logging.debug ("getter - entering get_broken_object_uids" )
     broken_uids = []
     for uid in all_uids_from_rules:
-        logging.debug ("getter - uid from rules: " + uid )
+        # logging.debug ("getter - uid from rules: " + uid )
         if not uid in all_uids_from_obj_tables:
             broken_uids.append(uid)
             logging.debug ("getter - found missing uid from obj_tables: " + uid )

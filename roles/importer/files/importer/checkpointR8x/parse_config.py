@@ -2,7 +2,7 @@ import common
 import parse_network, parse_rule, parse_service, parse_user
 import argparse
 import json
-import re
+#import re
 import logging
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
@@ -42,7 +42,6 @@ elif debug_level == 3:
 
 args = parser.parse_args()
 config_filename = args.config_file
-#test_version = args.testing
 json_indent=2
 use_object_dictionary = 'false'
 
@@ -58,31 +57,36 @@ if args.rulebase != '':
         current_layer_name = rulebase['layername']
         if current_layer_name == args.rulebase:
             found_rulebase = True
-            result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=1, header_uids=[], number_of_section_headers_so_far=0)
+            result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=1, 
+                header_uids=[], number_of_section_headers_so_far=0)
 
 if args.network_objects:
     result = ''
+    nw_objects = []
+
     if args.network_objects != '':
         for obj_table in config['object_tables']:
-            nw_objects.extend(parse_network.collect_nw_objects(obj_table))
+            parse_network.collect_nw_objects(obj_table, nw_objects)
         for idx in range(0, len(nw_objects)-1):
             if nw_objects[idx]['obj_typ'] == 'group':
                 parse_network.add_member_names_for_nw_group(idx, nw_objects)
     
     for nw_obj in nw_objects:
-        result += csv_dump_nw_obj(nw_obj)
+        result += parse_network.csv_dump_nw_obj(nw_obj, args.import_id)
 
 if args.service_objects:
     result = ''
+    service_objects = []
     if args.service_objects != '':
         for obj_table in config['object_tables']:
-            parse_service.collect_svc_objects(obj_table)
-        for idx in range(0, len(svc_objects)-1):
-            if svc_objects[idx]['svc_typ'] == 'group':
-                parse_service.add_member_names_for_svc_group(idx)
+            parse_service.collect_svc_objects(obj_table, service_objects)
+        # resolving group members:
+        for idx in range(0, len(service_objects)-1):
+            if service_objects[idx]['svc_typ'] == 'group':
+                parse_service.add_member_names_for_svc_group(idx, service_objects)
 
-    for svc_obj in svc_objects:
-        result += parse_service.csv_dump_svc_obj(svc_obj)
+    for svc_obj in service_objects:
+        result += parse_service.csv_dump_svc_obj(svc_obj, args.import_id)
 
 if args.users:
     users = {}
@@ -90,8 +94,9 @@ if args.users:
     for rulebase in config['rulebases']:
         parse_user.collect_users_from_rulebase(rulebase, users)
 
-    for user in users:
-        result += parse_user.csv_dump_user(user_name, user, args.import_id)
+    for user_name in users.keys():
+        user_dict = users[user_name]
+        result += parse_user.csv_dump_user(user_name, user_dict, args.import_id)
 
 if args.rulebase != '' and not found_rulebase:
     print("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")

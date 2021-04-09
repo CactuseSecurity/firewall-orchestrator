@@ -23,7 +23,6 @@ svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'servic
 
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
-
 def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, proxy_string):
     url = url + command
     if sid == '':
@@ -43,6 +42,36 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
     base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
     return response["sid"]
+
+
+def set_ssl_verification(ssl_verification_mode):
+    logger = logging.getLogger(__name__)
+    if ssl_verification_mode == '' or ssl_verification_mode == 'off':
+        ssl_verification = False
+        logger.debug ("ssl_verification: False")
+    else:
+        ssl_verification = ssl_verification_mode
+        logger.debug ("ssl_verification: [ca]certfile="+ ssl_verification )
+    return ssl_verification
+
+
+def set_api_url(base_url,testmode,api_supported,hostname):
+    logger = logging.getLogger(__name__)
+    url = ''
+    if testmode == 'off':
+        url = base_url
+    else:
+        if re.search(r'^\d+[\.\d+]+$', testmode) or re.search(r'^\d+$', testmode):
+            if testmode in api_supported :
+                url = base_url + 'v' + testmode + '/'
+            else:
+                logger.debug ("api version " + testmode + " is not supported by the manager " + hostname + " - Import is canceled")
+                sys.exit("api version " + testmode +" not supported")
+        else:
+            logger.debug ("not a valid version")
+            sys.exit("\"" + testmode +"\" - not a valid version")
+    logger.debug ("testmode: " + testmode + " - url: "+ url)
+    return url
 
 
 def collect_uids_from_rule(rule, debug_text):

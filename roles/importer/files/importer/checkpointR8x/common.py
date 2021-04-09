@@ -42,14 +42,3 @@ def get_ip_of_obj(obj):
         ip_addr = '0.0.0.0/0'
     return ip_addr
 
-
-# logging config
-# debug_level = 0
-
-# if debug_level == 1:
-#     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# elif debug_level == 2:
-#     logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# elif debug_level == 3:
-#     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-#     logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')

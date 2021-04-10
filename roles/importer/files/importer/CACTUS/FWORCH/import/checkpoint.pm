@@ -94,6 +94,7 @@ sub parse_config {
 	my $audit_log_file= shift;
 	my $prev_import_time= shift;
 	my $parse_full_audit_log = shift;
+	my $debug_level   = shift;
 	my $result;
 
 	if ($result = cp_parse_main( $object_file, $output_dir, '', $verbose )) { return $result; }
@@ -258,6 +259,7 @@ sub copy_config_from_mgm_to_iso {
 	my $prev_import_time= shift;
 	my $ssh_port		= shift;
 	my $config_path_on_mgmt		= shift;
+	my $debug_level   = shift;
 	my $user_db_file	= 'fwauth.NDB';
 	my $cmd;
 	my $return_code;

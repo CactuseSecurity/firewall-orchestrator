@@ -15,7 +15,15 @@ namespace FWO.Ui.Display
         {
             result = new StringBuilder();
             if (rules != null)
-                result.AppendLine($"{Array.IndexOf(rules, rule) + 1} <br>");
+            {
+                int ruleNumber = Array.IndexOf(rules, rule) + 1;
+
+                for (int i = 0; i < Array.IndexOf(rules, rule) + 1; i++)
+                    if (!string.IsNullOrEmpty(rules[i].SectionHeader))
+                        ruleNumber--;
+
+                result.AppendLine($"{ruleNumber} <br>");
+            }
             result.AppendLine($"DEBUG: {rule.OrderNumber}");
             return result.ToString();
         }

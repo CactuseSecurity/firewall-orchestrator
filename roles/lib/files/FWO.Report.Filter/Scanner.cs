@@ -121,17 +121,28 @@ namespace FWO.Report.Filter
                 {
                     if (potentialToken.EndsWith(validToken))
                     {
+                        TokenKind realTokenKind = tokenKind;
+
                         if (potentialToken.Length - validToken.Length > 0)
                         {
                             List<Token> potentialTokens = TryExtractToken(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), true);
                             if (potentialTokens.Count == 0)
                             {
-                                potentialTokens.Add(new Token(beginPosition..^(beginPosition + potentialToken.Length - validToken.Length), potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
+                                tokens.Add(new Token(beginPosition..^(beginPosition + potentialToken.Length - validToken.Length), potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
                             }
-                            tokens.AddRange(potentialTokens);
+                            else
+                            {
+                                if (potentialTokens.Last().Kind == TokenKind.Not && tokenKind == TokenKind.EQ)
+                                {
+                                    potentialTokens.RemoveAt(potentialTokens.Count - 1);
+                                    realTokenKind = TokenKind.NEQ;
+                                }
+
+                                tokens.AddRange(potentialTokens);
+                            }
                         }
 
-                        tokens.Add(new Token((beginPosition + potentialToken.Length - validToken.Length)..^position, validToken, tokenKind));
+                        tokens.Add(new Token((beginPosition + potentialToken.Length - validToken.Length)..^position, validToken, realTokenKind));
 
                         return tokens;
                     }
@@ -168,7 +179,7 @@ namespace FWO.Report.Filter
                 }
             }
 
-            throw new SyntaxException($"Expected {quoteChar} got end.", (tokenBeginPosition)..^(position-1));
+            throw new SyntaxException($"Expected {quoteChar} got end.", (tokenBeginPosition)..^(position - 1));
         }
 
         private char ScanEscapeSequence()

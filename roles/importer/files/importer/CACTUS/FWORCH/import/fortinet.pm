@@ -410,6 +410,7 @@ sub copy_config_from_mgm_to_iso {
 	my $prev_import_time= shift;
 	my $ssh_port		= shift;
 	my $config_path_on_mgmt		= shift;
+	my $debug_level   = shift;
 	my $cmd;
 	my $fehler_count = 0;
 	my $result;
@@ -1135,6 +1136,7 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $fworch_workdir,
 	my $mgm_name = shift;
 	my $config_dir = shift;
 	my $import_id = shift;
+	my $debug_level   = shift;
 	my $vdom_name;
 
 	# initializing global variables:

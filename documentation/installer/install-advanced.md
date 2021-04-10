@@ -32,14 +32,6 @@ e.g. with IP 1.2.3.4, listening on port 3128<br>
 ```console
 ansible-playbook -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
-### Parameter "ui_php" to additionally install old php UI
-
-With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
-
-```console
-ansible-playbook -e "ui_php=1 ui_php_web_port=44310" site.yml -K
-```
-
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::

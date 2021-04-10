@@ -89,14 +89,14 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        public async Task updateUserPasswordChanged(APIConnection apiConn, string userDn)
+        public async Task updateUserPasswordChanged(APIConnection apiConn, string userDn, bool passwordMustBeChanged = false)
         {
             try
             {
                 var Variables = new
                 {
                     dn = userDn, 
-                    passwordMustBeChanged = false,
+                    passwordMustBeChanged = passwordMustBeChanged,
                     changeTime = DateTime.UtcNow
                 };
                 await apiConn.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateUserPasswordChange, Variables);

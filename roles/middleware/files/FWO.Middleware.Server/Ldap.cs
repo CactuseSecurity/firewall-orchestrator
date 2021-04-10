@@ -253,6 +253,37 @@ namespace FWO.Middleware.Server
             return "";
         }
 
+        public string SetPassword(string userDn, string newPassword)
+        {
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+                    if (connection.Bound)
+                    {
+                        // authentication was successful: set new password
+                        LdapAttribute attribute = new LdapAttribute("userPassword", newPassword);
+                        LdapModification[] mods = { new LdapModification(LdapModification.Replace, attribute) };
+
+                        connection.Modify(userDn, mods);
+                        Log.WriteDebug("Change password", $"Password for user {userDn} changed in {Address}");
+                    }
+                    else
+                    {
+                        return "error in write user authentication";
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                return exception.Message;
+            }
+            return "";
+        }
+
         public string[] GetRoles(List<string> dnList)
         {
             return GetMemberships(dnList, RoleSearchPath).ToArray();

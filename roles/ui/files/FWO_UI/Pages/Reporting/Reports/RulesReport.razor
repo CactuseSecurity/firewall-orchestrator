@@ -78,9 +78,9 @@
                             }
                             @if (EmptyColumns[9] == false)
                             {
-                                <Column TableItem="Rule" Title="Disabled" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Title="Enabled" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
-                                        @((MarkupString)context.DisplayDisabled())
+                                        @((MarkupString)context.DisplayEnabled())
                                     </Template>
                                 </Column>
                             }

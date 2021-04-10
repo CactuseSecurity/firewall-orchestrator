@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import logging
 import logging.config
-import fworch_session_cp_r8x_api as ses
-import fworch_logging_cp_r8x_api as log
+import getter
+import common
 import json, argparse, os
 
 logging.config.fileConfig(fname='discovery_logging.conf', disable_existing_loggers=False)
@@ -43,13 +43,17 @@ offset = 0
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
-ssl_verification = ses.set_ssl_verification(args.ssl)
+ssl_verification = getter.set_ssl_verification(args.ssl)
 
-xsid = ses.login(args.user, args.password, args.hostname, args.port, domain, base_url, ssl_verification, proxy_string)
-api_versions = ses.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, ssl_verification, proxy_string, xsid)
+#xsid = getter.login(args.user, args.password, args.hostname, args.port, domain, base_url, ssl_verification, proxy_string)
+xsid = getter.login(args.user, args.password, args.hostname, args.port, domain, ssl_verification, proxy_string)
+#api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, ssl_verification, proxy_string, xsid)
+api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
+
+#api_versions = getter.api_call(args.hostname, args.port, 'show-api-versions', {}, ssl_verification, proxy_string, xsid)
 api_version = api_versions["current-version"]
 api_supported = api_versions["supported-versions"]
-v_url = ses.set_api_url(base_url,args.version,api_supported,args.hostname)
+v_url = getter.set_api_url(base_url,args.version,api_supported,args.hostname)
 logger.debug ("current version: "+ api_version )
 logger.debug ("supported versions: "+ ', '.join(api_supported) )
 logger.debug ("limit:"+ args.limit )
@@ -57,7 +61,8 @@ logger.debug ("Domain:"+ args.domain )
 logger.debug ("login:"+ args.user )
 logger.debug ("sid:"+ xsid )
 
-result = ses.api_call(args.hostname, args.port,  v_url, api_command, {"limit" : args.limit, "offset" : offset, "details-level" : api_details_level}, ssl_verification, proxy_string, xsid)
+#result = getter.api_call(args.hostname, args.port,  v_url, api_command, {"limit" : args.limit, "offset" : offset, "details-level" : api_details_level}, ssl_verification, proxy_string, xsid)
+result = getter.api_call(args.hostname, args.port, v_url, api_command, {"limit" : args.limit, "offset" : offset, "details-level" : api_details_level}, xsid, ssl_verification, proxy_string)
 if args.debug == "1" or args.debug == "3":
     print ("\ndump of result:\n" + json.dumps(result, indent=4))
 if args.mode == 'packages':
@@ -79,4 +84,5 @@ if args.mode == 'layers':
     for l in result['access-layers']:
         print ("    access-layer: " + l['name'])
 print()
-logout_result = ses.api_call(args.hostname, args.port, v_url, 'logout', {}, ssl_verification, proxy_string, xsid)
+
+logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)

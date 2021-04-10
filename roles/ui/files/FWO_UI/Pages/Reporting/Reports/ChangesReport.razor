@@ -1,0 +1,107 @@
+﻿@using FWO.Ui.Display
+
+@foreach (Management management in Managements)
+{
+    @if (true@*management.Devices.Where(device => device.Rules != null && device.Rules.Count() > 0).Count() > 0*@)
+{
+<Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+
+    @foreach (Device device in management.Devices)
+    {
+        @if (true/*device.Rules.Length > 0*/)
+        {
+            <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
+                <Table SelectedItems="SelectedRuleChanges"
+                       RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); OnSelectedRulesChange(SelectedRuleChanges); }"
+                       style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
+                       PageSize="RulesPerPage" ColumnReorder="true">
+
+                    <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
+                    <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayChangeAction())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Name" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayName())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Source Zone" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplaySourceZone())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Source" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplaySource())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Destination Zone" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayDestinationZone())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Destination" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayDestination())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Services" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayService())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Action" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayAction())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Track" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayTrack())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Disabled" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayDisabled())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="UID" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayUid())
+                        </Template>
+                    </Column>
+                    <Column TableItem="RuleChange" Title="Comment" Hideable="true">
+                        <Template>
+                            @((MarkupString)context.DisplayComment())
+                        </Template>
+                    </Column>
+
+                    <DetailTemplate TableItem="RuleChange">
+                        <div>test</div>
+                    </DetailTemplate>
+
+                    <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                </Table>
+            </Collapse>
+        }
+    }
+</Collapse>
+}
+}
+
+@code
+{
+    [Parameter]
+    public List<RuleChange> SelectedRuleChanges { get; set; }
+
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public Action<List<RuleChange>> OnSelectedRulesChange { get; set; }
+
+    [Parameter]
+    public Management[] Managements { get; set; }
+}

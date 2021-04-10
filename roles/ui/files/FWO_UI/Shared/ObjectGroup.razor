@@ -258,7 +258,7 @@
             Console.WriteLine($"Type of Content: {Content.GetType()}");
             switch (Content)
             {
-                case KeyValuePair<Rule, Device> r_d:
+                case Rule r:
 
                     try
                     {
@@ -268,7 +268,7 @@
                         int maxInitFetch = 10;
                         bool autoFill = false;
 
-                        PaginationVariables paginationVariables = new RulePaginationVariables() { Offset = 0, Limit = elementsPerFetch, RuleUid = r_d.Key.Uid };
+                        PaginationVariables paginationVariables = new RulePaginationVariables() { Offset = 0, Limit = elementsPerFetch, RuleUid = r.Uid };
 
                         bool newObjects = true;
                         int fetchCount = 0;
@@ -289,7 +289,10 @@
                             Rule r_updated = managementsAllObjects.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
 
                             if (r_updated != null)
-                                Content = (InputDataType)(Object)new KeyValuePair<Rule, Device>(r_updated, r_d.Value);
+                            {
+                                r_updated.DeviceName = r.DeviceName;
+                                Content = (InputDataType)(Object)r_updated;
+                            }
 
                             await InvokeAsync(StateHasChanged);
 
@@ -299,16 +302,16 @@
                         Log.WriteDebug("Lazy Fetch", $"Fetched sidebar rule objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
 
                         // <DEBUG>
-                        Console.WriteLine($"Sent: {ObjectQueries.getRuleDetails} with rule_uid = {r_d.Key.Uid}");
+                        Console.WriteLine($"Sent: {ObjectQueries.getRuleDetails} with rule_uid = {r.Uid}");
                         foreach (Management m in managementsAllObjects)
                         {
                             Console.WriteLine($"\tManagement {m?.Name}");
                             foreach (Device d in m.Devices)
                             {
                                 Console.WriteLine($"\t\tDevice {d?.Name}");
-                                foreach (Rule r in d.Rules)
+                                foreach (Rule rule in d.Rules)
                                 {
-                                    Console.WriteLine($"\t\t\tRule {r?.Id} Src {r?.Source}");
+                                    Console.WriteLine($"\t\t\tRule {rule?.Id} Src {rule?.Source}");
                                 }
                             }
                         }

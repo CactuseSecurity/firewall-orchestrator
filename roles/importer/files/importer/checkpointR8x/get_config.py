@@ -61,24 +61,7 @@ use_object_dictionary = 'false'
 # logging config
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
-
-# todo: save the initial value, reset initial value at the end
-# todo: switch to native syslog
-# if debug_level == 1:
-#     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# elif debug_level == 2:
-#     logging.basicConfig(filename='/var/tmp/get_config.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# if debug_level == 3:
-#     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-#     logging.basicConfig(filename='/var/tmp/get_config.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# ssl_verification mode
-ssl_verification_mode = args.ssl
-if ssl_verification_mode == '':
-    ssl_verification = False
-else:
-    ssl_verification = ssl_verification_mode
-    # todo: supplement error handling: redable file, etc
+ssl_verification = getter.set_ssl_verification(args.ssl)
 
 starttime = int(time.time())
 # top level dict start
@@ -100,7 +83,8 @@ for layer in args.layer.split(','):
 #        show_params_rules = {'name':layer,'offset':current,'limit':limit,'use-object-dictionary':'false','details-level':'full'}
         show_params_rules['offset']=current
         rulebase = getter.api_call(api_host, args.port, v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
-        config_json +=  json.dumps(rulebase, indent=json_indent)
+        config_json +=  json.dumps(rulebase)
+        # config_json +=  json.dumps(rulebase, indent=json_indent)
         config_json +=  ",\n"
         total=rulebase['total']
         current=rulebase['to']
@@ -124,7 +108,8 @@ for obj_type in getter.api_obj_types:
     while (current<total) :
         show_params_objs['offset']=current
         objects = getter.api_call(api_host, args.port, v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy_string)
-        config_json += json.dumps(objects, indent=json_indent)
+        config_json += json.dumps(objects)
+        # config_json += json.dumps(objects, indent=json_indent)
         config_json += ",\n"
         if 'total' in objects  and 'to' in objects:
             total=objects['total']

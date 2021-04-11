@@ -33,7 +33,6 @@ common.set_log_level(log_level=debug_level, debug_level=debug_level)
 
 args = parser.parse_args()
 config_filename = args.config_file
-json_indent=2
 use_object_dictionary = 'false'
 
 with open(args.config_file, "r") as json_data:

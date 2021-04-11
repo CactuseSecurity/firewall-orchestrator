@@ -45,32 +45,12 @@ svc_objs_from_obj_tables = []
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
 
-ssl_verification_mode = args.ssl
-if ssl_verification_mode == '':
-    ssl_verification = False
-else:
-    ssl_verification = ssl_verification_mode
-    # todo: supplement error handling: readable file, etc
-
+ssl_verification = getter.set_ssl_verification(args.ssl)
 starttime = int(time.time())
 
 # read json config data
 with open(config_filename, "r") as json_data:
     config = json.load(json_data)
-
-#print(json.dumps(config, indent=json_indent))
-
-#################################################################################
-# get all inline layers contained in config
-#################################################################################
-
-# get config --> yields rules containing actions name "inner layer" with inline-layer attribute containing "name" of the inline layer and
-# "uid": "5dffc910-a1e1-4f92-ad0d-77348d9a1e28",
-# "name": "InlineLayer1",
-# "type": "access-layer",
-# "parent-layer": "0f45100c-e4ea-4dc1-bf22-74d9d98a4811",
-# "firewall": true,
-
 
 def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
     if 'layerchunks' in rulebase:
@@ -157,7 +137,6 @@ for missing_obj in missing_nw_object_uids:
         show_params_host = {'details-level':details_level,'uid':missing_obj}
         obj = getter.api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
         obj = obj['object']
-        #print(json.dumps(obj, indent=json_indent))
         if (obj['type'] == 'CpmiAnyObject'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
                     "objects": [ {
@@ -207,7 +186,8 @@ if args.noapi == 'false':
     if os.path.exists(config_filename): # delete json file (to enabiling re-write)
         os.remove(config_filename)
     with open(config_filename, "w") as json_data:
-        json_data.write(json.dumps(config,indent=json_indent))
+        json_data.write(json.dumps(config))
+        # json_data.write(json.dumps(config,indent=json_indent))
 
 if args.noapi == 'false':
     logout_result = getter.api_call(api_host, args.port, v_url, 'logout', '', sid, ssl_verification, proxy_string)

@@ -272,6 +272,13 @@ tables:
       - config_key
       - config_value
       - config_user
+      filter: {}
+    role: middleware-server
+  - permission:
+      columns:
+      - config_key
+      - config_value
+      - config_user
       filter:
         _or:
         - config_user:
@@ -1739,6 +1746,11 @@ tables:
       columns:
       - report_format_name
       filter: {}
+    role: middleware-server
+  - permission:
+      columns:
+      - report_format_name
+      filter: {}
     role: reporter
   - permission:
       columns:
@@ -2003,6 +2015,12 @@ tables:
       - report_schedule_id
       filter: {}
     role: auditor
+  - permission:
+      columns:
+      - report_schedule_format_name
+      - report_schedule_id
+      filter: {}
+    role: middleware-server
   - permission:
       columns:
       - report_schedule_format_name

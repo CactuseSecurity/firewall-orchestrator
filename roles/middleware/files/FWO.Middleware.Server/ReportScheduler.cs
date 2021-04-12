@@ -92,7 +92,7 @@ namespace FWO.Middleware.Server
                                     Interval.Weeks => scheduledReport.StartTime.AddDays(scheduledReport.RepeatOffset * 7),
                                     Interval.Months => scheduledReport.StartTime.AddMonths(scheduledReport.RepeatOffset),
                                     Interval.Years => scheduledReport.StartTime.AddYears(scheduledReport.RepeatOffset),
-                                    Interval.Never => scheduledReport.StartTime.AddYears(42_42_42),
+                                    Interval.Never => scheduledReport.StartTime.AddYears(42_42),
                                     _ => throw new NotSupportedException("Time interval is not supported.")
                                 };
                             }

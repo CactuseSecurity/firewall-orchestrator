@@ -7,6 +7,10 @@
 #*.pl linguist-detectable=false
 ##################################
 
+######## reclassification ########
+*.razor linguist-language=csharp
+##################################
+
 ################### ignore paths like #######################
 #roles/* linguist-detectable=false
 #roles/openldap-server/* linguist-detectable=false

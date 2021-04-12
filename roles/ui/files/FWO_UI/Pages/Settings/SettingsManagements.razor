@@ -158,12 +158,9 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            @if (DeleteAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">Delete</button>
-                </AuthorizeView>
-            }
+            <AuthorizeView Roles="admin">
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">Delete</button>
+            </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
         </div>
     </Footer>
@@ -198,7 +195,6 @@
 
     private bool EditMode = false;
     private bool DeleteMode = false;
-    private bool DeleteAllowed = false;
     private bool CleanupMode = false;
     private bool AddMode = false;
     private bool showCleanupButton = false;
@@ -250,15 +246,13 @@
         // Checks if delete possible. Todo: further checks?
         if (actManagement.Devices != null && actManagement.Devices.Length > 0)
         {
-            deleteMessage = $"Deletion of management {actManagement.Name} not allowed as there are related Gateways. Delete them first if possible.";
-            DeleteAllowed = false;
+            DisplayMessageInUi(null, "Delete Management", $"Deletion of management {actManagement.Name} not allowed as there are related Gateways. Delete them first if possible.", true);
         }
         else
         {
             deleteMessage = $"Are you sure you want to delete management {actManagement.Name}?";
-            DeleteAllowed = true;
+            DeleteMode = true;
         }
-        DeleteMode = true;
     }
 
     private async Task Delete(Management management)

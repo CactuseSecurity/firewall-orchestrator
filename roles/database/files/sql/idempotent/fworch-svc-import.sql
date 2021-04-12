@@ -60,9 +60,9 @@ BEGIN
 	FOR r_svc IN -- jedes Objekt wird mittels insert_single_nwobj eingefuegt
 		SELECT svc_id FROM import_service WHERE control_id = i_current_import_id
 	LOOP
-		RAISE DEBUG 'before import_svc_single';
+		-- RAISE DEBUG 'before import_svc_single';
 		PERFORM import_svc_single(i_current_import_id,i_mgm_id,r_svc.svc_id,i_timeout_factor,b_is_initial_import);
-		RAISE DEBUG 'successfully finished import_svc_single';
+		-- RAISE DEBUG 'successfully finished import_svc_single';
 	END LOOP;
 
 	IF NOT b_is_initial_import THEN 	-- geloeschte Elemente markieren als NOT active
@@ -164,16 +164,16 @@ DECLARE
 	i_new_svc_id  BIGINT;	-- id des neu eingefuegten object
 	v_comment	VARCHAR;	
 BEGIN
-    RAISE DEBUG 'import_svc_single::start';
+    -- RAISE DEBUG 'import_svc_single::start';
     b_insert := FALSE;
     b_change := FALSE;
     b_change_security_relevant := FALSE;
     SELECT INTO to_import * FROM import_service WHERE svc_id = id; -- zu importierenden Datensatz aus import_service einlesen
-    RAISE DEBUG 'import_svc_single::SELECT INTO to_import * FROM import_service WHERE svc_id = id (after)';
-    RAISE DEBUG 'ip_proto found: %', to_import.ip_proto;
+    --RAISE DEBUG 'import_svc_single::SELECT INTO to_import * FROM import_service WHERE svc_id = id (after)';
+    --RAISE DEBUG 'ip_proto found: %', to_import.ip_proto;
 	IF NOT (to_import.ip_proto IS NULL OR char_length(cast (to_import.ip_proto as varchar)) = 0 
 			OR CAST(to_import.ip_proto as integer)<0 OR to_import.ip_proto = '') THEN  -- wenn ip-proto vorhanden (simple) und nicht negativ
-		RAISE DEBUG 'import_svc_single::first if true';
+		--RAISE DEBUG 'import_svc_single::first if true';
 		IF is_numeric(to_import.ip_proto) THEN
 			protoID := CAST(to_import.ip_proto AS INTEGER);
 		ELSE

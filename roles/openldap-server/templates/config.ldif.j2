@@ -1,4 +1,4 @@
-# example config file - global configuration entry
+# global configuration entry
 dn: cn=config
 objectClass: olcGlobal
 cn: config
@@ -59,7 +59,7 @@ olcAccess: to attrs=userPassword
     by anonymous auth
     by dn.base="{{ openldap_superuser_dn }}" write
     by dn.base="{{ openldap_readonly_user_dn }}" read
-    by dn.base="{{ openldap_writer_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" write
     by * none
 olcAccess: to attrs=shadowLastChange
     by self write
@@ -85,7 +85,6 @@ olcAccess: to *
     by dn.base="{{ openldap_readonly_user_dn }}" read
     by dn.base="{{ openldap_writer_dn }}" read
     by * none
-
 
 # Backend memberOf overlay
 dn: olcOverlay=memberof,olcDatabase={1}bdb,cn=config

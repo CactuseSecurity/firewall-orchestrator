@@ -163,9 +163,9 @@ namespace FWO.Ui.Display
             return rule.Track;
         }
 
-        public static string DisplayDisabled(this Rule rule)
+        public static string DisplayEnabled(this Rule rule)
         {
-            return $"<div class=\"oi {(rule.Disabled ? "oi-check" : "oi-x")}\"></div>";
+            return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
         }
 
         public static string DisplayUid(this Rule rule)

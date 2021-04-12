@@ -9,7 +9,6 @@
 
 ######## reclassification ########
 *.razor linguist-language=csharp
-*c linguist-language=csharp
 ##################################
 
 ################### ignore paths like #######################

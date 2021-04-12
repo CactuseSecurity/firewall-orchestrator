@@ -53,7 +53,7 @@ git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 Otherwise, directly run:
 
 ```console
-cd firewall-orchestrator; ansible-playbook site.yml -K
+cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
 ```
 Enter sudo password when prompted "BECOME or SUDO password:"
 

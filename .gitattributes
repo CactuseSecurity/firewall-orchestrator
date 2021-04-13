@@ -7,6 +7,10 @@
 #*.pl linguist-detectable=false
 ##################################
 
+######## reclassification ########
+*.razor linguist-language=csharp
+##################################
+
 ################### ignore paths like #######################
 #roles/* linguist-detectable=false
 #roles/openldap-server/* linguist-detectable=false
@@ -14,8 +18,8 @@
 #############################################################
 
 ####################### paths to ignore #####################
-roles/sample-auth-data/* linguist-detectable=false
-roles/sample-data-connect-sting/* linguist-detectable=false
-roles/sample-data/* linguist-detectable=false
-roles/test/* linguist-detectable=false
+roles/sample-auth-data/** -linguist-detectable
+roles/sample-data-connect-sting/** -linguist-detectable
+roles/sample-data/** -linguist-detectable
+roles/test/** -linguist-detectable
 #############################################################

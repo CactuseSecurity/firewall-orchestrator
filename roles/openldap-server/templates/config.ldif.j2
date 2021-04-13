@@ -59,7 +59,7 @@ olcAccess: to attrs=userPassword
     by anonymous auth
     by dn.base="{{ openldap_superuser_dn }}" write
     by dn.base="{{ openldap_readonly_user_dn }}" read
-    by dn.base="{{ openldap_writer_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" write
     by * none
 olcAccess: to attrs=shadowLastChange
     by self write

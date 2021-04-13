@@ -30,20 +30,9 @@ result = ""
 # logging config
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
-# todo: save the initial value, reset initial value at the end
-# todo: switch to native syslog
-
-# if debug_level == 1:
-#     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# elif debug_level == 2:
-#     logging.basicConfig(filename='/var/tmp/parse_config.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# elif debug_level == 3:
-#     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-#     logging.basicConfig(filename='/var/tmp/parse_config.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 args = parser.parse_args()
 config_filename = args.config_file
-json_indent=2
 use_object_dictionary = 'false'
 
 with open(args.config_file, "r") as json_data:

@@ -92,7 +92,7 @@ for line in data:
     if fnmatch.filter([line], '        set srcaddr*') and rule_area_flag and uid_flag:
         if fnmatch.filter([line], '        set srcaddr "all"\n'):
             data[replace_counter] = '        set srcaddr "{}"\n'.format(ip_address)
-        elif len(line) > 200:
+        elif len(line) > 58:
             data[replace_counter] = '        set srcaddr "{}"\n'.format(ip_address)
             delete_unused_network_objects = True
         else:

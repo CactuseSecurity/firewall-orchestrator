@@ -16,67 +16,67 @@
                        style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
                        PageSize="RulesPerPage" ColumnReorder="true">
 
-                    <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
-                    <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayChangeAction())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Name" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayName())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Source Zone" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplaySourceZone())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Source" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplaySource())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Destination Zone" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayDestinationZone())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Destination" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayDestination())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Services" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayService())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Action" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayAction())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Track" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayTrack())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Disabled" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayDisabled())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="UID" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayUid())
-                        </Template>
-                    </Column>
-                    <Column TableItem="RuleChange" Title="Comment" Hideable="true">
-                        <Template>
-                            @((MarkupString)context.DisplayComment())
-                        </Template>
-                    </Column>
+                            <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
+                            <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayChangeAction())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Name" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayName())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Source Zone" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplaySourceZone())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Source" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplaySource())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Destination Zone" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayDestinationZone())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Destination" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayDestination())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Services" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayService())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Action" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayAction())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Track" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayTrack())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Enabled" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayEnabled())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="UID" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayUid())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="Comment" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayComment())
+                                </Template>
+                            </Column>
 
                     <DetailTemplate TableItem="RuleChange">
                         <div>test</div>

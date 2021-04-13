@@ -13,11 +13,17 @@ def csv_dump_nw_obj(nw_obj, import_id):
         result_line += common.csv_delimiter  # obj_ip for groups = null
     else:
         result_line += '"' + nw_obj['obj_ip'] + '"' + common.csv_delimiter  # obj_ip
-    result_line += common.csv_delimiter  # result_line += '"' + nw_obj['obj_ip_end'] + '"' + csv_delimiter         # obj_ip_end
+    if 'obj_ip_end' in nw_obj:
+        result_line += '"' + nw_obj['obj_ip_end'] + '"' + csv_delimiter         # obj_ip_end
+    else:
+        result_line += common.csv_delimiter
     result_line += '"' + nw_obj['obj_color'] + '"' + common.csv_delimiter  # obj_color
     result_line += '"' + nw_obj['obj_comment'] + '"' + common.csv_delimiter  # obj_comment
     result_line += common.csv_delimiter  # result_line += '"' + nw_obj['obj_location'] + '"' + csv_delimiter       # obj_location
-    result_line += common.csv_delimiter  # result_line += '"' + nw_obj['obj_zone'] + '"' + csv_delimiter           # obj_zone
+    if 'obj_zone' in nw_obj:
+        result_line += '"' + nw_obj['obj_zone'] + '"' + csv_delimiter           # obj_zone
+    else:
+        result_line += common.csv_delimiter
     result_line += '"' + nw_obj['obj_uid'] + '"' + common.csv_delimiter  # obj_uid
     result_line += common.csv_delimiter  # last_change_admin
     # add last_change_time

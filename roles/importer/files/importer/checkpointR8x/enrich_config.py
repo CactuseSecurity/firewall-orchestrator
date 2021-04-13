@@ -44,25 +44,58 @@ svc_objs_from_obj_tables = []
 # logging config
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
-# todo: save the initial value, reset initial value at the end
-# todo: switch to native syslog
 
-# ssl_verification mode
-ssl_verification_mode = args.ssl
-if ssl_verification_mode == '':
-    ssl_verification = False
-else:
-    ssl_verification = ssl_verification_mode
-    # todo: supplement error handling: readable file, etc
-
+ssl_verification = getter.set_ssl_verification(args.ssl)
 starttime = int(time.time())
 
 # read json config data
 with open(config_filename, "r") as json_data:
     config = json.load(json_data)
 
-#print(json.dumps(config, indent=json_indent))
+def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
+    if 'layerchunks' in rulebase:
+        for chunk in rulebase['layerchunks']:
+            for rules_chunk in chunk['rulebase']:
+                get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
+    else:
+        if 'rulebase' in rulebase:
+            # logging.debug ( "enrich_config - searching for inline layers in layer " + rulebase['layername'] )
+            # add section header, but only if it does not exist yet (can happen by chunking a section)
+            for rule in rulebase['rulebase']:
+                if 'inline-layer' in rule:
+                    inline_layers.append(rule['inline-layer']['name'])
 
+        if 'rule-number' in rulebase:   # not a rulebase but a single rule
+            if 'inline-layer' in rulebase:
+                inline_layers.append(rulebase['inline-layer']['name'])
+                # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
+
+
+found_new_inline_layers = True
+old_inline_layers = []
+while found_new_inline_layers is True:
+    # sweep existing rules for inline layer links
+    inline_layers = []
+    for rulebase in config['rulebases']:
+        get_inline_layer_names_from_rulebase(rulebase, inline_layers)
+
+    if len(inline_layers) == len(old_inline_layers):
+        found_new_inline_layers = False
+    else:
+        old_inline_layers = inline_layers
+        for layer in inline_layers:
+            logging.debug ( "enrich_config - found inline layer " + layer )
+            # enrich config --> get additional layers referenced in top level layers by name
+            # also handle possible recursion (inline layer containing inline layer(s))
+            # get layer rules from api
+            # add layer rules to config
+
+# next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
+
+
+#################################################################################
+# get object data which is only contained as uid in config by making addtional api calls
+#################################################################################
 # get all object uids (together with type) from all rules in fields src, dst, svc
 for rulebase in config['rulebases']:
     logging.debug ( "enrich_config - searching for all uids in rulebase: " + rulebase['layername'] )
@@ -104,7 +137,6 @@ for missing_obj in missing_nw_object_uids:
         show_params_host = {'details-level':details_level,'uid':missing_obj}
         obj = getter.api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
         obj = obj['object']
-        #print(json.dumps(obj, indent=json_indent))
         if (obj['type'] == 'CpmiAnyObject'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
                     "objects": [ {
@@ -154,7 +186,8 @@ if args.noapi == 'false':
     if os.path.exists(config_filename): # delete json file (to enabiling re-write)
         os.remove(config_filename)
     with open(config_filename, "w") as json_data:
-        json_data.write(json.dumps(config,indent=json_indent))
+        json_data.write(json.dumps(config))
+        # json_data.write(json.dumps(config,indent=json_indent))
 
 if args.noapi == 'false':
     logout_result = getter.api_call(api_host, args.port, v_url, 'logout', '', sid, ssl_verification, proxy_string)

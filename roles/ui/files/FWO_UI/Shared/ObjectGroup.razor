@@ -1,8 +1,9 @@
 ﻿@using BlazorTable
-@using FWO.Ui.Data
 @using FWO.ApiClient
 @using FWO.ApiClient.Queries
 @using FWO.Api.Data
+@using FWO.Report.Filter
+@using FWO.Ui.Pages.Reporting
 
 @typeparam InputDataType
 
@@ -212,6 +213,12 @@
 @code
 {
     [Parameter]
+    public Report ReportPage { get; set; }
+
+    [Parameter]
+    public int Type { get; set; }
+
+    [Parameter]
     public int PageSize { get; set; }
 
     [Parameter]
@@ -235,9 +242,6 @@
     [Parameter]
     public Func<InputDataType, IEnumerable<NetworkUser>> NetworkUserExtractor { get; set; }
 
-    [CascadingParameter]
-    public APIConnection Connection { get; set; }
-
     // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
     public InputDataType Content { get; set; }
     public bool ContentIsDetailed { get; private set; }
@@ -255,128 +259,31 @@
     {
         if (!ContentIsDetailed)
         {
-            Console.WriteLine($"Type of Content: {Content.GetType()}");
+            Management[] managements = new Management[0];
             switch (Content)
             {
-                case Rule r:
-
-                    try
-                    {
-                        Management[] managementsAllObjects = new Management[0];
-
-                        int elementsPerFetch = 100; // TODO magic limit of 300
-                        int maxInitFetch = 10;
-                        bool autoFill = false;
-
-                        PaginationVariables paginationVariables = new RulePaginationVariables() { Offset = 0, Limit = elementsPerFetch, RuleUid = r.Uid };
-
-                        bool newObjects = true;
-                        int fetchCount = 0;
-
-                        // lazy fetch all objects for right sidebar
-                        while (newObjects && (++fetchCount <= maxInitFetch || autoFill))
+                case Management m:
+                    await ReportPage.FetchContent(Type,
+                        managementsUpdate =>
                         {
-                            Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getRuleDetails, paginationVariables);
-                            if (fetchCount == 1)
-                            {
-                                managementsAllObjects = managementsCurrentFetch;
-                            }
-                            else
-                            {
-                                newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
-                            }
-
-                            Rule r_updated = managementsAllObjects.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
-
-                            if (r_updated != null)
-                            {
-                                r_updated.DeviceName = r.DeviceName;
-                                Content = (InputDataType)(Object)r_updated;
-                            }
-
-                            await InvokeAsync(StateHasChanged);
-
-                            paginationVariables.Offset += elementsPerFetch;
-                        }
-
-                        Log.WriteDebug("Lazy Fetch", $"Fetched sidebar rule objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
-
-                        // <DEBUG>
-                        Console.WriteLine($"Sent: {ObjectQueries.getRuleDetails} with rule_uid = {r.Uid}");
-                        foreach (Management m in managementsAllObjects)
-                        {
-                            Console.WriteLine($"\tManagement {m?.Name}");
-                            foreach (Device d in m.Devices)
-                            {
-                                Console.WriteLine($"\t\tDevice {d?.Name}");
-                                foreach (Rule rule in d.Rules)
-                                {
-                                    Console.WriteLine($"\t\t\tRule {rule?.Id} Src {rule?.Source}");
-                                }
-                            }
-                        }
-                        // </DEBUG>
-
-                        // different flavors of "working with generics in c#"
-
-                        //Content = (InputDataType)Activator.CreateInstance(typeof(InputDataType), r_updated, r_d.Value);
-                        //typeof(KeyValuePair<Rule, Device>).GetProperty("Key").SetValue(Content, r_updated); readonly :(
-                        //if (Content is KeyValuePair<Rule, Device>)
-                        //if (typeof(InputDataType).IsAssignableFrom(typeof(KeyValuePair<Rule, Device>)))
-                    }
-                    catch (Exception exception)
-                    {
-                        //DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
-                        // TODO: Error Interface for all Components, that enables displaying a message in the ui
-                    }
+                            Management m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
+                            if (m_updated != null)
+                                Content = (InputDataType)(Object)m_updated;
+                            return InvokeAsync(StateHasChanged);
+                        }, mgmtId: m.Id);
 
                     break;
 
-                case Management m:
-
-                    try
-                    {
-                        Management[] managementsAllObjects = new Management[0];
-
-                        int elementsPerFetch = 100; // TODO magic limit of 300
-                        int maxInitFetch = 10;
-                        bool autoFill = false;
-
-                        PaginationVariables paginationVariables = new PaginationVariables() { Limit = elementsPerFetch, Offset = 0, ManagementId = m.Id };
-
-                        bool newObjects = true;
-                        int fetchCount = 0;
-
-                        // lazy fetch all objects for right sidebar
-                        while (newObjects && (++fetchCount <= maxInitFetch || autoFill))
+                case Rule r:
+                    await ReportPage.FetchContent(2,
+                        managementsUpdate =>
                         {
-                            Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                            if (fetchCount == 1)
-                            {
-                                managementsAllObjects = managementsCurrentFetch;
-                            }
-                            else
-                            {
-                                newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
-                            }
-
-                            Management m_updated = managementsAllObjects.FirstOrDefault();
-
-                            if (m_updated != null)
-                                Content = (InputDataType)(Object)m_updated;
-
-                            await InvokeAsync(StateHasChanged);
-
-                            paginationVariables.Offset += elementsPerFetch;
-                        }
-
-                        Log.WriteDebug("Lazy Fetch", $"Fetched sidebar rule objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
-                    }
-                    catch (Exception exception)
-                    {
-                        //DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
-                        // TODO: Error Interface for all Components, that enables displaying a message in the ui
-                    }
+                            Rule r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
+                            r_updated.DeviceName = r.DeviceName;
+                            if (r_updated != null)
+                                Content = (InputDataType)(Object)r_updated;
+                            return InvokeAsync(StateHasChanged);
+                        }, ruleUid: r.Uid);
 
                     break;
             }
@@ -385,4 +292,4 @@
             await InvokeAsync(StateHasChanged);
         }
     }
-    }
+}

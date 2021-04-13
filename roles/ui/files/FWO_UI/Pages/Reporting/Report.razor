@@ -18,9 +18,9 @@
     <div class="p-3">
 
         <h5 class="text-left">Select device(s)</h5>
-        <button class="btn btn-sm btn-secondary"
-                @onclick="() => {
-                fullDeviceSelectionState = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceSelectionState, out selectButtonText);
+        <button class="btn btn-sm btn-secondary" 
+            @onclick="() => { 
+                fullDeviceSelectionState = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceSelectionState, out selectButtonText); 
                 filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput);
             }">
             @selectButtonText
@@ -29,20 +29,24 @@
 
         @foreach (Management management in managementsOverview)
         {
-@if (management != null)
-{
-<Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
-    @foreach (Device device in management.Devices)
-    {
-<div class="form-check">
-    <input class="form-check-input" type="checkbox" id="device.Id"
-           @bind="device.selected"
-           @oninput="() => { device.selected = !device.selected; filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput); }" />
-    <label class="form-check-label" for="@device.Id">
-        &nbsp;@device.Name
-    </label>
-</div>}
-</Collapse>}}
+            @if (management != null)
+            {
+                <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
+                    @foreach (Device device in management.Devices)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="device.Id"
+                                @bind="device.selected"
+                                @oninput="() => { device.selected = !device.selected; filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput); }"
+                            />
+                            <label class="form-check-label" for="@device.Id">
+                                &nbsp;@device.Name
+                            </label>
+                        </div>
+                    }
+                </Collapse>
+            }
+        }
     </div>
 </Sidebar>
 
@@ -82,45 +86,51 @@
 
             @if (query != null)
             {
-@switch (query.ReportType)
-{
-    case rulesReport:
-<RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRules="selectedItemsRuleReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></RulesReport> break;
+                @switch (query.ReportType)
+                {
+                    case rulesReport:
+                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRules="selectedItemsRuleReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></RulesReport>
+                        break;
 
                     case changesReport:
-<ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRuleChanges="selectedItemsChangeReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></ChangesReport> break;
+                        <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRuleChanges="selectedItemsChangeReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></ChangesReport>
+                        break;
 
                     case statisticsReport:
-@if (globalStats != null)
-{
-<h5>Gobal number of Objects</h5>
+                        @if (globalStats != null)
+                        {
+                            <h5>Gobal number of Objects</h5>
                             <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
                                 <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
-                            </Table>                        }
+                            </Table>
+                        }
                         @foreach (Management management in managementsReport)
                         {
-<Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-    <h6>Total number of Objects per Management</h6>
-    <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
-        <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-        <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-        <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-        <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
-    </Table>
+                            <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+                                <h6>Total number of Objects per Management</h6>
+                                <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
+                                    <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                </Table>
 
-    <h6>Number of Rules per Gateway</h6>
-    <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
-        <Column TableItem="Device" Title="Gateway" Field="@(Device => Device.Name)" />
-        <Column TableItem="Device" Title="Number of Rules" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
-    </Table>
-</Collapse>                        }                        break;
+                                <h6>Number of Rules per Gateway</h6>
+                                <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
+                                    <Column TableItem="Device" Title="Gateway" Field="@(Device => Device.Name)" />
+                                    <Column TableItem="Device" Title="Number of Rules" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                </Table>
+                            </Collapse>
+                        }
+                        break;
 
-                                            default:
-                                                break;
-                                        }            }
+                    default:
+                        break;
+                }
+            }
         </div>
     </div>
 </div>
@@ -137,22 +147,18 @@
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">collapse all</div>
                 </div>
-                <CascadingValue Value="Connection">
-                    <CascadingValue Value="collapseSidebarAll">
-                        <ObjectGroupCollection InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                               NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                    </CascadingValue>
+                <CascadingValue Value="collapseSidebarAll">
+                    <ObjectGroupCollection ReportPage="this" Type="0" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                            NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
             <Tab Title="Report">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
                 </div>
-                <CascadingValue Value="Connection">
-                    <CascadingValue Value="collapseSidebarReport">
-                        <ObjectGroupCollection InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                               NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
-                    </CascadingValue>
+                <CascadingValue Value="collapseSidebarReport">
+                    <ObjectGroupCollection ReportPage="this" Type="1" InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                            NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
             <Tab Title="Rule">
@@ -160,14 +166,12 @@
                     <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">clear all</div>
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
                 </div>
-                <CascadingValue Value="Connection">
-                    <CascadingValue Value="collapseSidebarRule">
-                        <ObjectGroupCollection StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
-                                               NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                               NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
-                                               NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                               NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
-                    </CascadingValue>
+                <CascadingValue Value="collapseSidebarRule">
+                    <ObjectGroupCollection ReportPage="this" Type="2" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
+                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                            NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                            NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
                 </CascadingValue>
             </Tab>
         </TabSet>
@@ -175,253 +179,341 @@
 </Sidebar>
 
 @code
-{ [CascadingParameter]
-            Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+{
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
-            [CascadingParameter]
-            private Task<AuthenticationState> authenticationStateTask { get; set; }
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-            private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
-            private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
+    private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
+    private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
-            private Management[] managementsOverview = new Management[0];
-            private Management[] managementsReport = new Management[0];
-            private Management[] managementsAllObjects = new Management[0];
-            private Management[] managementsWithRelevantImportId = new Management[0];
-            private Management globalStats = null;
+    private Management[] managementsOverview = new Management[0];
+    private Management[] managementsReport = new Management[0];
+    private Management[] managementsAllObjects = new Management[0];
+    private Management[] managementsWithRelevantImportId = new Management[0];
+    private Management globalStats = null;
 
-            // private Dictionary<int,bool> deviceSelected = new Dictionary<int,bool>();
-            private ScheduledReport[] scheduledReports = new ScheduledReport[0];
+    // private Dictionary<int,bool> deviceSelected = new Dictionary<int,bool>();
+    private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
-            private int elementsPerFetch = 100;
-            private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
+    private int elementsPerFetch = 100;
+    private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
-            private bool ShowNoDeviceSelectedWarning = false;
-            //private bool ShowSaveTemplateDialog = false;
-            //private bool ShowEditTemplateDialog = false;
-            //private bool ShowDeleteTemplateDialog = false;
-            //private bool ShowDeleteReportFileDialog = false;
-            //private bool ShowEditScheduledReportDialog = false;
-            //private bool ShowDeleteScheduledReportDialog = false;
+    private bool ShowNoDeviceSelectedWarning = false;
+    //private bool ShowSaveTemplateDialog = false;
+    //private bool ShowEditTemplateDialog = false;
+    //private bool ShowDeleteTemplateDialog = false;
+    //private bool ShowDeleteReportFileDialog = false;
+    //private bool ShowEditScheduledReportDialog = false;
+    //private bool ShowDeleteScheduledReportDialog = false;
 
-            private bool autoFillRightSidebar = false;
-            private int maxInitFetchRightSidebar = 10;
-            private int sidebarLeftWidth = 300;
-            private int sidebarRightWidth = 300;
+    private bool autoFillRightSidebar = false;
+    private int maxInitFetchRightSidebar = 10;
+    private int sidebarLeftWidth = 300;
+    private int sidebarRightWidth = 300;
 
-            private ReportTemplateComponent reportTemplateControl;
+    private ReportTemplateComponent reportTemplateControl;
 
-            private ReportBase currentReport;
+    private ReportBase currentReport;
 
-            private int reportFileId = 0;
+    private int reportFileId = 0;
 
-            private int scheduledReportId = 0;
-            private string scheduledReportName = "";
-            private string scheduledReportRepeatInterval = "";
-            private int scheduledReportRepeatCount = 0;
-            private string scheduledReportTemplateName = "";
-            private string scheduledReportOwner = "";
-            private string scheduledReportOutputFormat = "";
-            private bool scheduledReportActive = false;
+    private int scheduledReportId = 0;
+    private string scheduledReportName = "";
+    private string scheduledReportRepeatInterval = "";
+    private int scheduledReportRepeatCount = 0;
+    private string scheduledReportTemplateName = "";
+    private string scheduledReportOwner = "";
+    private string scheduledReportOutputFormat = "";
+    private bool scheduledReportActive = false;
 
-            private string filterFeedbackStart = "";
-            private string filterFeedbackError = "";
-            private string filterFeedbackEnd = "";
-            private string filterInput = "";
-            private const string rulesReportDefaultFilterLine = "type=rules and time=now ";
-            //private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
-            private const string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
-            private const string statisticsReportDefaultFilterLine = "type=statistics and time=now ";
-            private const string anyObjcomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny)";
-            private const string cleanupRulecomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any and dst=any and svc=any) or (src=all and dst=all and svc=all) and (action=drop or action=reject or action=deny)";
-            private const string inactiveRulescomplianceReportDefaultFilterLine = "type=compliance and time=now and active=false";
-            private const string complianceReportDefaultFilterLine = anyObjcomplianceReportDefaultFilterLine;
-            private string reportGenerationTimeLine = "";
-            private const string rulesReport = "rules";
-            private const string changesReport = "changes";
-            private const string complianceReport = "compliance";
-            private const string statisticsReport = "statistics";
-            private CollapseState collapseSidebarAll = new CollapseState();
-            private CollapseState collapseSidebarReport = new CollapseState();
-            private CollapseState collapseSidebarRule = new CollapseState();
-            private DynGraphqlQuery query = null;
-            private bool fullDeviceSelectionState = false;
-            private string selectButtonText = "Select all devices";
+    private string filterFeedbackStart = "";
+    private string filterFeedbackError = "";
+    private string filterFeedbackEnd = "";
+    private string filterInput = "";
+    private string activeFilter = "";
+    private const string rulesReportDefaultFilterLine = "type=rules and time=now ";
+    //private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
+    private const string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
+    private const string statisticsReportDefaultFilterLine = "type=statistics and time=now ";
+    private const string anyObjcomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny)";
+    private const string cleanupRulecomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any and dst=any and svc=any) or (src=all and dst=all and svc=all) and (action=drop or action=reject or action=deny)";
+    private const string inactiveRulescomplianceReportDefaultFilterLine = "type=compliance and time=now and active=false";
+    private const string complianceReportDefaultFilterLine = anyObjcomplianceReportDefaultFilterLine;
+    private string reportGenerationTimeLine = "";
+    private const string rulesReport = "rules";
+    private const string changesReport = "changes";
+    private const string complianceReport = "compliance";
+    private const string statisticsReport = "statistics";
+    private CollapseState collapseSidebarAll = new CollapseState();
+    private CollapseState collapseSidebarReport = new CollapseState();
+    private CollapseState collapseSidebarRule = new CollapseState();
+    private DynGraphqlQuery query = null;
+    private bool fullDeviceSelectionState = false;
+    private string selectButtonText = "Select all devices";
 
-            protected override void OnInitialized()
+    protected override void OnInitialized()
+    {
+        Task.Run(async () =>
+        {
+            try
             {
-                Task.Run(async () =>
-                {
-                    try
+                GetSettings();
+
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
+
+                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
+
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
+            }
+        });
+
+        Task.Run(async () =>
+        {
+            managementsOverview = await Connection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+            await InvokeAsync(StateHasChanged);
+        });
+
+        //Task.Run(async () =>
+        //{
+        //    try
+        //    {
+        //        reportTemplates = (await Connection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates)).ToList();
+        //        await InvokeAsync(StateHasChanged);
+        //    }
+        //    catch (Exception exception)
+        //    {
+        //        DisplayMessageInUi(exception, "Report Template Fetch", "Error while fetching report templates from API", true);
+        //    }
+        //});
+    }
+
+    public async Task FetchContent(int contentType, Func<Management[], Task> callback, int mgmtId = 0, string ruleUid = "")
+    {
+        const byte all = 0, report = 1, rule = 2;
+
+        Log.WriteDebug("Fetching Content..", "");
+
+        Management[] managements = new Management[0];
+
+        try
+        {
+            GetSettings();
+
+            string query = "";
+            Dictionary<String, object> queryVars = new Dictionary<string, object>();
+
+            bool newObjects = true;
+            int fetchCount = 0;
+
+            switch (contentType)
+            {
+                case all:
+
+                    query = ObjectQueries.getAllObjectDetails;
+
+                    queryVars = new Dictionary<string, object>()
                     {
-                        GetSettings();
+                        { "limit", elementsPerFetch },
+                        { "offset", (int)0 },
+                        { "management_id", mgmtId }
+                    };
 
-                        PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
+                    break;
 
-                        managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                case report: //TODO: new functionality for fetching objects with query
 
-                        await InvokeAsync(StateHasChanged);
-                    }
-                    catch (Exception exception)
+                    DynGraphqlQuery gqlQuery = Compiler.Compile(activeFilter, true);
+                    query = gqlQuery.FullQuery;
+                    queryVars = gqlQuery.QueryVariables;
+
+                    break;
+
+                case rule:
+
+                    query = RuleQueries.getRuleDetails;
+
+                    queryVars = new Dictionary<string, object>()
                     {
-                        DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
-                    }
-                });
+                        { "limit", elementsPerFetch },
+                        { "offset", (int)0 },
+                        { "rule_uid", ruleUid }
+                    };
 
-                Task.Run(async () =>
-                {
-                    managementsOverview = await Connection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
-                    await InvokeAsync(StateHasChanged);
-                });
-
-                //Task.Run(async () =>
-                //{
-                //    try
-                //    {
-                //        reportTemplates = (await Connection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates)).ToList();
-                //        await InvokeAsync(StateHasChanged);
-                //    }
-                //    catch (Exception exception)
-                //    {
-                //        DisplayMessageInUi(exception, "Report Template Fetch", "Error while fetching report templates from API", true);
-                //    }
-                //});
+                    break;
             }
 
-            private async Task GenerateReport()
+            Console.WriteLine(query + "\n" + String.Concat(queryVars.SelectMany(s_o => new List<String>() { $"{s_o.Key} / {s_o.Value}" })));
+
+            // lazy fetch all objects for right sidebar
+            while (newObjects && (++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
             {
-                // clear selected rules
-                selectedItemsRuleReportTable.Clear();
-                selectedItemsChangeReportTable.Clear();
-
-                // when generating report, filter line overrules LSB filter, as this can be triggered by changing
-                // the filter line and pressing enter
-
-                try
+                Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, queryVars);
+                if (fetchCount == 1)
                 {
-                    DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
-                    query = Compiler.Compile(filterInput);
-                    if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))  // display pop-up with warning, todo: check if device is selected in filter line
-                    {
-                        ShowNoDeviceSelectedWarning = true;
-                        StateHasChanged();
-                        return;
-                    }
-
-                    DateTime startTime = DateTime.Now;
-                    managementsReport = new Management[0]; // reset management data when switching between reports
-                    switch (query.ReportType)
-                    {
-                        case rulesReport:
-                            currentReport = new ReportRules();
-                            await currentReport.Generate(elementsPerFetch, filterInput, Connection,
-                                managementsReportIntermediate =>
-                                {
-                                    managementsReport = managementsReportIntermediate;
-                                    return InvokeAsync(StateHasChanged);
-                                });
-                            break;
-
-                        case changesReport:
-                            currentReport = new ReportChanges();
-                            await currentReport.Generate(elementsPerFetch, filterInput, Connection,
-                                managementsReportIntermediate =>
-                                {
-                                    managementsReport = managementsReportIntermediate;
-                                    return InvokeAsync(StateHasChanged);
-                                });
-                            break;
-
-                        case statisticsReport:
-                            globalStats = new Management();
-                            currentReport = new ReportStatistics();
-                            await currentReport.Generate(0, filterInput, Connection,
-                                managementsReportIntermediate =>
-                                {
-                                    managementsReport = managementsReportIntermediate;
-                                    return InvokeAsync(() =>
-                                    {
-                                        foreach (Management mgm in managementsReport)
-                                        {
-                                            globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                                            globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                                            globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                                            globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                                        }
-                                        StateHasChanged();
-                                    });
-                                });
-                            break;
-                    }
-                    reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
-                    await InvokeAsync(StateHasChanged);
+                    managements = managementsCurrentFetch;
                 }
-                catch (Exception exception)
+                else
                 {
-                    DisplayMessageInUi(exception, "Report generation", "Unclassified error.", true);
+                    newObjects = managements.Merge(managementsCurrentFetch);
                 }
+
+                queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                await callback(managements);
             }
 
-            private void TryFilter(ChangeEventArgs changeArgs)
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar rule objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+        }
+        catch (Exception exception)
+        {
+            //DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
+            // TODO: Error Interface for all Components, that enables displaying a message in the ui
+        }
+
+    }
+
+    private async Task GenerateReport()
+    {
+        // clear selected rules
+        selectedItemsRuleReportTable.Clear();
+        selectedItemsChangeReportTable.Clear();
+
+        // when generating report, filter line overrules LSB filter, as this can be triggered by changing 
+        // the filter line and pressing enter
+
+        try
+        {
+            activeFilter = filterInput;
+            DeviceFilter.syncFilterLineToLSBFilter(activeFilter, managementsOverview);
+            query = Compiler.Compile(activeFilter);
+            if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
-                DynGraphqlQuery query;
-
-                try
-                {
-                    filterInput = changeArgs.Value.ToString();
-
-                    query = Compiler.Compile(filterInput);
-
-                    filterFeedbackStart = filterInput;
-                    filterFeedbackError = "";
-                    filterFeedbackEnd = "";
-                }
-                catch (FilterException filterError)
-                {
-                    int errorStart = filterError.ErrorPosition.Start.Value;
-                    int errorEnd = filterError.ErrorPosition.End.Value;
-
-                    // TODO: RESTRUCTURE (current structure only for debug purpose)
-                    filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
-                    filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
-                    filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
-                }
-                catch (Exception unexpectedError)
-                {
-#if DEBUG
-                    DisplayMessageInUi(unexpectedError, "Filter", "Unclassified error.", false);
-#endif
-                }
-            }
-
-            private void GetSettings()
-            {
-                try
-                {
-                    string settingsValue = userConfig.GetConfigValue(GlobalConfig.kElementsPerFetch);
-                    if (settingsValue != "")
-                    {
-                        elementsPerFetch = Int32.Parse(settingsValue);
-                    }
-
-                    settingsValue = userConfig.GetConfigValue(GlobalConfig.kMaxInitialFetchesRightSidebar);
-                    if (settingsValue != "")
-                    {
-                        maxInitFetchRightSidebar = Int32.Parse(settingsValue);
-                    }
-
-                    settingsValue = userConfig.GetConfigValue(GlobalConfig.kAutoFillRightSidebar);
-                    autoFillRightSidebar = (settingsValue == "True" ? true : false);
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError("Read Config", $"Error reading config value", exception);
-                }
-            }
-
-            private void test(ReportTemplate template)
-            {
-                filterInput = template.Filter;
-                DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
+                ShowNoDeviceSelectedWarning = true;
                 StateHasChanged();
-            } }
+                return;
+            }
+
+            DateTime startTime = DateTime.Now;
+            managementsReport = new Management[0]; // reset management data when switching between reports
+            switch (query.ReportType)
+            {
+                case rulesReport:
+                    currentReport = new ReportRules();
+                    await currentReport.Generate(elementsPerFetch, activeFilter, Connection,
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            return InvokeAsync(StateHasChanged);
+                        });
+                    break;
+
+                case changesReport:
+                    currentReport = new ReportChanges();
+                    await currentReport.Generate(elementsPerFetch, activeFilter, Connection,
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            return InvokeAsync(StateHasChanged);
+                        });
+                    break;
+
+                case statisticsReport:
+                    globalStats = new Management();
+                    currentReport = new ReportStatistics();
+                    await currentReport.Generate(0, activeFilter, Connection,
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            return InvokeAsync(() =>
+                            {
+                                foreach (Management mgm in managementsReport)
+                                {
+                                    globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                                }
+                                StateHasChanged();
+                            });
+                        });
+                    break;
+            }
+            reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, "Report generation", "Unclassified error.", true);
+        }
+    }
+
+    private void TryFilter(ChangeEventArgs changeArgs)
+    {
+        DynGraphqlQuery query;
+
+        try
+        {
+            filterInput = changeArgs.Value.ToString();
+
+            query = Compiler.Compile(filterInput);
+
+            filterFeedbackStart = filterInput;
+            filterFeedbackError = "";
+            filterFeedbackEnd = "";
+        }
+        catch (FilterException filterError)
+        {
+            int errorStart = filterError.ErrorPosition.Start.Value;
+            int errorEnd = filterError.ErrorPosition.End.Value;
+
+            // TODO: RESTRUCTURE (current structure only for debug purpose)
+            filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
+            filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
+            filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
+        }
+        catch (Exception unexpectedError)
+        {
+#if DEBUG
+            DisplayMessageInUi(unexpectedError, "Filter", "Unclassified error.", false);
+#endif
+        }
+    }
+
+    private void GetSettings()
+    {
+        try
+        {
+            string settingsValue = userConfig.GetConfigValue(GlobalConfig.kElementsPerFetch);
+            if (settingsValue != "")
+            {
+                elementsPerFetch = Int32.Parse(settingsValue);
+            }
+
+            settingsValue = userConfig.GetConfigValue(GlobalConfig.kMaxInitialFetchesRightSidebar);
+            if (settingsValue != "")
+            {
+                maxInitFetchRightSidebar = Int32.Parse(settingsValue);
+            }
+
+            settingsValue = userConfig.GetConfigValue(GlobalConfig.kAutoFillRightSidebar);
+            autoFillRightSidebar = (settingsValue == "True" ? true : false);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Read Config", $"Error reading config value", exception);
+        }
+    }
+
+    private void test(ReportTemplate template)
+    {
+        filterInput = template.Filter;
+        DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
+        StateHasChanged();
+    }
+}

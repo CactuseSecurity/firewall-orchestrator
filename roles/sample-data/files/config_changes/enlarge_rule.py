@@ -71,11 +71,10 @@ if line_to_insert_at > -1:
     data.insert(line_to_insert_at, '# start recognition comment for auto-delete function, ID={}\n'.format(uid))
     data.insert(line_to_insert_at + 1, '    edit "{}"\n'.format(ip_address))
     data.insert(line_to_insert_at + 2, '        set uuid {}\n'.format(uuid))
-    data.insert(line_to_insert_at + 3, '        set associated-interface "kids-wifi"\n')
-    data.insert(line_to_insert_at + 4, '        set subnet {} 255.255.255.255\n'.format(ip_address))
-    data.insert(line_to_insert_at + 5, '        set comment "Automatically built for test purposes"\n')
-    data.insert(line_to_insert_at + 6, '    next\n')
-    data.insert(line_to_insert_at + 7, '# end recognition comment for auto-delete function, ID={}\n'.format(uid))
+    data.insert(line_to_insert_at + 3, '        set subnet {} 255.255.255.255\n'.format(ip_address))
+    data.insert(line_to_insert_at + 4, '        set comment "Automatically built for test purposes"\n')
+    data.insert(line_to_insert_at + 5, '    next\n')
+    data.insert(line_to_insert_at + 6, '# end recognition comment for auto-delete function, ID={}\n'.format(uid))
 
 # Fourth step: add new object to source address of rule uid
 
@@ -92,11 +91,11 @@ for line in data:
     if fnmatch.filter([line], '        set srcaddr*') and rule_area_flag and uid_flag:
         if fnmatch.filter([line], '        set srcaddr "all"\n'):
             data[replace_counter] = '        set srcaddr "{}"\n'.format(ip_address)
-        elif len(line) > 58:
-            data[replace_counter] = '        set srcaddr "{}"\n'.format(ip_address)
-            delete_unused_network_objects = True
         else:
             data[replace_counter] = line.rstrip() + ' "{}"\n'.format(ip_address)
+        if len(data[replace_counter]) > 95:
+            data[replace_counter] = '        set srcaddr "{}"\n'.format(ip_address)
+            delete_unused_network_objects = True
         break
     if fnmatch.filter([line], '    next\n'.format(uid)):
         uid_flag = False

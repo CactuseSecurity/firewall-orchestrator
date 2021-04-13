@@ -1,49 +1,43 @@
-import argparse
-import json
 import re
 import logging
-
-csv_delimiter = '%'
-list_delimiter = '|'
-line_delimiter = "\n"
-found_rulebase = False
-section_header_uids=[]
-
-# the following is the static across all installations unique any obj uid 
-# cannot fetch the Any object via API (<=1.7) at the moment
-# therefore we have a workaround adding the object manually (as svc and nw)
-any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
-# todo: read this from config (vom API 1.6 on it is fetched)
+import common
 
 
-def csv_dump_svc_obj(svc_obj):
+def csv_dump_svc_obj(svc_obj, import_id):
     #print("dumping svc: " + svc_obj['svc_name'] + ", svc_member_refs: " + svc_obj['svc_member_refs'])
-    result_line = '"' + args.import_id + '"' + csv_delimiter  # control_id
-    result_line += '"' + svc_obj['svc_name'] + '"' + csv_delimiter  # svc_name
-    result_line += '"' + svc_obj['svc_typ'] + '"' + csv_delimiter  # svc_typ
-    result_line += '"' + svc_obj['svc_typ'] + '"' + csv_delimiter  # svc_prod_specific
-    result_line += '"' + svc_obj['svc_member_names'] + '"' + csv_delimiter  # svc_member_names
-    result_line += '"' + svc_obj['svc_member_refs'] + '"' + csv_delimiter  # obj_member_refs
-    result_line += '"' + svc_obj['svc_color'] + '"' + csv_delimiter  # svc_color
-    result_line += '"' + svc_obj['ip_proto'] + '"' + csv_delimiter  # ip_proto
-    result_line += str(svc_obj['svc_port']) + csv_delimiter  # svc_port
-    result_line += str(svc_obj['svc_port_end']) + csv_delimiter  # svc_port_end
-    result_line += csv_delimiter  # result_line += '"' + svc_obj['svc_source_port'] + '"' + csv_delimiter       # svc_source_port
-    result_line += csv_delimiter  # result_line += '"' + svc_obj['svc_source_port_end'] + '"' + csv_delimiter   # svc_source_port_end
-    result_line += '"' + svc_obj['svc_comment'] + '"' + csv_delimiter  # svc_comment
-    result_line += '"' + str(svc_obj['rpc_nr']) + '"' + csv_delimiter  # rpc_nr
-    result_line += csv_delimiter  # result_line += '"' + svc_obj['svc_timeout_std'] + '"' + csv_delimiter       # svc_timeout_std
-    result_line += str(svc_obj['svc_timeout']) + csv_delimiter  # svc_timeout
-    result_line += '"' + svc_obj['svc_uid'] + '"' + csv_delimiter  # svc_uid
-    result_line += csv_delimiter  # last_change_admin
-    #  last_change_time
-    result_line += line_delimiter
+    result_line = '"' + import_id + '"' + common.csv_delimiter  # control_id
+    result_line += '"' + svc_obj['svc_name'] + '"' + common.csv_delimiter  # svc_name
+    result_line += '"' + svc_obj['svc_typ'] + '"' + common.csv_delimiter  # svc_typ
+    result_line += '"' + svc_obj['svc_typ'] + '"' + common.csv_delimiter  # svc_prod_specific
+    result_line += '"' + svc_obj['svc_member_names'] + '"' + common.csv_delimiter  # svc_member_names
+    result_line += '"' + svc_obj['svc_member_refs'] + '"' + common.csv_delimiter  # obj_member_refs
+    result_line += '"' + svc_obj['svc_color'] + '"' + common.csv_delimiter  # svc_color
+    result_line += '"' + svc_obj['ip_proto'] + '"' + common.csv_delimiter  # ip_proto
+    result_line += str(svc_obj['svc_port']) + common.csv_delimiter  # svc_port
+    result_line += str(svc_obj['svc_port_end']) + common.csv_delimiter  # svc_port_end
+    if 'svc_source_port' in svc_obj:
+        result_line += '"' + svc_obj['svc_source_port'] + '"' + csv_delimiter       # svc_source_port
+    else:
+        result_line += common.csv_delimiter  # svc_source_port
+    if 'svc_source_port_end' in svc_obj:
+        result_line += '"' + svc_obj['svc_source_port_end'] + '"' + csv_delimiter   # svc_source_port_end
+    else:
+        result_line += common.csv_delimiter  # svc_source_port_end
+    result_line += '"' + svc_obj['svc_comment'] + '"' + common.csv_delimiter  # svc_comment
+    result_line += '"' + str(svc_obj['rpc_nr']) + '"' + common.csv_delimiter  # rpc_nr
+    if 'svc_timeout_std' in svc_obj:
+        result_line += '"' + svc_obj['svc_timeout_std'] + '"' + csv_delimiter       # svc_timeout_std
+    else:
+        result_line += common.csv_delimiter  # svc_timeout_std
+    result_line += str(svc_obj['svc_timeout']) + common.csv_delimiter  # svc_timeout
+    result_line += '"' + svc_obj['svc_uid'] + '"' + common.csv_delimiter  # svc_uid
+    result_line += common.csv_delimiter  # last_change_admin
+    result_line += common.line_delimiter    #  last_change_time
     return result_line
 
 
 # collect_svcobjects writes svc info into global users dict
-def collect_svc_objects(object_table):
-    global svc_objects
+def collect_svc_objects(object_table, svc_objects):
     result = ''
     svc_obj_tables = [
         'services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc',
@@ -84,7 +78,7 @@ def collect_svc_objects(object_table):
                 if 'members' in obj:
                     member_refs = ''
                     for member in obj['members']:
-                        member_refs += member + list_delimiter
+                        member_refs += member + common.list_delimiter
                     member_refs = member_refs[:-1]
                 if 'session-timeout' in obj:
                     session_timeout = str(obj['session-timeout'])
@@ -127,23 +121,21 @@ def collect_svc_objects(object_table):
 
 
 # return name of nw_objects element where obj_uid = uid
-def resolve_svc_uid_to_name(uid):
-    global svc_objects
+def resolve_svc_uid_to_name(uid, svc_objects):
     for obj in svc_objects:
         if obj['svc_uid'] == uid:
             return obj['svc_name']
     return 'ERROR: uid ' + uid + ' not found'
 
 
-def add_member_names_for_svc_group(idx):
-    global svc_objects
+def add_member_names_for_svc_group(idx, svc_objects):
     member_names = ''
     group = svc_objects.pop(idx)
-    svc_member_refs = group['svc_member_refs'].split(list_delimiter)
+    svc_member_refs = group['svc_member_refs'].split(common.list_delimiter)
 
     for ref in svc_member_refs:
-        member_name = resolve_svc_uid_to_name(ref)
+        member_name = resolve_svc_uid_to_name(ref, svc_objects)
         #print ("found member of group " + group['svc_name'] + ": " + member_name)
-        member_names += member_name + list_delimiter
+        member_names += member_name + common.list_delimiter
     group['svc_member_names'] = member_names[:-1]
     svc_objects.insert(idx, group)

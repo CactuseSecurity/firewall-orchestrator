@@ -272,6 +272,13 @@ tables:
       - config_key
       - config_value
       - config_user
+      filter: {}
+    role: middleware-server
+  - permission:
+      columns:
+      - config_key
+      - config_value
+      - config_user
       filter:
         _or:
         - config_user:
@@ -1568,6 +1575,22 @@ tables:
       - report_name
       - report_owner_id
       - tenant_wide_visible
+    role: middleware-server
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_id
+      - report_template_id
+      - report_start_time
+      - report_end_time
+      - report_json
+      - report_pdf
+      - report_csv
+      - report_html
+      - report_name
+      - report_owner_id
+      - tenant_wide_visible
     role: reporter
   - permission:
       backend_only: false
@@ -1719,6 +1742,11 @@ tables:
       - report_format_name
       filter: {}
     role: auditor
+  - permission:
+      columns:
+      - report_format_name
+      filter: {}
+    role: middleware-server
   - permission:
       columns:
       - report_format_name
@@ -1987,6 +2015,12 @@ tables:
       - report_schedule_id
       filter: {}
     role: auditor
+  - permission:
+      columns:
+      - report_schedule_format_name
+      - report_schedule_id
+      filter: {}
+    role: middleware-server
   - permission:
       columns:
       - report_schedule_format_name

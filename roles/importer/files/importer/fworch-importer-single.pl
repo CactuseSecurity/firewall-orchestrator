@@ -111,7 +111,7 @@ if (!$error_count_global) {
 			($error_count_local, $config_files_str) =
 				&CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso 
 					($ssh_user, $ssh_hostname, $mgm_name, $obj_file_base, $cfg_dir, $rule_file_base,
-						$fworch_workdir, $audit_log_file, $prev_imp_time, $ssh_port, $config_path_on_mgmt, $rulebases);	# TODO: add use_scp parameter
+						$fworch_workdir, $audit_log_file, $prev_imp_time, $ssh_port, $config_path_on_mgmt, $rulebases, $debug_level);	# TODO: add use_scp parameter
 		}
 		if ($error_count_local) {
 			if ($is_netscreen) { 		# file-check wg. Netscreen-Return-Code eingebaut
@@ -144,7 +144,7 @@ if (!$error_count_global) {
 				output_txt("Starting import of management: $mgm_name\n");
 				# 2) parse config
 				$error_count_local = &CACTUS::FWORCH::import::parser::parse_config ($obj_file, $rule_file, $user_file, $rulebases, $fworch_workdir, $debug_level, $mgm_name, $cfg_dir,
-										$current_import_id, "$cfg_dir/$audit_log_file", $prev_imp_time, $fullauditlog);
+										$current_import_id, "$cfg_dir/$audit_log_file", $prev_imp_time, $fullauditlog, $debug_level);
 				if ($error_count_local) { 
 					$error_count_global = &error_handler_add(	$current_import_id, $error_level = 3, "parse-$error_count_local", $error_count_local=1, $error_count_global);
 					$error_count_local = &exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");

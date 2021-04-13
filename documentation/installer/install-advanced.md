@@ -32,14 +32,6 @@ e.g. with IP 1.2.3.4, listening on port 3128<br>
 ```console
 ansible-playbook -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
-### Parameter "ui_php" to additionally install old php UI
-
-With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
-
-```console
-ansible-playbook -e "ui_php=1 ui_php_web_port=44310" site.yml -K
-```
-
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::
@@ -70,22 +62,6 @@ cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1" site.yml -K
 ```
 
 The initial password will be "fworch.2"
-
-### Parameter "second_ldap_db" to install second ldap database
-
-if you want to install a second ldap database "dc=example,dc=com"
-
-```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "second_ldap_db=yes" site.yml -K
-```
-
-### Parameter "sample_data_rate" to ramp up sample data
-
-if you want to create sample-data changes every minute set sample_data_rate to high
-
-```console
-cd firewall-orchestrator; ansible-playbook -i inventory -e "sample_data_rate=high" site.yml -K
-```
 
 ## Distributed setup with multiple servers
 

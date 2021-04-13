@@ -61,6 +61,14 @@ note: demo/sample data can also be removed via settings menues.
 ansible-playbook -e "test_ldap_external_ad_add_connection=yes" site.yml -K
 ```
 
+### Parameter "second_ldap_db" to install second ldap database
+
+if you want to install a second ldap database "dc=example,dc=com"
+
+```console
+cd firewall-orchestrator; ansible-playbook -e "second_ldap_db=yes" site.yml -K
+```
+
 ## Parameter "connect_sting" to add Cactus test firewall CP R8x
 
 The following command adds the sting test firewall to your fw orch system (needs VPN tunnel to Cactus)
@@ -69,10 +77,18 @@ The following command adds the sting test firewall to your fw orch system (needs
 ansible-playbook -e "connect_sting=yes" site.yml -K
 ```
 
-## Parameter "second_ldap_db" to install second ldap database
+### Parameter "ui_php" to additionally install old php UI
 
-if you want to install a second (local) ldap database "dc=example,dc=com"
+With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
 
 ```console
-cd firewall-orchestrator; ansible-playbook -e "second_ldap_db=yes" site.yml -K
+ansible-playbook -e "ui_php=1 ui_php_web_port=44310" site.yml -K
+```
+
+### Parameter "sample_data_rate" to ramp up sample data
+
+if you want to create sample-data changes every minute set sample_data_rate to high
+
+```console
+cd firewall-orchestrator; ansible-playbook -e "sample_data_rate=high" site.yml -K
 ```

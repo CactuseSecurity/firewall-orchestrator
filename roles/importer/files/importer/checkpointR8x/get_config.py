@@ -23,6 +23,7 @@ import getter
 import requests, json, argparse, pdb
 import requests.packages.urllib3, time, logging, re, sys
 import os
+#import fworch_session_cp_r8x_api
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
@@ -59,23 +60,8 @@ use_object_dictionary = 'false'
 
 # logging config
 debug_level = int(args.debug)
-# todo: save the initial value, reset initial value at the end
-# todo: switch to native syslog
-if debug_level == 1:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-elif debug_level == 2:
-    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-if debug_level == 3:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# ssl_verification mode
-ssl_verification_mode = args.ssl
-if ssl_verification_mode == '':
-    ssl_verification = False
-else:
-    ssl_verification = ssl_verification_mode
-    # todo: supplement error handling: redable file, etc
+common.set_log_level(log_level=debug_level, debug_level=debug_level)
+ssl_verification = getter.set_ssl_verification(args.ssl)
 
 starttime = int(time.time())
 # top level dict start
@@ -92,21 +78,22 @@ for layer in args.layer.split(','):
     config_json +=  "\"layerchunks\": [\n"
     current=0
     total=current+1
-    logging.debug ( "get_config_cp_r8x_api - layer:"+ layer )
+    logging.debug ( "get_config - layer:"+ layer )
     while (current<total) :
 #        show_params_rules = {'name':layer,'offset':current,'limit':limit,'use-object-dictionary':'false','details-level':'full'}
         show_params_rules['offset']=current
         rulebase = getter.api_call(api_host, args.port, v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
-        config_json +=  json.dumps(rulebase, indent=json_indent)
+        config_json +=  json.dumps(rulebase)
+        # config_json +=  json.dumps(rulebase, indent=json_indent)
         config_json +=  ",\n"
         total=rulebase['total']
         current=rulebase['to']
-        logging.debug ( "get_config_cp_r8x_api - rulebase current:"+ str(current) )
+        logging.debug ( "get_config - rulebase current:"+ str(current) )
     config_json = config_json[:-2]
     config_json +=  "]\n},\n"
 config_json = config_json[:-2]
 config_json += "],\n"  # 'level': 'rulebases'
-logging.debug ( "get_config_cp_r8x_api - rulebase total:"+ str(total) )
+logging.debug ( "get_config - rulebase total:"+ str(total) )
 
 config_json += "\"object_tables\": [\n"
 show_params_objs = {'limit':limit,'details-level': details_level}
@@ -117,20 +104,21 @@ for obj_type in getter.api_obj_types:
     current=0
     total=current+1
     show_cmd = 'show-' + obj_type
-    logging.debug ( "get_config_cp_r8x_api - obj_type: "+ obj_type )
+    logging.debug ( "get_config - obj_type: "+ obj_type )
     while (current<total) :
         show_params_objs['offset']=current
         objects = getter.api_call(api_host, args.port, v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy_string)
-        config_json += json.dumps(objects, indent=json_indent)
+        config_json += json.dumps(objects)
+        # config_json += json.dumps(objects, indent=json_indent)
         config_json += ",\n"
         if 'total' in objects  and 'to' in objects:
             total=objects['total']
             current=objects['to']
-            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" current:"+ str(current) )
-            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
+            logging.debug ( "get_config - "+ obj_type +" current:"+ str(current) )
+            logging.debug ( "get_config - "+ obj_type +" total:"+ str(total) )
         else :
             current = total
-            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
+            logging.debug ( "get_config - "+ obj_type +" total:"+ str(total) )
     config_json = config_json[:-2]
     config_json += "]\n},\n" # 'level': 'top::object'\n"
 config_json = config_json[:-2]
@@ -139,8 +127,8 @@ config_json += "}\n" # 'level': 'top'"
 with open(config_filename, "w") as configfile_json:
     configfile_json.write(config_json)
 
-
-logout_result = api_call(api_host, args.port, base_url, 'logout', {}, sid)
+#logout_result = getter.api_call(api_host, args.port, base_url, 'logout', {}, sid)
+logout_result = getter.api_call(api_host, args.port, v_url, 'logout', '', sid, ssl_verification, proxy_string)
 duration = int(time.time()) - starttime
 logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
 

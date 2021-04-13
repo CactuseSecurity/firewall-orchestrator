@@ -107,13 +107,13 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
-        public static string DisplayDisabled(this RuleChange ruleChange)
+        public static string DisplayEnabled(this RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return ruleChange.OldRule.DisplayDisabled();
-                case 'I': return ruleChange.NewRule.DisplayDisabled();
-                case 'C': return DisplayDiff(ruleChange.OldRule.DisplayDisabled(), ruleChange.NewRule.DisplayDisabled());
+                case 'D': return ruleChange.OldRule.DisplayEnabled();
+                case 'I': return ruleChange.NewRule.DisplayEnabled();
+                case 'C': return DisplayDiff(ruleChange.OldRule.DisplayEnabled(), ruleChange.NewRule.DisplayEnabled());
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }

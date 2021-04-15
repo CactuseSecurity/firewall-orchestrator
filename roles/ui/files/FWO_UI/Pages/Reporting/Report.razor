@@ -152,7 +152,7 @@
                                             NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
-            <Tab Title="Report">
+            @*<Tab Title="Report">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
                 </div>
@@ -160,7 +160,7 @@
                     <ObjectGroupCollection ReportPage="this" Type="1" InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                             NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
-            </Tab>
+            </Tab>*@
             <Tab Title="Rule">
                 <div class="d-md-flex justify-content-md-between">
                     <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">clear all</div>

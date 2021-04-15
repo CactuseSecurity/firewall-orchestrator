@@ -349,8 +349,6 @@
                     break;
             }
 
-            Console.WriteLine(query + "\n" + String.Concat(queryVars.SelectMany(s_o => new List<String>() { $"{s_o.Key} / {s_o.Value}" })));
-
             // lazy fetch all objects for right sidebar
             while (newObjects && (++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
             {

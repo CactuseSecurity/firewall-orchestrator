@@ -8,9 +8,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using FWO.ApiClient.Queries;
 using System.Text.Json;
-using PdfSharpCore.Pdf;
 using VetCV.HtmlRendererCore.PdfSharpCore;
 using PdfSharpCore;
+using PdfSharpCore.Pdf;
 
 namespace FWO.Report
 {
@@ -53,19 +53,19 @@ namespace FWO.Report
 
         public abstract Task Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback);
         
-        public abstract string ToCsv();
+        public abstract string ExportToCsv();
 
-        public virtual string ToJson()
+        public virtual string ExportToJson()
         {
             return JsonSerializer.Serialize(Managements, new JsonSerializerOptions { WriteIndented = true });
         }
 
-        public abstract string ToHtml();
+        public abstract string ExportToHtml();
 
         public virtual byte[] ToPdf()
         {
             // HTML
-            string html = ToHtml();
+            string html = ExportToHtml();
 
             // CONFIG
             PdfGenerateConfig config = new PdfGenerateConfig();

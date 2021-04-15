@@ -149,11 +149,11 @@ namespace FWO.Middleware.Server
                         switch (format.Name)
                         {
                             case "csv":
-                                reportFile.Csv = reportRules.ToCsv();
+                                reportFile.Csv = reportRules.ExportToCsv();
                                 break;
 
                             case "html":
-                                reportFile.Html = reportRules.ToHtml();
+                                reportFile.Html = reportRules.ExportToHtml();
                                 break;
 
                             case "pdf":
@@ -161,7 +161,7 @@ namespace FWO.Middleware.Server
                                 break;
 
                             case "json":
-                                reportFile.Json = reportRules.ToJson();
+                                reportFile.Json = reportRules.ExportToJson();
                                 break;
 
                             default:

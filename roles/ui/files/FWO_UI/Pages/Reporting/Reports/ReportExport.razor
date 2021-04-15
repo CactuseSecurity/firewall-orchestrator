@@ -109,7 +109,7 @@
 
                 if (ExportHtml)
                 {
-                    reportExportFile.Html = ReportToExport.ToHtml();
+                    reportExportFile.Html = ReportToExport.ExportToHtml();
                 }
 
                 if (ExportPdf)
@@ -119,12 +119,12 @@
 
                 if (ExportCsv)
                 {
-                    reportExportFile.Csv = ReportToExport.ToCsv();
+                    reportExportFile.Csv = ReportToExport.ExportToCsv();
                 }
 
                 if (ExportJson)
                 {
-                    reportExportFile.Json = ReportToExport.ToJson();
+                    reportExportFile.Json = ReportToExport.ExportToJson();
                 }
 
                 if (ExportArchive)

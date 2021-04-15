@@ -24,7 +24,7 @@ namespace FWO.Ui.Display
 
                 result.AppendLine($"{ruleNumber} <br>");
             }
-            result.AppendLine($"DEBUG: {rule.OrderNumber}");
+            //result.AppendLine($"DEBUG: {rule.OrderNumber}");
             return result.ToString();
         }
 

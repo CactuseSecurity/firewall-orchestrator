@@ -92,7 +92,7 @@ namespace FWO.Middleware.Server
                                     Interval.Weeks => scheduledReport.StartTime.AddDays(scheduledReport.RepeatOffset * 7),
                                     Interval.Months => scheduledReport.StartTime.AddMonths(scheduledReport.RepeatOffset),
                                     Interval.Years => scheduledReport.StartTime.AddYears(scheduledReport.RepeatOffset),
-                                    Interval.Never => scheduledReport.StartTime.AddYears(42_42_42),
+                                    Interval.Never => scheduledReport.StartTime.AddYears(42_42),
                                     _ => throw new NotSupportedException("Time interval is not supported.")
                                 };
                             }
@@ -149,11 +149,11 @@ namespace FWO.Middleware.Server
                         switch (format.Name)
                         {
                             case "csv":
-                                reportFile.Csv = reportRules.ToCsv();
+                                reportFile.Csv = reportRules.ExportToCsv();
                                 break;
 
                             case "html":
-                                reportFile.Html = reportRules.ToHtml();
+                                reportFile.Html = reportRules.ExportToHtml();
                                 break;
 
                             case "pdf":
@@ -161,7 +161,7 @@ namespace FWO.Middleware.Server
                                 break;
 
                             case "json":
-                                reportFile.Json = reportRules.ToJson();
+                                reportFile.Json = reportRules.ExportToJson();
                                 break;
 
                             default:

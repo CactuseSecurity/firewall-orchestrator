@@ -26,7 +26,15 @@
   set_fact:
     api_hasura_jwt_secret: "{{ api_hasura_jwt_secret_dict['content'] | b64decode }}"
 
-# todo: can we just assume {{ fworch_home }}/etc/secrets exists? Evn in case of distributed install
+- name: make sure {{ fworch_home }}/etc/secrets exists
+  file:
+    path: "{{ fworch_home }}/etc/secrets"
+    state: directory
+    mode: "0700"
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
+
 - name: set hasura admin password
   set_fact:
     api_hasura_admin_secret: "{{ random_generated_pw }}"
@@ -37,7 +45,7 @@
     dest: "{{ fworch_home }}/etc/secrets/hasura_admin_pw.txt"
     mode: '0600'
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   become: yes
 
 - name: set hasura env variable

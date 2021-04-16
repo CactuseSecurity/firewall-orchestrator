@@ -1,3 +1,43 @@
+- name: make sure {{ fworch_home }}/etc/secrets exists
+  file:
+    path: "{{ fworch_home }}/etc/secrets"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+    mode: "0700"
+  become: yes
+
+- name: set dbadmin password from parameter
+  set_fact:
+    dbadmin_password: "{{ dbadmin_initial_password }}"
+  when: dbadmin_initial_password is defined
+
+- name: set dbadmin password randomly
+  set_fact:
+    dbadmin_password: "{{ random_generated_pw }}"
+  when: dbadmin_initial_password is not defined
+
+- name: write dbadmin_password password to secret directory
+  copy:
+    content: "{{ dbadmin_password }}"
+    dest: "{{ fworch_home }}/etc/secrets/dbadmin_pwd"
+    mode: '0600'
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
+
+- name: set fworch db password randomly
+  set_fact:
+    fworch_db_password: "{{ random_generated_pw }}"
+
+- name: write fworch_db_password password to secret directory
+  copy:
+    content: "{{ fworch_db_password }}"
+    dest: "{{ fworch_home }}/etc/secrets/fworch_db_pwd"
+    mode: '0600'
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
 
 - block:
 
@@ -9,21 +49,18 @@
   - name: create postgres user "{{ fworch_dbadmin_name }}"
     postgresql_user: 
       name: "{{ fworch_dbadmin_name }}"
-      password: "{{ dbadmin_pwd }}"
+      password: "{{ dbadmin_password }}"
       encrypted: yes
       role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE,INHERIT,LOGIN
 
   - name: create postgres user "{{ fworch_user }}"
     postgresql_user: 
       name: "{{ fworch_user }}"
-      password: "{{ fworch_pwd }}"
+      password: "{{ fworch_db_password }}"
       encrypted: yes
       role_attr_flags: LOGIN
 
   # include add-tablespace.yml here
-
-    #  - name: drop database {{ fworch_db_name }}
-    #    command: 'psql -c "DROP DATABASE IF EXISTS {{ fworch_db_name }}"'
 
   - name: create database {{ fworch_db_name }}
     postgresql_db:

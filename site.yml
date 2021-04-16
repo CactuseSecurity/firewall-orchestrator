@@ -150,3 +150,11 @@
   tags:
     - backend
     - frontend
+
+- hosts: backendserver
+  tasks:
+    - debug:
+        msg:
+          - "Your initial UI admin password is '{{ admin_password }}'"
+      when: admin_password is defined
+ 

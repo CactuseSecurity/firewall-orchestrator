@@ -13,13 +13,12 @@ using PdfSharpCore.Pdf;
 using FWO.Ui.Display;
 using VetCV.HtmlRendererCore.PdfSharpCore;
 using PdfSharpCore;
+using System.Text.Json.Serialization;
 
 namespace FWO.Report
 {
     public class ReportRules : ReportBase
     {
-        private const int ColumnCount = 10;
-
         public override async Task Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
@@ -67,7 +66,7 @@ namespace FWO.Report
             }
         }
 
-        public override string ToCsv()
+        public override string ExportToCsv()
         {
             StringBuilder csvBuilder = new StringBuilder();
 
@@ -82,7 +81,17 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public override string ToHtml()
+        //public override string ToJson()
+        //{
+        //    return JsonSerializer.Serialize(Managements, new JsonSerializerOptions { WriteIndented = true, ReferenceHandler = ReferenceHandler.Preserve });
+        //}
+
+        /// <summary>
+        /// Used to determine section header width
+        /// </summary>
+        private const int ColumnCount = 12;
+
+        public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
 

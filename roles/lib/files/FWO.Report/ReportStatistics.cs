@@ -53,14 +53,14 @@ namespace FWO.Report
             }
         }
 
-        public override string ToJson()
+        public override string ExportToJson()
         {
             globalStatisticsManagament.Name = "global statistics";
             Management[] combinedManagements = (new Management[] { globalStatisticsManagament }).Concat(Managements).ToArray();
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
         
-        public override string ToCsv()
+        public override string ExportToCsv()
         {
             StringBuilder csvBuilder = new StringBuilder();
 
@@ -75,7 +75,7 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public override string ToHtml()
+        public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
 

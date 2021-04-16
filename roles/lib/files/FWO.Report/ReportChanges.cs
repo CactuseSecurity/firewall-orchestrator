@@ -31,7 +31,7 @@ namespace FWO.Report
             }
         }
 
-        public override string ToCsv()
+        public override string ExportToCsv()
         {
             StringBuilder csvBuilder = new StringBuilder();
 
@@ -46,7 +46,7 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
-        public override string ToHtml()
+        public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
 

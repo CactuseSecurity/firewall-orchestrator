@@ -92,3 +92,12 @@ if you want to create sample-data changes every minute set sample_data_rate to h
 ```console
 cd firewall-orchestrator; ansible-playbook -e "sample_data_rate=high" site.yml -K
 ```
+### Parameter "audit_user" to add an audit user to ldap db
+
+if you want to have an extra read-only audit-user called e.g. auditor1, use the following switch:
+
+```console
+cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1" site.yml -K
+```
+
+The initial password will be "fworch.2"

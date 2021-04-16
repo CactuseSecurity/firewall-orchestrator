@@ -94,10 +94,8 @@ cd firewall-orchestrator; ansible-playbook -e "sample_data_rate=high" site.yml -
 ```
 ### Parameter "audit_user" to add an audit user to ldap db - useful for demo installation
 
-if you want to have an extra read-only audit-user called e.g. auditor1, use the following switch:
+if you want to have an extra read-only audit-user called e.g. auditor1, use the following command for installation:
 
 ```console
-cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1" site.yml -K
+cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1 auditor_initial_pwd=<pwd>" site.yml -K
 ```
-
-The initial password will be "fworch.2"

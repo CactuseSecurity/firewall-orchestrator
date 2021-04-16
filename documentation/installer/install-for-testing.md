@@ -100,7 +100,7 @@ if you want to have an extra read-only audit-user called e.g. auditor1, use the 
 cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1 auditor_initial_pwd=<pwd>" site.yml -K
 ```
 
-### Parameter "admin_password" to set the UI admin user's ldap password
+### Parameter "admin_initial_password" to set the UI admin user's ldap password
 
 if you want to set the admin user's password use the following command for installation:
 

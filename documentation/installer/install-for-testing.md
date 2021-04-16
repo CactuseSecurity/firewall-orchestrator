@@ -105,5 +105,5 @@ cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1 auditor_initi
 if you want to set the admin user's password use the following command for installation:
 
 ```console
-cd firewall-orchestrator; ansible-playbook -e "admin_password=<pwd>" site.yml -K
+cd firewall-orchestrator; ansible-playbook -e "admin_initial_password=<pwd>" site.yml -K
 ```

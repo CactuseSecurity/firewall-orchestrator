@@ -142,35 +142,36 @@
                 Objects
             </div>
         </div>
-        <TabSet>
+        <TabSet KeepPanelsAlive="true">
             <Tab Title="All">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">collapse all</div>
                 </div>
                 <CascadingValue Value="collapseSidebarAll">
-                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    <ObjectGroupCollection ReportPage="this" Type="0" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                            NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
-            <Tab Title="Report">
+            @*<Tab Title="Report">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
                 </div>
                 <CascadingValue Value="collapseSidebarReport">
-                    <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    <ObjectGroupCollection ReportPage="this" Type="1" InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                            NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
-            </Tab>
+            </Tab>*@
             <Tab Title="Rule">
-                <div class="d-md-flex justify-content-md-end">
+                <div class="d-md-flex justify-content-md-between">
+                    <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">clear all</div>
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
                 </div>
                 <CascadingValue Value="collapseSidebarRule">
-                    <ObjectGroup StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable" 
-                                    NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                    NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
-                                    NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                    NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                    <ObjectGroupCollection ReportPage="this" Type="2" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
+                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                            NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                            NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
                 </CascadingValue>
             </Tab>
         </TabSet>
@@ -232,6 +233,7 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
+    private string activeFilter = "";
     private const string rulesReportDefaultFilterLine = "type=rules and time=now ";
     //private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
     private const string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
@@ -260,29 +262,11 @@
             {
                 GetSettings();
 
-                PaginationVariables paginationVariables = new PaginationVariables() { Limit = elementsPerFetch, Offset = 0 };
-                bool newObjects = true;
-                int fetchCount = 0;
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
 
-                // lazy fetch all objects for right sidebar
-                while (newObjects && ( ++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
-                {
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                    if (fetchCount == 1)
-                    {
-                        managementsAllObjects = managementsCurrentFetch;
-                    }
-                    else
-                    {
-                        newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
-                    }
+                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
 
-                    await InvokeAsync(StateHasChanged);
-
-                    paginationVariables.Offset += elementsPerFetch;
-                }
-
-                Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycles ({elementsPerFetch} at a time)");
+                await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {
@@ -310,6 +294,88 @@
         //});
     }
 
+    public async Task FetchContent(int contentType, Func<Management[], Task> callback, int mgmtId = 0, string ruleUid = "")
+    {
+        const byte all = 0, report = 1, rule = 2;
+
+        Log.WriteDebug("Fetching Content..", "");
+
+        Management[] managements = new Management[0];
+
+        try
+        {
+            GetSettings();
+
+            string query = "";
+            Dictionary<String, object> queryVars = new Dictionary<string, object>();
+
+            bool newObjects = true;
+            int fetchCount = 0;
+
+            switch (contentType)
+            {
+                case all:
+
+                    query = ObjectQueries.getAllObjectDetails;
+
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", (int)0 },
+                        { "management_id", mgmtId }
+                    };
+
+                    break;
+
+                case report: //TODO: new functionality for fetching objects with query
+
+                    DynGraphqlQuery gqlQuery = Compiler.Compile(activeFilter, true);
+                    query = gqlQuery.FullQuery;
+                    queryVars = gqlQuery.QueryVariables;
+
+                    break;
+
+                case rule:
+
+                    query = RuleQueries.getRuleDetails;
+
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", (int)0 },
+                        { "rule_uid", ruleUid }
+                    };
+
+                    break;
+            }
+
+            // lazy fetch all objects for right sidebar
+            while (newObjects && (++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
+            {
+                Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, queryVars);
+                if (fetchCount == 1)
+                {
+                    managements = managementsCurrentFetch;
+                }
+                else
+                {
+                    newObjects = managements.Merge(managementsCurrentFetch);
+                }
+
+                queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                await callback(managements);
+            }
+
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar rule objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+        }
+        catch (Exception exception)
+        {
+            //DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
+            // TODO: Error Interface for all Components, that enables displaying a message in the ui
+        }
+
+    }
+
     private async Task GenerateReport()
     {
         // clear selected rules
@@ -321,10 +387,12 @@
 
         // when generating report, filter line overrules LSB filter, as this can be triggered by changing 
         // the filter line and pressing enter
+
         try
         {
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
-            query = Compiler.Compile(filterInput);
+            activeFilter = filterInput;
+            DeviceFilter.syncFilterLineToLSBFilter(activeFilter, managementsOverview);
+            query = Compiler.Compile(activeFilter);
             if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
                 ShowNoDeviceSelectedWarning = true;
@@ -338,7 +406,7 @@
             {
                 case rulesReport:
                     currentReport = new ReportRules();
-                    await currentReport.Generate(elementsPerFetch, filterInput, Connection,
+                    await currentReport.Generate(elementsPerFetch, activeFilter, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -348,7 +416,7 @@
 
                 case changesReport:
                     currentReport = new ReportChanges();
-                    await currentReport.Generate(elementsPerFetch, filterInput, Connection,
+                    await currentReport.Generate(elementsPerFetch, activeFilter, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -359,7 +427,7 @@
                 case statisticsReport:
                     globalStats = new Management();
                     currentReport = new ReportStatistics();
-                    await currentReport.Generate(0, filterInput, Connection,
+                    await currentReport.Generate(0, activeFilter, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;

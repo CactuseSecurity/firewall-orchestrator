@@ -1,27 +1,67 @@
-﻿<!-- Display the tab headers -->
-<CascadingValue Value=this>
-    <ul class="nav nav-tabs nav-fill">
+﻿@implements IDisposable
+
+<!-- Display the tab headers -->
+<ul class="nav nav-tabs nav-fill">
+    @foreach (Tab tab in Tabs)
+    {
+        <li class="nav-item">
+            <a @onclick="() => SetActiveTab(tab)" class="nav-link text-dark @tab.CssClass @(ActiveTab == tab ? "active" : "")" href="javascript:void(0);">
+                @tab.Title
+                @*@if (Closeable)
+                    {
+                        <div class="ml-1 oi oi-x"></div>
+                    }*@
+            </a>
+        </li>
+    }
+</ul>
+
+<CascadingValue Value="this" IsFixed="true">
+    <!-- Display active tab -->
+    <div class="nav-tabs-body pt-3">
         @ChildContent
-    </ul>
+    </div>
 </CascadingValue>
 
-<!-- Display body for only the active tab -->
-<div class="nav-tabs-body pt-3">
-    @ActiveTab?.ChildContent
-</div>
 
 @code {
     [Parameter]
     public RenderFragment ChildContent { get; set; }
 
-    public Tab ActiveTab { get; private set; }
+    [Parameter]
+    public bool KeepPanelsAlive { get; set; }
 
-    public void AddTab(Tab tab)
+    public List<Tab> Tabs = new List<Tab>();
+
+    public Tab ActiveTab { get; private set; }
+    private int _activeTabIndex = 0;
+
+    private bool _isDisposed;
+
+    internal void AddTab(Tab tab)
     {
         if (ActiveTab == null)
         {
             SetActiveTab(tab);
         }
+        Tabs.Add(tab);
+        StateHasChanged();
+    }
+
+    internal void RemoveTab(Tab tab)
+    {
+        if (_isDisposed)
+            return;
+
+        var index = Tabs.IndexOf(tab);
+        if (tab == ActiveTab && index == Tabs.Count - 1)
+        {
+            SetActiveTab(Tabs[index > 0 ? index - 1 : 0]);
+            if (Tabs.Count == 1)
+                ActiveTab = null;
+        }
+        Tabs.Remove(tab);
+        StateHasChanged();
     }
 
     public void SetActiveTab(Tab tab)
@@ -31,5 +71,10 @@
             ActiveTab = tab;
             StateHasChanged();
         }
+    }
+
+    public void Dispose()
+    {
+        _isDisposed = true;
     }
 }

@@ -7,7 +7,7 @@
         shell: /bin/bash
         home: "{{ fworchtest_home }}"
         state: present
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
         generate_ssh_key: yes
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa     
@@ -31,7 +31,7 @@
         dest: "{{ fworchtest_home }}/webhook"
         state: directory
         owner: "{{ fworchtest_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
         mode: "0775"
 
     - name: copy startup file from template
@@ -66,6 +66,6 @@
         backup: yes
         mode: 0600
         owner: "{{ fworchtest_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
 
   become: yes

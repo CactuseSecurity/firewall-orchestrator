@@ -150,3 +150,13 @@
   tags:
     - backend
     - frontend
+
+- hosts: backendserver
+  tasks:
+    - name: display secrets for this installation
+      debug:
+        msg:
+          - "Your initial UI admin password is '{{ admin_password }}'"
+          - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
+      when: admin_password is defined and api_hasura_admin_secret is defined
+ 

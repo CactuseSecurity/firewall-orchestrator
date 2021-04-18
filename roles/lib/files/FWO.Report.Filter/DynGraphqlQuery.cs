@@ -27,10 +27,11 @@ namespace FWO.Report.Filter
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery() { }
 
-        public static DynGraphqlQuery Generate(AstNode ast)
+        public static DynGraphqlQuery Generate(AstNode ast, bool detailed)
         {
             // this.ast = ast;
             string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
+            string ruleDetailsFragment = RuleQueries.ruleDetailsFragments;
 
             DynGraphqlQuery query = new DynGraphqlQuery();
 
@@ -75,7 +76,7 @@ namespace FWO.Report.Filter
 
                 case "rules":
                     query.FullQuery = $@"
-                    {ruleOverviewFragment}
+                    {(detailed ? ruleDetailsFragment : ruleOverviewFragment)}
 
                     query rulesReport ({paramString}) 
                     {{ 
@@ -93,7 +94,7 @@ namespace FWO.Report.Filter
                                             where: {{ {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
-                                                ...ruleOverview
+                                                ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                             }} 
                                     }}
                             }} 
@@ -101,7 +102,7 @@ namespace FWO.Report.Filter
                     break;
                 case "changes":
                     query.FullQuery = $@"
-                    {ruleOverviewFragment}
+                    {(detailed ? ruleDetailsFragment : ruleOverviewFragment)}
 
                     query changeReport({paramString}) {{
                         management(where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{mgm_name: asc}}) 
@@ -122,10 +123,10 @@ namespace FWO.Report.Filter
                                         import: import_control {{ time: stop_time }}
                                         change_action
                                         old: ruleByOldRuleId {{
-                                        ...ruleOverview
+                                        ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                         }}
                                         new: rule {{
-                                        ...ruleOverview
+                                        ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                         }}
                                     }}
                                 }}

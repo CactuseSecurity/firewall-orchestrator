@@ -63,29 +63,34 @@
 #     name: pyldap
 #   become: yes
 
-- name: make sure {{ fworch_home }}/etc/secrets exists
+- name: make sure {{ fworch_secrets_dir }} exists
   file:
-    path: "{{ fworch_home }}/etc/secrets"
+    path: "{{ fworch_secrets_dir }}"
     state: directory
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
     mode: "0700"
   become: yes
 
-- name: set UI admin password from parameter
+# - name: set UI admin password from parameter
+#   set_fact:
+#     admin_password: "{{ admin_initial_password }}"
+#   when: admin_initial_password is defined
+
+- name: set UI admin password for testing
   set_fact:
-    admin_password: "{{ admin_initial_password }}"
-  when: admin_initial_password is defined
+    admin_password: "{{ ui_admin_testonly_password }}"
+  when: testkeys is defined and testkeys|bool
 
 - name: set UI admin password randomly
   set_fact:
     admin_password: "{{ random_generated_pw }}"
-  when: admin_initial_password is not defined
+  when: testkeys is not defined or not testkeys|bool
 
-- name: write admin_password password to secret directory
+- name: write admin_password password to secrets directory
   copy:
     content: "{{ admin_password }}"
-    dest: "{{ fworch_home }}/etc/secrets/ui_admin_pwd"
+    dest: "{{ ui_admin_password_file }}"
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"

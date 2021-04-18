@@ -20,7 +20,7 @@
 - name: write dbadmin_password password to secret directory
   copy:
     content: "{{ dbadmin_password }}"
-    dest: "{{ fworch_home }}/etc/secrets/dbadmin_pwd"
+    dest: "{{ dbadmin_password_file }}"
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
@@ -30,10 +30,10 @@
   set_fact:
     fworch_db_password: "{{ random_generated_pw }}"
 
-- name: write fworch_db_password password to secret directory
+- name: write fworch_db_password to secrets directory
   copy:
     content: "{{ fworch_db_password }}"
-    dest: "{{ fworch_home }}/etc/secrets/fworch_db_pwd"
+    dest: "{{ fworch_db_password_file }}"
     mode: '0600'
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"

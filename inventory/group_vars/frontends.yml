@@ -6,6 +6,7 @@ ui_web_port: 443
 ui_app_name: "{{ product_name }}"
 ui_dir: "{{ fworch_home }}/ui/files"
 ui_start_dir: "{{ ui_dir }}/FWO_UI"
+ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 
 # correct name for demo installation:
 ui_server_name: fworch-test-server

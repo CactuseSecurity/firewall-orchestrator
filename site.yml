@@ -158,5 +158,5 @@
         msg:
           - "Your initial UI admin password is '{{ admin_password }}'"
           - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
-      when: admin_password is defined
+      when: admin_password is defined and api_hasura_admin_secret is defined
  

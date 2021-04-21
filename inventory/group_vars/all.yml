@@ -21,10 +21,12 @@ fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworchtest_user: "{{ product_name }}test"
 fworchtest_home: "/home/{{ fworchtest_user }}"
-#fworch_conf_file: "{{ fworch_home }}/etc/fworch.yaml"
-fworch_conf_file: "{{ fworch_home }}/etc/fworch.json"
+fworch_conf_dir: "{{ fworch_home }}/etc"
+fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
+fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
+
+# set your proxy here:
 http_proxy: ""
-#http_proxy: http://admsrv.int.cactus:3128
 https_proxy: "{{ http_proxy }}"
 proxy_exceptions: ""
 proxy_env:
@@ -48,11 +50,12 @@ fworch_db_port: 5432
 fworch_db_host: localhost
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
+dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
+fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
 ### middleware server 
-#middleware_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
-jwt_private_key_file: "{{ fworch_home }}/etc/secrets/jwt_private_key.pem"
-jwt_public_key_file: "{{ fworch_home }}/etc/secrets/jwt_public_key.pem"
+jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
+jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
 ldif_dir: "{{ fworch_home }}/etc/ldif"
 
 middleware_hostname: "127.0.0.1"
@@ -67,6 +70,9 @@ middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener
 ##### application server data
 middleware_internal_port: 8880
 # currently not used: web_server_name: "{{ middleware_server_name }}"
+
+ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
+ui_admin_testonly_password: "fworch.1"
 
 ### database & api
 api_service_name: fworch-hasura-docker-api
@@ -105,15 +111,3 @@ http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 
 test_dir: "{{ fworch_home }}/test"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO_Test"
-
-################# to be removed ###################
-
-### importer test data
-
-sting_fworch_user: itsecorg
-
-# todo: can be moved to vault before project goes public
-dbadmin_pwd: "st8chel"
-fworch_pwd: "st8chel"
-admin_pwd: "fworch.1"
-audit_pwd: "fworch.2"

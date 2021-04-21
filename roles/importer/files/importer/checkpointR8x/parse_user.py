@@ -7,10 +7,22 @@ def csv_dump_user(user_name, user, import_id):
     user_line = '"' + import_id + '"' + common.csv_delimiter
     user_line += '"' + user_name + '"' + common.csv_delimiter
     user_line += '"' + user['user_type'] + '"' + common.csv_delimiter  # user_typ
-    user_line += common.csv_delimiter  # user_member_names
-    user_line += common.csv_delimiter  # user_member_refs
-    user_line += common.csv_delimiter  # user_color
-    user_line += common.csv_delimiter  # user_comment
+    if 'user_member_names' in user:
+        user_line += '"' + user['user_member_names'] + '"' + common.csv_delimiter  # user_member_names
+    else:
+        user_line += common.csv_delimiter  # user_comment
+    if 'user_member_refs' in user:
+        user_line += '"' + user['user_member_refs'] + '"' + common.csv_delimiter  # user_member_refs
+    else:
+        user_line += common.csv_delimiter  # user_comment
+    if 'user_color' in user:
+        user_line += '"' + user['user_color'] + '"' + common.csv_delimiter  # user_color
+    else:
+        user_line += common.csv_delimiter  # user_comment
+    if 'user_comment' in user:
+        user_line += '"' + user['user_comment'] + '"' + common.csv_delimiter  # user_comment
+    else:
+        user_line += common.csv_delimiter  # user_comment
     user_line += '"' + user['uid'] + '"'  # user_uid
     user_line += common.csv_delimiter  # user_valid_until
     user_line += common.csv_delimiter  # last_change_admin

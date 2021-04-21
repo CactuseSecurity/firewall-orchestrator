@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.10.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.10.2" />
   </ItemGroup>
   <ItemGroup> 
       <ProjectReference Include="..\..\..\lib\files\FWO.Report\FWO.Report.csproj" /> 

@@ -53,7 +53,7 @@
       dest: "{{ openldap_secrets_path }}/ldap_manager_pw.txt"
       mode: '0600'
       owner: "{{ fworch_user }}"
-      group: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
     when: not is_manger_pw_present_flag.stat.exists
 
   - name: Generate the root password hash for the config

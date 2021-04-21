@@ -4,7 +4,7 @@
     dest: "{{ middleware_server_base_dir }}"
     state: directory
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   become: yes
 
 - name: copy middleware module files to middlewareserver
@@ -12,7 +12,7 @@
     src: "{{ middleware_path_rel }}"
     dest: "{{ middleware_server_base_dir }}"
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   become: yes
 
 - name: install python3-openssl for openssl key generation
@@ -63,18 +63,51 @@
 #     name: pyldap
 #   become: yes
 
-- name: Set {{ openldap_readonly_user_name }} password in ldap
-  ldap_passwd:
-    dn: "{{ openldap_readonly_user_dn }}"
-    passwd: "{{ ldap_inspector_pw }}"
-    server_uri: "{{ openldap_url }}"
-    bind_dn: "{{ openldap_superuser_dn }}"
-    bind_pw: "{{ ldap_manager_pwd }}"
+- name: make sure {{ fworch_secrets_dir }} exists
+  file:
+    path: "{{ fworch_secrets_dir }}"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+    mode: "0700"
+  become: yes
+
+# - name: set UI admin password from parameter
+#   set_fact:
+#     admin_password: "{{ admin_initial_password }}"
+#   when: admin_initial_password is defined
+
+- name: set UI admin password for testing
+  set_fact:
+    admin_password: "{{ ui_admin_testonly_password }}"
+  when: testkeys is defined and testkeys|bool
+
+- name: set UI admin password randomly
+  set_fact:
+    admin_password: "{{ random_generated_pw }}"
+  when: testkeys is not defined or not testkeys|bool
+
+- name: write admin_password password to secrets directory
+  copy:
+    content: "{{ admin_password }}"
+    dest: "{{ ui_admin_password_file }}"
+    mode: '0600'
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
 
 - name: Set admin password in ldap
   ldap_passwd:
     dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
-    passwd: "{{ admin_pwd }}"
+    passwd: "{{ admin_password }}"
+    server_uri: "{{ openldap_url }}"
+    bind_dn: "{{ openldap_superuser_dn }}"
+    bind_pw: "{{ ldap_manager_pwd }}"
+
+- name: Set {{ openldap_readonly_user_name }} password in ldap
+  ldap_passwd:
+    dn: "{{ openldap_readonly_user_dn }}"
+    passwd: "{{ ldap_inspector_pw }}"
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
@@ -90,11 +123,11 @@
 - name: Set "{{ audit_user }}" password in ldap
   ldap_passwd:
     dn: "uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
-    passwd: "{{ audit_pwd }}"
+    passwd: "{{ auditor_initial_pwd }}"
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-  when: audit_user is defined
+  when: audit_user is defined and auditor_initial_pwd is defined
   
 - name: insert admin tenant0 to database
   postgresql_query:

@@ -44,6 +44,7 @@ details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
 ssl_verification = getter.set_ssl_verification(args.ssl)
+logger = logging.getLogger(__name__)
 
 #xsid = getter.login(args.user, args.password, args.hostname, args.port, domain, base_url, ssl_verification, proxy_string)
 xsid = getter.login(args.user, args.password, args.hostname, args.port, domain, ssl_verification, proxy_string)

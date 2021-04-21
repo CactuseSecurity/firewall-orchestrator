@@ -1,0 +1,48 @@
+﻿@using FWO.Api.Data
+@using FWO.Ui.Pages.Reporting
+
+@typeparam InputDataType
+
+@if (Data != null)
+{
+    @foreach (InputDataType obj in Data)
+    {
+        <ObjectGroup ReportPage="ReportPage" Type="Type" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed" InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor"
+                     NetworkObjectExtractor="NetworkObjectExtractor"
+                     NetworkServiceExtractor="NetworkServiceExtractor"
+                     NetworkUserExtractor="NetworkUserExtractor" />
+    }
+}
+
+@code
+{
+    [Parameter]
+    public Report ReportPage { get; set; }
+
+    [Parameter]
+    public int Type { get; set; }
+
+    [Parameter]
+    public int PageSize { get; set; }
+
+    [Parameter]
+    public bool StartCollapsed { get; set; } = true;
+
+    [Parameter]
+    public bool StartContentDetailed { get; set; } = false;
+
+    [Parameter]
+    public IEnumerable<InputDataType> Data { get; set; }
+
+    [Parameter]
+    public Func<InputDataType, string> NameExtractor { get; set; }
+
+    [Parameter]
+    public Func<InputDataType, IEnumerable<NetworkObject>> NetworkObjectExtractor { get; set; }
+
+    [Parameter]
+    public Func<InputDataType, IEnumerable<NetworkService>> NetworkServiceExtractor { get; set; }
+
+    [Parameter]
+    public Func<InputDataType, IEnumerable<NetworkUser>> NetworkUserExtractor { get; set; }
+}

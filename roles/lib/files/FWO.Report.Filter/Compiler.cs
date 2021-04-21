@@ -16,9 +16,9 @@ namespace FWO.Report.Filter
             return parser.Parse();
         }
 
-        public static DynGraphqlQuery Compile(string input)
+        public static DynGraphqlQuery Compile(string input, bool detailed = false)
         {
-            return DynGraphqlQuery.Generate(CompileToAst(input));
+            return DynGraphqlQuery.Generate(CompileToAst(input), detailed);
         }
     }
 }

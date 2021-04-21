@@ -8,6 +8,14 @@ namespace FWO.Api.Data
 {
     public class PaginationVariables
     {
+        [JsonPropertyName("management_id")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int ManagementId { get; set; }
+
+        [JsonPropertyName("device_id")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int DeviceId { get; set; }
+
         [JsonPropertyName("limit")]
         public int Limit { get; set; }
 

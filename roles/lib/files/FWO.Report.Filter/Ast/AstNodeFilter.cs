@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using FWO.Logging;
+using FWO.Report.Filter.Exceptions;
+
+
 namespace FWO.Report.Filter.Ast
 {
     class AstNodeFilter : AstNode
@@ -471,12 +474,12 @@ namespace FWO.Report.Filter.Ast
                         start = times[0];
                         stop = times[1];
                         if (start != Convert.ToDateTime(start).ToString() || stop != Convert.ToDateTime(stop).ToString())
-                            throw new Exception($"Error: wrong time range format");
+                            throw new SyntaxException($"Error: wrong time range format.", new System.Range(23, 26)); // Unexpected token
                     }
                     else
-                    {
-                        throw new Exception($"Error: wrong time range format");
-                    }
+                        throw new SyntaxException($"Error: wrong time range format.", new System.Range(23, 26)); // Unexpected token
+                    // we have some hard coded string positions here which we should get rid off
+                    // how can we access the tokens[position].Position information here?
                     break;
             }
             return (start, stop);

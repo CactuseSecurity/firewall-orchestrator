@@ -51,6 +51,35 @@ def set_ssl_verification(ssl_verification_mode):
     return ssl_verification
 
 
+def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string):
+    logger = logging.getLogger(__name__)
+    api_versions = api_call(api_host, api_port, base_url, 'show-api-versions', {}, sid, ssl_verification, proxy_string)
+    api_version = api_versions["current-version"]
+    api_supported = api_versions["supported-versions"]
+
+    logging.debug ("getter - current version: "+ api_version )
+    logging.debug ("getter - supported versions: "+ ', '.join(api_supported) )
+    logging.debug ("getter - limit:"+ limit )
+    logging.debug ("getter - login:" + user )
+    logging.debug ("getter - sid:"+ sid )
+    v_url = ''
+    if test_version == 'off':
+        v_url = base_url
+    else:
+        if re.search(r'^\d+[\.\d+]+$', test_version) or re.search(r'^\d+$', test_version):
+            if test_version in api_supported :
+                v_url = base_url + 'v' + test_version + '/'
+            else:
+                logging.debug ("getter - api version " + test_version + " is not supported by the manager " + api_host + " - Import is canceled")
+                #v_url = base_url
+                sys.exit("api version " + test_version + " not supported")
+        else:
+            logging.debug ("getter.py::get_api_url - not a valid version")
+            sys.exit("\"" + test_version +"\" - not a valid version")
+    logging.debug ("getter.py::get_api_url  - test_version: " + test_version + " - url: "+ v_url)
+    return v_url
+
+
 def set_api_url(base_url,testmode,api_supported,hostname):
     logger = logging.getLogger(__name__)
     url = ''
@@ -92,7 +121,6 @@ def collect_uids_from_rule(rule, debug_text):
         for svc in rule["service"]:
             svc_uids_found.append(svc['uid'])
         #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
-        #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
         return (nw_uids_found, svc_uids_found)
     else: # recurse into rulebase within rule
         return collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
@@ -116,7 +144,6 @@ def collect_uids_from_rulebase(rulebase, debug_text):
         for rule in rulebase:
             (nw_uids_found, svc_uids_found) = collect_uids_from_rule(rule, debug_text)
 
-    #logging.debug ("getter::collect_uids_from_rulebase nw_uids_found: " + str(nw_uids_found))
     #logging.debug ("getter::collect_uids_from_rulebase svc_uids_found: " + str(svc_uids_found))
     return (nw_uids_found, svc_uids_found)
 
@@ -133,6 +160,7 @@ def get_all_uids_of_a_type(object_table, obj_table_names):
 
 
 def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
+    logger = logging.getLogger(__name__)
     logging.debug ("getter - entering get_broken_object_uids" )
     broken_uids = []
     for uid in all_uids_from_rules:
@@ -143,29 +171,20 @@ def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
     return list(set(broken_uids))
 
 
-def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string):
-    api_versions = api_call(api_host, api_port, base_url, 'show-api-versions', {}, sid, ssl_verification, proxy_string)
-    api_version = api_versions["current-version"]
-    api_supported = api_versions["supported-versions"]
-
-    logging.debug ("getter - current version: "+ api_version )
-    logging.debug ("getter - supported versions: "+ ', '.join(api_supported) )
-    logging.debug ("getter - limit:"+ limit )
-    logging.debug ("getter - login:" + user )
-    logging.debug ("getter - sid:"+ sid )
-    v_url = ''
-    if test_version == 'off':
-        v_url = base_url
+def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
+    if 'layerchunks' in rulebase:
+        for chunk in rulebase['layerchunks']:
+            for rules_chunk in chunk['rulebase']:
+                get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
     else:
-        if re.search(r'^\d+[\.\d+]+$', test_version) or re.search(r'^\d+$', test_version):
-            if test_version in api_supported :
-                v_url = base_url + 'v' + test_version + '/'
-            else:
-                logging.debug ("getter - api version " + test_version + " is not supported by the manager " + api_host + " - Import is canceled")
-                #v_url = base_url
-                sys.exit("api version " + test_version + " not supported")
-        else:
-            logging.debug ("getter.py::get_api_url - not a valid version")
-            sys.exit("\"" + test_version +"\" - not a valid version")
-    logging.debug ("getter.py::get_api_url  - test_version: " + test_version + " - url: "+ v_url)
-    return v_url
+        if 'rulebase' in rulebase:
+            # logging.debug ( "enrich_config - searching for inline layers in layer " + rulebase['layername'] )
+            # add section header, but only if it does not exist yet (can happen by chunking a section)
+            for rule in rulebase['rulebase']:
+                if 'inline-layer' in rule:
+                    inline_layers.append(rule['inline-layer']['name'])
+
+        if 'rule-number' in rulebase:   # not a rulebase but a single rule
+            if 'inline-layer' in rulebase:
+                inline_layers.append(rulebase['inline-layer']['name'])
+                # get_inline_layer_names_from_rulebase(rulebase, inline_layers)

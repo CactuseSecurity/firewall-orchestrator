@@ -4,7 +4,7 @@
         src: "config_changes"
         dest: "{{ sample_config_user_home }}"
         owner: "{{ sample_config_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
 
     - name: Executes write_date_to_comment.py as cronjob in /etc/cron.d
       cron:

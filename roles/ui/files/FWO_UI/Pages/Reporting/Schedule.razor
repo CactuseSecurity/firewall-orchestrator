@@ -26,14 +26,17 @@
             @String.Join(", ", context.OutputFormat.ConvertAll(format => format.Name.ToUpperInvariant()))
         </Template>
     </Column>
-    <Column TableItem="ScheduledReport" Title="Actions">
-        <Template>
-            <div class="btn-group">
-                <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">Edit</button>
-                <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">Delete</button>
-            </div>
-        </Template>
-    </Column>
+        <Column TableItem="ScheduledReport" Title="Actions">
+            <Template>
+                @if (context.Owner.DbId == uiUserDbId || authenticationState.User.IsInRole("admin"))
+                {
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">Delete</button>
+                    </div>
+                }
+            </Template>
+        </Column>
 </Table>
 
 <PopUp Large="true" Title="Report Schedule" Show="@(ShowSaveScheduledReportDialog || ShowEditScheduledReportDialog)">
@@ -155,11 +158,16 @@
     [CascadingParameter]
     Action<string, string> ShowError { get; set; }
 
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private AuthenticationState authenticationState;
+
     protected override async Task OnInitializedAsync()
     {
         scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
         reportTemplates = await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates);
         uiUserDbId = userConfig.User.DbId;
+        authenticationState = await authenticationStateTask;
     }
 
     private async Task SaveScheduledReport()

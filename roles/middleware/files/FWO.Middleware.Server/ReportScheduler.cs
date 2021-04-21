@@ -139,7 +139,6 @@ namespace FWO.Middleware.Server
                     await reportRules.Generate
                     (
                         int.MaxValue,
-                        report.Template.Filter,
                         apiConnectionUserContext, 
                         _ => Task.CompletedTask
                     );

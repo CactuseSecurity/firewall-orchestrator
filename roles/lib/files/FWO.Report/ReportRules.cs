@@ -19,18 +19,19 @@ namespace FWO.Report
 {
     public class ReportRules : ReportBase
     {
-        public override async Task Generate(int rulesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
+        public ReportRules(DynGraphqlQuery query) : base(query) { }
+
+        public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
-            DynGraphqlQuery query = Compiler.Compile(filterInput);
-            query.QueryVariables["limit"] = rulesPerFetch;
-            query.QueryVariables["offset"] = 0;
+            Query.QueryVariables["limit"] = rulesPerFetch;
+            Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
             // get the filter line
             string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            if (query.ReportTime != "")
-                TimeFilter = query.ReportTime;
+            if (Query.ReportTime != "")
+                TimeFilter = Query.ReportTime;
 
             // get relevant import ids for report time
             ImpIdQueryVariables["time"] = TimeFilter;
@@ -42,25 +43,25 @@ namespace FWO.Report
             for (i = 0; i < managementsWithRelevantImportId.Length; i++)
             {
                 // setting mgmt and relevantImporId QueryVariables 
-                query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
                 if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                    query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
                 else    // managment was not yet imported at that time
-                    query.QueryVariables["relevantImportId"] = -1;
-                Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0];
+                    Query.QueryVariables["relevantImportId"] = -1;
+                Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0];
             }
             while (gotNewObjects)
             {
                 gotNewObjects = false;
-                query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + rulesPerFetch;
+                Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
                 for (i = 0; i < managementsWithRelevantImportId.Length; i++)
                 {
                     if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                        query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                        Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
                     else
-                        query.QueryVariables["relevantImportId"] = -1; // managment was not yet imported at that time
-                    query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                    gotNewObjects = gotNewObjects | Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
+                        Query.QueryVariables["relevantImportId"] = -1; // managment was not yet imported at that time
+                    Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                    gotNewObjects = gotNewObjects | Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
                 }
                 await callback(Managements);
             }
@@ -86,9 +87,6 @@ namespace FWO.Report
         //    return JsonSerializer.Serialize(Managements, new JsonSerializerOptions { WriteIndented = true, ReferenceHandler = ReferenceHandler.Preserve });
         //}
 
-        /// <summary>
-        /// Used to determine section header width
-        /// </summary>
         private const int ColumnCount = 12;
 
         public override string ExportToHtml()
@@ -135,7 +133,7 @@ namespace FWO.Report
                             report.AppendLine($"<td>{rule.DisplayService()}</td>");
                             report.AppendLine($"<td>{rule.DisplayAction()}</td>");
                             report.AppendLine($"<td>{rule.DisplayTrack()}</td>");
-                            report.AppendLine($"<td>{rule.DisplayEnabled()}</td>");
+                            report.AppendLine($"<td>{rule.DisplayEnabled(export: true)}</td>");
                             report.AppendLine($"<td>{rule.DisplayUid()}</td>");
                             report.AppendLine($"<td>{rule.DisplayComment()}</td>");
                             report.AppendLine("</tr>");
@@ -152,7 +150,7 @@ namespace FWO.Report
                 }
             }
 
-            return HtmlTemplate.Replace("##Body##", report.ToString());
+            return GenerateHtmlFrame(title:"Rules Report", Query.RawFilter, DateTime.Now, report);
         }
     }
 }

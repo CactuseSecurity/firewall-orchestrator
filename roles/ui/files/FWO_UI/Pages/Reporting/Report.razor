@@ -16,7 +16,6 @@
 
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <div class="p-3">
-
         <h5 class="text-left">Select device(s)</h5>
         <button class="btn btn-sm btn-secondary" 
             @onclick="() => { 
@@ -84,19 +83,19 @@
     <div class="card mr-1 ml-1 mb-1 shadow">
         <div class="card-body">
 
-            @if (query != null)
+            @if (currentReport != null)
             {
-                @switch (query.ReportType)
+                @switch (currentReport)
                 {
-                    case rulesReport:
+                    case ReportRules rulesReport:
                         <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRules="selectedItemsRuleReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></RulesReport>
                         break;
 
-                    case changesReport:
+                    case ReportChanges changesReport:
                         <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRuleChanges="selectedItemsChangeReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></ChangesReport>
                         break;
 
-                    case statisticsReport:
+                    case ReportStatistics statisticsReport:
                         @if (globalStats != null)
                         {
                             <h5>Gobal number of Objects</h5>
@@ -233,24 +232,10 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
-    private string activeFilter = "";
-    private const string rulesReportDefaultFilterLine = "type=rules and time=now ";
-    //private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
-    private const string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
-    private const string statisticsReportDefaultFilterLine = "type=statistics and time=now ";
-    private const string anyObjcomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny)";
-    private const string cleanupRulecomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any and dst=any and svc=any) or (src=all and dst=all and svc=all) and (action=drop or action=reject or action=deny)";
-    private const string inactiveRulescomplianceReportDefaultFilterLine = "type=compliance and time=now and active=false";
-    private const string complianceReportDefaultFilterLine = anyObjcomplianceReportDefaultFilterLine;
     private string reportGenerationTimeLine = "";
-    private const string rulesReport = "rules";
-    private const string changesReport = "changes";
-    private const string complianceReport = "compliance";
-    private const string statisticsReport = "statistics";
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
-    private DynGraphqlQuery query = null;
     private bool fullDeviceSelectionState = false;
     private string selectButtonText = "Select all devices";
 
@@ -327,13 +312,13 @@
 
                     break;
 
-                case report: //TODO: new functionality for fetching objects with query
+                //case report: //TODO: new functionality for fetching objects with query
 
-                    DynGraphqlQuery gqlQuery = Compiler.Compile(activeFilter, true);
-                    query = gqlQuery.FullQuery;
-                    queryVars = gqlQuery.QueryVariables;
+                //    DynGraphqlQuery gqlQuery = Compiler.Compile(filterInput, true);
+                //    query = gqlQuery.FullQuery;
+                //    queryVars = gqlQuery.QueryVariables;
 
-                    break;
+                //    break;
 
                 case rule:
 
@@ -390,10 +375,10 @@
 
         try
         {
-            activeFilter = filterInput;
-            DeviceFilter.syncFilterLineToLSBFilter(activeFilter, managementsOverview);
-            query = Compiler.Compile(activeFilter);
-            if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))  // display pop-up with warning, todo: check if device is selected in filter line
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
+
+            currentReport = ReportBase.ConstructReport(filterInput);
+            if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
                 ShowNoDeviceSelectedWarning = true;
                 StateHasChanged();
@@ -402,11 +387,10 @@
 
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
-            switch (query.ReportType)
+            switch (currentReport)
             {
-                case rulesReport:
-                    currentReport = new ReportRules();
-                    await currentReport.Generate(elementsPerFetch, activeFilter, Connection,
+                case ReportRules rulesReport:
+                    await currentReport.Generate(elementsPerFetch, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -414,9 +398,8 @@
                         });
                     break;
 
-                case changesReport:
-                    currentReport = new ReportChanges();
-                    await currentReport.Generate(elementsPerFetch, activeFilter, Connection,
+                case ReportChanges changesReport:
+                    await currentReport.Generate(elementsPerFetch, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -424,10 +407,9 @@
                         });
                     break;
 
-                case statisticsReport:
+                case ReportStatistics statisticsReport:
                     globalStats = new Management();
-                    currentReport = new ReportStatistics();
-                    await currentReport.Generate(0, activeFilter, Connection,
+                    await currentReport.Generate(0, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;

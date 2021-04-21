@@ -17,13 +17,14 @@ namespace FWO.Report
         // TODO: Currently generated in Report.razor as well as here, because of export. Remove dupliacte.
         private Management globalStatisticsManagament = new Management();
 
-        public override async Task Generate(int _, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
+        public ReportStatistics(DynGraphqlQuery query) : base(query) { }
+
+        public override async Task Generate(int _, APIConnection apiConnection, Func<Management[], Task> callback)
         {
-            DynGraphqlQuery query = Compiler.Compile(filterInput);
             string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            if (query.ReportTime != null && query.ReportTime != "" && query.ReportTime != "now")
-                TimeFilter = query.ReportTime;
+            if (Query.ReportTime != null && Query.ReportTime != "" && Query.ReportTime != "now")
+                TimeFilter = Query.ReportTime;
 
             // get relevant import ids for report time
             ImpIdQueryVariables["time"] = TimeFilter;
@@ -34,12 +35,12 @@ namespace FWO.Report
             for (i = 0; i < managementsWithRelevantImportId.Length; i++)
             {
                 // setting mgmt and relevantImporId QueryVariables 
-                query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
+                Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
                 if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                    query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
                 else    // managment was not yet imported at that time
-                    query.QueryVariables["relevantImportId"] = -1;
-                resultList.Add((await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables))[0]);
+                    Query.QueryVariables["relevantImportId"] = -1;
+                resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             Managements = resultList.ToArray();
             await callback(Managements);
@@ -59,7 +60,7 @@ namespace FWO.Report
             Management[] combinedManagements = (new Management[] { globalStatisticsManagament }).Concat(Managements).ToArray();
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
-        
+
         public override string ExportToCsv()
         {
             StringBuilder csvBuilder = new StringBuilder();
@@ -94,7 +95,7 @@ namespace FWO.Report
             report.AppendLine($"<td>{globalStatisticsManagament.RuleStatistics.ObjectAggregate.ObjectCount }</td>");
             report.AppendLine("</tr>");
             report.AppendLine("</table>");
-            report.AppendLine("<hr>");      
+            report.AppendLine("<hr>");
 
             foreach (Management management in Managements)
             {
@@ -132,7 +133,7 @@ namespace FWO.Report
                 report.AppendLine("<hr>");
             }
 
-            return HtmlTemplate.Replace("##Body##", report.ToString());
+            return GenerateHtmlFrame(title: "Statistic Report", Query.RawFilter, DateTime.Now, report);
         }
     }
 }

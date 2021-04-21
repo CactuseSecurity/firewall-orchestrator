@@ -107,16 +107,31 @@ namespace FWO.Ui.Display
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }
-        public static string DisplayEnabled(this RuleChange ruleChange)
+        public static string DisplayEnabled(this RuleChange ruleChange, bool export = false)
         {
-            switch (ruleChange.ChangeAction)
+            if (export)
             {
-                case 'D': return ruleChange.OldRule.DisplayEnabled();
-                case 'I': return ruleChange.NewRule.DisplayEnabled();
-                case 'C': return DisplayDiff(ruleChange.OldRule.DisplayEnabled(), ruleChange.NewRule.DisplayEnabled());
-                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+                switch (ruleChange.ChangeAction)
+                {
+                    case 'D': return ruleChange.OldRule.DisplayEnabled(export: true);
+                    case 'I': return ruleChange.NewRule.DisplayEnabled(export: true);
+                    case 'C': return DisplayDiff(ruleChange.OldRule.DisplayEnabled(export: true), ruleChange.NewRule.DisplayEnabled(export: true));
+                    default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+                }
+            }
+
+            else
+            {
+                switch (ruleChange.ChangeAction)
+                {
+                    case 'D': return ruleChange.OldRule.DisplayEnabled();
+                    case 'I': return ruleChange.NewRule.DisplayEnabled();
+                    case 'C': return DisplayDiff(ruleChange.OldRule.DisplayEnabled(), ruleChange.NewRule.DisplayEnabled());
+                    default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+                }
             }
         }
+
         public static string DisplayUid(this RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)

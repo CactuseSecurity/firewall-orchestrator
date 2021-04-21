@@ -18,7 +18,6 @@ fragment ruleDetails on rule {
   rule_svc_neg
   rule_num_numeric
   rule_name
-  rule_src
   rule_froms {
     usr {
       ...userDetails
@@ -31,7 +30,6 @@ fragment ruleDetails on rule {
     zone_name
     zone_id
   }
-  rule_dst
   rule_tos {
     object {
       ...networkObjectDetails

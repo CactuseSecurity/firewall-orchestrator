@@ -4,7 +4,7 @@
   $report_template_create: timestamp
   $report_template_comment: String
   $report_filter: String
-  $reportTemplateOwner: Int
+  $report_template_owner: Int
 ) {
   update_report_template(
     where: { report_template_id: { _eq: $report_template_id } }
@@ -13,7 +13,7 @@
       report_template_create: $report_template_create
       report_template_comment: $report_template_comment
       report_filter: $report_filter
-      report_template_owner: $reportTemplateOwner
+      report_template_owner: $report_template_owner
     }
   ) {
     affected_rows

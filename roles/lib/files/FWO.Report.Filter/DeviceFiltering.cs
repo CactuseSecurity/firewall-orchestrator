@@ -19,6 +19,17 @@ namespace FWO.Report.Filter
             return true;
         }
 
+        public static bool isAnyLSBDeviceFilterSet(Management[] managements)
+        {
+            foreach (Management management in managements)
+                if (management != null)
+                    foreach (Device device in management.Devices)
+                        if (device != null)
+                            if (device.selected)
+                                return true;
+            return false;
+        }
+
         public static bool isAnyDeviceFilterSet(Management[] managements, DynGraphqlQuery query)
         {
             foreach (Management management in managements)
@@ -33,25 +44,19 @@ namespace FWO.Report.Filter
             return false;
         }
 
-        public static bool fullDeviceSelection(Management[] managements, bool fullDeviceSelectionState, out string selectButtonText)
+        public static bool fullDeviceSelection(Management[] managements, bool fullDeviceActionIsSelect)
         {
-            fullDeviceSelectionState = !fullDeviceSelectionState;
-            if (fullDeviceSelectionState)
-                selectButtonText = "Clear device selection";
-            else
-                selectButtonText = "Select all devices";
-
             foreach (Management management in managements)
             {
                 if (management != null)
                 {
                     foreach (Device device in management.Devices)
                     {
-                        device.selected = fullDeviceSelectionState;
+                        device.selected = fullDeviceActionIsSelect;
                     }
                 }
             }
-            return fullDeviceSelectionState;
+            return !fullDeviceActionIsSelect;
         }
 
         /// <summary>
@@ -122,8 +127,9 @@ namespace FWO.Report.Filter
 
         /// <summary>
         /// clears current dev filter from left side bar and sets it to device & management filters from filter line
+        //// returns either empty string or the new text for the "select/clear all" button
         /// </summary>
-        public static void syncFilterLineToLSBFilter(string currentFilterLine, Management[] LSBFilter)
+        public static bool syncFilterLineToLSBFilter(string currentFilterLine, Management[] LSBFilter, bool deviceAllFilter)
         {
             List<string> filteredGatewayList = new List<string>();
             List<string> gatewayList = new List<string>();
@@ -157,6 +163,13 @@ namespace FWO.Report.Filter
                 for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
                     if (filteredGatewayList.Contains(LSBFilter[midx].Devices[didx].Name))
                         LSBFilter[midx].Devices[didx].selected = true;
+            
+
+            if (!DeviceFilter.isAnyLSBDeviceFilterSet(LSBFilter))
+                return true;
+            if (DeviceFilter.areAllDevicesSelected(LSBFilter))
+                return false;
+            return deviceAllFilter;
         }
     }
 }

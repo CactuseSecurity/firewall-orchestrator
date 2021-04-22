@@ -57,4 +57,20 @@ cd firewall-orchestrator; ansible-playbook site.yml -K
 ```
 Enter sudo password when prompted "BECOME or SUDO password:"
 
-That's it firewall-orchestrator is ready for usage
+That's it firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
+```
+...
+TASK [display secrets for this installation] ***********************************
+ok: [fworch-srv] => {
+    "msg": [
+        "Your initial UI admin password is 'xxx'",
+        "Your api hasura admin secret is 'yyy'"
+    ]
+}
+
+PLAY RECAP *********************************************************************
+fworch-srv                 : ok=302  changed=171  unreachable=0    failed=0    skipped=127  rescued=0    ignored=0
+```
+Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password.
+
+The api hasura admin secret can be used to access the API at <https://localhost:9443/>.

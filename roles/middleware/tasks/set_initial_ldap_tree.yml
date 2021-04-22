@@ -9,7 +9,7 @@
     dest: "{{ middleware_server_base_dir }}/ldif"
     state: directory
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   become: yes
 
 - name: set add mode for creating ldap tree

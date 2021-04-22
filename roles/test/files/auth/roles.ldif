@@ -63,4 +63,4 @@ dn: cn=admin,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: admin
-description: users with full access rights to firewall orchestrator (this is also the pre-defined hasura role 'admin')
+description: users with full access rights to firewall orchestrator

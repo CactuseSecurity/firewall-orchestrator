@@ -52,24 +52,6 @@ starttime = int(time.time())
 with open(config_filename, "r") as json_data:
     config = json.load(json_data)
 
-def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
-    if 'layerchunks' in rulebase:
-        for chunk in rulebase['layerchunks']:
-            for rules_chunk in chunk['rulebase']:
-                get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
-    else:
-        if 'rulebase' in rulebase:
-            # logging.debug ( "enrich_config - searching for inline layers in layer " + rulebase['layername'] )
-            # add section header, but only if it does not exist yet (can happen by chunking a section)
-            for rule in rulebase['rulebase']:
-                if 'inline-layer' in rule:
-                    inline_layers.append(rule['inline-layer']['name'])
-
-        if 'rule-number' in rulebase:   # not a rulebase but a single rule
-            if 'inline-layer' in rulebase:
-                inline_layers.append(rulebase['inline-layer']['name'])
-                # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
-
 
 found_new_inline_layers = True
 old_inline_layers = []
@@ -77,7 +59,7 @@ while found_new_inline_layers is True:
     # sweep existing rules for inline layer links
     inline_layers = []
     for rulebase in config['rulebases']:
-        get_inline_layer_names_from_rulebase(rulebase, inline_layers)
+        getter.get_inline_layer_names_from_rulebase(rulebase, inline_layers)
 
     if len(inline_layers) == len(old_inline_layers):
         found_new_inline_layers = False

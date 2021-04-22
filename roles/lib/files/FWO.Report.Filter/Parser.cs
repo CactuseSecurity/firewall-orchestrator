@@ -103,7 +103,7 @@ namespace FWO.Report.Filter
                 };
             }
 
-            else
+            else // TokenKinde == Time
             {
                 AstNodeConnector root = new AstNodeConnector
                 {

@@ -53,16 +53,6 @@ cd firewall-orchestrator; ansible-playbook -e "api_docu=yes" site.yml -K
 
 api docu can then be accessed at <https://server/api_schema/index.html>
 
-### Parameter "audit_user" to add an audit user to ldap db
-
-if you want to have an extra read-only audit-user called e.g. auditor1, use the following switch:
-
-```console
-cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1" site.yml -K
-```
-
-The initial password will be "fworch.2"
-
 ## Distributed setup with multiple servers
 
 if you want to distribute functionality to different hosts:

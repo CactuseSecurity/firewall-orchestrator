@@ -2,15 +2,20 @@
 
 always change into the firewwall-orchestrator directory before starting the installation!
 
-## Test - with fixed jwt keys - not for production use
+## testkeys - not for production use
 
-Use the test switch to always use the same fixed jwt generation keys
+Use the testkeys switch to always use the same fixed secrets.
+This includes:
+- jwt generation keys
+- API hasura admin secret
+- UI admin user
+Note: the relevant secrets are displayed at the very end of the installation. They can also be found in the etc/secrets directory.
 
 ```console
 ansible-playbook/ site.yml -e "testkeys=yes" -K
 ```
 
-This helps with debugging c# code in visual studio (code) - you can use a static backend (ldap & api) with these keys.
+A static jwt key helps with debugging c# code in visual studio (code) - you can use a static backend (ldap & api) with these keys.
 
 You need to
 - add the config file and keys once on your local development machine
@@ -91,4 +96,11 @@ if you want to create sample-data changes every minute set sample_data_rate to h
 
 ```console
 cd firewall-orchestrator; ansible-playbook -e "sample_data_rate=high" site.yml -K
+```
+### Parameter "audit_user" to add an audit user to ldap db - useful for demo installation
+
+if you want to have an extra read-only audit-user called e.g. auditor1, use the following command for installation:
+
+```console
+cd firewall-orchestrator; ansible-playbook -e "audit_user=auditor1 auditor_initial_pwd=<pwd>" site.yml -K
 ```

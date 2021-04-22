@@ -83,3 +83,6 @@ adding report template format fk and permissions
 
 ### 5.1.13 - 19.02.2021
 - add ldap_searchpath_for_groups, ldap_type and ldap_pattern_length to ldap_connection
+
+### 5.1.14 - 18.04.2021
+- replacing all secrets with randomly generated ones - an upgrade is not possible - needs an uninstall/re-install!

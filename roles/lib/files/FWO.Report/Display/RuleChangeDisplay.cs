@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Data;
 using FWO.Logging;
 using System.Linq;
+using System;
 using System.Text.Json.Serialization;
 
 namespace FWO.Ui.Display
@@ -155,7 +156,10 @@ namespace FWO.Ui.Display
                 string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
                 string[] longerAr;
                 string[] shorterAr;
-                string result;
+                string result = "";
+
+                Array.Sort(oldAr);
+                Array.Sort(newAr);
                 if (oldAr.Length > newAr.Length)
                 {
                     longerAr = oldAr;
@@ -170,10 +174,19 @@ namespace FWO.Ui.Display
                 if (oldAr.Length < newAr.Length)
                     result = string.Join("<br>", shorterAr) + $" + <p style=\"text-decoration: bold;\">{difference}</p>";
                 else if (oldAr.Length > newAr.Length)
-                    result = string.Join("<br>", shorterAr) + $" - <p style=\"text-decoration: line-through;\">{difference.ToString()}</p>";
-                else // same number of elements - one of them was replaced - todo!
-                    result = string.Join("<br>", shorterAr) + $" diff: {difference}";
-
+                    result = string.Join("<br>", shorterAr) + $" - <p style=\"text-decoration: line-through;\">{difference}</p>";
+                else // same number of elements - one or more elements were replaced
+                {
+                    // for (int i=0; i<=oldAr.Length; i++) 
+                    // {
+                    //     if (oldAr[i]!=newAr[i])
+                    //         result += $"old:{oldAr[i]}, new: {newAr[i]}<br>";
+                    //     else 
+                    //         result += $"{oldAr[i]}<br>";
+                    // }
+                    if (difference != "")
+                        result = string.Join("<br>", shorterAr) + $"<br> diff: {difference}";
+                }
                 return result;
             }
         }

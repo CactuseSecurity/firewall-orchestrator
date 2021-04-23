@@ -15,15 +15,15 @@ namespace FWO.ApiConfig.Data
         public string CultureInfo { get; set; }
     }
 
-    public class LanguageDict
-    {
-        public string LanguageName { get; set; }
-        public string LanguageCultureInfo { get; set; }
-        public Dictionary<string,string> Dict; 
-        public LanguageDict(string languageName, string languageCulture)
-        {
-            LanguageName = languageName;
-            LanguageCultureInfo = languageCulture;
-        }
-    }
+    // public class LanguageDict
+    // {
+    //     public string LanguageName { get; set; }
+    //     public string LanguageCultureInfo { get; set; }
+    //     public Dictionary<string,string> Dict; 
+    //     public LanguageDict(string languageName, string languageCulture)
+    //     {
+    //         LanguageName = languageName;
+    //         LanguageCultureInfo = languageCulture;
+    //     }
+    // }
 }

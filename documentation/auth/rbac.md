@@ -34,7 +34,7 @@ Just having the reporter role would mean a user can view basic tables like devic
 ## Tenants
 In addition there is the possiblity to restrict certain users to specific devices or managements. These granular rights are enforced via API access control for all tables that contain references to either management or device tables.
 
-The default tenant "tenant0" is always defined and has access rights to all devices.
+The default tenant "tenant0" is always defined and has access rights to all devices. The access rights have to be explicitly present in tenant_to_device table.
 
 These tenant-based permissions are assigned during login as follows:
 - The tenant(s) a user belongs to are read from an ldap directory.

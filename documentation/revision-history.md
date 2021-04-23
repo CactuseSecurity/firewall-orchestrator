@@ -86,3 +86,6 @@ adding report template format fk and permissions
 
 ### 5.1.14 - 18.04.2021
 - replacing all secrets with randomly generated ones - an upgrade is not possible - needs an uninstall/re-install!
+
+### 5.1.15 - 23.04.2021
+- adding culture info to language

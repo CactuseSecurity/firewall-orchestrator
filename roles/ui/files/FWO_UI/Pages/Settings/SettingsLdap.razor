@@ -364,7 +364,7 @@
             DisplayMessageInUi(null, "Save Ldap Connection", "Pattern Length has to be >= 0.", true);
             return false;
         }
-        if (connectedLdaps.FirstOrDefault(x => x.Address == actLdapConnection.Address && x.Port == actLdapConnection.Port) != null)
+        if (connectedLdaps.FirstOrDefault(x => x.Address == actLdapConnection.Address && x.Port == actLdapConnection.Port && x.Id != actLdapConnection.Id) != null)
         {
             DisplayMessageInUi(null, "Save Ldap Connection", "There is already an Ldap connection with the same address and port.", true);
             return false;

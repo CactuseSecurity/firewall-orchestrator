@@ -448,6 +448,11 @@ namespace FWO.Middleware.Server
 
                 // Search for Ldap users in given directory          
                 int searchScope = LdapConnection.ScopeSub;
+                
+                LdapSearchConstraints cons = connection.SearchConstraints;
+                cons.ReferralFollowing = true;
+                connection.Constraints = cons;
+
                 LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath, searchScope, getUserSearchFilter(searchPattern), null, false);                
 
                 foreach (LdapEntry entry in searchResults)

@@ -7,6 +7,8 @@ namespace FWO.Report.Filter
 {
     public class DynGraphqlQuery
     {
+        public string RawFilter { get; private set; }
+
         public int parameterCounter = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = new Dictionary<string, object>();
         public string FullQuery { get; set; } = "";
@@ -25,15 +27,15 @@ namespace FWO.Report.Filter
         public string ReportType { get; set; } = "";
 
         // $mgmId and $relevantImporId are only needed for time based filtering
-        private DynGraphqlQuery() { }
+        private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
-        public static DynGraphqlQuery Generate(AstNode ast, bool detailed)
+        public static DynGraphqlQuery Generate(string rawInput, AstNode ast, bool detailed)
         {
             // this.ast = ast;
             string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
             string ruleDetailsFragment = RuleQueries.ruleDetailsFragments;
 
-            DynGraphqlQuery query = new DynGraphqlQuery();
+            DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
 
             // now we convert the ast into a graphql query:
             ast.Extract(ref query);

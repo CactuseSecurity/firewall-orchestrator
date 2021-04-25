@@ -1,6 +1,5 @@
 ---
 # installation options: see docs at https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
-
 - hosts: importers
   tasks:
     - name: stop importer service before making any changes

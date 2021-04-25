@@ -131,7 +131,7 @@
                     case statisticsReport:
                         @if (globalStats != null)
                         {
-                            <h5>Gobal number of Objects</h5>
+                            <h5>Global number of Objects</h5>
                             <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
                                 <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />

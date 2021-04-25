@@ -389,7 +389,8 @@ Create table "text_msg"
 Create table "language"
 (
 	"name" Varchar NOT NULL UNIQUE,
- primary key ("name")
+	"culture_info" Varchar NOT NULL,
+	primary key ("name")
 );
 
 Create table "txt"

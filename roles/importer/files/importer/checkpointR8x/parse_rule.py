@@ -45,121 +45,122 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num):
     apostrophe = '"'
     rule_csv = ''
 
-    if 'rule-number' in rule:  # standard rule, no section header
-        rule_csv += csv_add_field(import_id, common.csv_delimiter, apostrophe)  # control_id
-        rule_csv += csv_add_field(str(rule_num), common.csv_delimiter, apostrophe)  # rule_num
-        rule_csv += csv_add_field(layer_name, common.csv_delimiter, apostrophe)  # rulebase_name
-        rule_csv += csv_add_field('', common.csv_delimiter, apostrophe)  # rule_ruleid is empty
-        if rule['enabled']:
+    if 'type' in rule and rule['type'] != 'place-holder':  # standard rule, no section header
+        if 'rule-number' in rule:  # standard rule, no section header
+            # print ("rule #" + str(rule['rule-number']) + "\n")
+            rule_csv += csv_add_field(import_id, common.csv_delimiter, apostrophe)  # control_id
+            rule_csv += csv_add_field(str(rule_num), common.csv_delimiter, apostrophe)  # rule_num
+            rule_csv += csv_add_field(layer_name, common.csv_delimiter, apostrophe)  # rulebase_name
+            rule_csv += csv_add_field('', common.csv_delimiter, apostrophe)  # rule_ruleid is empty
             rule_disabled = 'False'
-        else:
-            rule_disabled = 'True'
-        rule_csv += csv_add_field(rule_disabled, common.csv_delimiter, apostrophe)  # rule_disabled
-        rule_csv += csv_add_field(str(rule['source-negate']), common.csv_delimiter, apostrophe)  # src_neg
+            if 'enabled' in rule and rule['enabled']=='false':
+                rule_disabled = 'True'
+            rule_csv += csv_add_field(rule_disabled, common.csv_delimiter, apostrophe)  # rule_disabled
+            rule_csv += csv_add_field(str(rule['source-negate']), common.csv_delimiter, apostrophe)  # src_neg
 
-        # SOURCE names
-        rule_src_name = ''
-        for src in rule["source"]:
-            if src['type'] == 'LegacyUserAtLocation':
-                rule_src_name += src['name'] + common.list_delimiter
-            elif src['type'] == 'access-role':
-                if isinstance(src['networks'], str):  # just a single source
-                    if src['networks'] == 'any':
-                        rule_src_name += src["name"] + '@' + 'Any' + common.list_delimiter
-                    else:
-                        rule_src_name += src["name"] + '@' + src['networks'] + common.list_delimiter
-                else:  # more than one source
-                    for nw in src['networks']:
-                        rule_src_name += src[
-                                             # TODO: this is not correct --> need to reverse resolve name from given UID
-                                             "name"] + '@' + nw + common.list_delimiter
-            else:  # standard network objects as source
-                rule_src_name += src["name"] + common.list_delimiter
-        rule_src_name = rule_src_name[:-1]  # removing last list_delimiter
-        rule_csv += csv_add_field(rule_src_name, common.csv_delimiter, apostrophe)  # src_names
+            # SOURCE names
+            rule_src_name = ''
+            for src in rule["source"]:
+                if src['type'] == 'LegacyUserAtLocation':
+                    rule_src_name += src['name'] + common.list_delimiter
+                elif src['type'] == 'access-role':
+                    if isinstance(src['networks'], str):  # just a single source
+                        if src['networks'] == 'any':
+                            rule_src_name += src["name"] + '@' + 'Any' + common.list_delimiter
+                        else:
+                            rule_src_name += src["name"] + '@' + src['networks'] + common.list_delimiter
+                    else:  # more than one source
+                        for nw in src['networks']:
+                            rule_src_name += src[
+                                                # TODO: this is not correct --> need to reverse resolve name from given UID
+                                                "name"] + '@' + nw + common.list_delimiter
+                else:  # standard network objects as source
+                    rule_src_name += src["name"] + common.list_delimiter
+            rule_src_name = rule_src_name[:-1]  # removing last list_delimiter
+            rule_csv += csv_add_field(rule_src_name, common.csv_delimiter, apostrophe)  # src_names
 
-        # SOURCE refs
-        rule_src_ref = ''
-        for src in rule["source"]:
-            if src['type'] == 'LegacyUserAtLocation':
-                rule_src_ref += src["userGroup"] + '@' + src["location"] + common.list_delimiter
-            elif src['type'] == 'access-role':
-                if isinstance(src['networks'], str):  # just a single source
-                    if src['networks'] == 'any':
-                        rule_src_ref += src['uid'] + '@' + common.any_obj_uid + common.list_delimiter
-                    else:
-                        rule_src_ref += src['uid'] + '@' + src['networks'] + common.list_delimiter
-                else:  # more than one source
-                    for nw in src['networks']:
-                        rule_src_ref += src['uid'] + '@' + nw + common.list_delimiter
-            else:  # standard network objects as source
-                rule_src_ref += src["uid"] + common.list_delimiter
-        rule_src_ref = rule_src_ref[:-1]  # removing last list_delimiter
-        rule_csv += csv_add_field(rule_src_ref, common.csv_delimiter, apostrophe)  # src_refs
+            # SOURCE refs
+            rule_src_ref = ''
+            for src in rule["source"]:
+                if src['type'] == 'LegacyUserAtLocation':
+                    rule_src_ref += src["userGroup"] + '@' + src["location"] + common.list_delimiter
+                elif src['type'] == 'access-role':
+                    if isinstance(src['networks'], str):  # just a single source
+                        if src['networks'] == 'any':
+                            rule_src_ref += src['uid'] + '@' + common.any_obj_uid + common.list_delimiter
+                        else:
+                            rule_src_ref += src['uid'] + '@' + src['networks'] + common.list_delimiter
+                    else:  # more than one source
+                        for nw in src['networks']:
+                            rule_src_ref += src['uid'] + '@' + nw + common.list_delimiter
+                else:  # standard network objects as source
+                    rule_src_ref += src["uid"] + common.list_delimiter
+            rule_src_ref = rule_src_ref[:-1]  # removing last list_delimiter
+            rule_csv += csv_add_field(rule_src_ref, common.csv_delimiter, apostrophe)  # src_refs
 
-        rule_csv += csv_add_field(str(rule['destination-negate']), common.csv_delimiter, apostrophe)  # destination negation
+            rule_csv += csv_add_field(str(rule['destination-negate']), common.csv_delimiter, apostrophe)  # destination negation
 
-        rule_dst_name = ''
-        for dst in rule["destination"]:
-            rule_dst_name += dst["name"] + common.list_delimiter
-        rule_dst_name = rule_dst_name[:-1]
-        rule_csv += csv_add_field(rule_dst_name, common.csv_delimiter, apostrophe)  # rule dest_name
+            rule_dst_name = ''
+            for dst in rule["destination"]:
+                rule_dst_name += dst["name"] + common.list_delimiter
+            rule_dst_name = rule_dst_name[:-1]
+            rule_csv += csv_add_field(rule_dst_name, common.csv_delimiter, apostrophe)  # rule dest_name
 
-        rule_dst_ref = ''
-        for dst in rule["destination"]:
-            rule_dst_ref += dst["uid"] + common.list_delimiter
-        rule_dst_ref = rule_dst_ref[:-1]
-        rule_csv += csv_add_field(rule_dst_ref, common.csv_delimiter, apostrophe)  # rule_dest_refs
+            rule_dst_ref = ''
+            for dst in rule["destination"]:
+                rule_dst_ref += dst["uid"] + common.list_delimiter
+            rule_dst_ref = rule_dst_ref[:-1]
+            rule_csv += csv_add_field(rule_dst_ref, common.csv_delimiter, apostrophe)  # rule_dest_refs
 
-        # SERVICE names
-        rule_svc_name = ''
-        rule_svc_name += str(rule['service-negate']) + '"' + common.csv_delimiter + '"'
-        for svc in rule["service"]:
-            rule_svc_name += svc["name"] + common.list_delimiter
-        rule_svc_name = rule_svc_name[:-1]
-        rule_csv += csv_add_field(rule_svc_name, common.csv_delimiter, apostrophe)  # rule svc name
+            # SERVICE names
+            rule_svc_name = ''
+            rule_svc_name += str(rule['service-negate']) + '"' + common.csv_delimiter + '"'
+            for svc in rule["service"]:
+                rule_svc_name += svc["name"] + common.list_delimiter
+            rule_svc_name = rule_svc_name[:-1]
+            rule_csv += csv_add_field(rule_svc_name, common.csv_delimiter, apostrophe)  # rule svc name
 
-        # SERVICE refs
-        rule_svc_ref = ''
-        for svc in rule["service"]:
-            rule_svc_ref += svc["uid"] + common.list_delimiter
-        rule_svc_ref = rule_svc_ref[:-1]
-        rule_csv += csv_add_field(rule_svc_ref, common.csv_delimiter, apostrophe)  # rule svc ref
+            # SERVICE refs
+            rule_svc_ref = ''
+            for svc in rule["service"]:
+                rule_svc_ref += svc["uid"] + common.list_delimiter
+            rule_svc_ref = rule_svc_ref[:-1]
+            rule_csv += csv_add_field(rule_svc_ref, common.csv_delimiter, apostrophe)  # rule svc ref
 
-        rule_action = rule['action']
-        rule_action_name = rule_action['name']
-        rule_csv += csv_add_field(rule_action_name, common.csv_delimiter, apostrophe)  # rule action
-        rule_track = rule['track']
-        rule_track_type = rule_track['type']
-        rule_csv += csv_add_field(rule_track_type['name'], common.csv_delimiter, apostrophe)  # rule track
+            rule_action = rule['action']
+            rule_action_name = rule_action['name']
+            rule_csv += csv_add_field(rule_action_name, common.csv_delimiter, apostrophe)  # rule action
+            rule_track = rule['track']
+            rule_track_type = rule_track['type']
+            rule_csv += csv_add_field(rule_track_type['name'], common.csv_delimiter, apostrophe)  # rule track
 
-        rule_install_on = rule['install-on']
-        first_rule_install_target = rule_install_on[0]
-        rule_csv += csv_add_field(first_rule_install_target['name'], common.csv_delimiter, apostrophe)  # install on
+            rule_install_on = rule['install-on']
+            first_rule_install_target = rule_install_on[0]
+            rule_csv += csv_add_field(first_rule_install_target['name'], common.csv_delimiter, apostrophe)  # install on
 
-        rule_time = rule['time']
-        first_rule_time = rule_time[0]
-        rule_csv += csv_add_field(first_rule_time['name'], common.csv_delimiter, apostrophe)  # time
+            rule_time = rule['time']
+            first_rule_time = rule_time[0]
+            rule_csv += csv_add_field(first_rule_time['name'], common.csv_delimiter, apostrophe)  # time
 
-        rule_csv += csv_add_field(rule['comments'], common.csv_delimiter, apostrophe)  # time
+            rule_csv += csv_add_field(rule['comments'], common.csv_delimiter, apostrophe)  # time
 
-        if 'name' in rule:
-            rule_name = rule['name']
-        else:
-            rule_name = ''
-        rule_csv += csv_add_field(rule_name, common.csv_delimiter, apostrophe)  # rule_name
+            if 'name' in rule:
+                rule_name = rule['name']
+            else:
+                rule_name = ''
+            rule_csv += csv_add_field(rule_name, common.csv_delimiter, apostrophe)  # rule_name
 
-        rule_csv += csv_add_field(rule['uid'], common.csv_delimiter, apostrophe)  # rule_head_text
-        rule_head_text = ''
-        rule_csv += csv_add_field(rule_head_text, common.csv_delimiter, apostrophe)  # rule_head_text
-        rule_from_zone = ''
-        rule_csv += csv_add_field(rule_from_zone, common.csv_delimiter, apostrophe)
-        rule_to_zone = ''
-        rule_csv += csv_add_field(rule_to_zone, common.csv_delimiter, apostrophe)
-        rule_meta_info = rule['meta-info']
-        rule_csv += csv_add_field(rule_meta_info['last-modifier'], common.csv_delimiter, apostrophe)
+            rule_csv += csv_add_field(rule['uid'], common.csv_delimiter, apostrophe)  # rule_head_text
+            rule_head_text = ''
+            rule_csv += csv_add_field(rule_head_text, common.csv_delimiter, apostrophe)  # rule_head_text
+            rule_from_zone = ''
+            rule_csv += csv_add_field(rule_from_zone, common.csv_delimiter, apostrophe)
+            rule_to_zone = ''
+            rule_csv += csv_add_field(rule_to_zone, common.csv_delimiter, apostrophe)
+            rule_meta_info = rule['meta-info']
+            rule_csv += csv_add_field(rule_meta_info['last-modifier'], common.csv_delimiter, apostrophe)
 
-        rule_csv = rule_csv[:-1] + common.line_delimiter  # remove last csv delimiter and add line delimiter
+            rule_csv = rule_csv[:-1] + common.line_delimiter  # remove last csv delimiter and add line delimiter
     return rule_csv
 
 

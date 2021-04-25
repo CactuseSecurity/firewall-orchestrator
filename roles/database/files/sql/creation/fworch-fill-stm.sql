@@ -2,8 +2,8 @@
 -- SET client_encoding=UTF8
 -- \encoding UTF8
 
-INSERT INTO language (name) VALUES('German');
-INSERT INTO language (name) VALUES('English');
+INSERT INTO language ("name", "culture_info") VALUES('German', 'de-DE');
+INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 

@@ -94,7 +94,10 @@
                             }
 
                             <DetailTemplate TableItem="Rule">
-                                <div>test</div>
+                                <Detail Title="Created" Data="@context.Metadata?.Created?.ToString()" />
+                                <Detail Title="Last Modified" Data="@context.Metadata?.LastModified?.ToString()" />
+                                <Detail Title="First Hit" Data="@context.Metadata?.FirstHit?.ToString()" />
+                                <Detail Title="Last Hit" Data="@context.Metadata?.LastHit?.ToString()" />
                             </DetailTemplate>
 
                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">

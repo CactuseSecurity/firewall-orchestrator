@@ -13,7 +13,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">Load</button>
                             @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                            @if (template.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == "admin") != null)
+                            @if (template.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.IsInRole("admin"))
                             {
                                 <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = template; ShowEditTemplateDialog = true; }">Edit</button>
                                 <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">Delete</button>

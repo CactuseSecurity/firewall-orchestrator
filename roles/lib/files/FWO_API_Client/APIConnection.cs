@@ -90,7 +90,7 @@ namespace FWO.ApiClient
                 else
                 {
                     // DEBUG
-                    string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions {});
+                    // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { });
                     // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
                     // Log.WriteDebug("API Response", $"API response: { JsonResponse }");
 

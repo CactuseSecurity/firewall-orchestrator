@@ -18,8 +18,8 @@ namespace FWO.Api.Data
         public string Uid { get; set; }
 
         [JsonPropertyName("rule_num_numeric")]
-        public double OrderNumber { get; set; } 
-        
+        public double OrderNumber { get; set; }
+
         [JsonPropertyName("rule_name")]
         public string Name { get; set; }
 
@@ -70,6 +70,9 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("section_header")]
         public string SectionHeader { get; set; }
+
+        [JsonPropertyName("rule_metadatum")]
+        public RuleMetadata Metadata {get; set;}
 
         public string DeviceName { get; set; }
     }

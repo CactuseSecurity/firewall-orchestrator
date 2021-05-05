@@ -10,7 +10,7 @@
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='sting-mgmt') THEN 
           insert into management (dev_typ_id,mgm_name,ssh_private_key,ssh_public_key,ssh_hostname,ssh_port,ssh_user,do_not_import,config_path,importer_hostname)
-          VALUES (9,'sting-mgmt','{{ dbadmin_password }}','','{{ sting_ip }}','{{ sting_port }}','{{ sting_fworch_user }}',false, '','{{ importer_hostname }}');
+          VALUES (9,'sting-mgmt','{{ sting_fworch_user_password }}','','{{ sting_ip }}','{{ sting_port }}','{{ sting_fworch_user }}',false, '','{{ importer_hostname }}');
           END IF; END $do$ 
 
     - name: insert sting-gw

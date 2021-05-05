@@ -1006,10 +1006,12 @@ tables:
       allow_aggregations: true
       columns:
       - name
+      - culture_info
       filter: {}
     role: anonymous
   - permission:
       columns:
+      - culture_info
       - name
       filter: {}
     role: auditor

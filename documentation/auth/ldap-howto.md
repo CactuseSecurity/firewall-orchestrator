@@ -184,7 +184,7 @@ Not tested yet!
 currently works via ldap not ldaps.
 Example:
 ```console
-tim@deb10-test:/var/log/fworch$ ldapsearch -x -D "ad-readonly@int.cactus.de" -H ldap://192.168.100.8 -W -b "DC=Users,DC=int,DC=cactus,DC=de" "(sAMAccountName=tim)"
+tim@deb10-test:/var/log/fworch$ ldapsearch -x -D "ad-readonly@int.cactus.de" -H ldap://192.168.100.8 -W -b "DC=int,DC=cactus,DC=de" "(sAMAccountName=tim)"
 dn: CN=Tim Purschke,CN=Users,DC=int,DC=cactus,DC=de
 cn: Tim Purschke
 distinguishedName: CN=Tim Purschke,CN=Users,DC=int,DC=cactus,DC=de

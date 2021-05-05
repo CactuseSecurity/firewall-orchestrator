@@ -4,6 +4,8 @@
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
 @using System.Text
+@using System
+@using System.Collections
 @using FWO.Ui.Services
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
@@ -14,15 +16,20 @@
 @inject APIConnection Connection
 @inject UserConfig userConfig
 
+@* ==== LEFT SIDEBAR ==== *@
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <div class="p-3">
         <h5 class="text-left">Select device(s)</h5>
         <button class="btn btn-sm btn-secondary" 
             @onclick="() => { 
-                fullDeviceSelectionState = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceSelectionState, out selectButtonText); 
+                fullDeviceActionIsSelect = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceActionIsSelect); 
+                if (!fullDeviceActionIsSelect)
+                    deviceSelectButtonText = deviceSelectButtonTextClear;
+                else
+                    deviceSelectButtonText = deviceSelectButtonTextSelect;
                 filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput);
             }">
-            @selectButtonText
+            @deviceSelectButtonText
         </button>
         <br><br>
 
@@ -36,7 +43,20 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="device.Id"
                                 @bind="device.selected"
-                                @oninput="() => { device.selected = !device.selected; filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput); }"
+                                @oninput="() => { 
+                                    device.selected = !device.selected; 
+                                    if (DeviceFilter.areAllDevicesSelected(managementsOverview))
+                                    {
+                                        deviceSelectButtonText = deviceSelectButtonTextClear;
+                                        fullDeviceActionIsSelect = false;
+                                    } 
+                                    if (!DeviceFilter.isAnyLSBDeviceFilterSet(managementsOverview)) 
+                                    {
+                                        deviceSelectButtonText = deviceSelectButtonTextSelect; 
+                                        fullDeviceActionIsSelect = true;
+                                    } 
+                                    filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput); 
+                                }"
                             />
                             <label class="form-check-label" for="@device.Id">
                                 &nbsp;@device.Name
@@ -49,7 +69,9 @@
     </div>
 </Sidebar>
 
+@* ==== Middle div ==== *@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
+@* ==== Filter line ==== *@
     <form class="m-1 position-relative" @onsubmit="GenerateReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
                class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
@@ -78,8 +100,18 @@
         </Footer>
     </PopUp>
 
-    <ReportTemplateComponent OnTemplateLoad="test" @ref="reportTemplateControl"></ReportTemplateComponent>
+@* ==== Templates ==== *@
+    <ReportTemplateComponent OnTemplateLoad="
+        template => {
+            fullDeviceActionIsSelect = syncTemplateFilter(template, fullDeviceActionIsSelect);
+            if (fullDeviceActionIsSelect)
+                deviceSelectButtonText = deviceSelectButtonTextSelect;
+            else
+                deviceSelectButtonText = deviceSelectButtonTextClear;
+        }"
+    @ref="reportTemplateControl"></ReportTemplateComponent>
 
+@* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
         <div class="card-body">
 
@@ -98,7 +130,7 @@
                     case ReportStatistics statisticsReport:
                         @if (globalStats != null)
                         {
-                            <h5>Gobal number of Objects</h5>
+                            <h5>Global number of Objects</h5>
                             <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
                                 <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
                                 <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
@@ -134,6 +166,7 @@
     </div>
 </div>
 
+@* ==== RIGHT SIDEBAR ==== *@
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarRightWidth" PositionLeft="false" @bind-Width="sidebarRightWidth">
     <div class="p-3">
         <div class="card mb-1">
@@ -236,8 +269,11 @@
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
-    private bool fullDeviceSelectionState = false;
-    private string selectButtonText = "Select all devices";
+    private DynGraphqlQuery query = null;
+    private bool fullDeviceActionIsSelect = true;
+    private const string deviceSelectButtonTextSelect = "Select all";
+    private const string deviceSelectButtonTextClear = "Clear all";
+    private string deviceSelectButtonText = deviceSelectButtonTextSelect;
 
     protected override void OnInitialized()
     {
@@ -493,10 +529,11 @@
         }
     }
 
-    private void test(ReportTemplate template)
+    private bool syncTemplateFilter(ReportTemplate template, bool fullDeviceActionIsSelect)
     {
         filterInput = template.Filter;
-        DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
+        fullDeviceActionIsSelect = DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview, fullDeviceActionIsSelect);
         StateHasChanged();
+        return fullDeviceActionIsSelect;
     }
 }

@@ -5,7 +5,8 @@
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
 
-<button class="btn btn-sm btn-dark" @onclick="() => { ShowExportDialog = true; }">Export Report</button>
+<button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; } else { 
+                                                      DisplayMessageInUi(null, "Export report", "No generated report to export. Please generate report first!", true); } }'>Export Report</button>
 
 <PopUp Title="Export Report" Show="@ShowExportDialog">
     <Body>
@@ -101,54 +102,61 @@
 
     private async Task Export()
     {
-        await Task.Run(async () =>
+        if (ReportToExport != null)
         {
-            try
+            await Task.Run(async () =>
             {
-                reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId };
-
-                if (ExportHtml)
+                try
                 {
-                    reportExportFile.Html = ReportToExport.ExportToHtml();
-                }
+                    reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId };
 
-                if (ExportPdf)
-                {
-                    reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf());
-                }
-
-                if (ExportCsv)
-                {
-                    reportExportFile.Csv = ReportToExport.ExportToCsv();
-                }
-
-                // if archiving, json report has to be generated
-                if (ExportJson || ExportArchive)
-                {
-                    reportExportFile.Json = ReportToExport.ExportToJson();
-                }
-
-                if (ExportArchive)
-                {
-                    var queryVariables = new
+                    if (ExportHtml)
                     {
-                        report_name = reportExportFile.Name,
-                        report_start_time = DateTime.Now, // TODO: Change to correct dates
-                        report_end_time = DateTime.Now,
-                        report_owner_id = reportExportFile.OwnerId,
-                        report_csv = reportExportFile.Csv,
-                        report_pdf = reportExportFile.Pdf,
-                        report_html = reportExportFile.Html,
-                        report_json = reportExportFile.Json,
-                    };
+                        reportExportFile.Html = ReportToExport.ExportToHtml();
+                    }
 
-                    await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+                    if (ExportPdf)
+                    {
+                        reportExportFile.Pdf = Convert.ToBase64String(ReportToExport.ToPdf());
+                    }
+
+                    if (ExportCsv)
+                    {
+                        reportExportFile.Csv = ReportToExport.ExportToCsv();
+                    }
+
+                    // if archiving, json report has to be generated
+                    if (ExportJson || ExportArchive)
+                    {
+                        reportExportFile.Json = ReportToExport.ExportToJson();
+                    }
+
+                    if (ExportArchive)
+                    {
+                        var queryVariables = new
+                        {
+                            report_name = reportExportFile.Name,
+                            report_start_time = DateTime.Now, // TODO: Change to correct dates
+                            report_end_time = DateTime.Now,
+                            report_owner_id = reportExportFile.OwnerId,
+                            report_csv = reportExportFile.Csv,
+                            report_pdf = reportExportFile.Pdf,
+                            report_html = reportExportFile.Html,
+                            report_json = reportExportFile.Json,
+                        };
+
+                        await apiConnection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+                    }
                 }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, "Export report", "Unclassified error.", true);
-            }
-        });
+                catch (Exception exception)
+                {
+                    DisplayMessageInUi(exception, "Export report", "Unclassified error.", true);
+                }
+            });
+        }
+        else
+        {
+            DisplayMessageInUi(null, "Export report", "No generated report to export. Please generate report first!", true);
+        }
     }
 }

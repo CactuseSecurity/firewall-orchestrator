@@ -1,11 +1,11 @@
 ﻿@page "/help"
-
-<link rel="stylesheet" href="~/css/bootstrap/bootstrap.min.css">
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
 
 <div class="p-2">
     <h2>Help</h2>
-
-    <a href="report">test-link</a>
 
     <h3>Filter Syntax</h3>
     <ul>
@@ -84,9 +84,3 @@
         </li>
     </ul>
 </div>
-
-@model FWO.Ui.Pages.HelpModel
-
-@{
-
-}

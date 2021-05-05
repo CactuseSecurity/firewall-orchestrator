@@ -1,0 +1,34 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link href="/css/site.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="~/css/bootstrap/bootstrap.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark shadow w-100">
+        <a class="navbar-brand" href="/help">
+            <!-- <img src="images/FWO_Logo.png" /> -->
+            Firewall-Orchestrator
+        </a>
+
+        <div class="navbar-collapse ">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/sub1">
+                        <span class="oi oi-spreadsheet"></span> SubPage1
+                    </a>
+                </li>
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/sub2">
+                        <span class="oi oi-calendar"></span> SubPage2
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    @RenderBody()
+</body>
+</html>
+

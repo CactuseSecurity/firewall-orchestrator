@@ -1,0 +1,14 @@
+﻿@page "/help/archive"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpEmptySidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Archive</h3>
+    Here the archived reports can be found.
+</div>

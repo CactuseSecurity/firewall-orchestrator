@@ -1,0 +1,20 @@
+﻿@page "/help/reporting/export"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Export Reports</h3>
+    Reports can be exported to different output formats.
+    <ul>
+        <li>pdf</li>
+        <li>html</li>
+        <li>csv</li>
+        <li>json</li>
+    </ul>
+</div>

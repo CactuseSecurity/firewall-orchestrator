@@ -1,0 +1,34 @@
+﻿@page "/help/settings/managements"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Managements</h3>
+    Admins can create and administrate several different managements.<br>
+    The clone button helps defining new managements by copying the data from existing ones.
+    Before saving at least one of the parameters Hostname, Port or Config Path has to be different from the existing managements if the Import Disabled flag is not set.<br>
+    Parameters:
+    <ul>
+        <li>Name*: Name of the Mangement. Names ending with "_demo" will be deleted when using the "Remove Sample Data" button</li>
+        <li>Comment:</li>
+        <li>Device Type*: Out of a list of available types, e.g. Checkpoint R8x or Fortinet 5.x</li>
+        <li>Hostname*: Address of the host (e.g. IP address)</li>
+        <li>Port*: Port number of the host</li>
+        <li>Import User*:</li>
+        <li>Login Secret*:</li>
+        <li>Public Key:</li>
+        <li>Config Path: Path of the config file</li>
+        <li>Importer Hostname:</li>
+        <li>Debug Level (0-9):</li>
+        <li>Import Disabled: Flag if the data import is disabled</li>
+        <li>Force Initial Import:</li>
+        <li>Hide in UI:</li>
+    </ul>
+    If there are sample data (defined by the ending "_demo" of the name), a button is displayed to delete them and all related <a href="/help/settings/gateways">gateways</a>.
+</div>

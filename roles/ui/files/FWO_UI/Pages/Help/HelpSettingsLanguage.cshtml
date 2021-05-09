@@ -1,0 +1,20 @@
+﻿@page "/help/settings/language"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Language</h3>
+    Every user can set his own preferred language of the application.<br>
+    The default language at first login can be defined by the admin for all users in the <a href="/help/settings/defaults">Default Settings</a>.<br>
+    Currently available:
+    <ul>
+        <li>English</li>
+        <li>German (only partially)</li>
+    </ul>
+</div>

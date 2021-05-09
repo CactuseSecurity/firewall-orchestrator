@@ -1,0 +1,26 @@
+﻿@page "/help/settings/gateways"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Gateways</h3>
+    Admins can create and administrate several different gateways.<br>
+    The clone button helps defining new gateways by copying the data from existing ones.
+    Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.<br>
+    Parameters:
+    <ul>
+        <li>Name*: Name of the Gateway</li>
+        <li>Comment:</li>
+        <li>Device Type*: Out of a list of available types, e.g. Checkpoint R8x or Fortinet 5.x</li>
+        <li>Management*: Related Management. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page</li>
+        <li>Rulebase*:</li>
+        <li>Import Disabled: Flag if the data import is disabled</li>
+        <li>Hide in UI:</li>
+    </ul>
+</div>

@@ -1,0 +1,20 @@
+﻿@page "/help/settings/roles"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Roles</h3>
+    All defined roles in the system are displayed with a short explanation.<br>
+    The admin can assign or remove users or user groups to/from the roles. For adding users there are three possibilities:
+    <ul>
+        <li>Search in one of the <a href="/help/settings/ldap">connected Ldaps</a>. A search string may be necessary with the minimal length defined in the Ldap connection. For that the syntax is the same as searching directly in the connected Ldap.</li>
+        <li>Select from the list of known users also displayed in the <a href="/help/settings/users">Users settings</a>.</li>
+        <li>Manually insert a new distinguished name (Dn).</li>
+    </ul>
+</div>

@@ -1,0 +1,23 @@
+﻿@page "/help/settings/defaults"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Default Settings</h3>
+    The admin can define several default values, which are valid for all users.<br>
+    Some of them can be overwritten in the individual settings of each user.
+    <ul>
+        <li>Default Language: The language which every user gets at first login. After login each user can define its own preferred <a href="/help/settings/language">Language</a>.</li>
+        <li>Elements per fetch: Defines the (maximum) number of objects which are fetched in one step for the report creation and the build up of the right sidebar. This can be used to optimize performance if necessary.</li>
+        <li>Max initial fetches right sidebar: Defines the (maximum) number of fetches during initialization of the right sidebar. This can be used to optimize performance if necessary.</li>
+        <li>Completely auto-fill right sidebar: A flag to enforce that the right sidebar is always filled completely. It can be set, if the total amount of objects is moderate, so there are no performance issues expected.</li>
+        <li>Data retention time (in days): Defines how long the data is kept in the database.</li>
+        <li>Import sleep time (in seconds): Time between import loops.</li>
+    </ul>
+</div>

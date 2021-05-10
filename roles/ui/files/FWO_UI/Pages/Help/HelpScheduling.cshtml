@@ -1,0 +1,19 @@
+﻿@page "/help/scheduling"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpEmptySidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Report Scheduling</h3>
+    To define reports for a given time and for recurring tasks.
+    <ul>
+        <li>Every user can administrate his own report schedules.</li>
+        <li>Repetition intervals from days to years</li>
+        <li>Different output formats</li>
+    </ul>
+</div>

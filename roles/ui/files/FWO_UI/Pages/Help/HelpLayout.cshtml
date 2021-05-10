@@ -16,19 +16,32 @@
         <div class="navbar-collapse ">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item px-2">
-                    <a class="nav-link" href="/help/sub1">
-                        <span class="oi oi-spreadsheet"></span> SubPage1
+                    <a class="nav-link" href="/help/reporting">
+                        <span class="oi oi-spreadsheet"></span> Reporting
                     </a>
                 </li>
                 <li class="nav-item px-2">
-                    <a class="nav-link" href="/help/sub2">
-                        <span class="oi oi-calendar"></span> SubPage2
+                    <a class="nav-link" href="/help/scheduling">
+                        <span class="oi oi-calendar"></span> Scheduling
+                    </a>
+                </li>
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/archive">
+                        <span class="oi oi-box"></span> Archive
+                    </a>
+                </li>
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/settings">
+                        <span class="oi oi-cog"></span> Settings
                     </a>
                 </li>
             </ul>
         </div>
     </nav>
-    @RenderBody()
+    @RenderSection("sidebar", false)
+    <div style="margin-left: 220px">
+        @RenderBody()
+    </div>
 </body>
 </html>
 

@@ -1,0 +1,16 @@
+﻿@page "/help/settings/tenants"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Tenants</h3>
+    The available tenants are listed in the table with the related gateways.<br>
+    New relationships to the defined <a href="/help/settings/gateways">gateways</a> can be added or deleted.
+    The first one is excepted from this as it is the superadmin which is related to all tenants.
+</div>

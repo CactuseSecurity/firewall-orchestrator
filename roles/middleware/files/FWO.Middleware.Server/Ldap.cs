@@ -312,6 +312,9 @@ namespace FWO.Middleware.Server
                     string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
                     LdapSearchResults searchResults = (LdapSearchResults)connection.Search(searchPath, searchScope, searchFilter, null, false);                
 
+                    // convert dnList to lower case to avoid case problems
+                    dnList = dnList.ConvertAll(dn => dn.ToLower());
+
                     // Foreach found role / group
                     foreach (LdapEntry entry in searchResults)
                     {
@@ -327,7 +330,7 @@ namespace FWO.Middleware.Server
                             Log.WriteDebug("Ldap Roles/Groups", $"Checking if current Dn: \"{currentDn}\" is user Dn. Then user has current role / group.");
 
                             // Check if current user dn is matching with given user dn => Given user has current role / group
-                            if (dnList.Contains(currentDn))
+                            if (dnList.Contains(currentDn.ToLower()))
                             {
                                 // Get name and add it to list of roles / groups of given user
                                 string name = entry.GetAttribute("cn").StringValue;
@@ -448,7 +451,7 @@ namespace FWO.Middleware.Server
 
                 // Search for Ldap users in given directory          
                 int searchScope = LdapConnection.ScopeSub;
-                
+
                 LdapSearchConstraints cons = connection.SearchConstraints;
                 cons.ReferralFollowing = true;
                 connection.Constraints = cons;

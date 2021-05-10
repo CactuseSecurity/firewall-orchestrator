@@ -204,6 +204,9 @@ namespace FWO.Report
                     report.AppendLine("<tr>");
                     report.AppendLine("<th>Number</th>");
                     report.AppendLine("<th>Name</th>");
+                    report.AppendLine("<th>Type</th>");
+                    report.AppendLine("<th>IP Address</th>");
+                    report.AppendLine("<th>Members</th>");
                     report.AppendLine("<th>UID</th>");
                     report.AppendLine("<th>Comment</th>");
                     report.AppendLine("</tr>");
@@ -211,7 +214,13 @@ namespace FWO.Report
                     {
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
-                        report.AppendLine($"<td>{nwobj.Content.Name}</td>");
+                        report.AppendLine($"<td><a name=nwobj{nwobj.Content.Id}>{nwobj.Content.Name}</a></td>");
+                        report.AppendLine($"<td>{nwobj.Content.Type.Name}</td>");
+                        report.AppendLine($"<td>{nwobj.Content.IP}</td>");
+                        if (nwobj.Content.MemberNames != null && nwobj.Content.MemberNames.Contains("|"))
+                            report.AppendLine($"<td>{string.Join("<br>", nwobj.Content.MemberNames.Split('|'))}</td>");
+                        else
+                            report.AppendLine($"<td>{nwobj.Content.MemberNames}</td>");
                         report.AppendLine($"<td>{nwobj.Content.Uid}</td>");
                         report.AppendLine($"<td>{nwobj.Content.Comment}</td>");
                         report.AppendLine("</tr>");
@@ -227,6 +236,10 @@ namespace FWO.Report
                     report.AppendLine("<tr>");
                     report.AppendLine("<th>Number</th>");
                     report.AppendLine("<th>Name</th>");
+                    report.AppendLine("<th>Type</th>");
+                    report.AppendLine("<th>Protocol</th>");
+                    report.AppendLine("<th>Port</th>");
+                    report.AppendLine("<th>Members</th>");
                     report.AppendLine("<th>UID</th>");
                     report.AppendLine("<th>Comment</th>");
                     report.AppendLine("</tr>");
@@ -236,6 +249,16 @@ namespace FWO.Report
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
                         report.AppendLine($"<td>{svcobj.Content.Name}</td>");
+                        report.AppendLine($"<td><a name=svc{svcobj.Content.Id}>{svcobj.Content.Name}</a></td>");
+                        report.AppendLine($"<td>{((svcobj.Content.Protocol!=null)?svcobj.Content.Protocol.Name:"")}</td>");
+                        if (svcobj.Content.DestinationPortEnd != null && svcobj.Content.DestinationPortEnd != svcobj.Content.DestinationPort)
+                            report.AppendLine($"<td>{svcobj.Content.DestinationPort}-{svcobj.Content.DestinationPortEnd}</td>");
+                        else
+                            report.AppendLine($"<td>{svcobj.Content.DestinationPort}</td>");
+                        if (svcobj.Content.MemberNames != null && svcobj.Content.MemberNames.Contains("|"))
+                            report.AppendLine($"<td>{string.Join("<br>", svcobj.Content.MemberNames.Split('|'))}</td>");
+                        else 
+                            report.AppendLine($"<td>{svcobj.Content.MemberNames}</td>");
                         report.AppendLine($"<td>{svcobj.Content.Uid}</td>");
                         report.AppendLine($"<td>{svcobj.Content.Comment}</td>");
                         report.AppendLine("</tr>");
@@ -251,6 +274,8 @@ namespace FWO.Report
                     report.AppendLine("<tr>");
                     report.AppendLine("<th>Number</th>");
                     report.AppendLine("<th>Name</th>");
+                    report.AppendLine("<th>Type</th>");
+                    report.AppendLine("<th>Members</th>");
                     report.AppendLine("<th>UID</th>");
                     report.AppendLine("<th>Comment</th>");
                     report.AppendLine("</tr>");
@@ -260,6 +285,11 @@ namespace FWO.Report
                         report.AppendLine("<tr>");
                         report.AppendLine($"<td>{objNumber++}</td>");
                         report.AppendLine($"<td>{userobj.Content.Name}</td>");
+                        report.AppendLine($"<td><a name=user{userobj.Content.Id}>{userobj.Content.Name}</a></td>");
+                        if (userobj.Content.MemberNames != null && userobj.Content.MemberNames.Contains("|"))
+                            report.AppendLine($"<td>{string.Join("<br>", userobj.Content.MemberNames.Split('|'))}</td>");
+                        else
+                            report.AppendLine($"<td>{userobj.Content.MemberNames}</td>");
                         report.AppendLine($"<td>{userobj.Content.Uid}</td>");
                         report.AppendLine($"<td>{userobj.Content.Comment}</td>");
                         report.AppendLine("</tr>");

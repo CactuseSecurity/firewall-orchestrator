@@ -63,6 +63,7 @@ namespace FWO.Report
         }
 
         public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
         
         public abstract string ExportToCsv();
 

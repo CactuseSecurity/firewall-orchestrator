@@ -1114,12 +1114,33 @@ tables:
         table:
           name: object
           schema: public
+  - name: rule_nwobj_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table:
+          name: rule_nwobj_resolved
+          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
         column: mgm_id
         table:
           name: rule
+          schema: public
+  - name: rule_svc_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table:
+          name: rule_svc_resolved
+          schema: public
+  - name: rule_user_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: mgm_id
+        table:
+          name: rule_user_resolved
           schema: public
   - name: services
     using:
@@ -1277,6 +1298,13 @@ tables:
         column: obj_id
         table:
           name: rule_from
+          schema: public
+  - name: rule_nwobj_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: obj_id
+        table:
+          name: rule_nwobj_resolved
           schema: public
   - name: rule_tos
     using:
@@ -2401,6 +2429,13 @@ tables:
         table:
           name: rule_from
           schema: public
+  - name: rule_nwobj_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table:
+          name: rule_nwobj_resolved
+          schema: public
   - name: rule_services
     using:
       foreign_key_constraint_on:
@@ -2408,12 +2443,26 @@ tables:
         table:
           name: rule_service
           schema: public
+  - name: rule_svc_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table:
+          name: rule_svc_resolved
+          schema: public
   - name: rule_tos
     using:
       foreign_key_constraint_on:
         column: rule_id
         table:
           name: rule_to
+          schema: public
+  - name: rule_user_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: rule_id
+        table:
+          name: rule_user_resolved
           schema: public
   object_relationships:
   - name: device
@@ -2784,6 +2833,44 @@ tables:
       filter: {}
     role: importer
 - object_relationships:
+  - name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - name: object
+    using:
+      foreign_key_constraint_on: obj_id
+  - name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - obj_id
+      - rule_id
+      filter: {}
+    role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - obj_id
+      - rule_id
+      filter: {}
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - obj_id
+      - rule_id
+      filter: {}
+    role: reporter-viewall
+  table:
+    name: rule_nwobj_resolved
+    schema: public
+- object_relationships:
   - name: rule_metadatum
     using:
       foreign_key_constraint_on: rule_metadata_id
@@ -2842,6 +2929,44 @@ tables:
     name: rule_service
     schema: public
 - object_relationships:
+  - name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  - name: service
+    using:
+      foreign_key_constraint_on: svc_id
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - rule_id
+      - svc_id
+      filter: {}
+    role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - rule_id
+      - svc_id
+      filter: {}
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - rule_id
+      - svc_id
+      filter: {}
+    role: reporter-viewall
+  table:
+    name: rule_svc_resolved
+    schema: public
+- object_relationships:
   - name: import_control
     using:
       foreign_key_constraint_on: rt_create
@@ -2889,6 +3014,44 @@ tables:
   table:
     name: rule_to
     schema: public
+- object_relationships:
+  - name: management
+    using:
+      foreign_key_constraint_on: mgm_id
+  - name: rule
+    using:
+      foreign_key_constraint_on: rule_id
+  - name: usr
+    using:
+      foreign_key_constraint_on: user_id
+  select_permissions:
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - rule_id
+      - user_id
+      filter: {}
+    role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - rule_id
+      - user_id
+      filter: {}
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - rule_id
+      - user_id
+      filter: {}
+    role: reporter-viewall
+  table:
+    name: rule_user_resolved
+    schema: public
 - array_relationships:
   - name: changelog_services
     using:
@@ -2910,6 +3073,13 @@ tables:
         column: svc_id
         table:
           name: rule_service
+          schema: public
+  - name: rule_svc_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: svc_id
+        table:
+          name: rule_svc_resolved
           schema: public
   - name: svcgrp_flats
     using:
@@ -4202,6 +4372,13 @@ tables:
         column: user_id
         table:
           name: rule_from
+          schema: public
+  - name: rule_user_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: rule_user_resolved
           schema: public
   - name: tenant_users
     using:

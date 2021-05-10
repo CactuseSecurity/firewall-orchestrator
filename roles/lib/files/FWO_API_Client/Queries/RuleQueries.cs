@@ -13,6 +13,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string ruleDetailsFragments;
         public static readonly string getRuleOverview;
         public static readonly string getRuleDetails;
+        public static readonly string getRuleIdsOfImport;
 
         static RuleQueries()
         {
@@ -32,8 +33,10 @@ namespace FWO.ApiClient.Queries
                     File.ReadAllText(QueryPath + "user/fragments/userDetails.graphql") +
                     File.ReadAllText(QueryPath + "rule/fragments/ruleDetails.graphql");
 
-
                 getRuleDetails = ruleDetailsFragments + File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
+
+                getRuleIdsOfImport = File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
+
             }
             catch (Exception exception)
             {

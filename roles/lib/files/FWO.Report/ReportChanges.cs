@@ -16,6 +16,12 @@ namespace FWO.Report
     {
         public ReportChanges(DynGraphqlQuery query) : base(query) { }
 
+        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        {
+           // await;
+        }
+        
+
         public override async Task Generate(int changesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             Query.QueryVariables["limit"] = changesPerFetch;

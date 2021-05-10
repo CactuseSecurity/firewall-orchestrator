@@ -411,7 +411,7 @@
 
         try
         {
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview);
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview, fullDeviceActionIsSelect);
 
             currentReport = ReportBase.ConstructReport(filterInput);
             if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line

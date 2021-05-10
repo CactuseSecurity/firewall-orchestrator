@@ -3,83 +3,89 @@
 @{
     Layout = "HelpLayout";
 }
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpEmptySidebar.cshtml"); 
+    }
+}
 
 <div class="p-2">
     <h2>Help</h2>
-
-    <h3>Filter Syntax</h3>
-    <ul>
-        <li> All filtering is case insensitive.</li>
-        <li>
-            There are mutliple variants for most keywords, e.g. DestinationPort filters can be written as:
-            port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port
-        </li>
-        <li> All filter statements must be logically combined using either: and, or, not.</li>
-        <li> Comparison can currently only be done using == or !=.</li>
-        <li> No IP address (CIDR) filtering yet.</li>
-        <li> Time filtering (due to a logical glitch) currently only works for points in time before the last import that found a config change. </li>
-        <li>
-            Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
-            There is currently no option to only search at the rule top-level.
-        </li>
-    </ul>
-    <h4>Keywords</h4>
-    <ul>
-        <li>Value</li>
-        <li>Source</li>
-        <li>Destination</li>
-        <li>Service</li>
-        <li>Protocol</li>
-        <li>DestinationPort</li>
-        <li>Action</li>
-        <li>Management</li>
-        <li>Gateway</li>
-        <li>Time</li>
-        <li>FullText</li>
-    </ul>
-    <h4>Operators</h4>
-    <ul>
-        <li>And</li>
-        <li>Or</li>
-        <li>Not</li>
-        <li>==</li>
-        <li>!=</li>
-    </ul>
-    <h4>Examples</h4>
-    <ul>
-        <li> full text searches</li>
-        <li>
-            <ul>
-                <li>cactus - searches the fields "source, destination, service" for the string "cactus".</li>
-                <li>fulltext=cactus - same as above</li>
+    Firewall Orchestrator is an application to create and administrate different reports out of configuration data of distributed firewall systems.<br>
+    The data is imported directly via APIs from the connected systems. There are several possibilities to customize the report creation by filters, templates and scheduling.
+    The reports can be exported in different output formats. Firewall Orchestrator has an internal user management, but is also able to connect to external user management systems.
+    <ul class="navbar-nav mr-auto">
+        <li class="nav-item px-2">
+            <a href="/help/reporting">Reporting</a>
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/filter">Filter Syntax</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/templates">Templates</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/export">Export</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/output">Report Data Output</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/leftside">Left Sidebar</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/rightside">Right Sidebar</a>
+                </li>
             </ul>
         </li>
-        <li> time searches</li>
-        <li>
-            <ul>
-                <li> If you do not enter a time statement, the current config status is displayed.</li>
-                <li>time="2020-11-23" - searches at midnight.</li>
-                <li>time="2020-11-23 09:29" - searches at a specific time.</li>
-            </ul>
+        <li class="nav-item px-2">
+            <a href="/help/scheduling">Scheduling</a>
         </li>
-        <li> Specific rule content searches</li>
-        <li>
-            <ul>
-                <li>src=cactus</li>
-                <li>src=subnet</li>
-                <li>dst=daba</li>
-                <li>svc=valve_udp</li>
-                <li>svc=valve_udp</li>
-                <li>action=accept</li>
-                <li>not action=drop</li>
-            </ul>
+        <li class="nav-item px-2">
+            <a href="/help/archive">Archive</a>
         </li>
-        <li> filter for gateways or managements</li>
-        <li>
-            <ul>
-                <li>gateway=forti and src=cactus</li>
-                <li>gateway=forti or gateway=check</li>
-                <li>not gateway=check</li>
+        <li class="nav-item px-2">
+            <a href="/help/settings">Settings</a>
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/settings/managements">Managements</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/gateways">Gateways</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/import">Import</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/ldap">Ldaps</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/tenants">Tenants</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/users">Users</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/groups">Groups</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/roles">Roles</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/defaults">Defaults</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/passwordpolicy">Password Policy</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/password">Password</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/language">Language</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/report">Reporting</a>
+                </li>
             </ul>
         </li>
     </ul>

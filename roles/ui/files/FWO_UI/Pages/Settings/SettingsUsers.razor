@@ -31,9 +31,15 @@
             <Template>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    @if(context.isInternal())
+                    {
+                        <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                    }
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
-                    <button class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">Reset Password</button>
+                    @if(context.isInternal())
+                    {
+                        <button class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">Reset Password</button>
+                    }
                 </div>
             </Template>
         </Column>
@@ -453,7 +459,11 @@
         }
         else
         {
-            deleteMessage = $"Are you sure you want to delete user {actUser.Name}? Users from external Ldaps are only deleted locally.";
+            deleteMessage = $"Are you sure you want to delete user {actUser.Name}?";
+            if (!actUser.isInternal())
+            {
+                deleteMessage += " Users from external Ldaps are only deleted locally.";
+            }
             DeleteMode = true;
         }
     }

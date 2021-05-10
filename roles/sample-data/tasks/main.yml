@@ -22,6 +22,18 @@
 - name: create sample devices in database
   import_tasks: create-devices.yml
 
+- name: insert admin tenant0 to device mapping - tenant0 can see all devices
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')
+        THEN INSERT INTO tenant_to_device (tenant_id, device_id) 
+          select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name='tenant0'; 
+        END IF; 
+      END $do$
+  become: yes
+  become_user: postgres
+
 - name: scan localhost ssh keys
   shell: "ssh-keyscan -H 127.0.0.1 >> ~/.ssh/known_hosts"
   become: yes

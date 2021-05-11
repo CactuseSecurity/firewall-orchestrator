@@ -11,4 +11,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("service")]
         public NetworkService Content { get; set; }
     }
+    // public class ServiceObjectRecursiveWrapper
+    // {
+    //     [JsonPropertyName("service")]
+    //     public ServiceObjectRecursiveFlatsWrapper Content { get; set; }
+    // }
 }

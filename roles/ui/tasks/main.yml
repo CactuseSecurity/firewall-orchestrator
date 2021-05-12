@@ -4,6 +4,7 @@
     - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
       package:
         name: "{{ item }}"
+        state: present
       loop:
         - libjpeg62
         - libgdiplus

@@ -1,6 +1,13 @@
 
 - block:
 
+    - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
+      package:
+        - name: "{{ item }}"
+      loop:
+        - libjpeg62
+        - libgdiplus
+
     - name: create ui dir
       file:
         dest: "{{ ui_dir }}"

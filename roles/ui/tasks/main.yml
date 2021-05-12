@@ -31,3 +31,6 @@
 
 - include: ui_install_dot_net.yml
 
+- name: include upgrade script
+  import_tasks: run-upgrades.yml
+  when: "installation_mode == 'upgrade'"

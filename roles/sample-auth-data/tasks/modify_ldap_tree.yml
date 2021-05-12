@@ -38,7 +38,6 @@
     - sample_groups
     - roles_for_sample_operators
     - groups_for_sample_operators
-  ignore_errors: yes
 
 - name: delete ldif files
   file:

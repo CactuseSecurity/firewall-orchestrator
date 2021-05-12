@@ -38,6 +38,7 @@
     - sample_groups
     - roles_for_sample_operators
     - groups_for_sample_operators
+  when: "not installation_mode == 'upgrade'"
 
 - name: delete ldif files
   file:

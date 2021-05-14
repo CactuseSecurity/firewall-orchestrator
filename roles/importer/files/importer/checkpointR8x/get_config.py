@@ -23,6 +23,7 @@ import getter
 import requests, json, argparse, pdb
 import requests.packages.urllib3, time, logging, re, sys
 import os
+
 #import fworch_session_cp_r8x_api
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -40,9 +41,11 @@ parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='D
 parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
 
-# TODO: fix ugly use of --out for input file def of enrich mode
-
 args = parser.parse_args()
+if len(sys.argv)==1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+
 api_host = args.apihost
 api_port = args.port
 config_filename = args.out

@@ -23,6 +23,15 @@
     - python3-openssl
   become: yes
 
+- name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
+  package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - libjpeg62
+    - libgdiplus
+  become: yes
+
 - name: create auth secrets (jwt key, ldap)
   include_tasks: create_auth_secrets.yml
 
@@ -194,3 +203,7 @@
 
 - name: install middleware https reverse proxy
   import_tasks: mw_apache_install_and_setup.yml
+
+- name: include upgrade script
+  import_tasks: run-upgrades.yml
+  when: "installation_mode == 'upgrade'"

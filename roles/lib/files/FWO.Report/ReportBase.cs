@@ -87,23 +87,23 @@ namespace FWO.Report
 
         public virtual byte[] ToPdf()
         {
+            // CONFIG
+            using SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
+
             // HTML
             string html = ExportToHtml();
 
-            // CONFIG
-            var converter = new SynchronizedConverter(new PdfTools());
-
-            var doc = new HtmlToPdfDocument()
+            HtmlToPdfDocument doc = new HtmlToPdfDocument()
             {
-                GlobalSettings = 
+                GlobalSettings =
                 {
                     ColorMode = ColorMode.Color,
                     Orientation = Orientation.Landscape,
                     PaperSize = PaperKind.A4Plus,
                 },
-                Objects = 
+                Objects =
                 {
-                    new ObjectSettings() 
+                    new ObjectSettings()
                     {
                         PagesCount = true,
                         HtmlContent = html,

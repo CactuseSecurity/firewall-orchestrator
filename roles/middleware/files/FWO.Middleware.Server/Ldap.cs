@@ -142,7 +142,7 @@ namespace FWO.Middleware.Server
                 {
                     // Authenticate as search user
                     connection.Bind(SearchUser, SearchUserPwd);
-                    String[] attrList = new String[]{"*", "memberof"};
+                    string[] attrList = new string[]{"*", "memberof"};
 
                     // Search for users in ldap with same name as user to validate
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(

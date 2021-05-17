@@ -58,6 +58,9 @@ namespace FWO.Report
 
         public readonly DynGraphqlQuery Query;
 
+        // Pdf converter
+        protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
+
         public ReportBase(DynGraphqlQuery query)
         {
             Query = query;
@@ -87,9 +90,6 @@ namespace FWO.Report
 
         public virtual byte[] ToPdf()
         {
-            // CONFIG
-            using SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
-
             // HTML
             string html = ExportToHtml();
 

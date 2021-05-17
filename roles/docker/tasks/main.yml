@@ -90,4 +90,9 @@
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
       mode: "0644"
+
+  - name: include upgrade script
+    import_tasks: run-upgrades.yml
+    when: "installation_mode == 'upgrade'"
+
   become: yes

@@ -37,6 +37,11 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
         payload = {'user':user, 'password' : password, 'domain' :  domain}
     base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
+    if "sid" not in response:
+        print ("getter ERROR: did not receive a sid during login")
+        print ("api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
+            ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+        sys.exit(1)
     return response["sid"]
 
 

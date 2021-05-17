@@ -31,10 +31,6 @@ namespace FWO.Report.Filter
 
         public static DynGraphqlQuery Generate(string rawInput, AstNode ast, bool detailed)
         {
-            // this.ast = ast;
-            string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
-            string ruleDetailsFragment = RuleQueries.ruleDetailsFragments;
-
             DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
 
             // now we convert the ast into a graphql query:
@@ -78,7 +74,7 @@ namespace FWO.Report.Filter
 
                 case "rules":
                     query.FullQuery = $@"
-                    {(detailed ? ruleDetailsFragment : ruleOverviewFragment)}
+                    {(detailed ? RuleQueries.ruleDetailsFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
                     {{ 
@@ -102,9 +98,10 @@ namespace FWO.Report.Filter
                             }} 
                     }}";
                     break;
+                    
                 case "changes":
                     query.FullQuery = $@"
-                    {(detailed ? ruleDetailsFragment : ruleOverviewFragment)}
+                    {(detailed ? RuleQueries.ruleDetailsFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
                         management(where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{mgm_name: asc}}) 

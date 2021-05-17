@@ -49,4 +49,8 @@
         state: started
         enabled: yes
 
+    - name: include upgrade script
+      import_tasks: run-upgrades.yml
+      when: "installation_mode == 'upgrade'"
+
   become: yes

@@ -22,6 +22,10 @@ parser.add_argument('-c', '--configfile', metavar='config_file', required=True, 
 parser.add_argument('-n', '--noapi', metavar='mode', default='false', help='if set to true (only in combination with mode=enrich), no api connections are made. Useful for testing only.')
 
 args = parser.parse_args()
+if len(sys.argv)==1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+
 api_host = args.apihost
 api_port = args.port
 config_filename = args.configfile

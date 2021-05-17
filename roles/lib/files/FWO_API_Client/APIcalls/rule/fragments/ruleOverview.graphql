@@ -21,7 +21,7 @@ fragment ruleOverview on rule {
   rule_svc_neg
   rule_num_numeric
   rule_name
-  rule_froms {
+  rule_froms(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
     usr {
       ...userOverview
     }
@@ -33,12 +33,12 @@ fragment ruleOverview on rule {
     zone_name
     zone_id
   }
-  rule_tos {
+  rule_tos(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
     object {
       ...networkObjectOverview
     }
   }
-  rule_services {
+  rule_services(where: {service:{svc_create:{_lte:$relevantImportId}, svc_last_seen:{_gte:$relevantImportId}}}) {
     service {
       ...networkServiceOverview
     }

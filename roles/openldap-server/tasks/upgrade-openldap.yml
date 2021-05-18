@@ -30,8 +30,20 @@
   loop: "{{ upgrade_files }}"
   become: yes
 
-# missing: -n / -b option needs to be specified (which database should be modified?)
-# need to stop slapd for slapadd
+- name: Stop the slapd service
+  systemd:
+    name: slapd
+    state: stopped
+  become: yes
+
+# missing: -n / -b option needs to be specified (which database should be modified?) 0 is config
 - name: install ldap upgrades
-  command: slapadd -F {{ openldap_server_app_path }}/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
+  command: slapadd -F {{ openldap_server_app_path }}/slapd.d -l {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
   loop: "{{ upgrade_files | sort }}"
+  become: yes
+
+- name: Start the slapd service
+  systemd:
+    name: slapd
+    state: started
+  become: yes

@@ -187,3 +187,7 @@
       daemon_reload: yes
 
   become: yes
+
+- name: Upgrade openldap
+  import_tasks: upgrade-openldap.yml
+  when: installation_mode == "upgrade"

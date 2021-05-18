@@ -142,5 +142,7 @@
   become: yes
 
 - name: make hasura docker container runs at host startup
-  command: "systemctl enable {{ api_service_name }}"
+  systemd:
+    name: "{{ api_service_name }}"
+    enabled: yes
   become: yes

@@ -73,5 +73,10 @@ namespace FWO.Api.Data
             Tenant = new Tenant();
             Tenant.Name = distname.getTenant();
         }
+
+        public bool isInternal()
+        {
+            return (new DistName(Dn)).IsInternal();
+        }
     }
 }

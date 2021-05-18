@@ -1,0 +1,37 @@
+﻿@page "/help/settings/ldap"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Ldap Connections</h3>
+    Admins can create and administrate several different Ldap connections. All of them can be used for user authentication.<br>
+    The internal Ldap (part of the initial installation) is needed at least for role assignment, but can also be used for user authentication and user group handling.<br>
+    The Ldap connections can be added, changed and deleted. Deletion is only allowed, if it is not the internal Ldap (defined by the existence of a role search path) and if it is not the last Ldap.<br>
+    The clone button helps defining new Ldaps by copying the data from existing ones. Before saving at least the address or port number have to be changed.<br>
+    Parameters:
+    <ul>
+        <li>Address*: Address of the connected Ldap (e.g. IP address).</li>
+        <li>Port*: Port number of the connected Ldap.</li>
+        <li>Tls: Flag if TLS is used for communication.</li>
+        <li>Tenant Level: If tenants are part of the distinguished names (Dn) of the user, this number defines the level in the path, where they are found.
+            Starting with 1 for the first Dn entry after the user name. Set to 0 if no tenants are used.</li>
+        <li>Type*: Implementation type of the Ldap, which defines the syntax of the access. Currently "OpenLdap" and "ActiveDirectory" are supported.
+            "Default" is a supergroup of several syntax variants, which may be appropriate, if the others are not applicable.</li>
+        <li>Pattern Length: Defines a minimal length for patterns for searches in the Ldap. To avoid a high hit rate in Ldaps with high amounts of users a number of at least 3 is recommended.
+            For systems with few users the value can be set to 0.</li>
+        <li>User Search Path*: The distinguished name (Dn) of the root of the users search tree.</li>
+        <li>Role Search Path: The distinguished name (Dn) of the root of the role search tree. As the roles are administrated only by the internal Ldap this parameter should only be set there.</li>
+        <li>Group Search Path: The distinguished name (Dn) of the root of the group search tree. This parameter should only be set for the internal Ldap, if user group handling is used.</li>
+        <li>Search User*: The distinguished name (Dn) of the user having the rights performing searches in the Ldap.</li>
+        <li>Search User Pwd*: The password for the search user.</li>
+        <li>Write User: The distinguished name (Dn) of the user having the rights performing write operations in the Ldap. Necessary only for the internal Ldap to administrate users and groups.</li>
+        <li>Write User Pwd: The password for the write user.</li>
+        <li>Tenant: If the Ldap is used only for one tenant, it can be selected here.</li>
+    </ul>
+</div>

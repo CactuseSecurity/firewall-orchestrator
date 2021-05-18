@@ -1,0 +1,17 @@
+﻿@page "/help/settings/report"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Report</h3>
+    Every user can overwrite some settings for the report creation.
+    <ul>
+        <li>Elements per fetch: Defines the (maximum) number of objects which are fetched in one step for the report creation and the build up of the right sidebar. This can be used to optimize performance if necessary.</li>
+    </ul>
+</div>

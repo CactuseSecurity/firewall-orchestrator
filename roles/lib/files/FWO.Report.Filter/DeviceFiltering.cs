@@ -8,6 +8,44 @@ namespace FWO.Report.Filter
 {
     public class DeviceFilter
     {
+        public static List<int> ExtractAllDevIds(Management[] managements)
+        {
+            List<int> devs = new List<int>();
+            foreach (Management mgmt in managements)
+                foreach (Device dev in mgmt.Devices)
+                    devs.Add(dev.Id);
+            return devs;
+        }
+
+        public static List<int> ExtractSelectedDevIds(Management[] managements)
+        {
+            List<int> selectedDevs = new List<int>();
+            foreach (Management mgmt in managements)
+                foreach (Device dev in mgmt.Devices)
+                    if (dev.selected)
+                        selectedDevs.Add(dev.Id);
+            return selectedDevs;
+        }
+
+        public Management[] saveSelectedState(Management[] managements)
+        {
+            return managements;
+        }
+
+        public static Management[] restoreSelectedState(Management[] selectedState, Management[] managements)
+        {
+            int mIdx;
+            int dIdx;
+            for (mIdx = 0; mIdx <= managements.Length; ++mIdx)
+                if (managements.Length > mIdx && managements[mIdx].Devices != null)
+                    for (dIdx = 0; dIdx <= managements[mIdx].Devices.Length; ++dIdx)
+                    {
+                        if (managements[mIdx].Devices.Length > dIdx && managements[mIdx].Devices[dIdx] != null)
+                            managements[mIdx].Devices[dIdx].selected = selectedState[mIdx].Devices[dIdx].selected;
+                    }
+            return managements;
+        }
+
         public static bool areAllDevicesSelected(Management[] managements)
         {
             foreach (Management management in managements)
@@ -17,6 +55,17 @@ namespace FWO.Report.Filter
                             if (!device.selected)
                                 return false;
             return true;
+        }
+
+        public static bool isAnyLSBDeviceFilterSet(Management[] managements)
+        {
+            foreach (Management management in managements)
+                if (management != null)
+                    foreach (Device device in management.Devices)
+                        if (device != null)
+                            if (device.selected)
+                                return true;
+            return false;
         }
 
         public static bool isAnyDeviceFilterSet(Management[] managements, DynGraphqlQuery query)
@@ -33,25 +82,19 @@ namespace FWO.Report.Filter
             return false;
         }
 
-        public static bool fullDeviceSelection(Management[] managements, bool fullDeviceSelectionState, out string selectButtonText)
+        public static bool fullDeviceSelection(Management[] managements, bool fullDeviceActionIsSelect)
         {
-            fullDeviceSelectionState = !fullDeviceSelectionState;
-            if (fullDeviceSelectionState)
-                selectButtonText = "Clear device selection";
-            else
-                selectButtonText = "Select all devices";
-
             foreach (Management management in managements)
             {
                 if (management != null)
                 {
                     foreach (Device device in management.Devices)
                     {
-                        device.selected = fullDeviceSelectionState;
+                        device.selected = fullDeviceActionIsSelect;
                     }
                 }
             }
-            return fullDeviceSelectionState;
+            return !fullDeviceActionIsSelect;
         }
 
         /// <summary>
@@ -115,26 +158,28 @@ namespace FWO.Report.Filter
 
             if (devFilter.Length > 0)
                 devFilter = $"({devFilter.Remove(devFilter.Length - 4)})"; // remove final 4 chars " or "
-            if (filterWithoutDev.Length > 0 && devFilter.Length>0)
+            if (filterWithoutDev.Length > 0 && devFilter.Length > 0)
                 devFilter = $" and {devFilter}";
             return filterWithoutDev + devFilter;
         }
 
         /// <summary>
         /// clears current dev filter from left side bar and sets it to device & management filters from filter line
+        //// returns either empty string or the new text for the "select/clear all" button
         /// </summary>
-        public static void syncFilterLineToLSBFilter(string currentFilterLine, Management[] LSBFilter)
+        public static bool syncFilterLineToLSBFilter(string currentFilterLine, Management[] LSBFilter, bool deviceAllFilter)
         {
             List<string> filteredGatewayList = new List<string>();
             List<string> gatewayList = new List<string>();
 
             // clear device filter first:
             for (int midx = 0; midx < LSBFilter.Length; ++midx)
-                for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
-                {
-                    gatewayList.Add(LSBFilter[midx].Devices[didx].Name);
-                    LSBFilter[midx].Devices[didx].selected = false;
-                }
+                if (LSBFilter[midx].Devices != null)
+                    for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
+                    {
+                        gatewayList.Add(LSBFilter[midx].Devices[didx].Name);
+                        LSBFilter[midx].Devices[didx].selected = false;
+                    }
 
             // find gw filter in filter string and perform pattern matching against gw names 
             string pattern = @"(gateway|gw|device|firewall)\s*\=\=?\s*""?(\w+)""?";
@@ -157,6 +202,13 @@ namespace FWO.Report.Filter
                 for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
                     if (filteredGatewayList.Contains(LSBFilter[midx].Devices[didx].Name))
                         LSBFilter[midx].Devices[didx].selected = true;
+
+
+            if (!DeviceFilter.isAnyLSBDeviceFilterSet(LSBFilter))
+                return true;
+            if (DeviceFilter.areAllDevicesSelected(LSBFilter))
+                return false;
+            return deviceAllFilter;
         }
     }
 }

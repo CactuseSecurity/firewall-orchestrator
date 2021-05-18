@@ -1,0 +1,20 @@
+﻿@page "/help/settings/import"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Import Status</h3>
+    The status of the import jobs for the different managements is displayed here.
+    <ul>
+        <li>Last incomplete: The start time of an import actually running. Then a button may be displayed to Rollback the import.</li>
+        <li>Errors: Is only filled with an error message, if the success flag is false</li>
+        <li>Refresh: Updates the displayed data.</li>
+        <li>Details: For each management a detailed view on Start/Stop times and errors of the first, last successful and last import.</li>
+    </ul>
+</div>

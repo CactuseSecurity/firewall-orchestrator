@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link href="/css/site.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="~/css/bootstrap/bootstrap.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark shadow w-100">
+        <a class="navbar-brand" href="/help">
+            <!-- <img src="images/FWO_Logo.png" /> -->
+            Firewall-Orchestrator
+        </a>
+
+        <div class="navbar-collapse ">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/reporting">
+                        <span class="oi oi-spreadsheet"></span> Reporting
+                    </a>
+                </li>
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/scheduling">
+                        <span class="oi oi-calendar"></span> Scheduling
+                    </a>
+                </li>
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/archive">
+                        <span class="oi oi-box"></span> Archive
+                    </a>
+                </li>
+                <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/settings">
+                        <span class="oi oi-cog"></span> Settings
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    @RenderSection("sidebar", false)
+    <div style="margin-left: 220px">
+        @RenderBody()
+    </div>
+</body>
+</html>
+

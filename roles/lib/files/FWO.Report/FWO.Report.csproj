@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.4.0" />
     <PackageReference Include="HtmlRendererCore.PdfSharpCore" Version="1.0.1" />
     <PackageReference Include="PdfSharpCore" Version="1.2.16" />
   </ItemGroup>

@@ -37,6 +37,11 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
         payload = {'user':user, 'password' : password, 'domain' :  domain}
     base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
+    if "sid" not in response:
+        print ("getter ERROR: did not receive a sid during login")
+        print ("api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
+            ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+        sys.exit(1)
     return response["sid"]
 
 
@@ -104,24 +109,25 @@ def collect_uids_from_rule(rule, debug_text):
     svc_uids_found = []
  
     if 'rule-number' in rule:  # standard rule, no section header (layered rules)
-        for src in rule["source"]:
-            if src['type'] == 'LegacyUserAtLocation':
-                nw_uids_found.append(src["location"])
-            elif src['type'] == 'access-role':
-                if isinstance(src['networks'], str):  # just a single source
-                    if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
-                       nw_uids_found.append(src['networks'])
-                else:  # more than one source
-                    for nw in src['networks']:
-                        nw_uids_found.append(nw)
-            else:  # standard network objects as source, only here we have an uid value
-                nw_uids_found.append(src['uid'])
-        for dst in rule["destination"]:
-            nw_uids_found.append(dst['uid'])
-        for svc in rule["service"]:
-            svc_uids_found.append(svc['uid'])
-        #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
-        return (nw_uids_found, svc_uids_found)
+        if 'type' in rule and rule['type'] != 'place-holder':
+            for src in rule["source"]:
+                if src['type'] == 'LegacyUserAtLocation':
+                    nw_uids_found.append(src["location"])
+                elif src['type'] == 'access-role':
+                    if isinstance(src['networks'], str):  # just a single source
+                        if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
+                            nw_uids_found.append(src['networks'])
+                    else:  # more than one source
+                        for nw in src['networks']:
+                            nw_uids_found.append(nw)
+                else:  # standard network objects as source, only here we have an uid value
+                    nw_uids_found.append(src['uid'])
+            for dst in rule["destination"]:
+                nw_uids_found.append(dst['uid'])
+            for svc in rule["service"]:
+                svc_uids_found.append(svc['uid'])
+            #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
+            return (nw_uids_found, svc_uids_found)
     else: # recurse into rulebase within rule
         return collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
 

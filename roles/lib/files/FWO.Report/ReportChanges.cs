@@ -14,19 +14,26 @@ namespace FWO.Report
 {
     public class ReportChanges : ReportBase
     {
-        public override async Task Generate(int changesPerFetch, string filterInput, APIConnection apiConnection, Func<Management[], Task> callback)
+        public ReportChanges(DynGraphqlQuery query) : base(query) { }
+
+        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
-            DynGraphqlQuery query = Compiler.Compile(filterInput);
-            query.QueryVariables["limit"] = changesPerFetch;
-            query.QueryVariables["offset"] = 0;
+           // await;
+        }
+        
+
+        public override async Task Generate(int changesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        {
+            Query.QueryVariables["limit"] = changesPerFetch;
+            Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
             Managements = Array.Empty<Management>();
 
-            Managements = await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables);
+            Managements = await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables);
             while (gotNewObjects)
             {
-                query.QueryVariables["offset"] = (int)query.QueryVariables["offset"] + changesPerFetch;
-                gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(query.FullQuery, query.QueryVariables));
+                Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
+                gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
                 await callback(Managements);
             }
         }
@@ -45,6 +52,8 @@ namespace FWO.Report
 
             throw new NotImplementedException();
         }
+
+        private const int ColumnCount = 13;
 
         public override string ExportToHtml()
         {
@@ -77,22 +86,31 @@ namespace FWO.Report
                     report.AppendLine("<th>Comment</th>");
                     report.AppendLine("</tr>");
 
-                    foreach (RuleChange ruleChange in device.RuleChanges)
+                    if (device.RuleChanges.Length > 0)
+                    {
+                        foreach (RuleChange ruleChange in device.RuleChanges)
+                        {
+                            report.AppendLine("<tr>");
+                            report.AppendLine($"<td>{ruleChange.DisplayChangeTime()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayChangeAction()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayName()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplaySourceZone()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplaySource()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayDestinationZone()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayDestination()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayService()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayAction()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayTrack()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayEnabled(export: true)}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayUid()}</td>");
+                            report.AppendLine($"<td>{ruleChange.DisplayComment()}</td>");
+                            report.AppendLine("</tr>");
+                        }
+                    }
+                    else
                     {
                         report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{ruleChange.DisplayChangeTime()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayChangeAction()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayName()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplaySourceZone()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplaySource()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayDestinationZone()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayDestination()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayService()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayAction()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayTrack()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayEnabled()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayUid()}</td>");
-                        report.AppendLine($"<td>{ruleChange.DisplayComment()}</td>");
+                        report.AppendLine($"<td colspan=\"{ColumnCount}\">No changes found!</td>");
                         report.AppendLine("</tr>");
                     }
 
@@ -100,7 +118,7 @@ namespace FWO.Report
                 }
             }
 
-            return HtmlTemplate.Replace("##Body##", report.ToString());
+            return GenerateHtmlFrame(title: "Changes Report", Query.RawFilter, DateTime.Now, report);
         }
     }
 }

@@ -32,17 +32,18 @@ def csv_dump_user(user_name, user, import_id):
 
 def collect_users_from_rule(rule, users):
     if 'rule-number' in rule:  # standard rule
-        for src in rule["source"]:
-            if src['type'] == 'access-role':
-                users.update({src['name']: {'uid': src['uid'], 'user_type': 'group', 'comment': src['comments'], 'color': src['color']} })
-                if 'users' in src:
-                    users.update({src["name"]: {'uid': src["uid"], 'user_type': 'simple'} })
-            elif src['type'] == 'LegacyUserAtLocation':
-                user_str = src["name"]
-                user_ar = user_str.split('@')
-                user_name = user_ar[0]
-                user_uid = src["userGroup"]
-                users.update({user_name: {'uid': user_uid, 'user_type': 'group'} })
+        if 'type' in rule and rule['type'] != 'place-holder':
+            for src in rule["source"]:
+                if src['type'] == 'access-role':
+                    users.update({src['name']: {'uid': src['uid'], 'user_type': 'group', 'comment': src['comments'], 'color': src['color']} })
+                    if 'users' in src:
+                        users.update({src["name"]: {'uid': src["uid"], 'user_type': 'simple'} })
+                elif src['type'] == 'LegacyUserAtLocation':
+                    user_str = src["name"]
+                    user_ar = user_str.split('@')
+                    user_name = user_ar[0]
+                    user_uid = src["userGroup"]
+                    users.update({user_name: {'uid': user_uid, 'user_type': 'group'} })
     else:  # section
         collect_users_from_rulebase(rule["rulebase"], users)
 

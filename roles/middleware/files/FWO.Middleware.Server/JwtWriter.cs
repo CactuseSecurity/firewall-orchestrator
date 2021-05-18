@@ -21,6 +21,7 @@ namespace FWO.Middleware.Server
         {
             this.JwtMinutesValid = JwtMinutesValid;
             this.jwtPrivateKey = jwtPrivateKey;
+            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
         }
 
         public async Task<string> CreateJWT(UiUser user = null)

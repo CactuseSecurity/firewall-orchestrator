@@ -1,7 +1,9 @@
+#!/usr/bin/python3
 import common 
 import parse_network, parse_rule, parse_service, parse_user
 import argparse
 import json
+import sys
 #import re
 import logging
 
@@ -32,6 +34,10 @@ debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
 
 args = parser.parse_args()
+if len(sys.argv)==1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+
 config_filename = args.config_file
 use_object_dictionary = 'false'
 

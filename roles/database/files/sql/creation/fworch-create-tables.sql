@@ -179,6 +179,30 @@ Create table "rule_metadata"
  primary key ("rule_metadata_id")
 );
 
+Create table "rule_svc_resolved"
+(
+	"mgm_id" INT,
+	"rule_id" BIGINT NOT NULL,
+	"svc_id" BIGINT NOT NULL,
+ primary key ("mgm_id","rule_id","svc_id")
+);
+
+Create table "rule_nwobj_resolved"
+(
+	"mgm_id" INT,
+	"rule_id" BIGINT NOT NULL,
+	"obj_id" BIGINT NOT NULL,
+ primary key ("mgm_id","rule_id","obj_id")
+);
+
+Create table "rule_user_resolved"
+(
+	"mgm_id" INT,
+	"rule_id" BIGINT NOT NULL,
+	"user_id" BIGINT NOT NULL,
+ primary key ("mgm_id","rule_id","user_id")
+);
+
 Create table "rule_from"
 (
 	"rule_from_id" BIGSERIAL,
@@ -389,7 +413,8 @@ Create table "text_msg"
 Create table "language"
 (
 	"name" Varchar NOT NULL UNIQUE,
- primary key ("name")
+	"culture_info" Varchar NOT NULL,
+	primary key ("name")
 );
 
 Create table "txt"

@@ -1,0 +1,92 @@
+﻿@page "/help"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpEmptySidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h2>Help</h2>
+    Firewall Orchestrator is an application to create and administrate different reports out of configuration data of distributed firewall systems.<br>
+    The data is imported directly via APIs from the connected systems. There are several possibilities to customize the report creation by filters, templates and scheduling.
+    The reports can be exported in different output formats. Firewall Orchestrator has an internal user management, but is also able to connect to external user management systems.
+    <ul class="navbar-nav mr-auto">
+        <li class="nav-item px-2">
+            <a href="/help/reporting">Reporting</a>
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/filter">Filter Syntax</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/templates">Templates</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/export">Export</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/output">Report Data Output</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/leftside">Left Sidebar</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/reporting/rightside">Right Sidebar</a>
+                </li>
+            </ul>
+        </li>
+        <li class="nav-item px-2">
+            <a href="/help/scheduling">Scheduling</a>
+        </li>
+        <li class="nav-item px-2">
+            <a href="/help/archive">Archive</a>
+        </li>
+        <li class="nav-item px-2">
+            <a href="/help/settings">Settings</a>
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/settings/managements">Managements</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/gateways">Gateways</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/import">Import</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/ldap">Ldaps</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/tenants">Tenants</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/users">Users</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/groups">Groups</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/roles">Roles</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/defaults">Defaults</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/passwordpolicy">Password Policy</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/password">Password</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/language">Language</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/report">Reporting</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>

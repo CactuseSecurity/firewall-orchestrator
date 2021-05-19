@@ -283,11 +283,11 @@
             {
                 GetSettings();
 
-                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-
-                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                 managementsReport = await Connection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+                await InvokeAsync(StateHasChanged);
 
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
+                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                 await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
@@ -295,32 +295,6 @@
                 DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
             }
         });
-
-        Task.Run(async () =>
-        {
-            string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            ImpIdQueryVariables["time"] = TimeFilter;
-            Management[] managementsWithRelevantImportId = await Connection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
-
-            //managementsDevFilter = new Management[managementsWithRelevantImportId.Length];
-            managementsWithRelevantImportId = await Connection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
-            managementsDevFilter = await Connection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
-            await InvokeAsync(StateHasChanged);
-        });
-
-        //Task.Run(async () =>
-        //{
-        //    try
-        //    {
-        //        reportTemplates = (await Connection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates)).ToList();
-        //        await InvokeAsync(StateHasChanged);
-        //    }
-        //    catch (Exception exception)
-        //    {
-        //        DisplayMessageInUi(exception, "Report Template Fetch", "Error while fetching report templates from API", true);
-        //    }
-        //});
     }
 
     public async Task FetchContent(int contentType, Func<Management[], Task> callback, int mgmtId = 0, string ruleUid = "")
@@ -413,7 +387,6 @@
 
         // collapse report templates
         reportTemplateControl.Collapse();
-
 
         try
         {

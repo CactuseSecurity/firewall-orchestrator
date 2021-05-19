@@ -58,6 +58,9 @@ namespace FWO.Report
 
         public readonly DynGraphqlQuery Query;
 
+        // Pdf converter
+        protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
+
         public ReportBase(DynGraphqlQuery query)
         {
             Query = query;
@@ -90,20 +93,17 @@ namespace FWO.Report
             // HTML
             string html = ExportToHtml();
 
-            // CONFIG
-            var converter = new SynchronizedConverter(new PdfTools());
-
-            var doc = new HtmlToPdfDocument()
+            HtmlToPdfDocument doc = new HtmlToPdfDocument()
             {
-                GlobalSettings = 
+                GlobalSettings =
                 {
                     ColorMode = ColorMode.Color,
                     Orientation = Orientation.Landscape,
                     PaperSize = PaperKind.A4Plus,
                 },
-                Objects = 
+                Objects =
                 {
-                    new ObjectSettings() 
+                    new ObjectSettings()
                     {
                         PagesCount = true,
                         HtmlContent = html,

@@ -44,8 +44,7 @@
         remote_src: yes
   
     - name: enable {{ product_name }} web site
-      apache2_module:
-        name: "{{ product_name }}-api"
+      command: "a2ensite {{ product_name }}-api"
 
     - name: increase apache timeout to 900 seconds
       lineinfile:

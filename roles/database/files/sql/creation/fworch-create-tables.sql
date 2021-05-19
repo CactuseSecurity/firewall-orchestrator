@@ -128,6 +128,7 @@ Create table "rule"
 	"rule_name" Varchar,
 	"mgm_id" Integer NOT NULL,
 	"parent_rule_id" BIGINT,
+	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
 	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),

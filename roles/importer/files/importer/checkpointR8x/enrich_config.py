@@ -56,6 +56,9 @@ starttime = int(time.time())
 with open(config_filename, "r") as json_data:
     config = json.load(json_data)
 
+#################################################################################
+# adding inline and domain layers 
+#################################################################################
 
 found_new_inline_layers = True
 old_inline_layers = []
@@ -78,6 +81,10 @@ while found_new_inline_layers is True:
 
 # next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
 
+for rulebase in config['rulebases']:
+    for rule in rulebase:
+        if 'type' in rule and rule['type'] == 'place-holder':
+            logging.debug("enrich_config: found domain rule ref: " + rule["uid"])
 
 #################################################################################
 # get object data which is only contained as uid in config by making addtional api calls

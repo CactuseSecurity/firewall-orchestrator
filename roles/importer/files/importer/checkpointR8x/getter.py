@@ -127,7 +127,8 @@ def collect_uids_from_rule(rule, debug_text):
             for svc in rule["service"]:
                 svc_uids_found.append(svc['uid'])
             #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
-            return (nw_uids_found, svc_uids_found)
+            #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
+        return (nw_uids_found, svc_uids_found)
     else: # recurse into rulebase within rule
         return collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
 
@@ -139,7 +140,7 @@ def collect_uids_from_rulebase(rulebase, debug_text):
     if 'layerchunks' in rulebase:
         logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
         for layer_chunk in rulebase['layerchunks']:
-            logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + "with uid " + layer_chunk['uid'] )
+            logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + " with uid " + layer_chunk['uid'] )
             for rule in layer_chunk['rulebase']:
                 (nw_uids_found_in_rule, svc_uids_found_in_rule) = collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
                 if nw_uids_found_in_rule is not None:
@@ -150,6 +151,7 @@ def collect_uids_from_rulebase(rulebase, debug_text):
         for rule in rulebase:
             (nw_uids_found, svc_uids_found) = collect_uids_from_rule(rule, debug_text)
 
+    #logging.debug ("getter::collect_uids_from_rulebase nw_uids_found: " + str(nw_uids_found))
     #logging.debug ("getter::collect_uids_from_rulebase svc_uids_found: " + str(svc_uids_found))
     return (nw_uids_found, svc_uids_found)
 
@@ -189,6 +191,8 @@ def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
             for rule in rulebase['rulebase']:
                 if 'inline-layer' in rule:
                     inline_layers.append(rule['inline-layer']['name'])
+                if rule['name'] == "Placeholder for domain rules":
+                    logging.debug ("getter - found domain rules reference with uid " + rule["uid"])
 
         if 'rule-number' in rulebase:   # not a rulebase but a single rule
             if 'inline-layer' in rulebase:

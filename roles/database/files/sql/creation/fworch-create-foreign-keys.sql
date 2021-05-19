@@ -90,6 +90,9 @@ Alter table "rule" add  foreign key ("rule_from_zone") references "zone" ("zone_
 Alter table "rule" add  foreign key ("rule_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("rule_to_zone") references "zone" ("zone_id") on update restrict on delete cascade;
 Alter table "rule" add  foreign key ("track_id") references "stm_track" ("track_id") on update restrict on delete cascade;
+Alter table "rule" add  foreign key ("parent_rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
+Alter table "rule" add  foreign key ("parent_rule_type") references "parent_rule_type" ("id") on update restrict on delete cascade;
+
 Alter table "rule" add constraint "rule_metadata_dev_id_rule_uid_f_key"
   foreign key ("dev_id", "rule_uid") references "rule_metadata" ("dev_id", "rule_uid") on update restrict on delete cascade;
 Alter table "rule_from" add  foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;

@@ -159,6 +159,12 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num):
             rule_csv += csv_add_field(rule_to_zone, common.csv_delimiter, apostrophe)
             rule_meta_info = rule['meta-info']
             rule_csv += csv_add_field(rule_meta_info['last-modifier'], common.csv_delimiter, apostrophe)
+            # new in v5.1.17:
+            if 'parent_rule_uid' in rule:
+                parent_rule_uid = rule['parent_rule_uid']
+            else:
+                parent_rule_uid = ''
+            rule_csv += csv_add_field(parent_rule_uid, common.csv_delimiter, apostrophe)
 
             rule_csv = rule_csv[:-1] + common.line_delimiter  # remove last csv delimiter and add line delimiter
     return rule_csv

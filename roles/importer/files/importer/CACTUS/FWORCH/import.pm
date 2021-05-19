@@ -190,6 +190,7 @@ our @rule_import_fields = qw (
 	rule_from_zone
 	rule_to_zone
 	last_change_admin
+	parent_rule_uid
 );
 
 our @auditlog_outlist = qw ( change_time management_name changed_object_name changed_object_uid changed_object_type change_action change_admin );

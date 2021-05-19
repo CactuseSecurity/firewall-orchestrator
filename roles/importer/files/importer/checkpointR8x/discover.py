@@ -79,11 +79,11 @@ if args.mode == 'packages':
 if args.mode == 'domains':
     print ("\nthe following domains exist on management server:")
     for d in result['objects']:
-        print ("    domain: " + d['name'])
+        print ("    domain: " + d['name'] + ", uid: " + d['uid'])
 if args.mode == 'layers':
     print ("\nthe following access-layers exist on management server:")
     for l in result['access-layers']:
-        print ("    access-layer: " + l['name'])
+        print ("    access-layer: " + l['name'] + ", uid: " + l['uid'] )
 print()
 
 logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)

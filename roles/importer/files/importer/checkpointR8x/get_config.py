@@ -24,7 +24,61 @@ import requests, json, argparse, pdb
 import requests.packages.urllib3, time, logging, re, sys
 import os
 
-#import fworch_session_cp_r8x_api
+
+def get_layer_from_api (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules):
+    #show_params_rules['name'] = layer_name
+    current_layer_json = "{\n\"layername\": \"" + show_params_rules['name'] + "\",\n"
+    current_layer_json +=  "\"layerchunks\": [\n"
+    current=0
+    total=current+1
+    while (current<total) :
+        show_params_rules['offset']=current
+        rulebase = getter.api_call(api_host, api_port, api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+        # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(rulebase) + "\n")
+        current_layer_json += json.dumps(rulebase)
+        current_layer_json += ",\n"
+        if 'total' in rulebase:
+            total=rulebase['total']
+        else:
+            logging.error ( "get_config - rulebase does not contain total field")
+            logging.error ("get_config - get_rulebase_chunk_from_api found garbled json " + current_layer_json)
+        current=rulebase['to']
+        logging.debug ( "get_config - rulebase current offset: "+ str(current) )
+    current_layer_json = current_layer_json[:-2] + "]\n}"
+    # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
+    return current_layer_json
+
+
+# replace rule at rule_idx within top_ruleset with ruleset
+def substitute_place_holder (top_ruleset, domain_ruleset, paceholder_uid):
+    top_ruleset_json = json.loads(top_ruleset)
+    domain_ruleset_json = json.loads(domain_ruleset)
+    layers = top_ruleset_json['layerchunks']
+    layer = layers[0]
+    rules = layer['rulebase']
+
+    # set the upper (parent) rule uid for all domain rules:
+    for rule in domain_ruleset_json:
+        rule['parent_rule_uid'] = paceholder_uid
+
+    # logging.debug ("substitute_place_holder - rules = " + str(rules))
+    i = 0
+    logging.debug ("substitute_place_holder - length of rules = " + str(len(rules)))
+    while i<len(rules):
+        logging.debug ("substitute_place_holder - looking for uid to replace: " + paceholder_uid + " =? " + rules[i]['uid'])
+        if rules[i]['uid'] == paceholder_uid:
+            logging.debug ("substitute_place_holder - found idx")
+            #logging.debug ("substitute_place_holder - pre del length=" + str(len(rules)))
+            #del rules[i]
+            logging.debug ("substitute_place_holder - pre insert length=" + str(len(rules)))
+            rules[i+1:i+1] = domain_ruleset_json['layerchunks']
+            logging.debug ("substitute_place_holder - post insert length=" + str(len(rules)))
+        i += 1
+    #logging.debug ("substitute_place_holder - rules after substitution:\n" + str(rules))
+    top_ruleset_json['layerchunks'] = rules
+    return json.dumps(top_ruleset_json)
+
+
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
@@ -71,32 +125,52 @@ starttime = int(time.time())
 sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string)
 v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
 
+
 config_json = "{\n"
 config_json += "\"rulebases\": [\n"
 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
+
 # read all rulebases:
 for layer in args.layer.split(','):
+    logging.debug ( "get_config - layer: " + layer )
+    domain_layer_name = ""
+    current_layer_json = ""
     show_params_rules['name'] = layer
-    config_json += "{\n\"layername\": \"" + layer + "\",\n"
-    config_json +=  "\"layerchunks\": [\n"
-    current=0
-    total=current+1
-    logging.debug ( "get_config - layer:"+ layer )
-    while (current<total) :
-#        show_params_rules = {'name':layer,'offset':current,'limit':limit,'use-object-dictionary':'false','details-level':'full'}
-        show_params_rules['offset']=current
-        rulebase = getter.api_call(api_host, args.port, v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
-        config_json +=  json.dumps(rulebase)
-        # config_json +=  json.dumps(rulebase, indent=json_indent)
-        config_json +=  ",\n"
-        total=rulebase['total']
-        current=rulebase['to']
-        logging.debug ( "get_config - rulebase current:"+ str(current) )
-    config_json = config_json[:-2]
-    config_json +=  "]\n},\n"
+
+    if '/' in layer:
+        logging.debug ( "get_config - layer contains global and domain part separated by slash, parsing individually: " + layer )
+        (global_layer_name, domain_layer_name) = layer.split('/')
+        show_params_rules['name'] = global_layer_name
+
+    current_layer_json = get_layer_from_api (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules)
+
+    # now handling possible reference to domain rules within global rules
+    # if we find the reference, replace it with the domain rules
+    if domain_layer_name != "":
+        show_params_rules['name'] = domain_layer_name
+        current_layer = json.loads(current_layer_json)
+        if 'layerchunks' in current_layer:
+            for chunk in current_layer["layerchunks"]:
+                for rule in chunk['rulebase']:
+                    if "type" in rule and rule["type"] == "place-holder":
+                        logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
+                        domain_rules = get_layer_from_api (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules)
+                        logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
+                        current_layer_json = substitute_place_holder(current_layer_json, domain_rules, rule['uid'])
+                        logging.debug ("substituted domain rules: " + str(current_layer_json) + "\n\n")
+
+    config_json += current_layer_json + ",\n"
+
+# remove final comma layer from loop and add closing bracket for rules:
 config_json = config_json[:-2]
-config_json += "],\n"  # 'level': 'rulebases'
-logging.debug ( "get_config - rulebase total:"+ str(total) )
+
+# logging.debug ( "get_config - final rules: " + config_json )
+# logging.debug ( "get_config - final rules json pp: " + json.dumps(json.loads(config_json), indent=3) )
+
+config_json += "],\n"
+
+# leaving rules
+# moving on to objects
 
 config_json += "\"object_tables\": [\n"
 show_params_objs = {'limit':limit,'details-level': details_level}

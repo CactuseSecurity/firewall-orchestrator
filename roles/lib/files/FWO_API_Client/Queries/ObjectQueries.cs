@@ -14,6 +14,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string getUserDetails;
         public static readonly string getAllObjectDetails;
         public static readonly string getReportFilteredObjectDetails;
+        public static readonly string getNotInReportFilteredObjectDetails;
 
         static ObjectQueries() 
         {
@@ -44,6 +45,13 @@ namespace FWO.ApiClient.Queries
                     File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetails.graphql") +
                     File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetails.graphql") +
                     File.ReadAllText(QueryPath + "report/getObjectsInReport.graphql");
+
+                // for displaying unused objects
+                getNotInReportFilteredObjectDetails = 
+                    File.ReadAllText(QueryPath + "user/fragments/userDetails.graphql") +
+                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetails.graphql") +
+                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetails.graphql") +
+                    File.ReadAllText(QueryPath + "report/getObjectsNotInReport.graphql");
             }
             catch (Exception exception)
             {

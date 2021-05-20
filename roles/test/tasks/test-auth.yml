@@ -10,6 +10,8 @@
   when: "not run_on_github|bool"
 
 # curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"user1_demo","Password":"cactus1"}'
+# Two problems: a) invalid credentials, api is inactive (with command above)
+# b) This command has ssl error
 - name: middleware test get jwt valid creds
   uri:
     url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/

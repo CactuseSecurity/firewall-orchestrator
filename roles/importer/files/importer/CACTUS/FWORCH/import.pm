@@ -1159,10 +1159,12 @@ sub fill_import_tables_from_csv {
 	my @rulebase_ar = ();
 	foreach my $d (keys %{$rulebases}) {
 		my $rb = $rulebases->{$d}->{'dev_rulebase'};
-		if ( !grep( /^$rb$/, @rulebase_ar ) ) {
-			@rulebase_ar = (@rulebase_ar, $rb);
-			$csv_rule_file = $fworch_workdir . '/' . $rb . '_rulebase.csv';
-			print ("rulebase found: $rb, rule_file: $csv_rule_file, device: $d\n");
+		my $rulebase_name_sanitized = join('__', split /\//, $rb);
+		if ( !grep( /^$rulebase_name_sanitized$/, @rulebase_ar ) ) {
+			@rulebase_ar = (@rulebase_ar, $rulebase_name_sanitized);
+			print ("rulebase_name_sanitized: $rulebase_name_sanitized\n");
+			$csv_rule_file = $fworch_workdir . '/' . $rulebase_name_sanitized . '_rulebase.csv';
+			print ("rulebase found: $rulebase_name_sanitized, rule_file: $csv_rule_file, device: $d\n");
 			$sqlcode = "COPY import_rule $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";
 			if ($fehler = CACTUS::FWORCH::copy_file_to_db($sqlcode,$csv_rule_file)) {
 				print_error("dbimport: $fehler"); print_linebreak(); $fehler_count += 1;

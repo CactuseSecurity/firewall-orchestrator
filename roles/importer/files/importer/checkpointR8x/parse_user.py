@@ -53,8 +53,9 @@ def collect_users_from_rulebase(rulebase, users):
     result = ''
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
-            for rule in chunk['rulebase']:
-                collect_users_from_rule(rule, users)
+            if 'rulebase' in chunk:
+                for rule in chunk['rulebase']:
+                    collect_users_from_rule(rule, users)
     else:
         for rule in rulebase:
             collect_users_from_rule(rule, users)

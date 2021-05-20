@@ -1,6 +1,7 @@
 import re
 import logging
 import common
+import json
 
 
 def create_section_header(section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids):
@@ -29,7 +30,8 @@ def create_section_header(section_name, layer_name, import_id, rule_uid, rule_nu
     header_rule_csv += '"' + section_name + '"' + common.csv_delimiter  # head_text
     header_rule_csv += common.csv_delimiter  # from_zone
     header_rule_csv += common.csv_delimiter  # to_zone
-    # last_change_admin
+    header_rule_csv += common.csv_delimiter  # last_change_admin
+    # parent_rule_uid
     return header_rule_csv + common.line_delimiter
 
 
@@ -150,7 +152,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num):
                 rule_name = ''
             rule_csv += csv_add_field(rule_name, common.csv_delimiter, apostrophe)  # rule_name
 
-            rule_csv += csv_add_field(rule['uid'], common.csv_delimiter, apostrophe)  # rule_head_text
+            rule_csv += csv_add_field(rule['uid'], common.csv_delimiter, apostrophe)  # rule_uid
             rule_head_text = ''
             rule_csv += csv_add_field(rule_head_text, common.csv_delimiter, apostrophe)  # rule_head_text
             rule_from_zone = ''
@@ -161,9 +163,11 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num):
             rule_csv += csv_add_field(rule_meta_info['last-modifier'], common.csv_delimiter, apostrophe)
             # new in v5.1.17:
             if 'parent_rule_uid' in rule:
+                logging.debug('csv_dump_rule: found rule with parent_rule_uid set: ' + rule['parent_rule_uid'])
                 parent_rule_uid = rule['parent_rule_uid']
             else:
-                parent_rule_uid = ''
+                #logging.debug('csv_dump_rule: no parent_rule_uid set')
+                parent_rule_uid = ""
             rule_csv += csv_add_field(parent_rule_uid, common.csv_delimiter, apostrophe)
 
             rule_csv = rule_csv[:-1] + common.line_delimiter  # remove last csv delimiter and add line delimiter
@@ -175,9 +179,12 @@ def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uid
 
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
-            for rules_chunk in chunk['rulebase']:
-                rule_num, rules_in_csv = csv_dump_rules(rules_chunk, layer_name, import_id, rule_num, section_header_uids)
-                result += rules_in_csv
+            if 'rulebase' in chunk:
+                for rules_chunk in chunk['rulebase']:
+                    rule_num, rules_in_csv = csv_dump_rules(rules_chunk, layer_name, import_id, rule_num, section_header_uids)
+                    result += rules_in_csv
+            else:
+                logging.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
     else:
         if 'rulebase' in rulebase:
             # add section header, but only if it does not exist yet (can happen by chunking a section)

@@ -5,11 +5,8 @@ use warnings;
 use IO::File;
 use Getopt::Long;
 use File::Basename;
-# use Time::HiRes qw(time);    # fuer hundertstelsekundengenaue Messung der Ausfuehrdauer
-# use Net::CIDR;
-# use CACTUS::FWORCH;
-# use CACTUS::FWORCH::import;
-# use Date::Calc qw(Add_Delta_DHMS);
+use CACTUS::FWORCH;
+use CACTUS::FWORCH::import;
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -18,64 +15,6 @@ our %EXPORT_TAGS = ( 'basic' => [ qw( &copy_config_from_mgm_to_iso &parse_config
 
 our @EXPORT  = ( @{ $EXPORT_TAGS{'basic'} } );
 our $VERSION = '0.3';
-
-# variblendefinition check point parser - global
-# -------------------------------------------------------------------------------------------
-# my $GROUPSEP = $CACTUS::FWORCH::group_delimiter; 
-
-# my $UID      = "UID";    # globale konstante UID
-
-# Stati und anderes des Objektparsers
-# my $ln   = 0;
-# my $line = '';
-# our $parse_obj_state = 0;  # moegliche Werte	0	kein status
-#                            #			1	objectclass gestartet
-#                            #			2	object gestartet
-#                            #			3...7	diverse attribute & werte (kontextsensitiv)
-#                            # 			>10	innerhalb einer Gruppe
-# our $parse_obj_type;       # State 1 - aktuelle Objektklasse
-# our $parse_obj_name;       # State 2 - name des aktuellen objektes
-# our $old_parse_obj_name;   # State 2 - name des letzten objektes
-# our $parse_obj_attr;       # State 3 - Attribut
-# our $parse_obj_attr_value; # State 3 - Wert des Attributes
-# our $parse_obj_attr_ext;   # State 4 - Attributerweiterung (kontextsensitiv)
-# our $parse_obj_attr_ext_value
-#   ;    # State 4 - Wert des erweiterten Attributes (kontextsensitiv)
-# our $parse_obj_attr_ext2;    # State 5 - Attributerweiterung (kontextsensitiv)
-# our $parse_obj_attr_ext2_value
-#   ;    # State 5 - Wert des erweiterten Attributes (kontextsensitiv)
-# our $parse_obj_attr_ext3;    # State 6 - Attributerweiterung (kontextsensitiv)
-# our $parse_obj_attr_ext3_value
-#   ;    # State 6 - Wert des erweiterten Attributes (kontextsensitiv)
-# our $parse_obj_attr_ext4;    # State 7 - Attributerweiterung (kontextsensitiv)
-# our $parse_obj_attr_ext4_value
-#   ;    # State 7 - Wert des erweiterten Attributes (kontextsensitiv)
-# our $parse_obj_groupmember;         # string-array fuer gruppenmitglieder
-# our $parse_obj_groupmember_refs;    # string-array fuer gruppenmitglieder
-# our $group_with_exclusion_marker;	# gibt an, ob die aktuelle gruppe eine normale (undefined),
-# 									# positiv- (base), oder negativ-gruppe (exclusion) ist
-
-# # Stati und anderes des Rulesparser
-# our $parserule_state        = 0;     # status des Regelparsers
-#                                      # 0 kein Regelwerk
-#                                      # 1 Regelwerk
-#                                      # 2 Regel
-#                                      # 14 Gruppe
-#                                      # 15 Mitgliederliste der Gruppe
-#                                      # 16 Mitglied einer Compound Gruppe
-# our $parserule_in_rule_base = 0;     # wenn innerhalb eines Regelwerkes
-# our $parserule_in_rule      = 0;     # wenn innerhalb einer Regeldefinition
-# our $parserule_rulenum      = -1;    # aktuelle Regelnummer
-# our $parserule_rulebasename;         # aktuellen Regelwerkes
-# our $parserule_ruleparameter;        # Bezeichnung des aktuellen Parameter
-# our $parserule_groupmember;          # Regelgruppenmitglieder
-# our $parserule_groupmember_refs;     # String mit Uids
-# our $parserule_ruleparameter_ext;    # Attributerweiterung (kontextsensitiv)
-# our $parserule_ruleparameter_ext_value
-#   ;    # Wert des erweiterten Attributes (kontextsensitiv)
-# our $parserule_ruleuser
-#   ;    # user, fuer die die Regel gilt (alle user aus der Quellspalte)
-# our %usergroup;
 
 #####################################################################################
 # Start Check Point Parser
@@ -108,7 +47,8 @@ sub parse_config {
 	my $rulebase_names = get_ruleset_name_list($rulebase_name);
 	my @rulebase_name_ar = split /,/, $rulebase_names;
 	foreach my $rulebase (@rulebase_name_ar) {
-		$cmd = "$parser_py -m $mgm_name -i $import_id -r \"$rulebase\" -f \"$object_file\" -d $debug_level > \"$output_dir/${rulebase}_rulebase.csv\"";
+		my $rulebase_name_sanitized = join('__', split /\//, $rulebase);
+		$cmd = "$parser_py -m $mgm_name -i $import_id -r \"$rulebase\" -f \"$object_file\" -d $debug_level > \"$output_dir/${rulebase_name_sanitized}_rulebase.csv\"";
 #		print("DEBUG - cmd = $cmd\n");
 		$return_code = system($cmd); 
 		if ( $return_code != 0 ) { print("ERROR in parse_config found: $return_code\n") }
@@ -148,16 +88,6 @@ sub parse_config {
 	$return_code = system($cmd); 
 	if ( $return_code != 0 ) { print("ERROR in parse_config::network_objects found: $return_code\n") }
 	return $return_code;
-}
-
-# replace space with _
-sub filename_escape_chars {
-	my $input_filename = shift;
-	my $escaped_filename;
-	
-	$escaped_filename = 
-	
-	return 
 }
 
 ############################################################

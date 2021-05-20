@@ -3,6 +3,7 @@
 import requests, json, argparse, pdb
 import requests.packages.urllib3, time, logging, re, sys
 import os
+
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 details_level = "full"    # 'standard'
@@ -140,13 +141,14 @@ def collect_uids_from_rulebase(rulebase, debug_text):
     if 'layerchunks' in rulebase:
         logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
         for layer_chunk in rulebase['layerchunks']:
-            logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + " with uid " + layer_chunk['uid'] )
-            for rule in layer_chunk['rulebase']:
-                (nw_uids_found_in_rule, svc_uids_found_in_rule) = collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
-                if nw_uids_found_in_rule is not None:
-                    nw_uids_found.extend(nw_uids_found_in_rule)
-                if svc_uids_found_in_rule is not None:
-                    svc_uids_found.extend(svc_uids_found_in_rule)
+            if 'rulebase' in layer_chunk:
+                logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + " with uid " + layer_chunk['uid'] )
+                for rule in layer_chunk['rulebase']:
+                    (nw_uids_found_in_rule, svc_uids_found_in_rule) = collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
+                    if nw_uids_found_in_rule is not None:
+                        nw_uids_found.extend(nw_uids_found_in_rule)
+                    if svc_uids_found_in_rule is not None:
+                        svc_uids_found.extend(svc_uids_found_in_rule)
     else:
         for rule in rulebase:
             (nw_uids_found, svc_uids_found) = collect_uids_from_rule(rule, debug_text)
@@ -182,8 +184,11 @@ def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
 def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
-            for rules_chunk in chunk['rulebase']:
-                get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
+            logging.debug ("get_inline_layer_names_from_rulebase - chunk:\n" + json.dumps(chunk, indent=2))
+            if 'rulebase' in chunk:
+                logging.debug("get_inline_layer_names_from_rulebase - chunk: " + str(chunk))
+                for rules_chunk in chunk['rulebase']:
+                    get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
     else:
         if 'rulebase' in rulebase:
             # logging.debug ( "enrich_config - searching for inline layers in layer " + rulebase['layername'] )
@@ -191,10 +196,69 @@ def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
             for rule in rulebase['rulebase']:
                 if 'inline-layer' in rule:
                     inline_layers.append(rule['inline-layer']['name'])
-                if rule['name'] == "Placeholder for domain rules":
+                if 'name' in rule and rule['name'] == "Placeholder for domain rules":
                     logging.debug ("getter - found domain rules reference with uid " + rule["uid"])
 
         if 'rule-number' in rulebase:   # not a rulebase but a single rule
             if 'inline-layer' in rulebase:
                 inline_layers.append(rulebase['inline-layer']['name'])
                 # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
+
+
+def get_layer_from_api (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules):
+    #show_params_rules['name'] = layer_name
+    current_layer_json = "{\n\"layername\": \"" + show_params_rules['name'] + "\",\n"
+    current_layer_json +=  "\"layerchunks\": [\n"
+    current=0
+    total=current+1
+    while (current<total) :
+        show_params_rules['offset']=current
+        rulebase = api_call(api_host, api_port, api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+        # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(rulebase) + "\n")
+        current_layer_json += json.dumps(rulebase)
+        current_layer_json += ",\n"
+        if 'total' in rulebase:
+            total=rulebase['total']
+        else:
+            logging.error ( "get_config - rulebase does not contain total field")
+            logging.error ("get_config - get_rulebase_chunk_from_api found garbled json " + current_layer_json)
+        current=rulebase['to']
+        logging.debug ( "get_config - rulebase current offset: "+ str(current) )
+    current_layer_json = current_layer_json[:-2] + "]\n}"
+    # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
+    return current_layer_json
+
+
+# insert domain rule layer after rule_idx within top_ruleset
+def insert_layer_after_place_holder (top_ruleset, domain_ruleset, placeholder_uid):
+    domain_ruleset_json = json.loads(domain_ruleset)
+
+    # set the upper (parent) rule uid for all domain rules:
+    i = 0
+    while i<len(domain_ruleset_json['layerchunks']):
+        ridx = 0
+        while ridx<len(domain_ruleset_json['layerchunks'][i]['rulebase']):
+            domain_ruleset_json['layerchunks'][i]['rulebase'][ridx]['parent_rule_uid'] = placeholder_uid
+            ridx += 1
+        i += 1
+
+    logging.debug ("domain_ruleset_json:\n" + json.dumps(domain_ruleset_json['layerchunks'], indent=2))
+
+    # insert the domain rules:
+    top_ruleset_json = json.loads(top_ruleset)
+    chunk_idx = 0
+    while chunk_idx<len(top_ruleset_json['layerchunks']):
+        rules = top_ruleset_json['layerchunks'][chunk_idx]['rulebase']
+        logging.debug ("insert_layer_after_place_holder - length of rules = " + str(len(rules)))
+        rule_idx = 0
+        while rule_idx<len(rules):
+            logging.debug ("insert_layer_after_place_holder - looking for uid to replace: " + placeholder_uid + " =? " + rules[i]['uid'])
+            if rules[rule_idx]['uid'] == placeholder_uid:
+                logging.debug ("insert_layer_after_place_holder - found idx, pre insert length=" + str(len(rules)))
+                rules[rule_idx+1:rule_idx+1] = domain_ruleset_json['layerchunks'][0]['rulebase']    # todo: this just deals with the first layer chunk
+                logging.debug ("insert_layer_after_place_holder - post insert length=" + str(len(rules)))
+                top_ruleset_json['layerchunks'][chunk_idx]['rulebase'] = rules
+            rule_idx += 1
+        chunk_idx += 1
+    # logging.debug("get_config::insert_layer_after_place_holder - result:\n" + json.dumps(top_ruleset_json, indent=2))
+    return json.dumps(top_ruleset_json)

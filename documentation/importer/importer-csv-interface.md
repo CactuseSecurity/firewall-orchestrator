@@ -17,7 +17,7 @@
 
 ```console
 name: <rulebase_name>_rulebase.csv
-fields (total=25):
+fields (total=26):
   control_id
   rule_num
   rulebase_name
@@ -43,6 +43,7 @@ fields (total=25):
   rule_from_zone
   rule_to_zone
   last_change_admin
+  parent_rule_uid
 ```
 
 ## network_objects.csv

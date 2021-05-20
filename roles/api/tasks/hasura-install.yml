@@ -144,5 +144,6 @@
 - name: make hasura docker container runs at host startup
   systemd:
     name: "{{ api_service_name }}"
+    daemon_reload: yes
     enabled: yes
   become: yes

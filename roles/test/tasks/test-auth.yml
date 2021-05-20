@@ -11,13 +11,15 @@
 
 # curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"user1_demo","Password":"cactus1"}'
 - name: middleware test get jwt valid creds
-  command: |
-    curl --request POST --insecure 
-      --url https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/ 
-      --header 'content-type: application/json' 
-      --data '{"Username":"user1_demo","Password":"cactus1"}'
+  uri:
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    headers:
+      Content-Type: application/json
+    body:
+      Username: user1_demo
+      Password: cactus1
   register: sample_jwt
-  changed_when: false
+  changed_when: sample_jwt
 
 - debug: var=sample_jwt
 

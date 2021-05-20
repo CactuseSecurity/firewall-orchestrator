@@ -18,8 +18,8 @@
 - name: auth testing
   import_tasks: test-auth.yml
 
-#- name: api testing
-#  import_tasks: test-api.yml
+- name: api testing
+  import_tasks: test-api.yml
 
 - name: csharp testing
   import_tasks: test-csharp.yml

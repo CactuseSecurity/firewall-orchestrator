@@ -3,6 +3,50 @@ import logging
 import common
 import json
 
+# def add_missing_info_to_domain_ref_rule(rule):
+#     rule['source-negate'] = "False"
+#     rule['source'] = [{"name": "Any", "uid":common.any_obj_uid, "type": "network"}]
+#     rule['destination-negate'] = "False"
+#     rule['destination'] = [{"name": "Any", "uid":common.any_obj_uid, "type": "network"}]
+#     rule['service-negate'] = "False"
+#     rule['service'] = [{"name": "Any", "uid":common.any_obj_uid}]
+#     rule['action'] = {"name": "Drop"}
+#     rule['track'] = {"type": {"name": "Log"} }
+#     rule['install-on'] = [{"name": "Policy Targets"}]
+#     rule['time'] = [{"name":"Any"}]
+#     #rule['comments'] = ""
+#     rule['meta-info'] = {"last-modifier": ""}
+
+def create_domain_rule_header(section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids):
+    section_header_uids.append(rule_uid)
+    header_rule_csv = '"' + import_id + '"' + common.csv_delimiter  # control_id
+    header_rule_csv += '"' + str(rule_num) + '"' + common.csv_delimiter  # rule_num
+    header_rule_csv += '"' + layer_name + '"' + common.csv_delimiter  # rulebase_name
+    header_rule_csv += common.csv_delimiter  # rule_ruleid
+    header_rule_csv += '"' + 'False' + '"' + common.csv_delimiter  # rule_disabled
+    header_rule_csv += '"' + 'False' + '"' + common.csv_delimiter  # rule_src_neg
+    header_rule_csv += '"' + 'Any' + '"' + common.csv_delimiter  # src
+    header_rule_csv += '"' + common.any_obj_uid + '"' + common.csv_delimiter  # src_refs
+    header_rule_csv += '"' + 'False' + '"' + common.csv_delimiter  # rule_dst_neg
+    header_rule_csv += '"' + 'Any' + '"' + common.csv_delimiter  # dst
+    header_rule_csv += '"' + common.any_obj_uid + '"' + common.csv_delimiter  # dst_refs
+    header_rule_csv += '"' + 'False' + '"' + common.csv_delimiter  # rule_svc_neg
+    header_rule_csv += '"' + 'Any' + '"' + common.csv_delimiter  # svc
+    header_rule_csv += '"' + common.any_obj_uid + '"' + common.csv_delimiter  # svc_refs
+    header_rule_csv += '"' + 'Accept' + '"' + common.csv_delimiter  # action
+    header_rule_csv += '"' + 'Log' + '"' + common.csv_delimiter  # track
+    header_rule_csv += '"' + 'Policy Targets' + '"' + common.csv_delimiter  # install-on
+    header_rule_csv += '"' + 'Any' + '"' + common.csv_delimiter  # time
+    header_rule_csv += '""' + common.csv_delimiter  # comments
+    header_rule_csv += common.csv_delimiter  # name
+    header_rule_csv += '"' + rule_uid + '"' + common.csv_delimiter  # uid
+    header_rule_csv += '"' + section_name + '"' + common.csv_delimiter  # head_text
+    header_rule_csv += common.csv_delimiter  # from_zone
+    header_rule_csv += common.csv_delimiter  # to_zone
+    header_rule_csv += common.csv_delimiter  # last_change_admin
+    # parent_rule_uid
+    return header_rule_csv + common.line_delimiter
+
 
 def create_section_header(section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids):
     section_header_uids.append(rule_uid)
@@ -10,7 +54,7 @@ def create_section_header(section_name, layer_name, import_id, rule_uid, rule_nu
     header_rule_csv += '"' + str(rule_num) + '"' + common.csv_delimiter  # rule_num
     header_rule_csv += '"' + layer_name + '"' + common.csv_delimiter  # rulebase_name
     header_rule_csv += common.csv_delimiter  # rule_ruleid
-    header_rule_csv += '"' + 'false' + '"' + common.csv_delimiter  # rule_disabled
+    header_rule_csv += '"' + 'False' + '"' + common.csv_delimiter  # rule_disabled
     header_rule_csv += '"' + 'False' + '"' + common.csv_delimiter  # rule_src_neg
     header_rule_csv += '"' + 'Any' + '"' + common.csv_delimiter  # src
     header_rule_csv += '"' + common.any_obj_uid + '"' + common.csv_delimiter  # src_refs
@@ -47,7 +91,9 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num):
     apostrophe = '"'
     rule_csv = ''
 
-    if 'type' in rule and rule['type'] != 'place-holder':  # standard rule, no section header
+    # reference to domain rule layer, filling up basic fields
+    if 'type' in rule and rule['type'] != 'place-holder':
+#            add_missing_info_to_domain_ref_rule(rule)
         if 'rule-number' in rule:  # standard rule, no section header
             # print ("rule #" + str(rule['rule-number']) + "\n")
             rule_csv += csv_add_field(import_id, common.csv_delimiter, apostrophe)  # control_id
@@ -187,19 +233,30 @@ def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uid
                 logging.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
     else:
         if 'rulebase' in rulebase:
-            # add section header, but only if it does not exist yet (can happen by chunking a section)
-            if rulebase['type'] == 'access-section' and not rulebase['uid'] in section_header_uids:
+            if rulebase['type'] == 'access-section' and not rulebase['uid'] in section_header_uids: # add section header, but only if it does not exist yet (can happen by chunking a section)
                 section_name = ""
                 if 'name' in rulebase:
                     section_name = rulebase['name']
-                #else:
-                #     print ("warning: found access-section without defined rulebase.name, rulebase uid=" + rulebase['uid'])
                 section_header = create_section_header(section_name, layer_name, import_id, rulebase['uid'], rule_num, section_header_uids)
                 rule_num += 1
                 result += section_header
             for rule in rulebase['rulebase']:
-                result += csv_dump_rule(rule, layer_name, import_id, rule_num)
+                if rule['type'] == 'place-holder':  # add domain rules
+                    section_name = ""
+                    if 'name' in rulebase:
+                        section_name = rule['name']
+                    result += create_domain_rule_header(section_name, layer_name, import_id, rule['uid'], rule_num, section_header_uids)
+                    # rule_num += 1
+                else:
+                    result += csv_dump_rule(rule, layer_name, import_id, rule_num)
                 rule_num += 1
+        if rulebase['type'] == 'place-holder':  # add domain rules
+            logging.debug('csv_dump_rules: found domain rule ref: ' + rulebase['uid'])
+            section_name = ""
+            if 'name' in rulebase:
+                section_name = rulebase['name']
+            result += create_domain_rule_header(section_name, layer_name, import_id, rulebase['uid'], rule_num, section_header_uids)
+            rule_num += 1
         if 'rule-number' in rulebase:
             result += csv_dump_rule(rulebase, layer_name, import_id, rule_num)
             rule_num += 1

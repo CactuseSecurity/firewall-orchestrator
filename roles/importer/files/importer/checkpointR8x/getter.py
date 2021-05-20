@@ -242,7 +242,11 @@ def insert_layer_after_place_holder (top_ruleset, domain_ruleset, placeholder_ui
             ridx += 1
         i += 1
 
-    logging.debug ("domain_ruleset_json:\n" + json.dumps(domain_ruleset_json['layerchunks'], indent=2))
+    # serialize domain rule chunks
+    domain_rules_serialized = []
+    for chunk in domain_ruleset_json['layerchunks']:
+        domain_rules_serialized.extend(chunk['rulebase'])
+    # logging.debug ("domain_rules_serialized:\n" + json.dumps(domain_rules_serialized, indent=2))
 
     # insert the domain rules:
     top_ruleset_json = json.loads(top_ruleset)
@@ -255,7 +259,8 @@ def insert_layer_after_place_holder (top_ruleset, domain_ruleset, placeholder_ui
             logging.debug ("insert_layer_after_place_holder - looking for uid to replace: " + placeholder_uid + " =? " + rules[i]['uid'])
             if rules[rule_idx]['uid'] == placeholder_uid:
                 logging.debug ("insert_layer_after_place_holder - found idx, pre insert length=" + str(len(rules)))
-                rules[rule_idx+1:rule_idx+1] = domain_ruleset_json['layerchunks'][0]['rulebase']    # todo: this just deals with the first layer chunk
+                # rules[rule_idx+1:rule_idx+1] = domain_ruleset_json['layerchunks'][0]['rulebase']    # todo: this just deals with the first layer chunk
+                rules[rule_idx+1:rule_idx+1] = domain_rules_serialized
                 logging.debug ("insert_layer_after_place_holder - post insert length=" + str(len(rules)))
                 top_ruleset_json['layerchunks'][chunk_idx]['rulebase'] = rules
             rule_idx += 1

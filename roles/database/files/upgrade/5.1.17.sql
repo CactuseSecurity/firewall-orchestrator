@@ -1,6 +1,3 @@
--- TODO:
--- need to add api permissions for parent_rule_type and new fields
--- add parent_rule_uid dummy field to all other import modules (end of rule csv)
 
 Create table if not exists "parent_rule_type"
 (

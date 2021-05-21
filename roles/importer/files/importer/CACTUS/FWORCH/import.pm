@@ -162,7 +162,7 @@ our @zone_import_fields = qw (
 
 # Ausgabe der Regelparameter
 our @rule_outlist	=(qw (	rule_id disabled src.op src src.refs dst.op dst dst.refs services.op services services.refs
-	action track install time comments name UID header_text src.zone dst.zone last_change_admin ));
+	action track install time comments name UID header_text src.zone dst.zone last_change_admin parent_rule_uid));
 
 our @rule_import_fields = qw (
 	control_id

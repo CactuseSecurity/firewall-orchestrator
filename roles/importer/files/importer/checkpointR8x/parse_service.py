@@ -16,17 +16,17 @@ def csv_dump_svc_obj(svc_obj, import_id):
     result_line += str(svc_obj['svc_port']) + common.csv_delimiter  # svc_port
     result_line += str(svc_obj['svc_port_end']) + common.csv_delimiter  # svc_port_end
     if 'svc_source_port' in svc_obj:
-        result_line += '"' + svc_obj['svc_source_port'] + '"' + csv_delimiter       # svc_source_port
+        result_line += '"' + svc_obj['svc_source_port'] + '"' + common.csv_delimiter       # svc_source_port
     else:
         result_line += common.csv_delimiter  # svc_source_port
     if 'svc_source_port_end' in svc_obj:
-        result_line += '"' + svc_obj['svc_source_port_end'] + '"' + csv_delimiter   # svc_source_port_end
+        result_line += '"' + svc_obj['svc_source_port_end'] + '"' + common.csv_delimiter   # svc_source_port_end
     else:
         result_line += common.csv_delimiter  # svc_source_port_end
     result_line += '"' + svc_obj['svc_comment'] + '"' + common.csv_delimiter  # svc_comment
     result_line += '"' + str(svc_obj['rpc_nr']) + '"' + common.csv_delimiter  # rpc_nr
     if 'svc_timeout_std' in svc_obj:
-        result_line += '"' + svc_obj['svc_timeout_std'] + '"' + csv_delimiter       # svc_timeout_std
+        result_line += '"' + svc_obj['svc_timeout_std'] + '"' + common.csv_delimiter       # svc_timeout_std
     else:
         result_line += common.csv_delimiter  # svc_timeout_std
     result_line += str(svc_obj['svc_timeout']) + common.csv_delimiter  # svc_timeout

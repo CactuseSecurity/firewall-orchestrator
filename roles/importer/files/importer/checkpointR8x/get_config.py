@@ -104,19 +104,13 @@ for layer in args.layer.split(','):
                         current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
                         # logging.debug ("substituted domain rules: " + json.dumps(current_layer_json, indent=2) + "\n\n")
 
-    logging.debug ("get_config current_layer:\n" + current_layer_json + "\n\n")
+    logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
     config_json += current_layer_json + ",\n"
 
-# remove final comma layer from loop and add closing bracket for rules:
-config_json = config_json[:-2]
-
-# logging.debug ( "get_config - final rules: " + config_json )
-# logging.debug ( "get_config - final rules json pp: " + json.dumps(json.loads(config_json), indent=3) )
-
+config_json = config_json[:-2]  # remove final comma layer from loop and add closing bracket for rules:
 config_json += "],\n"
 
-# leaving rules
-# moving on to objects
+# leaving rules, moving on to objects
 
 config_json += "\"object_tables\": [\n"
 show_params_objs = {'limit':limit,'details-level': details_level}

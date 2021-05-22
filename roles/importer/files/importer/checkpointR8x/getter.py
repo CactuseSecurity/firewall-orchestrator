@@ -184,9 +184,9 @@ def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
 def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
-            logging.debug ("get_inline_layer_names_from_rulebase - chunk:\n" + json.dumps(chunk, indent=2))
+            # logging.debug ("get_inline_layer_names_from_rulebase - chunk:\n" + json.dumps(chunk, indent=2))
             if 'rulebase' in chunk:
-                logging.debug("get_inline_layer_names_from_rulebase - chunk: " + str(chunk))
+                # logging.debug("get_inline_layer_names_from_rulebase - chunk: " + str(chunk))
                 for rules_chunk in chunk['rulebase']:
                     get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
     else:
@@ -220,11 +220,12 @@ def get_layer_from_api (api_host, api_port, api_v_url, sid, ssl_verification, pr
         if 'total' in rulebase:
             total=rulebase['total']
         else:
-            logging.error ( "get_config - rulebase does not contain total field")
-            logging.error ("get_config - get_rulebase_chunk_from_api found garbled json " + current_layer_json)
+            logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
+                + current_layer_json)
         current=rulebase['to']
-        logging.debug ( "get_config - rulebase current offset: "+ str(current) )
-    current_layer_json = current_layer_json[:-2] + "]\n}"
+        logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
+    current_layer_json = current_layer_json[:-2]
+    current_layer_json += "]\n}"
     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
     return current_layer_json
 
@@ -233,35 +234,26 @@ def get_layer_from_api (api_host, api_port, api_v_url, sid, ssl_verification, pr
 def insert_layer_after_place_holder (top_ruleset, domain_ruleset, placeholder_uid):
     domain_ruleset_json = json.loads(domain_ruleset)
 
-    # set the upper (parent) rule uid for all domain rules:
-    i = 0
-    while i<len(domain_ruleset_json['layerchunks']):
-        ridx = 0
-        while ridx<len(domain_ruleset_json['layerchunks'][i]['rulebase']):
-            domain_ruleset_json['layerchunks'][i]['rulebase'][ridx]['parent_rule_uid'] = placeholder_uid
-            ridx += 1
-        i += 1
-
     # serialize domain rule chunks
     domain_rules_serialized = []
     for chunk in domain_ruleset_json['layerchunks']:
         domain_rules_serialized.extend(chunk['rulebase'])
-    # logging.debug ("domain_rules_serialized:\n" + json.dumps(domain_rules_serialized, indent=2))
 
-    # insert the domain rules:
+    # set the upper (parent) rule uid for all domain rules:
+    for rule in domain_rules_serialized:
+        rule['parent_rule_uid'] = placeholder_uid
+        logging.debug ("domain_rules_serialized, added parent_rule_uid for rule with uid " + rule['uid'])
+
+    # find the reference (place-holder rule) and insert the domain rules behind it:
     top_ruleset_json = json.loads(top_ruleset)
     chunk_idx = 0
     while chunk_idx<len(top_ruleset_json['layerchunks']):
         rules = top_ruleset_json['layerchunks'][chunk_idx]['rulebase']
-        logging.debug ("insert_layer_after_place_holder - length of rules = " + str(len(rules)))
         rule_idx = 0
         while rule_idx<len(rules):
-            logging.debug ("insert_layer_after_place_holder - looking for uid to replace: " + placeholder_uid + " =? " + rules[i]['uid'])
             if rules[rule_idx]['uid'] == placeholder_uid:
-                logging.debug ("insert_layer_after_place_holder - found idx, pre insert length=" + str(len(rules)))
-                # rules[rule_idx+1:rule_idx+1] = domain_ruleset_json['layerchunks'][0]['rulebase']    # todo: this just deals with the first layer chunk
+                logging.debug ("insert_layer_after_place_holder - found matching rule uid, "  + placeholder_uid + " == " + rules[rule_idx]['uid'])
                 rules[rule_idx+1:rule_idx+1] = domain_rules_serialized
-                logging.debug ("insert_layer_after_place_holder - post insert length=" + str(len(rules)))
                 top_ruleset_json['layerchunks'][chunk_idx]['rulebase'] = rules
             rule_idx += 1
         chunk_idx += 1

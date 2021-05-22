@@ -65,10 +65,12 @@ sub parse_config {
 		my $empty_flag = 0;
 		open FH, $users_csv;
 		my $firstline = <FH>;
-		# print ("firstline=$firstline###\n");
-		if(index($firstline,$users_delimiter)==-1) {
-				#print ("test: empty_flag=$empty_flag\n");
-				$empty_flag = 1;
+		if (defined($firstline)) {
+			# print ("firstline=$firstline###\n");
+			if(index($firstline,$users_delimiter)==-1) {
+					#print ("test: empty_flag=$empty_flag\n");
+					$empty_flag = 1;
+			}
 		}
 		close FH;
 		if ($empty_flag == 1){

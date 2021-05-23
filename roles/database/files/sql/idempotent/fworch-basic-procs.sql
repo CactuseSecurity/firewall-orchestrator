@@ -68,8 +68,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION are_equal(INTEGER,INTEGER) RETURNS BOOLEAN AS $$
-DECLARE
-	v_str VARCHAR;
 BEGIN
 IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
 	RETURN TRUE;
@@ -80,8 +78,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION are_equal(BIGINT,BIGINT) RETURNS BOOLEAN AS $$
-DECLARE
-	v_str VARCHAR;
 BEGIN
 IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
 	RETURN TRUE;
@@ -90,6 +86,17 @@ ELSE
 END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION are_equal(SMALLINT,SMALLINT) RETURNS BOOLEAN AS $$
+BEGIN
+IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
+	RETURN TRUE;
+ELSE 
+	RETURN FALSE;
+END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 ----------------------------------------------------
 -- FUNCTION:    is_svc_group
 -- Zweck:       liefert TRUE, wenn service eine Gruppe ist

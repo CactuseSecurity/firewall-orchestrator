@@ -242,13 +242,9 @@ def csv_dump_rules(rulebase, layer_name, import_id, rule_num, section_header_uid
                     if 'name' in rulebase:
                         section_name = rule['name']
                     result += create_domain_rule_header(section_name, layer_name, import_id, rule['uid'], rule_num, section_header_uids, parent_uid)
-                else:
-                    # result += csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid)
-                    # rule_num +=1
-                    rule_num, rules_in_layer = csv_dump_rules(rule, layer_name, import_id, rule_num, section_header_uids, parent_uid)
-                    result += rules_in_layer
-                #rule_num, rules_in_layer = csv_dump_rules(rule, layer_name, import_id, rule_num, section_header_uids, parent_uid)
-                #result += rules_in_layer
+                else: # parse standard sections
+                   rule_num, rules_in_layer = csv_dump_rules(rule, layer_name, import_id, rule_num, section_header_uids, parent_uid)
+                   result += rules_in_layer
         if rulebase['type'] == 'place-holder':  # add domain rules
             logging.debug('csv_dump_rules: found domain rule ref: ' + rulebase['uid'])
             section_name = ""

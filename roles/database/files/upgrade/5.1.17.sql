@@ -1,3 +1,18 @@
+-- todo:
+	-- parse inline layers
+	-- UI
+		-- add rule number counting for layes (2.1, 2.2, ...)
+		-- make layers collapsible
+
+CREATE OR REPLACE FUNCTION are_equal(SMALLINT,SMALLINT) RETURNS BOOLEAN AS $$
+BEGIN
+IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
+	RETURN TRUE;
+ELSE 
+	RETURN FALSE;
+END IF;
+END;
+$$ LANGUAGE plpgsql;
 
 Create table if not exists "parent_rule_type"
 (

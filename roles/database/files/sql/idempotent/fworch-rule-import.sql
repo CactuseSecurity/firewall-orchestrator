@@ -240,8 +240,9 @@ BEGIN
 			are_equal(r_existing.action_id, i_action_id) AND
 			are_equal(r_existing.track_id, i_track_id) AND
 			are_equal(r_existing.rule_installon, r_to_import.rule_installon) AND
-			are_equal(r_existing.parent_rule_id, r_to_import.parent_rule_id) AND
-			are_equal(r_existing.parent_rule_type, r_to_import.parent_rule_type) AND
+			-- cannot compare the following two as they are not part of import_rule:
+--			are_equal(r_existing.parent_rule_id, r_to_import.parent_rule_id) AND
+--			are_equal(r_existing.parent_rule_type, r_to_import.parent_rule_type) AND
 			are_equal(r_existing.rule_time, r_to_import.rule_time) ))
 		THEN
 			RAISE DEBUG 'insert_single_rule 4, rule_id: %', id;

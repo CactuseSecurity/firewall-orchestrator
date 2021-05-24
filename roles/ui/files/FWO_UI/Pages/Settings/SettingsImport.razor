@@ -1,41 +1,43 @@
 ﻿@using BlazorTable
 @using FWO.Api.Data
 @using FWO.ApiClient
+@using FWO.ApiConfig
 
 @page "/settings/import"
 @attribute [Authorize(Roles = "admin, importer, auditor")]
 
 @inject APIConnection apiConnection
+@inject UserConfig userConfig
 
-<h3 class="m-2">Import Status</h3>
+<h3 class="m-2">@(userConfig.GetText("import_status"))</h3>
 <hr />
 
-<button class="btn btn-info m-2" @onclick="Refresh">Refresh</button>
+<button class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button>
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="ImportStatus" Items="importStati" PageSize="0" ColumnReorder="true">
-        <Column TableItem="ImportStatus" Title="Action" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("action"))" Field="(x => x.MgmId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Details(context)">Details</button>
+                    <button class="btn btn-sm btn-success" @onclick="() => Details(context)">@(userConfig.GetText("details"))</button>
                 </div>
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="Management" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
-        <Column TableItem="ImportStatus" Title="Last Incomplete" Field="@(x => x.LastIncompleteImport[0].StartTime)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("management"))" Field="@(x => x.MgmName)" Sortable="true" Filterable="true" />
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_incomplete"))" Field="@(x => x.LastIncompleteImport[0].StartTime)" Sortable="true" Filterable="true">
             <Template>
                 @if (context.LastIncompleteImport.Length > 0)
                 {
                     <div class="btn-group">
                         <AuthorizeView Roles="admin, importer" Context="xxx">
-                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback(context.MgmId)">Rollback</button>
+                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback(context.MgmId)">@(userConfig.GetText("rollback"))</button>
                         </AuthorizeView>
                         @(context.LastIncompleteImport[0].StartTime)
                     </div>
                 }
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="Last Success" Field="@(x => x.LastSuccessfulImport[0].StopTime)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_success"))" Field="@(x => x.LastSuccessfulImport[0].StopTime)" Sortable="true" Filterable="true">
             <Template>
                 @if (context.LastSuccessfulImport.Length > 0)
                 {
@@ -43,7 +45,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="Last Import" Field="@(x => x.LastImport[0].StopTime)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("last_import"))" Field="@(x => x.LastImport[0].StopTime)" Sortable="true" Filterable="true">
             <Template>
                 @if (context.LastImport.Length > 0)
                 {
@@ -51,7 +53,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="Success" Field="@(x => x.LastImport[0].SuccessfulImport)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("success"))" Field="@(x => x.LastImport[0].SuccessfulImport)" Sortable="true" Filterable="true">
             <Template>
                 @if (context.LastImport.Length > 0)
                 {
@@ -59,7 +61,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="ImportStatus" Title="Errors" Field="@(x => x.LastImport[0].ImportErrors)" Sortable="true" Filterable="true">
+        <Column TableItem="ImportStatus" Title="@(userConfig.GetText("errors"))" Field="@(x => x.LastImport[0].ImportErrors)" Sortable="true" Filterable="true">
             <Template>
                 @if (context.LastImport.Length > 0)
                 {
@@ -69,57 +71,57 @@
         </Column>
     </Table>
 </div>
-<PopUp Title="@($"Import Status Details for {actStatus.MgmName}")" Show="@DetailsMode" Large="true" OnClose="() => DetailsMode = false">
+<PopUp Title="@(userConfig.GetText("import_status_details") + actStatus.MgmName)" Show="@DetailsMode" Large="true" OnClose="() => DetailsMode = false">
     <Body>
         @if (DetailsMode)
         {
             <form>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label">MgmName:</div>
+                    <div class="col-sm-3 col-form-label">@(userConfig.GetText("mgm_name")):</div>
                     <div class="m-2">@actStatus.MgmName</div>
                 </div>
 
                 <h6>First Import</h6>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Start:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
                     <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StartTime : null)</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Stop:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("stop")):</div>
                     <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StopTime : null)</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Success:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("success")):</div>
                     <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].SuccessfulImport : null)</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Errors:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("errors")):</div>
                     <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].ImportErrors : null)</div>
                 </div>
                 <h6>Last Successful Import</h6>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Start:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
                     <div class="m-2">@(actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StartTime : null)</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Stop:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("stop")):</div>
                     <div class="m-2">@(actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StopTime : null)</div>
                 </div>
                 <h6>Last Import</h6>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Start:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
                     <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StartTime : null)</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Stop:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("stop")):</div>
                     <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StopTime : null)</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Success:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("success")):</div>
                     <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].SuccessfulImport : null)</div>
                 </div>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label-sm">Errors:</div>
+                    <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("errors")):</div>
                     <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].ImportErrors : null)</div>
                 </div>
             </form>
@@ -127,7 +129,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button class="btn btn-sm btn-secondary" @onclick="CloseDetails">Ok</button>
+            <button class="btn btn-sm btn-secondary" @onclick="CloseDetails">@(userConfig.GetText("ok"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -153,7 +155,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "API error", "Error while fetching import status information.", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_import_status"), null, true);
         }
     }
 
@@ -182,7 +184,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "API error", "Error while trying import rollback.", true);
+            DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), null, true);
         }
     }
 

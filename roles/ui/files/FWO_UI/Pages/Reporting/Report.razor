@@ -19,7 +19,7 @@
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
     <div class="p-3">
-        <h5 class="text-left">Select device(s)</h5>
+        <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
         <button class="btn btn-sm btn-secondary" 
             @onclick="() => { 
                 fullDeviceActionIsSelect = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceActionIsSelect); 
@@ -82,17 +82,17 @@
     </form>
 
     <div class="btn-group mr-1 ml-1 mb-1">
-        <button class="btn btn-sm btn-primary" @onclick="GenerateReport">Generate Report</button>
+        <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
         <ReportExport ReportToExport="currentReport"></ReportExport>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput); }">Save as Template</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput); }">@(userConfig.GetText("save_as_template"))</button>
     </div>
 
     <hr />
 
-    <PopUp Title="No device(s) selected." Show="@ShowNoDeviceSelectedWarning">
+    <PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning">
         <Body>
             <div>
-                <p>Please select at least one device in the left side-bar before generating a report.</p>
+                <p>@(userConfig.GetText("E1001"))</p>
             </div>
         </Body>
         <Footer>
@@ -130,29 +130,29 @@
                     case ReportStatistics statisticsReport:
                         @if (globalStats != null)
                         {
-                            <h5>Global number of Objects</h5>
+                            <h5>@(userConfig.GetText("glob_no_obj"))</h5>
                             <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
-                                <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
                             </Table>
                         }
                         @foreach (Management management in managementsReport)
                         {
                             <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                                <h6>Total number of Objects per Management</h6>
+                                <h6>@(userConfig.GetText("total_no_obj_mgt"))</h6>
                                 <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
-                                    <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
                                 </Table>
 
-                                <h6>Number of Rules per Gateway</h6>
+                                <h6>@(userConfig.GetText("no_rules_gtw"))</h6>
                                 <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
-                                    <Column TableItem="Device" Title="Gateway" Field="@(Device => Device.Name)" />
-                                    <Column TableItem="Device" Title="Number of Rules" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Device" Title="@(userConfig.GetText("gateway"))" Field="@(Device => Device.Name)" />
+                                    <Column TableItem="Device" Title="@(userConfig.GetText("no_of_rules"))" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
                                 </Table>
                             </Collapse>
                         }
@@ -171,13 +171,13 @@
     <div class="p-3">
         <div class="card mb-1">
             <div class="card-body text-center p-1">
-                Objects
+                @(userConfig.GetText("objects"))
             </div>
         </div>
         <TabSet KeepPanelsAlive="true">
-            <Tab Title="All">
+            <Tab Title="@(userConfig.GetText("all"))">
                 <div class="d-md-flex justify-content-md-end">
-                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">collapse all</div>
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarAll">
                     <ObjectGroupCollection ReportPage="this" Type="0" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
@@ -186,17 +186,17 @@
             </Tab>
             @*<Tab Title="Report">
                 <div class="d-md-flex justify-content-md-end">
-                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarReport">
                     <ObjectGroupCollection ReportPage="this" Type="1" InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                             NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>*@
-            <Tab Title="Rule">
+            <Tab Title="@(userConfig.GetText("rule"))">
                 <div class="d-md-flex justify-content-md-between">
                     <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">clear all</div>
-                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarRule">
                     <ObjectGroupCollection ReportPage="this" Type="2" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
@@ -271,12 +271,16 @@
     private CollapseState collapseSidebarRule = new CollapseState();
     private DynGraphqlQuery query = null;
     private bool fullDeviceActionIsSelect = true;
-    private const string deviceSelectButtonTextSelect = "Select all";
-    private const string deviceSelectButtonTextClear = "Clear all";
-    private string deviceSelectButtonText = deviceSelectButtonTextSelect;
+    private string deviceSelectButtonTextSelect = "";
+    private string deviceSelectButtonTextClear = "";
+    private string deviceSelectButtonText = "";
 
     protected override void OnInitialized()
     {
+        deviceSelectButtonTextSelect = userConfig.GetText("select_all");
+        deviceSelectButtonTextClear = userConfig.GetText("clear_all");
+        deviceSelectButtonText = deviceSelectButtonTextSelect;
+
         Task.Run(async () =>
         {
             try
@@ -291,7 +295,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
             }
         });
 
@@ -391,7 +395,7 @@
         }
         catch (Exception exception)
         {
-            //DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
+            //DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
 
@@ -468,7 +472,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Report generation", "Unclassified error.", true);
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
         }
     }
 
@@ -499,7 +503,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi(unexpectedError, "Filter", "Unclassified error.", false);
+            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), null, false);
 #endif
         }
     }

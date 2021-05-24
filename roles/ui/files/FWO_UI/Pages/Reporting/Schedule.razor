@@ -31,8 +31,8 @@
                 @if (context.Owner.DbId == uiUserDbId || authenticationState.User.IsInRole("admin"))
                 {
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">Edit</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">Delete</button>
+                        <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
                     </div>
                 }
             </Template>
@@ -123,8 +123,8 @@
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-primary" @onclick="async () => await (ShowSaveScheduledReportDialog ? SaveScheduledReport() : EditScheduledReport())">Save</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowEditScheduledReportDialog = ShowSaveScheduledReportDialog = false">Cancel</button>
+        <button class="btn btn-sm btn-primary" @onclick="async () => await (ShowSaveScheduledReportDialog ? SaveScheduledReport() : EditScheduledReport())">@(userConfig.GetText("save"))</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowEditScheduledReportDialog = ShowSaveScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
@@ -133,8 +133,8 @@
         <p>Do you really want to delete report schedule "@scheduledReportInEdit.Name" ?</p>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-danger" @onclick="DeleteScheduledReport">Delete</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteScheduledReportDialog = false">Cancel</button>
+        <button class="btn btn-sm btn-danger" @onclick="DeleteScheduledReport">@(userConfig.GetText("delete"))</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteScheduledReportDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 

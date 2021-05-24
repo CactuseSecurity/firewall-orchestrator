@@ -3,7 +3,6 @@
 -- UI
 -- add rule number counting for layes (2.1, 2.2, ...)
 -- make layers collapsible
-
 CREATE OR REPLACE FUNCTION are_equal (smallint, smallint)
     RETURNS boolean
     AS $$
@@ -25,18 +24,50 @@ CREATE TABLE IF NOT EXISTS "parent_rule_type" (
     PRIMARY KEY ("id")
 );
 
-INSERT INTO parent_rule_type (id, name)
-    VALUES (1, 'section');
+CREATE OR REPLACE FUNCTION initial_parent_rule_type_filling ()
+    RETURNS boolean
+    AS $$
+DECLARE
+    r_type RECORD;
+BEGIN
+    SELECT
+        INTO r_type *
+    FROM
+        parent_rule_type
+    WHERE
+        id = 1;
+    IF NOT FOUND THEN
+        INSERT INTO parent_rule_type (id, name)
+            VALUES (1, 'section');
+    END IF;
+    SELECT
+        INTO r_type *
+    FROM
+        parent_rule_type
+    WHERE
+        id = 3;
+    IF NOT FOUND THEN
+        INSERT INTO parent_rule_type (id, name)
+            VALUES (2, 'guarded-layer');
+    END IF;
+    SELECT
+        INTO r_type *
+    FROM
+        parent_rule_type
+    WHERE
+        id = 3;
+    IF NOT FOUND THEN
+        INSERT INTO parent_rule_type (id, name)
+            VALUES (3, 'unguarded-layer');
+    END IF;
+    RETURN TRUE;
+END;
+$$
+LANGUAGE plpgsql;
 
--- do not restart numbering
-INSERT INTO parent_rule_type (id, name)
-    VALUES (2, 'guarded-layer');
+SELECT * FROM initial_parent_rule_type_filling();
+DROP FUNCTION initial_parent_rule_type_filling();
 
--- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply
-INSERT INTO parent_rule_type (id, name)
-    VALUES (3, 'unguarded-layer');
-
--- restart numbering, no further restrictions
 ALTER TABLE "rule"
     ADD COLUMN IF NOT EXISTS "parent_rule_id" BIGINT;
 
@@ -57,4 +88,3 @@ ALTER TABLE "rule"
 
 ALTER TABLE "rule"
     ADD CONSTRAINT rule_parent_rule_type_id_fkey FOREIGN KEY ("parent_rule_type") REFERENCES "parent_rule_type" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
-

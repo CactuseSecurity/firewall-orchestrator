@@ -195,7 +195,7 @@
             </Tab>*@
             <Tab Title="@(userConfig.GetText("rule"))">
                 <div class="d-md-flex justify-content-md-between">
-                    <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">clear all</div>
+                    <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">@(userConfig.GetText("clear_all"))</div>
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarRule">

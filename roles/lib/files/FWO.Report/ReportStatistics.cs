@@ -19,6 +19,11 @@ namespace FWO.Report
 
         public ReportStatistics(DynGraphqlQuery query) : base(query) { }
 
+        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        {
+           // await;
+        }
+
         public override async Task Generate(int _, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");

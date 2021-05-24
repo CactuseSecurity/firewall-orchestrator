@@ -76,6 +76,9 @@ Grant insert on "changelog_service" to group "configimporters";
 Grant insert on "changelog_user" to group "configimporters";
 Grant insert on "changelog_rule" to group "configimporters";
 Grant insert on "error_log" to group "configimporters";
+Grant insert on "rule_nwobj_resolved" to group "configimporters";
+Grant insert on "rule_svc_resolved" to group "configimporters";
+Grant insert on "rule_user_resolved" to group "configimporters";
 
 -- secuadmins:
 

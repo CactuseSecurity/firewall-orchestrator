@@ -3,7 +3,7 @@ import logging
 import logging.config
 import getter
 import common
-import json, argparse, os
+import json, argparse, os, sys
 
 logging.config.fileConfig(fname='discovery_logging.conf', disable_existing_loggers=False)
 
@@ -16,7 +16,7 @@ parser.add_argument('-w', '--password', metavar='api_password', required=True, h
 parser.add_argument('-m', '--mode', metavar='mode', required=True, help='[domains|packages|layers]')
 parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='user for connecting to Check Point R8x management server, default=fworch')
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
-parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Envireonment')
+parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Environment')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-i', '--limit', metavar='api_limit', default='500', help='The maximal number of returned results per HTTPS Connection; default=500')
@@ -24,10 +24,14 @@ parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='D
 parser.add_argument('-V', '--version', metavar='api_version', default='off', help='alternate API version [off|<version number>]; default=off')
 
 args = parser.parse_args()
+if len(sys.argv)==1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+
 domain = args.domain
 if args.mode == 'packages':
     api_command='show-packages'
-    api_details_level="standard"    # 'standard'|full
+    api_details_level="standard"
 elif args.mode == 'domains':
     api_command='show-domains'
     api_details_level="standard"
@@ -40,18 +44,15 @@ else:
 
 proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 offset = 0
-details_level = "full"    # 'standard'
+details_level = "full"
 use_object_dictionary = 'false'
 base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
 ssl_verification = getter.set_ssl_verification(args.ssl)
 logger = logging.getLogger(__name__)
 
-#xsid = getter.login(args.user, args.password, args.hostname, args.port, domain, base_url, ssl_verification, proxy_string)
 xsid = getter.login(args.user, args.password, args.hostname, args.port, domain, ssl_verification, proxy_string)
-#api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, ssl_verification, proxy_string, xsid)
 api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
 
-#api_versions = getter.api_call(args.hostname, args.port, 'show-api-versions', {}, ssl_verification, proxy_string, xsid)
 api_version = api_versions["current-version"]
 api_supported = api_versions["supported-versions"]
 v_url = getter.set_api_url(base_url,args.version,api_supported,args.hostname)
@@ -62,7 +63,6 @@ logger.debug ("Domain:"+ args.domain )
 logger.debug ("login:"+ args.user )
 logger.debug ("sid:"+ xsid )
 
-#result = getter.api_call(args.hostname, args.port,  v_url, api_command, {"limit" : args.limit, "offset" : offset, "details-level" : api_details_level}, ssl_verification, proxy_string, xsid)
 result = getter.api_call(args.hostname, args.port, v_url, api_command, {"limit" : args.limit, "offset" : offset, "details-level" : api_details_level}, xsid, ssl_verification, proxy_string)
 if args.debug == "1" or args.debug == "3":
     print ("\ndump of result:\n" + json.dumps(result, indent=4))

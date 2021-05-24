@@ -22,18 +22,18 @@
         <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
         <button class="btn btn-sm btn-secondary" 
             @onclick="() => { 
-                fullDeviceActionIsSelect = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceActionIsSelect); 
+                fullDeviceActionIsSelect = DeviceFilter.fullDeviceSelection(managementsReport, fullDeviceActionIsSelect); 
                 if (!fullDeviceActionIsSelect)
                     deviceSelectButtonText = deviceSelectButtonTextClear;
                 else
                     deviceSelectButtonText = deviceSelectButtonTextSelect;
-                filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput);
+                filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsReport, filterInput);
             }">
             @deviceSelectButtonText
         </button>
         <br><br>
 
-        @foreach (Management management in managementsOverview)
+        @foreach (Management management in managementsReport)
         {
             @if (management != null)
             {
@@ -41,25 +41,25 @@
                     @foreach (Device device in management.Devices)
                     {
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="device.Id"
+                            <input class="form-check-input" type="checkbox" id="@device.Id"
                                 @bind="device.selected"
                                 @oninput="() => { 
                                     device.selected = !device.selected; 
-                                    if (DeviceFilter.areAllDevicesSelected(managementsOverview))
+                                    if (DeviceFilter.areAllDevicesSelected(managementsReport))
                                     {
                                         deviceSelectButtonText = deviceSelectButtonTextClear;
                                         fullDeviceActionIsSelect = false;
                                     } 
-                                    if (!DeviceFilter.isAnyLSBDeviceFilterSet(managementsOverview)) 
+                                    if (!DeviceFilter.isAnyLSBDeviceFilterSet(managementsReport)) 
                                     {
                                         deviceSelectButtonText = deviceSelectButtonTextSelect; 
                                         fullDeviceActionIsSelect = true;
                                     } 
-                                    filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsOverview, filterInput); 
+                                    filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsReport, filterInput); 
                                 }"
                             />
                             <label class="form-check-label" for="@device.Id">
-                                &nbsp;@device.Name
+                                @device.Name
                             </label>
                         </div>
                     }
@@ -221,10 +221,10 @@
     private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
     private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
-    private Management[] managementsOverview = new Management[0];
+    private Management[] managementsDevFilter = new Management[0];
     private Management[] managementsReport = new Management[0];
     private Management[] managementsAllObjects = new Management[0];
-    private Management[] managementsWithRelevantImportId = new Management[0];
+    // private Management[] managementsWithRelevantImportId = new Management[0];
     private Management globalStats = null;
 
     // private Dictionary<int,bool> deviceSelected = new Dictionary<int,bool>();
@@ -287,10 +287,11 @@
             {
                 GetSettings();
 
+                managementsReport = await Connection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+                await InvokeAsync(StateHasChanged);
+
                 PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
-
                 managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-
                 await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
@@ -298,25 +299,6 @@
                 DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
             }
         });
-
-        Task.Run(async () =>
-        {
-            managementsOverview = await Connection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
-            await InvokeAsync(StateHasChanged);
-        });
-
-        //Task.Run(async () =>
-        //{
-        //    try
-        //    {
-        //        reportTemplates = (await Connection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates)).ToList();
-        //        await InvokeAsync(StateHasChanged);
-        //    }
-        //    catch (Exception exception)
-        //    {
-        //        DisplayMessageInUi(exception, "Report Template Fetch", "Error while fetching report templates from API", true);
-        //    }
-        //});
     }
 
     public async Task FetchContent(int contentType, Func<Management[], Task> callback, int mgmtId = 0, string ruleUid = "")
@@ -410,15 +392,13 @@
         // collapse report templates
         reportTemplateControl.Collapse();
 
-        // when generating report, filter line overrules LSB filter, as this can be triggered by changing 
-        // the filter line and pressing enter
-
         try
         {
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview, fullDeviceActionIsSelect);
+            // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport, fullDeviceActionIsSelect);
 
             currentReport = ReportBase.ConstructReport(filterInput);
-            if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
+            if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
                 ShowNoDeviceSelectedWarning = true;
                 StateHasChanged();
@@ -536,7 +516,7 @@
     private bool syncTemplateFilter(ReportTemplate template, bool fullDeviceActionIsSelect)
     {
         filterInput = template.Filter;
-        fullDeviceActionIsSelect = DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsOverview, fullDeviceActionIsSelect);
+        fullDeviceActionIsSelect = DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport, fullDeviceActionIsSelect);
         StateHasChanged();
         return fullDeviceActionIsSelect;
     }

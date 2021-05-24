@@ -186,4 +186,8 @@
       enabled: yes
       daemon_reload: yes
 
+  - name: include upgrade script
+    import_tasks: run-upgrades.yml
+    when: "installation_mode == 'upgrade'"
+
   become: yes

@@ -89,3 +89,6 @@ adding report template format fk and permissions
 
 ### 5.1.15 - 23.04.2021
 - adding culture info to language
+
+### 5.1.16 - xx.05.2021
+- adding direct link tables rule_[svc|nwobj|user]_resolved to make report object export easier

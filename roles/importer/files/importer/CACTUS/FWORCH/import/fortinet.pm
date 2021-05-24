@@ -1056,8 +1056,10 @@ sub parse_config_rules  { # ($debuglevel_main, $mgm_name_in_config)
 			if ($policy_type ne '') { $uid_postfix = ".ipv$policy_type.uid"; } else { $uid_postfix = ''; }
 			&print_debug("found rule from $from_zone to $to_zone, name=$policy_name, disabled=$disabled, src=$source, dst=$destination, svc=$application, action=$action, track=$track", $debug,3);
 			# Regel wegschreiben
-			$rule_no = &add_rule ($rule_no, $from_zone, $to_zone, $policy_id, $disabled, $source, $destination, $application,
+			$rule_no = &add_rule ($rule_no, $from_zone, $to_zone, $policy_uid, $disabled, $source, $destination, $application,
 				$action, $track, $comment, $policy_name, $svc_neg, $src_neg, $dst_neg, $uid_postfix, $debug);
+			# $rule_no = &add_rule ($rule_no, $from_zone, $to_zone, $policy_id, $disabled, $source, $destination, $application,
+			# 	$action, $track, $comment, $policy_name, $svc_neg, $src_neg, $dst_neg, $uid_postfix, $debug);
 			$context = &switch_context($context, 'firewall policy', $debug);
 			# reset all values after a rule has been parsed:
 			$action='deny'; # default value for action = deny (not contained in config!)

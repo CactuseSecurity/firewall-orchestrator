@@ -491,7 +491,7 @@ CREATE OR REPLACE FUNCTION instr (varchar, varchar)
 DECLARE
     pos integer;
 BEGIN
-    pos: = instr ($1, $2, 1);
+    pos := instr ($1, $2, 1);
     RETURN pos;
 END;
 $$

@@ -8,7 +8,6 @@
 
 - name: include ldif driven changes
   import_tasks: modify_ldap_tree.yml
-  when: "installation_mode == 'upgrade'"
 
 - name: restart middleware server in case any changes to ldap_connections were made
   systemd:

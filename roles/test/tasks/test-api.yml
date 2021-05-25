@@ -13,6 +13,7 @@
       query: ""
     body_format: json
     validate_certs: false
+    return_content: yes
   register: api_health
   changed_when: false
   failed_when: false
@@ -27,6 +28,7 @@
       query: ""
     body_format: json
     validate_certs: false
+    return_content: yes
   register: api_version
   changed_when: false
   failed_when: false
@@ -52,6 +54,7 @@
       query: "query { object {obj_name} }"
     body_format: json
     validate_certs: false
+    return_content: yes
   register: api_query_anonymous
   changed_when: false
 
@@ -71,6 +74,7 @@
       query: "query text_msg { text_msg { text_msg_id } }"
     body_format: json
     validate_certs: false
+    return_content: yes
   register: api_query_anonymous_with_JWT
   changed_when: false
 
@@ -91,6 +95,7 @@
       query: "query { object {obj_name} }"
     body_format: json
     validate_certs: false
+    return_content: yes
   register: api_query_admin    
   changed_when: false
 

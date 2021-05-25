@@ -22,6 +22,7 @@
       Password: cactus1
     body_format: json
     validate_certs: false
+    return_content: yes
   register: sample_jwt
   changed_when: false
 
@@ -93,6 +94,7 @@
       Password: wrong-pwd
     body_format: json
     validate_certs: false
+    return_content: yes
   register: sample_jwt
   changed_when: false
 

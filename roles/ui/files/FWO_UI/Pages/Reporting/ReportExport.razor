@@ -6,12 +6,12 @@
 @inject UserConfig userConfig
 
 <button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; } else { 
-                                                      DisplayMessageInUi(null, "Export report", "No generated report to export. Please generate report first!", true); } }'>Export Report</button>
+                                                      DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
 
-<PopUp Title="Export Report" Show="@ShowExportDialog">
+<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog">
     <Body>
         <div>
-            <p>Export as...</p>
+            <p>@(userConfig.GetText("export_as"))</p>
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
                 <label class="form-check-label" for="reportExportPdf">
@@ -40,45 +40,45 @@
         <div class="form-check">
             <input class="form-check-input" type="checkbox" id="reportExportArchive" @bind="ExportArchive">
             <label class="form-check-label" for="reportExportArchive">
-                Archive
+                @(userConfig.GetText("archive"))
             </label>
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-primary" @onclick="async () => { await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; }">Export</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">Cancel</button>
+        <button class="btn btn-sm btn-primary" @onclick="async () => { await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; }">@(userConfig.GetText("export"))</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
-<PopUp Title="Export Report Download" Show="@ShowExportDownloadDialog">
+<PopUp Title="@(userConfig.GetText("export_report_download"))" Show="@ShowExportDownloadDialog">
     <Body>
         <div class="d-flex flex-column align">
-            <label class="ml-1 mr-1" for="reportExportFilename">Name:</label>
+            <label class="ml-1 mr-1" for="reportExportFilename">@(userConfig.GetText("name")):</label>
             <input class="form-control-sm ml-1 mr-1 mb-1" id="reportExportFileName" @bind:event="oninput" @bind="reportExportFile.Name" />
             @if (reportExportFile?.Csv != null)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Csv)))"
-                   target="_blank" download="@(reportExportFile.Name).@("csv")">Download CSV</a>
+                   target="_blank" download="@(reportExportFile.Name).@("csv")">@(userConfig.GetText("download_csv"))</a>
             }
             @if (reportExportFile?.Pdf != null)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportExportFile.Pdf)"
-                   target="_blank" download="@(reportExportFile.Name).@("pdf")">Download PDF</a>
+                   target="_blank" download="@(reportExportFile.Name).@("pdf")">@(userConfig.GetText("download_pdf"))</a>
             }
             @if (reportExportFile?.Html != null)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Html)))"
-                   target="_blank" download="@(reportExportFile.Name).@("html")">Download HTML</a>
+                   target="_blank" download="@(reportExportFile.Name).@("html")">@(userConfig.GetText("download_html"))</a>
             }
             @if (reportExportFile?.Json != null && ExportJson)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Json)))"
-                   target="_blank" download="@(reportExportFile.Name).@("json")">Download JSON</a>
+                   target="_blank" download="@(reportExportFile.Name).@("json")">@(userConfig.GetText("download_json"))</a>
             }
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-danger" @onclick="() => ShowExportDownloadDialog = false">Close</button>
+        <button class="btn btn-sm btn-danger" @onclick="() => ShowExportDownloadDialog = false">@(userConfig.GetText("close"))</button>
     </Footer>
 </PopUp>
 
@@ -151,13 +151,13 @@
                 }
                 catch (Exception exception)
                 {
-                    DisplayMessageInUi(exception, "Export report", "Unclassified error.", true);
+                    DisplayMessageInUi(exception, userConfig.GetText("export_report"), null, true);
                 }
             });
         }
         else
         {
-            DisplayMessageInUi(null, "Export report", "No generated report to export. Please generate report first!", true);
+            DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
         }
     }
 }

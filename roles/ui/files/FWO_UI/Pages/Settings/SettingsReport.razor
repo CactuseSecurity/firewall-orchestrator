@@ -11,16 +11,16 @@
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
 
-<h3>Report Settings</h3>
+<h3>@(userConfig.GetText("report_settings"))</h3>
 <hr />
 
 <form class="form-inline">
-    <label for="elementsPerFetch" class="col-form-label mr-2">Elements per fetch:</label>
+    <label for="elementsPerFetch" class="col-form-label mr-2">@(userConfig.GetText("elements_per_fetch")):</label>
     <div class="col-sm-2">
         <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>
 </form>
-<button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch">Save</button>
+<button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch">@(userConfig.GetText("save"))</button>
 
 
 @code
@@ -59,7 +59,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Read Report Settings", "Key not found or could not convert value to int: taking value 100", true);
+            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5421"), true);
         }
     }
 
@@ -69,11 +69,11 @@
         try
         {
             await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetchString, apiConnection);
-            DisplayMessageInUi(null, "Report Config", "report settings changed", false);
+            DisplayMessageInUi(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "Report Config", "Error while saving report settings", true);
+            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5422"), true);
         }
     }
 }

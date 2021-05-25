@@ -17,8 +17,8 @@ namespace FWO.ApiConfig
     {
         private readonly GlobalConfig globalConfig;
 
-        private Dictionary<string, string> userConfigItems;
-        private Dictionary<string, string> defaultConfigItems;
+        private Dictionary<string, string> userConfigItems = new Dictionary<string, string>();
+        private Dictionary<string, string> defaultConfigItems = new Dictionary<string, string>();
 
         public Dictionary<string, string> Translate {get; set; }
 
@@ -80,6 +80,34 @@ namespace FWO.ApiConfig
             Translate = globalConfig.langDict[languageName];
             if (OnChange != null)
                 await OnChange.Invoke(this);
+        }
+
+        public string GetText(string key)
+        {
+            if(Translate.ContainsKey(key))
+            {
+                return Translate[key];
+            }
+            else 
+            {
+                string defaultLanguage = GetConfigValue(GlobalConfig.kDefaultLanguage);
+                if(defaultLanguage == "")
+                {
+                    defaultLanguage = GlobalConfig.kEnglish;
+                }
+                if (globalConfig.langDict[defaultLanguage].ContainsKey(key))
+                {
+                    return globalConfig.langDict[defaultLanguage][key];
+                }
+                else if (defaultLanguage != GlobalConfig.kEnglish && globalConfig.langDict[GlobalConfig.kEnglish].ContainsKey(key))
+                {
+                    return globalConfig.langDict[GlobalConfig.kEnglish][key];
+                }
+                else
+                {
+                    return "(undefined text)";
+                }
+            }
         }
 
         public string GetConfigValue(string key)

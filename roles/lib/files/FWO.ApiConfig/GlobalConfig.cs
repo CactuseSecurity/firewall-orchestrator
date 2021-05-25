@@ -26,6 +26,7 @@ namespace FWO.ApiConfig
         private readonly APIConnection apiConnection;
 
         public static readonly string kDefaultLanguage = "DefaultLanguage";
+        public static readonly string kEnglish = "English";
         public static readonly string kElementsPerFetch = "elementsPerFetch";
         public static readonly string kMaxInitialFetchesRightSidebar = "maxInitialFetchesRightSidebar";
         public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
@@ -68,7 +69,7 @@ namespace FWO.ApiConfig
             catch(Exception exception)
             {
                 Log.WriteError("Read Config table", $"Key not found: taking English ", exception);
-                defaultLanguage = "English";
+                defaultLanguage = kEnglish;
             }
 
             // get languages defined 

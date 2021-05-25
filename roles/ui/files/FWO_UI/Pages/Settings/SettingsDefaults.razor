@@ -9,52 +9,52 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
-<h3>Default Settings</h3>
+<h3>@(userConfig.GetText("standards"))</h3>
 <hr />
 
 <form class="form-inline">
-    <label for="languageSelect" class="col-form-label col-sm-3">Default Language:</label>
+    <label for="languageSelect" class="col-form-label col-sm-3">@(userConfig.GetText("default_language")):</label>
     <div class="col-sm-2">
         <select id="languageSelect" class="form-control form-control-sm" @bind="selectedDefaultLanguage">
             @foreach (Language language in globalConfig.uiLanguages)
             {
-                <option value="@(language.Name)">@(language.Name)</option>
+                <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
             }
         </select>
     </div>
 </form>
 <form class="form-inline">
-    <label for="elementsPerFetch" class="col-form-label col-sm-3">Elements per fetch:</label>
+    <label for="elementsPerFetch" class="col-form-label col-sm-3">@(userConfig.GetText("elements_per_fetch")):</label>
     <div class="col-sm-2">
         <input id="elementsPerFetch" type="text" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>
 </form>
 <form class="form-inline">
-    <label for="maxInitFetch" class="col-form-label col-sm-3">Max initial fetches right sidebar:</label>
+    <label for="maxInitFetch" class="col-form-label col-sm-3">@(userConfig.GetText("max_init_fetch_rsb")):</label>
     <div class="col-sm-2">
         <input id="maxInitFetch" type="text" class="form-control form-control-sm" @bind="maxInitFetch" />
     </div>
 </form>
 <form class="form-inline">
-    <label for="autoFillRightSidebar" class="col-form-label col-sm-3">Completely auto-fill right sidebar:</label>
+    <label for="autoFillRightSidebar" class="col-form-label col-sm-3">@(userConfig.GetText("auto_fill_rsb")):</label>
     <div class="col-sm-2">
         <input id="autoFillRightSidebar" type="checkbox" class="form-control form-control-sm" @bind="autoFillRightSidebar">
     </div>
 </form>
 <form class="form-inline">
-    <label for="dataRetentionTime" class="col-form-label col-sm-3">Data retention time (in days):</label>
+    <label for="dataRetentionTime" class="col-form-label col-sm-3">@(userConfig.GetText("data_retention_time")):</label>
     <div class="col-sm-2">
         <input id="dataRetentionTime" type="text" class="form-control form-control-sm" @bind="dataRetentionTime" />
     </div>
 </form>
 <form class="form-inline">
-    <label for="importSleepTime" class="col-form-label col-sm-3">Import sleep time (in seconds):</label>
+    <label for="importSleepTime" class="col-form-label col-sm-3">@(userConfig.GetText("import_sleep_time")):</label>
     <div class="col-sm-2">
         <input id="importSleepTime" type="text" class="form-control form-control-sm" @bind="importSleepTime" />
     </div>
 </form>
 <AuthorizeView Roles="admin">
-    <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>Save</button>
+    <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
 </AuthorizeView>
 
 @code
@@ -65,7 +65,7 @@
     int elementsPerFetch = 100;
     int maxInitFetch = 10;
     bool autoFillRightSidebar = false;
-    string selectedDefaultLanguage = "English";
+    string selectedDefaultLanguage = GlobalConfig.kEnglish;
     int dataRetentionTime = 731;
     int importSleepTime = 40;
 
@@ -79,7 +79,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Read Config", "Key not found: taking default English ", false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
 
         try
@@ -89,7 +89,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Read Config", "Error reading Config for elementsPerFetch: taking value 100 ", false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302"), false);
         }
 
         try
@@ -99,7 +99,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Read Config", "Error reading Config for maxInitFetch: taking value 10 ", false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5303"), false);
         }
 
         try
@@ -109,7 +109,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Read Config", "Error reading Config for AutoFillRightSidebar: taking value false", false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5304"), false);
         }
 
         try
@@ -119,7 +119,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Read Config", "Error reading Config for dataRetentionTime: taking value 731 ", false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5305"), false);
         }
 
         try
@@ -129,12 +129,9 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Read Config", "Error reading Config for importSleepTime: taking value 40 ", false);
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5306"), false);
         }
     }
-
-
-
 
     private async Task Save()
     {
@@ -146,6 +143,6 @@
         await config.Set(GlobalConfig.kImportSleepTime, importSleepTime.ToString());
 
         await userConfig.ReloadDefaults(apiConnection);
-        DisplayMessageInUi(null, "Change Default Settings", "settings changed", false);
+        DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
     }
 }

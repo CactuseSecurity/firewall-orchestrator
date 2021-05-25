@@ -23,7 +23,7 @@
     body_format: json
     validate_certs: false
   register: sample_jwt
-  changed_when: sample_jwt
+  changed_when: false
 
 - debug: var=sample_jwt
 

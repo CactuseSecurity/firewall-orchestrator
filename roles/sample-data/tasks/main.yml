@@ -10,14 +10,6 @@
     state: present
   become: yes
 
-# is already idempotent
-#- name: remove localhost hostkey from known_hosts to stay idempotent
-#  known_hosts:
-#    name: localhost
-#    state: absent
-#  become: yes
-#  become_user: "{{ fworch_user }}"
-
 - name: add localhost hostkey to known_hosts
   known_hosts:
     name: localhost
@@ -50,13 +42,6 @@
 
 - name: establish cron job to simulate hourly changes to configs
   import_tasks: setup-config-changes.yml
-
-# - name: restart importing sample configs
-#   #command: "/etc/init.d/{{ product_name }}-importer restart"
-#   ansible.builtin.systemd:
-#     name: "{{ product_name }}-importer"
-#     state: restarted
-#   become: yes
 
 - name: add second ldap database
   import_tasks: add_second_ldap_db.yml

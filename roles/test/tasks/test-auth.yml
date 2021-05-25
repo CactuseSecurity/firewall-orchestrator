@@ -24,7 +24,6 @@
     validate_certs: false
   register: sample_jwt
   changed_when: sample_jwt
-  ignore_errors: yes
 
 - debug: var=sample_jwt
 

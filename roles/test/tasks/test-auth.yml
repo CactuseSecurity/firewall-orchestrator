@@ -21,6 +21,7 @@
     body:
       Username: user1_demo
       Password: cactus1
+    validate_certs: false
   register: sample_jwt
   changed_when: sample_jwt
 
@@ -82,11 +83,15 @@
   when: "jwt_unique_user_name is not match('user1_demo')"
 
 - name: middleware test get jwt wrong creds
-  command: |
-    curl --request POST --insecure 
-      --url https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
-      --header 'content-type: application/json' 
-      --data '{"Username":"user1_demo","Password":"wrong-pwd"}'
+  uri:
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    method: POST
+    headers:
+      Content-Type: application/json
+    body:
+      Username: user1_demo
+      Password: wrong-pwd
+    validate_certs: false
   register: sample_jwt
   changed_when: false
 

@@ -21,6 +21,7 @@
     body:
       Username: user1_demo
       Password: cactus1
+    body_format: json
     validate_certs: false
   register: sample_jwt
   changed_when: sample_jwt
@@ -91,6 +92,7 @@
     body:
       Username: user1_demo
       Password: wrong-pwd
+    body_format: json
     validate_certs: false
   register: sample_jwt
   changed_when: false

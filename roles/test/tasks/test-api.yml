@@ -16,6 +16,7 @@
       Content-Type: application/json
     body:
       query: ""
+    body_format: json
     validate_certs: false
   register: api_health
   changed_when: false

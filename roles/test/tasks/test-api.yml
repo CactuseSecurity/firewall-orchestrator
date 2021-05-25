@@ -4,11 +4,6 @@
 - set_fact: sample_JWT="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IiIsIngtaGFzdXJhLXZpc2libGUtbWFuYWdlbWVudHMiOiJ7MSw3LDE3fSIsIngtaGFzdXJhLXZpc2libGUtZGV2aWNlcyI6InsxLDR9Iiwicm9sZSI6ImFub255bW91cyIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsiYW5vbnltb3VzIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6ImFub255bW91cyIsIm5iZiI6MTYwMDkzMzM1NiwiZXhwIjoxNjAwOTQwNTU2LCJpYXQiOjE2MDA5MzMzNTYsImlzcyI6IkZXTyBBdXRoIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.nI16gsP6v12AHOpQS-2OM8CviUvCWUEbpTSPOjuYTzokZXGDV1ZF1MioPYPhbh2j9bq8kWoGVGhAfO0GycTPiuQhGso3q8BgKdbLbmPtQF6NmBlupaCsoxiXC8RLVOnRrwC28TAOS2ZtS0rQa_avQI8QL9poPUIYBJ39Epot1T9aup9FVhmHJ_4BpLGqCUk9-0AtRnJFXIInSi0YtVuXa-4h0wE8kVNOttjdyQw_vLQ49V9dRjphh_GzQwze4HGV9B8aXKYJttumNbooWhGEsAvjmmMBWPyAa7euHm8Kjyn4HXm2cV1nG4YmrBPeY5btqXpAarFnXVqShxn2wpryjw"
 
 - name: test api health
-#  command: |
-#    curl --request GET --insecure 
-#    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz 
-#    --header 'content-type: application/json' 
-#    --data '{"query":""}'
   uri:
     url: https://{{ api_ip_address }}:{{ api_web_port }}/api/healthz
     method: GET
@@ -23,11 +18,15 @@
   failed_when: false
 
 - name: test api version
-  command: |
-    curl --request GET --insecure
-    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/version
-    --header 'content-type: application/json'
-    --data '{"query":""}'
+  uri:
+    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/version
+    method: GET
+    headers:
+      Content-Type: application/json
+    body:
+      query: ""
+    body_format: json
+    validate_certs: false
   register: api_version
   changed_when: false
   failed_when: false
@@ -43,12 +42,16 @@
   when: api_version.stdout is not search('version')
 
 - name: test anonymous api access
-  command: |
-    curl --insecure --request POST
-    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
-    --header 'content-type: application/json'
-    --header 'x-hasura-role: anonymous'
-    --data '{"query":"query { object {obj_name} }"}'
+  uri:
+    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    method: POST
+    headers:
+      Content-Type: application/json
+      x-hasura-role: anonymous
+    body:
+      query: "query { object {obj_name} }"
+    body_format: json
+    validate_certs: false
   register: api_query_anonymous
   changed_when: false
 
@@ -58,12 +61,16 @@
   when: api_query_anonymous.stdout is not search('Missing Authorization header')
 
 - name: test anonymous api access with JWT
-  command: |
-    curl --insecure --request POST
-    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
-    --header 'content-type: application/json'
-    --header 'Authorization: Bearer {{ sample_JWT }}'
-    --data '{"query":"query text_msg { text_msg { text_msg_id } }"}'
+  uri:
+    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    method: POST
+    headers:
+      Content-Type: application/json
+      Authorization: Bearer {{ sample_JWT }}
+    body:
+      query: "query text_msg { text_msg { text_msg_id } }"
+    body_format: json
+    validate_certs: false
   register: api_query_anonymous_with_JWT
   changed_when: false
 
@@ -73,13 +80,17 @@
   when: api_query_anonymous_with_JWT.stdout is not search('text_msg_id')
 
 - name: test hasura-admin api access
-  command: |
-    curl --insecure --request POST
-    --url https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
-    --header 'content-type: application/json'
-    --header 'x-hasura-role: admin'
-    --header 'x-hasura-admin-secret: {{ api_hasura_admin_secret }}'
-    --data '{"query":"query { object {obj_name} }"}'
+  uri:
+    url: https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    method: POST
+    headers:
+      Content-Type: application/json
+      x-hasura-role: admin
+      x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+    body:
+      query: "query { object {obj_name} }"
+    body_format: json
+    validate_certs: false
   register: api_query_admin    
   changed_when: false
 

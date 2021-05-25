@@ -20,22 +20,22 @@ namespace FWO.Ui.Services
             errorMsg = "";
             if(pw.Length < minLength)
             {
-                errorMsg = $"password must be at least {minLength} digits long";
+                errorMsg = userConfig.GetText("E5411") + minLength;
                 return false;
             }
             if(upperCaseRequired && !pw.Any(char.IsUpper))
             {
-                errorMsg = $"password must contain at least one upper case character";
+                errorMsg = userConfig.GetText("E5412");
                 return false;
             }
             if(lowerCaseRequired && !pw.Any(char.IsLower))
             {
-                errorMsg = $"password must contain at least one lower case character";
+                errorMsg = userConfig.GetText("E5413");
                 return false;
             }
             if(numberRequired && !pw.Any(char.IsDigit))
             {
-                errorMsg = $"password must contain at least one number";
+                errorMsg = userConfig.GetText("E5414");
                 return false;
             }
             if(specialCharactersRequired)
@@ -43,7 +43,7 @@ namespace FWO.Ui.Services
                 Regex rgx = new Regex("[!?(){}=~$%&#*-+.,_]");
                 if(!rgx.IsMatch(pw))
                 {
-                    errorMsg = "password must contain at least one special character (!?(){}=~$%&#*-+.,_)";
+                    errorMsg = userConfig.GetText("E5415");
                     return false;
                 }
             }

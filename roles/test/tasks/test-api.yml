@@ -1,7 +1,8 @@
 # this playbook contains api tests
 
 # TODO: the JWT needs to be generated dynamically as the following JWT is only valid for 2 hours
-- set_fact: sample_JWT="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IiIsIngtaGFzdXJhLXZpc2libGUtbWFuYWdlbWVudHMiOiJ7MSw3LDE3fSIsIngtaGFzdXJhLXZpc2libGUtZGV2aWNlcyI6InsxLDR9Iiwicm9sZSI6ImFub255bW91cyIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsiYW5vbnltb3VzIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6ImFub255bW91cyIsIm5iZiI6MTYwMDkzMzM1NiwiZXhwIjoxNjAwOTQwNTU2LCJpYXQiOjE2MDA5MzMzNTYsImlzcyI6IkZXTyBBdXRoIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.nI16gsP6v12AHOpQS-2OM8CviUvCWUEbpTSPOjuYTzokZXGDV1ZF1MioPYPhbh2j9bq8kWoGVGhAfO0GycTPiuQhGso3q8BgKdbLbmPtQF6NmBlupaCsoxiXC8RLVOnRrwC28TAOS2ZtS0rQa_avQI8QL9poPUIYBJ39Epot1T9aup9FVhmHJ_4BpLGqCUk9-0AtRnJFXIInSi0YtVuXa-4h0wE8kVNOttjdyQw_vLQ49V9dRjphh_GzQwze4HGV9B8aXKYJttumNbooWhGEsAvjmmMBWPyAa7euHm8Kjyn4HXm2cV1nG4YmrBPeY5btqXpAarFnXVqShxn2wpryjw"
+#- set_fact: sample_JWT="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IiIsIngtaGFzdXJhLXZpc2libGUtbWFuYWdlbWVudHMiOiJ7MSw3LDE3fSIsIngtaGFzdXJhLXZpc2libGUtZGV2aWNlcyI6InsxLDR9Iiwicm9sZSI6ImFub255bW91cyIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsiYW5vbnltb3VzIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6ImFub255bW91cyIsIm5iZiI6MTYwMDkzMzM1NiwiZXhwIjoxNjAwOTQwNTU2LCJpYXQiOjE2MDA5MzMzNTYsImlzcyI6IkZXTyBBdXRoIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.nI16gsP6v12AHOpQS-2OM8CviUvCWUEbpTSPOjuYTzokZXGDV1ZF1MioPYPhbh2j9bq8kWoGVGhAfO0GycTPiuQhGso3q8BgKdbLbmPtQF6NmBlupaCsoxiXC8RLVOnRrwC28TAOS2ZtS0rQa_avQI8QL9poPUIYBJ39Epot1T9aup9FVhmHJ_4BpLGqCUk9-0AtRnJFXIInSi0YtVuXa-4h0wE8kVNOttjdyQw_vLQ49V9dRjphh_GzQwze4HGV9B8aXKYJttumNbooWhGEsAvjmmMBWPyAa7euHm8Kjyn4HXm2cV1nG4YmrBPeY5btqXpAarFnXVqShxn2wpryjw"
+# This should work now with sample_JWT.content
 
 - name: test api health
   uri:
@@ -42,12 +43,12 @@
 - name: api health test output
   debug:
     msg: "ERROR unexpected health test result (not equal 'OK'): {{ api_health.stdout }}"
-  when: api_health.stdout is not match('OK')
+  when: api_health.content is not match('OK')
 
 - name: api version test output
   debug:
     msg: "ERROR unexpected version test result (does not contain 'version'): {{ api_version.stdout }}"
-  when: api_version.stdout is not search('version')
+  when: api_version.content is not search('version')
 
 - name: test anonymous api access
   uri:
@@ -69,8 +70,23 @@
 
 - name: anonymous api access output
   debug:
-    msg: "ERROR unexpected version test result (does not contain 'Missing Authorization header'): {{ api_query_anonymous.stdout }}"
-  when: api_query_anonymous.stdout is not search('Missing Authorization header')
+    msg: "ERROR unexpected version test result (does not contain 'Missing Authorization header'): {{ api_query_anonymous.content }}"
+  when: api_query_anonymous.content is not search('Missing\sAuthorization\sheader')
+
+- name: get sample jwt
+  uri:
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    method: POST
+    headers:
+      Content-Type: application/json
+    body:
+      Username: user1_demo
+      Password: cactus1
+    body_format: json
+    validate_certs: false
+    return_content: yes
+  register: sample_jwt
+  changed_when: false
 
 - name: test anonymous api access with JWT
   uri:
@@ -78,7 +94,7 @@
     method: POST
     headers:
       Content-Type: application/json
-      Authorization: Bearer {{ sample_JWT }}
+      Authorization: Bearer {{ sample_JWT.content }}
     body:
       query: "query text_msg { text_msg { text_msg_id } }"
     body_format: json

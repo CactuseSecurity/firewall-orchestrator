@@ -33,6 +33,12 @@
   changed_when: false
   failed_when: false
 
+- debug:
+    var: api_health
+
+- debug:
+    var: api_version
+
 - name: api health test output
   debug:
     msg: "ERROR unexpected health test result (not equal 'OK'): {{ api_health.stdout }}"

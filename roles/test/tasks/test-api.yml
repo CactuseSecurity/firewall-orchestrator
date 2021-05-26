@@ -64,6 +64,9 @@
   register: api_query_anonymous
   changed_when: false
 
+- debug:
+    var: api_query_anonymous
+
 - name: anonymous api access output
   debug:
     msg: "ERROR unexpected version test result (does not contain 'Missing Authorization header'): {{ api_query_anonymous.stdout }}"
@@ -84,6 +87,9 @@
   register: api_query_anonymous_with_JWT
   changed_when: false
 
+- debug:
+    var: api_query_anonymous_with_JWT
+
 - name: anonymous api access with JWT output
   debug:
     msg: "ERROR unexpected version test result (does not contain text_msg_id): {{ api_query_anonymous_with_JWT.stdout }}"
@@ -102,8 +108,11 @@
     body_format: json
     validate_certs: false
     return_content: yes
-  register: api_query_admin    
+  register: api_query_admin
   changed_when: false
+
+- debug:
+    var: api_query_admin
 
 - name: admin api access output
   debug:

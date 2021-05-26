@@ -28,7 +28,7 @@
 
 - debug: var=sample_jwt
 
-- set_fact: jwt_header="{{sample_jwt.content.split('.')[0].split(':')[1]).split('\"')[1]}}"
+- set_fact: jwt_header="{{sample_jwt.content.split('.')[0].split(':')[1].split('\"')[1]}}"
 
 - debug: var=jwt_header
 
@@ -52,7 +52,7 @@
     msg: "ERROR unexpected jwt test result (jwt_type does not match 'JWT'): {{ jwt_type }}"
   when: "jwt_type is not match('JWT')"
 
-- set_fact: jwt_encoded_payload=sample_jwt.content.split('.')[1]
+- set_fact: jwt_encoded_payload="{{sample_jwt.content.split('.')[1]}}"
 
 - name: show jwt encoded payload pre padding
   debug: var=jwt_encoded_payload
@@ -97,11 +97,12 @@
     return_content: yes
   register: sample_jwt
   changed_when: false
+  ignore_errors: yes
 
 - debug:
     var: sample_jwt
 
 - name: middleware get jwt test wrong creds output
   debug:
-    msg: "ERROR unexpected jwt test result (not equal 'InvalidCredentials'): {{ sample_jwt.stdout }}"
-  when: sample_jwt.stdout is not match('InvalidCredentials')
+    msg: "ERROR unexpected jwt test result (not equal 'error: Invalid credentials.'): {{ sample_jwt.content }}"
+  when: sample_jwt.content is not match(".*error.*Invalid\scredentials\..*"")

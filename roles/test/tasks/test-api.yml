@@ -42,12 +42,12 @@
 
 - name: api health test output
   debug:
-    msg: "ERROR unexpected health test result (not equal 'OK'): {{ api_health.stdout }}"
+    msg: "ERROR unexpected health test result (not equal 'OK'): {{ api_health.content }}"
   when: api_health.content is not match('OK')
 
 - name: api version test output
   debug:
-    msg: "ERROR unexpected version test result (does not contain 'version'): {{ api_version.stdout }}"
+    msg: "ERROR unexpected version test result (does not contain 'version'): {{ api_version.content }}"
   when: api_version.content is not search('version')
 
 - name: test anonymous api access
@@ -85,7 +85,7 @@
     body_format: json
     validate_certs: false
     return_content: yes
-  register: sample_jwt
+  register: sample_JWT
   changed_when: false
 
 - name: test anonymous api access with JWT
@@ -108,8 +108,8 @@
 
 - name: anonymous api access with JWT output
   debug:
-    msg: "ERROR unexpected version test result (does not contain text_msg_id): {{ api_query_anonymous_with_JWT.stdout }}"
-  when: api_query_anonymous_with_JWT.stdout is not search('text_msg_id')
+    msg: "ERROR unexpected version test result (does not contain text_msg_id): {{ api_query_anonymous_with_JWT.content }}"
+  when: api_query_anonymous_with_JWT.content is not search('text_msg_id')
 
 - name: test hasura-admin api access
   uri:
@@ -132,8 +132,8 @@
 
 - name: admin api access output
   debug:
-    msg: "ERROR unexpected version test result (does not contain obj_name): {{ api_query_admin.stdout }}"
-  when: api_query_admin.stdout is not search('obj_name')
+    msg: "ERROR unexpected version test result (does not contain obj_name): {{ api_query_admin.content }}"
+  when: api_query_admin.content is not search('obj_name')
 
 # - name: api health test
 #   assert:

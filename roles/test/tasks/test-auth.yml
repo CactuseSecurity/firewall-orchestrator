@@ -105,4 +105,4 @@
 - name: middleware get jwt test wrong creds output
   debug:
     msg: "ERROR unexpected jwt test result (not equal 'error: Invalid credentials.'): {{ sample_jwt.content }}"
-  when: sample_jwt.content is not match(".*error.*Invalid\scredentials\..*"")
+  when: sample_jwt.content is not match(".*error.*Invalid\scredentials\..*")

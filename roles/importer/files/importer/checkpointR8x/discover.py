@@ -13,7 +13,8 @@ logger.info("START")
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--hostname', metavar='api_host', required=True, help='Check Point R8x management server')
 parser.add_argument('-w', '--password', metavar='api_password', required=True, help='password for management server')
-parser.add_argument('-m', '--mode', metavar='mode', required=True, help='[domains|packages|layers]')
+parser.add_argument('-m', '--mode', metavar='mode', required=True, help='[domains|packages|layers|generic]')
+parser.add_argument('-c', '--command', metavar='command', required=False, help='generic command to send to the api (needs -m generic)')
 parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='user for connecting to Check Point R8x management server, default=fworch')
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Environment')
@@ -29,6 +30,7 @@ if len(sys.argv)==1:
     sys.exit(1)
 
 domain = args.domain
+
 if args.mode == 'packages':
     api_command='show-packages'
     api_details_level="standard"
@@ -39,6 +41,9 @@ elif args.mode == 'domains':
 elif args.mode == 'layers':
     api_command='show-access-layers'
     api_details_level="standard"
+elif args.mode == 'generic':
+    api_command=args.command
+    api_details_level="details"
 else:
     sys.exit("\"" + args.mode +"\" - unknown mode")
 
@@ -84,6 +89,9 @@ if args.mode == 'layers':
     print ("\nthe following access-layers exist on management server:")
     for l in result['access-layers']:
         print ("    access-layer: " + l['name'] + ", uid: " + l['uid'] )
+if args.mode == 'generic':
+    print ("running api command " + api_command)
+    print (str(result))
 print()
 
 logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)

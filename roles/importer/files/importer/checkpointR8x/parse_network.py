@@ -35,13 +35,14 @@ def csv_dump_nw_obj(nw_obj, import_id):
 # collect_nw_objects writes nw objects info into global nw_objects dict
 def collect_nw_objects(object_table, nw_objects):
     result = ''  # todo: delete this line
-    nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
+    # nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
     nw_obj_type_to_host_list = [
+        'address-range', 'multicast-address-range',
         'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
     ]
 
-    if object_table['object_type'] in nw_obj_tables:
+    if object_table['object_type'] in common.nw_obj_table_names:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
                 members = ''
@@ -54,11 +55,21 @@ def collect_nw_objects(object_table, nw_objects):
                     member_refs = member_refs[:-1]
                 ip_addr = common.get_ip_of_obj(obj)
                 obj_type = obj['type']
-                if obj_type == 'address-range':
+                if obj_type == 'address-range' or obj_type == 'multicast-address-range':
                     obj_type = 'ip_range'  # TODO: change later?
-                if (obj_type in nw_obj_type_to_host_list):
-                    obj_type = 'host'
-                nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
+                    #logging.debug("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' with ip: " + ip_addr)
+                    if '-' in ip_addr:
+                        first_ip, last_ip = ip_addr.split('-')
+                        nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
+                                            'obj_comment': obj['comments'],
+                                            'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
+                                            'obj_member_refs': member_refs, 'obj_member_names': member_names}])
+                    else:
+                        logging.warning("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' without hyphen: " + ip_addr)
+                else:
+                    if (obj_type in nw_obj_type_to_host_list):
+                        obj_type = 'host'
+                    nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
                                     'obj_comment': obj['comments'],
                                     'obj_typ': obj_type, 'obj_ip': ip_addr,
                                     'obj_member_refs': member_refs, 'obj_member_names': member_names}])

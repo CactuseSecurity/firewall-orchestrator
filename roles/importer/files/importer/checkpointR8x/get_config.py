@@ -20,8 +20,9 @@
 
 import common
 import getter
-import requests, json, argparse, pdb
-import requests.packages.urllib3, time, logging, re, sys
+import json, argparse, pdb
+import requests, requests.packages.urllib3
+import time, logging, re, sys
 import os
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only

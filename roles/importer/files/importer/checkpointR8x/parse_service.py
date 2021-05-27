@@ -39,12 +39,8 @@ def csv_dump_svc_obj(svc_obj, import_id):
 # collect_svcobjects writes svc info into global users dict
 def collect_svc_objects(object_table, svc_objects):
     result = ''
-    svc_obj_tables = [
-        'services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc',
-        'services-other', 'services-icmp', 'services-icmp6' 
-    ]
 
-    if object_table['object_type'] in svc_obj_tables:
+    if object_table['object_type'] in common.svc_obj_table_names:
         proto = ''
         session_timeout = ''
         typ = 'undef'

@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 # library for API get functions
-import requests, json, argparse, pdb
-import requests.packages.urllib3, time, logging, re, sys
+import json, argparse, pdb
+import time, logging, re, sys, logging
 import os
+import requests, requests.packages.urllib3
+import common
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -11,12 +13,10 @@ use_object_dictionary = 'false'
 
 # all obj table names to look at:
 api_obj_types = [
-    'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
+    'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains',
     'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp', 'services-icmp6' ]
 
-nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']  
-# do not consider: CpmiAnyObject, CpmiGatewayPlain, external 
 svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
@@ -105,38 +105,35 @@ def set_api_url(base_url,testmode,api_supported,hostname):
     return url
 
 
-def collect_uids_from_rule(rule, debug_text):
-    nw_uids_found = []
-    svc_uids_found = []
- 
-    if 'rule-number' in rule:  # standard rule, no section header (layered rules)
-        if 'type' in rule and rule['type'] != 'place-holder':
-            for src in rule["source"]:
-                if src['type'] == 'LegacyUserAtLocation':
-                    nw_uids_found.append(src["location"])
-                elif src['type'] == 'access-role':
-                    if isinstance(src['networks'], str):  # just a single source
-                        if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
-                            nw_uids_found.append(src['networks'])
-                    else:  # more than one source
-                        for nw in src['networks']:
-                            nw_uids_found.append(nw)
-                else:  # standard network objects as source, only here we have an uid value
-                    nw_uids_found.append(src['uid'])
-            for dst in rule["destination"]:
-                nw_uids_found.append(dst['uid'])
-            for svc in rule["service"]:
-                svc_uids_found.append(svc['uid'])
-            #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
-            #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
-        return (nw_uids_found, svc_uids_found)
-    else: # recurse into rulebase within rule
-        return collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
+def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
+    # just a guard:
+    if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
+        for src in rule["source"]:
+            if src['type'] == 'LegacyUserAtLocation':
+                nw_uids_found.append(src["location"])
+            elif src['type'] == 'access-role':
+                if isinstance(src['networks'], str):  # just a single source
+                    if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
+                        nw_uids_found.append(src['networks'])
+                else:  # more than one source
+                    for nw in src['networks']:
+                        nw_uids_found.append(nw)
+            else:  # standard network objects as source, only here we have an uid value
+                nw_uids_found.append(src['uid'])
+        for dst in rule["destination"]:
+            nw_uids_found.append(dst['uid'])
+        for svc in rule["service"]:
+            svc_uids_found.append(svc['uid'])
+        #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
+        #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
+    if common.debug_new_uid in nw_uids_found:
+        logging.debug("found " + common.debug_new_uid + " in getter::collect_uids_from_rule")
+    return
 
 
-def collect_uids_from_rulebase(rulebase, debug_text):
-    nw_uids_found = []
-    svc_uids_found = []
+def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_text):
+    lower_nw_uids_found = []
+    lower_svc_uids_found = []
 
     if 'layerchunks' in rulebase:
         logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
@@ -144,18 +141,21 @@ def collect_uids_from_rulebase(rulebase, debug_text):
             if 'rulebase' in layer_chunk:
                 logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + " with uid " + layer_chunk['uid'] )
                 for rule in layer_chunk['rulebase']:
-                    (nw_uids_found_in_rule, svc_uids_found_in_rule) = collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
-                    if nw_uids_found_in_rule is not None:
-                        nw_uids_found.extend(nw_uids_found_in_rule)
-                    if svc_uids_found_in_rule is not None:
-                        svc_uids_found.extend(svc_uids_found_in_rule)
+                    if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
+                        collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
+                    else:
+                        if 'rulebase' in rule:
+                            collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
     else:
         for rule in rulebase:
-            (nw_uids_found, svc_uids_found) = collect_uids_from_rule(rule, debug_text)
+            collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
 
-    #logging.debug ("getter::collect_uids_from_rulebase nw_uids_found: " + str(nw_uids_found))
-    #logging.debug ("getter::collect_uids_from_rulebase svc_uids_found: " + str(svc_uids_found))
-    return (nw_uids_found, svc_uids_found)
+    if (debug_text == 'top_level'):
+        # logging.debug ("getter::collect_uids_from_rulebase final nw_uids_found: " + str(nw_uids_found))
+        # logging.debug ("getter::collect_uids_from_rulebase final svc_uids_found: " + str(svc_uids_found))
+        if common.debug_new_uid in nw_uids_found:
+            logging.debug("found " + common.debug_new_uid + " in getter::collect_uids_from_rulebase")
+    return
 
 
 def get_all_uids_of_a_type(object_table, obj_table_names):

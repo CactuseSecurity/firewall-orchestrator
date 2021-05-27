@@ -1,6 +1,8 @@
 ﻿@using System.Text
+@using FWO.ApiConfig
 
 @inject APIConnection apiConnection
+@inject UserConfig userConfig
 
 @page "/archive"
 
@@ -11,7 +13,7 @@
         <Template>
             <div class="btn-group">
                 <button class="btn btn-sm btn-info" @onclick="async () => { await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; }">Download</button>
-                <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">Delete</button>
+                <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
             </div>
         </Template>
     </Column>
@@ -28,8 +30,8 @@
         <p>Do you really want to delete generated report "@reportFileContext.Name" ?</p>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-danger" @onclick="DeleteGeneratedReport">Delete</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">Cancel</button>
+        <button class="btn btn-sm btn-danger" @onclick="DeleteGeneratedReport">@(userConfig.GetText("delete"))</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
@@ -59,7 +61,7 @@
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-secondary" @onclick="() => ShowDownloadReportFileDialog = false">Cancel</button>
+        <button class="btn btn-secondary" @onclick="() => ShowDownloadReportFileDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 

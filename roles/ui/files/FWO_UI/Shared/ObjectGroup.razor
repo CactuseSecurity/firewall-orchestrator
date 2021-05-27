@@ -167,7 +167,7 @@
                 </DetailTemplate>
             </Table>
         </Collapse>
-        <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="Type != 30 ? () => FetchContent(user) : null>
+        <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="Type != 30 ? () => FetchContent(user) : null">
             <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                 <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                     <Template>

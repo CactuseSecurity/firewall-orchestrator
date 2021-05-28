@@ -8,7 +8,7 @@
 <button class="btn btn-sm btn-dark" @onclick='() => { if (ReportToExport != null) { ShowExportDialog = true; } else { 
                                                       DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true); } }'>@userConfig.GetText("export_report")</button>
 
-<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog">
+<PopUp Title="@(userConfig.GetText("export_report"))" Show="@ShowExportDialog" OnClose="() => ShowExportDialog = false">
     <Body>
         <div>
             <p>@(userConfig.GetText("export_as"))</p>
@@ -50,7 +50,7 @@
     </Footer>
 </PopUp>
 
-<PopUp Title="@(userConfig.GetText("export_report_download"))" Show="@ShowExportDownloadDialog">
+<PopUp Title="@(userConfig.GetText("export_report_download"))" Show="@ShowExportDownloadDialog" OnClose="() => ShowExportDownloadDialog = false">
     <Body>
         <div class="d-flex flex-column align">
             <label class="ml-1 mr-1" for="reportExportFilename">@(userConfig.GetText("name")):</label>

@@ -135,9 +135,12 @@
     [Parameter]
     public Management[] Managements { get; set; }
 
-    private const int ColumnCount = 12;
-
     private ITable<Rule> reportTable;
 
-    private bool[] EmptyColumns = new bool[ColumnCount];
+    private bool[] EmptyColumns;
+
+    protected override void OnInitialized()
+    {
+        EmptyColumns = new bool[reportTable.Columns.Count];
+    }
 }

@@ -678,6 +678,8 @@ INSERT INTO txt VALUES ('debug_level',          'German', 	'Debug Stufe');
 INSERT INTO txt VALUES ('debug_level',          'English', 	'Debug Level');
 INSERT INTO txt VALUES ('device_type',          'German', 	'Gerätetyp');
 INSERT INTO txt VALUES ('device_type',          'English', 	'Device Type');
+INSERT INTO txt VALUES ('port',                 'German', 	'Port');
+INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('import_user',          'German', 	'Import Nutzer');
 INSERT INTO txt VALUES ('import_user',          'English', 	'Import User');
 INSERT INTO txt VALUES ('login_secret',         'German', 	'Privater Schlüssel');

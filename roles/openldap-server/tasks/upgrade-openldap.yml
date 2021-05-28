@@ -1,0 +1,49 @@
+
+  # install all upgrades between running version and version currently being installed
+
+- name: create upgrade dir
+  file:
+    path: "{{ fworch_home }}/openldap/upgrade"
+    state: directory
+  become: yes
+ 
+- set_fact: 
+    installed_version: "{{ old_version }}"
+    current_version: "{{ product_version }}"
+    all_upgrades_available: "{{ lookup('fileglob', 'upgrade/*.ldif.j2') }}"
+    upgrade_files: []
+
+- name: set list of relevant upgrade files (without extension)
+  set_fact:
+    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1') ] }}"
+  when: |
+    installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1')
+    and
+    current_version >= item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1')
+  with_fileglob:
+    - "../templates/upgrade/*.ldif.j2"
+
+- name: copy the upgrade ldif templates to target
+  template:
+    src: "../templates/upgrade/{{ item }}.ldif.j2"
+    dest: "{{ fworch_home }}/openldap/upgrade/{{ item }}.ldif"
+  loop: "{{ upgrade_files }}"
+  become: yes
+
+- name: Stop the slapd service
+  systemd:
+    name: slapd
+    state: stopped
+  become: yes
+
+# missing: -n / -b option needs to be specified (which database should be modified?) 0 is config
+- name: install ldap upgrades
+  command: slapadd -F {{ openldap_server_app_path }}/slapd.d -l {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
+  loop: "{{ upgrade_files | sort }}"
+  become: yes
+
+- name: Start the slapd service
+  systemd:
+    name: slapd
+    state: started
+  become: yes

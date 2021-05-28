@@ -1,19 +1,21 @@
 --------------------------------------------------------------------------------------
 -- BASIC FUNCTIONS
-
 ----------------------------------------------------
 -- FUNCTION:  is_numeric
 -- Zweck:     ist ein String eine reine Zahl?
 -- Parameter: VARCHAR
 -- RETURNS:   BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_numeric(VARCHAR) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_numeric (varchar)
+    RETURNS boolean
+    AS $$
 DECLARE
     input ALIAS FOR $1;
 BEGIN
     RETURN (input ~ '[0-9]');
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:  are_equal
@@ -21,95 +23,135 @@ $$ LANGUAGE plpgsql;
 -- Parameter: 2x Boolean oder 2x varchar oder ...
 -- RETURNS:   BOOLEAN
 --
-CREATE OR REPLACE FUNCTION are_equal(BOOLEAN,BOOLEAN) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION are_equal (boolean, boolean)
+    RETURNS boolean
+    AS $$
 BEGIN
-IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
-	RETURN TRUE;
-ELSE 
-	RETURN FALSE;
-END IF;
+    IF (($1 IS NULL AND $2 IS NULL) OR $1 = $2) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION are_equal(VARCHAR,VARCHAR) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION are_equal (varchar, varchar)
+    RETURNS boolean
+    AS $$
 DECLARE
-	v_str VARCHAR;
+    v_str varchar;
 BEGIN
-IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
-	RETURN TRUE;
-ELSE 
-	RETURN FALSE;
-END IF;
+    IF (($1 IS NULL AND $2 IS NULL) OR $1 = $2) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION are_equal(TEXT,TEXT) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION are_equal (text, text)
+    RETURNS boolean
+    AS $$
 DECLARE
-	v_str VARCHAR;
+    v_str varchar;
 BEGIN
-IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
-	RETURN TRUE;
-ELSE 
-	RETURN FALSE;
-END IF;
+    IF (($1 IS NULL AND $2 IS NULL) OR $1 = $2) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION are_equal(CIDR,CIDR) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION are_equal (cidr, cidr)
+    RETURNS boolean
+    AS $$
 DECLARE
-	v_str VARCHAR;
+    v_str varchar;
 BEGIN
-IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
-	RETURN TRUE;
-ELSE 
-	RETURN FALSE;
-END IF;
+    IF (($1 IS NULL AND $2 IS NULL) OR $1 = $2) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION are_equal(INTEGER,INTEGER) RETURNS BOOLEAN AS $$
-DECLARE
-	v_str VARCHAR;
+CREATE OR REPLACE FUNCTION are_equal (integer, integer)
+    RETURNS boolean
+    AS $$
 BEGIN
-IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
-	RETURN TRUE;
-ELSE 
-	RETURN FALSE;
-END IF;
+    IF (($1 IS NULL AND $2 IS NULL) OR $1 = $2) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION are_equal(BIGINT,BIGINT) RETURNS BOOLEAN AS $$
-DECLARE
-	v_str VARCHAR;
+CREATE OR REPLACE FUNCTION are_equal (bigint, bigint)
+    RETURNS boolean
+    AS $$
 BEGIN
-IF (($1 IS NULL AND $2 IS NULL) OR $1=$2) THEN
-	RETURN TRUE;
-ELSE 
-	RETURN FALSE;
-END IF;
+    IF (($1 IS NULL AND $2 IS NULL) OR ((NOT $1 IS NULL AND NOT $2 IS NULL) AND $1 = $2)) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION are_equal (smallint, smallint)
+    RETURNS boolean
+    AS $$
+BEGIN
+    -- RAISE DEBUG 'are_equal_smallint 1, p1=%, p2=%', $1, $1;
+    IF (($1 IS NULL AND $2 IS NULL) OR ((NOT $1 IS NULL AND NOT $2 IS NULL) AND $1 = $2)) THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+$$
+LANGUAGE plpgsql;
+
 ----------------------------------------------------
 -- FUNCTION:    is_svc_group
 -- Zweck:       liefert TRUE, wenn service eine Gruppe ist
 -- Parameter1:  svc_id
 -- RETURNS:     BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_svc_group (BIGINT) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_svc_group (bigint)
+    RETURNS boolean
+    AS $$
 DECLARE
-	i_svc_id ALIAS FOR $1;
-	r_svc   RECORD;             -- zu pruefendes Objekt
+    i_svc_id ALIAS FOR $1;
+    r_svc RECORD;
+    -- zu pruefendes Objekt
 BEGIN
-	SELECT INTO r_svc svc_typ_name FROM service LEFT JOIN stm_svc_typ ON service.svc_typ_id=stm_svc_typ.svc_typ_id
-		WHERE service.svc_id=i_svc_id;
-	IF r_svc.svc_typ_name='group' THEN  -- Gruppe
-		RETURN TRUE;
-	ELSE -- keine Gruppe
-		RETURN FALSE;
-	END IF;
+    SELECT
+        INTO r_svc svc_typ_name
+    FROM
+        service
+    LEFT JOIN stm_svc_typ ON service.svc_typ_id = stm_svc_typ.svc_typ_id
+WHERE
+    service.svc_id = i_svc_id;
+    IF r_svc.svc_typ_name = 'group' THEN
+        -- Gruppe
+        RETURN TRUE;
+    ELSE
+        -- keine Gruppe
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:    is_obj_group
@@ -117,20 +159,31 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:  obj_id
 -- RETURNS:     BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_obj_group (BIGINT) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_obj_group (bigint)
+    RETURNS boolean
+    AS $$
 DECLARE
-	i_obj_id ALIAS FOR $1;
-	r_obj   RECORD;             -- zu pruefendes Objekt
+    i_obj_id ALIAS FOR $1;
+    r_obj RECORD;
+    -- zu pruefendes Objekt
 BEGIN
-	SELECT INTO r_obj obj_typ_name FROM object LEFT JOIN stm_obj_typ ON object.obj_typ_id=stm_obj_typ.obj_typ_id
-		WHERE object.obj_id=i_obj_id;
-	IF r_obj.obj_typ_name='group' THEN  -- Gruppe
-		RETURN TRUE;
-	ELSE -- keine Gruppe
-		RETURN FALSE;
-	END IF;
+    SELECT
+        INTO r_obj obj_typ_name
+    FROM
+        object
+    LEFT JOIN stm_obj_typ ON object.obj_typ_id = stm_obj_typ.obj_typ_id
+WHERE
+    object.obj_id = i_obj_id;
+    IF r_obj.obj_typ_name = 'group' THEN
+        -- Gruppe
+        RETURN TRUE;
+    ELSE
+        -- keine Gruppe
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:    is_user_group
@@ -138,20 +191,31 @@ $$ LANGUAGE plpgsql;
 -- Parameter1:  user_id
 -- RETURNS:     BOOLEAN
 --
-CREATE OR REPLACE FUNCTION is_user_group (BIGINT) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION is_user_group (bigint)
+    RETURNS boolean
+    AS $$
 DECLARE
-	i_user_id ALIAS FOR $1;
-	r_user   RECORD;             -- zu pruefendes Objekt
+    i_user_id ALIAS FOR $1;
+    r_user RECORD;
+    -- zu pruefendes Objekt
 BEGIN
-	SELECT INTO r_user usr_typ_name FROM usr LEFT JOIN stm_usr_typ ON usr.usr_typ_id=stm_usr_typ.usr_typ_id
-		WHERE usr.user_id=i_user_id;
-	IF r_user.usr_typ_name='group' THEN  -- Gruppe
-		RETURN TRUE;
-	ELSE -- keine Gruppe
-		RETURN FALSE;
-	END IF;
+    SELECT
+        INTO r_user usr_typ_name
+    FROM
+        usr
+    LEFT JOIN stm_usr_typ ON usr.usr_typ_id = stm_usr_typ.usr_typ_id
+WHERE
+    usr.user_id = i_user_id;
+    IF r_user.usr_typ_name = 'group' THEN
+        -- Gruppe
+        RETURN TRUE;
+    ELSE
+        -- keine Gruppe
+        RETURN FALSE;
+    END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:  get_admin_id_from_name
@@ -159,26 +223,33 @@ $$ LANGUAGE plpgsql;
 -- Parameter: name des admins
 -- RETURNS:   INTEGER uiuser_id
 --
-CREATE OR REPLACE FUNCTION get_admin_id_from_name(VARCHAR) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_admin_id_from_name (varchar)
+    RETURNS integer
+    AS $$
 DECLARE
     v_admin_name ALIAS FOR $1;
     r_admin RECORD;
 BEGIN
-	IF v_admin_name IS NULL OR v_admin_name = '' THEN
-		RETURN NULL;
-	END IF;
-    SELECT INTO r_admin * FROM uiuser WHERE uiuser_username = v_admin_name;
+    IF v_admin_name IS NULL OR v_admin_name = '' THEN
+        RETURN NULL;
+    END IF;
+    SELECT
+        INTO r_admin *
+    FROM
+        uiuser
+    WHERE
+        uiuser_username = v_admin_name;
     IF NOT FOUND THEN
-    	IF	v_admin_name <> 'CheckPoint' AND
-    		v_admin_name <> 'Upgrade Process' AND
-    		v_admin_name <> 'Check Point SmartCenter Server Update Process' THEN
-			PERFORM error_handling('INFO_ADMIN_NOT_FOUND', v_admin_name);
-		END IF;
-		RETURN NULL;
+        IF v_admin_name <> 'CheckPoint' AND v_admin_name <> 'Upgrade Process' AND v_admin_name <> 'Check Point SmartCenter Server Update Process' THEN
+            PERFORM
+                error_handling ('INFO_ADMIN_NOT_FOUND', v_admin_name);
+        END IF;
+        RETURN NULL;
     END IF;
     RETURN r_admin.uiuser_id;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:  get_dev_typ_id
@@ -186,18 +257,28 @@ $$ LANGUAGE plpgsql;
 -- Parameter: device-name VARCHAR
 -- RETURNS:   INTEGER dev_typ_id des uebergebenen devices
 --
-CREATE OR REPLACE FUNCTION get_dev_typ_id(VARCHAR) RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_dev_typ_id (varchar)
+    RETURNS integer
+    AS $$
 DECLARE
     devicename ALIAS FOR $1;
     dev RECORD;
 BEGIN
-    SELECT INTO dev dev_typ_id FROM device WHERE dev_name = devicename;
-    IF NOT FOUND THEN  -- TODO: Fehlerbehandlung 
-       PERFORM error_handling('ERR_DEV_NOT_FOUND', devicename);
+    SELECT
+        INTO dev dev_typ_id
+    FROM
+        device
+    WHERE
+        dev_name = devicename;
+    IF NOT FOUND THEN
+        -- TODO: Fehlerbehandlung
+        PERFORM
+            error_handling ('ERR_DEV_NOT_FOUND', devicename);
     END IF;
     RETURN dev.dev_typ_id;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:  get_text
@@ -205,37 +286,58 @@ $$ LANGUAGE plpgsql;
 -- Parameter: keine
 -- RETURNS:   text
 --
-CREATE OR REPLACE FUNCTION get_text(varchar) RETURNS VARCHAR AS $$
+CREATE OR REPLACE FUNCTION get_text (varchar)
+    RETURNS varchar
+    AS $$
 DECLARE
     v_textid ALIAS FOR $1;
     r_lang RECORD;
-    v_lang VARCHAR;
-    v_result VARCHAR;
+    v_lang varchar;
+    v_result varchar;
     r_message RECORD;
 BEGIN
-	v_result := 'leeeeer';
-	SELECT INTO r_lang config_value FROM config WHERE config_key='DefaultLanguage';
-	IF NOT FOUND THEN
-		RAISE EXCEPTION 'language settings not found';
-	END IF;
-	IF r_lang.config_value = 'German' THEN
-		SELECT INTO r_message text_msg_ger FROM text_msg WHERE text_msg_id = v_textid;
-		IF NOT FOUND THEN
-			PERFORM error_handling('DEBUG_GENERAL_INFO', 'German' || v_textid);
-		END IF;
-		v_result := r_message.text_msg_ger;
-	ELSIF r_lang.config_value = 'English' THEN
-		SELECT INTO r_message text_msg_eng FROM text_msg WHERE text_msg_id = v_textid;
-		IF NOT FOUND THEN
-			PERFORM error_handling('DEBUG_GENERAL_INFO', 'English' || v_textid);
-		END IF;
-		v_result := r_message.text_msg_eng;
-	ELSE
-		PERFORM error_handling('DEBUG_GENERAL_INFO', v_textid);
-	END IF;
+    v_result := 'leeeeer';
+    SELECT
+        INTO r_lang config_value
+    FROM
+        config
+    WHERE
+        config_key = 'DefaultLanguage';
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'language settings not found';
+    END IF;
+    IF r_lang.config_value = 'German' THEN
+        SELECT
+            INTO r_message text_msg_ger
+        FROM
+            text_msg
+        WHERE
+            text_msg_id = v_textid;
+        IF NOT FOUND THEN
+            PERFORM
+                error_handling ('DEBUG_GENERAL_INFO', 'German' || v_textid);
+        END IF;
+        v_result := r_message.text_msg_ger;
+    ELSIF r_lang.config_value = 'English' THEN
+        SELECT
+            INTO r_message text_msg_eng
+        FROM
+            text_msg
+        WHERE
+            text_msg_id = v_textid;
+        IF NOT FOUND THEN
+            PERFORM
+                error_handling ('DEBUG_GENERAL_INFO', 'English' || v_textid);
+        END IF;
+        v_result := r_message.text_msg_eng;
+    ELSE
+        PERFORM
+            error_handling ('DEBUG_GENERAL_INFO', v_textid);
+    END IF;
     RETURN v_result;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ----------------------------------------------------
 -- FUNCTION:  error_handling (einmal mit und einmal ohne variablen Anteil)
@@ -243,136 +345,161 @@ $$ LANGUAGE plpgsql;
 -- Parameter: error-string (id), [wert einer variablen]
 -- RETURNS:   error string
 --
-CREATE OR REPLACE FUNCTION error_handling(varchar) RETURNS VARCHAR AS $$
+CREATE OR REPLACE FUNCTION error_handling (varchar)
+    RETURNS varchar
+    AS $$
 DECLARE
     errid ALIAS FOR $1;
 BEGIN
-    RETURN error_handling(errid, '');
+    RETURN error_handling (errid, '');
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION error_handling(varchar,varchar) RETURNS VARCHAR AS $$
+CREATE OR REPLACE FUNCTION error_handling (varchar, varchar)
+    RETURNS varchar
+    AS $$
 DECLARE
     errid ALIAS FOR $1;
     var_output_string ALIAS FOR $2;
     err RECORD;
     lang RECORD;
-    err_txt TEXT;
-    err_prefix VARCHAR;
+    err_txt text;
+    err_prefix varchar;
 BEGIN
-	err_txt := '';
-    SELECT INTO err * FROM error WHERE error_id = errid;
+    err_txt := '';
+    SELECT
+        INTO err *
+    FROM
+        error
+    WHERE
+        error_id = errid;
     IF NOT FOUND THEN
-		RAISE EXCEPTION 'errorid not found %', errid;
+        RAISE EXCEPTION 'errorid not found %', errid;
     END IF;
-    SELECT INTO lang config_value FROM config WHERE config_key='DefaultLanguage';
+    SELECT
+        INTO lang config_value
+    FROM
+        config
+    WHERE
+        config_key = 'DefaultLanguage';
     IF NOT FOUND THEN
-		RAISE EXCEPTION 'config not found, %', errid;
+        RAISE EXCEPTION 'config not found, %', errid;
     END IF;
     IF lang.config_value = 'German' THEN
-		err_txt := err.error_txt_ger;
-		IF err.error_lvl = 1 THEN
-		    err_prefix := 'FEHLER: ';
-		ELSIF err.error_lvl = 2 THEN
-		    err_prefix := 'WARNUNG: ';
-		ELSIF err.error_lvl = 3 THEN
-		    err_prefix := 'WARNUNG: ';
-		ELSIF err.error_lvl = 4 THEN
-		    err_prefix := 'INFO: ';
-		ELSE
-		    RAISE EXCEPTION 'Unbekannte Fehlerstufe %', err.error_lvl;
-		END IF;
-    ELSE 
-		err_txt := err.error_txt_eng;
-		IF err.error_lvl = 1 THEN
-		    err_prefix := 'ERROR: ';
-		ELSIF err.error_lvl = 2 THEN
-		    err_prefix := 'WARNING: ';
-		ELSIF err.error_lvl = 3 THEN
-		    err_prefix := 'WARNING: ';
-		ELSIF err.error_lvl = 4 THEN
-		    err_prefix := 'INFO: ';
-		ELSE
-		    RAISE EXCEPTION 'Unbekannte Fehlerstufe %', err.error_lvl;
-		END IF;
+        err_txt := err.error_txt_ger;
+        IF err.error_lvl = 1 THEN
+            err_prefix := 'FEHLER: ';
+        ELSIF err.error_lvl = 2 THEN
+            err_prefix := 'WARNUNG: ';
+        ELSIF err.error_lvl = 3 THEN
+            err_prefix := 'WARNUNG: ';
+        ELSIF err.error_lvl = 4 THEN
+            err_prefix := 'INFO: ';
+        ELSE
+            RAISE EXCEPTION 'Unbekannte Fehlerstufe %', err.error_lvl;
+        END IF;
+    ELSE
+        err_txt := err.error_txt_eng;
+        IF err.error_lvl = 1 THEN
+            err_prefix := 'ERROR: ';
+        ELSIF err.error_lvl = 2 THEN
+            err_prefix := 'WARNING: ';
+        ELSIF err.error_lvl = 3 THEN
+            err_prefix := 'WARNING: ';
+        ELSIF err.error_lvl = 4 THEN
+            err_prefix := 'INFO: ';
+        ELSE
+            RAISE EXCEPTION 'Unbekannte Fehlerstufe %', err.error_lvl;
+        END IF;
     END IF;
     err_prefix := err_prefix || errid || ': ';
     IF var_output_string <> '' THEN
-		err_txt := err_txt || ': ' || var_output_string;
+        err_txt := err_txt || ': ' || var_output_string;
     END IF;
     err_txt := err_prefix || err_txt;
-    INSERT INTO error_log (error_id,error_txt) VALUES (errid,err_txt);
+    INSERT INTO error_log (error_id, error_txt)
+        VALUES (errid, err_txt);
     IF err.error_lvl = 1 THEN
-		RAISE DEBUG 'sorry, encountered fatal error: %', err_txt;
-		RAISE EXCEPTION '%', err_txt;
+        RAISE DEBUG 'sorry, encountered fatal error: %', err_txt;
+        RAISE EXCEPTION '%', err_txt;
     ELSIF err.error_lvl = 2 THEN
-		RAISE NOTICE '%', err_txt;
-	ELSIF err.error_lvl = 3 THEN
-		RAISE NOTICE '%', err_txt;
-	ELSIF err.error_lvl = 4 THEN
-		RAISE DEBUG '%', err_txt;
---		NULL;
-	ELSE
-		RAISE EXCEPTION 'unknown errorlevel %', err.error_lvl;
+        RAISE NOTICE '%', err_txt;
+    ELSIF err.error_lvl = 3 THEN
+        RAISE NOTICE '%', err_txt;
+    ELSIF err.error_lvl = 4 THEN
+        RAISE DEBUG '%', err_txt;
+        --		NULL;
+    ELSE
+        RAISE EXCEPTION 'unknown errorlevel %', err.error_lvl;
     END IF;
     RETURN err_txt;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ---------------------------------------------------------------------------------------
-
 -- entfernt alle Whitespaces vom Anfang u. Ende eine Strings
-CREATE OR REPLACE FUNCTION remove_spaces(varchar) RETURNS VARCHAR AS $$
+CREATE OR REPLACE FUNCTION remove_spaces (varchar)
+    RETURNS varchar
+    AS $$
 DECLARE
     s ALIAS FOR $1;
---    res		VARCHAR;
---    test	VARCHAR;
---    left	VARCHAR;
---    right	VARCHAR;
---    pos		integer;
+    --    res		VARCHAR;
+    --    test	VARCHAR;
+    --    left	VARCHAR;
+    --    right	VARCHAR;
+    --    pos		integer;
 BEGIN
---	res := s;
---	test := substring(s, '^.*?([' || E'\t' || ' ]).*?$');
---	if test IS NOT NULL AND char_length(test)>0 THEN
---		left := substring(s, '^(.*?)[ ' || E'\t' || '].*?$');
---		right := substring(s, '^.*?[ ' || E'\t' || '](.*?)$');
---		res := left || remove_spaces(right);
---	END IF;
-	RETURN btrim(s);
+    --	res := s;
+    --	test := substring(s, '^.*?([' || E'\t' || ' ]).*?$');
+    --	if test IS NOT NULL AND char_length(test)>0 THEN
+    --		left := substring(s, '^(.*?)[ ' || E'\t' || '].*?$');
+    --		right := substring(s, '^.*?[ ' || E'\t' || '](.*?)$');
+    --		res := left || remove_spaces(right);
+    --	END IF;
+    RETURN btrim(s);
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ---------------------------------------------------------------------------------------
-
 -- Entfernt Tabs und Leerzeichen am Anfang und Ende des Strings
-CREATE OR REPLACE FUNCTION del_surrounding_spaces(varchar) RETURNS VARCHAR AS $$
+CREATE OR REPLACE FUNCTION del_surrounding_spaces (varchar)
+    RETURNS varchar
+    AS $$
 DECLARE
     s ALIAS FOR $1;
 BEGIN
---    return substring(s, '[ \t]*(.*?)[ \t]*');
-    return substring(s, '[ ' || E'\t' || ']*(.*?)[ ' || E'\t' || ']*');
+    --    return substring(s, '[ \t]*(.*?)[ \t]*');
+    RETURN substring(s, '[ ' || E'\t' || ']*(.*?)[ ' || E'\t' || ']*');
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
 ---------------------------------------------------------------------------------------
 -- instr functions that mimic Oracle's counterpart
 -- Syntax: instr(string1, string2, [n], [m]) where [] denotes optional parameters.
--- 
+--
 -- Searches string1 beginning at the nth character for the mth occurrence
 -- of string2.  If n is negative, search backwards.  If m is not passed,
 -- assume 1 (search starts at first character).
 --
-CREATE OR REPLACE FUNCTION instr(varchar, varchar) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION instr (varchar, varchar)
+    RETURNS integer
+    AS $$
 DECLARE
     pos integer;
 BEGIN
-    pos:= instr($1, $2, 1);
+    pos := instr ($1, $2, 1);
     RETURN pos;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION instr(varchar, varchar, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION instr (varchar, varchar, integer)
+    RETURNS integer
+    AS $$
 DECLARE
     string ALIAS FOR $1;
     string_to_search ALIAS FOR $2;
@@ -386,7 +513,6 @@ BEGIN
     IF beg_index > 0 THEN
         temp_str := substring(string FROM beg_index);
         pos := position(string_to_search IN temp_str);
-
         IF pos = 0 THEN
             RETURN 0;
         ELSE
@@ -396,25 +522,23 @@ BEGIN
         ss_length := char_length(string_to_search);
         length := char_length(string);
         beg := length + beg_index - ss_length + 2;
-
         WHILE beg > 0 LOOP
             temp_str := substring(string FROM beg FOR ss_length);
             pos := position(string_to_search IN temp_str);
-
             IF pos > 0 THEN
                 RETURN beg;
             END IF;
-
             beg := beg - 1;
         END LOOP;
-
         RETURN 0;
     END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION instr(varchar, varchar, integer, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION instr (varchar, varchar, integer, integer)
+    RETURNS integer
+    AS $$
 DECLARE
     string ALIAS FOR $1;
     string_to_search ALIAS FOR $2;
@@ -431,19 +555,15 @@ BEGIN
     IF beg_index > 0 THEN
         beg := beg_index;
         temp_str := substring(string FROM beg_index);
-
         FOR i IN 1..occur_index LOOP
             pos := position(string_to_search IN temp_str);
-
             IF i = 1 THEN
                 beg := beg + pos - 1;
             ELSE
                 beg := beg + pos;
             END IF;
-
             temp_str := substring(string FROM beg + 1);
         END LOOP;
-
         IF pos = 0 THEN
             RETURN 0;
         ELSE
@@ -453,23 +573,20 @@ BEGIN
         ss_length := char_length(string_to_search);
         length := char_length(string);
         beg := length + beg_index - ss_length + 2;
-
         WHILE beg > 0 LOOP
             temp_str := substring(string FROM beg FOR ss_length);
             pos := position(string_to_search IN temp_str);
-
             IF pos > 0 THEN
                 occur_number := occur_number + 1;
-
                 IF occur_number = occur_index THEN
                     RETURN beg;
                 END IF;
             END IF;
-
             beg := beg - 1;
         END LOOP;
-
         RETURN 0;
     END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$
+LANGUAGE plpgsql;
+

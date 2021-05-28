@@ -13,13 +13,16 @@ logger.info("START")
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--hostname', metavar='api_host', required=True, help='Check Point R8x management server')
 parser.add_argument('-w', '--password', metavar='api_password', required=True, help='password for management server')
-parser.add_argument('-m', '--mode', metavar='mode', required=True, help='[domains|packages|layers]')
+parser.add_argument('-m', '--mode', metavar='mode', required=True, help='[domains|packages|layers|generic]')
+parser.add_argument('-c', '--command', metavar='command', required=False, help='generic command to send to the api (needs -m generic)')
 parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='user for connecting to Check Point R8x management server, default=fworch')
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Environment')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
+parser.add_argument('-l', '--level', metavar='level_of_detail', default='standard', help='[standard|full]')
 parser.add_argument('-i', '--limit', metavar='api_limit', default='500', help='The maximal number of returned results per HTTPS Connection; default=500')
+parser.add_argument('-n', '--nolimit', metavar='nolimit', default='off', help='[on|off] Set to on if (generic) command does not understand limit switch')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0')
 parser.add_argument('-V', '--version', metavar='api_version', default='off', help='alternate API version [off|<version number>]; default=off')
 
@@ -29,6 +32,7 @@ if len(sys.argv)==1:
     sys.exit(1)
 
 domain = args.domain
+
 if args.mode == 'packages':
     api_command='show-packages'
     api_details_level="standard"
@@ -39,12 +43,14 @@ elif args.mode == 'domains':
 elif args.mode == 'layers':
     api_command='show-access-layers'
     api_details_level="standard"
+elif args.mode == 'generic':
+    api_command=args.command
+    api_details_level=args.level
 else:
     sys.exit("\"" + args.mode +"\" - unknown mode")
 
 proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 offset = 0
-details_level = "full"
 use_object_dictionary = 'false'
 base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
 ssl_verification = getter.set_ssl_verification(args.ssl)
@@ -63,7 +69,14 @@ logger.debug ("Domain:"+ args.domain )
 logger.debug ("login:"+ args.user )
 logger.debug ("sid:"+ xsid )
 
-result = getter.api_call(args.hostname, args.port, v_url, api_command, {"limit" : args.limit, "offset" : offset, "details-level" : api_details_level}, xsid, ssl_verification, proxy_string)
+if args.nolimit == 'on':
+    result = getter.api_call(args.hostname, args.port, v_url, api_command, 
+        { "details-level" : api_details_level },
+        xsid, ssl_verification, proxy_string)
+else:
+    result = getter.api_call(args.hostname, args.port, v_url, api_command, 
+        { "limit" : args.limit, "offset" : offset, "details-level" : api_details_level },
+        xsid, ssl_verification, proxy_string)
 if args.debug == "1" or args.debug == "3":
     print ("\ndump of result:\n" + json.dumps(result, indent=4))
 if args.mode == 'packages':
@@ -79,11 +92,14 @@ if args.mode == 'packages':
 if args.mode == 'domains':
     print ("\nthe following domains exist on management server:")
     for d in result['objects']:
-        print ("    domain: " + d['name'])
+        print ("    domain: " + d['name'] + ", uid: " + d['uid'])
 if args.mode == 'layers':
     print ("\nthe following access-layers exist on management server:")
     for l in result['access-layers']:
-        print ("    access-layer: " + l['name'])
+        print ("    access-layer: " + l['name'] + ", uid: " + l['uid'] )
+if args.mode == 'generic':
+    print ("running api command " + api_command)
+    print (json.dumps(result, indent=3))
 print()
 
 logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)

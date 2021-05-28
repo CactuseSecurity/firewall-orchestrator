@@ -127,6 +127,8 @@ Create table "rule"
 	"last_change_admin" Integer,
 	"rule_name" Varchar,
 	"mgm_id" Integer NOT NULL,
+	"parent_rule_id" BIGINT,
+	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
 	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),
@@ -504,6 +506,13 @@ Create table "tenant_username"
 
 -- basic static data -------------------------------------
 
+Create table "parent_rule_type"
+(
+	"id" smallserial NOT NULL,
+	"name" Varchar NOT NULL,
+ primary key ("id")
+);
+
 Create table "stm_action"
 (
 	"action_id" SERIAL,
@@ -712,6 +721,7 @@ Create table "import_rule"
 	"rule_src_refs" Text,
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
+	"parent_rule_uid" Text,
  primary key ("control_id","rule_id")
 );
 

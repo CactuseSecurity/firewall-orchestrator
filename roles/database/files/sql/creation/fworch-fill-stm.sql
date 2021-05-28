@@ -25,6 +25,10 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
     VALUES ('type=rules and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny) ',
         'Compliance: Pass rules with ANY','All pass rules that contain any as source, destination or service', 0);
 
+insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
+insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply
+insert into parent_rule_type (id, name) VALUES (3, 'unguarded-layer');  -- restart numbering, no further restrictions
+
 insert into stm_change_type (change_type_id,change_type_name) VALUES (1,'factory settings');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (2,'initial import');
 insert into stm_change_type (change_type_id,change_type_name) VALUES (3,'in operation');
@@ -674,6 +678,8 @@ INSERT INTO txt VALUES ('debug_level',          'German', 	'Debug Stufe');
 INSERT INTO txt VALUES ('debug_level',          'English', 	'Debug Level');
 INSERT INTO txt VALUES ('device_type',          'German', 	'Gerätetyp');
 INSERT INTO txt VALUES ('device_type',          'English', 	'Device Type');
+INSERT INTO txt VALUES ('port',                 'German', 	'Port');
+INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('import_user',          'German', 	'Import Nutzer');
 INSERT INTO txt VALUES ('import_user',          'English', 	'Import User');
 INSERT INTO txt VALUES ('login_secret',         'German', 	'Privater Schlüssel');

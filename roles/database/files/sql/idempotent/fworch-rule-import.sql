@@ -79,38 +79,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------
--- FUNCTION:  import_rules_save_order
--- Zweck:     speichert die Regelreihenfolge in rule_order
--- Parameter: current_import_id::BIGINT
--- Parameter: device_id::INTEGER
--- RETURNS:   VOID
---
--- CREATE OR REPLACE FUNCTION import_rules_save_order (BIGINT,INTEGER) RETURNS VOID AS $$
--- DECLARE
--- 	i_current_control_id ALIAS FOR $1; -- ID des aktiven Imports
--- 	i_dev_id ALIAS FOR $2; -- ID des zu importierenden Devices
--- 	i_mgm_id INTEGER; -- ID des zugehoerigen Managements
--- 	b_existing_rulebase BOOLEAN;
--- BEGIN
--- 	RAISE DEBUG 'import_rules_save_order - start';
--- 	SELECT INTO i_mgm_id mgm_id FROM device WHERE dev_id=i_dev_id;
--- 	IF (TRUE) THEN
--- 		RAISE DEBUG 'import_rules_save_order - mgm_id=%, dev_id=%, before inserting', i_mgm_id, i_dev_id;
--- 		INSERT INTO rule_order (control_id,dev_id,rule_id,rule_number)
--- 			SELECT i_current_control_id AS control_id, i_dev_id as dev_id, rule.rule_id, import_rule.rule_num as rule_number
--- 			FROM device, import_rule LEFT JOIN rule ON (import_rule.rule_uid=rule.rule_uid AND rule.dev_id=i_dev_id) WHERE device.dev_id=i_dev_id 
--- 			AND rule.mgm_id = i_mgm_id AND rule.active AND import_rule.control_id=i_current_control_id 
--- 			AND import_rule.rulebase_name=device.dev_rulebase;
--- 	ELSE
--- 		RAISE DEBUG 'import_rules_save_order - policy already processed for other device: skipping';	
--- 	END IF;
--- 	RAISE DEBUG 'import_rules_save_order - end';
--- 	RETURN;
--- END;
--- $$ LANGUAGE plpgsql;
-
-
-----------------------------------------------------
 -- FUNCTION:  import_rules_set_rule_num_numeric (control_id, device_id)
 -- purpose:   sets numeric rule order value in field rule_num_numeric for sorting rules in the correct order
 -- Parameter1: import id (control_id)
@@ -212,7 +180,12 @@ DECLARE
 	i_change_type INTEGER;
 	v_change_action VARCHAR;    
     b_rule_order_to_be_written BOOLEAN;
+	i_parent_rule_id BIGINT;
+	i_parent_rule_type SMALLINT;
+	r_parent_rule RECORD;
 BEGIN
+	RAISE DEBUG 'insert_single_rule start, rule_id: %', id;
+
 	b_rule_order_to_be_written := FALSE; 
     b_insert := FALSE;    b_change := FALSE;    b_change_sr := FALSE;
     SELECT INTO r_to_import * FROM import_rule WHERE rule_id = id; -- zu importierenden Datensatz aus import_rule einlesen
@@ -239,12 +212,16 @@ BEGIN
     END IF;    
 -- Vergleich - hat sich die Regel geaendert? -----------------------------------------------------------------
 
+	RAISE DEBUG 'insert_single_rule 1, rule_id: %', id;
+
 	IF (r_to_import.rule_uid IS NULL) THEN -- removed char_length-check due to utf-8 problems
 		PERFORM error_handling('ERR_RULE_NOT_IDENTIFYABLE');
 	END IF;
 	SELECT INTO r_existing * FROM rule WHERE
 		rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active;
+	RAISE DEBUG 'insert_single_rule 2, rule_id: %', id;
 	IF FOUND THEN  -- Regel existiert schon
+		RAISE DEBUG 'insert_single_rule 3, rule_id: %', id;
 		IF ( NOT (
 			are_equal(r_existing.rule_uid, r_to_import.rule_uid) AND
 			are_equal(r_existing.rule_ruleid,r_to_import.rule_ruleid) AND
@@ -263,8 +240,12 @@ BEGIN
 			are_equal(r_existing.action_id, i_action_id) AND
 			are_equal(r_existing.track_id, i_track_id) AND
 			are_equal(r_existing.rule_installon, r_to_import.rule_installon) AND
+			-- cannot compare the following two as they are not part of import_rule:
+--			are_equal(r_existing.parent_rule_id, r_to_import.parent_rule_id) AND
+--			are_equal(r_existing.parent_rule_type, r_to_import.parent_rule_type) AND
 			are_equal(r_existing.rule_time, r_to_import.rule_time) ))
 		THEN
+			RAISE DEBUG 'insert_single_rule 4, rule_id: %', id;
 			b_change := TRUE;
 			b_change_sr := TRUE;
 		END IF;
@@ -301,21 +282,41 @@ BEGIN
 			ELSE
 				INSERT INTO rule_metadata (rule_uid, dev_id) VALUES(r_to_import.rule_uid, i_dev_id);
 			END IF;
-
 			RAISE DEBUG 'rule_change_after_rule_metadata change: %', r_to_import.rule_uid;
+
+			i_parent_rule_id := NULL;
+			i_parent_rule_type := NULL;
+			IF NOT r_to_import.parent_rule_uid IS NULL THEN
+				SELECT INTO r_parent_rule rule_id, rule_head_text, action_name FROM rule LEFT JOIN stm_action USING (action_id) WHERE rule_uid=r_to_import.parent_rule_uid AND rule_last_seen=i_control_id;
+				IF NOT FOUND THEN
+					RAISE WARNING 'rule_change found reference to parent rule with uid (%) that cannot be found in import. Importing without parent reference.',
+						r_to_import.parent_rule_uid;
+				ELSE
+					i_parent_rule_id := r_parent_rule.rule_id;
+					RAISE DEBUG 'rule_change_change NOT FOUND, uid: %', r_to_import.rule_uid;
+					IF r_parent_rule.action_name = 'inline-layer' THEN
+						i_parent_rule_type := 2; -- layer guard
+					ELSIF NOT r_parent_rule.rule_head_text IS NULL AND NOT r_parent_rule.rule_head_text='Placeholder for domain rules' THEN
+							i_parent_rule_type := 1; -- standard section
+					ELSIF NOT r_parent_rule.rule_head_text IS NULL AND r_parent_rule.rule_head_text='Placeholder for domain rules' THEN
+						i_parent_rule_type := 3; -- domain rule section
+					END IF;
+				END IF;
+			END IF;
+			RAISE DEBUG 'rule_change_change before insert: %', r_to_import.rule_uid;
 
 			INSERT INTO rule
 				(mgm_id,rule_name,rule_num,rule_ruleid,rule_uid,rule_disabled,rule_src_neg,rule_dst_neg,rule_svc_neg,
 				action_id,track_id,rule_src,rule_dst,rule_svc,rule_src_refs,rule_dst_refs,rule_svc_refs,rule_action,rule_track,rule_installon,rule_time,
-			 	rule_from_zone,rule_to_zone,rule_comment,rule_implied,rule_head_text,last_change_admin,
-			 	rule_create,rule_last_seen, dev_id)
+				rule_from_zone,rule_to_zone,rule_comment,rule_implied,rule_head_text,last_change_admin,
+				rule_create,rule_last_seen, dev_id, parent_rule_id, parent_rule_type)
 			VALUES (i_mgm_id,r_to_import.rule_name,i_rule_num,r_to_import.rule_ruleid,r_to_import.rule_uid,
 				r_to_import.rule_disabled,r_to_import.rule_src_neg,r_to_import.rule_dst_neg,r_to_import.rule_svc_neg,
 				i_action_id,i_track_id,r_to_import.rule_src,r_to_import.rule_dst,r_to_import.rule_svc,
 				r_to_import.rule_src_refs,r_to_import.rule_dst_refs,r_to_import.rule_svc_refs,
 				lower(r_to_import.rule_action),r_to_import.rule_track,r_to_import.rule_installon,r_to_import.rule_time,
 				i_fromzone,i_tozone, r_to_import.rule_comment,r_to_import.rule_implied,r_to_import.rule_head_text,i_admin_id,
-				i_control_id,i_control_id, i_dev_id);
+				i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type);
 			
 			-- changelog-Eintrag
 			RAISE DEBUG 'rule_change_or_insert_before_select_into: %', r_to_import.rule_uid;

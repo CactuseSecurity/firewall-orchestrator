@@ -96,5 +96,7 @@ adding report template format fk and permissions
 ### 5.1.17 - 28.05.2021
 - adding parent rule reference for layer and domain rule functionality
 
-### 5.1.18 - 30.05.2021
-- removing database components not needed for v5 (text_msg, get_text)
+### 5.2.1 - 30.05.2021
+- removing
+  - php ui 
+  - database components not needed for v5 (text_msg, get_text)

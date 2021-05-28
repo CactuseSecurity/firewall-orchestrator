@@ -94,7 +94,8 @@
     method: POST
     headers:
       Content-Type: application/json
-      Authorization: Bearer {{ sample_JWT.content }}
+      # Remove leading and trailing text of jwt output
+      Authorization: Bearer {{ (sample_JWT.content.split(':')[1])[1:-2] }}
     body:
       query: "query text_msg { text_msg { text_msg_id } }"
     body_format: json

@@ -6,8 +6,8 @@ query listUsers(
   $offset: Int
 ) {
   management(where: { mgm_id: { _in: $management_id } }) {
-    mgm_id
-    mgm_name
+    id: mgm_id
+    name: mgm_name
     userObjects: usrs(
       limit: $limit
       offset: $offset

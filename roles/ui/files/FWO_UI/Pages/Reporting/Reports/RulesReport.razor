@@ -17,7 +17,8 @@
                         <Table SelectedItems="SelectedRules"
                                RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); OnSelectedRulesChange(SelectedRules); }"
                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
+                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")"
+                               @ref="reportTable">
 
                             @if (EmptyColumns[0] == false)
                             {
@@ -104,7 +105,11 @@
                             </DetailTemplate>
 
                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
-                                <td class="bg-light" colspan="@(ColumnCount + 1)"><div class="font-weight-bold">@(context.SectionHeader)</div></td>
+                                <tr>
+                                    <td class="bg-light" colspan="@(reportTable.Columns.Count + 1)">
+                                        <div class="font-weight-bold">@(context.SectionHeader)</div>
+                                    </td>
+                                </tr>         
                             </CustomRow>
 
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -130,6 +135,7 @@
     [Parameter]
     public Management[] Managements { get; set; }
 
-    private const int ColumnCount = 12;
-    private bool[] EmptyColumns = new bool[ColumnCount];
+    private ITable<Rule> reportTable;
+    private const int ColumnsCount = 12;
+    private bool[] EmptyColumns = new bool[ColumnsCount];
 }

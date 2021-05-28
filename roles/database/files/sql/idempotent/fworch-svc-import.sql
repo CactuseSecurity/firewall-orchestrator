@@ -314,7 +314,7 @@ BEGIN
         SELECT INTO i_new_svc_id MAX(svc_id) FROM service WHERE mgm_id=i_mgm_id; -- ein bisschen fragwuerdig
 		IF (b_insert) THEN  -- der service wurde neu angelegt
 			IF b_is_initial_import THEN
-				b_is_documented := TRUE;  t_outtext := get_text('INITIAL_IMPORT'); i_change_type := 2;
+				b_is_documented := TRUE;  t_outtext := 'INITIAL_IMPORT'; i_change_type := 2;
 			ELSE
 				b_is_documented := FALSE; t_outtext := NULL; i_change_type := 3;
 			END IF;
@@ -327,7 +327,7 @@ BEGIN
 				v_comment := NULL;
 				b_is_documented := FALSE;
 			ELSE
-				v_comment := get_text('NON_SECURITY_RELEVANT_CHANGE');
+				v_comment := 'NON_SECURITY_RELEVANT_CHANGE';
 				b_is_documented := TRUE;
 			END IF;
 			INSERT INTO changelog_service

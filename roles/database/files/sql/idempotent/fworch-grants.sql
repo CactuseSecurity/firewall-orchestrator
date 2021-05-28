@@ -1,8 +1,4 @@
 
-GRANT SELECT ON TABLE text_msg TO configimporters;
-GRANT SELECT ON TABLE text_msg TO dbbackupusers;
-GRANT SELECT ON TABLE text_msg TO textreader;
-
 -- Create Group Permissions
 
 --  grants for all (implicit) sequences

@@ -93,5 +93,8 @@ adding report template format fk and permissions
 ### 5.1.16 - 10.05.2021
 - adding direct link tables rule_[svc|nwobj|user]_resolved to make report object export easier
 
-### 5.1.17 - 2x10.05.2021
+### 5.1.17 - 28.05.2021
 - adding parent rule reference for layer and domain rule functionality
+
+### 5.1.18 - 30.05.2021
+- removing database components not needed for v5 (text_msg, get_text)

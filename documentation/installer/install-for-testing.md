@@ -82,14 +82,6 @@ The following command adds the sting test firewall to your fw orch system (needs
 ansible-playbook -e "connect_sting=yes" site.yml -K
 ```
 
-### Parameter "ui_php" to additionally install old php UI
-
-With the following option the old php based user interface will be installed in addition to the new one at ui_php_web_port (defaults to 8443):
-
-```console
-ansible-playbook -e "ui_php=1 ui_php_web_port=44310" site.yml -K
-```
-
 ### Parameter "sample_data_rate" to ramp up sample data
 
 if you want to create sample-data changes every minute set sample_data_rate to high

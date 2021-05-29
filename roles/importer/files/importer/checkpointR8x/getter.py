@@ -136,7 +136,7 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
     lower_svc_uids_found = []
 
     if 'layerchunks' in rulebase:
-        logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
+        # logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
         for layer_chunk in rulebase['layerchunks']:
             if 'rulebase' in layer_chunk:
                 logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + " with uid " + layer_chunk['uid'] )
@@ -170,7 +170,7 @@ def get_all_uids_of_a_type(object_table, obj_table_names):
 
 
 def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
-    logger = logging.getLogger(__name__)
+    # logger = logging.getLogger(__name__)
     logging.debug ("getter - entering get_broken_object_uids" )
     broken_uids = []
     for uid in all_uids_from_rules:

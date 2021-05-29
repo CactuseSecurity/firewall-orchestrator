@@ -202,8 +202,8 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
             else:
                 # parent_rule_uid = ""
                 parent_rule_uid = parent_uid
-                if parent_uid != "":
-                    logging.debug('csv_dump_rule: no parent_rule_uid set in rule, using parent_uid from function parameter, uid=' + rule['uid'] )
+                #if parent_uid != "":
+                #    logging.debug('csv_dump_rule: no parent_rule_uid set in rule, using parent_uid from function parameter, uid=' + rule['uid'] )
             rule_csv += csv_add_field(parent_rule_uid, common.csv_delimiter, apostrophe)
 
             rule_csv = rule_csv[:-1] 

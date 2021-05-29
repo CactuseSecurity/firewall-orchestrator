@@ -109,7 +109,7 @@ for rulebase in config['rulebases']:
 # remove duplicates from uid lists
 nw_uids_from_rulebase = list(set(nw_uids_from_rulebase))
 svc_uids_from_rulebase = list(set(svc_uids_from_rulebase))
-logging.debug ("enrich_config - found (unique) nw_objects in rulebase:\n" + str(nw_uids_from_rulebase))
+# logging.debug ("enrich_config - found (unique) nw_objects in rulebase:\n" + str(nw_uids_from_rulebase))
 if common.debug_new_uid in nw_uids_from_rulebase:
     logging.debug("enrich_config: found " + common.debug_new_uid + " in enrich_config after cleanup")
 

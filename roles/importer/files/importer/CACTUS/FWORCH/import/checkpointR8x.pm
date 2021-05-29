@@ -54,7 +54,7 @@ sub parse_config {
 		if ( $return_code != 0 ) { print("ERROR in parse_config found: $return_code\n") }
 	}
 # parsing users
-	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\" > \"$output_dir/${mgm_name}_users.csv\"";
+	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\ -d $debug_level " > \"$output_dir/${mgm_name}_users.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); 
 	# system("ls -l $output_dir");
@@ -80,12 +80,12 @@ sub parse_config {
 	}
 	
 # parsing svc objects
-	$cmd = "$parser_py -m $mgm_name -i $import_id -s -f \"$object_file\" > \"$output_dir/${mgm_name}_services.csv\"";
+	$cmd = "$parser_py -m $mgm_name -i $import_id -s -f \"$object_file\" -d $debug_level > \"$output_dir/${mgm_name}_services.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); 
 	if ( $return_code != 0 ) { print("ERROR in parse_config::services found: $return_code\n") }
 # parsing nw objects
-	$cmd = "$parser_py -m $mgm_name -i $import_id -n -f \"$object_file\" > \"$output_dir/${mgm_name}_netzobjekte.csv\"";
+	$cmd = "$parser_py -m $mgm_name -i $import_id -n -f \"$object_file\" -d $debug_level > \"$output_dir/${mgm_name}_netzobjekte.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); 
 	if ( $return_code != 0 ) { print("ERROR in parse_config::network_objects found: $return_code\n") }

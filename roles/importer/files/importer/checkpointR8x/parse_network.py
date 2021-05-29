@@ -1,5 +1,6 @@
 
 import logging
+import json
 import common
 
 
@@ -32,12 +33,16 @@ def csv_dump_nw_obj(nw_obj, import_id):
     return result_line
 
 
-# collect_nw_objects writes nw objects info into global nw_objects dict
+# collect_nw_objects from object tables and write them into global nw_objects dict
 def collect_nw_objects(object_table, nw_objects):
     result = ''  # todo: delete this line
     # nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
+    # nw_obj_type_to_host_list = [
+    #     'address-range', 'multicast-address-range',
+    #     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 
+    #     'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
+    # ]
     nw_obj_type_to_host_list = [
-        'address-range', 'multicast-address-range',
         'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
     ]
@@ -49,30 +54,37 @@ def collect_nw_objects(object_table, nw_objects):
                 ip_addr = ''
                 member_refs = ''
                 member_names = ''
+                
                 if 'members' in obj:
                     for member in obj['members']:
                         member_refs += member + common.list_delimiter
                     member_refs = member_refs[:-1]
                 ip_addr = common.get_ip_of_obj(obj)
+                first_ip = ip_addr
+                last_ip = ip_addr
                 obj_type = obj['type']
+
                 if obj_type == 'address-range' or obj_type == 'multicast-address-range':
-                    obj_type = 'ip_range'  # TODO: change later?
-                    #logging.debug("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' with ip: " + ip_addr)
+                    obj_type = 'ip_range'
+                    # logging.debug("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' with ip: " + ip_addr)
                     if '-' in ip_addr:
                         first_ip, last_ip = ip_addr.split('-')
-                        nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
-                                            'obj_comment': obj['comments'],
-                                            'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
-                                            'obj_member_refs': member_refs, 'obj_member_names': member_names}])
                     else:
                         logging.warning("parse_network::collect_nw_objects - found range object '" + obj['name'] + "' without hyphen: " + ip_addr)
-                else:
-                    if (obj_type in nw_obj_type_to_host_list):
-                        obj_type = 'host'
-                    nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
-                                    'obj_comment': obj['comments'],
-                                    'obj_typ': obj_type, 'obj_ip': ip_addr,
-                                    'obj_member_refs': member_refs, 'obj_member_names': member_names}])
+                elif (obj_type in nw_obj_type_to_host_list):
+                    # logging.debug("parse_network::collect_nw_objects - rewriting non-standard cp-host-type '" + obj['name'] + "' with object type '" + obj_type + "' to host")
+                    # logging.debug("obj_dump:" + json.dumps(obj, indent=3))
+                    obj_type = 'host'
+                # else:
+                    # if not obj['type'] in ['host', 'network', 'group'] or obj['name']=='test-interop-device' or obj['name']=='test-ext-vpn-gw':
+                        # logging.debug("parse_network::collect_nw_objects - for '" + obj['name'] + "' we are using standard object type '" + obj['type'] + "'")
+                        # logging.debug("obj_dump:" + json.dumps(obj, indent=3))
+
+                # adding the object:
+                nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
+                                        'obj_comment': obj['comments'],
+                                        'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
+                                        'obj_member_refs': member_refs, 'obj_member_names': member_names}])
 
 
 # for members of groups, the name of the member obj needs to be fetched separately (starting from API v1.?)

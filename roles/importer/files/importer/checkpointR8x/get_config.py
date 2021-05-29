@@ -78,7 +78,7 @@ show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary
 
 # read all rulebases:
 for layer in args.layer.split(','):
-    logging.debug ( "get_config - layer: " + layer )
+    logging.debug ( "get_config - getting layer: " + layer )
     domain_layer_name = ""
     current_layer_json = ""
     show_params_rules['name'] = layer
@@ -105,7 +105,7 @@ for layer in args.layer.split(','):
                         current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
                         # logging.debug ("substituted domain rules: " + json.dumps(current_layer_json, indent=2) + "\n\n")
 
-    logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
+    # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
     config_json += current_layer_json + ",\n"
 
 config_json = config_json[:-2]  # remove final comma layer from loop and add closing bracket for rules:

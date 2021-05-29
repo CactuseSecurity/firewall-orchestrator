@@ -3961,40 +3961,6 @@ tables:
   table:
     name: tenant_username
     schema: public
-- select_permissions:
-  - permission:
-      allow_aggregations: true
-      columns:
-      - text_msg_id
-      - text_msg_ger
-      - text_msg_eng
-      filter: {}
-    role: anonymous
-  - permission:
-      columns:
-      - text_msg_id
-      - text_msg_ger
-      - text_msg_eng
-      filter: {}
-    role: auditor
-  - permission:
-      columns:
-      - text_msg_id
-      - text_msg_ger
-      - text_msg_eng
-      filter: {}
-    role: reporter
-  - permission:
-      allow_aggregations: true
-      columns:
-      - text_msg_id
-      - text_msg_ger
-      - text_msg_eng
-      filter: {}
-    role: reporter-viewall
-  table:
-    name: text_msg
-    schema: public
 - object_relationships:
   - name: languageByLanguage
     using:

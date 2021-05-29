@@ -4,7 +4,6 @@ import parse_network, parse_rule, parse_service, parse_user
 import argparse
 import json
 import sys
-#import re
 import logging
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')

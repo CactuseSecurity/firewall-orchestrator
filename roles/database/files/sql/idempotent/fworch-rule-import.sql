@@ -324,7 +324,7 @@ BEGIN
 			IF (b_insert) THEN  -- die regel wurde neu angelegt und ist keine header-regel
 				RAISE DEBUG 'rule_change_or_insert_insert_zweig: %', r_to_import.rule_uid;
 				IF b_is_initial_import
-				THEN	b_is_documented := TRUE;  /* t_outtext := get_text('INITIAL_IMPORT'); */ i_change_type := 2;
+				THEN	b_is_documented := TRUE; i_change_type := 2;
 				ELSE	b_is_documented := FALSE; t_outtext := NULL; i_change_type := 3;
 				END IF;
 				RAISE DEBUG 'rule_change_or_insert_insert_zweig_after_initial_import: %', r_to_import.rule_uid;
@@ -337,9 +337,7 @@ BEGIN
 					b_is_documented := FALSE;
 				ELSE
 					RAISE DEBUG 'rule_change_or_insert_insert_zweig_rule_head_text_is_not_null: %', r_to_import.rule_uid;
---					t_outtext := get_text('NON_SECURITY_RELEVANT_CHANGE');
 					t_outtext := 'not sec relevant';
---					t_outtext := get_text('NON_SECURITY_RELEVANT_CHANGE');
 					RAISE DEBUG 'rule_change_or_insert_insert_zweig_rule_head_text_is_not_null_after_NON_SECURITY_RELEVANT_CHANGE: %', r_to_import.rule_uid;
 					b_is_documented := TRUE;
 					b_change_sr := FALSE;
@@ -352,7 +350,7 @@ BEGIN
 					t_outtext := NULL;
 					b_is_documented := FALSE;
 				ELSE
-					t_outtext := get_text('NON_SECURITY_RELEVANT_CHANGE');
+					t_outtext := 'NON_SECURITY_RELEVANT_CHANGE';
 					b_is_documented := TRUE;
 				END IF;
 				-- hier noch Test einbauen, ob ausschliesslich Rename eines Elements vorliegt, dann kein changelog_rule-Eintrag

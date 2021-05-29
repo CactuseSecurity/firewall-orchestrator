@@ -107,6 +107,7 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
+    - importer
 
 - hosts: all
   roles:

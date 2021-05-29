@@ -54,7 +54,7 @@ sub parse_config {
 		if ( $return_code != 0 ) { print("ERROR in parse_config found: $return_code\n") }
 	}
 # parsing users
-	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\ -d $debug_level " > \"$output_dir/${mgm_name}_users.csv\"";
+	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\" -d $debug_level > \"$output_dir/${mgm_name}_users.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
 	$return_code = system($cmd); 
 	# system("ls -l $output_dir");

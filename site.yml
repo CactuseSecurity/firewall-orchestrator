@@ -12,6 +12,7 @@
       ignore_errors: yes
   tags:
     - frontend
+    - importer
 
 - hosts: all
   tasks:
@@ -88,6 +89,7 @@
   tags:
     - samples
     - backend
+    - importer
 
 - hosts: middlewareserver
   roles:
@@ -115,6 +117,7 @@
   tags:
     - backend
     - frontend
+    - importer
 
 - hosts: frontends
   tasks:

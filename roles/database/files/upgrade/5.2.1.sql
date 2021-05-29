@@ -1,3 +1,3 @@
 
-DROP table "text_msg";
-DROP function get_text;
+DROP table IF EXISTS "text_msg";
+DROP function IF EXISTS get_text;

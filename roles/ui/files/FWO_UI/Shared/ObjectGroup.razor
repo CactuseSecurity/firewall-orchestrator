@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 @typeparam InputDataType
 
-<Collapse Title="@NameExtractor(Content)" UseHtmlTitle="@(Type == 2)" Style="@("primary")" StartToggled="StartCollapsed" OnOpen="FetchContent">
+<Collapse Title="@NameExtractor(Content)" UseHtmlTitle="@(Type == 30)" Style="@("primary")" StartToggled="StartCollapsed">
     <TitleWithHtml>
         @if (Content.GetType() == typeof(Rule))
         {
@@ -28,7 +28,7 @@
         }
     </TitleWithHtml>
     <ChildContent>
-        <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed">
+        <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="Type != 30 ? () => FetchContent(nobj) : null">
             <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                 <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                     <Template>
@@ -102,7 +102,7 @@
                 </DetailTemplate>
             </Table>
         </Collapse>
-        <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed">
+        <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="Type != 30 ? () => FetchContent(nsrv) : null">
             <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                 <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                     <Template>
@@ -167,7 +167,7 @@
                 </DetailTemplate>
             </Table>
         </Collapse>
-        <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed">
+        <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="Type != 30 ? () => FetchContent(user) : null">
             <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                 <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                     <Template>
@@ -237,7 +237,7 @@
     public Report ReportPage { get; set; }
 
     [Parameter]
-    public int Type { get; set; }
+    public byte Type { get; set; }
 
     [Parameter]
     public int PageSize { get; set; }
@@ -265,38 +265,57 @@
 
     // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
     public InputDataType Content { get; set; }
-    public bool ContentIsDetailed { get; private set; }
+    private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
+    public bool ContentIsDetailed => nobjDetailed && nsrvDetailed && userDetailed;
+    private bool nobjDetailed = false;
+    private bool nsrvDetailed = false;
+    private bool userDetailed = false;
 
     protected override async Task OnInitializedAsync()
     {
         Content = InitialContent;
         if (StartContentDetailed)
-            await FetchContent();
-        else
-            ContentIsDetailed = false;
+            await FetchContent(all);
     }
 
-    private async Task FetchContent()
+    private async Task FetchContent(byte objType)
     {
-        if (!ContentIsDetailed)
+        if (Type == 30 && objType != 0)
+            return;
+
+        if (objType == all && !ContentIsDetailed || objType == nobj && !nobjDetailed || objType == nsrv && !nsrvDetailed || objType == user && !userDetailed)
         {
-            Management[] managements = new Management[0];
             switch (Content)
             {
                 case Management m:
-                    await ReportPage.FetchContent(Type,
+                    await ReportPage.FetchContent((byte)(Type + objType),
                         managementsUpdate =>
                         {
+                            int id = m.Id;
                             Management m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
                             if (m_updated != null)
-                                Content = (InputDataType)(Object)m_updated;
+                            {
+                                switch (objType)
+                                {
+                                    case all:
+                                        m = m_updated; break;
+                                    case nobj:
+                                        m.Objects = m_updated.Objects; break;
+                                    case nsrv:
+                                        m.Services = m_updated.Services; break;
+                                    case user:
+                                        m.Users = m_updated.Users; break;
+                                }
+
+                                Content = (InputDataType)(Object)m;
+                            }
                             return InvokeAsync(StateHasChanged);
                         }, mgmtId: m.Id);
 
                     break;
 
                 case Rule r:
-                    await ReportPage.FetchContent(2,
+                    await ReportPage.FetchContent((byte)(Type + objType),
                         managementsUpdate =>
                         {
                             Rule r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
@@ -304,12 +323,15 @@
                             if (r_updated != null)
                                 Content = (InputDataType)(Object)r_updated;
                             return InvokeAsync(StateHasChanged);
-                        }, ruleUid: r.Uid);
+                        }, ruleId: r.Id);
 
                     break;
             }
 
-            ContentIsDetailed = true;
+            nobjDetailed = nobjDetailed || objType == 0 || objType == 1;
+            nsrvDetailed = nsrvDetailed || objType == 0 || objType == 2;
+            userDetailed = userDetailed || objType == 0 || objType == 3;
+
             await InvokeAsync(StateHasChanged);
         }
     }

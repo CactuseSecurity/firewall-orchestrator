@@ -140,14 +140,3 @@
         - "{{ postgresql_dev_package }}"
         - "{{ postgresql_test_package }}"
         
-########## old php ui ##################
-        
-    - name: install php packages
-      package:
-         name: "{{ item }}"
-      loop:
-        - apache2
-        - php
-        - libapache2-mod-php
-        - php-pgsql
-        - php-pear

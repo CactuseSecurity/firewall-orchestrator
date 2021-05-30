@@ -4,7 +4,9 @@
       name: npm
 
   - name: create api documentation using 2fd/graphdoc - install graphdoc
-    command: "npm install -g @2fd/graphdoc"
+    npm:
+      name: "@2fd/graphdoc"
+      global: yes
 
   environment: "{{ proxy_env }}"
   become: yes

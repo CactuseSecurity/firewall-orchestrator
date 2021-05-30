@@ -174,32 +174,34 @@
                 @(userConfig.GetText("objects"))
             </div>
         </div>
-        <TabSet KeepPanelsAlive="true">
+        <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
             <Tab Title="@(userConfig.GetText("all"))">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarAll">
-                    <ObjectGroupCollection ReportPage="this" Type="0" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                    <ObjectGroupCollection ReportPage="this" Type="10" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
                                             NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
-            @*<Tab Title="Report">
+            <Tab Title="Report">
                 <div class="d-md-flex justify-content-md-end">
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarReport">
-                    <ObjectGroupCollection ReportPage="this" Type="1" InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                            NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    <ObjectGroupCollection ReportPage="this" Type="20" InputDataType="Management" Data="managementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                                           NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
+                                           NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
+                                           NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
                 </CascadingValue>
-            </Tab>*@
+            </Tab>
             <Tab Title="@(userConfig.GetText("rule"))">
                 <div class="d-md-flex justify-content-md-between">
                     <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">@(userConfig.GetText("clear_all"))</div>
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarRule">
-                    <ObjectGroupCollection ReportPage="this" Type="2" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
+                    <ObjectGroupCollection ReportPage="this" Type="30" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
                                             NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                             NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
                                             NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
@@ -249,6 +251,8 @@
     private ReportTemplateComponent reportTemplateControl;
 
     private ReportBase currentReport;
+
+    private TabSet rsbTabset;
 
     private int reportFileId = 0;
 
@@ -301,9 +305,9 @@
         });
     }
 
-    public async Task FetchContent(int contentType, Func<Management[], Task> callback, int mgmtId = 0, string ruleUid = "")
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, int mgmtId = 0, int ruleId = -1)
     {
-        const byte all = 0, report = 1, rule = 2;
+        const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
 
         Log.WriteDebug("Fetching Content..", "");
 
@@ -322,8 +326,25 @@
             switch (contentType)
             {
                 case all:
-
                     query = ObjectQueries.getAllObjectDetails;
+                    break;
+                case all_nobj:
+                    query = ObjectQueries.getNetworkObjectDetails;
+                    break;
+                case all_nsrv:
+                    query = ObjectQueries.getNetworkServiceObjectDetails;
+                    break;
+                case all_user:
+                    query = ObjectQueries.getUserDetails;
+                    break;
+                case rule:
+                    query = RuleQueries.getRuleDetails;
+                    break;
+            }
+
+            switch (contentType)
+            {
+                case all or all_nobj or all_nsrv or all_user:
 
                     queryVars = new Dictionary<string, object>()
                     {
@@ -334,23 +355,26 @@
 
                     break;
 
-                //case report: //TODO: new functionality for fetching objects with query
+                case report or report_nobj or report_nsrv or report_user:
 
-                //    DynGraphqlQuery gqlQuery = Compiler.Compile(filterInput, true);
-                //    query = gqlQuery.FullQuery;
-                //    queryVars = gqlQuery.QueryVariables;
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", 0 },
+                        { "mgmIds", mgmtId }
+                    };
 
-                //    break;
+                    await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), Connection, callback);
+
+                    return;
 
                 case rule:
-
-                    query = RuleQueries.getRuleDetails;
 
                     queryVars = new Dictionary<string, object>()
                     {
                         { "limit", elementsPerFetch },
                         { "offset", (int)0 },
-                        { "rule_uid", ruleUid }
+                        { "rule_id", ruleId }
                     };
 
                     break;
@@ -369,11 +393,12 @@
                     newObjects = managements.Merge(managementsCurrentFetch);
                 }
 
-                queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                if (queryVars.ContainsKey("offset"))
+                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
                 await callback(managements);
             }
 
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar rule objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
         }
         catch (Exception exception)
         {
@@ -448,6 +473,7 @@
                     break;
             }
             reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
+            rsbTabset.SetActiveTab(1);
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)

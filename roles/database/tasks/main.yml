@@ -122,7 +122,6 @@
           # with only local import modules:
           host    all         +configimporters    127.0.0.1/32           trust
           host    all         confexporter        127.0.0.1/32           trust
-          host    all         textreader          127.0.0.1/32           trust
           
           # with local web frontend:
           host    all         +secuadmins         127.0.0.1/32           md5

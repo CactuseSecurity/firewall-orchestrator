@@ -1,4 +1,21 @@
 # CSV interface of importer
+
+## adjusting parser interface
+
+All data is currently exchanged via a CSV interface.
+
+### perl-based (parse-config file) import modules (old)
+If a field needs to be added to the CSV interface, for all old perl-based parsers 
+you need to add the name of the field to the respective _outlist in roles/importer/files/importer/CACTUS/FWORCH/import.pm, e.g.
+ @rule_outlist	=(qw (	rule_id disabled src.op src src.refs dst.op dst dst.refs services.op services services.refs
+   action track install time comments name UID header_text src.zone dst.zone last_change_admin parent_rule_uid));
+
+### python-based (API access) import modules (new)
+
+For python based importers, you need to adjust the roles/importer/files/importer/checkpointR8x/*_parser.py files, e.g. 
+  csv_dump_svc_obj.py in parse_service.py
+
+
 ## General
 
 ```console
@@ -13,23 +30,25 @@
   our @auditlog_import_fields
 ```
 
-## rule.csv
+## import_ tables
+
+### rule.csv
 
 ```console
 name: <rulebase_name>_rulebase.csv
-fields (total=25):
-  control_id
-  rule_num
-  rulebase_name
-  rule_ruleid
-  rule_disabled
-  rule_src_neg
-  rule_src
-  rule_src_refs
-  rule_dst_neg
-  rule_dst
-  rule_dst_refs
-  rule_svc_neg
+fields (total=26):
+  control_id        - bigint - id of currently running import (identical for all rules of an import)
+  rule_num          - integer - number of the rule relative to the current import - used for sorting rules within this import
+  rulebase_name     - string - name of the rulebase (used for matching rule to gateway)
+  rule_ruleid       - string - id (unique within gateway, but not globally)
+  rule_disabled     - boolean - is the rule disabled (inactive)?
+  rule_src_neg      - boolean - is the source of the rule negated?
+  rule_src          - string of CSVs with source objects of the rule (including users in format "user[-group]@object")
+  rule_src_refs     - string of CSVs with UIDs of source objects of the rule (including users in format "user[-group]-uid@object-uid")
+  rule_dst_neg      - boolean - is the destination of the rule negated?
+  rule_dst          - string of CSVs with destination objects of the rule
+  rule_dst_refs     - string of CSVs with UIDs of destination objects of the rule 
+  rule_svc_neg      - boolean - is the service of the rule negated?
   rule_svc
   rule_svc_refs
   rule_action
@@ -41,11 +60,12 @@ fields (total=25):
   rule_uid
   rule_head_text
   rule_from_zone
-  rule_to_zone
-  last_change_admin
+  rule_to_zone      
+  last_change_admin - string containing name of the last admin having changed this rule (optional, checkpoint only)
+  parent_rule_uid   - string - UID of a rule this rule belongs to (either layer, domain rules or section)
 ```
 
-## network_objects.csv
+### network_objects.csv
 
 ```console
 name: <mgmt_name>_netzobjekte.csv
@@ -67,7 +87,7 @@ fields (total=15):
   last_change_time
 ```
 
-## services.csv
+### services.csv
 
 ```console
 name: <mgmt_name>_services.csv
@@ -93,7 +113,7 @@ fields (total=19):
   last_change_time
 ```
 
-## users.csv
+### users.csv
 
 ```console
 name: <mgmt_name>_users.csv
@@ -110,7 +130,7 @@ fields (total=10):
   last_change_admin
 ```
 
-## zones.csv
+### zones.csv
 
 ```console
 name: <mgmt_name>_zones.csv

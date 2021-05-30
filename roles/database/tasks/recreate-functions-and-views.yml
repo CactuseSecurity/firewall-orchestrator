@@ -27,6 +27,7 @@
     - fworch-views.sql
     - fworch-api-funcs.sql
     - fworch-grants.sql
+    - fworch-texts.sql
 
 - name: (re)defines functions and views (idempotent)
   postgresql_query:
@@ -55,3 +56,4 @@
     - fworch-views.sql
     - fworch-api-funcs.sql
     - fworch-grants.sql
+    - fworch-texts.sql

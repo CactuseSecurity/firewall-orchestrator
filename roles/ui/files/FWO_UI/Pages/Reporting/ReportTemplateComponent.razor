@@ -15,7 +15,7 @@
                             @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
                             @if (template.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.IsInRole("admin"))
                             {
-                                <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = template; ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
+                                <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = adaptText(template); ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
                                 <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
                             }
                         </div>
@@ -33,7 +33,18 @@
                         }
                     </Template>
                 </Column>
-                <Column Title="@(userConfig.GetText("comment"))" TableItem="ReportTemplate" Field="x => x.Comment" />
+                <Column Title="@(userConfig.GetText("comment"))" TableItem="ReportTemplate" Field="x => x.Comment" >
+                    <Template>
+                        @if (context.Comment.StartsWith("T01"))
+                        {
+                            @(userConfig.GetText(context.Comment))
+                        }
+                        else
+                        {
+                            @context.Comment
+                        }
+                    </Template>
+                </Column>
                 <Column Title="@(userConfig.GetText("creation_date"))" TableItem="ReportTemplate" Field="x => x.CreationDate" />
                 <Column Title="@(userConfig.GetText("filter"))" TableItem="ReportTemplate" Field="x => x.Filter" />
             </Table>
@@ -116,6 +127,15 @@
     {
         reportTemplateInEdit = new ReportTemplate { Filter = filterInput };
         ShowSaveTemplateDialog = true;
+    }
+
+    public ReportTemplate adaptText(ReportTemplate reportTemplate)
+    {
+        if (reportTemplate.Comment.StartsWith("T01"))
+        {
+            reportTemplate.Comment = userConfig.GetText(reportTemplate.Comment);
+        }
+        return reportTemplate;
     }
 
     private async Task SaveTemplate()

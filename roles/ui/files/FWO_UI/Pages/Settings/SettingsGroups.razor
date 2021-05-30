@@ -223,9 +223,9 @@
                 }
             }
         }
-        catch (System.Exception)
+        catch (System.Exception exception)
         {
-            DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5232"), true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), null, true);
         }
         
         CollectSampleGroups();
@@ -237,7 +237,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), userConfig.GetText("E5233"), true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), null, true);
         }
     }
 
@@ -381,11 +381,11 @@
         UiUser user = uiUsers.Find(x => x.Dn == userDn);
         if (user == null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5240"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5240"), true);
         }
         else if (actGroup.Users.Contains(user))
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5241"), true);
+            DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5241"), true);
         }
         else
         {
@@ -395,7 +395,7 @@
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUserToGroup(user.Dn, actGroup.Dn, userConfig.User.Jwt);
                 if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userAdded") == false))
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5242"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5242"), true);
                 }
                 else
                 {
@@ -406,7 +406,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("add_user"), null, true);
+                DisplayMessageInUi(exception, userConfig.GetText("add_user_to_group"), null, true);
             }
         }
     }

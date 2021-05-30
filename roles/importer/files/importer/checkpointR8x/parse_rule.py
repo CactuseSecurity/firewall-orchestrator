@@ -88,10 +88,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
             rule_csv += csv_add_field(str(rule_num), common.csv_delimiter, apostrophe)  # rule_num
             rule_csv += csv_add_field(layer_name, common.csv_delimiter, apostrophe)  # rulebase_name
             rule_csv += csv_add_field('', common.csv_delimiter, apostrophe)  # rule_ruleid is empty
-            rule_disabled = 'False'
-            if 'enabled' in rule and rule['enabled']=='false':
-                rule_disabled = 'True'
-            rule_csv += csv_add_field(rule_disabled, common.csv_delimiter, apostrophe)  # rule_disabled
+            rule_csv += csv_add_field(str(not rule['enabled']), common.csv_delimiter, apostrophe)  # rule_disabled
             rule_csv += csv_add_field(str(rule['source-negate']), common.csv_delimiter, apostrophe)  # src_neg
 
             # SOURCE names

@@ -1,6 +1,9 @@
 
   # install all upgrades between running version and version currently being installed
 
+- name: Add the OS specific varibles
+  include_vars: "{{ ansible_os_family }}.yml"
+
 - name: create upgrade dir
   file:
     path: "{{ fworch_home }}/openldap/upgrade"

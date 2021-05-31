@@ -37,22 +37,22 @@
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true">
             <Template>
-                @((context.SearchUser != null && context.SearchUser != "") ? "\u2714" : "" )
+                @(GlobalConfig.ShowBool(context.SearchUser != null && context.SearchUser != ""))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true">
             <Template>
-                @((context.WriteUser != null && context.WriteUser != "") ? "\u2714" : "" )
+                @(GlobalConfig.ShowBool(context.WriteUser != null && context.WriteUser != ""))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true">
             <Template>
-                @((context.RoleSearchPath != null && context.RoleSearchPath != "") ? "\u2714" : "" )
+                @(GlobalConfig.ShowBool(context.RoleSearchPath != null && context.RoleSearchPath != ""))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true" Filterable="true">
             <Template>
-                @((context.GroupSearchPath != null && context.GroupSearchPath != "") ? "\u2714" : "" )
+                @(GlobalConfig.ShowBool(context.GroupSearchPath != null && context.GroupSearchPath != ""))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
@@ -221,7 +221,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), null, true);
         }
     }
 

@@ -45,11 +45,19 @@
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Email" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("language"))" Field="@(x => x.Language)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("email"))" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("language"))" Field="@(x => x.Language)" Sortable="true" Filterable="true" >
+            <Template>
+                @((context.Language != null && context.Language != "") ? userConfig.GetText(context.Language) : "" )
+            </Template>
+        </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("last_login"))" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("last_pw_change"))" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
+            <Template>
+                @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+            </Template>
+        </Column>
     </Table>
 </div>
 
@@ -89,7 +97,7 @@
                     </div>
                 }
                 <div class="form-group row">
-                    <label for="userEmail" class="col-sm-2 col-form-label col-form-label-sm">Email:</label>
+                    <label for="userEmail" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
                     <div class="col-sm-8">
                         <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
                     </div>
@@ -210,7 +218,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("ui_user"), userConfig.GetText("E5201"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), null, true);
         }
 
         // Get all users from internal ldap
@@ -220,7 +228,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("ui_user"), userConfig.GetText("E5202"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), null, true);
         }
 
         // Get users from uiusers table
@@ -231,7 +239,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("ui_user"), userConfig.GetText("E5203"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_local"), null, true);
         }
 
         // Get the tenants
@@ -241,7 +249,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("ui_user"), userConfig.GetText("E5204"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), null, true);
         }
 
         // Synchronize both
@@ -261,14 +269,7 @@
                 if (relatedUiUser.Email != ldapUser.Email)
                 {
                     relatedUiUser.Email = ldapUser.Email;
-                    try
-                    {
-                        await updateUserInDb(relatedUiUser);
-                    }
-                    catch (System.Exception exception)
-                    {
-                        DisplayMessageInUi(exception, userConfig.GetText("ui_user"), userConfig.GetText("E5205"), false);
-                    }
+                    await updateUserInDb(relatedUiUser);
                 }
             }
             else
@@ -276,14 +277,7 @@
                 // Add new user to UiUsers table
                 ldapUser.setNamesFromDn();
                 ldapUser.PasswordMustBeChanged = false;
-                try
-                {
-                    await addUserToDb(ldapUser);
-                }
-                catch (System.Exception exception)
-                {
-                    DisplayMessageInUi(exception, userConfig.GetText("ui_user"), userConfig.GetText("E5206"), false);
-                }
+                await addUserToDb(ldapUser);
                 uiUsers.Add(ldapUser);
             }
         }
@@ -308,7 +302,7 @@
         UiLdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
         if (internalLdap == null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("ui_user"), userConfig.GetText("E5207"), true);
+            DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5207"), true);
             return;
         }
 
@@ -316,7 +310,7 @@
         MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Address, "", userConfig.User.Jwt);
         if (usersMiddlewareResponse.Status == HttpStatusCode.BadRequest)
         {
-            DisplayMessageInUi(null, userConfig.GetText("ui_user"), userConfig.GetText("E5208"), true);
+            DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
         }
         else
         {
@@ -341,7 +335,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("ui_user"), userConfig.GetText("E5209"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("update_user_local"), null, false);
         }
     }
 
@@ -363,7 +357,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("ui_user"), userConfig.GetText("E5210"), false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_local"), null, false);
         }
     }
 
@@ -416,7 +410,7 @@
                     MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
                     if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userAdded") == false)
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
+                        DisplayMessageInUi(null, userConfig.GetText("add_user_ldap"), userConfig.GetText("E5213"), true);
                     }
                     else
                     {
@@ -434,7 +428,7 @@
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateUser(actUser.Dn, actUser.Email, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userUpdated") == false)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("update_user_ldap"), userConfig.GetText("E5214"), true);
                 }
                 else
                 {

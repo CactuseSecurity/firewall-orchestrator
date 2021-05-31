@@ -57,7 +57,7 @@
             <Template>
                 @if (context.LastImport.Length > 0)
                 {
-                    @(context.LastImport[0].SuccessfulImport);
+                    @(GlobalConfig.ShowBool(context.LastImport[0].SuccessfulImport));
                 }
             </Template>
         </Column>
@@ -92,7 +92,7 @@
                 </div>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("success")):</div>
-                    <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].SuccessfulImport : null)</div>
+                    <div class="m-2">@(actStatus.FirstImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.FirstImport[0].SuccessfulImport) : null)</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("errors")):</div>
@@ -118,7 +118,7 @@
                 </div>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("success")):</div>
-                    <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].SuccessfulImport : null)</div>
+                    <div class="m-2">@(actStatus.LastImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.LastImport[0].SuccessfulImport) : null)</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("errors")):</div>

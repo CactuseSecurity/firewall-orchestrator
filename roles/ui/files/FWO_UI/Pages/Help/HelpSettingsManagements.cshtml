@@ -18,13 +18,17 @@
         <li>Name*: Name of the Mangement. Names ending with "_demo" will be deleted when using the "Remove Sample Data" button</li>
         <li>Comment:</li>
         <li>Device Type*: Out of a list of available types, e.g. Checkpoint R8x or Fortinet 5.x</li>
-        <li>Hostname*: Address of the host (e.g. IP address)</li>
+        <li>Hostname*: Address of the host (either IP address or resolvable name). 
+            For Check Point R8x MDS installations use the address of the MDS server for all domains.</li>
         <li>Port*: Port number of the host</li>
         <li>Import User*:</li>
         <li>Login Secret*:</li>
         <li>Public Key:</li>
-        <li>Config Path: Path of the config file</li>
-        <li>Importer Hostname:</li>
+        <li>Config Path: Path of the config file. 
+            For Check Point R8x MDS installations, the Domain name needs to be given here.</li>
+        <li>Importer Hostname: This must be the name of the server, the import process should run on. 
+            Needs to be individually configured if you want to have multiple distrivuted import modules, 
+            so that not every importer imports all managements..</li>
         <li>Debug Level (0-9):</li>
         <li>Import Disabled: Flag if the data import is disabled</li>
         <li>Force Initial Import:</li>

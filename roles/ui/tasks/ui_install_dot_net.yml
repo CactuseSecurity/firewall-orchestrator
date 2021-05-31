@@ -14,9 +14,8 @@
 
     - name: install ms package list
       #command: "dpkg -i {{ ui_dir }}/{{ dotnet_deb_name }}"
-      dpkg_selections:
-        name: "{{ ui_dir }}/{{ dotnet_deb_name }}"
-        selection: install
+      apt:
+        deb: "{{ ui_dir }}/{{ dotnet_deb_name }}"
 
     - name: remove package list file
       file:

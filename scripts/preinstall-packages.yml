@@ -90,9 +90,8 @@
 
     - name: install ms package list
       #command: "dpkg -i /tmp/packages-microsoft-prod.deb"
-      dpkg_selections:
-        name: /tmp/packages-microsoft-prod.deb
-        selection: install
+      apt:
+        deb: /tmp/packages-microsoft-prod.deb
 
     - name: remove package list file
       file:

@@ -4,7 +4,6 @@ import parse_network, parse_rule, parse_service, parse_user
 import argparse
 import json
 import sys
-#import re
 import logging
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
@@ -49,9 +48,12 @@ logging.debug ("parse_config - args"+ "\nf:" +args.config_file +"\ni: "+ args.im
 if args.rulebase != '':
     for rulebase in config['rulebases']:
         current_layer_name = rulebase['layername']
-        if current_layer_name == args.rulebase:
+        layers_to_be_parsed = args.rulebase.split("/") 
+        # current_layer_name = current_layer_name.replace("/", "__")  # replacing / characters in policy name with "__"
+        if current_layer_name in layers_to_be_parsed:
+            logging.debug("parse_config: found layer to parse: " + current_layer_name)
             found_rulebase = True
-            rule_num, result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[])
+            rule_num, result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[], parent_uid="")
 
 if args.network_objects:
     result = ''

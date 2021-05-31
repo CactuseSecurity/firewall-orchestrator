@@ -1,8 +1,11 @@
 #!/usr/bin/python3
 # library for API get functions
-import requests, json, argparse, pdb
-import requests.packages.urllib3, time, logging, re, sys
+import json, argparse, pdb
+import time, logging, re, sys, logging
 import os
+import requests, requests.packages.urllib3
+import common
+
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 details_level = "full"    # 'standard'
@@ -10,12 +13,10 @@ use_object_dictionary = 'false'
 
 # all obj table names to look at:
 api_obj_types = [
-    'hosts', 'networks', 'groups', 'address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
+    'hosts', 'networks', 'groups', 'address-ranges', 'multicast-address-ranges', 'groups-with-exclusion', 'gateways-and-servers',
     'security-zones', 'dynamic-objects', 'trusted-clients', 'dns-domains',
     'services-tcp', 'services-udp', 'services-sctp', 'services-other', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-icmp', 'services-icmp6' ]
 
-nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']  
-# do not consider: CpmiAnyObject, CpmiGatewayPlain, external 
 svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
@@ -104,54 +105,57 @@ def set_api_url(base_url,testmode,api_supported,hostname):
     return url
 
 
-def collect_uids_from_rule(rule, debug_text):
-    nw_uids_found = []
-    svc_uids_found = []
- 
-    if 'rule-number' in rule:  # standard rule, no section header (layered rules)
-        if 'type' in rule and rule['type'] != 'place-holder':
-            for src in rule["source"]:
-                if src['type'] == 'LegacyUserAtLocation':
-                    nw_uids_found.append(src["location"])
-                elif src['type'] == 'access-role':
-                    if isinstance(src['networks'], str):  # just a single source
-                        if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
-                            nw_uids_found.append(src['networks'])
-                    else:  # more than one source
-                        for nw in src['networks']:
-                            nw_uids_found.append(nw)
-                else:  # standard network objects as source, only here we have an uid value
-                    nw_uids_found.append(src['uid'])
-            for dst in rule["destination"]:
-                nw_uids_found.append(dst['uid'])
-            for svc in rule["service"]:
-                svc_uids_found.append(svc['uid'])
-            #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
-            return (nw_uids_found, svc_uids_found)
-    else: # recurse into rulebase within rule
-        return collect_uids_from_rulebase(rule["rulebase"], debug_text + ", recursion")
+def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
+    # just a guard:
+    if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
+        for src in rule["source"]:
+            if src['type'] == 'LegacyUserAtLocation':
+                nw_uids_found.append(src["location"])
+            elif src['type'] == 'access-role':
+                if isinstance(src['networks'], str):  # just a single source
+                    if src['networks'] != 'any':   # ignore any objects as they do not contain a uid
+                        nw_uids_found.append(src['networks'])
+                else:  # more than one source
+                    for nw in src['networks']:
+                        nw_uids_found.append(nw)
+            else:  # standard network objects as source, only here we have an uid value
+                nw_uids_found.append(src['uid'])
+        for dst in rule["destination"]:
+            nw_uids_found.append(dst['uid'])
+        for svc in rule["service"]:
+            svc_uids_found.append(svc['uid'])
+        #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
+        #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
+    if common.debug_new_uid in nw_uids_found:
+        logging.debug("found " + common.debug_new_uid + " in getter::collect_uids_from_rule")
+    return
 
 
-def collect_uids_from_rulebase(rulebase, debug_text):
-    nw_uids_found = []
-    svc_uids_found = []
+def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_text):
+    lower_nw_uids_found = []
+    lower_svc_uids_found = []
 
     if 'layerchunks' in rulebase:
-        logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
+        # logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
         for layer_chunk in rulebase['layerchunks']:
-            logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + "with uid " + layer_chunk['uid'] )
-            for rule in layer_chunk['rulebase']:
-                (nw_uids_found_in_rule, svc_uids_found_in_rule) = collect_uids_from_rule(rule, debug_text + "calling collect_uids_from_rule - if")
-                if nw_uids_found_in_rule is not None:
-                    nw_uids_found.extend(nw_uids_found_in_rule)
-                if svc_uids_found_in_rule is not None:
-                    svc_uids_found.extend(svc_uids_found_in_rule)
+            if 'rulebase' in layer_chunk:
+                logging.debug ("getter::collect_uids_from_rulebase found chunk " + layer_chunk['name'] + " with uid " + layer_chunk['uid'] )
+                for rule in layer_chunk['rulebase']:
+                    if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
+                        collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
+                    else:
+                        if 'rulebase' in rule:
+                            collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
     else:
         for rule in rulebase:
-            (nw_uids_found, svc_uids_found) = collect_uids_from_rule(rule, debug_text)
+            collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
 
-    #logging.debug ("getter::collect_uids_from_rulebase svc_uids_found: " + str(svc_uids_found))
-    return (nw_uids_found, svc_uids_found)
+    if (debug_text == 'top_level'):
+        # logging.debug ("getter::collect_uids_from_rulebase final nw_uids_found: " + str(nw_uids_found))
+        # logging.debug ("getter::collect_uids_from_rulebase final svc_uids_found: " + str(svc_uids_found))
+        if common.debug_new_uid in nw_uids_found:
+            logging.debug("found " + common.debug_new_uid + " in getter::collect_uids_from_rulebase")
+    return
 
 
 def get_all_uids_of_a_type(object_table, obj_table_names):
@@ -166,7 +170,7 @@ def get_all_uids_of_a_type(object_table, obj_table_names):
 
 
 def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
-    logger = logging.getLogger(__name__)
+    # logger = logging.getLogger(__name__)
     logging.debug ("getter - entering get_broken_object_uids" )
     broken_uids = []
     for uid in all_uids_from_rules:
@@ -180,8 +184,11 @@ def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
 def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
-            for rules_chunk in chunk['rulebase']:
-                get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
+            # logging.debug ("get_inline_layer_names_from_rulebase - chunk:\n" + json.dumps(chunk, indent=2))
+            if 'rulebase' in chunk:
+                # logging.debug("get_inline_layer_names_from_rulebase - chunk: " + str(chunk))
+                for rules_chunk in chunk['rulebase']:
+                    get_inline_layer_names_from_rulebase(rules_chunk, inline_layers)
     else:
         if 'rulebase' in rulebase:
             # logging.debug ( "enrich_config - searching for inline layers in layer " + rulebase['layername'] )
@@ -189,8 +196,66 @@ def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
             for rule in rulebase['rulebase']:
                 if 'inline-layer' in rule:
                     inline_layers.append(rule['inline-layer']['name'])
+                if 'name' in rule and rule['name'] == "Placeholder for domain rules":
+                    logging.debug ("getter - found domain rules reference with uid " + rule["uid"])
 
         if 'rule-number' in rulebase:   # not a rulebase but a single rule
             if 'inline-layer' in rulebase:
                 inline_layers.append(rulebase['inline-layer']['name'])
                 # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
+
+
+def get_layer_from_api (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules):
+    #show_params_rules['name'] = layer_name
+    current_layer_json = "{\n\"layername\": \"" + show_params_rules['name'] + "\",\n"
+    current_layer_json +=  "\"layerchunks\": [\n"
+    current=0
+    total=current+1
+    while (current<total) :
+        show_params_rules['offset']=current
+        rulebase = api_call(api_host, api_port, api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+        # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(rulebase) + "\n")
+        current_layer_json += json.dumps(rulebase)
+        current_layer_json += ",\n"
+        if 'total' in rulebase:
+            total=rulebase['total']
+        else:
+            logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
+                + current_layer_json)
+        current=rulebase['to']
+        logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
+    current_layer_json = current_layer_json[:-2]
+    current_layer_json += "]\n}"
+    # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
+    return current_layer_json
+
+
+# insert domain rule layer after rule_idx within top_ruleset
+def insert_layer_after_place_holder (top_ruleset, domain_ruleset, placeholder_uid):
+    domain_ruleset_json = json.loads(domain_ruleset)
+
+    # serialize domain rule chunks
+    domain_rules_serialized = []
+    for chunk in domain_ruleset_json['layerchunks']:
+        domain_rules_serialized.extend(chunk['rulebase'])
+
+    # set the upper (parent) rule uid for all domain rules:
+    for rule in domain_rules_serialized:
+        rule['parent_rule_uid'] = placeholder_uid
+        logging.debug ("domain_rules_serialized, added parent_rule_uid for rule with uid " + rule['uid'])
+
+    # find the reference (place-holder rule) and insert the domain rules behind it:
+    top_ruleset_json = json.loads(top_ruleset)
+    chunk_idx = 0
+    while chunk_idx<len(top_ruleset_json['layerchunks']):
+        rules = top_ruleset_json['layerchunks'][chunk_idx]['rulebase']
+        rule_idx = 0
+        while rule_idx<len(rules):
+            if rules[rule_idx]['uid'] == placeholder_uid:
+                logging.debug ("insert_layer_after_place_holder - found matching rule uid, "  + placeholder_uid + " == " + rules[rule_idx]['uid'])
+                rules[rule_idx+1:rule_idx+1] = domain_rules_serialized
+                top_ruleset_json['layerchunks'][chunk_idx]['rulebase'] = rules
+            rule_idx += 1
+        chunk_idx += 1
+    # logging.debug("get_config::insert_layer_after_place_holder - result:\n" + json.dumps(top_ruleset_json, indent=2))
+    return json.dumps(top_ruleset_json)

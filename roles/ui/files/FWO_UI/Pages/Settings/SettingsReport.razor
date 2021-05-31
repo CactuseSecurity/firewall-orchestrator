@@ -59,7 +59,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5421"), true);
+            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5421"), false);
         }
     }
 
@@ -73,7 +73,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5422"), true);
+            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), null, true);
         }
     }
 }

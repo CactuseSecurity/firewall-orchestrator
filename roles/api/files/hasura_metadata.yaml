@@ -1557,6 +1557,44 @@ tables:
   table:
     name: objgrp_flat
     schema: public
+- array_relationships:
+  - name: rules
+    using:
+      foreign_key_constraint_on:
+        column: parent_rule_type
+        table:
+          name: rule
+          schema: public
+  select_permissions:
+  - permission:
+      columns:
+      - id
+      - name
+      filter: {}
+    role: auditor
+  - permission:
+      columns:
+      - id
+      - name
+      filter: {}
+    role: importer
+  - permission:
+      allow_aggregations: true
+      columns:
+      - id
+      - name
+      filter: {}
+    role: reporter
+  - permission:
+      allow_aggregations: true
+      columns:
+      - id
+      - name
+      filter: {}
+    role: reporter-viewall
+  table:
+    name: parent_rule_type
+    schema: public
 - delete_permissions:
   - permission:
       filter:
@@ -2436,6 +2474,13 @@ tables:
         table:
           name: rule_nwobj_resolved
           schema: public
+  - name: rules
+    using:
+      foreign_key_constraint_on:
+        column: parent_rule_id
+        table:
+          name: rule
+          schema: public
   - name: rule_services
     using:
       foreign_key_constraint_on:
@@ -2477,6 +2522,12 @@ tables:
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
+  - name: parentRuleTypeByParentRuleType
+    using:
+      foreign_key_constraint_on: parent_rule_type
+  - name: rule
+    using:
+      foreign_key_constraint_on: parent_rule_id
   - name: rule_metadatum
     using:
       manual_configuration:
@@ -2505,77 +2556,81 @@ tables:
   - permission:
       allow_aggregations: true
       columns:
-      - rule_id
-      - last_change_admin
-      - rule_name
-      - mgm_id
+      - action_id
       - active
+      - dev_id
+      - last_change_admin
+      - mgm_id
+      - parent_rule_id
+      - parent_rule_type
+      - rule_action
+      - rule_comment
+      - rule_create
+      - rule_disabled
+      - rule_dst
+      - rule_dst_neg
+      - rule_dst_refs
+      - rule_from_zone
+      - rule_head_text
+      - rule_id
+      - rule_implied
+      - rule_installon
+      - rule_last_seen
+      - rule_name
       - rule_num
       - rule_num_numeric
       - rule_ruleid
-      - rule_uid
-      - rule_disabled
-      - rule_src_neg
-      - rule_dst_neg
-      - rule_svc_neg
-      - action_id
-      - track_id
       - rule_src
-      - rule_dst
-      - rule_svc
+      - rule_src_neg
       - rule_src_refs
-      - rule_dst_refs
+      - rule_svc
+      - rule_svc_neg
       - rule_svc_refs
-      - rule_from_zone
-      - rule_to_zone
-      - rule_action
-      - rule_track
-      - rule_installon
       - rule_time
-      - rule_comment
-      - rule_head_text
-      - rule_implied
-      - rule_create
-      - rule_last_seen
-      - dev_id
+      - rule_to_zone
+      - rule_track
+      - rule_uid
+      - track_id
       filter: {}
     role: auditor
   - permission:
       allow_aggregations: true
       columns:
-      - rule_id
-      - last_change_admin
-      - rule_name
-      - mgm_id
+      - action_id
       - active
+      - dev_id
+      - last_change_admin
+      - mgm_id
+      - parent_rule_id
+      - parent_rule_type
+      - rule_action
+      - rule_comment
+      - rule_create
+      - rule_disabled
+      - rule_dst
+      - rule_dst_neg
+      - rule_dst_refs
+      - rule_from_zone
+      - rule_head_text
+      - rule_id
+      - rule_implied
+      - rule_installon
+      - rule_last_seen
+      - rule_name
       - rule_num
       - rule_num_numeric
       - rule_ruleid
-      - rule_uid
-      - rule_disabled
-      - rule_src_neg
-      - rule_dst_neg
-      - rule_svc_neg
-      - action_id
-      - track_id
       - rule_src
-      - rule_dst
-      - rule_svc
+      - rule_src_neg
       - rule_src_refs
-      - rule_dst_refs
+      - rule_svc
+      - rule_svc_neg
       - rule_svc_refs
-      - rule_from_zone
-      - rule_to_zone
-      - rule_action
-      - rule_track
-      - rule_installon
       - rule_time
-      - rule_comment
-      - rule_head_text
-      - rule_implied
-      - rule_create
-      - rule_last_seen
-      - dev_id
+      - rule_to_zone
+      - rule_track
+      - rule_uid
+      - track_id
       filter:
         mgm_id:
           _in: X-Hasura-visible-managements
@@ -2583,39 +2638,41 @@ tables:
   - permission:
       allow_aggregations: true
       columns:
-      - rule_id
-      - last_change_admin
-      - rule_name
-      - mgm_id
+      - action_id
       - active
+      - dev_id
+      - last_change_admin
+      - mgm_id
+      - parent_rule_id
+      - parent_rule_type
+      - rule_action
+      - rule_comment
+      - rule_create
+      - rule_disabled
+      - rule_dst
+      - rule_dst_neg
+      - rule_dst_refs
+      - rule_from_zone
+      - rule_head_text
+      - rule_id
+      - rule_implied
+      - rule_installon
+      - rule_last_seen
+      - rule_name
       - rule_num
       - rule_num_numeric
       - rule_ruleid
-      - rule_uid
-      - rule_disabled
-      - rule_src_neg
-      - rule_dst_neg
-      - rule_svc_neg
-      - action_id
-      - track_id
       - rule_src
-      - rule_dst
-      - rule_svc
+      - rule_src_neg
       - rule_src_refs
-      - rule_dst_refs
+      - rule_svc
+      - rule_svc_neg
       - rule_svc_refs
-      - rule_from_zone
-      - rule_to_zone
-      - rule_action
-      - rule_track
-      - rule_installon
       - rule_time
-      - rule_comment
-      - rule_head_text
-      - rule_implied
-      - rule_create
-      - rule_last_seen
-      - dev_id
+      - rule_to_zone
+      - rule_track
+      - rule_uid
+      - track_id
       filter: {}
     role: reporter-viewall
   table:
@@ -3903,40 +3960,6 @@ tables:
       foreign_key_constraint_on: tenant_id
   table:
     name: tenant_username
-    schema: public
-- select_permissions:
-  - permission:
-      allow_aggregations: true
-      columns:
-      - text_msg_id
-      - text_msg_ger
-      - text_msg_eng
-      filter: {}
-    role: anonymous
-  - permission:
-      columns:
-      - text_msg_id
-      - text_msg_ger
-      - text_msg_eng
-      filter: {}
-    role: auditor
-  - permission:
-      columns:
-      - text_msg_id
-      - text_msg_ger
-      - text_msg_eng
-      filter: {}
-    role: reporter
-  - permission:
-      allow_aggregations: true
-      columns:
-      - text_msg_id
-      - text_msg_ger
-      - text_msg_eng
-      filter: {}
-    role: reporter-viewall
-  table:
-    name: text_msg
     schema: public
 - object_relationships:
   - name: languageByLanguage

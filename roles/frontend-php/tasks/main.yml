@@ -20,8 +20,18 @@
          phpini: "/etc/php/{{ phpversion }}/apache2/php.ini"
          cliphpini: "/etc/php/{{ phpversion }}/cli/php.ini"
 
-    - name: create backup of php.ini files and link cli php.ini to apache php.ini
-      shell: "cp {{ phpini }} {{ phpini }}.orig && mv {{ cliphpini }} {{ cliphpini }}.orig && cp {{ phpini }} {{ cliphpini }}"
+    - name: create backup of php.ini files
+      copy:
+        src: "{{ item }}"
+        dest: "{{ item }}.orig"
+      loop:
+        - phpini
+        - cliphpini
+
+    - name: link cli php.ini to apache php.ini
+      copy:
+        src: "{{ phpini }}"
+        dest: "{{ cliphpini }}"
 
     - name: edit php.ini
       blockinfile:

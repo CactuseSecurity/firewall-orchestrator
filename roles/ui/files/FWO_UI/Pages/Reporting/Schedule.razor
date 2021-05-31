@@ -6,50 +6,54 @@
 
 @page "/schedule"
 
-<h3>Schedule</h3>
+<h3>@(userConfig.GetText("schedule"))</h3>
 
-<button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">Add</button>
+<button class="btn btn-sm btn-success mb-1" @onclick="() => { scheduledReportInEdit = new ScheduledReport() { RepeatInterval = Interval.Never }; ShowSaveScheduledReportDialog = true; }">@(userConfig.GetText("add"))</button>
 
 <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ScheduledReport" Items="scheduledReports">
-    <Column TableItem="ScheduledReport" Title="Name" Field="@(scheduledReport => scheduledReport.Name)" />
-    <Column TableItem="ScheduledReport" Title="Start Time" Field="@(scheduledReport => scheduledReport.StartTime)" />
-    <Column TableItem="ScheduledReport" Title="Repeat Interval" Field="@(scheduledReport => scheduledReport.RepeatOffset)">
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("action"))">
         <Template>
-            @(context.RepeatInterval != Interval.Never ? context.RepeatOffset : "") @(context.RepeatInterval)
+            @if (context.Owner.DbId == uiUserDbId || authenticationState.User.IsInRole("admin"))
+            {
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
+                </div>
+            }
         </Template>
     </Column>
-    <Column TableItem="ScheduledReport" Title="Template" Field="@(scheduledReport => scheduledReport.Template.Name)" />
-    <Column TableItem="ScheduledReport" Title="Owner" Field="@(scheduledReport => scheduledReport.Owner.Name)" />
-    <Column TableItem="ScheduledReport" Title="Active" Field="@(scheduledReport => scheduledReport.Active)" />
-    <Column TableItem="ScheduledReport" Title="Output Format" Field="@(scheduledReport => scheduledReport.OutputFormat)">
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("name"))" Field="@(scheduledReport => scheduledReport.Name)" />
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("start_time"))" Field="@(scheduledReport => scheduledReport.StartTime)" />
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("repeat_interval"))" Field="@(scheduledReport => scheduledReport.RepeatOffset)">
+        <Template>
+            @(context.RepeatInterval != Interval.Never ? context.RepeatOffset : "") @(userConfig.GetText(context.RepeatInterval.ToString()))
+        </Template>
+    </Column>
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("template"))" Field="@(scheduledReport => scheduledReport.Template.Name)" />
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("owner"))" Field="@(scheduledReport => scheduledReport.Owner.Name)" />
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("active"))" Field="@(scheduledReport => scheduledReport.Active)" >
+            <Template>
+                @(GlobalConfig.ShowBool(context.Active))
+            </Template>
+    </Column>
+    <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("output_format"))" Field="@(scheduledReport => scheduledReport.OutputFormat)">
         <Template>
             @String.Join(", ", context.OutputFormat.ConvertAll(format => format.Name.ToUpperInvariant()))
         </Template>
     </Column>
-        <Column TableItem="ScheduledReport" Title="Actions">
-            <Template>
-                @if (context.Owner.DbId == uiUserDbId || authenticationState.User.IsInRole("admin"))
-                {
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => { scheduledReportInEdit = context; ShowDeleteScheduledReportDialog = true; }">@(userConfig.GetText("delete"))</button>
-                    </div>
-                }
-            </Template>
-        </Column>
 </Table>
 
-<PopUp Large="true" Title="Report Schedule" Show="@(ShowSaveScheduledReportDialog || ShowEditScheduledReportDialog)">
+<PopUp Large="true" Title="@(userConfig.GetText("report_schedule"))" Show="@(ShowSaveScheduledReportDialog || ShowEditScheduledReportDialog)">
     <Body>
         <div>
             <div class="form-group row">
-                <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">Name:</label>
+                <label for="scheduleName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                 <div class="col-sm-8">
                     <input id="scheduleName" type="text" class="form-control form-control-sm" @bind="scheduledReportInEdit.Name" />
                 </div>
             </div>
             <div class="form-group row">
-                <label for="scheduleStartTime" class="col-sm-3 col-form-label col-form-label-sm">Start Time:</label>
+                <label for="scheduleStartTime" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
                 <div class="col-sm-4">
                     <input id="scheduleStartTime" type="time" class="form-control form-control-sm" @bind="scheduledReportInEdit.StartTime" />
                 </div>
@@ -58,22 +62,22 @@
                 </div>
             </div>
             <div class="form-group row">
-                <label for="scheduleRepeatEvery" class="col-sm-3 col-form-label col-form-label-sm">Repeat Every:</label>
+                <label for="scheduleRepeatEvery" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("repeat_every")):</label>
                 <div class="col-sm-4">
                     <input id="scheduleRepeatEvery" type="number" min="1" class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatOffset" />
                 </div>
                 <div class="col-sm-4">
                     <select class="form-control form-control-sm" @bind="scheduledReportInEdit.RepeatInterval">
-                        <option value="@Interval.Never" selected>Never</option>
-                        <option value="@Interval.Days">Day(s)</option>
-                        <option value="@Interval.Weeks">Week(s)</option>
-                        <option value="@Interval.Months">Month(s)</option>
-                        <option value="@Interval.Years">Year(s)</option>
+                        <option value="@Interval.Never" selected>@(userConfig.GetText("Never"))</option>
+                        <option value="@Interval.Days">@(userConfig.GetText("Days"))</option>
+                        <option value="@Interval.Weeks">@(userConfig.GetText("Weeks"))</option>
+                        <option value="@Interval.Months">@(userConfig.GetText("Months"))</option>
+                        <option value="@Interval.Years">@(userConfig.GetText("Years"))</option>
                     </select>
                 </div>
             </div>
             <div class="form-group row">
-                <label for="scheduleTemplate" class="col-sm-3 col-form-label col-form-label-sm">Template:</label>
+                <label for="scheduleTemplate" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("template")):</label>
                 <div class="col-sm-8">
                     <select class="form-control form-control-sm" @bind="scheduledReportInEdit.Template.Id">
                         @foreach (ReportTemplate reportTemplate in reportTemplates)
@@ -84,7 +88,7 @@
                 </div>
             </div>
             <div class="form-group row">
-                <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">Output format:</label>
+                <label for="scheduleOutputFormat" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("output_format")):</label>
                 <div class="col-sm-8">
                     <div class="form-inline justify-content-between">
                         <div class="form-check">
@@ -115,7 +119,7 @@
                 </div>
             </div>
             <div class="form-group row">
-                <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">Active:</label>
+                <label for="scheduleActive" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("active")):</label>
                 <div class="col-sm-8">
                     <input id="scheduleActive" type="checkbox" class="form-control form-control-sm" @bind="scheduledReportInEdit.Active" />
                 </div>
@@ -130,7 +134,7 @@
 
 <PopUp Title="Report Schedule" Show="@ShowDeleteScheduledReportDialog">
     <Body>
-        <p>Do you really want to delete report schedule "@scheduledReportInEdit.Name" ?</p>
+        <p>@(userConfig.GetText("U2002")) "@scheduledReportInEdit.Name" ?</p>
     </Body>
     <Footer>
         <button class="btn btn-sm btn-danger" @onclick="DeleteScheduledReport">@(userConfig.GetText("delete"))</button>
@@ -156,7 +160,7 @@
     ReportTemplate[] reportTemplates = new ReportTemplate[0];
 
     [CascadingParameter]
-    Action<string, string> ShowError { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
@@ -217,7 +221,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Save scheduled report", "Unclassified error.", exception);
-            ShowError("Save scheduled report error", "Unclassified error.");
+            DisplayMessageInUi(exception, userConfig.GetText("save_scheduled_report"), null, false);
         }
     }
 
@@ -248,7 +252,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Edit scheduled report", "Unclassified error.", exception);
-            ShowError("Edit scheduled report error", "Unclassified error.");
+            DisplayMessageInUi(exception, userConfig.GetText("edit_scheduled_report"), null, false);
         }
     }
 
@@ -269,7 +273,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Delete scheduled report", "Unclassified error.", exception);
-            ShowError("Delete scheduled report error", "Unclassified error.");
+            DisplayMessageInUi(exception, userConfig.GetText("delete_scheduled_report"), null, false);
         }
     }
 }

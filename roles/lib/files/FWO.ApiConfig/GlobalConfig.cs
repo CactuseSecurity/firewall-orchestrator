@@ -105,5 +105,10 @@ namespace FWO.ApiConfig
                 Environment.Exit(1); // Exit with error
             }
         }
+
+        public static string ShowBool(bool boolVal)
+        {
+            return (boolVal ? "\u2714" : "\u2716");
+        }
     }
 }

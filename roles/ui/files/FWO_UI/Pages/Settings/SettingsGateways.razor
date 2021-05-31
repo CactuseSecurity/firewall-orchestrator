@@ -36,7 +36,11 @@
                 @context.Management.Name
             </Template>
         </Column>
-        <Column TableItem="Device" Title="@(userConfig.GetText("import_disabled"))" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" />
+        <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" >
+            <Template>
+                @(GlobalConfig.ShowBool(!context.ImportDisabled))
+            </Template>
+        </Column>
     </Table>
 </div>
 

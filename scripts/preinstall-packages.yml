@@ -89,7 +89,10 @@
         mode: "0644"
 
     - name: install ms package list
-      command: "dpkg -i /tmp/packages-microsoft-prod.deb"
+      #command: "dpkg -i /tmp/packages-microsoft-prod.deb"
+      dpkg_selections:
+        name: /tmp/packages-microsoft-prod.deb
+        selection: install
 
     - name: remove package list file
       file:

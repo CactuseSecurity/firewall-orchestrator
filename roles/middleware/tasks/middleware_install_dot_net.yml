@@ -13,7 +13,10 @@
         mode: "0644"
 
     - name: install ms package list
-      command: "dpkg -i {{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+      #command: "dpkg -i {{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+      dpkg_selections:
+        name: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+        selection: install
 
     - name: remove package list file
       file:

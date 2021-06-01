@@ -414,7 +414,7 @@ sub get_import_infos_for_mgm {
 	else { $is_netscreen = 0; }
 
 	#if ($hersteller =~ /check\spoint\sr8x/) { $hersteller = 'checkpointR8x'; }
-	print ("version: $version, hersteller: $hersteller\n");
+	print ("version: $version, manufacturer: $hersteller, ");
 	if ($hersteller =~ /check\spoint/ && $version eq 'R8x') { $hersteller = 'checkpointR8x'; }
 	elsif ($hersteller =~ /check/) { $hersteller = 'checkpoint'; }
 	if ($hersteller =~ /phion/) { $hersteller = 'phion'; }
@@ -1162,7 +1162,7 @@ sub fill_import_tables_from_csv {
 		my $rulebase_name_sanitized = join('__', split /\//, $rb);
 		if ( !grep( /^$rulebase_name_sanitized$/, @rulebase_ar ) ) {
 			@rulebase_ar = (@rulebase_ar, $rulebase_name_sanitized);
-			print ("rulebase_name_sanitized: $rulebase_name_sanitized\n");
+			# print ("rulebase_name_sanitized: $rulebase_name_sanitized\n");
 			$csv_rule_file = $fworch_workdir . '/' . $rulebase_name_sanitized . '_rulebase.csv';
 			print ("rulebase found: $rulebase_name_sanitized, rule_file: $csv_rule_file, device: $d\n");
 			$sqlcode = "COPY import_rule $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";

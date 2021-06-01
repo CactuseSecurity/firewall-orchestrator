@@ -1,0 +1,60 @@
+{
+   // Use IntelliSense to find out which attributes exist for C# debugging
+   // Use hover for the description of the existing attributes
+   // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
+   "version": "0.2.0",
+   "configurations": [
+        {
+            "name": ".NET FWO Test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_test",
+            "program": "/usr/bin/dotnet",
+            // "program": "${workspaceFolder}/roles/test/files/FWO_Test/bin/Debug/net5.0/FWO.Test.dll",
+            "args": ["test"],
+            "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            "name": "Blazor (web)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_UI",
+            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/net5.0/FWO.Ui.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            }
+        },
+        {
+            "name": ".NET Core Attach ",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "MiddlewareServer",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build_middleware",
+            "enableStepFiltering": false,
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net5.0/FWO.Middleware.Server.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false
+        }
+    ]
+}

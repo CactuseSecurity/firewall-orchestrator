@@ -81,10 +81,10 @@ while found_new_inline_layers is True:
 
 # next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
 
-for rulebase in config['rulebases']:
-    for rule in rulebase:
-        if 'type' in rule and rule['type'] == 'place-holder':
-            logging.debug("enrich_config: found domain rule ref: " + rule["uid"])
+# for rulebase in config['rulebases']:
+#     for rule in rulebase:
+#         if 'type' in rule and rule['type'] == 'place-holder':
+#             logging.debug("enrich_config: found domain rule ref: " + rule["uid"])
 
 #################################################################################
 # get object data which is only contained as uid in config by making addtional api calls
@@ -117,7 +117,7 @@ if common.debug_new_uid in nw_uids_from_rulebase:
 for obj_table in config['object_tables']:
     nw_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, common.nw_obj_table_names))
     svc_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, getter.svc_obj_table_names))
-logging.debug ("enrich_config - already parsed nw_objecs:\n" + str(nw_objs_from_obj_tables))
+#logging.debug ("enrich_config - already parsed nw_objects in obj tables:\n" + str(nw_objs_from_obj_tables))
 
 
 # identify all objects (by type) that are missing in objects tables but present in rulebase

@@ -72,13 +72,12 @@ sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_veri
 v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
 
 
-config_json = "{\n"
-config_json += "\"rulebases\": [\n"
+config_json = { 'rulebases': [] }
 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
 
 # read all rulebases:
 for layer in args.layer.split(','):
-    logging.debug ( "get_config - getting layer: " + layer )
+    logging.debug ( "get_config - dealing with layer: " + layer )
     domain_layer_name = ""
     current_layer_json = ""
     show_params_rules['name'] = layer
@@ -88,37 +87,51 @@ for layer in args.layer.split(','):
         (global_layer_name, domain_layer_name) = layer.split('/')
         show_params_rules['name'] = global_layer_name
 
-    current_layer_json = getter.get_layer_from_api (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules)
+    # either get complete rulebase or global layer rulebase if domain rules are present
+    logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
+    # current_layer_json = getter.get_layer_from_api (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules)
+    current_layer_json = getter.get_layer_from_api_as_dict (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
 
     # now handling possible reference to domain rules within global rules
     # if we find the reference, replace it with the domain rules
     if domain_layer_name != "":
         show_params_rules['name'] = domain_layer_name
-        current_layer = json.loads(current_layer_json)
-        if 'layerchunks' in current_layer:
-            for chunk in current_layer["layerchunks"]:
+        # current_layer = json.loads(current_layer_json)
+        
+        # changing layer name to individual combination of global and domain rule
+        # this is necessary for multiple references to global layer
+        current_layer_json['layername'] = layer
+        # current_layer['name'] = layer
+        logging.debug ( "get_config - getting domain rule layer: " + show_params_rules['name'] )
+        domain_rules = getter.get_layer_from_api_as_dict (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
+        # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
+
+        if 'layerchunks' in current_layer_json:
+            for chunk in current_layer_json["layerchunks"]:
                 for rule in chunk['rulebase']:
                     if "type" in rule and rule["type"] == "place-holder":
-                        #logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
-                        domain_rules = getter.get_layer_from_api (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules)
-                        #logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
+                        logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
                         current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
-                        # logging.debug ("substituted domain rules: " + json.dumps(current_layer_json, indent=2) + "\n\n")
+                        # logging.debug ("substituted domain rules with chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
+        # elif 'rulebase' in current_layer_json:
+        #     for rule in current_layer_json['rulebase']:
+        #         if "type" in rule and rule["type"] == "place-holder":
+        #             logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
+        #             logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
+        #             current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
+        #             logging.debug ("substituted domain rules without chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
 
     # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
-    config_json += current_layer_json + ",\n"
-
-config_json = config_json[:-2]  # remove final comma layer from loop and add closing bracket for rules:
-config_json += "],\n"
+    # config_json += current_layer_json + ",\n"
+    config_json['rulebases'].append(current_layer_json)
 
 # leaving rules, moving on to objects
 
-config_json += "\"object_tables\": [\n"
+config_json["object_tables"] = []
 show_params_objs = {'limit':limit,'details-level': details_level}
 
 for obj_type in getter.api_obj_types:
-    config_json += "{\n\"object_type\": \"" + obj_type + "\",\n"
-    config_json += "\"object_chunks\": [\n"
+    object_table = { "object_type": obj_type, "object_chunks": [] }
     current=0
     total=current+1
     show_cmd = 'show-' + obj_type
@@ -126,9 +139,7 @@ for obj_type in getter.api_obj_types:
     while (current<total) :
         show_params_objs['offset']=current
         objects = getter.api_call(api_host, args.port, v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy_string)
-        config_json += json.dumps(objects)
-        # config_json += json.dumps(objects, indent=json_indent)
-        config_json += ",\n"
+        object_table["object_chunks"].append(objects)
         if 'total' in objects  and 'to' in objects:
             total=objects['total']
             current=objects['to']
@@ -137,13 +148,9 @@ for obj_type in getter.api_obj_types:
         else :
             current = total
             logging.debug ( "get_config - "+ obj_type +" total:"+ str(total) )
-    config_json = config_json[:-2]
-    config_json += "]\n},\n" # 'level': 'top::object'\n"
-config_json = config_json[:-2]
-config_json += "]\n" # 'level': 'objects'\n"
-config_json += "}\n" # 'level': 'top'"
+    config_json["object_tables"].append(object_table)
 with open(config_filename, "w") as configfile_json:
-    configfile_json.write(config_json)
+    configfile_json.write(json.dumps(config_json))
 
 #logout_result = getter.api_call(api_host, args.port, base_url, 'logout', {}, sid)
 logout_result = getter.api_call(api_host, args.port, v_url, 'logout', '', sid, ssl_verification, proxy_string)

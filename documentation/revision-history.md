@@ -100,3 +100,6 @@ adding report template format fk and permissions
 - removing
   - php ui 
   - database components not needed for v5 (text_msg, get_text)
+
+### 5.2.3 - 03.06.2021
+- changing rule constraint from mgm_id to dev_id (for rulebases with identical global rules)

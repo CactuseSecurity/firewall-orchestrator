@@ -14,7 +14,8 @@ parser = argparse.ArgumentParser(description='Read configuration from Check Poin
 parser.add_argument('-a', '--hostname', metavar='api_host', required=True, help='Check Point R8x management server')
 parser.add_argument('-w', '--password', metavar='api_password', required=True, help='password for management server')
 parser.add_argument('-m', '--mode', metavar='mode', required=True, help='[domains|packages|layers|generic]')
-parser.add_argument('-c', '--command', metavar='command', required=False, help='generic command to send to the api (needs -m generic)')
+parser.add_argument('-c', '--command', metavar='command', required=False, help='generic command to send to the api (needs -m generic). ' +
+                            'Please note that the command must be written as one word (e.g. show-access-layer instead of show acess-layers).')
 parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='user for connecting to Check Point R8x management server, default=fworch')
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Environment')
@@ -69,14 +70,23 @@ logger.debug ("Domain:"+ args.domain )
 logger.debug ("login:"+ args.user )
 logger.debug ("sid:"+ xsid )
 
-if args.nolimit == 'on':
-    result = getter.api_call(args.hostname, args.port, v_url, api_command, 
-        { "details-level" : api_details_level },
-        xsid, ssl_verification, proxy_string)
-else:
-    result = getter.api_call(args.hostname, args.port, v_url, api_command, 
-        { "limit" : args.limit, "offset" : offset, "details-level" : api_details_level },
-        xsid, ssl_verification, proxy_string)
+payload = { "details-level" : api_details_level }
+if args.nolimit == 'off':
+    payload.update( { "limit" : args.limit, "offset" : offset } )
+
+if args.mode == 'generic': # need to divide command string into command and payload (i.e. parameters)
+    cmd_parts = api_command.split(" ")
+    api_command = cmd_parts[0]
+    idx = 1
+    if len(cmd_parts)>1:
+        payload.pop('limit')
+        payload.pop('offset')
+    while idx < len(cmd_parts):
+        payload.update({cmd_parts[idx]: cmd_parts[idx+1]})
+        idx += 2
+
+result = getter.api_call(args.hostname, args.port, v_url, api_command, payload, xsid, ssl_verification, proxy_string)
+
 if args.debug == "1" or args.debug == "3":
     print ("\ndump of result:\n" + json.dumps(result, indent=4))
 if args.mode == 'packages':

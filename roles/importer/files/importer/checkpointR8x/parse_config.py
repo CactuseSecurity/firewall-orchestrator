@@ -48,9 +48,7 @@ logging.debug ("parse_config - args"+ "\nf:" +args.config_file +"\ni: "+ args.im
 if args.rulebase != '':
     for rulebase in config['rulebases']:
         current_layer_name = rulebase['layername']
-        layers_to_be_parsed = args.rulebase.split("/") 
-        # current_layer_name = current_layer_name.replace("/", "__")  # replacing / characters in policy name with "__"
-        if current_layer_name in layers_to_be_parsed:
+        if current_layer_name == args.rulebase:
             logging.debug("parse_config: found layer to parse: " + current_layer_name)
             found_rulebase = True
             rule_num, result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[], parent_uid="")
@@ -94,7 +92,7 @@ if args.users:
         result += parse_user.csv_dump_user(user_name, user_dict, args.import_id)
 
 if args.rulebase != '' and not found_rulebase:
-    print("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")
+    logging.exception("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")
 else:
     result = result[:-1]  # strip off final line break to avoid empty last line
     print(result)

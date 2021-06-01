@@ -26,6 +26,18 @@
         mode: "0755"
       with_fileglob: "{{ fworch_home }}/importer/*"
 
+    - name: create default /var/{{ product_name }} dirs for importer
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0755"
+      loop:
+        - /var/{{ product_name }}
+        - /var/{{ product_name }}/tmp
+        - /var/{{ product_name }}/import_archive
+
     - name: copy import.conf
       copy:
         src: "import.conf"

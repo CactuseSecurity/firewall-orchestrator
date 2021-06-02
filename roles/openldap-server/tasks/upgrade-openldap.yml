@@ -40,7 +40,7 @@
   become: yes
 
 - name: install ldap upgrades
-  command: ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
+  command: ldapmodify -f {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
   loop: "{{ upgrade_files | sort }}"
   become: yes
 

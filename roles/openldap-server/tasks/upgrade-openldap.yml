@@ -18,17 +18,17 @@
 
 - name: set list of relevant upgrade files (without extension)
   set_fact:
-    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1') ] }}"
+    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | splitext | first ] }}"
   when: |
-    installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1')
+    installed_version < item | basename | splitext | first | splitext | first
     and
-    current_version >= item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1')
+    current_version >= item | basename | splitext | first | splitext | first
   with_fileglob:
     - "../templates/upgrade/*.ldif.j2"
 
 - name: copy the upgrade ldif templates to target
   template:
-    src: "../templates/upgrade/{{ item }}.ldif.j2"
+    src: "upgrade/{{ item }}.ldif.j2"
     dest: "{{ fworch_home }}/openldap/upgrade/{{ item }}.ldif"
   loop: "{{ upgrade_files }}"
   become: yes

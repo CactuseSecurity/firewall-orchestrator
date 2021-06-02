@@ -103,3 +103,9 @@ adding report template format fk and permissions
 
 ### 5.2.2 - 30.05.2021
 - replace description texts of roles in ldap by codes for language translation
+
+### 5.2.3 - 03.06.2021
+- changing rule constraint from mgm_id to dev_id (for rulebases with identical global rules)
+- debug improvements
+- moving temp dir from /tmp to /var/fworch/tmp
+- migrating get_config from text/dict mixed to cleaner dict-only approach

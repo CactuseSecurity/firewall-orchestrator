@@ -39,9 +39,8 @@
     state: stopped
   become: yes
 
-# missing: -n / -b option needs to be specified (which database should be modified?) 0 is config
 - name: install ldap upgrades
-  command: slapadd -F {{ openldap_server_app_path }}/slapd.d -l {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
+  command: ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
   loop: "{{ upgrade_files | sort }}"
   become: yes
 

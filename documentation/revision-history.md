@@ -100,3 +100,6 @@ adding report template format fk and permissions
 - removing
   - php ui 
   - database components not needed for v5 (text_msg, get_text)
+
+### 5.2.2 - 30.05.2021
+- replace description texts of roles in ldap by codes for language translation

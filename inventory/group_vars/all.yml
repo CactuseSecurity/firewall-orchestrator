@@ -12,6 +12,8 @@ installation_mode: new
 run_on_github: false
 without_sample_data: false
 api_docu: false
+# initialize upgrade files list to empty, needed when running in test only mode (-t test):
+upgrade_files: []
 
 ### operating system settings
 user_id: 60320

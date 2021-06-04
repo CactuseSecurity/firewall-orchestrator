@@ -20,8 +20,9 @@
             <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
         }
     </select>
-    <button class="btn btn-sm btn-success" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
 </form>
+<hr />
+<button class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
 
 @code
 {

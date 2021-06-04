@@ -113,3 +113,7 @@ adding report template format fk and permissions
 ### 5.2.4 - 04.06.2021
 - changing db column management.ssh_public_key to nullable
 - adjusting api calls
+
+### 5.2.5 - 04.06.2021
+- new role recertifier
+- adapt rule_metadata table for recertification prototype

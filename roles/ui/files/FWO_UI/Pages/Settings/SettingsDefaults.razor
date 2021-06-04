@@ -13,7 +13,7 @@
 <hr />
 
 <form class="form-inline">
-    <label for="languageSelect" class="col-form-label col-sm-3">@(userConfig.GetText("default_language")):</label>
+    <label for="languageSelect" class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
     <div class="col-sm-2">
         <select id="languageSelect" class="form-control form-control-sm" @bind="selectedDefaultLanguage">
             @foreach (Language language in globalConfig.uiLanguages)
@@ -23,39 +23,70 @@
         </select>
     </div>
 </form>
+<hr />
 <form class="form-inline">
-    <label for="elementsPerFetch" class="col-form-label col-sm-3">@(userConfig.GetText("elements_per_fetch")):</label>
+    <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elements_per_fetch"))*:</label>
     <div class="col-sm-2">
         <input id="elementsPerFetch" type="text" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>
 </form>
 <form class="form-inline">
-    <label for="maxInitFetch" class="col-form-label col-sm-3">@(userConfig.GetText("max_init_fetch_rsb")):</label>
+    <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("max_init_fetch_rsb")):</label>
     <div class="col-sm-2">
         <input id="maxInitFetch" type="text" class="form-control form-control-sm" @bind="maxInitFetch" />
     </div>
 </form>
 <form class="form-inline">
-    <label for="autoFillRightSidebar" class="col-form-label col-sm-3">@(userConfig.GetText("auto_fill_rsb")):</label>
+    <label for="autoFillRightSidebar" class="col-form-label col-sm-4">@(userConfig.GetText("auto_fill_rsb")):</label>
     <div class="col-sm-2">
         <input id="autoFillRightSidebar" type="checkbox" class="form-control form-control-sm" @bind="autoFillRightSidebar">
     </div>
 </form>
+<hr />
 <form class="form-inline">
-    <label for="dataRetentionTime" class="col-form-label col-sm-3">@(userConfig.GetText("data_retention_time")):</label>
+    <label for="dataRetentionTime" class="col-form-label col-sm-4">@(userConfig.GetText("data_retention_time")):</label>
     <div class="col-sm-2">
         <input id="dataRetentionTime" type="text" class="form-control form-control-sm" @bind="dataRetentionTime" />
     </div>
 </form>
+<hr />
 <form class="form-inline">
-    <label for="importSleepTime" class="col-form-label col-sm-3">@(userConfig.GetText("import_sleep_time")):</label>
+    <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("import_sleep_time")):</label>
     <div class="col-sm-2">
         <input id="importSleepTime" type="text" class="form-control form-control-sm" @bind="importSleepTime" />
     </div>
 </form>
+<hr />
+<form class="form-inline">
+    <label for="recertificationPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recert_period")):</label>
+    <div class="col-sm-2">
+        <input id="recertificationPeriod" type="text" class="form-control form-control-sm" @bind="recertificationPeriod" />
+    </div>
+</form>
+<form class="form-inline">
+    <label for="recertificationNoticePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recert_notice_period")):</label>
+    <div class="col-sm-2">
+        <input id="recertificationNoticePeriod" type="text" class="form-control form-control-sm" @bind="recertificationNoticePeriod" />
+    </div>
+</form>
+<form class="form-inline">
+    <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recert_display_period"))*:</label>
+    <div class="col-sm-2">
+        <input id="recertificationDisplayPeriod" type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
+    </div>
+</form>
+<form class="form-inline">
+    <label for="ruleRemovalGracePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("rule_rem_grace_period")):</label>
+    <div class="col-sm-2">
+        <input id="ruleRemovalGracePeriod" type="text" class="form-control form-control-sm" @bind="ruleRemovalGracePeriod" />
+    </div>
+</form>
+<hr />
 <AuthorizeView Roles="admin">
     <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
 </AuthorizeView>
+<br><br>
+<p>@(userConfig.GetText("U5303"))</p>
 
 @code
 {
@@ -68,6 +99,10 @@
     string selectedDefaultLanguage = GlobalConfig.kEnglish;
     int dataRetentionTime = 731;
     int importSleepTime = 40;
+    int recertificationPeriod = 365;
+    int recertificationNoticePeriod = 30;
+    int recertificationDisplayPeriod = 30;
+    int ruleRemovalGracePeriod = 60;
 
     protected override void OnInitialized()
     {
@@ -131,6 +166,46 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5306"), false);
         }
+
+        try
+        {
+            string confValue = config.Get(GlobalConfig.kRecertificationPeriod);
+            recertificationPeriod = (confValue != "" ? Int32.Parse(confValue) : 365);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5307"), false);
+        }
+
+        try
+        {
+            string confValue = config.Get(GlobalConfig.kRecertificationNoticePeriod);
+            recertificationNoticePeriod = (confValue != "" ? Int32.Parse(confValue) : 30);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5308"), false);
+        }
+
+        try
+        {
+            string confValue = config.Get(GlobalConfig.kRecertificationDisplayPeriod);
+            recertificationDisplayPeriod = (confValue != "" ? Int32.Parse(confValue) : 30);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5309"), false);
+        }
+
+        try
+        {
+            string confValue = config.Get(GlobalConfig.kRuleRemovalGracePeriod);
+            ruleRemovalGracePeriod = (confValue != "" ? Int32.Parse(confValue) : 60);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5310"), false);
+        }
     }
 
     private async Task Save()
@@ -141,6 +216,10 @@
         await config.Set(GlobalConfig.kAutoFillRightSidebar, autoFillRightSidebar.ToString());
         await config.Set(GlobalConfig.kDataRetentionTime, dataRetentionTime.ToString());
         await config.Set(GlobalConfig.kImportSleepTime, importSleepTime.ToString());
+        await config.Set(GlobalConfig.kRecertificationPeriod, recertificationPeriod.ToString());
+        await config.Set(GlobalConfig.kRecertificationNoticePeriod, recertificationNoticePeriod.ToString());
+        await config.Set(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriod.ToString());
+        await config.Set(GlobalConfig.kRuleRemovalGracePeriod, ruleRemovalGracePeriod.ToString());
 
         await userConfig.ReloadDefaults(apiConnection);
         DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

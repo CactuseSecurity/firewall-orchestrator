@@ -110,6 +110,6 @@ adding report template format fk and permissions
 - moving temp dir from /tmp to /var/fworch/tmp
 - migrating get_config from text/dict mixed to cleaner dict-only approach
 
-### 5.2.5 - 03.06.2021
+### 5.2.4 - 04.06.2021
 - changing db column management.ssh_public_key to nullable
 - adjusting api calls

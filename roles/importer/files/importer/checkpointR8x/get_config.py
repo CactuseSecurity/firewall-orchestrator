@@ -113,14 +113,6 @@ for layer in args.layer.split(','):
                         logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
                         current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
                         # logging.debug ("substituted domain rules with chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
-        # elif 'rulebase' in current_layer_json:
-        #     for rule in current_layer_json['rulebase']:
-        #         if "type" in rule and rule["type"] == "place-holder":
-        #             logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
-        #             logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
-        #             current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
-        #             logging.debug ("substituted domain rules without chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
-
     # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
     # config_json += current_layer_json + ",\n"
     config_json['rulebases'].append(current_layer_json)

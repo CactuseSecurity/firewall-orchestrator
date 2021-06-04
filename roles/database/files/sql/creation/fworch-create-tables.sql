@@ -166,7 +166,7 @@ Create table "rule_metadata"
 (
 	"rule_metadata_id" BIGSERIAL,
 	"dev_id" Integer NOT NULL,
-	"rule_uid" Text,
+	"rule_uid" Text NOT NULL,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),
 	"rule_first_hit" Timestamp,
@@ -174,8 +174,9 @@ Create table "rule_metadata"
 	"rule_hit_counter" BIGINT,
 	"rule_last_certified" Timestamp,
 	"rule_last_certifier" Integer,
+	"rule_last_certifier_dn" VARCHAR,
 	"rule_owner" Integer,
-	"rule_group_owner" Varchar, -- distinguished name pointing to ldap group
+	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
 	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
 	"last_change_admin" Integer,
  primary key ("rule_metadata_id")

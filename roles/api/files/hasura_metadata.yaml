@@ -2765,6 +2765,7 @@ tables:
       - dev_id
       - last_change_admin
       - rule_last_certifier
+      - rule_last_certifier_dn
       - rule_owner
       - rule_hit_counter
       - rule_metadata_id
@@ -2774,7 +2775,7 @@ tables:
       - rule_last_certified
       - rule_last_hit
       - rule_last_modified
-      - rule_group_owner
+      - rule_owner_dn
     role: importer
   object_relationships:
   - name: device
@@ -2799,8 +2800,9 @@ tables:
       - rule_hit_counter
       - rule_last_certified
       - rule_last_certifier
+      - rule_last_certifier_dn
       - rule_owner
-      - rule_group_owner
+      - rule_owner_dn
       - rule_to_be_removed
       - last_change_admin
       - dev_id
@@ -2813,6 +2815,7 @@ tables:
       - dev_id
       - last_change_admin
       - rule_last_certifier
+      - rule_last_certifier_dn
       - rule_owner
       - rule_hit_counter
       - rule_metadata_id
@@ -2822,9 +2825,28 @@ tables:
       - rule_last_certified
       - rule_last_hit
       - rule_last_modified
-      - rule_group_owner
+      - rule_owner_dn
       filter: {}
     role: importer
+  - permission:
+      columns:
+      - rule_metadata_id
+      - dev_id
+      - rule_uid
+      - rule_created
+      - rule_last_modified
+      - rule_first_hit
+      - rule_last_hit
+      - rule_hit_counter
+      - rule_last_certified
+      - rule_last_certifier
+      - rule_owner
+      - rule_owner_dn
+      - rule_to_be_removed
+      - last_change_admin
+      - rule_last_certifier_dn
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -2832,6 +2854,7 @@ tables:
       - dev_id
       - last_change_admin
       - rule_last_certifier
+      - rule_last_certifier_dn
       - rule_owner
       - rule_hit_counter
       - rule_metadata_id
@@ -2841,7 +2864,7 @@ tables:
       - rule_last_certified
       - rule_last_hit
       - rule_last_modified
-      - rule_group_owner
+      - rule_owner_dn
       filter:
         dev_id:
           _in:
@@ -2859,8 +2882,9 @@ tables:
       - rule_hit_counter
       - rule_last_certified
       - rule_last_certifier
+      - rule_last_certifier_dn
       - rule_owner
-      - rule_group_owner
+      - rule_owner_dn
       - rule_to_be_removed
       - last_change_admin
       - dev_id
@@ -2877,6 +2901,7 @@ tables:
       - dev_id
       - last_change_admin
       - rule_last_certifier
+      - rule_last_certifier_dn
       - rule_owner
       - rule_hit_counter
       - rule_metadata_id
@@ -2886,9 +2911,18 @@ tables:
       - rule_last_certified
       - rule_last_hit
       - rule_last_modified
-      - rule_group_owner
+      - rule_owner_dn
       filter: {}
     role: importer
+  - permission:
+      check: {}
+      columns:
+      - rule_last_certified
+      - rule_last_certifier
+      - rule_last_certifier_dn
+      - rule_to_be_removed
+      filter: {}
+    role: recertifier
 - object_relationships:
   - name: management
     using:

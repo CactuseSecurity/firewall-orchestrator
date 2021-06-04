@@ -108,6 +108,9 @@ BEGIN
 	UPDATE objgrp_flat	SET import_last_seen=i_current_import_id WHERE objgrp_flat_id IN
 		(SELECT obj_id FROM object WHERE mgm_id=i_mgm_id AND active) AND active;
 	RAISE DEBUG 'import_nwobj_refhandler_main - after objgrp_flat UPDATE finished import_nwobj_refhandler_main';
+
+	PERFORM import_nwobj_refhandler_change_rule_nwobj_resolved (i_mgm_id, i_current_import_id);
+
 	RETURN;
 END; 
 $BODY$

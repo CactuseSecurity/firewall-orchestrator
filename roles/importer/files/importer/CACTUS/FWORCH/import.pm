@@ -210,8 +210,8 @@ sub put_ssh_keys_in_place {
 	# debugging
 	# print ("put_ssh_keys_in_place::workdir=$workdir, ssh_public_key=$ssh_public_key, ssh_private_key=$ssh_private_key\n");
 	$fehler_count += (system("$echo_bin \"$ssh_private_key\" > $workdir/$CACTUS::FWORCH::ssh_id_basename") != 0);
-	if (length($ssh_public_key)>5) {
-		# only create public key file if the key is of a reasonable length (otherwise assuming that it is empty)
+	if (defined($ssh_public_key) && $ssh_public_key ne "") {
+		# only create public key file if the key is defined and not empty
 		$fehler_count += (system("$echo_bin \"$ssh_public_key\" > $workdir/$CACTUS::FWORCH::ssh_id_basename.pub") != 0); # only necessary for netscreen
 	}
 	$fehler_count += (system("$chmod_bin 400 $workdir/$CACTUS::FWORCH::ssh_id_basename") != 0);

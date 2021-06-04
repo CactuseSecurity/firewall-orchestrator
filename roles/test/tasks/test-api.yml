@@ -64,6 +64,7 @@
     return_content: yes
   register: api_query_anonymous
   changed_when: false
+  environment: "{{ proxy_env }}"
 
 - debug:
     var: api_query_anonymous
@@ -87,6 +88,7 @@
     return_content: yes
   register: sample_JWT
   changed_when: false
+  environment: "{{ proxy_env }}"
 
 - name: test anonymous api access with JWT
   uri:
@@ -103,6 +105,7 @@
     return_content: yes
   register: api_query_anonymous_with_JWT
   changed_when: false
+  environment: "{{ proxy_env }}"
 
 - debug:
     var: api_query_anonymous_with_JWT
@@ -111,6 +114,17 @@
   debug:
     msg: "ERROR unexpected version test result (does not contain id): {{ api_query_anonymous_with_JWT.content }}"
   when: api_query_anonymous_with_JWT.content is not search('id')
+
+# Todo: this only works if the hasura key is actually installed on the machine running the tests
+- name: read hasura admin secret from file for tests
+  slurp:
+    src: "{{ fworch_secrets_dir }}/hasura_admin_pwd"
+  register: api_hasura_admin_secret
+  become: yes
+
+- name: decode hasura admin secret
+  set_fact:
+    api_hasura_admin_secret: "{{ api_hasura_admin_secret['content'] | b64decode }}"
 
 - name: test hasura-admin api access
   uri:
@@ -127,6 +141,7 @@
     return_content: yes
   register: api_query_admin
   changed_when: false
+  environment: "{{ proxy_env }}"
 
 - debug:
     var: api_query_admin

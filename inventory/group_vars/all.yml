@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.2.3"
+product_version: "5.2.4"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -12,6 +12,8 @@ installation_mode: new
 run_on_github: false
 without_sample_data: false
 api_docu: false
+# initialize upgrade files list to empty, needed when running in test only mode (-t test):
+upgrade_files: []
 
 ### operating system settings
 user_id: 60320

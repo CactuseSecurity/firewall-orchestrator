@@ -1,0 +1,77 @@
+﻿@using FWO.ApiClient
+@using FWO.ApiConfig
+@using FWO.Ui.Services
+
+@page "/settings/recertification"
+@attribute [Authorize(Roles = "admin, recertifier, auditor")]
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("recert_settings"))</h3>
+<hr />
+
+<form class="form-inline">
+    <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recert_display_period")):</label>
+    <div class="col-sm-2">
+        <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
+    </div>
+</form>
+<hr />
+<button class="btn btn-sm btn-primary" @onclick="SaveRecertificationDisplayPeriod">@(userConfig.GetText("save"))</button>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    ConfigDbAccess config;
+    int recertificationDisplayPeriod = 30;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState authState = await authenticationStateTask;
+        UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
+        config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
+        try
+        {
+            string settingsValue = config.Get(GlobalConfig.kRecertificationDisplayPeriod);
+            if (settingsValue != "")
+            {
+                recertificationDisplayPeriod = Int32.Parse(settingsValue);
+            }
+            else
+            {
+                // get default value
+                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection, 0);
+                settingsValue = defaultConfig.Get(GlobalConfig.kRecertificationDisplayPeriod);
+                if (settingsValue != "")
+                {
+                    recertificationDisplayPeriod = Int32.Parse(settingsValue);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("recert_settings"), userConfig.GetText("E5421")+recertificationDisplayPeriod.ToString(), false);
+        }
+    }
+
+    private async Task SaveRecertificationDisplayPeriod()
+    {
+        string recertificationDisplayPeriodString = recertificationDisplayPeriod.ToString();
+        try
+        {
+            await userConfig.ChangeConfigValue(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriodString, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("recert_settings"), userConfig.GetText("U5301"), false);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("recert_settings"), null, true);
+        }
+    }
+}

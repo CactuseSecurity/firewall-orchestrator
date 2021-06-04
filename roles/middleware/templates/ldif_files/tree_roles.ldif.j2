@@ -117,3 +117,14 @@ cn: admin
 uniqueMember:
 description: T0011
 {%- endif %}
+
+
+dn: cn=recertifier,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: recertifier
+uniqueMember:
+description: T0012
+{%- endif %}

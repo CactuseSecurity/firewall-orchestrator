@@ -13,7 +13,10 @@
         <Template>
             <div class="btn-group">
                 <button class="btn btn-sm btn-info" @onclick="async () => { await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; }">@(userConfig.GetText("download"))</button>
-                <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask.Result.User.IsInRole("admin"))
+                {
+                    <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                }
             </div>
         </Template>
     </Column>
@@ -22,7 +25,6 @@
     @*<Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" /> TODO: ADD TYPE*@
     @*<Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" /> TODO: Template (is not always defined - report export)*@
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" />
-
 </Table>
 
 <PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))">
@@ -69,6 +71,9 @@
 {
     [CascadingParameter]
     Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     private List<ReportFile> archivedReports = new List<ReportFile>();
 

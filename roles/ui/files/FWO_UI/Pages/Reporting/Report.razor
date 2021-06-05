@@ -17,56 +17,8 @@
 @inject UserConfig userConfig
 
 @* ==== LEFT SIDEBAR ==== *@
-<Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
-    <div class="p-3">
-        <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
-        <button class="btn btn-sm btn-secondary" 
-            @onclick="() => { 
-                fullDeviceActionIsSelect = DeviceFilter.fullDeviceSelection(managementsReport, fullDeviceActionIsSelect); 
-                if (!fullDeviceActionIsSelect)
-                    deviceSelectButtonText = deviceSelectButtonTextClear;
-                else
-                    deviceSelectButtonText = deviceSelectButtonTextSelect;
-                filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsReport, filterInput);
-            }">
-            @deviceSelectButtonText
-        </button>
-        <br><br>
-
-        @foreach (Management management in managementsReport)
-        {
-            @if (management != null)
-            {
-                <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
-                    @foreach (Device device in management.Devices)
-                    {
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="@device.Id"
-                                @bind="device.selected"
-                                @oninput="() => { 
-                                    device.selected = !device.selected; 
-                                    if (DeviceFilter.areAllDevicesSelected(managementsReport))
-                                    {
-                                        deviceSelectButtonText = deviceSelectButtonTextClear;
-                                        fullDeviceActionIsSelect = false;
-                                    } 
-                                    if (!DeviceFilter.isAnyLSBDeviceFilterSet(managementsReport)) 
-                                    {
-                                        deviceSelectButtonText = deviceSelectButtonTextSelect; 
-                                        fullDeviceActionIsSelect = true;
-                                    } 
-                                    filterInput = DeviceFilter.syncLSBFilterToFilterLine(managementsReport, filterInput); 
-                                }"
-                            />
-                            <label class="form-check-label" for="@device.Id">
-                                @device.Name
-                            </label>
-                        </div>
-                    }
-                </Collapse>
-            }
-        }
-    </div>
+<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+   <DeviceSelection Managements="managementsReport" @bind-FilterInput="filterInput"></DeviceSelection>
 </Sidebar>
 
 @* ==== Middle div ==== *@
@@ -89,7 +41,7 @@
 
     <hr />
 
-    <PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning">
+    <PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning" OnClose="() => ShowNoDeviceSelectedWarning = false">
         <Body>
             <div>
                 <p>@(userConfig.GetText("E1001"))</p>
@@ -120,11 +72,11 @@
                 @switch (currentReport)
                 {
                     case ReportRules rulesReport:
-                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRules="selectedItemsRuleReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></RulesReport>
+                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
                     case ReportChanges changesReport:
-                        <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" SelectedRuleChanges="selectedItemsChangeReportTable" OnSelectedRulesChange="_ => StateHasChanged()"></ChangesReport>
+                        <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRuleChanges="selectedItemsChangeReportTable"></ChangesReport>
                         break;
 
                     case ReportStatistics statisticsReport:
@@ -167,7 +119,7 @@
 </div>
 
 @* ==== RIGHT SIDEBAR ==== *@
-<Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarRightWidth" PositionLeft="false" @bind-Width="sidebarRightWidth">
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="sidebarRightWidth">
     <div class="p-3">
         <div class="card mb-1">
             <div class="card-body text-center p-1">
@@ -180,8 +132,8 @@
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarAll">
-                    <ObjectGroupCollection ReportPage="this" Type="10" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                            NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    <ObjectGroupCollection FetchObjects="FetchContent" Type="10" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                           NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
             <Tab Title="Report">
@@ -189,7 +141,7 @@
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarReport">
-                    <ObjectGroupCollection ReportPage="this" Type="20" InputDataType="Management" Data="managementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                    <ObjectGroupCollection FetchObjects="FetchContent" Type="20" InputDataType="Management" Data="managementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
                                            NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
                                            NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
                                            NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
@@ -201,11 +153,11 @@
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseSidebarRule">
-                    <ObjectGroupCollection ReportPage="this" Type="30" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
-                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                            NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
-                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                            NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                    <ObjectGroupCollection FetchObjects="FetchContent" Type="30" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
+                                           NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                           NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                                           NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                           NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
                 </CascadingValue>
             </Tab>
         </TabSet>
@@ -236,12 +188,6 @@
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
     private bool ShowNoDeviceSelectedWarning = false;
-    //private bool ShowSaveTemplateDialog = false;
-    //private bool ShowEditTemplateDialog = false;
-    //private bool ShowDeleteTemplateDialog = false;
-    //private bool ShowDeleteReportFileDialog = false;
-    //private bool ShowEditScheduledReportDialog = false;
-    //private bool ShowDeleteScheduledReportDialog = false;
 
     private bool autoFillRightSidebar = false;
     private int maxInitFetchRightSidebar = 10;
@@ -253,6 +199,7 @@
     private ReportBase currentReport;
 
     private TabSet rsbTabset;
+    private Sidebar deviceSelectionSidebar;
 
     private int reportFileId = 0;
 
@@ -305,7 +252,7 @@
         });
     }
 
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, int mgmtId = 0, int ruleId = -1)
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, int id = 0)
     {
         const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
 
@@ -349,8 +296,8 @@
                     queryVars = new Dictionary<string, object>()
                     {
                         { "limit", elementsPerFetch },
-                        { "offset", (int)0 },
-                        { "management_id", mgmtId }
+                        { "offset", 0 },
+                        { "management_id", id }
                     };
 
                     break;
@@ -361,7 +308,7 @@
                     {
                         { "limit", elementsPerFetch },
                         { "offset", 0 },
-                        { "mgmIds", mgmtId }
+                        { "mgmIds", id }
                     };
 
                     await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), Connection, callback);
@@ -374,7 +321,7 @@
                     {
                         { "limit", elementsPerFetch },
                         { "offset", (int)0 },
-                        { "rule_id", ruleId }
+                        { "rule_id", id }
                     };
 
                     break;
@@ -416,6 +363,7 @@
 
         // collapse report templates
         reportTemplateControl.Collapse();
+        deviceSelectionSidebar.ToggleCollapse(true);
 
         try
         {

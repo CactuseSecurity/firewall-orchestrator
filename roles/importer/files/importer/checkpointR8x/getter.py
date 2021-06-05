@@ -28,6 +28,8 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
     else:
         request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
+    if r is None:
+        logging.exception("error while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
     return r.json()
 
 
@@ -39,10 +41,9 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
     base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
     if "sid" not in response:
-        print ("getter ERROR: did not receive a sid during login")
-        print ("api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
+        logging.exception("getter ERROR: did not receive a sid during login, " +
+            "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
-        sys.exit(1)
     return response["sid"]
 
 
@@ -204,36 +205,52 @@ def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
                 inline_layers.append(rulebase['inline-layer']['name'])
                 # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
 
-
-def get_layer_from_api (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules):
-    #show_params_rules['name'] = layer_name
-    current_layer_json = "{\n\"layername\": \"" + show_params_rules['name'] + "\",\n"
-    current_layer_json +=  "\"layerchunks\": [\n"
+def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules, layername):
+    current_layer_json = { "layername": layername, "layerchunks": [] }
     current=0
     total=current+1
     while (current<total) :
         show_params_rules['offset']=current
         rulebase = api_call(api_host, api_port, api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
-        # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(rulebase) + "\n")
-        current_layer_json += json.dumps(rulebase)
-        current_layer_json += ",\n"
+        current_layer_json['layerchunks'].append(rulebase)
         if 'total' in rulebase:
             total=rulebase['total']
         else:
             logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
-                + current_layer_json)
+                + str(current_layer_json))
         current=rulebase['to']
         logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
-    current_layer_json = current_layer_json[:-2]
-    current_layer_json += "]\n}"
     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
     return current_layer_json
 
 
-# insert domain rule layer after rule_idx within top_ruleset
-def insert_layer_after_place_holder (top_ruleset, domain_ruleset, placeholder_uid):
-    domain_ruleset_json = json.loads(domain_ruleset)
+# def get_layer_from_api (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules):
+#     #show_params_rules['name'] = layer_name
+#     current_layer_json = "{\n\"layername\": \"" + show_params_rules['name'] + "\",\n"
+#     current_layer_json +=  "\"layerchunks\": [\n"
+#     current=0
+#     total=current+1
+#     while (current<total) :
+#         show_params_rules['offset']=current
+#         rulebase = api_call(api_host, api_port, api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+#         # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(rulebase) + "\n")
+#         current_layer_json += json.dumps(rulebase)
+#         current_layer_json += ",\n"
+#         if 'total' in rulebase:
+#             total=rulebase['total']
+#         else:
+#             logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
+#                 + current_layer_json)
+#         current=rulebase['to']
+#         logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
+#     current_layer_json = current_layer_json[:-2]
+#     current_layer_json += "]\n}"
+#     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
+#     return current_layer_json
 
+
+# insert domain rule layer after rule_idx within top_ruleset
+def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid):
     # serialize domain rule chunks
     domain_rules_serialized = []
     for chunk in domain_ruleset_json['layerchunks']:
@@ -245,7 +262,6 @@ def insert_layer_after_place_holder (top_ruleset, domain_ruleset, placeholder_ui
         logging.debug ("domain_rules_serialized, added parent_rule_uid for rule with uid " + rule['uid'])
 
     # find the reference (place-holder rule) and insert the domain rules behind it:
-    top_ruleset_json = json.loads(top_ruleset)
     chunk_idx = 0
     while chunk_idx<len(top_ruleset_json['layerchunks']):
         rules = top_ruleset_json['layerchunks'][chunk_idx]['rulebase']
@@ -258,4 +274,4 @@ def insert_layer_after_place_holder (top_ruleset, domain_ruleset, placeholder_ui
             rule_idx += 1
         chunk_idx += 1
     # logging.debug("get_config::insert_layer_after_place_holder - result:\n" + json.dumps(top_ruleset_json, indent=2))
-    return json.dumps(top_ruleset_json)
+    return top_ruleset_json

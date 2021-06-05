@@ -1,0 +1,56 @@
+# replace description texts by codes for language translation
+
+dn: cn=anonymous,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0001
+
+dn: cn=middleware-server,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0002
+
+dn: cn=reporter,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0003
+
+dn: cn=reporter-viewall,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0004
+
+dn: cn=importer,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0005
+
+dn: cn=dbbackup,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0006
+
+dn: cn=auditor,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0007
+
+dn: cn=workflow-user,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0008
+
+dn: cn=workflow-admin,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0009
+
+dn: cn=fw-admin,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0010
+
+dn: cn=admin,ou=role,{{ openldap_path }}
+changetype: modify
+replace: description
+description: T0011

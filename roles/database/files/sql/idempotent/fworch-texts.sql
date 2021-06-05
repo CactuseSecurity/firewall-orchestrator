@@ -75,6 +75,8 @@ INSERT INTO txt VALUES ('scheduling', 			'German',	'Terminplanung');
 INSERT INTO txt VALUES ('scheduling', 			'English',	'Scheduling');
 INSERT INTO txt VALUES ('archive', 				'German',	'Archiv');
 INSERT INTO txt VALUES ('archive', 				'English',	'Archive');
+INSERT INTO txt VALUES ('recertification', 		'German',	'Rezertifizierung');
+INSERT INTO txt VALUES ('recertification', 		'English',	'Recertification');
 
 -- reporting
 INSERT INTO txt VALUES ('select_device',		'German', 	'Device(s) auswählen');
@@ -287,7 +289,7 @@ INSERT INTO txt VALUES ('roles',		        'German', 	'Rollen');
 INSERT INTO txt VALUES ('roles',		        'English', 	'Roles');
 INSERT INTO txt VALUES ('defaults',		        'German', 	'Voreinstellungen');
 INSERT INTO txt VALUES ('defaults',		        'English', 	'Defaults');
-INSERT INTO txt VALUES ('standards',		    'German', 	'Standards');
+INSERT INTO txt VALUES ('standards',		    'German', 	'Standardeinstellungen');
 INSERT INTO txt VALUES ('standards',		    'English', 	'Defaults');
 INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellungen');
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
@@ -347,12 +349,14 @@ INSERT INTO txt VALUES ('last_success',         'German', 	'Letzter Erfolg');
 INSERT INTO txt VALUES ('last_success',         'English', 	'Last Success');
 INSERT INTO txt VALUES ('last_import',          'German', 	'Letzter Import');
 INSERT INTO txt VALUES ('last_import',          'English', 	'Last Import');
+INSERT INTO txt VALUES ('last_successful_import','German', 	'Letzter erfolgreicher Import');
+INSERT INTO txt VALUES ('last_successful_import','English', 'Last Successful Import');
+INSERT INTO txt VALUES ('first_import',         'German', 	'Erster Import');
+INSERT INTO txt VALUES ('first_import',         'English', 	'First Import');
 INSERT INTO txt VALUES ('success',              'German', 	'Erfolg');
 INSERT INTO txt VALUES ('success',              'English', 	'Success');
 INSERT INTO txt VALUES ('errors',               'German', 	'Fehler');
 INSERT INTO txt VALUES ('errors',               'English', 	'Errors');
-INSERT INTO txt VALUES ('mgm_name',             'German', 	'MgmName');
-INSERT INTO txt VALUES ('mgm_name',             'English', 	'MgmName');
 INSERT INTO txt VALUES ('start',                'German', 	'Start');
 INSERT INTO txt VALUES ('start',                'English', 	'Start');
 INSERT INTO txt VALUES ('stop',                 'German', 	'Stop');
@@ -453,8 +457,16 @@ INSERT INTO txt VALUES ('auto_fill_rsb',        'German', 	'Komplettes Füllen r
 INSERT INTO txt VALUES ('auto_fill_rsb',        'English', 	'Completely auto-fill right sidebar');
 INSERT INTO txt VALUES ('data_retention_time',  'German', 	'Datenaufbewahrungszeit (in Tagen)');
 INSERT INTO txt VALUES ('data_retention_time',  'English', 	'Data retention time (in days)');
-INSERT INTO txt VALUES ('import_sleep_time',    'German', 	'Import Intervall (in Sekunden)');
+INSERT INTO txt VALUES ('import_sleep_time',    'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('import_sleep_time',    'English', 	'Import sleep time (in seconds)');
+INSERT INTO txt VALUES ('recert_period',        'German', 	'Rezertifizierungsintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_period',        'English',  'Recertification Period (in days)');
+INSERT INTO txt VALUES ('recert_notice_period', 'German', 	'Rezertifizierungserinnerungsintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_notice_period', 'English', 	'Recertification Notice Period (in days)');
+INSERT INTO txt VALUES ('recert_display_period','German', 	'Rezertifizierungsanzeigeintervall (in Tagen)');
+INSERT INTO txt VALUES ('recert_display_period','English', 	'Recertification Display Period (in days)');
+INSERT INTO txt VALUES ('rule_rem_grace_period','German', 	'Frist zum Löschen der Regeln (in Tagen)');
+INSERT INTO txt VALUES ('rule_rem_grace_period','English', 	'Rule Removal Grace Period (in days)');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
 INSERT INTO txt VALUES ('apply_changes',        'German', 	'Änderungen anwenden');
@@ -557,9 +569,28 @@ INSERT INTO txt VALUES ('report_settings',      'German', 	'Reporteinstellungen'
 INSERT INTO txt VALUES ('report_settings',      'English', 	'Report Settings');
 INSERT INTO txt VALUES ('change_language',      'German', 	'Ändern der Passworteinstellungen');
 INSERT INTO txt VALUES ('change_language',      'English', 	'Change Language');
+INSERT INTO txt VALUES ('recert_settings',      'German', 	'Rezertifizierungseinstellungen');
+INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Settings');
 
 
--- user messages (0-999: General, 1000-1999: Reporting, 2000-2999: Schedule, 3000-3999: Archive, 5000-5999: Settings)
+-- text codes (roughly) categorized: 
+-- U: user texts (explanation or confirmation texts)
+-- E: error texts
+-- T: texts from external sources (Ldap, other database tables)
+-- H: help pages (tbd)
+-- 0000-0999: General
+-- 1000-1999: Reporting
+-- 2000-2999: Scheduling
+-- 3000-3999: Archive
+-- 4000-4999: Recertification
+-- 5000-5999: Settings
+--            5000-5099: general
+--            5100-5199: devices
+--            5200-5299: authorization
+--            5300-5399: defaults
+--            5400-5499: personal settings
+
+-- user messages
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage löschen wollen: ');
 INSERT INTO txt VALUES ('U1002', 'English', 'Do you really want to delete report template');
 
@@ -595,10 +626,12 @@ INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen geändert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
 INSERT INTO txt VALUES ('U5302', 'German',  'Einstellungen geändert.');
 INSERT INTO txt VALUES ('U5302', 'English', 'Policy changed.');
+INSERT INTO txt VALUES ('U5303', 'German',  '* Einstellungen können vom Nutzer in den persönlichen Einstellungen überschrieben werden.');
+INSERT INTO txt VALUES ('U5303', 'English', '* Settings can be overwritten by user in personal settings.');
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort geändert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
 
--- error messages (1-999: General, 1000-1999: Reporting, 2000-2999: Schedule, 3000-3999: Archive, 5000-5999: Settings)
+-- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
 INSERT INTO txt VALUES ('E0001', 'English', 'Unclassified error: ');
 INSERT INTO txt VALUES ('E0002', 'German',  'Für Details in den Log-Dateien nachsehen!');
@@ -609,10 +642,14 @@ INSERT INTO txt VALUES ('E0004', 'German',  'Ungenügende Zugriffsrechte');
 INSERT INTO txt VALUES ('E0004', 'English', 'Insufficient access rights');
 INSERT INTO txt VALUES ('E0011', 'German',  'Gültiger Nutzer aber keine Rolle zugeordnet. Bitte Administrator kontaktieren');
 INSERT INTO txt VALUES ('E0011', 'English', 'Valid user but no role assigned. Please contact administrator');
+INSERT INTO txt VALUES ('E0012', 'German',  'Ungültige Anmeldedaten. Nutzername darf nicht leer sein');
+INSERT INTO txt VALUES ('E0012', 'English', 'Invalid credentials. Username must not be empty');
+INSERT INTO txt VALUES ('E0013', 'German',  'Ungültige Anmeldedaten');
+INSERT INTO txt VALUES ('E0013', 'English', 'Invalid credentials');
 
 INSERT INTO txt VALUES ('E1001', 'German',  'Vor dem Generieren des Reports bitte mindestens ein Device auf der linken Seite auswählen');
 INSERT INTO txt VALUES ('E1001', 'English', 'Please select at least one device in the left side-bar before generating a report');
-INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum exportieren. Bitte zuerst Report generieren!');
+INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum Exportieren. Bitte zuerst Report generieren!');
 INSERT INTO txt VALUES ('E1002', 'English', 'No generated report to export. Please generate report first!');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'Löschen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst löschen wenn möglich');
@@ -705,18 +742,26 @@ INSERT INTO txt VALUES ('E5263', 'English', 'Pattern Length has to be >= 0');
 INSERT INTO txt VALUES ('E5264', 'German',  'Es gibt bereits eine LDAP-Verbindung mit derselben Adresse und Port');
 INSERT INTO txt VALUES ('E5264', 'English', 'There is already an LDAP connection with the same address and port');
 
-INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration für defaultLanguage konnte nicht gelesen werden: Wert auf English gesetzt');
-INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for defaultLanguage: taking default English');
-INSERT INTO txt VALUES ('E5302', 'German',  'Konfiguration für elementsPerFetch konnte nicht gelesen werden: Wert auf 100 gesetzt');
-INSERT INTO txt VALUES ('E5302', 'English', 'Error reading Config for elementsPerFetch: taking value 100');
-INSERT INTO txt VALUES ('E5303', 'German',  'Konfiguration für maxInitFetch konnte nicht gelesen werden: Wert auf 10 gesetzt');
-INSERT INTO txt VALUES ('E5303', 'English', 'Error reading Config for maxInitFetch: taking value 10');
-INSERT INTO txt VALUES ('E5304', 'German',  'Konfiguration für AutoFillRightSidebar konnte nicht gelesen werden: Wert auf false gesetzt');
-INSERT INTO txt VALUES ('E5304', 'English', 'Error reading Config for AutoFillRightSidebar: taking value false');
-INSERT INTO txt VALUES ('E5305', 'German',  'Konfiguration für dataRetentionTime konnte nicht gelesen werden: Wert auf 731 gesetzt');
-INSERT INTO txt VALUES ('E5305', 'English', 'Error reading Config for dataRetentionTime: taking value 731');
-INSERT INTO txt VALUES ('E5306', 'German',  'Konfiguration für importSleepTime konnte nicht gelesen werden: Wert auf 40 gesetzt');
-INSERT INTO txt VALUES ('E5306', 'English', 'Error reading Config for importSleepTime: taking value 40');
+INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration für Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
+INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');
+INSERT INTO txt VALUES ('E5302', 'German',  'Konfiguration für pro Abruf geholte Elemente konnte nicht gelesen werden: Wert auf 100 gesetzt');
+INSERT INTO txt VALUES ('E5302', 'English', 'Error reading Config for elements per fetch: taking value 100');
+INSERT INTO txt VALUES ('E5303', 'German',  'Konfiguration für Max initiale Abrufe rechte Randleiste konnte nicht gelesen werden: Wert auf 10 gesetzt');
+INSERT INTO txt VALUES ('E5303', 'English', 'Error reading Config for Max initial fetches right sidebar: taking value 10');
+INSERT INTO txt VALUES ('E5304', 'German',  'Konfiguration für Komplettes Füllen rechte Randleiste konnte nicht gelesen werden: Wert auf false gesetzt');
+INSERT INTO txt VALUES ('E5304', 'English', 'Error reading Config for Completely auto-fill right sidebar: taking value false');
+INSERT INTO txt VALUES ('E5305', 'German',  'Konfiguration für Datenaufbewahrungszeit konnte nicht gelesen werden: Wert auf 731 gesetzt');
+INSERT INTO txt VALUES ('E5305', 'English', 'Error reading Config for Data retention time: taking value 731');
+INSERT INTO txt VALUES ('E5306', 'German',  'Konfiguration für Import Intervall konnte nicht gelesen werden: Wert auf 40 gesetzt');
+INSERT INTO txt VALUES ('E5306', 'English', 'Error reading Config for Import sleep time: taking value 40');
+INSERT INTO txt VALUES ('E5307', 'German',  'Konfiguration für Rezertifizierungsintervall konnte nicht gelesen werden: Wert auf 365 gesetzt');
+INSERT INTO txt VALUES ('E5307', 'English', 'Error reading Config for Recertification Period: taking value 365');
+INSERT INTO txt VALUES ('E5308', 'German',  'Konfiguration für Rezertifizierungserinnerungsintervall konnte nicht gelesen werden: Wert auf 30 gesetzt');
+INSERT INTO txt VALUES ('E5308', 'English', 'Error reading Config for Recertification Notice Period: taking value 30');
+INSERT INTO txt VALUES ('E5309', 'German',  'Konfiguration für Rezertifizierungsanzeigeintervall konnte nicht gelesen werden: Wert auf 30 gesetzt');
+INSERT INTO txt VALUES ('E5309', 'English', 'Error reading Config for Recertification Display Period: taking value 30');
+INSERT INTO txt VALUES ('E5310', 'German',  'Konfiguration für Frist zum Löschen der Regeln konnte nicht gelesen werden: Wert auf 60 gesetzt');
+INSERT INTO txt VALUES ('E5310', 'English', 'Error reading Config for Rule Removal Grace Period: taking value 60');
 INSERT INTO txt VALUES ('E5311', 'German',  'Konfiguration für minLength konnte nicht gelesen werden: Wert auf 10 gesetzt');
 INSERT INTO txt VALUES ('E5311', 'English', 'Error reading Config for minLength: taking value 10');
 INSERT INTO txt VALUES ('E5312', 'German',  'Konfiguration für UpperCaseRequired konnte nicht gelesen werden: Wert auf false gesetzt');
@@ -746,8 +791,8 @@ INSERT INTO txt VALUES ('E5414', 'German',  'Passwort muss mindestens eine Ziffe
 INSERT INTO txt VALUES ('E5414', 'English', 'Password must contain at least one number');
 INSERT INTO txt VALUES ('E5415', 'German',  'Passwort muss mindestens ein Sonderzeichen enthalten (!?(){}=~$%&#*-+.,_)');
 INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one special character (!?(){}=~$%&#*-+.,_)');
-INSERT INTO txt VALUES ('E5421', 'German',  'Schlüssel nicht gefunden oder Wert nicht konvertierbar: Wert wird auf 100 gesetzt');
-INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value 100');
+INSERT INTO txt VALUES ('E5421', 'German',  'Schlüssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
+INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
 
 -- role descriptions
 INSERT INTO txt VALUES ('T0001', 'German',  'kann nur die Anmeldeseite und Systemzustand sehen');
@@ -758,20 +803,22 @@ INSERT INTO txt VALUES ('T0003', 'German',  'Reporter mit Zugang zu grundlegende
 INSERT INTO txt VALUES ('T0003', 'English', 'reporters have access to basic tables (stm_...) and limited rights for object and rule tables depending on the visible devices for the tenant the user belongs to');
 INSERT INTO txt VALUES ('T0004', 'German',  'Reporter mit vollem Lesezugriff auf alle Devices');
 INSERT INTO txt VALUES ('T0004', 'English', 'reporter role for full read access to all devices');
-INSERT INTO txt VALUES ('T0005', 'German',  'Nutzer zum importieren von Konfigurationsänderungen in die Datenbank');
+INSERT INTO txt VALUES ('T0005', 'German',  'Nutzer zum Importieren von Konfigurationsänderungen in die Datenbank');
 INSERT INTO txt VALUES ('T0005', 'English', 'users that can import config changes into the database');
-INSERT INTO txt VALUES ('T0006', 'German',  'Nutzer zum lesen der Datenbanktabellen für Backups');
+INSERT INTO txt VALUES ('T0006', 'German',  'Nutzer zum Lesen der Datenbanktabellen für Backups');
 INSERT INTO txt VALUES ('T0006', 'English', 'users that are able to read data tables for backup purposes');
 INSERT INTO txt VALUES ('T0007', 'German',  'Nutzer mit vollem Lesezugriff auf alle Daten und Einstellungen (in der UI), aber ohne jegliche Schreibrechte');
 INSERT INTO txt VALUES ('T0007', 'English', 'users that can view all data & settings (in the UI) but cannot make any changes');
-INSERT INTO txt VALUES ('T0008', 'German',  '(für zukünftige Anwendung) Nutzer zum beantragen von Firewall Changes');
+INSERT INTO txt VALUES ('T0008', 'German',  '(für zukünftige Anwendung) Nutzer zum Beantragen von Firewall Changes');
 INSERT INTO txt VALUES ('T0008', 'English', '(for future use) users who can request firewall changes');
-INSERT INTO txt VALUES ('T0009', 'German',  '(für zukünftige Anwendung) Nutzer zum anlegen von change request workflows');
+INSERT INTO txt VALUES ('T0009', 'German',  '(für zukünftige Anwendung) Nutzer zum Anlegen von change request workflows');
 INSERT INTO txt VALUES ('T0009', 'English', '(for future use) users who can create change request workflows');
-INSERT INTO txt VALUES ('T0010', 'German',  'Nutzer zum dokumentieren von offenen Changes');
+INSERT INTO txt VALUES ('T0010', 'German',  'Nutzer zum Dokumentieren von offenen Changes');
 INSERT INTO txt VALUES ('T0010', 'English', 'users who can document open changes');
 INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den Firewall Orchestrator');
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
+INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
+INSERT INTO txt VALUES ('T0012', 'English', 'users that have the right to recertify rules');
 
 -- template comments
 INSERT INTO txt VALUES ('T0101', 'German',  'Aktuell aktive Regeln aller Gateways');

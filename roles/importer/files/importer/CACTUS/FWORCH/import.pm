@@ -210,8 +210,8 @@ sub put_ssh_keys_in_place {
 	# debugging
 	# print ("put_ssh_keys_in_place::workdir=$workdir, ssh_public_key=$ssh_public_key, ssh_private_key=$ssh_private_key\n");
 	$fehler_count += (system("$echo_bin \"$ssh_private_key\" > $workdir/$CACTUS::FWORCH::ssh_id_basename") != 0);
-	if (length($ssh_public_key)>5) {
-		# only create public key file if the key is of a reasonable length (otherwise assuming that it is empty)
+	if (defined($ssh_public_key) && $ssh_public_key ne "") {
+		# only create public key file if the key is defined and not empty
 		$fehler_count += (system("$echo_bin \"$ssh_public_key\" > $workdir/$CACTUS::FWORCH::ssh_id_basename.pub") != 0); # only necessary for netscreen
 	}
 	$fehler_count += (system("$chmod_bin 400 $workdir/$CACTUS::FWORCH::ssh_id_basename") != 0);
@@ -414,7 +414,7 @@ sub get_import_infos_for_mgm {
 	else { $is_netscreen = 0; }
 
 	#if ($hersteller =~ /check\spoint\sr8x/) { $hersteller = 'checkpointR8x'; }
-	print ("version: $version, hersteller: $hersteller\n");
+	print ("version: $version, manufacturer: $hersteller, ");
 	if ($hersteller =~ /check\spoint/ && $version eq 'R8x') { $hersteller = 'checkpointR8x'; }
 	elsif ($hersteller =~ /check/) { $hersteller = 'checkpoint'; }
 	if ($hersteller =~ /phion/) { $hersteller = 'phion'; }
@@ -1162,7 +1162,7 @@ sub fill_import_tables_from_csv {
 		my $rulebase_name_sanitized = join('__', split /\//, $rb);
 		if ( !grep( /^$rulebase_name_sanitized$/, @rulebase_ar ) ) {
 			@rulebase_ar = (@rulebase_ar, $rulebase_name_sanitized);
-			print ("rulebase_name_sanitized: $rulebase_name_sanitized\n");
+			# print ("rulebase_name_sanitized: $rulebase_name_sanitized\n");
 			$csv_rule_file = $fworch_workdir . '/' . $rulebase_name_sanitized . '_rulebase.csv';
 			print ("rulebase found: $rulebase_name_sanitized, rule_file: $csv_rule_file, device: $d\n");
 			$sqlcode = "COPY import_rule $fields FROM STDIN DELIMITER '$CACTUS::FWORCH::csv_delimiter' CSV";

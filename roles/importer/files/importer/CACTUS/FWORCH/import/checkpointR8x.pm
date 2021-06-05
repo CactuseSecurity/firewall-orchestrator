@@ -74,8 +74,8 @@ sub parse_config {
 		}
 		close FH;
 		if ($empty_flag == 1){
-				print ("unlink users_csv file $users_csv\n");
-				unlink $users_csv;
+			# print ("unlinking users_csv file $users_csv\n");
+			unlink $users_csv;
 		}
 	}
 	
@@ -145,9 +145,13 @@ sub copy_config_from_mgm_to_iso {
 	$get_cmd = "$python_bin $get_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base' -d $debug_level";
 	$enrich_cmd = "$python_bin $enrich_config_bin -a $api_hostname -w '$pwd' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -c '$cfg_dir/$obj_file_base' -d $debug_level";
 
-	print("getting config with command: $get_cmd\n");
+	if ($debug_level>0) {
+		print("getting config with command: $get_cmd\n");
+	}
 	$return_code = system($get_cmd); if ( $return_code != 0 ) { $fehler_count++; }
-	print("enriching config with command:   $enrich_cmd\n");
+	if ($debug_level>0) {
+		print("enriching config with command:   $enrich_cmd\n");
+	}
 	$return_code = system($enrich_cmd); if ( $return_code != 0 ) { $fehler_count++; }
 	return ( $fehler_count, "$cfg_dir/$obj_file_base,$cfg_dir/$layer_name");
 }

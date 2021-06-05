@@ -58,6 +58,8 @@ namespace FWO.Report
 
         public readonly DynGraphqlQuery Query;
 
+        private string htmlExport = "";
+
         // Pdf converter
         protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
 
@@ -83,11 +85,15 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
-            HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-            HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
-            HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToString());
-            return HtmlTemplate.ToString();
+            if (htmlExport == "")
+            {
+                HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
+                HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
+                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToString());
+                htmlExport = HtmlTemplate.ToString();
+            }
+            return htmlExport;
         }
 
         public virtual byte[] ToPdf()
@@ -95,14 +101,16 @@ namespace FWO.Report
             // HTML
             string html = ExportToHtml();
 
+            GlobalSettings globalSettings = new GlobalSettings
+            {
+                ColorMode = ColorMode.Color,
+                Orientation = Orientation.Landscape,
+                PaperSize = PaperKind.A4
+            };
+
             HtmlToPdfDocument doc = new HtmlToPdfDocument()
             {
-                GlobalSettings =
-                {
-                    ColorMode = ColorMode.Color,
-                    Orientation = Orientation.Landscape,
-                    PaperSize = PaperKind.A4Plus,
-                },
+                GlobalSettings = globalSettings,
                 Objects =
                 {
                     new ObjectSettings()

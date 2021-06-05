@@ -1,16 +1,22 @@
 ﻿query getUsersInReport(
   $mgmIds: [Int!]
+  $importId: bigint
   $ruleIds: [bigint!]!
   $limit: Int
   $offset: Int
 ) {
-  management(where: {mgm_id: {_in: $mgmIds}}) {
+  management(where: { mgm_id: { _in: $mgmIds } }) {
     name: mgm_name
     id: mgm_id
     reportUserObjects: rule_user_resolveds(
       limit: $limit
       offset: $offset
-      where: {rule_id: {_in: $ruleIds}}, distinct_on: [user_id]
+      where: {
+        rule_id: { _in: $ruleIds }
+        created: { _lte: $importId }
+        last_seen: { _gte: $importId }
+      }
+      distinct_on: [user_id]
     ) {
       usr {
         ...userDetails

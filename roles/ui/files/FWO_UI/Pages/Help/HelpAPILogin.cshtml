@@ -1,0 +1,30 @@
+﻿@page "/help/API/login"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Login</h3>
+    The middleware server provides the JWT for authentication against the API.
+
+    <h4>Get JWT with correct login</h4>
+    <pre>
+        curl --insecure --request POST \
+        --url https://localhost:8888/AuthenticateUser/ \
+        --header 'content-type: application/json' \
+        --data '{"Username":"user1_demo", "Password": "cactus1"}'
+    </pre>
+
+    <h4>Error with incorrect login</h4>
+    <pre>
+        curl --insecure --request POST \
+        --url https://localhost:8888/AuthenticateUser/ \
+        --header 'content-type: application/json' \
+        --data '{"Username":"user1_demo", "Password": "wrong-pwd"}'
+    </pre>
+</div>

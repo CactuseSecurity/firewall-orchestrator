@@ -189,7 +189,7 @@ Create table "rule_svc_resolved"
 	"rule_id" BIGINT NOT NULL,
 	"svc_id" BIGINT NOT NULL,
 	"created" BIGINT NOT NULL,
-	"last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("mgm_id","rule_id","svc_id")
 );
 
@@ -199,7 +199,7 @@ Create table "rule_nwobj_resolved"
 	"rule_id" BIGINT NOT NULL,
 	"obj_id" BIGINT NOT NULL,
 	"created" BIGINT NOT NULL,
-	"last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("mgm_id","rule_id","obj_id")
 );
 
@@ -209,7 +209,7 @@ Create table "rule_user_resolved"
 	"rule_id" BIGINT NOT NULL,
 	"user_id" BIGINT NOT NULL,
 	"created" BIGINT NOT NULL,
-	"last_seen" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("mgm_id","rule_id","user_id")
 );
 

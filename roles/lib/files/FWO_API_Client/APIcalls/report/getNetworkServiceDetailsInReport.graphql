@@ -14,7 +14,7 @@
       where: {
         rule_id: { _in: $ruleIds }
         created: { _lte: $importId }
-        last_seen: { _gte: $importId }
+        removed: { _gte: $importId }
       }
       distinct_on: [svc_id]
     ) {

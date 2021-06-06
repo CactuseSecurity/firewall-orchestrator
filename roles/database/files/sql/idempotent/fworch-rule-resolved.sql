@@ -15,7 +15,7 @@ DECLARE
 BEGIN 
     SELECT INTO r_search * FROM rule_nwobj_resolved WHERE mgm_id=i_mgm_id AND rule_id=i_rule_id AND obj_id=i_nw_obj_id;
     IF NOT FOUND THEN
-        INSERT INTO rule_nwobj_resolved (mgm_id, rule_id, obj_id, created, last_seen) VALUES (i_mgm_id, i_rule_id, i_nw_obj_id, i_current_import_id, i_current_import_id);
+        INSERT INTO rule_nwobj_resolved (mgm_id, rule_id, obj_id, created) VALUES (i_mgm_id, i_rule_id, i_nw_obj_id, i_current_import_id, i_current_import_id);
     END IF;
 	IF is_obj_group(i_nw_obj_id) THEN -- add all members seperately
         FOR i_member IN
@@ -41,7 +41,7 @@ DECLARE
 BEGIN 
     SELECT INTO i_svc_id_searched svc_id FROM rule_svc_resolved WHERE mgm_id=i_mgm_id AND rule_id=i_rule_id AND svc_id=i_svc_id;
     IF NOT FOUND THEN
-        INSERT INTO rule_svc_resolved (mgm_id, rule_id, svc_id, created, last_seen) VALUES (i_mgm_id, i_rule_id, i_svc_id, i_current_import_id, i_current_import_id);
+        INSERT INTO rule_svc_resolved (mgm_id, rule_id, svc_id, created) VALUES (i_mgm_id, i_rule_id, i_svc_id, i_current_import_id);
     END IF;
 	IF is_svc_group(i_svc_id) THEN -- add all flat group members seperately
         FOR i_member IN
@@ -67,7 +67,7 @@ DECLARE
 BEGIN 
     SELECT INTO i_usr_id_searched user_id FROM rule_user_resolved WHERE mgm_id=i_mgm_id AND rule_id=i_rule_id AND user_id=i_usr_id;
     IF NOT FOUND THEN
-        INSERT INTO rule_user_resolved (mgm_id, rule_id, user_id, created, last_seen) VALUES (i_mgm_id, i_rule_id, i_usr_id, i_current_import_id, i_current_import_id);
+        INSERT INTO rule_user_resolved (mgm_id, rule_id, user_id, created) VALUES (i_mgm_id, i_rule_id, i_usr_id, i_current_import_id);
     END IF;
 	IF is_user_group(i_usr_id) THEN -- add all flat group members seperately
         FOR i_member IN
@@ -106,39 +106,23 @@ BEGIN
     RAISE DEBUG 'import_nwobj_refhandler_change_rule_nwobj_resolved - 2, prev_import_id=%', cast(i_prev_import_id as VARCHAR);
 
     BEGIN
-    -- mark only those objects as still resolved for a rule which are not related to any objects changes in current import:
-    UPDATE rule_nwobj_resolved SET last_seen=i_current_import_id 
-        WHERE 
-            mgm_id=i_mgm_id AND last_seen=i_prev_import_id AND 
-            NOT (obj_id IN (SELECT old_obj_id FROM changelog_object WHERE NOT old_obj_id IS NULL AND control_id=i_current_import_id AND mgm_id=i_mgm_id) 
-                OR 
-                obj_id IN (SELECT objgrp_flat_member_id FROM changelog_object LEFT JOIN objgrp_flat ON (old_obj_id=objgrp_flat_id) 
-                    WHERE change_action <> 'I' AND control_id=i_current_import_id AND mgm_id=i_mgm_id));
-    EXCEPTION
-        WHEN others THEN
-            raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved - UPDATE - uncommittable state. Rolling back';
-            raise notice '% %', SQLERRM, SQLSTATE;    
-    END;
+    -- mark only objects no longer in rule as removed
+    -- resolved for a rule which are not related to any objects changes in current import:
 
-    RAISE DEBUG 'import_nwobj_refhandler_change_rule_nwobj_resolved - 3';
-
-    -- insert new object resolved rule relationships rule_from
-    BEGIN
         FOR r_rule_obj_pair IN
             SELECT rule_from.obj_id, rule_id FROM changelog_object 
                 LEFT JOIN objgrp_flat ON (new_obj_id=objgrp_flat_member_id) 
                 LEFT JOIN rule_from ON (rule_from.obj_id=objgrp_flat_member_id)
-                -- rule_to missing
-                WHERE change_action<>'D' AND control_id=i_current_import_id AND NOT rule_id IS NULL
+                -- TODO: rule_to is missing
+                WHERE (change_action='D' OR change_action='C') AND control_id=i_current_import_id AND NOT rule_id IS NULL
         LOOP
             RAISE DEBUG 'import_nwobj_refhandler_change_rule_nwobj_resolved - rule_from loop';
             BEGIN
-                INSERT INTO rule_nwobj_resolved 
-                    (mgm_id, rule_id, obj_id, created, last_seen)
-                    VALUES (i_mgm_id, r_rule_obj_pair.rule_id, r_rule_obj_pair.obj_id, i_current_import_id, i_current_import_id);
+                UPDATE rule_nwobj_resolved SET removed=i_current_import_id 
+                    WHERE rule_id=r_rule_obj_pair.rule_id AND r_rule_obj_pair.obj_id=obj_id;
             EXCEPTION
                 WHEN others THEN
-                    raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved - INSERT rule_from - uncommittable state. Rolling back';
+                    raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved - UPDATE removed fields - uncommittable state. Rolling back';
                     raise notice '% %', SQLERRM, SQLSTATE;    
             END;
         END LOOP;
@@ -148,32 +132,50 @@ BEGIN
             raise notice '% %', SQLERRM, SQLSTATE;    
     END;
 
-    -- -- insert new object resolved rule relationships rule_to
     -- BEGIN
-    --     FOR i_obj_id IN
-    --         SELECT rule_to.obj_id, rule_id FROM changelog_object 
+    -- UPDATE rule_nwobj_resolved SET last_seen=i_current_import_id 
+    --     WHERE 
+    --         mgm_id=i_mgm_id AND removed IS NULL AND 
+    --         NOT (obj_id IN (SELECT old_obj_id FROM changelog_object WHERE NOT old_obj_id IS NULL AND control_id=i_current_import_id AND mgm_id=i_mgm_id) 
+    --             OR 
+    --             obj_id IN (SELECT objgrp_flat_member_id FROM changelog_object LEFT JOIN objgrp_flat ON (old_obj_id=objgrp_flat_id) 
+    --                 WHERE change_action <> 'I' AND control_id=i_current_import_id AND mgm_id=i_mgm_id));
+    -- EXCEPTION
+    --     WHEN others THEN
+    --         raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved - UPDATE - uncommittable state. Rolling back';
+    --         raise notice '% %', SQLERRM, SQLSTATE;    
+    -- END;
+
+    RAISE DEBUG 'import_nwobj_refhandler_change_rule_nwobj_resolved - 3';
+
+    -- insert new object resolved rule relationships rule_from
+    -- BEGIN
+    --     FOR r_rule_obj_pair IN
+    --         SELECT rule_from.obj_id, rule_id FROM changelog_object 
     --             LEFT JOIN objgrp_flat ON (new_obj_id=objgrp_flat_member_id) 
-    --             LEFT JOIN rule_to ON (rule_to.obj_id=objgrp_flat_member_id)
+    --             LEFT JOIN rule_from ON (rule_from.obj_id=objgrp_flat_member_id)
     --             -- rule_to missing
-    --             WHERE control_id=i_current_import_id
+    --             WHERE change_action<>'D' AND control_id=i_current_import_id AND NOT rule_id IS NULL
     --     LOOP
-    --         RAISE DEBUG 'import_nwobj_refhandler_change_rule_nwobj_resolved - rule_to loop';
+    --         RAISE DEBUG 'import_nwobj_refhandler_change_rule_nwobj_resolved - rule_from loop';
     --         BEGIN
     --             INSERT INTO rule_nwobj_resolved 
-    --                 (mgm_id, rule_id, obj_id, created, last_seen)
-    --                 VALUES (i_mgm_id, i_rule_id, i_obj_id, i_current_import_id, i_current_import_id);
-    --             EXCEPTION
-    --         WHEN others THEN
-    --             raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved - INSERT - uncommittable state. Rolling back';
-    --             raise notice '% %', SQLERRM, SQLSTATE;    
+    --                 (mgm_id, rule_id, obj_id, created)
+    --                 VALUES (i_mgm_id, r_rule_obj_pair.rule_id, r_rule_obj_pair.obj_id, i_current_import_id);
+    --         EXCEPTION
+    --             WHEN others THEN
+    --                 raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved - INSERT rule_from - uncommittable state. Rolling back';
+    --                 raise notice '% %', SQLERRM, SQLSTATE;    
     --         END;
-
     --     END LOOP;
     -- EXCEPTION
     --     WHEN others THEN
-    --         raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved - LOOP - uncommittable state. Rolling back';
+    --         raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved - rule_from LOOP - uncommittable state. Rolling back';
     --         raise notice '% %', SQLERRM, SQLSTATE;    
     -- END;
+
+    -- -- insert new object resolved rule relationships rule_to
+
 
 
     RAISE DEBUG 'import_nwobj_refhandler_change_rule_nwobj_resolved - final';

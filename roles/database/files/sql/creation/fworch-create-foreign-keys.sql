@@ -114,7 +114,7 @@ Alter table "rule_nwobj_resolved" add foreign key ("obj_id") references "object"
 Alter table "rule_nwobj_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_nwobj_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "rule_nwobj_resolved" add CONSTRAINT fk_rule_nwobj_resolved_created foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "rule_nwobj_resolved" add CONSTRAINT fk_rule_nwobj_resolved_last_seen foreign key ("last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "rule_nwobj_resolved" add CONSTRAINT fk_rule_nwobj_resolved_removed foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
 Alter table "rule_review" add  foreign key ("rule_metadata_id") references "rule_metadata" ("rule_metadata_id") on update restrict on delete cascade;
 Alter table "rule_review" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
@@ -127,7 +127,7 @@ Alter table "rule_svc_resolved" add foreign key ("svc_id") references "service" 
 Alter table "rule_svc_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_svc_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "rule_svc_resolved" add CONSTRAINT fk_rule_svcobj_resolved_created foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "rule_svc_resolved" add CONSTRAINT fk_rule_svcobj_resolved_last_seen foreign key ("last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "rule_svc_resolved" add CONSTRAINT fk_rule_svcobj_resolved_removed foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
 Alter table "rule_to" add  foreign key ("obj_id") references "object" ("obj_id") on update restrict on delete cascade;
 Alter table "rule_to" add  foreign key ("rt_create") references "import_control" ("control_id") on update restrict on delete cascade;
@@ -138,7 +138,7 @@ Alter table "rule_user_resolved" add foreign key ("user_id") references "usr" ("
 Alter table "rule_user_resolved" add foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_user_resolved" add foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "rule_user_resolved" add CONSTRAINT fk_rule_userobj_resolved_created foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
-Alter table "rule_user_resolved" add CONSTRAINT fk_rule_userobj_resolved_last_seen foreign key ("last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
+Alter table "rule_user_resolved" add CONSTRAINT fk_rule_userobj_resolved_removed foreign key ("removed") references "import_control" ("control_id") on update restrict on delete cascade;
 
 Alter table "service" add  foreign key ("ip_proto_id") references "stm_ip_proto" ("ip_proto_id") on update restrict on delete cascade;
 Alter table "service" add  foreign key ("last_change_admin") references "uiuser" ("uiuser_id") on update restrict on delete cascade;

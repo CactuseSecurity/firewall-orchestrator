@@ -14,7 +14,7 @@ query getObjectsInReport(
       where: {
         rule_id: { _in: $ruleIds }
         created: { _lte: $importId }
-        last_seen: { _gte: $importId }
+        removed: { _lt: $importId }
       }
       distinct_on: [obj_id]
     ) {
@@ -28,7 +28,7 @@ query getObjectsInReport(
       where: {
         rule_id: { _in: $ruleIds }
         created: { _lte: $importId }
-        last_seen: { _gte: $importId }
+        removed: { _lt: $importId }
       }
       distinct_on: [svc_id]
     ) {
@@ -42,7 +42,7 @@ query getObjectsInReport(
       where: {
         rule_id: { _in: $ruleIds }
         created: { _lte: $importId }
-        last_seen: { _gte: $importId }
+        removed: { _lt: $importId }
       }
       distinct_on: [user_id]
     ) {

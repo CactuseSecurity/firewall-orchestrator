@@ -157,7 +157,7 @@
                 }
                 else
                 {
-                    errorMessage = apiAuthResponse.Error + userConfig.GetText("E0002");
+                    errorMessage = userConfig.GetText(apiAuthResponse.Error);
                 }
 
                 // Visualisize there was an error by making border of inputboxes red

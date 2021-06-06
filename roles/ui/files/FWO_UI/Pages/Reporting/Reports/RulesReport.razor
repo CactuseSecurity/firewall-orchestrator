@@ -15,9 +15,36 @@
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
-                               RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); OnSelectedRulesChange(SelectedRules); }"
+                               RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); }"
                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
+                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")"
+                               @ref="reportTable">
+
+                            @if(Recertification)
+                            {
+                                <Column TableItem="Rule" Title="Actions" Field="@(rule => rule.OrderNumber)">
+                                    <Template>
+                                        <div class="form-check" @onclick:stopPropagation="true">
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="recertifyRadio@(context.Id)">
+                                            <label class="form-check-label" for="recertifyRadio@(context.Id)">
+                                                Recertify
+                                            </label>
+                                        </div>
+                                        <div class="form-check" @onclick:stopPropagation="true">
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="decertifyRadio@(context.Id)">
+                                            <label class="form-check-label" for="decertifyRadio@(context.Id)">
+                                                Decertify
+                                            </label>
+                                        </div>
+                                        <div class="form-check" @onclick:stopPropagation="true">
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="noneRadio@(context.Id)" checked>
+                                            <label class="form-check-label" for="noneRadio@(context.Id)">
+                                                None
+                                            </label>
+                                        </div>
+                                    </Template>
+                                </Column>
+                            }
 
                             @if (EmptyColumns[0] == false)
                             {
@@ -104,7 +131,11 @@
                             </DetailTemplate>
 
                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
-                                <td class="bg-light" colspan="@(ColumnCount + 1)"><div class="font-weight-bold">@(context.SectionHeader)</div></td>
+                                <tr>
+                                    <td class="bg-light" colspan="@(reportTable.Columns.Count + 1)">
+                                        <div class="font-weight-bold">@(context.SectionHeader)</div>
+                                    </td>
+                                </tr>         
                             </CustomRow>
 
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -119,17 +150,27 @@
 @code
 {
     [Parameter]
+    public bool Recertification { get; set; }
+
+    [Parameter]
+    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
     public List<Rule> SelectedRules { get; set; }
 
     [Parameter]
     public int RulesPerPage { get; set; }
 
     [Parameter]
-    public Action<List<Rule>> OnSelectedRulesChange { get; set; }
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
 
     [Parameter]
     public Management[] Managements { get; set; }
 
-    private const int ColumnCount = 12;
-    private bool[] EmptyColumns = new bool[ColumnCount];
+    private ITable<Rule> reportTable;
+    private const int ColumnsCount = 12;
+    private bool[] EmptyColumns = new bool[ColumnsCount];
 }

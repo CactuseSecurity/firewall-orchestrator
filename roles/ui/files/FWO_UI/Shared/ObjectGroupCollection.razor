@@ -7,7 +7,7 @@
 {
     @foreach (InputDataType obj in Data)
     {
-        <ObjectGroup ReportPage="ReportPage" Type="Type" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed" InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor"
+        <ObjectGroup FetchObjects="FetchObjects" Type="Type" StartCollapsed="StartCollapsed" StartContentDetailed="StartContentDetailed" InputDataType="InputDataType" InitialContent="obj" NameExtractor="NameExtractor"
                      NetworkObjectExtractor="NetworkObjectExtractor"
                      NetworkServiceExtractor="NetworkServiceExtractor"
                      NetworkUserExtractor="NetworkUserExtractor" />
@@ -17,7 +17,7 @@
 @code
 {
     [Parameter]
-    public Report ReportPage { get; set; }
+    public Func<byte, Func<Management[], Task>, int, Task> FetchObjects { get; set; }
 
     [Parameter]
     public byte Type { get; set; }

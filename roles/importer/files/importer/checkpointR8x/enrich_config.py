@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 import common, getter
-import requests, json, argparse, pdb
-import requests.packages.urllib3, time, logging, re, sys
+import json, argparse, pdb, sys, time, logging
+import requests, requests.packages.urllib3
 import os
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -56,6 +56,9 @@ starttime = int(time.time())
 with open(config_filename, "r") as json_data:
     config = json.load(json_data)
 
+#################################################################################
+# adding inline and domain layers 
+#################################################################################
 
 found_new_inline_layers = True
 old_inline_layers = []
@@ -78,35 +81,48 @@ while found_new_inline_layers is True:
 
 # next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
 
+# for rulebase in config['rulebases']:
+#     for rule in rulebase:
+#         if 'type' in rule and rule['type'] == 'place-holder':
+#             logging.debug("enrich_config: found domain rule ref: " + rule["uid"])
 
 #################################################################################
 # get object data which is only contained as uid in config by making addtional api calls
 #################################################################################
+
+
 # get all object uids (together with type) from all rules in fields src, dst, svc
+nw_uids_from_rulebase = []
+svc_uids_from_rulebase = []
+
 for rulebase in config['rulebases']:
     logging.debug ( "enrich_config - searching for all uids in rulebase: " + rulebase['layername'] )
-    (nw_uids, svc_uids) = getter.collect_uids_from_rulebase(rulebase, "top_level")
-    nw_objects.extend(nw_uids)
-    svc_objects.extend(svc_uids)
+    # (nw_uids, svc_uids) = getter.collect_uids_from_rulebase(rulebase, "top_level")
+    getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
+
+    if common.debug_new_uid in nw_uids_from_rulebase:
+        logging.debug("found " + common.debug_new_uid + " in enrich_config")
+
+    nw_uids_from_rulebase.extend(nw_uids_from_rulebase)
+    svc_uids_from_rulebase.extend(svc_uids_from_rulebase)
 
 # remove duplicates from uid lists
-svc_objects = list(set(svc_objects))
-nw_objects = list(set(nw_objects))
-
-for svc in svc_objects:
-    logging.debug ( "enrich_config - svc: " + svc )
-
-for nwobj in nw_objects:
-    logging.debug ( "enrich_config - nw obj: " + nwobj )
+nw_uids_from_rulebase = list(set(nw_uids_from_rulebase))
+svc_uids_from_rulebase = list(set(svc_uids_from_rulebase))
+# logging.debug ("enrich_config - found (unique) nw_objects in rulebase:\n" + str(nw_uids_from_rulebase))
+if common.debug_new_uid in nw_uids_from_rulebase:
+    logging.debug("enrich_config: found " + common.debug_new_uid + " in enrich_config after cleanup")
 
 # get all uids in objects tables
 for obj_table in config['object_tables']:
-    nw_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, getter.nw_obj_table_names))
+    nw_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, common.nw_obj_table_names))
     svc_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, getter.svc_obj_table_names))
+#logging.debug ("enrich_config - already parsed nw_objects in obj tables:\n" + str(nw_objs_from_obj_tables))
+
 
 # identify all objects (by type) that are missing in objects tables but present in rulebase
-missing_nw_object_uids  = getter.get_broken_object_uids(nw_objs_from_obj_tables, nw_objects)
-missing_svc_object_uids = getter.get_broken_object_uids(svc_objs_from_obj_tables, svc_objects)
+missing_nw_object_uids  = getter.get_broken_object_uids(nw_objs_from_obj_tables, nw_uids_from_rulebase)
+missing_svc_object_uids = getter.get_broken_object_uids(svc_objs_from_obj_tables, svc_uids_from_rulebase)
 
 logging.debug ( "enrich_config - found missing nw objects: '" + ",".join(missing_nw_object_uids) + "'" )
 logging.debug ( "enrich_config - found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
@@ -121,6 +137,7 @@ if args.noapi == 'false':
 for missing_obj in missing_nw_object_uids:
     if args.noapi == 'false':
         show_params_host = {'details-level':details_level,'uid':missing_obj}
+        logging.debug ( "checkpointR8x/enrich_config - fetching obj with uid: " + missing_obj)
         obj = getter.api_call(api_host, args.port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
         obj = obj['object']
         if (obj['type'] == 'CpmiAnyObject'):
@@ -133,12 +150,28 @@ for missing_obj in missing_nw_object_uids:
             config['object_tables'].append(json_obj)
         elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'interop'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': common.get_ip_of_obj(obj),
+                } ] } ] }
+            config['object_tables'].append(json_obj)
+        elif obj['type'] == 'multicast-address-range':
+            logging.debug("enrich_config - found multicast-address-range: " + obj['name'] + " (uid:" + obj['uid']+ ")")
+            json_obj = {"object_type": "hosts", "object_chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': common.get_ip_of_obj(obj),
+                } ] } ] }
+            config['object_tables'].append(json_obj)
+        elif (obj['type'] == 'CpmiVsClusterMember'):
+            json_obj = {"object_type": "hosts", "object_chunks": [ {
 
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                 'comments': obj['comments'], 'type': 'host', 'ipv4-address': common.get_ip_of_obj(obj),
                 } ] } ] }
             config['object_tables'].append(json_obj)
+            logging.debug ('missing obj: ' + obj['name'] + obj['type'])
         else:
             logging.debug ( "WARNING - checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
             #print ("missing nw obj: " + missing_obj)

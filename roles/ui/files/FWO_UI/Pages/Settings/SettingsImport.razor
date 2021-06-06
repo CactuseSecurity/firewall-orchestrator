@@ -57,7 +57,7 @@
             <Template>
                 @if (context.LastImport.Length > 0)
                 {
-                    @(context.LastImport[0].SuccessfulImport);
+                    @(GlobalConfig.ShowBool(context.LastImport[0].SuccessfulImport));
                 }
             </Template>
         </Column>
@@ -77,11 +77,11 @@
         {
             <form>
                 <div class="row">
-                    <div class="col-sm-3 col-form-label">@(userConfig.GetText("mgm_name")):</div>
+                    <div class="col-sm-3 col-form-label">@(userConfig.GetText("management")):</div>
                     <div class="m-2">@actStatus.MgmName</div>
                 </div>
 
-                <h6>First Import</h6>
+                <h6>@(userConfig.GetText("first_import"))</h6>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
                     <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].StartTime : null)</div>
@@ -92,13 +92,13 @@
                 </div>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("success")):</div>
-                    <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].SuccessfulImport : null)</div>
+                    <div class="m-2">@(actStatus.FirstImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.FirstImport[0].SuccessfulImport) : null)</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("errors")):</div>
                     <div class="m-2">@(actStatus.FirstImport.Length > 0 ? actStatus.FirstImport[0].ImportErrors : null)</div>
                 </div>
-                <h6>Last Successful Import</h6>
+                <h6>@(userConfig.GetText("last_successful_import"))</h6>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
                     <div class="m-2">@(actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StartTime : null)</div>
@@ -107,7 +107,7 @@
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("stop")):</div>
                     <div class="m-2">@(actStatus.LastSuccessfulImport.Length > 0 ? actStatus.LastSuccessfulImport[0].StopTime : null)</div>
                 </div>
-                <h6>Last Import</h6>
+                <h6>@(userConfig.GetText("last_import"))</h6>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("start")):</div>
                     <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].StartTime : null)</div>
@@ -118,7 +118,7 @@
                 </div>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("success")):</div>
-                    <div class="m-2">@(actStatus.LastImport.Length > 0 ? actStatus.LastImport[0].SuccessfulImport : null)</div>
+                    <div class="m-2">@(actStatus.LastImport.Length > 0 ? GlobalConfig.ShowBool(actStatus.LastImport[0].SuccessfulImport) : null)</div>
                 </div>
                 <div class="row">
                     <div class="col-sm-3 col-form-label-sm">@(userConfig.GetText("errors")):</div>

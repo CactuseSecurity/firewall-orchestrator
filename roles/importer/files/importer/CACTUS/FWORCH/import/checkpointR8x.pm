@@ -132,7 +132,7 @@ sub copy_config_from_mgm_to_iso {
 	if ( -r "$workdir/${CACTUS::FWORCH::ssh_id_basename}.pub" ) {
 		$ssl_verify = "-s $workdir/${CACTUS::FWORCH::ssh_id_basename}.pub";
 	}
-	if ($config_path_on_mgmt ne '') {
+	if (defined($config_path_on_mgmt && $config_path_on_mgmt ne '') {
 		$domain_setting = "-D " . $config_path_on_mgmt;
 	}
 	if (defined($api_port) && $api_port ne '') {

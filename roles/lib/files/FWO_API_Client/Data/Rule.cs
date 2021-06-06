@@ -74,6 +74,7 @@ namespace FWO.Api.Data
         [JsonPropertyName("rule_metadatum")]
         public RuleMetadata Metadata {get; set;}
 
+        public bool Certified { get; set; }
         public string DeviceName { get; set; }
     }
 }

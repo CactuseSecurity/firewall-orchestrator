@@ -234,7 +234,7 @@
 @code
 {
     [Parameter]
-    public Report ReportPage { get; set; }
+    public Func<byte, Func<Management[], Task>, int, Task> FetchObjects { get; set; }
 
     [Parameter]
     public byte Type { get; set; }
@@ -288,7 +288,7 @@
             switch (Content)
             {
                 case Management m:
-                    await ReportPage.FetchContent((byte)(Type + objType),
+                    await FetchObjects((byte)(Type + objType),
                         managementsUpdate =>
                         {
                             int id = m.Id;
@@ -310,12 +310,12 @@
                                 Content = (InputDataType)(Object)m;
                             }
                             return InvokeAsync(StateHasChanged);
-                        }, mgmtId: m.Id);
+                        }, m.Id);
 
                     break;
 
                 case Rule r:
-                    await ReportPage.FetchContent((byte)(Type + objType),
+                    await FetchObjects((byte)(Type + objType),
                         managementsUpdate =>
                         {
                             Rule r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
@@ -323,7 +323,7 @@
                             if (r_updated != null)
                                 Content = (InputDataType)(Object)r_updated;
                             return InvokeAsync(StateHasChanged);
-                        }, ruleId: r.Id);
+                        }, r.Id);
 
                     break;
             }

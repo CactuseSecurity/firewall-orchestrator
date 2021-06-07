@@ -626,6 +626,20 @@ tables:
         table:
           name: rule_from
           schema: public
+  - name: rule_nwobj_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: created
+        table:
+          name: rule_nwobj_resolved
+          schema: public
+  - name: ruleNwobjResolvedsByRemoved
+    using:
+      foreign_key_constraint_on:
+        column: removed
+        table:
+          name: rule_nwobj_resolved
+          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
@@ -654,6 +668,20 @@ tables:
         table:
           name: rule_service
           schema: public
+  - name: rule_svc_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: created
+        table:
+          name: rule_svc_resolved
+          schema: public
+  - name: ruleSvcResolvedsByRemoved
+    using:
+      foreign_key_constraint_on:
+        column: removed
+        table:
+          name: rule_svc_resolved
+          schema: public
   - name: rule_tos
     using:
       foreign_key_constraint_on:
@@ -667,6 +695,20 @@ tables:
         column: rt_last_seen
         table:
           name: rule_to
+          schema: public
+  - name: rule_user_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: created
+        table:
+          name: rule_user_resolved
+          schema: public
+  - name: ruleUserResolvedsByRemoved
+    using:
+      foreign_key_constraint_on:
+        column: removed
+        table:
+          name: rule_user_resolved
           schema: public
   - name: services
     using:
@@ -2924,6 +2966,12 @@ tables:
       filter: {}
     role: recertifier
 - object_relationships:
+  - name: import_control
+    using:
+      foreign_key_constraint_on: removed
+  - name: importControlByCreated
+    using:
+      foreign_key_constraint_on: created
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -3020,6 +3068,12 @@ tables:
     name: rule_service
     schema: public
 - object_relationships:
+  - name: import_control
+    using:
+      foreign_key_constraint_on: removed
+  - name: importControlByCreated
+    using:
+      foreign_key_constraint_on: created
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -3106,6 +3160,12 @@ tables:
     name: rule_to
     schema: public
 - object_relationships:
+  - name: import_control
+    using:
+      foreign_key_constraint_on: removed
+  - name: importControlByCreated
+    using:
+      foreign_key_constraint_on: created
   - name: management
     using:
       foreign_key_constraint_on: mgm_id

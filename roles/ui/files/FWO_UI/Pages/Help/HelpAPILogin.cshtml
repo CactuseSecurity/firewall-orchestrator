@@ -11,20 +11,23 @@
 <div class="p-2">
     <h3>Login</h3>
     The middleware server provides the JWT for authentication against the API.
+    <br><br>
 
     <h4>Get JWT with correct login</h4>
-    <pre>
-        curl --insecure --request POST \
-        --url https://localhost:8888/AuthenticateUser/ \
-        --header 'content-type: application/json' \
-        --data '{"Username":"user1_demo", "Password": "cactus1"}'
+<br>
+<pre>
+curl --insecure --request POST \
+    --url https://localhost:8888/AuthenticateUser/ \
+    --header 'content-type: application/json' \
+    --data '{"Username": "user1_demo", "Password": "cactus1"}'
     </pre>
 
     <h4>Error with incorrect login</h4>
+<br>
     <pre>
-        curl --insecure --request POST \
-        --url https://localhost:8888/AuthenticateUser/ \
-        --header 'content-type: application/json' \
-        --data '{"Username":"user1_demo", "Password": "wrong-pwd"}'
+curl --insecure --request POST \
+    --url https://localhost:8888/AuthenticateUser/ \
+    --header 'content-type: application/json' \
+    --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'
     </pre>
-</div>
+

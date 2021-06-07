@@ -274,7 +274,7 @@ BEGIN
                 IF NOT FOUND THEN
                     RAISE NOTICE 'import_rule_resolved_usr 1a insert - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                         i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                    INSERT INTO rule_user_resolved (mgm_id, rule_id, svc_id, created) VALUES (i_mgm_id, i_rule_id, i_new_obj_id, i_current_import_id);
+                    INSERT INTO rule_user_resolved (mgm_id, rule_id, user_id, created) VALUES (i_mgm_id, i_rule_id, i_new_obj_id, i_current_import_id);
                 END IF;
             ELSIF c_action = 'D' THEN
                 RAISE NOTICE 'import_rule_resolved_usr 2 delete - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 

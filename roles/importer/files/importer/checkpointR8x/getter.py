@@ -29,7 +29,8 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
         request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
-        logging.exception("error while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        sys.exit(1)
     # todo add print "." for each api call?
     print ('.', end='', flush=True)
     return r.json()
@@ -43,9 +44,10 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
     base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
     if "sid" not in response:
-        logging.exception("getter ERROR: did not receive a sid during login, " +
+        logging.exception("\ngetter ERROR: did not receive a sid during login, " +
             "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+        sys.exit(1)
     return response["sid"]
 
 

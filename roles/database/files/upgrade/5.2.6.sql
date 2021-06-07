@@ -1,4 +1,4 @@
--- the followin functions are replaced with ones containing additional current_import_id parameter
+-- the followin functions are replaced with ones containing additional parameters
 DROP FUNCTION import_rule_resolved_nwobj (INT,BIGINT,BIGINT);
 DROP FUNCTION import_rule_resolved_svc (INT,BIGINT,BIGINT);
 DROP FUNCTION import_rule_resolved_usr (INT,BIGINT,BIGINT);

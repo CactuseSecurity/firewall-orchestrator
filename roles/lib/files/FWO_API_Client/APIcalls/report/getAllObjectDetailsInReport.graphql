@@ -1,3 +1,4 @@
+
 query getObjectsInReport(
   $mgmIds: [Int!]
   $ruleIds: [bigint!]!
@@ -14,7 +15,7 @@ query getObjectsInReport(
       where: {
         rule_id: { _in: $ruleIds }
         created: { _lte: $importId }
-        removed: { _lt: $importId }
+        _or: [{ removed: { _is_null: true } }, { removed: { _lt: $importId } }]
       }
       distinct_on: [obj_id]
     ) {
@@ -28,7 +29,7 @@ query getObjectsInReport(
       where: {
         rule_id: { _in: $ruleIds }
         created: { _lte: $importId }
-        removed: { _lt: $importId }
+        _or: [{ removed: { _is_null: true } }, { removed: { _lt: $importId } }]
       }
       distinct_on: [svc_id]
     ) {
@@ -42,7 +43,7 @@ query getObjectsInReport(
       where: {
         rule_id: { _in: $ruleIds }
         created: { _lte: $importId }
-        removed: { _lt: $importId }
+        _or: [{ removed: { _is_null: true } }, { removed: { _lt: $importId } }]
       }
       distinct_on: [user_id]
     ) {

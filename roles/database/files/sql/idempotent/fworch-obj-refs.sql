@@ -24,93 +24,102 @@ DECLARE
 	i_previous_import_id BIGINT;
 	i_mgm_id INTEGER;
 BEGIN
-	RAISE DEBUG 'import_nwobj_refhandler_main - starting ...';
+	BEGIN
+		RAISE DEBUG 'import_nwobj_refhandler_main - starting ...';
 
-	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
-	i_previous_import_id := get_previous_import_id_for_mgmt (i_mgm_id, i_current_import_id);
+		SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
+		i_previous_import_id := get_previous_import_id_for_mgmt (i_mgm_id, i_current_import_id);
 
-	SELECT INTO r_ctrl delimiter_group FROM import_control WHERE control_id=i_current_import_id;
-		-- neue Member-Beziehungen von i_new_id eintragen
+		SELECT INTO r_ctrl delimiter_group FROM import_control WHERE control_id=i_current_import_id;
+			-- neue Member-Beziehungen von i_new_id eintragen
 
-	RAISE DEBUG 'import_nwobj_refhandler_main - before first FOR loop (objgrp)';
-	FOR r_obj IN -- loop for objgrp
-		SELECT old_obj_id,new_obj_id,change_action FROM changelog_object WHERE control_id=i_current_import_id AND NOT change_action='D'
-	LOOP
-		v_debug :=  'old_id: ';
-		IF r_obj.old_obj_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE v_debug := v_debug || CAST(r_obj.old_obj_id AS VARCHAR); END IF;
-		v_debug :=  v_debug || ', new_id: ';
-		IF r_obj.new_obj_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE
-			SELECT INTO v_obj_name obj_name FROM object WHERE obj_id=r_obj.new_obj_id;
-			v_debug := v_debug || CAST(r_obj.new_obj_id AS VARCHAR) || ', new_obj_name=' || v_obj_name;
-		END IF;
-		IF r_obj.change_action = 'I' THEN
-			RAISE DEBUG 'import_nwobj_refhandler_main - calling import_nwobj_refhandler_insert for %', v_debug;
-			PERFORM import_nwobj_refhandler_insert(r_obj.new_obj_id,r_ctrl.delimiter_group,i_current_import_id);
-		ELSIF r_obj.change_action = 'C' THEN
-			RAISE DEBUG 'import_nwobj_refhandler_main - calling import_nwobj_refhandler_change for %', v_debug;
-			PERFORM import_nwobj_refhandler_change(r_obj.old_obj_id,r_obj.new_obj_id,i_current_import_id);
-		END IF;
-	END LOOP;
-	RAISE DEBUG 'import_nwobj_refhandler_main - before second FOR loop (objgrp_flat)';
-	FOR r_obj IN -- loop for objgrp_flat
-		SELECT old_obj_id,new_obj_id,change_action FROM changelog_object WHERE control_id=i_current_import_id AND NOT change_action='D'
-	LOOP
-		v_debug :=  'old_id: ';
-		IF r_obj.old_obj_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE v_debug := v_debug || CAST(r_obj.old_obj_id AS VARCHAR); END IF;
-		v_debug :=  v_debug || ', new_id: ';
-		IF r_obj.new_obj_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE v_debug := v_debug || CAST(r_obj.new_obj_id AS VARCHAR); END IF;
-		IF    r_obj.change_action = 'I' THEN
-			RAISE DEBUG 'import_nwobj_refhandler_main - calling import_nwobj_refhandler_insert_flat for %', v_debug;
-			PERFORM import_nwobj_refhandler_insert_flat(r_obj.new_obj_id,r_ctrl.delimiter_group,i_current_import_id);
-		ELSIF r_obj.change_action = 'C' THEN
-			RAISE DEBUG 'import_nwobj_refhandler_main - calling import_nwobj_refhandler_change_flat for %', v_debug;
-			PERFORM import_nwobj_refhandler_change_flat(r_obj.old_obj_id,r_obj.new_obj_id,i_current_import_id);
-		END IF;
-	END LOOP;
-	----------------------------------------------------------------------------------------------
-	-- die alten (nicht mehr gueltigen) Objekte auf non-active setzen
-	RAISE DEBUG 'import_nwobj_refhandler_main - after second FOR loop';
+		RAISE DEBUG 'import_nwobj_refhandler_main - before first FOR loop (objgrp)';
+		FOR r_obj IN -- loop for objgrp
+			SELECT old_obj_id,new_obj_id,change_action FROM changelog_object WHERE control_id=i_current_import_id AND NOT change_action='D'
+		LOOP
+			v_debug :=  'old_id: ';
+			IF r_obj.old_obj_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE v_debug := v_debug || CAST(r_obj.old_obj_id AS VARCHAR); END IF;
+			v_debug :=  v_debug || ', new_id: ';
+			IF r_obj.new_obj_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE
+				SELECT INTO v_obj_name obj_name FROM object WHERE obj_id=r_obj.new_obj_id;
+				v_debug := v_debug || CAST(r_obj.new_obj_id AS VARCHAR) || ', new_obj_name=' || v_obj_name;
+			END IF;
+			IF r_obj.change_action = 'I' THEN
+				RAISE DEBUG 'import_nwobj_refhandler_main - calling import_nwobj_refhandler_insert for %', v_debug;
+				PERFORM import_nwobj_refhandler_insert(r_obj.new_obj_id,r_ctrl.delimiter_group,i_current_import_id);
+			ELSIF r_obj.change_action = 'C' THEN
+				RAISE DEBUG 'import_nwobj_refhandler_main - calling import_nwobj_refhandler_change for %', v_debug;
+				PERFORM import_nwobj_refhandler_change(r_obj.old_obj_id,r_obj.new_obj_id,i_current_import_id);
+			END IF;
+		END LOOP;
+		RAISE DEBUG 'import_nwobj_refhandler_main - before second FOR loop (objgrp_flat)';
+		FOR r_obj IN -- loop for objgrp_flat
+			SELECT old_obj_id,new_obj_id,change_action FROM changelog_object WHERE control_id=i_current_import_id AND NOT change_action='D'
+		LOOP
+			v_debug :=  'old_id: ';
+			IF r_obj.old_obj_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE v_debug := v_debug || CAST(r_obj.old_obj_id AS VARCHAR); END IF;
+			v_debug :=  v_debug || ', new_id: ';
+			IF r_obj.new_obj_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE v_debug := v_debug || CAST(r_obj.new_obj_id AS VARCHAR); END IF;
+			IF    r_obj.change_action = 'I' THEN
+				RAISE DEBUG 'import_nwobj_refhandler_main - calling import_nwobj_refhandler_insert_flat for %', v_debug;
+				PERFORM import_nwobj_refhandler_insert_flat(r_obj.new_obj_id,r_ctrl.delimiter_group,i_current_import_id);
+			ELSIF r_obj.change_action = 'C' THEN
+				RAISE DEBUG 'import_nwobj_refhandler_main - calling import_nwobj_refhandler_change_flat for %', v_debug;
+				PERFORM import_nwobj_refhandler_change_flat(r_obj.old_obj_id,r_obj.new_obj_id,i_current_import_id);
+			END IF;
+		END LOOP;
+		----------------------------------------------------------------------------------------------
+		-- die alten (nicht mehr gueltigen) Objekte auf non-active setzen
+		RAISE DEBUG 'import_nwobj_refhandler_main - after second FOR loop';
 
-	UPDATE objgrp SET active=FALSE WHERE objgrp_id IN
-	   (SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL GROUP BY old_obj_id);
-	RAISE DEBUG 'import_nwobj_refhandler_main - after first objgrp UPDATE';
-	UPDATE objgrp_flat SET active=FALSE WHERE objgrp_flat_id IN
-	   (SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL GROUP BY old_obj_id);
-	RAISE DEBUG 'import_nwobj_refhandler_main - after first objgrp_flat UPDATE';
-	UPDATE objgrp SET active=FALSE WHERE objgrp_member_id IN
-	   (SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL GROUP BY old_obj_id);
-	RAISE DEBUG 'import_nwobj_refhandler_main - after secondt objgrp UPDATE';
-	UPDATE objgrp_flat SET active=FALSE WHERE objgrp_flat_member_id IN
-	   (SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL GROUP BY old_obj_id);
-	RAISE DEBUG 'import_nwobj_refhandler_main - after second objgrp_flat UPDATE';
-		
-	UPDATE rule_from SET active=FALSE WHERE obj_id IN
-		(SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL);
-		-- hier fehlen Eintraege auch fuer alle nicht Gruppen in objgrp_flat
-		-- auch noch in rule_svc !!!
-	RAISE DEBUG 'import_nwobj_refhandler_main - after first rule_from UPDATE';
-	UPDATE rule_to SET active=FALSE WHERE obj_id IN
-		(SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL);
-	RAISE DEBUG 'import_nwobj_refhandler_main - after first rule_to UPDATE';
+		UPDATE objgrp SET active=FALSE WHERE objgrp_id IN
+		(SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL GROUP BY old_obj_id);
+		RAISE DEBUG 'import_nwobj_refhandler_main - after first objgrp UPDATE';
+		UPDATE objgrp_flat SET active=FALSE WHERE objgrp_flat_id IN
+		(SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL GROUP BY old_obj_id);
+		RAISE DEBUG 'import_nwobj_refhandler_main - after first objgrp_flat UPDATE';
+		UPDATE objgrp SET active=FALSE WHERE objgrp_member_id IN
+		(SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL GROUP BY old_obj_id);
+		RAISE DEBUG 'import_nwobj_refhandler_main - after secondt objgrp UPDATE';
+		UPDATE objgrp_flat SET active=FALSE WHERE objgrp_flat_member_id IN
+		(SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL GROUP BY old_obj_id);
+		RAISE DEBUG 'import_nwobj_refhandler_main - after second objgrp_flat UPDATE';
+			
+		UPDATE rule_from SET active=FALSE WHERE obj_id IN
+			(SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL);
+			-- hier fehlen Eintraege auch fuer alle nicht Gruppen in objgrp_flat
+			-- auch noch in rule_svc !!!
+		RAISE DEBUG 'import_nwobj_refhandler_main - after first rule_from UPDATE';
+		UPDATE rule_to SET active=FALSE WHERE obj_id IN
+			(SELECT old_obj_id FROM changelog_object WHERE control_id=i_current_import_id AND NOT old_obj_id IS NULL);
+		RAISE DEBUG 'import_nwobj_refhandler_main - after first rule_to UPDATE';
 
-	-- bei allen neu angelegten Objektbeziehungen wurde last_seen auf i_current_import_id als Default gesetzt
-	-- 		--> nix zu tun
-	-- abschliessend bei allen nicht auf non-active gesetzten Relationen die last_seen_id aktualisieren
-	UPDATE rule_from	SET rf_last_seen=i_current_import_id WHERE rule_id IN
-		(SELECT rule_id FROM rule WHERE mgm_id=i_mgm_id AND active) AND active;
-	RAISE DEBUG 'import_nwobj_refhandler_main - after second rule_from UPDATE';
-	UPDATE rule_to		SET rt_last_seen=i_current_import_id WHERE rule_id IN
-		(SELECT rule_id FROM rule WHERE mgm_id=i_mgm_id AND active) AND active;
-	RAISE DEBUG 'import_nwobj_refhandler_main - after second rule_to UPDATE';
-	UPDATE objgrp		SET import_last_seen=i_current_import_id WHERE objgrp_id IN
-		(SELECT obj_id FROM object WHERE mgm_id=i_mgm_id AND active) AND active;
-	RAISE DEBUG 'import_nwobj_refhandler_main - after objgrp UPDATE';
-	UPDATE objgrp_flat	SET import_last_seen=i_current_import_id WHERE objgrp_flat_id IN
-		(SELECT obj_id FROM object WHERE mgm_id=i_mgm_id AND active) AND active;
-	RAISE DEBUG 'import_nwobj_refhandler_main - after objgrp_flat UPDATE finished import_nwobj_refhandler_main';
+		-- bei allen neu angelegten Objektbeziehungen wurde last_seen auf i_current_import_id als Default gesetzt
+		-- 		--> nix zu tun
+		-- abschliessend bei allen nicht auf non-active gesetzten Relationen die last_seen_id aktualisieren
+		UPDATE rule_from	SET rf_last_seen=i_current_import_id WHERE rule_id IN
+			(SELECT rule_id FROM rule WHERE mgm_id=i_mgm_id AND active) AND active;
+		RAISE DEBUG 'import_nwobj_refhandler_main - after second rule_from UPDATE';
+		UPDATE rule_to		SET rt_last_seen=i_current_import_id WHERE rule_id IN
+			(SELECT rule_id FROM rule WHERE mgm_id=i_mgm_id AND active) AND active;
+		RAISE DEBUG 'import_nwobj_refhandler_main - after second rule_to UPDATE';
+		UPDATE objgrp		SET import_last_seen=i_current_import_id WHERE objgrp_id IN
+			(SELECT obj_id FROM object WHERE mgm_id=i_mgm_id AND active) AND active;
+		RAISE DEBUG 'import_nwobj_refhandler_main - after objgrp UPDATE';
+		UPDATE objgrp_flat	SET import_last_seen=i_current_import_id WHERE objgrp_flat_id IN
+			(SELECT obj_id FROM object WHERE mgm_id=i_mgm_id AND active) AND active;
+		RAISE DEBUG 'import_nwobj_refhandler_main - after objgrp_flat UPDATE finished import_nwobj_refhandler_main';
 
-	PERFORM import_nwobj_refhandler_change_rule_nwobj_resolved (i_mgm_id, i_current_import_id);
-
+		FOR r_obj IN -- loop for rule_nwobj_resolved
+			SELECT old_obj_id,new_obj_id,change_action FROM changelog_object WHERE control_id=i_current_import_id -- AND (change_action = 'C' OR change_action = 'D')
+		LOOP
+			PERFORM import_rule_resolved_nwobj (i_mgm_id, NULL, r_obj.old_obj_id, r_obj.new_obj_id, i_current_import_id, r_obj.change_action, 'N');
+		END LOOP;
+	EXCEPTION
+	    WHEN others THEN
+            raise notice 'import_nwobj_refhandler_main - uncommittable state. Rolling back';
+            raise EXCEPTION '% %', SQLERRM, SQLSTATE;    
+	END;
 	RETURN;
 END; 
 $BODY$
@@ -332,8 +341,15 @@ BEGIN
 			END IF;
 			PERFORM error_handling('ERR_GRP_DBL_OBJ', v_error_str);
 		ELSE 
-			INSERT INTO objgrp (objgrp_id,objgrp_member_id,import_created,import_last_seen)
-				VALUES (i_group_id,i_obj_id,i_current_import_id,i_current_import_id);
+			-- RAISE DEBUG 'import_nwobj_refhandler_objgrp_add_single_groupmember - duplicate ELSE insert';
+            -- BEGIN
+				INSERT INTO objgrp (objgrp_id,objgrp_member_id,import_created,import_last_seen)
+					VALUES (i_group_id,i_obj_id,i_current_import_id,i_current_import_id);
+            -- EXCEPTION
+            --     WHEN others THEN
+            --         raise notice 'import_nwobj_refhandler_change_rule_nwobj_resolved -  import_nwobj_refhandler_objgrp_add_single_groupmember - duplicate ELSE insert - uncommittable state. Rolling back';
+            --         raise notice '% %', SQLERRM, SQLSTATE;    
+            -- END;
 		END IF;
 	END IF;
 --	RAISE DEBUG 'import_nwobj_refhandler_objgrp_add_single_groupmember - exiting normally';

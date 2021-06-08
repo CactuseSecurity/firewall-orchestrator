@@ -73,6 +73,15 @@
         }
     }
 
+    public void SetActiveTab(int index)
+    {
+        if (ActiveTab != Tabs[index])
+        {
+            ActiveTab = Tabs[index];
+            StateHasChanged();
+        }
+    }
+
     public void Dispose()
     {
         _isDisposed = true;

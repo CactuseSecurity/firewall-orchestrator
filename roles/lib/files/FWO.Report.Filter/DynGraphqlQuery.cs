@@ -74,7 +74,7 @@ namespace FWO.Report.Filter
 
                 case "rules":
                     query.FullQuery = $@"
-                    {(detailed ? RuleQueries.ruleDetailsFragments : RuleQueries.ruleOverviewFragments)}
+                    {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
                     {{ 
@@ -101,7 +101,7 @@ namespace FWO.Report.Filter
                     
                 case "changes":
                     query.FullQuery = $@"
-                    {(detailed ? RuleQueries.ruleDetailsFragments : RuleQueries.ruleOverviewFragments)}
+                    {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
                         management(where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{mgm_name: asc}}) 

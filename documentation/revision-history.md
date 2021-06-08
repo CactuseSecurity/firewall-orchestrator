@@ -90,5 +90,30 @@ adding report template format fk and permissions
 ### 5.1.15 - 23.04.2021
 - adding culture info to language
 
-### 5.1.16 - xx.05.2021
+### 5.1.16 - 10.05.2021
 - adding direct link tables rule_[svc|nwobj|user]_resolved to make report object export easier
+
+### 5.1.17 - 28.05.2021
+- adding parent rule reference for layer and domain rule functionality
+
+### 5.2.1 - 30.05.2021
+- removing
+  - php ui 
+  - database components not needed for v5 (text_msg, get_text)
+
+### 5.2.2 - 30.05.2021
+- replace description texts of roles in ldap by codes for language translation
+
+### 5.2.3 - 02.06.2021
+- changing rule constraint from mgm_id to dev_id (for rulebases with identical global rules)
+- debug improvements
+- moving temp dir from /tmp to /var/fworch/tmp
+- migrating get_config from text/dict mixed to cleaner dict-only approach
+
+### 5.2.4 - 04.06.2021
+- changing db column management.ssh_public_key to nullable
+- adjusting api calls
+
+### 5.2.5 - 04.06.2021
+- new role recertifier
+- adapt rule_metadata table for recertification prototype

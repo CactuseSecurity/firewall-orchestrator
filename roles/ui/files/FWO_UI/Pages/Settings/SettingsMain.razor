@@ -1,3 +1,7 @@
-﻿@page "/settings"
+﻿@using FWO.ApiConfig
 
-<h3>Please choose a setting.</h3>
+@page "/settings"
+
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("U5001"))</h3>

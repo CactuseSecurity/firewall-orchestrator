@@ -1,62 +1,68 @@
 @using BlazorTable
 @using FWO.Api.Data
 @using FWO.ApiClient
+@using FWO.ApiConfig
 
 @page "/settings/gateways"
 @attribute [Authorize(Roles = "admin, auditor")]
 
 @inject APIConnection apiConnection
+@inject UserConfig userConfig
 
-<h3 class="m-2">Gateways</h3>
+<h3 class="m-2">@(userConfig.GetText("gateways"))</h3>
 <hr />
 
-<button class="btn btn-success m-2" @onclick="Add">Add new gateway</button>
+<button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_gateway"))</button>
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
-        <Column TableItem="Device" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Column TableItem="Device" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                 </div>
             </Template>
         </Column>
-        <Column TableItem="Device" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="Device" Title="Type" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
+        <Column TableItem="Device" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="Device" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
             <Template>
                 @context.DeviceType.NameVersion()
             </Template>
         </Column>
-        <Column TableItem="Device" Title="Management" Field="@(x => x.Management.Id)" Sortable="true" Filterable="true">
+        <Column TableItem="Device" Title="@(userConfig.GetText("management"))" Field="@(x => x.Management.Id)" Sortable="true" Filterable="true">
             <Template>
                 @context.Management.Name
             </Template>
         </Column>
-        <Column TableItem="Device" Title="Import Disabled" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" />
+        <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" >
+            <Template>
+                @(GlobalConfig.ShowBool(!context.ImportDisabled))
+            </Template>
+        </Column>
     </Table>
 </div>
 
-<PopUp Title="Edit Gateway" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_gateway"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
             <form>
                 <div class="form-group row">
-                    <label for="deviceName" class="col-sm-3 col-form-label col-form-label-sm">Name*:</label>
+                    <label for="deviceName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
                     <div class="col-sm-8">
                         <input id="deviceName" type="text" class="form-control form-control-sm" @bind="actDevice.Name" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceComment" class="col-sm-3 col-form-label col-form-label-sm">Comment:</label>
+                    <label for="deviceComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
                     <div class="col-sm-8">
                         <input id="deviceComment" type="text" class="form-control form-control-sm" @bind="actDevice.Comment" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceDevType" class="col-sm-3 col-form-label col-form-label-sm">Device Type*:</label>
+                    <label for="deviceDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
                     <div class="col-sm-8">
                         <select id="deviceDevType" class="form-control form-control-sm" @bind="actDevice.DeviceType.Id">
                             @foreach (DeviceType devType in deviceTypes)
@@ -67,7 +73,7 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceManagement" class="col-sm-3 col-form-label col-form-label-sm">Management*:</label>
+                    <label for="deviceManagement" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("management"))*:</label>
                     <div class="col-sm-8">
                         <select id="deviceManagement" class="form-control form-control-sm" @bind="actDevice.Management.Id">
                             @foreach (Management management in managements)
@@ -78,18 +84,18 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceRulebase" class="col-sm-3 col-form-label col-form-label-sm">Rulebase*:</label>
+                    <label for="deviceRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("rulebase"))*:</label>
                     <div class="col-sm-8">
                         <input id="deviceRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.Rulebase" />
                     </div>
                 </div>
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" id="deviceImportDisabled" type="checkbox" @bind="actDevice.ImportDisabled">
-                    <label class="form-check-label" for="deviceImportDisabled"><small>Import Disabled</small></label>
+                    <label class="form-check-label" for="deviceImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
                 </div>
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" id="deviceHideInUi" type="checkbox" @bind="actDevice.HideInUi">
-                    <label class="form-check-label" for="deviceHideInUi"><small>Hide in UI</small></label>
+                    <label class="form-check-label" for="deviceHideInUi"><small>@(userConfig.GetText("hide_in_ui"))</small></label>
                 </div>
 
             </form>
@@ -98,27 +104,26 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+                <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="Delete" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+<PopUp Title="@(userConfig.GetText("delete_gateway"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
     <Body>
         @if (DeleteMode)
         {
-            <p>Are you sure you want to delete gateway "@(actDevice.Name)"?</p>
-
+            <p>@(userConfig.GetText("U5103")) @(actDevice.Name)?</p>
         }
     </Body>
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-danger" @onclick="() => Delete(actDevice)">Delete</button>
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete(actDevice)">@(userConfig.GetText("delete"))</button>
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -148,7 +153,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Error while reading gateway information", exception.Message, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_gateways"), null, true);
         }
     }
 
@@ -179,7 +184,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Error while deleting gateway", exception.Message, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), null, true);
         }
     }
 
@@ -253,7 +258,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Error while saving gateway", exception.Message, true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_gateway"), null, true);
         }
     }
 
@@ -261,13 +266,13 @@
     {
         if (actDevice.Name == null || actDevice.Name == "" || actDevice.Rulebase == null || actDevice.Rulebase == "")
         {
-            DisplayMessageInUi(null, "Save Gateway", "Please fill all mandatory fields.", true);
+            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (!actDevice.ImportDisabled && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
             && dev.Rulebase == actDevice.Rulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
         {
-            DisplayMessageInUi(null, "Save Gateway", "There is already a gateway in the same configuration with import enabled.", true);
+            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
             return false;
         }
         return true;
@@ -282,7 +287,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "Add device to tenant0", "Unexpected error occured", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant0"), null, false);
         }
     }
 

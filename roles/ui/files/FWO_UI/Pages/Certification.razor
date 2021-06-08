@@ -1,0 +1,293 @@
+﻿@using FWO.Ui.Data
+@using FWO.Report.Filter
+@using FWO.Report
+@using FWO.Ui.Pages.Reporting.Reports
+
+@page "/certification"
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+@* ==== LEFT SIDEBAR ==== *@
+<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
+    <DeviceSelection Managements="managements" @bind-FilterInput="filterInput"></DeviceSelection>
+</Sidebar>
+
+<div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
+    <h3>Recertification</h3>
+    <div class="d-flex flex-row flex-wrap mb-2">
+        <div class="mr-3">
+            <div class="input-group input-group-sm">
+                <div class="input-group-prepend">
+                    <label class="input-group-text" for="inputGroupSelect01">Due within (days):</label>
+                </div>
+                <select class="custom-select-sm">
+                    <option value="1">1</option>
+                    <option value="15" selected>15</option>
+                    <option value="30">30</option>
+                    <option value="100">90</option>
+                    <option value="99999999">&infin;</option>
+                </select>
+                <div class="input-group-append">
+                    <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">Load Rules</button>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-sm btn-dark">Execute Selected Actions</button>
+    </div>
+
+    <RulesReport Recertification="true" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>
+</div>
+
+<PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning" OnClose="() => ShowNoDeviceSelectedWarning = false">
+    <Body>
+        <div>
+            <p>@(userConfig.GetText("E1001"))</p>
+        </div>
+    </Body>
+    <Footer>
+        <button class="btn btn-primary" @onclick="() => ShowNoDeviceSelectedWarning = false">OK</button>
+    </Footer>
+</PopUp>
+
+@*==== RIGHT SIDEBAR ====*@
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="sidebarRightWidth">
+    <div class="p-3">
+        <div class="card mb-1">
+            <div class="card-body text-center p-1">
+                @(userConfig.GetText("objects"))
+            </div>
+        </div>
+        <TabSet KeepPanelsAlive="true">
+            <Tab Title="@(userConfig.GetText("rule"))">
+                <div class="d-md-flex justify-content-md-between">
+                    <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                </div>
+                <CascadingValue Value="collapseControlObjects">
+                    <ObjectGroupCollection FetchObjects="FetchContent" Type="30" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
+                                           NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                           NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                                           NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                           NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                </CascadingValue>
+            </Tab>
+        </TabSet>
+    </div>
+</Sidebar>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+
+    private const int rulesPerPage = 50;
+    private int elementsPerFetch = 100;
+    private int maxInitFetchRightSidebar = 20;
+    private bool autoFillRightSidebar;
+
+    private int sidebarLeftWidth = 300;
+    private int sidebarRightWidth = 300;
+
+    private string filterInput = "";
+
+    private Management[] managements = new Management[0];
+    private Management[] managementsObjects = new Management[0];
+
+    private List<Rule> selectedRules = new List<Rule>();
+    private CollapseState collapseControlObjects = new CollapseState();
+
+    private ReportBase currentReport;
+
+    private Sidebar deviceSelectionSidebar;
+    private bool ShowNoDeviceSelectedWarning = false;
+    private bool fullDeviceActionIsSelect = true;
+
+    protected override void OnInitialized()
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                GetSettings();
+
+                managements = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+                await InvokeAsync(StateHasChanged);
+
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
+                managementsObjects = await apiConnection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            }
+        });
+    }
+
+    private async Task GenerateRecertificationReport()
+    {
+        // clear selected rules
+        selectedRules.Clear();
+        deviceSelectionSidebar.ToggleCollapse(true);
+
+        try
+        {
+            // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements, fullDeviceActionIsSelect);
+
+            currentReport = ReportBase.ConstructReport(filterInput);
+            if (!DeviceFilter.isAnyDeviceFilterSet(managements, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
+            {
+                ShowNoDeviceSelectedWarning = true;
+                StateHasChanged();
+                return;
+            }
+
+            DateTime startTime = DateTime.Now;
+            managements = new Management[0]; // reset management data when switching between reports
+
+            await currentReport.Generate(elementsPerFetch, apiConnection,
+            managementsReportIntermediate =>
+            {
+                managements = managementsReportIntermediate;
+                return InvokeAsync(StateHasChanged);
+            });
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+        }
+    }
+
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, int id = 0)
+    {
+        const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
+
+        Log.WriteDebug("Fetching Content..", "");
+
+        Management[] managements = new Management[0];
+
+        try
+        {
+            GetSettings();
+
+            string query = "";
+            Dictionary<String, object> queryVars = new Dictionary<string, object>();
+
+            bool newObjects = true;
+            int fetchCount = 0;
+
+            switch (contentType)
+            {
+                case all:
+                    query = ObjectQueries.getAllObjectDetails;
+                    break;
+                case all_nobj:
+                    query = ObjectQueries.getNetworkObjectDetails;
+                    break;
+                case all_nsrv:
+                    query = ObjectQueries.getNetworkServiceObjectDetails;
+                    break;
+                case all_user:
+                    query = ObjectQueries.getUserDetails;
+                    break;
+                case rule:
+                    query = RuleQueries.getRuleDetails;
+                    break;
+            }
+
+            switch (contentType)
+            {
+                case all or all_nobj or all_nsrv or all_user:
+
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", 0 },
+                        { "management_id", id }
+                    };
+
+                    break;
+
+                case report or report_nobj or report_nsrv or report_user:
+
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", 0 },
+                        { "mgmIds", id }
+                    };
+
+                    await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), apiConnection, callback);
+
+                    return;
+
+                case rule:
+
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", (int)0 },
+                        { "rule_id", id }
+                    };
+
+                    break;
+            }
+
+            // lazy fetch all objects for right sidebar
+            while (newObjects && (++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
+            {
+                Management[] managementsCurrentFetch = await apiConnection.SendQueryAsync<Management[]>(query, queryVars);
+                if (fetchCount == 1)
+                {
+                    managements = managementsCurrentFetch;
+                }
+                else
+                {
+                    newObjects = managements.Merge(managementsCurrentFetch);
+                }
+
+                if (queryVars.ContainsKey("offset"))
+                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                await callback(managements);
+            }
+
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+        }
+        catch (Exception exception)
+        {
+            //DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            // TODO: Error Interface for all Components, that enables displaying a message in the ui
+        }
+
+    }
+
+    private void GetSettings()
+    {
+        try
+        {
+            string settingsValue = userConfig.GetConfigValue(GlobalConfig.kElementsPerFetch);
+            if (settingsValue != "")
+            {
+                elementsPerFetch = Int32.Parse(settingsValue);
+            }
+
+            settingsValue = userConfig.GetConfigValue(GlobalConfig.kMaxInitialFetchesRightSidebar);
+            if (settingsValue != "")
+            {
+                maxInitFetchRightSidebar = Int32.Parse(settingsValue);
+            }
+
+            settingsValue = userConfig.GetConfigValue(GlobalConfig.kAutoFillRightSidebar);
+            autoFillRightSidebar = (settingsValue == "True" ? true : false);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Read Config", $"Error reading config value", exception);
+        }
+    }
+}
+

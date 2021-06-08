@@ -5,7 +5,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: anonymous
 uniqueMember:
-description: anonymous users can only access the login page and health statistics
+description: T0001
 {%- endif %}
 
 
@@ -16,7 +16,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: middleware-server
 uniqueMember:
-description: allows the middleware server to read necessary tables (ldap_connection)
+description: T0002
 {%- endif %}
 
 
@@ -27,7 +27,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: reporter
 uniqueMember:
-description: reporters have access to basic tables (stm_...) and limited rights for object and rule tables depending on the visible devices for the tenant the user belongs to
+description: T0003
 {%- endif %}
 
 
@@ -38,7 +38,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: reporter-viewall
 uniqueMember:
-description: reporter role for full read access to all devices
+description: T0004
 {%- endif %}
 
 
@@ -49,7 +49,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: importer
 uniqueMember:
-description: users can import config changes into the database
+description: T0005
 {%- endif %}
 
 
@@ -60,7 +60,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: dbbackup
 uniqueMember:
-description: users that are able to read data tables for backup purposes
+description: T0006
 {%- endif %}
 
 
@@ -71,7 +71,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: auditor
 uniqueMember:
-description: users that can view all data & settings (in the UI) but cannot make any changes
+description: T0007
 {%- endif %}
 
 
@@ -82,7 +82,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: workflow-user
 uniqueMember:
-description: (for future use) users who can request firewall changes
+description: T0008
 {%- endif %}
 
 
@@ -93,7 +93,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: workflow-admin
 uniqueMember:
-description: (for future use) users who can create change request workflows
+description: T0009
 {%- endif %}
 
 
@@ -104,7 +104,7 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: fw-admin
 uniqueMember:
-description: users who can document open changes
+description: T0010
 {%- endif %}
 
 
@@ -115,5 +115,16 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: admin
 uniqueMember:
-description: users with full access rights to firewall orchestrator
+description: T0011
+{%- endif %}
+
+
+dn: cn=recertifier,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: recertifier
+uniqueMember:
+description: T0012
 {%- endif %}

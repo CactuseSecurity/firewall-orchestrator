@@ -25,12 +25,20 @@ namespace FWO.ApiConfig
         /// </summary>
         private readonly APIConnection apiConnection;
 
+        /// <summary>
+        /// Global string constants used e.g. as database keys etc.
+        /// </summary>
         public static readonly string kDefaultLanguage = "DefaultLanguage";
+        public static readonly string kEnglish = "English";
         public static readonly string kElementsPerFetch = "elementsPerFetch";
         public static readonly string kMaxInitialFetchesRightSidebar = "maxInitialFetchesRightSidebar";
         public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
         public static readonly string kDataRetentionTime = "dataRetentionTime";
         public static readonly string kImportSleepTime = "importSleepTime";
+        public static readonly string kRecertificationPeriod = "recertificationPeriod";
+        public static readonly string kRecertificationNoticePeriod = "recertificationNoticePeriod";
+        public static readonly string kRecertificationDisplayPeriod = "recertificationDisplayPeriod";
+        public static readonly string kRuleRemovalGracePeriod = "ruleRemovalGracePeriod";
         public static readonly string kPwMinLength = "pwMinLength";
         public static readonly string kPwUpperCaseRequired = "pwUpperCaseRequired";
         public static readonly string kPwLowerCaseRequired = "pwLowerCaseRequired";
@@ -68,7 +76,7 @@ namespace FWO.ApiConfig
             catch(Exception exception)
             {
                 Log.WriteError("Read Config table", $"Key not found: taking English ", exception);
-                defaultLanguage = "English";
+                defaultLanguage = kEnglish;
             }
 
             // get languages defined 
@@ -103,6 +111,11 @@ namespace FWO.ApiConfig
                 Log.WriteError("ApiConfig connection", $"Could not connect to API server .", exception);
                 Environment.Exit(1); // Exit with error
             }
+        }
+
+        public static string ShowBool(bool boolVal)
+        {
+            return (boolVal ? "\u2714" : "\u2716");
         }
     }
 }

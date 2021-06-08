@@ -2,6 +2,7 @@
     position: relative;
     display: inline-block;
     border-bottom: 1px dotted black;
+    cursor: help;
 }
 
 span {
@@ -33,5 +34,3 @@ span {
 .tooltip-wrapper:hover span {
     visibility: visible;
 }
-
-/* https://chrissainty.com/building-a-simple-tooltip-component-for-blazor-in-under-10-lines-of-code/ */

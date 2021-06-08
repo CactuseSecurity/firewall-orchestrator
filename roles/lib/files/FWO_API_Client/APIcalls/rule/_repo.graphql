@@ -1,7 +1,7 @@
 
 query getSpecificRuleById($ruleId: Int!) {
   rule(where: { rule_id: { _eq: $ruleId } }) {
-    ...ruleDetails
+    ...ruleDetailsForReport
   }
 }
 
@@ -65,10 +65,10 @@ query listRuleChangesDetails(
       import_time: stop_time
     }
     rule {
-      ...ruleDetails
+      ...ruleDetailsForReport
     }
     ruleByOldRuleId {
-      ...ruleDetails
+      ...ruleDetailsForReport
     }
   }
 }

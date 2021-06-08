@@ -58,6 +58,11 @@ namespace FWO.Report
 
         public readonly DynGraphqlQuery Query;
 
+        private string htmlExport = "";
+
+        // Pdf converter
+        protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
+
         public ReportBase(DynGraphqlQuery query)
         {
             Query = query;
@@ -65,7 +70,9 @@ namespace FWO.Report
 
         public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback);
 
+        public bool GotObjectsInReport { get; protected set; } = false;
         public abstract Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
+        public abstract Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 
@@ -78,11 +85,15 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
-            HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-            HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
-            HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToString());
-            return HtmlTemplate.ToString();
+            if (htmlExport == "")
+            {
+                HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
+                HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
+                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToString());
+                htmlExport = HtmlTemplate.ToString();
+            }
+            return htmlExport;
         }
 
         public virtual byte[] ToPdf()
@@ -90,20 +101,19 @@ namespace FWO.Report
             // HTML
             string html = ExportToHtml();
 
-            // CONFIG
-            var converter = new SynchronizedConverter(new PdfTools());
-
-            var doc = new HtmlToPdfDocument()
+            GlobalSettings globalSettings = new GlobalSettings
             {
-                GlobalSettings = 
+                ColorMode = ColorMode.Color,
+                Orientation = Orientation.Landscape,
+                PaperSize = PaperKind.A4
+            };
+
+            HtmlToPdfDocument doc = new HtmlToPdfDocument()
+            {
+                GlobalSettings = globalSettings,
+                Objects =
                 {
-                    ColorMode = ColorMode.Color,
-                    Orientation = Orientation.Landscape,
-                    PaperSize = PaperKind.A4Plus,
-                },
-                Objects = 
-                {
-                    new ObjectSettings() 
+                    new ObjectSettings()
                     {
                         PagesCount = true,
                         HtmlContent = html,

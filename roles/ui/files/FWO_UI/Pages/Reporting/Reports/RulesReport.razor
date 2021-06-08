@@ -1,4 +1,7 @@
 ﻿@using FWO.Ui.Display
+@using FWO.ApiConfig
+
+@inject UserConfig userConfig
 
 @foreach (Management management in Managements)
 {
@@ -12,13 +15,40 @@
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
-                               RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); OnSelectedRulesChange(SelectedRules); }"
+                               RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); }"
                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
+                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")"
+                               @ref="reportTable">
+
+                            @if(Recertification)
+                            {
+                                <Column TableItem="Rule" Title="Actions" Field="@(rule => rule.OrderNumber)">
+                                    <Template>
+                                        <div class="form-check" @onclick:stopPropagation="true">
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="recertifyRadio@(context.Id)">
+                                            <label class="form-check-label" for="recertifyRadio@(context.Id)">
+                                                Recertify
+                                            </label>
+                                        </div>
+                                        <div class="form-check" @onclick:stopPropagation="true">
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="decertifyRadio@(context.Id)">
+                                            <label class="form-check-label" for="decertifyRadio@(context.Id)">
+                                                Decertify
+                                            </label>
+                                        </div>
+                                        <div class="form-check" @onclick:stopPropagation="true">
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="noneRadio@(context.Id)" checked>
+                                            <label class="form-check-label" for="noneRadio@(context.Id)">
+                                                None
+                                            </label>
+                                        </div>
+                                    </Template>
+                                </Column>
+                            }
 
                             @if (EmptyColumns[0] == false)
                             {
-                                <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayNumber(device.Rules))
                                     </Template>
@@ -26,11 +56,11 @@
                             }
                             @if (EmptyColumns[1] == false)
                             {
-                                <Column TableItem="Rule" Title="Name" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true" />
                             }
                             @if (EmptyColumns[2] == false)
                             {
-                                <Column TableItem="Rule" Title="Source Zone" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplaySourceZone())
                                     </Template>
@@ -38,7 +68,7 @@
                             }
                             @if (EmptyColumns[3] == false)
                             {
-                                <Column TableItem="Rule" Title="Source" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplaySource())
                                     </Template>
@@ -46,7 +76,7 @@
                             }
                             @if (EmptyColumns[4] == false)
                             {
-                                <Column TableItem="Rule" Title="Destination Zone" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayDestinationZone())
                                     </Template>
@@ -54,7 +84,7 @@
                             }
                             @if (EmptyColumns[5] == false)
                             {
-                                <Column TableItem="Rule" Title="Destination" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayDestination())
                                     </Template>
@@ -62,7 +92,7 @@
                             }
                             @if (EmptyColumns[6] == false)
                             {
-                                <Column TableItem="Rule" Title="Services" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayService())
                                     </Template>
@@ -70,15 +100,15 @@
                             }
                             @if (EmptyColumns[7] == false)
                             {
-                                <Column TableItem="Rule" Title="Action" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="true" Hideable="true" />
                             }
                             @if (EmptyColumns[8] == false)
                             {
-                                <Column TableItem="Rule" Title="Track" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="true" Hideable="true" />
                             }
                             @if (EmptyColumns[9] == false)
                             {
-                                <Column TableItem="Rule" Title="Enabled" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
                                     <Template>
                                         @((MarkupString)context.DisplayEnabled())
                                     </Template>
@@ -86,22 +116,26 @@
                             }
                             @if (EmptyColumns[10] == false)
                             {
-                                <Column TableItem="Rule" Title="UID" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("uid"))" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="true" Hideable="true" />
                             }
                             @if (EmptyColumns[11] == false)
                             {
-                                <Column TableItem="Rule" Title="Comment" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="true" Hideable="true" />
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="true" Hideable="true" />
                             }
 
                             <DetailTemplate TableItem="Rule">
-                                <Detail Title="Created" Data="@context.Metadata?.Created?.ToString()" />
-                                <Detail Title="Last Modified" Data="@context.Metadata?.LastModified?.ToString()" />
-                                <Detail Title="First Hit" Data="@context.Metadata?.FirstHit?.ToString()" />
-                                <Detail Title="Last Hit" Data="@context.Metadata?.LastHit?.ToString()" />
+                                <Detail Title="@(userConfig.GetText("created"))" Data="@context.Metadata?.Created?.ToString()" />
+                                <Detail Title="@(userConfig.GetText("last_modified"))" Data="@context.Metadata?.LastModified?.ToString()" />
+                                <Detail Title="@(userConfig.GetText("first_hit"))" Data="@context.Metadata?.FirstHit?.ToString()" />
+                                <Detail Title="@(userConfig.GetText("last_hit"))" Data="@context.Metadata?.LastHit?.ToString()" />
                             </DetailTemplate>
 
                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
-                                <td class="bg-light" colspan="@(ColumnCount + 1)"><div class="font-weight-bold">@(context.SectionHeader)</div></td>
+                                <tr>
+                                    <td class="bg-light" colspan="@(reportTable.Columns.Count + 1)">
+                                        <div class="font-weight-bold">@(context.SectionHeader)</div>
+                                    </td>
+                                </tr>         
                             </CustomRow>
 
                             <Pager ShowPageNumber="true" ShowTotalCount="true" />
@@ -116,17 +150,27 @@
 @code
 {
     [Parameter]
+    public bool Recertification { get; set; }
+
+    [Parameter]
+    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
     public List<Rule> SelectedRules { get; set; }
 
     [Parameter]
     public int RulesPerPage { get; set; }
 
     [Parameter]
-    public Action<List<Rule>> OnSelectedRulesChange { get; set; }
+    public EventCallback<int> WidthChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
 
     [Parameter]
     public Management[] Managements { get; set; }
 
-    private const int ColumnCount = 12;
-    private bool[] EmptyColumns = new bool[ColumnCount];
+    private ITable<Rule> reportTable;
+    private const int ColumnsCount = 12;
+    private bool[] EmptyColumns = new bool[ColumnsCount];
 }

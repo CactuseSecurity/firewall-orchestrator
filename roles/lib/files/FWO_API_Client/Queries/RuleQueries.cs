@@ -11,8 +11,11 @@ namespace FWO.ApiClient.Queries
     {
         public static readonly string ruleOverviewFragments;
         public static readonly string ruleDetailsFragments;
+        public static readonly string ruleDetailsForReportFragments;
         public static readonly string getRuleOverview;
         public static readonly string getRuleDetails;
+        public static readonly string getRuleDetailsForReport;
+        public static readonly string getRuleNetworkObjectDetails;
         public static readonly string getRuleIdsOfImport;
 
         static RuleQueries()
@@ -28,14 +31,30 @@ namespace FWO.ApiClient.Queries
                 getRuleOverview = ruleOverviewFragments + File.ReadAllText(QueryPath + "rule/getRuleOverview.graphql");
 
                 ruleDetailsFragments =
-                    File.ReadAllText(QueryPath + "networkObject/fragments/networkObjectDetails.graphql") +
-                    File.ReadAllText(QueryPath + "networkService/fragments/networkServiceDetails.graphql") +
-                    File.ReadAllText(QueryPath + "user/fragments/userDetails.graphql") +
+                    ObjectQueries.networkObjectDetailsFragment +
+                    ObjectQueries.networkServiceObjectDetailsFragment +
+                    ObjectQueries.userDetailsFragment +
                     File.ReadAllText(QueryPath + "rule/fragments/ruleDetails.graphql");
 
-                getRuleDetails = ruleDetailsFragments + File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
+                ruleDetailsForReportFragments =
+                    ObjectQueries.networkObjectDetailsFragment +
+                    ObjectQueries.networkServiceObjectDetailsFragment +
+                    ObjectQueries.userDetailsFragment +
+                    File.ReadAllText(QueryPath + "rule/fragments/ruleDetailsForReport.graphql");
 
-                getRuleIdsOfImport = File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
+                getRuleDetails =
+                    ruleDetailsFragments +
+                    File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
+
+                getRuleDetailsForReport =
+                    ruleDetailsForReportFragments +
+                    File.ReadAllText(QueryPath + "rule/getRuleDetails.graphql");
+
+                getRuleNetworkObjectDetails =
+                    ObjectQueries.networkObjectDetailsFragment;
+
+                getRuleIdsOfImport =
+                    File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
 
             }
             catch (Exception exception)

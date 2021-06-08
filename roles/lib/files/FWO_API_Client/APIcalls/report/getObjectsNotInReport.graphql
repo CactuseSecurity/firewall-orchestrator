@@ -1,0 +1,22 @@
+
+query getObjectsNotInReport($mgmIds: [Int!], $ruleIds: [bigint!]!) {
+  management(where: {mgm_id: {_in: $mgmIds}}) {
+    name: mgm_name
+    id: mgm_id
+    reportNetworkObjects: rule_nwobj_resolveds(where: {rule_id: {_nin: $ruleIds}}, distinct_on: [obj_id]) {
+      object {
+        ...networkObjectDetails
+      }
+    }
+    reportServiceObjects: rule_svc_resolveds(distinct_on: [svc_id], where: {rule_id: {_nin: $ruleIds}}) {
+      service {
+        ...networkServiceDetails
+      }
+    }
+    reportUserObjects: rule_user_resolveds(distinct_on: [user_id], where: {rule_id: {_nin: $ruleIds}}) {
+      usr {
+        ...userDetails
+      }
+    }
+  }
+}

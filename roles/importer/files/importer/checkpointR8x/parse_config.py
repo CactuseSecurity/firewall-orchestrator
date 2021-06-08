@@ -4,7 +4,6 @@ import parse_network, parse_rule, parse_service, parse_user
 import argparse
 import json
 import sys
-#import re
 import logging
 
 parser = argparse.ArgumentParser(description='parse json configuration file from Check Point R8x management')
@@ -50,8 +49,9 @@ if args.rulebase != '':
     for rulebase in config['rulebases']:
         current_layer_name = rulebase['layername']
         if current_layer_name == args.rulebase:
+            logging.debug("parse_config: found layer to parse: " + current_layer_name)
             found_rulebase = True
-            rule_num, result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[])
+            rule_num, result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[], parent_uid="")
 
 if args.network_objects:
     result = ''
@@ -92,7 +92,7 @@ if args.users:
         result += parse_user.csv_dump_user(user_name, user_dict, args.import_id)
 
 if args.rulebase != '' and not found_rulebase:
-    print("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")
+    logging.exception("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")
 else:
     result = result[:-1]  # strip off final line break to avoid empty last line
     print(result)

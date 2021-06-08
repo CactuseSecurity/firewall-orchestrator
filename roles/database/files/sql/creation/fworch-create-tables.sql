@@ -56,7 +56,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"tenant_id" Integer,
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
-	"ssh_public_key" Text NOT NULL Default 'leer',
+	"ssh_public_key" Text,
 	"ssh_private_key" Text NOT NULL,
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
@@ -127,6 +127,8 @@ Create table "rule"
 	"last_change_admin" Integer,
 	"rule_name" Varchar,
 	"mgm_id" Integer NOT NULL,
+	"parent_rule_id" BIGINT,
+	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
 	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),
@@ -164,7 +166,7 @@ Create table "rule_metadata"
 (
 	"rule_metadata_id" BIGSERIAL,
 	"dev_id" Integer NOT NULL,
-	"rule_uid" Text,
+	"rule_uid" Text NOT NULL,
 	"rule_created" Timestamp NOT NULL Default now(),
 	"rule_last_modified" Timestamp NOT NULL Default now(),
 	"rule_first_hit" Timestamp,
@@ -172,8 +174,9 @@ Create table "rule_metadata"
 	"rule_hit_counter" BIGINT,
 	"rule_last_certified" Timestamp,
 	"rule_last_certifier" Integer,
+	"rule_last_certifier_dn" VARCHAR,
 	"rule_owner" Integer,
-	"rule_group_owner" Varchar, -- distinguished name pointing to ldap group
+	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
 	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
 	"last_change_admin" Integer,
  primary key ("rule_metadata_id")
@@ -401,15 +404,6 @@ Create table "uiuser"
 
 -- text tables ----------------------------------------
 
--- to be removed in 5.0 (replaced by language, txt)
-Create table "text_msg"
-(
-	"text_msg_id" Varchar NOT NULL UNIQUE,
-	"text_msg_ger" Text NOT NULL,
-	"text_msg_eng" Text NOT NULL,
- primary key ("text_msg_id")
-);
-
 Create table "language"
 (
 	"name" Varchar NOT NULL UNIQUE,
@@ -503,6 +497,13 @@ Create table "tenant_username"
 );
 
 -- basic static data -------------------------------------
+
+Create table "parent_rule_type"
+(
+	"id" smallserial NOT NULL,
+	"name" Varchar NOT NULL,
+ primary key ("id")
+);
 
 Create table "stm_action"
 (
@@ -712,6 +713,7 @@ Create table "import_rule"
 	"rule_src_refs" Text,
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
+	"parent_rule_uid" Text,
  primary key ("control_id","rule_id")
 );
 
@@ -987,34 +989,3 @@ Create table "config"
 	"config_user" Integer,
 	primary key ("config_key","config_user")
 );
-
--- not needed for 5.0:  -------------------------------------------
-
--- Create table "temp_table_for_tenant_filtered_rule_ids"
--- (
--- 	"rule_id" Integer NOT NULL,
--- 	"report_id" Integer NOT NULL,
--- 	primary key ("rule_id","report_id")
--- );
-
--- Create table "temp_filtered_rule_ids"
--- (
--- 	"report_id" Integer NOT NULL,
--- 	"rule_id" Integer NOT NULL
--- );
-
--- Create table "temp_mgmid_importid_at_report_time"
--- (
--- 	"control_id" Integer,
--- 	"mgm_id" Integer,
--- 	"report_id" Integer NOT NULL
--- );
-
--- Create table "rule_order"
--- (
--- 	"control_id" Integer NOT NULL,
--- 	"dev_id" Integer NOT NULL,
--- 	"rule_id" Integer NOT NULL,
--- 	"rule_number" Integer NOT NULL,
---  primary key ("control_id","dev_id","rule_id")
--- );

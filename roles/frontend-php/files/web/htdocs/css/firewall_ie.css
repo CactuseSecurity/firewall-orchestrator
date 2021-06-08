@@ -1,8 +1,0 @@
-/* $Id: firewall_ie.css,v 1.1.2.3 2011-12-30 21:09:28 tim Exp $ */
-/* $Source: /home/cvs/iso/package/web/htdocs/css/Attic/firewall_ie.css,v $ */
-
-#menu {overflow-x:scroll;overflow-y:auto;width:155px;height:400px;white-space:nowrap;background-color:#D1D1D1;padding:4px 25px 20px 4px;top:50px;left:5px;position:absolute;}
-
-input.radiopos{height:13px;width:13px;margin-bottom:1px;margin-left:5px;}
-#ChangeFrame{padding:0px;}
-#Change_Config_Frame{padding:0px;}

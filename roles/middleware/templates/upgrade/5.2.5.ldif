@@ -1,0 +1,9 @@
+# add new role recertifier
+
+dn: cn=recertifier,ou=role,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: recertifier
+uniqueMember:
+description: T0012

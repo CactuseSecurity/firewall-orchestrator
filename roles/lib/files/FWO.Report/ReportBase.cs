@@ -8,9 +8,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using FWO.ApiClient.Queries;
 using System.Text.Json;
-using VetCV.HtmlRendererCore.PdfSharpCore;
-using PdfSharpCore;
-using PdfSharpCore.Pdf;
+// using VetCV.HtmlRendererCore.PdfSharpCore;
+// using PdfSharpCore;
+// using PdfSharpCore.Pdf;
 using System.Text;
 using WkHtmlToPdfDotNet;
 

@@ -13,7 +13,7 @@ logger.info("START")
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--hostname', metavar='api_host', required=True, help='Check Point R8x management server')
 parser.add_argument('-w', '--password', metavar='api_password', required=True, help='password for management server')
-parser.add_argument('-m', '--mode', metavar='mode', required=True, help='[domains|packages|layers|generic]')
+parser.add_argument('-m', '--mode', metavar='mode', required=True, help='[domains|packages|layers|generic|devices]')
 parser.add_argument('-c', '--command', metavar='command', required=False, help='generic command to send to the api (needs -m generic). ' +
                             'Please note that the command must be written as one word (e.g. show-access-layer instead of show acess-layers).')
 parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='user for connecting to Check Point R8x management server, default=fworch')
@@ -37,7 +37,7 @@ domain = args.domain
 if args.mode == 'packages':
     api_command='show-packages'
     api_details_level="standard"
-elif args.mode == 'domains':
+elif args.mode == 'domains' or args.mode == 'devices':
     api_command='show-domains'
     api_details_level="standard"
     domain = ''
@@ -99,6 +99,7 @@ if args.mode == 'packages':
             print ("    package: " + p['name'])
             for l in p['access-layers']:
                 print ("        layer: " + l['name'])
+
 if args.mode == 'domains':
     print ("\nthe following domains exist on management server:")
     for d in result['objects']:
@@ -108,8 +109,64 @@ if args.mode == 'layers':
     for l in result['access-layers']:
         print ("    access-layer: " + l['name'] + ", uid: " + l['uid'] )
 if args.mode == 'generic':
-    # print ("running api command " + api_command)
     print (json.dumps(result, indent=3))
+
+# get complete device information (auto-discovery) and display it
+if args.mode == 'devices':
+    domains = result
+    if domains['total']== 0:
+        print("no domains found, adding dummy domain.")
+        domains['objects'].append ({ "name": "", "uid": "" }) 
+    for obj in domains['objects']:
+        # fetching gateways:
+        obj['gateways'] = getter.api_call(args.hostname, args.port, v_url, 
+            "show-gateways-and-servers", { "details-level" : "full" }, 
+            xsid, ssl_verification, proxy_string)
+        for gw in obj['gateways']['objects']:
+            print ("gw or server: " + gw['name'] + ", (uid=" + gw['uid'] + ")")
+            if 'type' in gw and gw['type'] in ['simple-gateway', 'others'] and 'policy' in gw:
+                print ("found gateway: " + gw['name'] + ", (uid=" + gw['uid'] + ")")
+                if 'access-policy-installed' in gw['policy'] and gw['policy']['access-policy-installed'] and "access-policy-name" in gw['policy']:
+                    print ("found firewall gateway with policy: " + gw['name'] + ", (uid=" + gw['uid'] + ")")
+                    gw['package'] = getter.api_call(args.hostname, args.port, v_url, 
+                        "show-package", 
+                        { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, 
+                        xsid, ssl_verification, proxy_string)
+
+                    for layer in gw['package']['access-layers']:
+                        print ("access-layer: " + layer['name'] + ", (uid=" + layer['uid'] + ")")
+                        if 'firewall' in layer and layer['firewall']:
+                            print ("found firewall layer: " + layer['name'] + ", (uid=" + layer['uid'] + ")")
+                        # else:
+                        #     gw['package']['access-layers'].remove(layer)
+            #     else: # remove non-fw gw
+            #         obj['gateways']['objects'].remove(gw)
+            # else: # remove non-gw object
+            #     obj['gateways']['objects'].remove(gw)
+
+    # copy only the relevant data to new dict
+    domains_essential = []
+    for obj in domains['objects']:
+        domain = {
+                'name':  obj['name'],
+                'uid': obj['uid']
+            }
+        gateways = []
+        for gw in obj['gateways']['objects']:
+            if 'policy' in gw:
+                gateway = { "name": gw['name'], "uid": gw['uid'], "access-policy-name": gw['policy']["access-policy-name"] }
+                layers = []
+                if 'package' in gw:
+                    for ly in gw['package']['access-layers']:
+                        layer = { "name": ly['name'], "uid": ly['uid'] }
+                        layers.append(layer)
+                gateway['layers'] = layers
+                gateways.append(gateway)
+            domain['gateways'] = gateways
+        domains_essential.append(domain)
+    devices = {"domains": domains_essential }
+    print (json.dumps(devices, indent=3))
+
 print()
 
 logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)

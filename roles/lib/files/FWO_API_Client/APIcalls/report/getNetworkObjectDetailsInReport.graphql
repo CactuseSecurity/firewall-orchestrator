@@ -1,16 +1,22 @@
 ﻿query getNetworkObjectsInReport(
   $mgmIds: [Int!]
+  $importId: bigint
   $ruleIds: [bigint!]!
   $limit: Int
   $offset: Int
 ) {
-  management(where: {mgm_id: {_in: $mgmIds}}) {
+  management(where: { mgm_id: { _in: $mgmIds } }) {
     name: mgm_name
     id: mgm_id
     reportNetworkObjects: rule_nwobj_resolveds(
       limit: $limit
       offset: $offset
-      where: {rule_id: {_in: $ruleIds}}, distinct_on: [obj_id]
+      where: {
+        rule_id: { _in: $ruleIds }
+        created: { _lte: $importId }
+        removed: { _gte: $importId }
+      }
+      distinct_on: [obj_id]
     ) {
       object {
         ...networkObjectDetails

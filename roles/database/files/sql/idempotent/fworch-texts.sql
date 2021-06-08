@@ -71,7 +71,7 @@ INSERT INTO txt VALUES ('documentation', 		'German',	'Dokumentation');
 INSERT INTO txt VALUES ('documentation', 		'English',	'Documentation');
 INSERT INTO txt VALUES ('request', 				'German',	'Antrag');
 INSERT INTO txt VALUES ('request', 				'English',	'Request');
-INSERT INTO txt VALUES ('scheduling', 			'German',	'Terminplanung');
+INSERT INTO txt VALUES ('scheduling', 			'German',	'Scheduling');
 INSERT INTO txt VALUES ('scheduling', 			'English',	'Scheduling');
 INSERT INTO txt VALUES ('archive', 				'German',	'Archiv');
 INSERT INTO txt VALUES ('archive', 				'English',	'Archive');

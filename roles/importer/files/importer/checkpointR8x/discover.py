@@ -108,7 +108,7 @@ if args.mode == 'layers':
     for l in result['access-layers']:
         print ("    access-layer: " + l['name'] + ", uid: " + l['uid'] )
 if args.mode == 'generic':
-    print ("running api command " + api_command)
+    # print ("running api command " + api_command)
     print (json.dumps(result, indent=3))
 print()
 

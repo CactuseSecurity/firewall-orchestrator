@@ -21,12 +21,12 @@
     and
     current_version >= item | basename | splitext | first | splitext | first
   with_fileglob:
-    - "../templates/upgrade/*.ldif"
+    - "../templates/upgrade/*.ldif.j2"
 
 - name: copy the upgrade ldif templates to target
   template:
-    src: "../templates/upgrade/{{ item }}.ldif"
-    dest: "{{ fworch_home }}/middleware/upgrade/"
+    src: "../templates/upgrade/{{ item }}.ldif.j2"
+    dest: "{{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
   loop: "{{ upgrade_files }}"
   become: yes
 

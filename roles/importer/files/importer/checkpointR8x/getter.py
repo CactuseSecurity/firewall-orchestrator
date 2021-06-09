@@ -21,7 +21,7 @@ svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'servic
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
 
-def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, proxy_string):
+def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, proxy_string, show_progress=False):
     url = url + command
     if sid == '':
         request_headers = {'Content-Type' : 'application/json'}
@@ -31,8 +31,8 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
     if r is None:
         logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
         sys.exit(1)
-    # todo add print "." for each api call?
-    print ('.', end='', flush=True)
+    if show_progress:
+        print ('.', end='', flush=True)
     return r.json()
 
 

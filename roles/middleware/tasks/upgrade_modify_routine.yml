@@ -4,16 +4,18 @@
     changetype: "{{ lookup('file', '{{ fworch_home }}/middleware/upgrade/{{ item }}.ldif').split('changetype: ')[1].splitlines()[0] }}"
 
 - name: test if distinguished name exists
+  # error code 32, when searchbase not existing
   command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
   become: yes
   register: search_existence
+  failed_when: (search_existence != 0) and (search_existence != 32)
 
 - name: add ldap entry if not existing
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
-  when: (changetype == 'add') and (search_existence.stdout.split('result:')[1].splitlines()[0]) is match('*No such object'))
+  when: (changetype == 'add') and (search_existence.stdout.split('result:')[1].splitlines()[0] is match('.*No such object'))
   become: yes
 
 - name: delete ldap entry if existing
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
-  when: (changetype == 'delete') and (search_existence.stdout.split('result:')[1].splitlines()[0]) is match('*No such object'))
+  when: (changetype == 'delete') and (search_existence.stdout.split('result:')[1].splitlines()[0] is match('*.No such object'))
   become: yes

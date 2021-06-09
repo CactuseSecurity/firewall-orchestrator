@@ -37,23 +37,7 @@
 #   loop: "{{ upgrade_files | sort }}"
 #   ignore_errors: yes
 
-- block:
-
-    - name: determine distinguished name and changetype
-      set_fact:
-        distinguished_name: "{{ lookup('file', '{{ fworch_home }}/middleware/upgrade/{{ item }}.ldif').split('dn: ')[1].split('\n')[0] }}"
-        changetype: "{{ lookup('file', '{{ fworch_home }}/middleware/upgrade/{{ item }}.ldif').split('changetype: ')[1].split('\n')[0] }}"
-
-    - name: test if distinguished name exists
-      command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
-      become: yes
-      register: search_existence
-
-    - name: add ldap entry if not existing
-      command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
-      when: (changetype == 'add') and (search_existence.split('result:')[1].split('\n')[0]) == '*No such object')
-      become: yes
-
-
+- name: 
+  include_tasks: upgrade_modify_routine.yml
   loop: "{{ upgrade_files | sort }}"
 

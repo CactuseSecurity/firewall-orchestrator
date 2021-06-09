@@ -15,11 +15,11 @@
 
 - name: set list of relevant upgrade files (without extension)
   set_fact:
-    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1') ] }}"
+    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | splitext | first ] }}"
   when: |
-    installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1')
+    installed_version < item | basename | splitext | first | splitext | first
     and
-    current_version >= item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif', '\\1')
+    current_version >= item | basename | splitext | first | splitext | first
   with_fileglob:
     - "../templates/upgrade/*.ldif"
 
@@ -30,6 +30,30 @@
   loop: "{{ upgrade_files }}"
   become: yes
 
-- name: install ldap upgrades   
-  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
+# - name: install ldap upgrades   
+#   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
+#   when: upgrade_check < item
+#   register: upgrade_output
+#   loop: "{{ upgrade_files | sort }}"
+#   ignore_errors: yes
+
+- block:
+
+    - name: determine distinguished name and changetype
+      set_fact:
+        distinguished_name: "{{ lookup('file', '{{ fworch_home }}/middleware/upgrade/{{ item }}.ldif').split('dn: ')[1].split('\n')[0] }}"
+        changetype: "{{ lookup('file', '{{ fworch_home }}/middleware/upgrade/{{ item }}.ldif').split('changetype: ')[1].split('\n')[0] }}"
+
+    - name: test if distinguished name exists
+      command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
+      become: yes
+      register: search_existence
+
+    - name: add ldap entry if not existing
+      command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
+      when: (changetype == 'add') and (search_existence.split('result:')[1].split('\n')[0]) == '*No such object')
+      become: yes
+
+
   loop: "{{ upgrade_files | sort }}"
+

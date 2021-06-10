@@ -63,7 +63,9 @@ api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-ver
 api_version = api_versions["current-version"]
 api_supported = api_versions["supported-versions"]
 v_url = getter.set_api_url(base_url,args.version,api_supported,args.hostname)
-logger.debug ("current version: "+ api_version )
+if args.version != 'off':
+    api_version = args.version
+logger.debug ("using current version: "+ api_version )
 logger.debug ("supported versions: "+ ', '.join(api_supported) )
 logger.debug ("limit:"+ args.limit )
 logger.debug ("Domain:"+ args.domain )

@@ -19,6 +19,8 @@ parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='p
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0')
 parser.add_argument('-V', '--version', metavar='api_version', default='off', help='alternate API version [off|<version number>]; default=off')
+parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Environment')
+parser.add_argument('-f', '--format', metavar='output_format', default='table', help='[json|table]]')
 
 args = parser.parse_args()
 if len(sys.argv)==1:
@@ -28,10 +30,19 @@ if len(sys.argv)==1:
 proxy_string = { "http"  : args.proxy, "https" : args.proxy }
 offset = 0
 use_object_dictionary = 'false'
+base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
+ssl_verification = getter.set_ssl_verification(args.ssl)
+xsid = getter.login(args.user, args.password, args.hostname, args.port, args.domain, ssl_verification, proxy_string)
+
+api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
+api_version = api_versions["current-version"]
+api_supported = api_versions["supported-versions"]
+v_url = getter.set_api_url(base_url,args.version,api_supported,args.hostname)
+
 v_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
 if args.version != "off":
     v_url += 'v' + args.version + '/'
-ssl_verification = getter.set_ssl_verification(args.ssl)
+
 logger = logging.getLogger(__name__)
 
 xsid = getter.login(args.user, args.password, args.hostname, args.port, '', ssl_verification, proxy_string)
@@ -47,60 +58,47 @@ else:
 domains = getter.api_call(args.hostname, args.port, v_url, "show-domains", {}, xsid, ssl_verification, proxy_string)
 
 gw_types = ['simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiGatewayPlain', 'CpmiGatewayCluster']
+parameters =  { "details-level" : "full" }
+
 if domains['total']== 0:
     logging.debug ("no domains found, adding dummy domain.")
     domains['objects'].append ({ "name": "", "uid": "" }) 
 
-# fetch gws on MDS level first
-for obj in domains['objects']:
-    # fetching gateways:
-    parameters =  { "details-level" : "full" }
+    # fetching gateways for non-MDS management:
+    obj = domains['objects'][0]
     obj['gateways'] = getter.api_call(args.hostname, args.port, v_url, "show-gateways-and-servers", parameters, xsid, ssl_verification, proxy_string)
     if 'objects' in obj['gateways']:
         for gw in obj['gateways']['objects']:
-            logging.debug ("gw or server: " + gw['name'] + ", (uid=" + gw['uid'] + ")")
             if 'type' in gw and gw['type'] in gw_types and 'policy' in gw:
-                logging.debug ("found gateway: " + gw['name'] + ", (uid=" + gw['uid'] + ")")
                 if 'access-policy-installed' in gw['policy'] and gw['policy']['access-policy-installed'] and "access-policy-name" in gw['policy']:
-                    logging.debug ("found firewall gateway with policy: " + gw['name'] + ", (uid=" + gw['uid'] + ")")
-
-                    if domains['total']== 0:  # stand-alone mgmt (no MDS)
-                        gw['package'] = getter.api_call(args.hostname, args.port, v_url, 
-                            "show-package", 
-                            { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, 
-                            xsid, ssl_verification, proxy_string)
-                        if 'access-layers' in gw['package']:
-                            for layer in gw['package']['access-layers']:
-                                logging.debug ("access-layer: " + layer['name'] + ", (uid=" + layer['uid'] + ")")
-                                if 'firewall' in layer and layer['firewall']:
-                                    logging.debug ("found firewall layer: " + layer['name'] + ", (uid=" + layer['uid'] + ")")
+                    logging.debug ("standalone mgmt: found gateway " + gw['name'] + " with policy" + gw['policy']['access-policy-name'])
+                    gw['package'] = getter.api_call(args.hostname, args.port, v_url, 
+                        "show-package", 
+                        { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, 
+                        xsid, ssl_verification, proxy_string)
     else:
-        logging.warning ("MDS-WARNING: did not find any gateways in domain " + obj['name'])
+        logging.warning ("Standalone WARNING: did not find any gateways in stand-alone management")
+    logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)
 
-logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)
-
-# now visit each domain and fetch layers
-if domains['total']> 0:  # MDS
+else: # visit each domain and fetch layers
     for obj in domains['objects']:
-        xsid = getter.login(args.user, args.password, args.hostname, args.port, obj['name'], ssl_verification, proxy_string)
+        domain_name = obj['name']
+        logging.debug ("MDS: searchig in domain " + domain_name)
+        xsid = getter.login(args.user, args.password, args.hostname, args.port, domain_name, ssl_verification, proxy_string)
         obj['gateways'] = getter.api_call(args.hostname, args.port, v_url, "show-gateways-and-servers", parameters, xsid, ssl_verification, proxy_string)
         if 'objects' in obj['gateways']:
             for gw in obj['gateways']['objects']:
                 if 'type' in gw and gw['type'] in gw_types and 'policy' in gw:
                     if 'access-policy-installed' in gw['policy'] and gw['policy']['access-policy-installed'] and "access-policy-name" in gw['policy']:
-                        # make api call to domain
+                        api_call_str = "show-package name " + gw['policy']['access-policy-name'] + ", logged in to domain " + domain_name
+                        logging.debug ("MDS: found gateway " + gw['name'] + " with policy: " + gw['policy']['access-policy-name'])
+                        logging.debug ("api call: " + api_call_str)
                         gw['package'] = getter.api_call(args.hostname, args.port, v_url, "show-package", 
                             { "name" : gw['policy']['access-policy-name'], "details-level": "full" }, 
                             xsid, ssl_verification, proxy_string)
-                        # if 'access-layers' in gw['package']:
-                        #     for layer in gw['package']['access-layers']:
-                        #         logging.debug  ("access-layer: " + layer['name'] + ", (uid=" + layer['uid'] + ")")
-                        #         if 'firewall' in layer and layer['firewall']:
-                        #             logging.debug  ("found firewall layer: " + layer['name'] + ", (uid=" + layer['uid'] + ")")
         else:
             logging.warning ("Domain-WARNING: did not find any gateways in domain " + obj['name'])
         logout_result = getter.api_call(args.hostname, args.port, v_url, 'logout', {}, xsid, ssl_verification, proxy_string)
-
 
 # now collect only relevant data and copy to new dict
 domains_essential = []
@@ -137,51 +135,55 @@ for obj in domains['objects']:
     domains_essential.append(domain)
 devices = {"domains": domains_essential }
 
-print (json.dumps(devices, indent=3))
 
-# compact print in FWO UI input format
-colsize_number = 35
-colsize = "{:"+str(colsize_number)+"}"
-table = ""
-heading_list = ["Domain/Management", "Gateway", "Policy String"]
+##### output ########
+if args.format == 'json':
+    print (json.dumps(devices, indent=3))
 
-# add table header:
-for heading in heading_list:
-    table += colsize.format(heading)
-table += "\n"
-x = 0
-while x <  len(heading_list) * colsize_number:
-    table += '-'
-    x += 1
-table += "\n"
+if args.format == 'table':
+    # compact print in FWO UI input format
+    colsize_number = 35
+    colsize = "{:"+str(colsize_number)+"}"
+    table = ""
+    heading_list = ["Domain/Management", "Gateway", "Policy String"]
 
-# print one gateway/policy per line
-for dom in devices['domains']:
-    if 'gateways' in dom:
-        for gw in dom['gateways']:
+    # add table header:
+    for heading in heading_list:
+        table += colsize.format(heading)
+    table += "\n"
+    x = 0
+    while x <  len(heading_list) * colsize_number:
+        table += '-'
+        x += 1
+    table += "\n"
+
+    # print one gateway/policy per line
+    for dom in devices['domains']:
+        if 'gateways' in dom:
+            for gw in dom['gateways']:
+                table += colsize.format(dom["name"])
+                table += colsize.format(gw['name'])
+                if 'layers' in gw:
+                    found_domain_layer = False
+                    layer_string = '<undefined>'
+                    for ly in gw['layers']:
+                        if 'parent-layer' in ly:
+                            found_domain_layer = True 
+                    for ly in gw['layers']:
+                        if ly['type'] == 'stand-alone-layer' or ly['type'] == 'local-layer':
+                            layer_string = ly["name"]
+                        elif found_domain_layer and ly['type'] == 'domain-layer':
+                            domain_layer = ly['name']
+                        elif found_domain_layer and ly['type'] == 'global-layer':
+                            global_layer = ly['name']
+                        else:
+                            logging.warning ("found unknown layer type")
+                    if found_domain_layer:
+                        layer_string = global_layer + '/' + domain_layer
+                    table += colsize.format(layer_string)
+                table += "\n"
+        else:
             table += colsize.format(dom["name"])
-            table += colsize.format(gw['name'])
-            if 'layers' in gw:
-                found_domain_layer = False
-                layer_string = '<undefined>'
-                for ly in gw['layers']:
-                    if 'parent-layer' in ly:
-                        found_domain_layer = True 
-                for ly in gw['layers']:
-                    if ly['type'] == 'stand-alone-layer' or ly['type'] == 'local-layer':
-                        layer_string = ly["name"]
-                    elif found_domain_layer and ly['type'] == 'domain-layer':
-                        domain_layer = ly['name']
-                    elif found_domain_layer and ly['type'] == 'global-layer':
-                        global_layer = ly['name']
-                    else:
-                        logging.warning ("found unknown layer type")
-                if found_domain_layer:
-                    layer_string = global_layer + '/' + domain_layer
-                table += colsize.format(layer_string)
-            table += "\n"
-    else:
-        table += colsize.format(dom["name"])
-    table += "\n"  # empty line between domains for readability
+        table += "\n"  # empty line between domains for readability
 
-print (table)
+    print (table)

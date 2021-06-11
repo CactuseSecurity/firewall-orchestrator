@@ -16,6 +16,7 @@ DECLARE
     i_member BIGINT;
     i_matching_rule_id BIGINT;
     i_matching_obj_id BIGINT;
+    i_previous_import_id BIGINT;
     r_search RECORD;
 BEGIN
     BEGIN -- catch
@@ -82,30 +83,37 @@ BEGIN
                 END IF;
             END IF;
 
-            -- if the new object is a group, deal with all flat group members
+            -- if the (new) object is a group, deal with all group members recursively
+            -- cannot use _flat group as this would leave out any intermediate groups
             IF is_obj_group(i_new_obj_id) THEN -- treat all group members as well
                 RAISE NOTICE 'import_rule_resolved_nwobj 4 group - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                     i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
+                
                 -- make sure all new active members are in resolved table:
-                FOR i_member IN SELECT objgrp_flat_member_id FROM objgrp_flat WHERE active AND objgrp_flat_id=i_new_obj_id
+                FOR i_member IN SELECT objgrp_member_id FROM objgrp WHERE active AND objgrp_id=i_new_obj_id AND
+                    NOT objgrp_member_id in (SELECT objgrp_member_id FROM objgrp WHERE objgrp_id=i_old_obj_id)
+                    -- do not add objects that were already in the old group
                 LOOP
                     RAISE NOTICE 'import_rule_resolved_nwobj 4a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                         i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
                     IF i_new_obj_id <> i_member THEN 
-                        RAISE NOTICE 'import_rule_resolved_nwobj 4b recurse I - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                        RAISE NOTICE 'import_rule_resolved_nwobj 4b recurse new obj - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                             i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                        -- add new members:
                         PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id, NULL, i_member, i_current_import_id, c_action, c_changelog_table);
                     END IF;
                 END LOOP;
-                -- delete old member refs, TODO: this part must be tested
-                FOR i_member IN SELECT objgrp_flat_member_id FROM objgrp_flat WHERE NOT active AND objgrp_flat_id=i_old_obj_id AND 
-                    NOT (objgrp_flat_member_id IN (SELECT objgrp_flat_member_id AS old_member FROM objgrp_flat WHERE objgrp_flat_id=i_new_obj_id))
+
+                FOR i_member IN 
+                    SELECT objgrp_member_id FROM objgrp
+                        WHERE objgrp_id=i_old_obj_id AND
+                            import_last_seen IN (SELECT MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND control_id<i_current_import_id)
+                            AND NOT objgrp_member_id in (SELECT objgrp_member_id FROM objgrp WHERE objgrp_id=i_new_obj_id)
+                            -- leave out all objects that are still in the new group
                 LOOP
-                    RAISE NOTICE 'import_rule_resolved_nwobj 4a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                    RAISE NOTICE 'import_rule_resolved_nwobj 5a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                         i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                    IF NOT i_old_obj_id IS NULL AND i_old_obj_id <> i_member THEN 
-                        RAISE NOTICE 'import_rule_resolved_nwobj 4c recurse D/C - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                    IF i_old_obj_id <> i_member THEN 
+                        RAISE NOTICE 'import_rule_resolved_nwobj 5b recurse old obj - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                             i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
                         PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id, i_member, NULL, i_current_import_id, c_action, c_changelog_table);
                     END IF;
@@ -201,23 +209,42 @@ BEGIN
                 END IF;
             END IF;
 
-            -- if the new object is a group, deal with all flat group members
+
+            -- if the (new) object is a group, deal with all group members recursively
+            -- cannot use _flat group as this would leave out any intermediate groups
             IF is_svc_group(i_new_obj_id) THEN -- treat all group members as well
                 RAISE NOTICE 'import_rule_resolved_svc 4 group - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                     i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                FOR i_member IN
-                        SELECT svcgrp_flat_member_id FROM svcgrp_flat WHERE active AND svcgrp_flat_id=i_new_obj_id
-                    LOOP
-                        RAISE NOTICE 'import_rule_resolved_svc 4a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                
+                -- make sure all new active members are in resolved table:
+                FOR i_member IN SELECT svcgrp_member_id FROM svcgrp WHERE active AND svcgrp_id=i_new_obj_id AND
+                    NOT svcgrp_member_id in (SELECT svcgrp_member_id FROM svcgrp WHERE svcgrp_id=i_old_obj_id)
+                    -- do not add objects that were already in the old group
+                LOOP
+                    RAISE NOTICE 'import_rule_resolved_svc 4a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                        i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
+                    IF i_new_obj_id <> i_member THEN 
+                        RAISE NOTICE 'import_rule_resolved_svc 4b recurse new obj - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                             i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                        IF i_new_obj_id <> i_member THEN 
-                            IF c_action = 'I' THEN -- insert new obj
-                                PERFORM import_rule_resolved_svc(i_mgm_id, i_rule_id, NULL, i_member, i_current_import_id, c_action, c_changelog_table);
-                            ELSIF c_action = 'D' OR c_action = 'C' THEN -- mark old obj as removed
-                                PERFORM import_rule_resolved_svc(i_mgm_id, i_rule_id, i_member, NULL, i_current_import_id, c_action, c_changelog_table);
-                            END IF;
-                        END IF;
-                    END LOOP;
+                        PERFORM import_rule_resolved_svcj(i_mgm_id, i_rule_id, NULL, i_member, i_current_import_id, c_action, c_changelog_table);
+                    END IF;
+                END LOOP;
+
+                FOR i_member IN 
+                    SELECT svcgrp_member_id FROM svcgrp
+                        WHERE svcgrp_id=i_old_obj_id AND
+                            import_last_seen IN (SELECT MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND control_id<i_current_import_id)
+                            AND NOT svcgrp_member_id in (SELECT svcgrp_member_id FROM svcgrp WHERE svcgrp_id=i_new_obj_id)
+                            -- leave out all objects that are still in the new group
+                LOOP
+                    RAISE NOTICE 'import_rule_resolved_svc 5a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                        i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
+                    IF i_old_obj_id <> i_member THEN 
+                        RAISE NOTICE 'import_rule_resolved_svc 5b recurse old obj - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                            i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
+                        PERFORM import_rule_resolved_svc(i_mgm_id, i_rule_id, i_member, NULL, i_current_import_id, c_action, c_changelog_table);
+                    END IF;
+                END LOOP;
             END IF;
         END IF;
     EXCEPTION
@@ -308,24 +335,43 @@ BEGIN
                 END IF;
             END IF;
 
-            -- if the new object is a group, deal with all flat group members
+            -- if the (new) object is a group, deal with all group members recursively
+            -- cannot use _flat group as this would leave out any intermediate groups
             IF is_user_group(i_new_obj_id) THEN -- treat all group members as well
                 RAISE NOTICE 'import_rule_resolved_usr 4 group - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                     i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                FOR i_member IN
-                        SELECT usergrp_flat_member_id FROM usergrp_flat WHERE active AND usergrp_flat_id=i_new_obj_id
-                    LOOP
-                        RAISE NOTICE 'import_rule_resolved_usr 4a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                
+                -- make sure all new active members are in resolved table:
+                FOR i_member IN SELECT usergrp_member_id FROM usergrp WHERE active AND usergrp_id=i_new_obj_id AND
+                    NOT usergrp_member_id in (SELECT usergrp_member_id FROM usergrp WHERE usergrp_id=i_old_obj_id)
+                    -- do not add objects that were already in the old group
+                LOOP
+                    RAISE NOTICE 'import_rule_resolved_usr 4a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                        i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
+                    IF i_new_obj_id <> i_member THEN 
+                        RAISE NOTICE 'import_rule_resolved_usr 4b recurse new obj - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                             i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                        IF i_new_obj_id <> i_member THEN 
-                            IF c_action = 'I' THEN -- insert new obj
-                                PERFORM import_rule_resolved_usr(i_mgm_id, i_rule_id, NULL, i_member, i_current_import_id, c_action, c_changelog_table);
-                            ELSIF c_action = 'D' OR c_action = 'C' THEN -- mark old obj as removed
-                                PERFORM import_rule_resolved_usr(i_mgm_id, i_rule_id, i_member, NULL, i_current_import_id, c_action, c_changelog_table);
-                            END IF;
-                        END IF;
-                    END LOOP;
+                        PERFORM import_rule_resolved_usrj(i_mgm_id, i_rule_id, NULL, i_member, i_current_import_id, c_action, c_changelog_table);
+                    END IF;
+                END LOOP;
+
+                FOR i_member IN 
+                    SELECT usergrp_member_id FROM usergrp
+                        WHERE usergrp_id=i_old_obj_id AND
+                            import_last_seen IN (SELECT MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND control_id<i_current_import_id)
+                            AND NOT usergrp_member_id in (SELECT usergrp_member_id FROM usergrp WHERE usersvcgrp_id=i_new_obj_id)
+                            -- leave out all objects that are still in the new group
+                LOOP
+                    RAISE NOTICE 'import_rule_resolved_usr 5a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                        i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
+                    IF i_old_obj_id <> i_member THEN 
+                        RAISE NOTICE 'import_rule_resolved_usr 5b recurse old obj - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                            i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
+                        PERFORM import_rule_resolved_usr(i_mgm_id, i_rule_id, i_member, NULL, i_current_import_id, c_action, c_changelog_table);
+                    END IF;
+                END LOOP;
             END IF;
+
         END IF;
     EXCEPTION
         WHEN others THEN

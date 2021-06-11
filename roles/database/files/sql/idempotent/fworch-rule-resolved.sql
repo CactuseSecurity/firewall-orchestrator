@@ -16,7 +16,6 @@ DECLARE
     i_member BIGINT;
     i_matching_rule_id BIGINT;
     i_matching_obj_id BIGINT;
-    i_previous_import_id BIGINT;
     r_search RECORD;
 BEGIN
     BEGIN -- catch

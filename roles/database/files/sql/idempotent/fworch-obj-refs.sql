@@ -113,7 +113,7 @@ BEGIN
 		FOR r_obj IN -- loop for rule_nwobj_resolved
 			SELECT old_obj_id,new_obj_id,change_action FROM changelog_object WHERE control_id=i_current_import_id -- AND (change_action = 'C' OR change_action = 'D')
 		LOOP
-			RAISE NOTICE 'import_nwobj_refhandler_main - rule_nwobj_resolved loop';
+			-- RAISE NOTICE 'import_nwobj_refhandler_main - rule_nwobj_resolved loop';
 			PERFORM import_rule_resolved_nwobj (i_mgm_id, NULL, r_obj.old_obj_id, r_obj.new_obj_id, i_current_import_id, r_obj.change_action, 'N');
 		END LOOP;
 	EXCEPTION

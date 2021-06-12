@@ -126,7 +126,6 @@ The following top-level menu items are available (depending on role memberships)
     <li><a href="/certification">Recertification</a>: Workflow for removing unnecessary rules from your rulebases</li>
     <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
     <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or 
-        integration of your <a href="/settings/managements">firewalls</a>.</li>
         integration of <a href="/settings/managements">your own firewalls</a>.</li>
     <li><a href="/logout">Logout</a>: Leave Firewall Orchestrator</li>
 </ul>

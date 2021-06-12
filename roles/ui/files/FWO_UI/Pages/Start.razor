@@ -1,0 +1,52 @@
+@using System
+@using System.Text
+@using System.Text.Json
+@using System.Collections
+@using Microsoft.AspNetCore.Html
+@using System.Text.Encodings.Web
+@using FWO.ApiConfig
+@using FWO.Ui.Display
+@using FWO.Ui.Services
+@using FWO.Ui.Data
+@inject APIConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+@page "/"
+
+<h3>@(userConfig.GetText("welcome"))</h3>
+
+<div style="text-align: center;">
+    <div style="display: inline-block; text-align: left;">
+        <ul>
+            <li>@((MarkupString)userConfig.GetText("whats_new_in_version")) @(globalConfig.productVersion)?</li>
+             @((MarkupString) userConfig.GetText("whats_new_facts"))
+            <br>
+            <li>@((MarkupString)userConfig.GetText("getting_started"))</li>
+                @((MarkupString) userConfig.GetText("getting_started_facts"))
+            <br>
+            <li>@((MarkupString)userConfig.GetText("getting_support"))</li>
+                @((MarkupString) userConfig.GetText("support_details"))
+            <br>
+        </ul>
+    </div>
+</div>
+
+@code
+{
+    private int uiUserDbId = -1;
+
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private AuthenticationState authenticationState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        uiUserDbId = userConfig.User.DbId;
+        authenticationState = await authenticationStateTask;
+    }
+
+}

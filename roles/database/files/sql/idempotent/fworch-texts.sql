@@ -78,6 +78,76 @@ INSERT INTO txt VALUES ('archive', 				'English',	'Archive');
 INSERT INTO txt VALUES ('recertification', 		'German',	'Rezertifizierung');
 INSERT INTO txt VALUES ('recertification', 		'English',	'Recertification');
 
+
+-- start
+INSERT INTO txt VALUES ('welcome',	            'German', 	'Willkommen');
+INSERT INTO txt VALUES ('welcome',	            'English', 	'Welcome');
+INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Version');
+INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'What is new in version');
+INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
+<ul>
+    <li>Jetzt 100% Open Source - passen Sie Firewall Orchestrator an Ihre Bedürfnisse an</li>
+    <li>GraphQL API f&uuml;r Automatisierungen</li>
+    <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten</li>
+</ul>
+');
+INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
+<ul>
+    <li>Now 100% Open Source - adjust Firewall Orchestrator to your needs</li>
+    <li>GraphQL API for automation</li>
+    <li>Firewall rule recertification workflow - removed unnecessary rules</li>
+</ul>
+');
+
+INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe ...');
+INSERT INTO txt VALUES ('getting_started',	    'English', 	'Getting started ...');
+INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
+Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
+    <li><a href="/report">Reporting</a>: Erlaubt das Generieren verschiedener Reports</li>
+    <li><a href="/schedule">Scheduling</a>: Zeitlich terminierte (wiederkehrende) Report-Generierung</li>
+    <li><a href="/archive">Archiv</a>: Zugriff auf (per Scheduling) generierte Reports</li>
+    <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigite Regeln</li>
+    <li><a href="/help" target="_blank">Hilfe</a>: Benutzerhandbuch</li>
+    <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che</li>
+    <li><a href="/logout">Abmelden</a>: Firewall Orchestrator verlassen</li>
+</ul>
+');
+INSERT INTO txt VALUES ('getting_started_facts',	    'English', 	'
+The following top-level menu items are available (depending on role memberships):
+<ul>
+    <li><a href="/report">Reporting</a>: Ad-hoc generation of all available reports</li>
+    <li><a href="/schedule">Scheduling</a>: Setup (recurring) report generation</li>
+    <li><a href="/archive">Archive</a>: Access your (scheduled) reports</li>
+    <li><a href="/certification">Recertification</a>: Workflow for removing unnecessary rules from your rulebases</li>
+    <li><a href="/help" target="_blank">Help</a>: Manual</li>
+    <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface</li>
+    <li><a href="/logout">Logout</a>: Leave Firewall Orchestrator</li>
+</ul>
+');
+
+INSERT INTO txt VALUES ('getting_support',	    'German', 	'Unterst&uuml;tzung ben&ouml;tigt?');
+INSERT INTO txt VALUES ('getting_support',	    'English', 	'Do you need help?');
+INSERT INTO txt VALUES ('support_details',	    'German', 	'
+Wenn Sie einen Supportvertrag abschlie&szlig;en m&ouml;chten, um bei Problemen Unterst&uuml;tzung zu bekommen, 
+stehen Ihnen folgende Kontaktm&ouml;glichkeiten zur Verf&uuml;gung:
+<ul>
+    <li>Telefon: +49 69 962336-75</li>
+    <li>Email: support@cactus.de</li>
+    <li>Chat: <a href="https://fworch.cactus.de/chat">Support-Chat</a></li>
+    <li>Video/Audio-Call (nach Vereinbarung): <a href="https://conf.cactus.de/fworch">Conf@cactus.de</a></li>
+</ul>
+');
+INSERT INTO txt VALUES ('support_details',	    'English', 	'
+If you wish to sign a support contract to get a direct line to qualified support personnel, 
+choose from the following contact options:
+<ul>
+    <li>Phone: +49 69 962336-75</li>
+    <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a> </li>
+    <li>Chat: <a href="https://fworch.cactus.de/chat">Support chat</a></li>
+    <li>Video/Audio Call (nach Vereinbarung): <a href="https://conf.cactus.de/fworch">Conf@cactus.de</a></li>
+</ul>
+');
+
 -- reporting
 INSERT INTO txt VALUES ('select_device',		'German', 	'Device(s) auswählen');
 INSERT INTO txt VALUES ('select_device',		'English', 	'Select device(s)');

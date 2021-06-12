@@ -138,7 +138,7 @@ INSERT INTO txt VALUES ('support_details',	    'German', 	'
 Wenn Sie einen Supportvertrag abschlie&szlig;en m&ouml;chten, um bei Problemen Unterst&uuml;tzung zu bekommen, 
 stehen Ihnen folgende Kontaktm&ouml;glichkeiten zur Verf&uuml;gung:
 <ul>
-    <li>Telefon: +49 69 962336-75</li>
+    <li>Telefon: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a></li>
     <li>Chat: <a href="https://fworch.cactus.de/chat">Support-Chat</a></li>
     <li>Video/Audio-Call (nach Vereinbarung): <a href="https://conf.cactus.de/fworch">Conf@cactus.de</a></li>
@@ -148,7 +148,7 @@ INSERT INTO txt VALUES ('support_details',	    'English', 	'
 If you wish to sign a support contract to get a direct line to qualified support personnel, 
 choose from the following contact options:
 <ul>
-    <li>Phone: +49 69 962336-75</li>
+    <li>Phone: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a> </li>
     <li>Chat: <a href="https://fworch.cactus.de/chat">Support chat</a></li>
     <li>Video/Audio Call (contact us to arrange a time slot): <a href="https://conf.cactus.de/fworch">Conf@cactus.de</a></li>

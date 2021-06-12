@@ -80,10 +80,8 @@ INSERT INTO txt VALUES ('recertification', 		'English',	'Recertification');
 
 
 -- start
-INSERT INTO txt VALUES ('welcome',	            'German', 	'Willkommen');
-INSERT INTO txt VALUES ('welcome',	            'English', 	'Welcome');
-INSERT INTO txt VALUES ('welcome_to',           'German', 	'... zu Firewall Orchestrator');
-INSERT INTO txt VALUES ('welcome_to',           'English', 	'... to Firewall Orchestrator');
+INSERT INTO txt VALUES ('welcome_to',           'German', 	'Willkommen zu Firewall Orchestrator');
+INSERT INTO txt VALUES ('welcome_to',           'English', 	'Welcome to Firewall Orchestrator');
 INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firewall Orchestrator Version');
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'

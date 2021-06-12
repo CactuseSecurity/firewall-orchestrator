@@ -1,14 +1,3 @@
-@using System
-@using System.Text
-@using System.Text.Json
-@using System.Collections
-@using Microsoft.AspNetCore.Html
-@using System.Text.Encodings.Web
-@using FWO.ApiConfig
-@using FWO.Ui.Display
-@using FWO.Ui.Services
-@using FWO.Ui.Data
-@inject APIConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 
@@ -18,14 +7,16 @@
 
 <div style="text-align: center;">
     <div style="display: inline-block; text-align: left;">
+        <h3>@((MarkupString)userConfig.GetText("welcome_to")) @(globalConfig.productVersion)</h3>
+        <br>
         <ul>
-            <li>@((MarkupString)userConfig.GetText("whats_new_in_version")) @(globalConfig.productVersion)?</li>
+            <li><b>@((MarkupString)userConfig.GetText("whats_new_in_version")) @(globalConfig.productVersion)</b></li>
              @((MarkupString) userConfig.GetText("whats_new_facts"))
             <br>
-            <li>@((MarkupString)userConfig.GetText("getting_started"))</li>
+            <li><b>@((MarkupString)userConfig.GetText("getting_started"))</b></li>
                 @((MarkupString) userConfig.GetText("getting_started_facts"))
             <br>
-            <li>@((MarkupString)userConfig.GetText("getting_support"))</li>
+            <li><b>@((MarkupString)userConfig.GetText("getting_support"))</b></li>
                 @((MarkupString) userConfig.GetText("support_details"))
             <br>
         </ul>

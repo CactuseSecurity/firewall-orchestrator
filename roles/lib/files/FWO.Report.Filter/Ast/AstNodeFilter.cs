@@ -39,6 +39,7 @@ namespace FWO.Report.Filter.Ast
             functions["Protocol"] = this.ExtractProtocolQuery;
             functions["Management"] = this.ExtractManagementQuery;
             functions["Gateway"] = this.ExtractGatewayQuery;
+            functions["Remove"] = this.ExtractRemoveQuery;
 
             // call the method matching the Name of the current node to build the graphQL query
             query = functions[Name.ToString()](query);
@@ -332,6 +333,16 @@ namespace FWO.Report.Filter.Ast
             query.ruleWhereStatement +=
                 " rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte" +
                 ": $" + QueryVarName + "}, svc_port_end: {_gte: $" + QueryVarName + "} } } } }";
+            return query;
+        }
+
+        private DynGraphqlQuery ExtractRemoveQuery(DynGraphqlQuery query)
+        {
+            string QueryVarName = "remove" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: Boolean ");
+            query.QueryVariables[QueryVarName] = $"{Value}";
+            query.ruleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ _eq: ${QueryVarName} }}}}";
             return query;
         }
 

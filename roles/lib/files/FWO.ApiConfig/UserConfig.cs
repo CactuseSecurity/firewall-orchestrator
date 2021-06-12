@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using FWO.Logging;
 using FWO.ApiConfig.Data;
 using System.Linq;
@@ -108,6 +109,22 @@ namespace FWO.ApiConfig
                     return "(undefined text)";
                 }
             }
+        }
+
+        public string GetApiText(string key)
+        {
+            string text = key;
+            string pattern = @"[A]\d\d\d\d";
+            Match m = Regex.Match(key, pattern);
+            if (m.Success)
+            {
+                string msg = GetText(key.Substring(0,5));
+                if (msg != "(undefined text)")
+                {
+                    text = msg;
+                }
+            }
+            return text;
         }
 
         public string GetConfigValue(string key)

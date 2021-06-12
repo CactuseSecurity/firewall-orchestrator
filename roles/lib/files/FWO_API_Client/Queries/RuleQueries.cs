@@ -17,6 +17,8 @@ namespace FWO.ApiClient.Queries
         public static readonly string getRuleDetailsForReport;
         public static readonly string getRuleNetworkObjectDetails;
         public static readonly string getRuleIdsOfImport;
+        public static readonly string updateRuleMetadataRecert;
+        public static readonly string updateRuleMetadataDecert;
 
         static RuleQueries()
         {
@@ -56,6 +58,11 @@ namespace FWO.ApiClient.Queries
                 getRuleIdsOfImport =
                     File.ReadAllText(QueryPath + "report/getRuleIdsOfImport.graphql");
 
+                updateRuleMetadataRecert =
+                    File.ReadAllText(QueryPath + "rule/updateRuleMetadataRecert.graphql");
+
+                updateRuleMetadataDecert =
+                    File.ReadAllText(QueryPath + "rule/updateRuleMetadataDecert.graphql");
             }
             catch (Exception exception)
             {

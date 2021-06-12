@@ -1,0 +1,17 @@
+mutation updateRuleMetadataRecert (
+  $ids: [bigint!], 
+  $certDate: timestamp, 
+  $userDn: String
+  ) {
+  update_rule_metadata(
+    where: {rule_metadata_id: {_in: $ids}}, 
+  _set: {
+    rule_last_certified: $certDate, 
+    rule_last_certifier_dn: $userDn
+    }
+  ) {
+    returning {
+      UpdatedId: rule_metadata_id
+    }
+  }
+}

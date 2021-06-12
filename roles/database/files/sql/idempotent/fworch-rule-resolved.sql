@@ -225,7 +225,7 @@ BEGIN
                     IF i_new_obj_id <> i_member THEN 
                         RAISE DEBUG 'import_rule_resolved_svc 4b recurse new obj - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                             i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                        PERFORM import_rule_resolved_svcj(i_mgm_id, i_rule_id, NULL, i_member, i_current_import_id, c_action, c_changelog_table);
+                        PERFORM import_rule_resolved_svc(i_mgm_id, i_rule_id, NULL, i_member, i_current_import_id, c_action, c_changelog_table);
                     END IF;
                 END LOOP;
 

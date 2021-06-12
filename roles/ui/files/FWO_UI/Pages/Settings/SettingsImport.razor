@@ -10,6 +10,7 @@
 @inject UserConfig userConfig
 
 <h3 class="m-2">@(userConfig.GetText("import_status"))</h3>
+@(userConfig.GetText("U5113"))
 <hr />
 
 <button class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button>

@@ -110,6 +110,12 @@ namespace FWO.Report.Filter
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
+                TokenKind.Remove => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "remove" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
                 TokenKind.BL => new TokenSyntax
                 {
                     WhiteSpaceRequiered = new string[] { },

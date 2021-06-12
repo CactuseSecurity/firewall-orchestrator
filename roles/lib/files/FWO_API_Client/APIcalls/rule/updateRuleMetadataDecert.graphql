@@ -1,0 +1,14 @@
+mutation updateRuleMetadataDecert (
+  $ids: [bigint!] 
+  ) {
+  update_rule_metadata(
+    where: {rule_metadata_id: {_in: $ids}}, 
+  _set: {
+    rule_to_be_removed: true, 
+    }
+  ) {
+    returning {
+      UpdatedId: rule_metadata_id
+    }
+  }
+}

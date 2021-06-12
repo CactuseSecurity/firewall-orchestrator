@@ -19,6 +19,7 @@ namespace FWO.Report.Filter
         Gateway,
         Time,
         ReportType,
+        Remove,
         FullText,
         BL, // (
         BR, // )

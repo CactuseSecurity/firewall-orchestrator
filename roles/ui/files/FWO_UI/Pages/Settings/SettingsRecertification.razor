@@ -9,10 +9,11 @@
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("recert_settings"))</h3>
+@(userConfig.GetText("U5414"))
 <hr />
 
 <form class="form-inline">
-    <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recert_display_period")):</label>
+    <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
     <div class="col-sm-2">
         <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
     </div>

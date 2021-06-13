@@ -85,7 +85,7 @@ namespace FWO.Middleware.Server.Requests
 
             if (user.Name == "")
             {
-                throw new Exception("E0012");
+                throw new Exception("A0001 Invalid credentials. Username must not be empty");
             }
 
             else
@@ -129,7 +129,7 @@ namespace FWO.Middleware.Server.Requests
             }
 
             // Invalid User Credentials
-            throw new Exception("E0013");
+            throw new Exception("A0002 Invalid credentials");
         }
 
         public async Task<string[]> GetRoles(UiUser user)

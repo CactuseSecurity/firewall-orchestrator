@@ -10,7 +10,7 @@
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 
-@page "/"
+@* @page "/" *@
 @page "/report"
 
 @inject APIConnection Connection
@@ -23,6 +23,8 @@
 
 @* ==== Middle div ==== *@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
+<h3>@(userConfig.GetText("reporting"))</h3>
+
 @* ==== Filter line ==== *@
     <form class="m-1 position-relative" @onsubmit="GenerateReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
@@ -121,11 +123,7 @@
 @* ==== RIGHT SIDEBAR ==== *@
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="sidebarRightWidth">
     <div class="p-3">
-        <div class="card mb-1">
-            <div class="card-body text-center p-1">
-                @(userConfig.GetText("objects"))
-            </div>
-        </div>
+        <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
         <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
             <Tab Title="@(userConfig.GetText("all"))">
                 <div class="d-md-flex justify-content-md-end">

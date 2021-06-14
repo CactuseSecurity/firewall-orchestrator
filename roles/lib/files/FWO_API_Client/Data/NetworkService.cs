@@ -82,7 +82,6 @@ namespace FWO.Api.Data
                     return Id == nsrv.Id;
                 default:
                     return base.Equals(obj);
-
             }
         }
 

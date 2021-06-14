@@ -1,10 +1,12 @@
 mutation updateRuleMetadataDecert (
-  $ids: [bigint!] 
+  $ids: [bigint!]
+  $decertDate: timestamp,
   ) {
   update_rule_metadata(
     where: {rule_metadata_id: {_in: $ids}}, 
   _set: {
     rule_to_be_removed: true, 
+    rule_decertified: $decertDate
     }
   ) {
     returning {

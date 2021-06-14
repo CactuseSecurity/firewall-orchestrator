@@ -339,7 +339,8 @@
             {
                 var apiVariables = new 
                 { 
-                    ids = DecertIds.ToArray(), 
+                    ids = DecertIds.ToArray(),
+                    decertDate = DateTime.Now
                 };
                 await apiConnection.SendQueryAsync<object>(RuleQueries.updateRuleMetadataDecert, apiVariables);
             }

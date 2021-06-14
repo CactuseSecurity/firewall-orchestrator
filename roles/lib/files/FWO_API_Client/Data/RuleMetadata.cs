@@ -28,7 +28,10 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("rule_to_be_removed")]
         public bool ToBeRemoved { get; set; }
-        
+
+        [JsonPropertyName("rule_decertified")]
+        public bool DecertificationDate { get; set; }
+
 
         public DateTime NextRecert { get; set; }
 

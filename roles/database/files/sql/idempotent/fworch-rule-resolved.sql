@@ -358,7 +358,7 @@ BEGIN
                     SELECT usergrp_member_id FROM usergrp
                         WHERE usergrp_id=i_old_obj_id AND
                             import_last_seen IN (SELECT MAX(control_id) FROM import_control WHERE mgm_id=i_mgm_id AND control_id<i_current_import_id)
-                            AND NOT usergrp_member_id in (SELECT usergrp_member_id FROM usergrp WHERE usersvcgrp_id=i_new_obj_id)
+                            AND NOT usergrp_member_id in (SELECT usergrp_member_id FROM usergrp WHERE usergrp_id=i_new_obj_id)
                             -- leave out all objects that are still in the new group
                 LOOP
                     RAISE DEBUG 'import_rule_resolved_usr 5a group loop - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 

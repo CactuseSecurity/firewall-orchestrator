@@ -53,6 +53,19 @@ cd firewall-orchestrator; ansible-playbook -e "api_docu=yes" site.yml -K
 
 api docu can then be accessed at <https://server/api_schema/index.html>
 
+## User interface communication modes
+
+The following options exist for communication to the UI:
+- standard: with http-->https rewrite and websockets (this is the default value)
+- no_ws: do not use websocket connection (in case you have a filtering proxy in your line of communication that does not like ws)
+- allow_http: do not rewrite http to https - helpful if you do the TLS termination on a reverse proxy in front of the UI
+- no_ws_and_allow_http: combination of the two above
+
+Example:
+```console
+cd firewall-orchestrator; ansible-playbook -e "ui_comm_mode=no_ws" site.yml -K
+```
+
 ## Distributed setup with multiple servers
 
 if you want to distribute functionality to different hosts:

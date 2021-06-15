@@ -66,6 +66,19 @@ Example:
 cd firewall-orchestrator; ansible-playbook -e "ui_comm_mode=no_ws" site.yml -K
 ```
 
+## User interface Server Alias string
+
+To be able to configure your webserver name, you may add the following parameter:
+
+Example to set fwodemo.cactus.de as websrver name:
+```console
+cd firewall-orchestrator; ansible-playbook -e "ui_server_alias='fwodemo.cactus.de'" site.yml -K
+```
+Example to set fwodemo.cactus.de and fwo2.cactus.de as websrver names:
+```console
+cd firewall-orchestrator; ansible-playbook -e "ui_server_alias='fwodemo.cactus.de fwo2.cactus.de'" site.yml -K
+```
+
 ## Distributed setup with multiple servers
 
 if you want to distribute functionality to different hosts:

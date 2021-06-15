@@ -8,7 +8,7 @@
   command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -b {{ distinguished_name }}"
   become: yes
   register: search_existence
-  failed_when: (search_existence != 0) and (search_existence != 32)
+  failed_when: (search_existence.rc != 0) and (search_existence.rc != 32)
 
 - name: add ldap entry if not existing
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
@@ -24,6 +24,7 @@
 - name: modify ldap entry if existing
   # error code 20, when attribute already exists
   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
+  register: modify_out
   when: (changetype == 'modify') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
   become: yes
-  failed_when: (search_existence != 0) and (search_existence != 20)
+  failed_when: (modify_out.rc != 0) and (modify_out.rc != 16) and (modify_out.rc != 20)

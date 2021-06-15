@@ -10,10 +10,11 @@ ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 # ui_comm_mode valid values: 
 # standard (meaning with http-->https rewrite and websockets), no_ws, allow_http, no_ws_and_allow_http
 ui_comm_mode: standard
-ui_server_alias fwodemo.cactus.de
 
 # correct name for demo installation:
 ui_server_name: fworch-test-server
+# further aliases:
+ui_server_alias: fwodemo.cactus.de
 
 ui_hostname: "localhost"
 ui_php_dir: "{{ fworch_home }}/web/htdocs"

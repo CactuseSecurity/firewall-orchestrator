@@ -22,24 +22,26 @@
 
                             @if(Recertification)
                             {
-                                <Column TableItem="Rule" Title="Actions" Field="@(rule => rule.OrderNumber)">
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
                                     <Template>
                                         <div class="form-check" @onclick:stopPropagation="true">
-                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="recertifyRadio@(context.Id)">
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="recertifyRadio@(context.Id)" @onchange="() => {context.Metadata.Recert=true; context.Metadata.ToBeRemoved=false;}">
                                             <label class="form-check-label" for="recertifyRadio@(context.Id)">
-                                                Recertify
+                                                @(userConfig.GetText("recertify"))
                                             </label>
                                         </div>
                                         <div class="form-check" @onclick:stopPropagation="true">
-                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="decertifyRadio@(context.Id)">
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="decertifyRadio@(context.Id)" @onchange="() => {context.Metadata.Recert=false; context.Metadata.ToBeRemoved=true;}">
                                             <label class="form-check-label" for="decertifyRadio@(context.Id)">
-                                                Decertify
+                                                @(userConfig.GetText("decertify"))
                                             </label>
                                         </div>
                                         <div class="form-check" @onclick:stopPropagation="true">
-                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="noneRadio@(context.Id)" checked>
+                                            <input class="form-check-input" type="radio" name="certification@(context.Id)" id="noneRadio@(context.Id)" checked @onchange="() => {context.Metadata.Recert=false; context.Metadata.ToBeRemoved=false;}">
                                             <label class="form-check-label" for="noneRadio@(context.Id)">
-                                                None
+                                                @(userConfig.GetText("none"))
                                             </label>
                                         </div>
                                     </Template>

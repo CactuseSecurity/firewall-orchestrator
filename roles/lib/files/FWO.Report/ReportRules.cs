@@ -9,11 +9,11 @@ using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 using System.Text.Json;
-using PdfSharpCore.Pdf;
+// using PdfSharpCore.Pdf;
 using FWO.Ui.Display;
-using VetCV.HtmlRendererCore.PdfSharpCore;
-using PdfSharpCore;
-using System.Text.Json.Serialization;
+// using VetCV.HtmlRendererCore.PdfSharpCore;
+// using PdfSharpCore;
+// using System.Text.Json.Serialization;
 using FWO.Logging;
 
 namespace FWO.Report
@@ -22,6 +22,7 @@ namespace FWO.Report
     {
         public ReportRules(DynGraphqlQuery query) : base(query) { }
 
+        private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public bool GotReportedRuleIds { get; protected set; } = false;
         public async Task GetReportedRuleIds(APIConnection apiConnection)
         {
@@ -57,6 +58,7 @@ namespace FWO.Report
                         Dictionary<string, object> objQueryVariables = new Dictionary<string, object>
                         {
                             { "mgmIds", Managements[i].Id },
+                            { "importId", Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId },
                             { "limit", objectsPerFetch },
                             { "offset", 0 },
                         };
@@ -69,7 +71,6 @@ namespace FWO.Report
             }
         }
 
-        private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public override async Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))

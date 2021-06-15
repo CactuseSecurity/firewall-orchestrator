@@ -21,7 +21,7 @@ svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'servic
 # usr_obj_table_names : do not exist yet - not fetchable via API
 
 
-def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, proxy_string):
+def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, proxy_string, show_progress=False):
     url = url + command
     if sid == '':
         request_headers = {'Content-Type' : 'application/json'}
@@ -29,7 +29,10 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
         request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
-        logging.exception("error while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        sys.exit(1)
+    if show_progress:
+        print ('.', end='', flush=True)
     return r.json()
 
 
@@ -41,9 +44,10 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
     base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
     if "sid" not in response:
-        logging.exception("getter ERROR: did not receive a sid during login, " +
+        logging.exception("\ngetter ERROR: did not receive a sid during login, " +
             "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+        sys.exit(1)
     return response["sid"]
 
 
@@ -205,6 +209,7 @@ def get_inline_layer_names_from_rulebase(rulebase, inline_layers):
                 inline_layers.append(rulebase['inline-layer']['name'])
                 # get_inline_layer_names_from_rulebase(rulebase, inline_layers)
 
+
 def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules, layername):
     current_layer_json = { "layername": layername, "layerchunks": [] }
     current=0
@@ -222,31 +227,6 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
         logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
     return current_layer_json
-
-
-# def get_layer_from_api (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules):
-#     #show_params_rules['name'] = layer_name
-#     current_layer_json = "{\n\"layername\": \"" + show_params_rules['name'] + "\",\n"
-#     current_layer_json +=  "\"layerchunks\": [\n"
-#     current=0
-#     total=current+1
-#     while (current<total) :
-#         show_params_rules['offset']=current
-#         rulebase = api_call(api_host, api_port, api_v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
-#         # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(rulebase) + "\n")
-#         current_layer_json += json.dumps(rulebase)
-#         current_layer_json += ",\n"
-#         if 'total' in rulebase:
-#             total=rulebase['total']
-#         else:
-#             logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
-#                 + current_layer_json)
-#         current=rulebase['to']
-#         logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
-#     current_layer_json = current_layer_json[:-2]
-#     current_layer_json += "]\n}"
-#     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
-#     return current_layer_json
 
 
 # insert domain rule layer after rule_idx within top_ruleset

@@ -34,61 +34,73 @@ DECLARE
 	i_previous_import_id BIGINT;
 	i_mgm_id INTEGER;
 BEGIN
-	RAISE DEBUG 'import_usr_refhandler_main - 1 starting';
-	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
-	i_previous_import_id := get_previous_import_id_for_mgmt (i_mgm_id, i_current_import_id);
+	BEGIN
+		RAISE DEBUG 'import_usr_refhandler_main - 1 starting';
+		SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
+		i_previous_import_id := get_previous_import_id_for_mgmt (i_mgm_id, i_current_import_id);
 
-	SELECT INTO r_ctrl delimiter_group FROM import_control WHERE control_id=i_current_import_id;
-	FOR r_user IN -- neue Member-Beziehungen von i_new_id eintragen
-		SELECT old_user_id,new_user_id,change_action FROM changelog_user
-			WHERE control_id=i_current_import_id AND NOT change_action='D'
-	LOOP
-		v_debug :=  'old_id: ';
-		IF r_user.old_user_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE v_debug := v_debug || CAST(r_user.old_user_id AS VARCHAR); END IF;
-		v_debug :=  v_debug || ', new_id: ';
-		IF r_user.new_user_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE
-			SELECT INTO v_user_name user_name FROM usr WHERE user_id=r_user.new_user_id;
-			v_debug := v_debug || CAST(r_user.new_user_id AS VARCHAR) || ', new_user_name=' || v_user_name;
-		END IF;
-		IF r_user.change_action = 'I' THEN
-			RAISE DEBUG 'import_usr_refhandler_main - 2 inserting - %', v_debug;
-			PERFORM import_usr_refhandler_insert(r_user.new_user_id,r_ctrl.delimiter_group,i_current_import_id);
-		ELSIF r_user.change_action = 'C' THEN
-			RAISE DEBUG 'import_usr_refhandler_main - 2 changing - %', v_debug;
-			PERFORM import_usr_refhandler_change(r_user.old_user_id,r_user.new_user_id,i_current_import_id);
-		END IF;
-	END LOOP;
-	FOR r_user IN -- neue Member-Beziehungen von i_new_id eintragen
-		SELECT old_user_id,new_user_id,change_action FROM changelog_user
-			WHERE control_id=i_current_import_id AND NOT change_action='D'
-	LOOP
-		IF r_user.change_action = 'I' THEN
-			PERFORM import_usr_refhandler_insert_flat(r_user.new_user_id,r_ctrl.delimiter_group,i_current_import_id);
-		ELSIF r_user.change_action = 'C' THEN
-			PERFORM import_usr_refhandler_change_flat(r_user.old_user_id,r_user.new_user_id,i_current_import_id);
-		END IF;
-	END LOOP;
-	----------------------------------------------------------------------------------------------
-	-- die alten (nicht mehr gueltigen) Objekte auf non-active setzen
-	UPDATE usergrp SET active=FALSE WHERE usergrp_id IN
-		(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
-	UPDATE usergrp_flat SET active=FALSE WHERE usergrp_flat_id IN
-		(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
-	UPDATE usergrp SET active=FALSE WHERE usergrp_member_id IN
-		(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
-	UPDATE usergrp_flat SET active=FALSE WHERE usergrp_flat_member_id IN
-		(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
---	UPDATE rule_from SET active=FALSE WHERE user_id IN
---		(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
-	UPDATE rule_from SET active=FALSE WHERE user_id IN
-		(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id AND NOT old_user_id IS NULL);
-		
-	UPDATE rule_from	SET rf_last_seen=i_current_import_id WHERE rule_id IN
-		(SELECT rule_id FROM rule WHERE mgm_id=i_mgm_id AND active) AND active;
-	UPDATE usergrp		SET import_last_seen=i_current_import_id WHERE usergrp_id IN
-		(SELECT user_id FROM usr WHERE mgm_id=i_mgm_id AND active) AND active;
-	UPDATE usergrp_flat	SET import_last_seen=i_current_import_id WHERE usergrp_flat_id IN
-		(SELECT user_id FROM usr WHERE mgm_id=i_mgm_id AND active) AND active;
+		SELECT INTO r_ctrl delimiter_group FROM import_control WHERE control_id=i_current_import_id;
+		FOR r_user IN -- neue Member-Beziehungen von i_new_id eintragen
+			SELECT old_user_id,new_user_id,change_action FROM changelog_user
+				WHERE control_id=i_current_import_id AND NOT change_action='D'
+		LOOP
+			v_debug :=  'old_id: ';
+			IF r_user.old_user_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE v_debug := v_debug || CAST(r_user.old_user_id AS VARCHAR); END IF;
+			v_debug :=  v_debug || ', new_id: ';
+			IF r_user.new_user_id IS NULL THEN v_debug := v_debug || 'NULL'; ELSE
+				SELECT INTO v_user_name user_name FROM usr WHERE user_id=r_user.new_user_id;
+				v_debug := v_debug || CAST(r_user.new_user_id AS VARCHAR) || ', new_user_name=' || v_user_name;
+			END IF;
+			IF r_user.change_action = 'I' THEN
+				RAISE DEBUG 'import_usr_refhandler_main - 2 inserting - %', v_debug;
+				PERFORM import_usr_refhandler_insert(r_user.new_user_id,r_ctrl.delimiter_group,i_current_import_id);
+			ELSIF r_user.change_action = 'C' THEN
+				RAISE DEBUG 'import_usr_refhandler_main - 2 changing - %', v_debug;
+				PERFORM import_usr_refhandler_change(r_user.old_user_id,r_user.new_user_id,i_current_import_id);
+			END IF;
+		END LOOP;
+		FOR r_user IN -- neue Member-Beziehungen von i_new_id eintragen
+			SELECT old_user_id,new_user_id,change_action FROM changelog_user
+				WHERE control_id=i_current_import_id AND NOT change_action='D'
+		LOOP
+			IF r_user.change_action = 'I' THEN
+				PERFORM import_usr_refhandler_insert_flat(r_user.new_user_id,r_ctrl.delimiter_group,i_current_import_id);
+			ELSIF r_user.change_action = 'C' THEN
+				PERFORM import_usr_refhandler_change_flat(r_user.old_user_id,r_user.new_user_id,i_current_import_id);
+			END IF;
+		END LOOP;
+		----------------------------------------------------------------------------------------------
+		-- die alten (nicht mehr gueltigen) Objekte auf non-active setzen
+		UPDATE usergrp SET active=FALSE WHERE usergrp_id IN
+			(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
+		UPDATE usergrp_flat SET active=FALSE WHERE usergrp_flat_id IN
+			(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
+		UPDATE usergrp SET active=FALSE WHERE usergrp_member_id IN
+			(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
+		UPDATE usergrp_flat SET active=FALSE WHERE usergrp_flat_member_id IN
+			(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
+	--	UPDATE rule_from SET active=FALSE WHERE user_id IN
+	--		(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id GROUP BY old_user_id);
+		UPDATE rule_from SET active=FALSE WHERE user_id IN
+			(SELECT old_user_id FROM changelog_user WHERE control_id=i_current_import_id AND NOT old_user_id IS NULL);
+			
+		UPDATE rule_from	SET rf_last_seen=i_current_import_id WHERE rule_id IN
+			(SELECT rule_id FROM rule WHERE mgm_id=i_mgm_id AND active) AND active;
+		UPDATE usergrp		SET import_last_seen=i_current_import_id WHERE usergrp_id IN
+			(SELECT user_id FROM usr WHERE mgm_id=i_mgm_id AND active) AND active;
+		UPDATE usergrp_flat	SET import_last_seen=i_current_import_id WHERE usergrp_flat_id IN
+			(SELECT user_id FROM usr WHERE mgm_id=i_mgm_id AND active) AND active;
+			
+		FOR r_user IN -- loop for rule_svc_resolved
+			SELECT old_user_id,new_user_id,change_action FROM changelog_user WHERE control_id=i_current_import_id -- AND (change_action = 'C' OR change_action = 'D')
+		LOOP
+			PERFORM import_rule_resolved_usr (i_mgm_id, NULL, r_user.old_user_id, r_user.new_user_id, i_current_import_id, r_user.change_action, 'U');
+		END LOOP;
+	EXCEPTION
+	    WHEN others THEN
+            raise notice 'import_user_refhandler_main - uncommittable state. Rolling back';
+            raise EXCEPTION '% %', SQLERRM, SQLSTATE;    
+	END;
 	RETURN;
 END; 
 $$ LANGUAGE plpgsql;

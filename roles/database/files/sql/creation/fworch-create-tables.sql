@@ -182,11 +182,14 @@ Create table "rule_metadata"
  primary key ("rule_metadata_id")
 );
 
+-- adding direct link tables rule_[svc|nwobj|user]_resolved to make report object export easier
 Create table "rule_svc_resolved"
 (
 	"mgm_id" INT,
 	"rule_id" BIGINT NOT NULL,
 	"svc_id" BIGINT NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("mgm_id","rule_id","svc_id")
 );
 
@@ -195,6 +198,8 @@ Create table "rule_nwobj_resolved"
 	"mgm_id" INT,
 	"rule_id" BIGINT NOT NULL,
 	"obj_id" BIGINT NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("mgm_id","rule_id","obj_id")
 );
 
@@ -203,6 +208,8 @@ Create table "rule_user_resolved"
 	"mgm_id" INT,
 	"rule_id" BIGINT NOT NULL,
 	"user_id" BIGINT NOT NULL,
+	"created" BIGINT NOT NULL,
+	"removed" BIGINT,
  primary key ("mgm_id","rule_id","user_id")
 );
 

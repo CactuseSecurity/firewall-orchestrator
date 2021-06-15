@@ -54,7 +54,6 @@ BEGIN
 	RAISE DEBUG 'import_rules - after insert loop';
 	IF NOT b_is_initial_import THEN	-- alle nicht mehr vorhandenen Regeln loeschen (active=false setzen)
 		i_change_admin := get_last_change_admin_of_rulebase_change(i_current_import_id,i_dev_id);
---		RAISE DEBUG 'import_rules - change_admin_id = %', i_change_admin;
 		FOR r_rule IN -- jede geloeschte Regel wird in changelog_rule eingetragen
 			SELECT rule_id, rule_name, (rule_head_text is NULL) as is_security_relevant FROM rule 
 				WHERE active AND dev_id=i_dev_id AND mgm_id=i_mgm_id AND rule_last_seen<i_current_import_id
@@ -66,13 +65,10 @@ BEGIN
 			PERFORM error_handling('INFO_RULE_DELETED', r_rule.rule_name);
 		END LOOP;
 		RAISE DEBUG 'import_rules - after delete loop';
---		UPDATE rule SET active=FALSE WHERE rule_id IN
---			( SELECT rule.rule_id FROM rule_order LEFT JOIN rule USING (rule_id)
---			  WHERE rule.active AND rule_order.dev_id=i_dev_id AND rule.mgm_id=i_mgm_id AND rule.rule_last_seen<i_current_import_id GROUP BY rule.rule_id );
 		UPDATE rule SET active=FALSE WHERE rule_id IN
 			( SELECT rule.rule_id FROM rule
 			  WHERE active AND dev_id=i_dev_id AND mgm_id=i_mgm_id AND rule_last_seen<i_current_import_id );
-	RAISE DEBUG 'import_rules - after active=false update';
+		RAISE DEBUG 'import_rules - after active=false update';
 	END IF;
 	RETURN TRUE;
 END; 
@@ -400,8 +396,10 @@ BEGIN
 				RAISE DEBUG 'rule_change_or_insert_change_zweig_before_update_rule: %', r_to_import.rule_uid;
 				UPDATE rule SET active = FALSE WHERE rule_id = i_old_rule_id; -- alte Regel auf not active setzen
 				RAISE DEBUG 'rule_change_or_insert_change_zweig_after_update_rule: %', r_to_import.rule_uid;
+                -- RAISE NOTICE 'rule_change_or_insert_change_zweig_after_update_rule rule loop - i_mgm_id=%, i_rule_id=%, i_old_nw_obj_id=%, i_new_nw_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
+                --     i_mgm_id, i_old_rule_id, NULL, NULL, i_control_id, v_change_action, 'R';
+                PERFORM import_rule_resolved_nwobj(i_mgm_id, i_old_rule_id, NULL, NULL, i_control_id, v_change_action, 'R');
 			END IF;
-			
 			RAISE DEBUG 'rule_change_or_insert_before_changelog_rule_insert: %', r_to_import.rule_uid;
 			INSERT INTO changelog_rule
 				(control_id,new_rule_id,old_rule_id,change_action,import_admin,documented,changelog_rule_comment,

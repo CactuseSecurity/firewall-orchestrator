@@ -9,94 +9,94 @@
     <div class="m-2 mt-4">
         <ul class="navbar-nav flex-column">
             <AuthorizeView Roles="admin, importer, auditor">
-                <li class="nav-item px-2" data-toggle="tooltip" title="Administration of technical components (only by admin)">
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>@(userConfig.GetText("devices"))</h5>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="admin, auditor">
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Administrate the connected managements" href="settings/managements">
+                    <NavLink class="nav-link" href="settings/managements">
                         <span class="oi oi-inbox"></span> @(userConfig.GetText("managements"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Administrate the connected gateways" href="settings/gateways">
+                    <NavLink class="nav-link" href="settings/gateways">
                         <span class="oi oi-shield"></span> @(userConfig.GetText("gateways"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="admin, importer, auditor">
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Show the status of all import jobs. Possibility to rollback if necessary" href="settings/import">
+                    <NavLink class="nav-link" href="settings/import">
                         <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_status"))
                     </NavLink>
                 </li>
                 <hr />
             </AuthorizeView>
             <AuthorizeView Roles="admin, auditor">
-                <li class="nav-item px-2" data-toggle="tooltip" title="User authorization management (only by admin)">
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
                     <h5>@(userConfig.GetText("authorization"))</h5>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Administrate all LDAP connections" href="settings/ldap">
+                    <NavLink class="nav-link" href="settings/ldap">
                         <span class="oi oi-key"></span> @(userConfig.GetText("ldap_conns"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Show all tenants and link them to gateways" href="settings/tenants">
+                    <NavLink class="nav-link" href="settings/tenants">
                         <span class="oi oi-command"></span> @(userConfig.GetText("tenants"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Show and administrate all users from internal LDAP. Show users from external LDAPs who have already logged in" href="settings/users">
+                    <NavLink class="nav-link" href="settings/users">
                         <span class="oi oi-person"></span> @(userConfig.GetText("users"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Show and assign all user groups (internal LDAP)" href="settings/groups">
+                    <NavLink class="nav-link" href="settings/groups">
                         <span class="oi oi-people"></span> @(userConfig.GetText("groups"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Show and assign all user roles (internal LDAP)" href="settings/roles">
+                    <NavLink class="nav-link" href="settings/roles">
                         <span class="oi oi-tags"></span> @(userConfig.GetText("roles"))
                     </NavLink>
                 </li>
                 <hr />
-                <li class="nav-item px-2" data-toggle="tooltip" title="Administration of default settings (only by admin)">
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">
                     <h5>@(userConfig.GetText("defaults"))</h5>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Set default values for all users and some technical parameters" href="settings/defaults">
+                    <NavLink class="nav-link" href="settings/defaults">
                         <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Set the policy for all user passwords" href="settings/passwordpolicy">
+                    <NavLink class="nav-link" href="settings/passwordpolicy">
                         <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
                     </NavLink>
                 </li>
                 <hr />
             </AuthorizeView>
             <AuthorizeView Roles="admin, reporter, reporter-viewall, workflow-user, workflow-admin, auditor">
-                <li class="nav-item px-2" data-toggle="tooltip" title="Personal settings for the individual user">
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
                     <h5>@(userConfig.GetText("personal"))</h5>
                 </li>
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Change your personal login password" href="settings/password">
+                    <NavLink class="nav-link" href="settings/password">
                         <span class="oi oi-account-login"></span> @(userConfig.GetText("password"))
                     </NavLink>
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Set your preferred language" href="settings/language">
+                    <NavLink class="nav-link" href="settings/language">
                         <span class="oi oi-comment-square"></span> @(userConfig.GetText("language"))
                     </NavLink>
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Adapt your personal reporting settings" href="settings/report">
+                    <NavLink class="nav-link" href="settings/report">
                         <span class="oi oi-list"></span> @(userConfig.GetText("reporting"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="admin, recertifier, auditor">
                 <li class="nav-item px-2">
-                    <NavLink class="nav-link" data-toggle="tooltip" title="Adapt your personal recertification settings" href="settings/recertification">
+                    <NavLink class="nav-link" href="settings/recertification">
                         <span class="oi oi-check"></span> @(userConfig.GetText("recertification"))
                     </NavLink>
                 </li>

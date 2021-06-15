@@ -1,0 +1,19 @@
+﻿@page "/help/API/links"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Further Readings</h3>
+    More resources around the API deployed in Firewall Orchestrator can be found at the following sites:
+    <ul>
+        <li><a href="https://hasura.io/" target="_blank">Hasura home page</a></li>
+        <li><a href="https://graphql.org/" target="_blank">GraphQL home page</a></li>
+        <li><a href="https://www.howtographql.com/basics/1-graphql-is-the-better-rest/" target="_blank">Comparison GraphQL vs. REST</a></li>
+    </ul>
+</div>

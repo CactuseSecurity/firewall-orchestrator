@@ -27,10 +27,6 @@
 
     - name: enable {{ product_name }} web site
       command: "a2ensite {{ product_name }}-ui"
-      # todo: I received an error with the uncommented code below: module fworch does not exist
-#      apache2_module:
-#        state: present
-#        name: "{{ product_name }}"
       register: testoutput
 
     - name: test

@@ -1,0 +1,43 @@
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+@page "/"
+
+@* <h3>@(userConfig.GetText("welcome"))</h3> *@
+
+<div style="text-align: center;">
+    <div style="display: inline-block; text-align: left;">
+        <h3>@((MarkupString)userConfig.GetText("welcome_to")) @(globalConfig.productVersion)</h3>
+        <br>
+        <ul>
+            <li><b>@((MarkupString)userConfig.GetText("whats_new_in_version")) @(globalConfig.productVersion)</b></li>
+             @((MarkupString) userConfig.GetText("whats_new_facts"))
+            <br>
+            <li><b>@((MarkupString)userConfig.GetText("getting_started"))</b></li>
+                @((MarkupString) userConfig.GetText("getting_started_facts"))
+            <br>
+            <li><b>@((MarkupString)userConfig.GetText("getting_support"))</b></li>
+                @((MarkupString) userConfig.GetText("support_details"))
+            <br>
+        </ul>
+    </div>
+</div>
+
+@code
+{
+    private int uiUserDbId = -1;
+
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private AuthenticationState authenticationState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        uiUserDbId = userConfig.User.DbId;
+        authenticationState = await authenticationStateTask;
+    }
+
+}

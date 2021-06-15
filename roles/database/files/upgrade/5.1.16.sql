@@ -2,7 +2,7 @@
 -- drop table rule_svc_resolved;
 -- drop table rule_user_resolved;
 
-Create table "rule_svc_resolved"
+Create table if not exists "rule_svc_resolved"
 (
 	"mgm_id" INT,
 	"rule_id" BIGINT NOT NULL,
@@ -10,7 +10,7 @@ Create table "rule_svc_resolved"
  primary key ("mgm_id","rule_id","svc_id")
 );
 
-Create table "rule_nwobj_resolved"
+Create table if not exists "rule_nwobj_resolved"
 (
 	"mgm_id" INT,
 	"rule_id" BIGINT NOT NULL,
@@ -18,7 +18,7 @@ Create table "rule_nwobj_resolved"
  primary key ("mgm_id","rule_id","obj_id")
 );
 
-Create table "rule_user_resolved"
+Create table if not exists "rule_user_resolved"
 (
 	"mgm_id" INT,
 	"rule_id" BIGINT NOT NULL,

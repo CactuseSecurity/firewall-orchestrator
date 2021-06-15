@@ -1,7 +1,7 @@
 -- the followin functions are replaced with ones containing additional parameters
-DROP FUNCTION import_rule_resolved_nwobj (INT,BIGINT,BIGINT);
-DROP FUNCTION import_rule_resolved_svc (INT,BIGINT,BIGINT);
-DROP FUNCTION import_rule_resolved_usr (INT,BIGINT,BIGINT);
+DROP FUNCTION if exists import_rule_resolved_nwobj (INT,BIGINT,BIGINT);
+DROP FUNCTION if exists import_rule_resolved_svc (INT,BIGINT,BIGINT);
+DROP FUNCTION if exists import_rule_resolved_usr (INT,BIGINT,BIGINT);
 
 Grant insert,update on "rule_nwobj_resolved" to group "configimporters";
 Grant insert,update on "rule_svc_resolved" to group "configimporters";

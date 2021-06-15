@@ -128,44 +128,51 @@
         {
             loginInProgress = true;
 
-            // There is no jwt in session storage. Get one from auth module.
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser(Username, Password);
-
-            if (apiAuthResponse.Status == HttpStatusCode.OK)
+            try
             {
-                string jwt = apiAuthResponse.GetResult<string>("jwt");
+                // There is no jwt in session storage. Get one from auth module.
+                MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser(Username, Password);
 
-                // Save it in session storage.
-                await sessionStorage.SetAsync("jwt", jwt);
+                if (apiAuthResponse.Status == HttpStatusCode.OK)
+                {
+                    string jwt = apiAuthResponse.GetResult<string>("jwt");
 
-                // Add all user relevant information to the current session. Also used when reloading page.
-                await CreateUserContext(jwt);
-                
-                if(userConfig.User.PasswordMustBeChanged)
-                {
-                    showLoginForm = false;
-                    showPasswordChangeForm = true;
-                    StateHasChanged();
-                }
-                loginInProgress = false;
-            }
-            else
-            {
-                // There was an error trying to authenticate the user. Probably invalid credentials
-                if(apiAuthResponse.Status == HttpStatusCode.PreconditionFailed)
-                {
-                    errorMessage = userConfig.GetText("E0011");
+                    // Save it in session storage.
+                    await sessionStorage.SetAsync("jwt", jwt);
+
+                    // Add all user relevant information to the current session. Also used when reloading page.
+                    await CreateUserContext(jwt);
+                    
+                    if(userConfig.User.PasswordMustBeChanged)
+                    {
+                        showLoginForm = false;
+                        showPasswordChangeForm = true;
+                        StateHasChanged();
+                    }
+                    loginInProgress = false;
                 }
                 else
                 {
-                    errorMessage = userConfig.GetText(apiAuthResponse.Error);
-                }
+                    // There was an error trying to authenticate the user. Probably invalid credentials
+                    if(apiAuthResponse.Status == HttpStatusCode.PreconditionFailed)
+                    {
+                        errorMessage = userConfig.GetText("E0011");
+                    }
+                    else
+                    {
+                        errorMessage = userConfig.GetApiText(apiAuthResponse.Error);
+                    }
 
-                // Visualisize there was an error by making border of inputboxes red
-                InputClass = "is-invalid";
-                loginInProgress = false;
-                await focusInput();
-                StateHasChanged();
+                    // Visualisize there was an error by making border of inputboxes red
+                    InputClass = "is-invalid";
+                    loginInProgress = false;
+                    await focusInput();
+                    StateHasChanged();
+                }
+            }
+            catch(Exception)
+            {
+                errorMessage = userConfig.GetText("E0012");
             }
         }
     }

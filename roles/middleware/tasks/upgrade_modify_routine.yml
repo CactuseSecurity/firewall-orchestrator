@@ -28,3 +28,4 @@
   when: (changetype == 'modify') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
   become: yes
   failed_when: (modify_out.rc != 0) and (modify_out.rc != 16) and (modify_out.rc != 20)
+  

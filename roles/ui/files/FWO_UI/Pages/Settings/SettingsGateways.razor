@@ -10,6 +10,7 @@
 @inject UserConfig userConfig
 
 <h3 class="m-2">@(userConfig.GetText("gateways"))</h3>
+@(userConfig.GetText("U5112"))
 <hr />
 
 <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_gateway"))</button>

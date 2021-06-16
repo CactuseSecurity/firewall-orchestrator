@@ -1,4 +1,5 @@
 ﻿@using System
+@using System.Text.RegularExpressions
 @using FWO.Ui.Data
 @using FWO.Report.Filter
 @using FWO.Report
@@ -87,7 +88,7 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private string filterInput = "remove=false";
+    private string filterInput = "remove=false and recertdisplay=0";
 
     private Management[] managements = new Management[0];
 //    private Management[] managementsObjects = new Management[0];
@@ -133,6 +134,7 @@
         {
             // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
             DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements, fullDeviceActionIsSelect);
+            SyncFilterToDisplay();
 
             currentReport = ReportBase.ConstructReport(filterInput);
             if (!DeviceFilter.isAnyDeviceFilterSet(managements, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
@@ -162,6 +164,11 @@
         }
     }
 
+    private void SyncFilterToDisplay()
+    {
+        filterInput = Regex.Replace(filterInput, "recertdisplay=" + @"-?\d+", $"recertdisplay={(recertificationPeriod-recertificationDisplayPeriod).ToString()}");
+    }
+
     private void PrepareMetadata()
     {
         foreach (Management management in managements)
@@ -178,6 +185,7 @@
                     {
                         rule.Metadata.LastCertifierName = userConfig.GetText("unknown");
                     }
+
                     if (rule.Metadata.LastCertified != null)
                     {
                         rule.Metadata.NextRecert = ((DateTime)rule.Metadata.LastCertified).AddDays(recertificationPeriod);
@@ -189,6 +197,15 @@
                     else
                     {
                         rule.Metadata.NextRecert = DateTime.Now;
+                    }
+
+                    if(rule.Metadata.NextRecert <= DateTime.Now)
+                    {
+                        rule.Metadata.Background = "bg-danger";
+                    }
+                    else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
+                    {
+                        rule.Metadata.Background = "bg-warning";
                     }
                 }
             }

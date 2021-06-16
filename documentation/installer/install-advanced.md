@@ -66,6 +66,19 @@ Example:
 cd firewall-orchestrator; ansible-playbook -e "ui_comm_mode=no_ws" site.yml -K
 ```
 
+## User interface server name and aliases
+
+To make sure that firewall orchestrator UI webserver responds to the correct DNS name, you may add the following parameters:
+
+Example to set fwodemo.cactus.de as webserver name:
+```console
+cd firewall-orchestrator; ansible-playbook -e "ui_server_name='fwodemo.cactus.de'" site.yml -K
+```
+Example to set fwodemo.cactus.de and two additional aliases as websrver names:
+```console
+cd firewall-orchestrator; ansible-playbook -e "ui_server_name=fwodemo.cactus.de ui_server_alias=' fwo1.cactus.de fwo2.cactus.de'" site.yml -K
+```
+
 ## User interface Server Alias string
 
 To be able to configure your webserver name, you may add the following parameter:

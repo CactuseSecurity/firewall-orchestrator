@@ -163,9 +163,8 @@ for missing_obj in missing_nw_object_uids:
                 'comments': obj['comments'], 'type': 'host', 'ipv4-address': common.get_ip_of_obj(obj),
                 } ] } ] }
             config['object_tables'].append(json_obj)
-        elif (obj['type'] == 'CpmiVsClusterMember'):
+        elif (obj['type'] == 'CpmiVsClusterMember' or obj['type'] == 'CpmiVsxClusterMember'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
-
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
                 'comments': obj['comments'], 'type': 'host', 'ipv4-address': common.get_ip_of_obj(obj),

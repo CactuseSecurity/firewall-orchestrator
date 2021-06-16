@@ -57,7 +57,7 @@ else:
 
 domains = getter.api_call(args.hostname, args.port, v_url, "show-domains", {}, xsid, ssl_verification, proxy_string)
 
-gw_types = ['simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiGatewayPlain', 'CpmiGatewayCluster']
+gw_types = ['simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiGatewayPlain', 'CpmiGatewayCluster', 'CpmiVsxClusterNetobj']
 parameters =  { "details-level" : "full" }
 
 if domains['total']== 0:

@@ -1,6 +1,9 @@
 
   # install all upgrades between running version and version currently being installed
 
+- name: Add the OS specific varibles
+  include_vars: "{{ ansible_os_family }}.yml"
+
 - name: create upgrade dir
   file:
     path: "{{ fworch_home }}/openldap/upgrade"
@@ -15,17 +18,17 @@
 
 - name: set list of relevant upgrade files (without extension)
   set_fact:
-    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1') ] }}"
+    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | splitext | first ] }}"
   when: |
-    installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1')
+    installed_version < item | basename | splitext | first | splitext | first
     and
-    current_version >= item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.ldif\\.j2', '\\1')
+    current_version >= item | basename | splitext | first | splitext | first
   with_fileglob:
     - "../templates/upgrade/*.ldif.j2"
 
 - name: copy the upgrade ldif templates to target
   template:
-    src: "../templates/upgrade/{{ item }}.ldif.j2"
+    src: "upgrade/{{ item }}.ldif.j2"
     dest: "{{ fworch_home }}/openldap/upgrade/{{ item }}.ldif"
   loop: "{{ upgrade_files }}"
   become: yes
@@ -36,9 +39,8 @@
     state: stopped
   become: yes
 
-# missing: -n / -b option needs to be specified (which database should be modified?) 0 is config
 - name: install ldap upgrades
-  command: slapadd -F {{ openldap_server_app_path }}/slapd.d -l {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
+  command: ldapmodify -H {{ openldap_url }} -D cn=config -y {{ fworch_home }}/etc/secrets/ldap_manager_pw.txt  -x -f {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
   loop: "{{ upgrade_files | sort }}"
   become: yes
 

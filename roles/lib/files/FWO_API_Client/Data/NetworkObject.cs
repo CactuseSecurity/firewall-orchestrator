@@ -51,6 +51,23 @@ namespace FWO.Api.Data
         [JsonPropertyName("objgrp_flats")]
         public GroupFlat<NetworkObject>[] ObjectGroupFlats { get; set; }
 
+        public override bool Equals(object obj)
+        {
+            switch (obj)
+            {
+                case NetworkObject nobj:
+                    return Id == nobj.Id;
+                default:
+                    return base.Equals(obj);
+
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
+
         //    obj_id
         //    obj_name
         //    obj_ip

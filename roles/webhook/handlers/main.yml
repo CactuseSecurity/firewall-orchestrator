@@ -1,6 +1,7 @@
 - block: 
      - name: Reload service systemctl
-       command: "systemctl daemon-reload"
+       systemd:
+         daemon_reload: yes
        listen: "restart daemons"
 
      - name: restart webhook service 

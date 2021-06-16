@@ -53,7 +53,7 @@ namespace FWO.Report
 
         public Management[] Managements = null;
         
-        public Management[] ReportObjects = null;
+        // public Management[] ReportObjects = null;
         
 
         public readonly DynGraphqlQuery Query;

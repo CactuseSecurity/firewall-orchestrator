@@ -6,7 +6,7 @@ mutation updateRuleMetadataDecert (
     where: {rule_metadata_id: {_in: $ids}}, 
   _set: {
     rule_to_be_removed: true, 
-    rule_decertified: $decertDate
+    rule_decert_date: $decertDate
     }
   ) {
     returning {

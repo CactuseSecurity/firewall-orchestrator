@@ -129,7 +129,7 @@
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
 
-- name: Set "{{ audit_user }}" password in ldap
+- name: Set {{ audit_user }} password in ldap
   ldap_passwd:
     dn: "uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
     passwd: "{{ auditor_initial_pwd }}"

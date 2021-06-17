@@ -29,7 +29,9 @@
                 </div>
             </div>
         </div>
-        <button class="btn btn-sm btn-dark" @onclick="() => ExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+        <AuthorizeView Roles="admin, recertifier">
+            <button class="btn btn-sm btn-dark" @onclick="() => ExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+        </AuthorizeView>
     </div>
 
     <RulesReport Recertification="true" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>

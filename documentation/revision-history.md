@@ -120,3 +120,6 @@ adding report template format fk and permissions
 
 ### 5.2.6 - 07.06.2021
 - report rule - object reference now time aware
+
+### 5.2.7 - 14.06.2021
+- add column rule_decert_date to rule_metadata

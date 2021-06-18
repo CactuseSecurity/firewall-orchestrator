@@ -20,6 +20,7 @@ namespace FWO.Report.Filter
         Time,
         ReportType,
         Remove,
+        RecertDisplay,
         FullText,
         BL, // (
         BR, // )

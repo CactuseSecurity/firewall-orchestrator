@@ -39,6 +39,7 @@ namespace FWO.ApiConfig
         public static readonly string kRecertificationNoticePeriod = "recertificationNoticePeriod";
         public static readonly string kRecertificationDisplayPeriod = "recertificationDisplayPeriod";
         public static readonly string kRuleRemovalGracePeriod = "ruleRemovalGracePeriod";
+        public static readonly string kCommentRequired = "commentRequired";
         public static readonly string kPwMinLength = "pwMinLength";
         public static readonly string kPwUpperCaseRequired = "pwUpperCaseRequired";
         public static readonly string kPwLowerCaseRequired = "pwLowerCaseRequired";

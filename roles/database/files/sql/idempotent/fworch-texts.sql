@@ -363,6 +363,8 @@ INSERT INTO txt VALUES ('recerts_executed',		'German', 	'Durchgeführte Rezertif
 INSERT INTO txt VALUES ('recerts_executed',		'English', 	'Executed recertifications: ');
 INSERT INTO txt VALUES ('decerts_executed',		'German', 	'Durchgeführte Dezertifizierungen: ');
 INSERT INTO txt VALUES ('decerts_executed',		'English', 	'Executed decertifications: ');
+INSERT INTO txt VALUES ('add_comment',          'German',   'Kommentar hinzufügen');
+INSERT INTO txt VALUES ('add_comment',          'English',  'Add Comment');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Geräte');
@@ -565,6 +567,8 @@ INSERT INTO txt VALUES ('recertificationDisplayPeriod','German','Rezertifizierun
 INSERT INTO txt VALUES ('recertificationDisplayPeriod','English','Recertification Display Period (in days)');
 INSERT INTO txt VALUES ('ruleRemovalGracePeriod','German', 	'Frist zum Löschen der Regeln (in Tagen)');
 INSERT INTO txt VALUES ('ruleRemovalGracePeriod','English', 'Rule Removal Grace Period (in days)');
+INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfeld');
+INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
 INSERT INTO txt VALUES ('apply_changes',        'German', 	'Änderungen anwenden');
@@ -788,6 +792,9 @@ INSERT INTO txt VALUES ('E1001', 'German',  'Vor dem Generieren des Reports bitt
 INSERT INTO txt VALUES ('E1001', 'English', 'Please select at least one device in the left side-bar before generating a report');
 INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum Exportieren. Bitte zuerst Report generieren!');
 INSERT INTO txt VALUES ('E1002', 'English', 'No generated report to export. Please generate report first!');
+
+INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzufügen');
+INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
 
 INSERT INTO txt VALUES ('E5101', 'German',  'Löschen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst löschen wenn möglich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');

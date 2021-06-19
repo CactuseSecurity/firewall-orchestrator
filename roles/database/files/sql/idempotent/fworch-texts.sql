@@ -645,8 +645,8 @@ INSERT INTO txt VALUES ('get_tenant_data',      'German', 	'Mandantendaten abhol
 INSERT INTO txt VALUES ('get_tenant_data',      'English', 	'Get tenant data');
 INSERT INTO txt VALUES ('add_device_to_tenant', 'German', 	'Gateway dem Mandanten zuordnen');
 INSERT INTO txt VALUES ('add_device_to_tenant', 'English', 	'Add gateway to tenant');
-INSERT INTO txt VALUES ('delete_device_from_tenant','German','Device vom Mandanten löschen');
-INSERT INTO txt VALUES ('delete_device_from_tenant','English','Delete device from tenant');
+INSERT INTO txt VALUES ('delete_device_from_tenant','German','Gateway vom Mandanten löschen');
+INSERT INTO txt VALUES ('delete_device_from_tenant','English','Delete gateway from tenant');
 INSERT INTO txt VALUES ('delete_ldap_conn',     'German',   'LDAP-Verbindung löschen');
 INSERT INTO txt VALUES ('delete_ldap_conn',     'English',  'Delete Ldap Connection');
 INSERT INTO txt VALUES ('save_ldap_conn',       'German',   'LDAP-Verbindung speichern');
@@ -885,6 +885,10 @@ INSERT INTO txt VALUES ('E5263', 'German',  'Musterlänge muss >= 0 sein');
 INSERT INTO txt VALUES ('E5263', 'English', 'Pattern Length has to be >= 0');
 INSERT INTO txt VALUES ('E5264', 'German',  'Es gibt bereits eine LDAP-Verbindung mit derselben Adresse und Port');
 INSERT INTO txt VALUES ('E5264', 'English', 'There is already an LDAP connection with the same address and port');
+INSERT INTO txt VALUES ('E5271', 'German',  'Keine Gateways zum Hinzufügen gefunden');
+INSERT INTO txt VALUES ('E5271', 'English', 'No remaining gateways found to add');
+INSERT INTO txt VALUES ('E5272', 'German',  'Keine Gateways zum Löschen gefunden');
+INSERT INTO txt VALUES ('E5272', 'English', 'No remaining gateways found to delete');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration für Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');

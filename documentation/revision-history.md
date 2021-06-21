@@ -123,3 +123,6 @@ adding report template format fk and permissions
 
 ### 5.2.7 - 14.06.2021
 - add column rule_decert_date to rule_metadata
+
+### 5.2.8 - 18.06.2021
+- add column rule_recertification_comment to rule_metadata

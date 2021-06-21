@@ -143,13 +143,29 @@
     {
         actTenant = tenant;
         remainingDevices = devices.FindAll(x => !Array.Exists(actTenant.TenantDevices, y => y.VisibleDevice.Id == x.Id));
-        AddMode = true;
+        if(remainingDevices.Count == 0)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
+        }
+        else
+        {
+            selectedDevice = remainingDevices.FirstOrDefault().Id;
+            AddMode = true;
+        }
     }
 
     private void Delete(Tenant tenant)
     {
-        DeleteMode = true;
         actTenant = tenant;
+        if(actTenant.TenantDevices.Length == 0)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
+        }
+        else
+        {
+            selectedDevice = actTenant.TenantDevices.FirstOrDefault().VisibleDevice.Id;
+            DeleteMode = true;
+        }
     }
 
     private async Task AddDevice(int deviceId)

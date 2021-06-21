@@ -363,6 +363,8 @@ INSERT INTO txt VALUES ('recerts_executed',		'German', 	'Durchgeführte Rezertif
 INSERT INTO txt VALUES ('recerts_executed',		'English', 	'Executed recertifications: ');
 INSERT INTO txt VALUES ('decerts_executed',		'German', 	'Durchgeführte Dezertifizierungen: ');
 INSERT INTO txt VALUES ('decerts_executed',		'English', 	'Executed decertifications: ');
+INSERT INTO txt VALUES ('add_comment',          'German',   'Kommentar hinzufügen');
+INSERT INTO txt VALUES ('add_comment',          'English',  'Add Comment');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Geräte');
@@ -565,6 +567,8 @@ INSERT INTO txt VALUES ('recertificationDisplayPeriod','German','Rezertifizierun
 INSERT INTO txt VALUES ('recertificationDisplayPeriod','English','Recertification Display Period (in days)');
 INSERT INTO txt VALUES ('ruleRemovalGracePeriod','German', 	'Frist zum Löschen der Regeln (in Tagen)');
 INSERT INTO txt VALUES ('ruleRemovalGracePeriod','English', 'Rule Removal Grace Period (in days)');
+INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfeld');
+INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
 INSERT INTO txt VALUES ('apply_changes',        'German', 	'Änderungen anwenden');
@@ -641,8 +645,8 @@ INSERT INTO txt VALUES ('get_tenant_data',      'German', 	'Mandantendaten abhol
 INSERT INTO txt VALUES ('get_tenant_data',      'English', 	'Get tenant data');
 INSERT INTO txt VALUES ('add_device_to_tenant', 'German', 	'Gateway dem Mandanten zuordnen');
 INSERT INTO txt VALUES ('add_device_to_tenant', 'English', 	'Add gateway to tenant');
-INSERT INTO txt VALUES ('delete_device_from_tenant','German','Device vom Mandanten löschen');
-INSERT INTO txt VALUES ('delete_device_from_tenant','English','Delete device from tenant');
+INSERT INTO txt VALUES ('delete_device_from_tenant','German','Gateway vom Mandanten löschen');
+INSERT INTO txt VALUES ('delete_device_from_tenant','English','Delete gateway from tenant');
 INSERT INTO txt VALUES ('delete_ldap_conn',     'German',   'LDAP-Verbindung löschen');
 INSERT INTO txt VALUES ('delete_ldap_conn',     'English',  'Delete Ldap Connection');
 INSERT INTO txt VALUES ('save_ldap_conn',       'German',   'LDAP-Verbindung speichern');
@@ -789,6 +793,9 @@ INSERT INTO txt VALUES ('E1001', 'English', 'Please select at least one device i
 INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum Exportieren. Bitte zuerst Report generieren!');
 INSERT INTO txt VALUES ('E1002', 'English', 'No generated report to export. Please generate report first!');
 
+INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzufügen');
+INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
+
 INSERT INTO txt VALUES ('E5101', 'German',  'Löschen des Managements nicht erlaubt, da noch Gateways zugeordnet sind. Diese zuerst löschen wenn möglich');
 INSERT INTO txt VALUES ('E5101', 'English', 'Deletion of management not allowed as there are related Gateways. Delete them first if possible');
 INSERT INTO txt VALUES ('E5102', 'German',  'Bitte alle Pflichtfelder ausfüllen');
@@ -878,6 +885,10 @@ INSERT INTO txt VALUES ('E5263', 'German',  'Musterlänge muss >= 0 sein');
 INSERT INTO txt VALUES ('E5263', 'English', 'Pattern Length has to be >= 0');
 INSERT INTO txt VALUES ('E5264', 'German',  'Es gibt bereits eine LDAP-Verbindung mit derselben Adresse und Port');
 INSERT INTO txt VALUES ('E5264', 'English', 'There is already an LDAP connection with the same address and port');
+INSERT INTO txt VALUES ('E5271', 'German',  'Keine Gateways zum Hinzufügen gefunden');
+INSERT INTO txt VALUES ('E5271', 'English', 'No remaining gateways found to add');
+INSERT INTO txt VALUES ('E5272', 'German',  'Keine Gateways zum Löschen gefunden');
+INSERT INTO txt VALUES ('E5272', 'English', 'No remaining gateways found to delete');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration für Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');

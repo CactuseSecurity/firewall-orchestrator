@@ -13,26 +13,53 @@
     Admins can create and administrate several different managements.<br>
     The clone button helps defining new managements by copying the data from existing ones.
     Before saving at least one of the parameters Hostname, Port or Config Path has to be different from the existing managements if the Import Disabled flag is not set.<br>
+
+    The following firewall products can be integrated:
+    <ul>
+        <li>Check Point R5x/R6x/R7x - ssh access to management server (SmartCenter)</li>
+        <li>Check Point R8x - https API access to SmartCenter</li>
+        <li>Check Point R8x - https API access to MDS (Multi Domain Server)</li>
+        <li>Fortinet 5.0 - 6.4</li>
+        <li>Barracuda Firewall Control Center Vx - ssh access to firewall gateway directly<</li>
+        <li>phion netfence 3.x - ssh access to firewall gateway directly</li>
+        <li>JUNOS 10 - 17 - ssh access to firewall gateway directly</li>
+        <li>Netscreen 5.x/6.x - ssh access to firewall gateway directly</li>
+    </ul>
+    For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
+    you may enter the details of the gateway here as a management system as well and then add it again as a gateway.  
+    <br><br>
     Parameters:
     <ul>
-        <li>Name*: Name of the Mangement. Names ending with "_demo" will be deleted when using the "Remove Sample Data" button</li>
-        <li>Comment:</li>
-        <li>Device Type*: Out of a list of available types, e.g. Checkpoint R8x or Fortinet 5.x</li>
+        <li>Name*: Name of the mangement. <br>
+            For most firewalls this is an arbitrary name. Exceptions are Fortigate, Netscreen and Juniper directly connected gateways.
+            Here the name give needs to be the name of the firewll gateway.<br>
+            A managements whose name ends with "_demo" will be deleted when using the "Remove Sample Data" button.<br>
+        </li>
+        <li>Comment: optional description of this management</li>
+        <li>Device Type*: Select correct product from a list of available types, see above.</li>
         <li>Hostname*: Address of the host (either IP address or resolvable name). 
-            For Check Point R8x MDS installations use the address of the MDS server for all domains.</li>
-        <li>Port*: Port number of the host</li>
-        <li>Import User*: the user used to login to the firewall management. On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.</li>
-        <li>Login Secret*:</li>
-        <li>Public Key:</li>
-        <li>Config Path: Path of the config file. 
-            For Check Point R8x MDS installations, the Domain name needs to be given here.</li>
+            For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
+            For Fortinet, Barradua, Juniper you need to specify the IP of resolvable name of the firewall gateway.
+        </li>
+        <li>Port*: Port number of the host. 
+            Depending on the target this is ususally either 22 for ssh-based access or for API access (currently only Check Point R8x) 443.</li>
+        <li>Import User*: the user used to login to the firewall management. 
+            This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
+            On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.</li>
+        <li>Login Secret*: For ssh access enter the private ssh key (key needs to be unenrypted without passphrase)<br>
+            For API access this is the password of the API user.
+        </li>
+        <li>Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.</li>
+        <li>Config Path: Path of the config file.<br>
+            Leave empty in case of standard access (without buffering the config in a file).
+            Exception: For Check Point R8x MDS installations, the domain name is entered here.<br>
+        </li>
         <li>Importer Hostname: This must be the name of the server, the import process should run on. 
-            Needs to be individually configured if you want to have multiple distrivuted import modules, 
-            so that not every importer imports all managements..</li>
-        <li>Debug Level (0-9):</li>
-        <li>Import Disabled: Flag if the data import is disabled</li>
-        <li>Force Initial Import:</li>
-        <li>Hide in UI:</li>
+            Needs to be individually configured if you want to have multiple distributed import modules, 
+            so that not every importer imports all managements.</li>
+        <li>Debug Level (0-9): For allowing for individual debug granularity per management.</li>
+        <li>Import Disabled: Flag if the data import needs to be disabled.</li>
+        <li>Hide in UI: If set, this management is not visible to the standard reporter role.</li>
     </ul>
     If there are sample data (defined by the ending "_demo" of the name), a button is displayed to delete them and all related <a href="/help/settings/gateways">gateways</a>.
 </div>

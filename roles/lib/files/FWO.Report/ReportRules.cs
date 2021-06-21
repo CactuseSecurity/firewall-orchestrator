@@ -9,11 +9,7 @@ using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 using System.Text.Json;
-// using PdfSharpCore.Pdf;
 using FWO.Ui.Display;
-// using VetCV.HtmlRendererCore.PdfSharpCore;
-// using PdfSharpCore;
-// using System.Text.Json.Serialization;
 using FWO.Logging;
 
 namespace FWO.Report

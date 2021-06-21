@@ -43,7 +43,7 @@
 
     <hr />
 
-    <PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning" OnClose="() => ShowNoDeviceSelectedWarning = false">
+    <!-- PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning" OnClose="() => ShowNoDeviceSelectedWarning = false">
         <Body>
             <div>
                 <p>@(userConfig.GetText("E1001"))</p>
@@ -52,7 +52,7 @@
         <Footer>
             <button class="btn btn-primary" @onclick="() => ShowNoDeviceSelectedWarning = false">OK</button>
         </Footer>
-    </PopUp>
+    </PopUp -->
 
 @* ==== Templates ==== *@
     <ReportTemplateComponent OnTemplateLoad="
@@ -185,7 +185,7 @@
     private int elementsPerFetch = 100;
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
-    private bool ShowNoDeviceSelectedWarning = false;
+    // private bool ShowNoDeviceSelectedWarning = false;
 
     private bool autoFillRightSidebar = false;
     private int maxInitFetchRightSidebar = 10;
@@ -361,7 +361,8 @@
 
         // collapse report templates
         reportTemplateControl.Collapse();
-        deviceSelectionSidebar.ToggleCollapse(true);
+        // disabling left side bar collapse for now
+        // deviceSelectionSidebar.ToggleCollapse(true);
 
         try
         {
@@ -371,8 +372,9 @@
             currentReport = ReportBase.ConstructReport(filterInput);
             if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
-                ShowNoDeviceSelectedWarning = true;
-                StateHasChanged();
+                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+//                ShowNoDeviceSelectedWarning = true;
+//                StateHasChanged();
                 return;
             }
 

@@ -1,0 +1,41 @@
+﻿@page "/help/recertification"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpEmptySidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Recertification</h3>
+    In this part rules can be re- or decertified. For this the role 'recertifier' (or 'admin') is necessary.
+    <ul>
+        <li>
+            In the first step a report of upcoming rules to be certified has to be loaded. 
+            The lookahead period for this can be chosen in the 'Due within' field. 
+            It is initialized by the settings value 'Recertification Display Period' in the 
+            <a href="/help/settings/recertification">Recertification Settings</a> resp. <a href="/help/settings/defaults">Default Settings</a>.
+            Also the regarded devices have to be chosen in the left side bar.
+        </li>
+        <li>
+            The report shows all rules that are upcoming for recertification within the selected interval.
+            The recertification date is computed from the last recertification date (if unknown the rule creation date is taken)
+            and the Recertification Period, defined in the <a href="/help/settings/defaults">Default Settings</a>.
+            Recertifications upcoming in the next days (defined in the Recertification Notice Period in the Default Settings) are marked in yellow, overdue recertifications in red.
+            Additionally the last recertifier is mentioned ('unknown' indicates that there has been no recertification so far).
+        </li>
+        <li>
+            The recertifier has now the possibility to mark each of the displayed rules for recertification or decertification.
+            After clicking the 'Execute Selected Actions' button a comment is requested. 
+            This has to be filled, if the setting 'Comment Required' in <a href="/help/settings/defaults">Default Settings</a> is activated.
+            When confirmed all re- and decertifications are executed in on step. 
+            After that only the remaining open certifications are displayed.
+        </li>
+        <li>
+            Decertified rules can be displayed in the <a href="/help/reporting">Reporting</a> part with the filter parameter 'remove=true'.
+        </li>
+    </ul>
+    This recertification scenario is intended to be a base for further customized workflows.
+</div>

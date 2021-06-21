@@ -20,9 +20,24 @@
                                PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")"
                                @ref="reportTable">
 
+                            @if (EmptyColumns[0] == false)
+                            {
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)context.DisplayNumber(device.Rules))
+                                    </Template>
+                                </Column>
+                            }
+
                             @if(Recertification)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" />
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" >
+                                    <Template>
+                                        <div class="@(context.Metadata.Background)">
+                                            @context.Metadata.NextRecert
+                                        </div>
+                                    </Template>
+                                </Column>
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
                                     <Template>
@@ -46,16 +61,9 @@
                                         </div>
                                     </Template>
                                 </Column>
+                                <Column TableItem="Rule" Title="@(userConfig.GetText("comment"))" Field="@(rule => rule.Metadata.Comment)" Sortable="true" Filterable="true" />
                             }
 
-                            @if (EmptyColumns[0] == false)
-                            {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)context.DisplayNumber(device.Rules))
-                                    </Template>
-                                </Column>
-                            }
                             @if (EmptyColumns[1] == false)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("name"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true" />

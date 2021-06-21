@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.2.6"
+product_version: "5.2.8"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -37,7 +37,7 @@ proxy_env:
         HTTP_PROXY: "{{ http_proxy }}"
         HTTPS_PROXY: "{{ https_proxy }}"
         no_proxy: 127.0.0.1, localhost
-        validate_certs: false
+#        validate_certs: false
 # proxy in capitals needed for debian and ubuntu <20
 test_packages:
   - postgresql-client

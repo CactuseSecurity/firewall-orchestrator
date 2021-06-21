@@ -179,6 +179,8 @@ Create table "rule_metadata"
 	"rule_owner_dn" Varchar, -- distinguished name pointing to ldap group, path or user
 	"rule_to_be_removed" Boolean NOT NULL Default FALSE,
 	"last_change_admin" Integer,
+	"rule_decert_date" Timestamp,
+	"rule_recertification_comment" Varchar,
  primary key ("rule_metadata_id")
 );
 

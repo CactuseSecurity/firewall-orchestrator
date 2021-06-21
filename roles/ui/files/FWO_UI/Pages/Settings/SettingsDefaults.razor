@@ -82,6 +82,12 @@
         <input id="ruleRemovalGracePeriod" type="text" class="form-control form-control-sm" @bind="ruleRemovalGracePeriod" />
     </div>
 </form>
+<form class="form-inline">
+    <label for="commentRequired" class="col-form-label col-sm-4">@(userConfig.GetText("commentRequired")):</label>
+    <div class="col-sm-2">
+        <input id="commentRequired" type="checkbox" class="form-control form-control-sm" @bind="commentRequired">
+    </div>
+</form>
 <hr />
 <AuthorizeView Roles="admin">
     <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
@@ -104,6 +110,7 @@
     int recertificationNoticePeriod = 30;
     int recertificationDisplayPeriod = 30;
     int ruleRemovalGracePeriod = 60;
+    bool commentRequired = false;
 
     protected override void OnInitialized()
     {
@@ -127,6 +134,7 @@
         GetIntSetting(ref recertificationNoticePeriod, GlobalConfig.kRecertificationNoticePeriod);
         GetIntSetting(ref recertificationDisplayPeriod, GlobalConfig.kRecertificationDisplayPeriod);
         GetIntSetting(ref ruleRemovalGracePeriod, GlobalConfig.kRuleRemovalGracePeriod);
+        GetBoolSetting(ref commentRequired, GlobalConfig.kCommentRequired);
     }
 
     private void GetIntSetting(ref int value, string setting)
@@ -167,6 +175,7 @@
         await config.Set(GlobalConfig.kRecertificationNoticePeriod, recertificationNoticePeriod.ToString());
         await config.Set(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriod.ToString());
         await config.Set(GlobalConfig.kRuleRemovalGracePeriod, ruleRemovalGracePeriod.ToString());
+        await config.Set(GlobalConfig.kCommentRequired, commentRequired.ToString());
 
         await userConfig.ReloadDefaults(apiConnection);
         DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

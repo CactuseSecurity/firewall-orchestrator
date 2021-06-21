@@ -19,6 +19,8 @@ fragment ruleOverview on rule {
     rule_last_certified
     rule_last_certifier_dn
     rule_to_be_removed
+    rule_decert_date
+    rule_recertification_comment
   }
   rule_src_neg
   rule_dst_neg

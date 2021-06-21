@@ -119,10 +119,12 @@
             await Task.Run(async () =>
             {
                 try
-                {                  
+                {
+                    if (!ReportToExport.GotObjectsInReport)
+                        await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
+
                     if (ExportHtml)
                     {
-                        await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
                         reportExportFile.Html = ReportToExport.ExportToHtml();
                     }
 

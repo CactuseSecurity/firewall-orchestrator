@@ -18,55 +18,67 @@ DECLARE
 	i_previous_import_id BIGINT;
 	i_mgm_id INTEGER;
 BEGIN
-	RAISE DEBUG 'import_svc_refhandler_main - 1 start';
-	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
-	RAISE DEBUG 'import_svc_refhandler_main - 2';
-	i_previous_import_id := get_previous_import_id_for_mgmt (i_mgm_id, i_current_import_id);
-	RAISE DEBUG 'import_svc_refhandler_main - 3';
-	SELECT INTO r_ctrl delimiter_group FROM import_control WHERE control_id=i_current_import_id;
-	RAISE DEBUG 'import_svc_refhandler_main - 4';
-		-- neue Member-Beziehungen von i_new_id eintragen
-	FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen (standard groups)
-		SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id AND NOT change_action='D'
-	LOOP
-		RAISE DEBUG 'import_svc_refhandler_main - first loop';
-		IF r_svc.change_action = 'I' THEN
-			PERFORM import_svc_refhandler_insert(r_svc.new_svc_id,r_ctrl.delimiter_group,i_current_import_id);
-		ELSIF r_svc.change_action = 'C' THEN
-			PERFORM import_svc_refhandler_change(r_svc.old_svc_id,r_svc.new_svc_id,i_current_import_id);
-		END IF;
-	END LOOP;
-	RAISE DEBUG 'import_svc_refhandler_main - 5';
-	FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen (flattened groups)
-		SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id AND NOT change_action='D'
-	LOOP
-		RAISE DEBUG 'import_svc_refhandler_main - second loop (flat grps)';
-		IF r_svc.change_action = 'I' THEN
-			PERFORM import_svc_refhandler_insert_flat(r_svc.new_svc_id,r_ctrl.delimiter_group,i_current_import_id);
-		ELSIF r_svc.change_action = 'C' THEN
-			PERFORM import_svc_refhandler_change_flat(r_svc.old_svc_id,r_svc.new_svc_id,i_current_import_id);
-		END IF;
-	END LOOP;
-	RAISE DEBUG 'import_svc_refhandler_main - 6';
-	----------------------------------------------------------------------------------------------
-	-- die alten (nicht mehr gueltigen) Objekte auf non-active setzen
-	UPDATE svcgrp SET active=FALSE WHERE svcgrp_id IN
-		(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id GROUP BY old_svc_id);
-	UPDATE svcgrp_flat SET active=FALSE WHERE svcgrp_flat_id IN
-		(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id GROUP BY old_svc_id);
-	UPDATE svcgrp SET active=FALSE WHERE svcgrp_member_id IN
-		(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id GROUP BY old_svc_id);
-	UPDATE svcgrp_flat SET active=FALSE WHERE svcgrp_flat_member_id IN
-		(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id GROUP BY old_svc_id);
-	UPDATE rule_service SET active=FALSE WHERE svc_id IN
-		(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id AND NOT old_svc_id IS NULL);
-	UPDATE rule_service	SET rs_last_seen=i_current_import_id WHERE rule_id IN	
-		(SELECT rule_id FROM rule WHERE mgm_id=i_mgm_id AND active) AND active;		
-	UPDATE svcgrp		SET import_last_seen=i_current_import_id WHERE svcgrp_id IN
-		(SELECT svc_id FROM service WHERE mgm_id=i_mgm_id AND active) AND active;
-	UPDATE svcgrp_flat	SET import_last_seen=i_current_import_id WHERE svcgrp_flat_id IN
-		(SELECT svc_id FROM service WHERE service.mgm_id=i_mgm_id AND active) AND active;
-	RAISE DEBUG 'import_svc_refhandler_main - 7 - end';
+	BEGIN
+		RAISE DEBUG 'import_svc_refhandler_main - 1 start';
+		SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
+		RAISE DEBUG 'import_svc_refhandler_main - 2';
+		i_previous_import_id := get_previous_import_id_for_mgmt (i_mgm_id, i_current_import_id);
+		RAISE DEBUG 'import_svc_refhandler_main - 3';
+		SELECT INTO r_ctrl delimiter_group FROM import_control WHERE control_id=i_current_import_id;
+		RAISE DEBUG 'import_svc_refhandler_main - 4';
+			-- neue Member-Beziehungen von i_new_id eintragen
+		FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen (standard groups)
+			SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id AND NOT change_action='D'
+		LOOP
+			RAISE DEBUG 'import_svc_refhandler_main - first loop';
+			IF r_svc.change_action = 'I' THEN
+				PERFORM import_svc_refhandler_insert(r_svc.new_svc_id,r_ctrl.delimiter_group,i_current_import_id);
+			ELSIF r_svc.change_action = 'C' THEN
+				PERFORM import_svc_refhandler_change(r_svc.old_svc_id,r_svc.new_svc_id,i_current_import_id);
+			END IF;
+		END LOOP;
+		RAISE DEBUG 'import_svc_refhandler_main - 5';
+		FOR r_svc IN -- jedes geloeschte Objekt wird in changelog_service eingetragen (flattened groups)
+			SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id AND NOT change_action='D'
+		LOOP
+			RAISE DEBUG 'import_svc_refhandler_main - second loop (flat grps)';
+			IF r_svc.change_action = 'I' THEN
+				PERFORM import_svc_refhandler_insert_flat(r_svc.new_svc_id,r_ctrl.delimiter_group,i_current_import_id);
+			ELSIF r_svc.change_action = 'C' THEN
+				PERFORM import_svc_refhandler_change_flat(r_svc.old_svc_id,r_svc.new_svc_id,i_current_import_id);
+			END IF;
+		END LOOP;
+		RAISE DEBUG 'import_svc_refhandler_main - 6';
+		----------------------------------------------------------------------------------------------
+		-- die alten (nicht mehr gueltigen) Objekte auf non-active setzen
+		UPDATE svcgrp SET active=FALSE WHERE svcgrp_id IN
+			(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id GROUP BY old_svc_id);
+		UPDATE svcgrp_flat SET active=FALSE WHERE svcgrp_flat_id IN
+			(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id GROUP BY old_svc_id);
+		UPDATE svcgrp SET active=FALSE WHERE svcgrp_member_id IN
+			(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id GROUP BY old_svc_id);
+		UPDATE svcgrp_flat SET active=FALSE WHERE svcgrp_flat_member_id IN
+			(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id GROUP BY old_svc_id);
+		UPDATE rule_service SET active=FALSE WHERE svc_id IN
+			(SELECT old_svc_id FROM changelog_service WHERE control_id=i_current_import_id AND NOT old_svc_id IS NULL);
+		UPDATE rule_service	SET rs_last_seen=i_current_import_id WHERE rule_id IN	
+			(SELECT rule_id FROM rule WHERE mgm_id=i_mgm_id AND active) AND active;		
+		UPDATE svcgrp		SET import_last_seen=i_current_import_id WHERE svcgrp_id IN
+			(SELECT svc_id FROM service WHERE mgm_id=i_mgm_id AND active) AND active;
+		UPDATE svcgrp_flat	SET import_last_seen=i_current_import_id WHERE svcgrp_flat_id IN
+			(SELECT svc_id FROM service WHERE service.mgm_id=i_mgm_id AND active) AND active;
+		RAISE DEBUG 'import_svc_refhandler_main - 7 - end';
+
+		FOR r_svc IN -- loop for rule_svc_resolved
+			SELECT old_svc_id,new_svc_id,change_action FROM changelog_service WHERE control_id=i_current_import_id -- AND (change_action = 'C' OR change_action = 'D')
+		LOOP
+			PERFORM import_rule_resolved_svc (i_mgm_id, NULL, r_svc.old_svc_id, r_svc.new_svc_id, i_current_import_id, r_svc.change_action, 'S');
+		END LOOP;
+	EXCEPTION
+	    WHEN others THEN
+            raise notice 'import_svc_refhandler_main - uncommittable state. Rolling back';
+            raise EXCEPTION '% %', SQLERRM, SQLSTATE;    
+	END;
 	RETURN;
 END; 
 $$ LANGUAGE plpgsql;

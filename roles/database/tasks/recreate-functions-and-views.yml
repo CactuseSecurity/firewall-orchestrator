@@ -1,5 +1,5 @@
 
-- name: (re)defines functions and views (idempotent)
+- name: (re)defines functions and views (idempotent) from ansible 2.10
   postgresql_query:
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
@@ -29,7 +29,7 @@
     - fworch-grants.sql
     - fworch-texts.sql
 
-- name: (re)defines functions and views (idempotent)
+- name: (re)defines functions and views (idempotent) prior to ansible 2.10
   postgresql_query:
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"

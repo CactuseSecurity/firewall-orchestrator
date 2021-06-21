@@ -117,3 +117,12 @@ adding report template format fk and permissions
 ### 5.2.5 - 04.06.2021
 - new role recertifier
 - adapt rule_metadata table for recertification prototype
+
+### 5.2.6 - 07.06.2021
+- report rule - object reference now time aware
+
+### 5.2.7 - 14.06.2021
+- add column rule_decert_date to rule_metadata
+
+### 5.2.8 - 18.06.2021
+- add column rule_recertification_comment to rule_metadata

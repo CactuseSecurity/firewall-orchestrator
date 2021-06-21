@@ -121,6 +121,32 @@ tables:
       filter:
         dev_id:
           _in: x-hasura-visible-devices
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - log_rule_id
+      - doku_admin
+      - control_id
+      - import_admin
+      - new_rule_id
+      - old_rule_id
+      - implicit_change
+      - abs_change_id
+      - change_action
+      - changelog_rule_comment
+      - documented
+      - docu_time
+      - mgm_id
+      - dev_id
+      - change_type_id
+      - security_relevant
+      - change_request_info
+      - change_time
+      - unique_name
+      filter:
+        dev_id:
+          _in: x-hasura-visible-devices
     role: reporter
   - permission:
       allow_aggregations: true
@@ -227,6 +253,18 @@ tables:
       - config_user
     role: auditor
   - permission:
+      check:
+        _or:
+        - config_user:
+            _eq: X-Hasura-User-Id
+        - config_user:
+            _eq: 0
+      columns:
+      - config_key
+      - config_value
+      - config_user
+    role: recertifier
+  - permission:
       backend_only: false
       check:
         config_user:
@@ -285,6 +323,18 @@ tables:
             _eq: X-Hasura-User-Id
         - config_user:
             _eq: 0
+    role: recertifier
+  - permission:
+      columns:
+      - config_key
+      - config_value
+      - config_user
+      filter:
+        _or:
+        - config_user:
+            _eq: X-Hasura-User-Id
+        - config_user:
+            _eq: 0
     role: reporter
   - permission:
       columns:
@@ -312,6 +362,19 @@ tables:
         config_user:
           _eq: X-Hasura-User-Id
     role: auditor
+  - permission:
+      check: null
+      columns:
+      - config_key
+      - config_value
+      - config_user
+      filter:
+        _or:
+        - config_user:
+            _eq: X-Hasura-User-Id
+        - config_user:
+            _eq: 0
+    role: recertifier
   - permission:
       check: null
       columns:
@@ -393,6 +456,30 @@ tables:
       - hide_in_gui
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - dev_id
+      - mgm_id
+      - dev_name
+      - dev_rulebase
+      - dev_typ_id
+      - tenant_id
+      - dev_active
+      - dev_comment
+      - dev_create
+      - dev_update
+      - do_not_import
+      - clearing_import_ran
+      - force_initial_import
+      - hide_in_gui
+      filter:
+        _and:
+        - mgm_id:
+            _in: x-hasura-visible-managements
+        - dev_id:
+            _in: x-hasura-visible-devices
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -626,6 +713,20 @@ tables:
         table:
           name: rule_from
           schema: public
+  - name: rule_nwobj_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: created
+        table:
+          name: rule_nwobj_resolved
+          schema: public
+  - name: ruleNwobjResolvedsByRemoved
+    using:
+      foreign_key_constraint_on:
+        column: removed
+        table:
+          name: rule_nwobj_resolved
+          schema: public
   - name: rules
     using:
       foreign_key_constraint_on:
@@ -654,6 +755,20 @@ tables:
         table:
           name: rule_service
           schema: public
+  - name: rule_svc_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: created
+        table:
+          name: rule_svc_resolved
+          schema: public
+  - name: ruleSvcResolvedsByRemoved
+    using:
+      foreign_key_constraint_on:
+        column: removed
+        table:
+          name: rule_svc_resolved
+          schema: public
   - name: rule_tos
     using:
       foreign_key_constraint_on:
@@ -667,6 +782,20 @@ tables:
         column: rt_last_seen
         table:
           name: rule_to
+          schema: public
+  - name: rule_user_resolveds
+    using:
+      foreign_key_constraint_on:
+        column: created
+        table:
+          name: rule_user_resolved
+          schema: public
+  - name: ruleUserResolvedsByRemoved
+    using:
+      foreign_key_constraint_on:
+        column: removed
+        table:
+          name: rule_user_resolved
           schema: public
   - name: services
     using:
@@ -789,6 +918,26 @@ tables:
       - import_errors
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - changes_found
+      - is_initial_import
+      - successful_import
+      - mgm_id
+      - control_id
+      - last_change_in_config
+      - start_time
+      - stop_time
+      - delimiter_group
+      - delimiter_list
+      - delimiter_user
+      - delimiter_zone
+      - import_errors
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -1218,6 +1367,26 @@ tables:
       filter:
         mgm_id:
           _in: X-Hasura-visible-managements
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - clearing_import_ran
+      - tenant_id
+      - config_path
+      - dev_typ_id
+      - do_not_import
+      - force_initial_import
+      - hide_in_gui
+      - importer_hostname
+      - mgm_comment
+      - mgm_create
+      - mgm_id
+      - mgm_name
+      - mgm_update
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -1420,6 +1589,43 @@ tables:
       filter:
         mgm_id:
           _in: X-Hasura-visible-managements
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - obj_id
+      - last_change_admin
+      - zone_id
+      - mgm_id
+      - obj_name
+      - obj_comment
+      - obj_uid
+      - obj_typ_id
+      - obj_location
+      - obj_member_names
+      - obj_member_refs
+      - initial_config
+      - obj_sw
+      - obj_ip
+      - obj_ip_end
+      - obj_nat
+      - nattyp_id
+      - obj_nat_ip
+      - obj_nat_ip_end
+      - obj_nat_install
+      - obj_color_id
+      - obj_sys_name
+      - obj_sys_location
+      - obj_sys_contact
+      - obj_sys_desc
+      - obj_sys_readcom
+      - obj_sys_writecom
+      - active
+      - obj_create
+      - obj_last_seen
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -1494,6 +1700,17 @@ tables:
       - active
       - negated
       filter: {}
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - objgrp_id
+      - objgrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
     role: reporter
   - permission:
       columns:
@@ -1533,6 +1750,17 @@ tables:
       - negated
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - objgrp_flat_id
+      - objgrp_flat_member_id
+      - active
+      - import_created
+      - import_last_seen
+      - negated
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -1584,6 +1812,13 @@ tables:
       - id
       - name
       filter: {}
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - id
+      - name
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -1601,6 +1836,11 @@ tables:
         report_owner_id:
           _eq: X-Hasura-User-Id
     role: auditor
+  - permission:
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: recertifier
   - permission:
       filter:
         report_owner_id:
@@ -1644,6 +1884,22 @@ tables:
       - report_owner_id
       - tenant_wide_visible
     role: middleware-server
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_id
+      - report_template_id
+      - report_start_time
+      - report_end_time
+      - report_json
+      - report_pdf
+      - report_csv
+      - report_html
+      - report_name
+      - report_owner_id
+      - tenant_wide_visible
+    role: recertifier
   - permission:
       backend_only: false
       check: {}
@@ -1719,6 +1975,24 @@ tables:
       filter:
         report_owner_id:
           _eq: X-Hasura-User-Id
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - report_pdf
+      - report_owner_id
+      - report_template_id
+      - tenant_wide_visible
+      - report_id
+      - report_json
+      - report_csv
+      - report_html
+      - report_end_time
+      - report_start_time
+      - report_name
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       allow_aggregations: true
@@ -1760,6 +2034,24 @@ tables:
         report_owner_id:
           _eq: X-Hasura-User-Id
     role: auditor
+  - permission:
+      check: null
+      columns:
+      - report_pdf
+      - report_owner_id
+      - report_template_id
+      - tenant_wide_visible
+      - report_id
+      - report_json
+      - report_csv
+      - report_html
+      - report_end_time
+      - report_start_time
+      - report_name
+      filter:
+        report_owner_id:
+          _eq: X-Hasura-User-Id
+    role: recertifier
   - permission:
       check: null
       columns:
@@ -1819,6 +2111,11 @@ tables:
       columns:
       - report_format_name
       filter: {}
+    role: recertifier
+  - permission:
+      columns:
+      - report_format_name
+      filter: {}
     role: reporter
   - permission:
       columns:
@@ -1846,6 +2143,11 @@ tables:
       filter:
         report_schedule_owner:
           _eq: X-Hasura-User-Id
+    role: recertifier
+  - permission:
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       filter:
@@ -1866,6 +2168,19 @@ tables:
       - report_schedule_start_time
       - report_template_id
     role: auditor
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_schedule_id
+      - report_schedule_name
+      - report_template_id
+      - report_schedule_owner
+      - report_schedule_start_time
+      - report_schedule_repeat
+      - report_schedule_every
+      - report_schedule_active
+    role: recertifier
   - permission:
       backend_only: false
       check: {}
@@ -1927,6 +2242,20 @@ tables:
       - report_schedule_repetitions
       filter: {}
     role: middleware-server
+  - permission:
+      columns:
+      - report_schedule_active
+      - report_schedule_every
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      - report_schedule_name
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
+    role: recertifier
   - permission:
       columns:
       - report_schedule_active
@@ -2003,6 +2332,21 @@ tables:
       filter:
         report_schedule_owner:
           _eq: X-Hasura-User-Id
+    role: recertifier
+  - permission:
+      check: null
+      columns:
+      - report_schedule_active
+      - report_schedule_every
+      - report_schedule_owner
+      - report_schedule_repeat
+      - report_template_id
+      - report_schedule_id
+      - report_schedule_start_time
+      - report_schedule_name
+      filter:
+        report_schedule_owner:
+          _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       check: null
@@ -2031,6 +2375,12 @@ tables:
         report_schedule:
           report_schedule_owner:
             _eq: X-Hasura-User-Id
+    role: recertifier
+  - permission:
+      filter:
+        report_schedule:
+          report_schedule_owner:
+            _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       filter:
@@ -2049,6 +2399,16 @@ tables:
       - report_schedule_format_name
       - report_schedule_id
     role: auditor
+  - permission:
+      backend_only: false
+      check:
+        report_schedule:
+          report_schedule_owner:
+            _eq: X-Hasura-User-Id
+      columns:
+      - report_schedule_format_name
+      - report_schedule_id
+    role: recertifier
   - permission:
       backend_only: false
       check:
@@ -2097,6 +2457,15 @@ tables:
         report_schedule:
           report_schedule_owner:
             _eq: X-Hasura-User-Id
+    role: recertifier
+  - permission:
+      columns:
+      - report_schedule_format_name
+      - report_schedule_id
+      filter:
+        report_schedule:
+          report_schedule_owner:
+            _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       columns:
@@ -2121,6 +2490,19 @@ tables:
           report_schedule_owner:
             _eq: X-Hasura-User-Id
     role: auditor
+  - permission:
+      check:
+        report_schedule:
+          report_schedule_owner:
+            _eq: X-Hasura-User-Id
+      columns:
+      - report_schedule_format_name
+      - report_schedule_id
+      filter:
+        report_schedule:
+          report_schedule_owner:
+            _eq: X-Hasura-User-Id
+    role: recertifier
   - permission:
       check:
         report_schedule:
@@ -2186,6 +2568,11 @@ tables:
       filter:
         report_template_owner:
           _eq: X-Hasura-User-Id
+    role: recertifier
+  - permission:
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       filter:
@@ -2205,6 +2592,18 @@ tables:
       - report_template_owner
       - filterline_history
     role: auditor
+  - permission:
+      backend_only: false
+      check: {}
+      columns:
+      - report_template_id
+      - report_filter
+      - report_template_name
+      - report_template_comment
+      - report_template_create
+      - report_template_owner
+      - filterline_history
+    role: recertifier
   - permission:
       backend_only: false
       check: {}
@@ -2272,6 +2671,22 @@ tables:
             _eq: 0
         - report_template_owner:
             _eq: X-Hasura-User-Id
+    role: recertifier
+  - permission:
+      columns:
+      - filterline_history
+      - report_template_id
+      - report_template_owner
+      - report_template_comment
+      - report_template_create
+      - report_filter
+      - report_template_name
+      filter:
+        _or:
+        - report_template_owner:
+            _eq: 0
+        - report_template_owner:
+            _eq: X-Hasura-User-Id
     role: reporter
   - permission:
       columns:
@@ -2307,6 +2722,20 @@ tables:
         report_template_owner:
           _eq: X-Hasura-User-Id
     role: auditor
+  - permission:
+      check: null
+      columns:
+      - filterline_history
+      - report_template_id
+      - report_template_owner
+      - report_template_comment
+      - report_template_create
+      - report_filter
+      - report_template_name
+      filter:
+        report_template_owner:
+          _eq: X-Hasura-User-Id
+    role: recertifier
   - permission:
       check: null
       columns:
@@ -2634,6 +3063,48 @@ tables:
       filter:
         mgm_id:
           _in: X-Hasura-visible-managements
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - action_id
+      - active
+      - dev_id
+      - last_change_admin
+      - mgm_id
+      - parent_rule_id
+      - parent_rule_type
+      - rule_action
+      - rule_comment
+      - rule_create
+      - rule_disabled
+      - rule_dst
+      - rule_dst_neg
+      - rule_dst_refs
+      - rule_from_zone
+      - rule_head_text
+      - rule_id
+      - rule_implied
+      - rule_installon
+      - rule_last_seen
+      - rule_name
+      - rule_num
+      - rule_num_numeric
+      - rule_ruleid
+      - rule_src
+      - rule_src_neg
+      - rule_src_refs
+      - rule_svc
+      - rule_svc_neg
+      - rule_svc_refs
+      - rule_time
+      - rule_to_zone
+      - rule_track
+      - rule_uid
+      - track_id
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -2719,6 +3190,19 @@ tables:
       - active
       - negated
       filter: {}
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - rule_from_id
+      - rf_create
+      - rf_last_seen
+      - rule_id
+      - obj_id
+      - user_id
+      - active
+      - negated
+      filter: {}
     role: reporter
   - permission:
       columns:
@@ -2765,17 +3249,19 @@ tables:
       - dev_id
       - last_change_admin
       - rule_last_certifier
-      - rule_last_certifier_dn
       - rule_owner
       - rule_hit_counter
       - rule_metadata_id
       - rule_uid
       - rule_created
+      - rule_decert_date
       - rule_first_hit
       - rule_last_certified
       - rule_last_hit
       - rule_last_modified
+      - rule_last_certifier_dn
       - rule_owner_dn
+      - rule_recertification_comment
     role: importer
   object_relationships:
   - name: device
@@ -2792,6 +3278,7 @@ tables:
       allow_aggregations: true
       columns:
       - rule_metadata_id
+      - dev_id
       - rule_uid
       - rule_created
       - rule_last_modified
@@ -2805,7 +3292,8 @@ tables:
       - rule_owner_dn
       - rule_to_be_removed
       - last_change_admin
-      - dev_id
+      - rule_decert_date
+      - rule_recertification_comment
       filter: {}
     role: auditor
   - permission:
@@ -2815,56 +3303,62 @@ tables:
       - dev_id
       - last_change_admin
       - rule_last_certifier
-      - rule_last_certifier_dn
       - rule_owner
       - rule_hit_counter
       - rule_metadata_id
       - rule_uid
       - rule_created
+      - rule_decert_date
       - rule_first_hit
       - rule_last_certified
       - rule_last_hit
       - rule_last_modified
+      - rule_last_certifier_dn
       - rule_owner_dn
+      - rule_recertification_comment
       filter: {}
     role: importer
   - permission:
       columns:
-      - rule_metadata_id
+      - rule_to_be_removed
       - dev_id
-      - rule_uid
-      - rule_created
-      - rule_last_modified
-      - rule_first_hit
-      - rule_last_hit
-      - rule_hit_counter
-      - rule_last_certified
+      - last_change_admin
       - rule_last_certifier
       - rule_owner
-      - rule_owner_dn
-      - rule_to_be_removed
-      - last_change_admin
+      - rule_hit_counter
+      - rule_metadata_id
+      - rule_uid
+      - rule_created
+      - rule_decert_date
+      - rule_first_hit
+      - rule_last_certified
+      - rule_last_hit
+      - rule_last_modified
       - rule_last_certifier_dn
+      - rule_owner_dn
+      - rule_recertification_comment
       filter: {}
     role: recertifier
   - permission:
       allow_aggregations: true
       columns:
-      - rule_to_be_removed
+      - rule_metadata_id
       - dev_id
-      - last_change_admin
+      - rule_uid
+      - rule_created
+      - rule_last_modified
+      - rule_first_hit
+      - rule_last_hit
+      - rule_hit_counter
+      - rule_last_certified
       - rule_last_certifier
       - rule_last_certifier_dn
       - rule_owner
-      - rule_hit_counter
-      - rule_metadata_id
-      - rule_uid
-      - rule_created
-      - rule_first_hit
-      - rule_last_certified
-      - rule_last_hit
-      - rule_last_modified
       - rule_owner_dn
+      - rule_to_be_removed
+      - last_change_admin
+      - rule_decert_date
+      - rule_recertification_comment
       filter:
         dev_id:
           _in:
@@ -2873,21 +3367,23 @@ tables:
   - permission:
       allow_aggregations: true
       columns:
+      - rule_to_be_removed
+      - dev_id
+      - last_change_admin
+      - rule_last_certifier
+      - rule_owner
+      - rule_hit_counter
       - rule_metadata_id
       - rule_uid
       - rule_created
-      - rule_last_modified
+      - rule_decert_date
       - rule_first_hit
-      - rule_last_hit
-      - rule_hit_counter
       - rule_last_certified
-      - rule_last_certifier
+      - rule_last_hit
+      - rule_last_modified
       - rule_last_certifier_dn
-      - rule_owner
       - rule_owner_dn
-      - rule_to_be_removed
-      - last_change_admin
-      - dev_id
+      - rule_recertification_comment
       filter: {}
     role: reporter-viewall
   table:
@@ -2901,29 +3397,39 @@ tables:
       - dev_id
       - last_change_admin
       - rule_last_certifier
-      - rule_last_certifier_dn
       - rule_owner
       - rule_hit_counter
       - rule_metadata_id
       - rule_uid
       - rule_created
+      - rule_decert_date
       - rule_first_hit
       - rule_last_certified
       - rule_last_hit
       - rule_last_modified
+      - rule_last_certifier_dn
       - rule_owner_dn
+      - rule_recertification_comment
       filter: {}
     role: importer
   - permission:
       check: {}
       columns:
+      - rule_decert_date
       - rule_last_certified
       - rule_last_certifier
       - rule_last_certifier_dn
+      - rule_recertification_comment
       - rule_to_be_removed
       filter: {}
     role: recertifier
 - object_relationships:
+  - name: import_control
+    using:
+      foreign_key_constraint_on: removed
+  - name: importControlByCreated
+    using:
+      foreign_key_constraint_on: created
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -2942,6 +3448,14 @@ tables:
       - rule_id
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - obj_id
+      - rule_id
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -3005,6 +3519,17 @@ tables:
       - rs_last_seen
       - negated
       filter: {}
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - rule_id
+      - svc_id
+      - active
+      - rs_create
+      - rs_last_seen
+      - negated
+      filter: {}
     role: reporter
   - permission:
       columns:
@@ -3020,6 +3545,12 @@ tables:
     name: rule_service
     schema: public
 - object_relationships:
+  - name: import_control
+    using:
+      foreign_key_constraint_on: removed
+  - name: importControlByCreated
+    using:
+      foreign_key_constraint_on: created
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -3038,6 +3569,14 @@ tables:
       - svc_id
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - rule_id
+      - svc_id
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -3091,6 +3630,17 @@ tables:
       - active
       - negated
       filter: {}
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - rule_id
+      - obj_id
+      - rt_create
+      - rt_last_seen
+      - active
+      - negated
+      filter: {}
     role: reporter
   - permission:
       columns:
@@ -3106,6 +3656,12 @@ tables:
     name: rule_to
     schema: public
 - object_relationships:
+  - name: import_control
+    using:
+      foreign_key_constraint_on: removed
+  - name: importControlByCreated
+    using:
+      foreign_key_constraint_on: created
   - name: management
     using:
       foreign_key_constraint_on: mgm_id
@@ -3124,6 +3680,14 @@ tables:
       - user_id
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - mgm_id
+      - rule_id
+      - user_id
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -3300,6 +3864,46 @@ tables:
       filter:
         mgm_id:
           _in: X-Hasura-visible-managements
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - svc_id
+      - svc_uid
+      - svc_name
+      - svc_typ_id
+      - mgm_id
+      - svc_comment
+      - svc_prod_specific
+      - svc_member_names
+      - svc_member_refs
+      - svc_color_id
+      - ip_proto_id
+      - svc_port
+      - svc_port_end
+      - initial_config
+      - srv_keeponinstall
+      - svc_rpcnr
+      - svc_code
+      - svc_match
+      - svc_source_port
+      - svc_source_port_end
+      - svc_tcp_res
+      - svc_accept_rep
+      - svc_accept_rep_any
+      - svc_mfa
+      - svc_timeout_std
+      - svc_timeout
+      - svc_sync
+      - svc_sync_delay
+      - svc_sync_delay_start
+      - active
+      - last_change_admin
+      - svc_create
+      - svc_last_seen
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3362,6 +3966,12 @@ tables:
       - action_id
       - action_name
       filter: {}
+    role: recertifier
+  - permission:
+      columns:
+      - action_id
+      - action_name
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3415,6 +4025,13 @@ tables:
       - change_type_id
       - change_type_name
       filter: {}
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - change_type_id
+      - change_type_name
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3457,6 +4074,14 @@ tables:
       - color_comment
       filter: {}
     role: auditor
+  - permission:
+      columns:
+      - color_id
+      - color_name
+      - color_rgb
+      - color_comment
+      filter: {}
+    role: recertifier
   - permission:
       columns:
       - color_id
@@ -3522,6 +4147,21 @@ tables:
       - dev_typ_config_file_basic_objects
       - dev_typ_config_file_users
       filter: {}
+    role: recertifier
+  - permission:
+      columns:
+      - dev_typ_id
+      - dev_typ_manufacturer
+      - dev_typ_name
+      - dev_typ_version
+      - dev_typ_comment
+      - dev_typ_predef_svc
+      - dev_typ_predef_obj
+      - dev_typ_is_mgmt
+      - dev_typ_config_file_rules
+      - dev_typ_config_file_basic_objects
+      - dev_typ_config_file_users
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3558,6 +4198,13 @@ tables:
       - ip_proto_comment
       filter: {}
     role: auditor
+  - permission:
+      columns:
+      - ip_proto_id
+      - ip_proto_name
+      - ip_proto_comment
+      filter: {}
+    role: recertifier
   - permission:
       columns:
       - ip_proto_id
@@ -3609,6 +4256,13 @@ tables:
       - obj_typ_name
       - obj_typ_comment
       filter: {}
+    role: recertifier
+  - permission:
+      columns:
+      - obj_typ_id
+      - obj_typ_name
+      - obj_typ_comment
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3637,6 +4291,14 @@ tables:
       - svc_typ_comment
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - svc_typ_id
+      - svc_typ_name
+      - svc_typ_comment
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -3676,6 +4338,12 @@ tables:
       - track_id
       - track_name
       filter: {}
+    role: recertifier
+  - permission:
+      columns:
+      - track_id
+      - track_name
+      filter: {}
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3702,6 +4370,12 @@ tables:
       - usr_typ_name
       filter: {}
     role: auditor
+  - permission:
+      columns:
+      - usr_typ_id
+      - usr_typ_name
+      filter: {}
+    role: recertifier
   - permission:
       columns:
       - usr_typ_id
@@ -3753,6 +4427,17 @@ tables:
       - active
       - negated
       filter: {}
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - svcgrp_id
+      - svcgrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
     role: reporter
   - permission:
       columns:
@@ -3792,6 +4477,17 @@ tables:
       - negated
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - svcgrp_flat_id
+      - svcgrp_flat_member_id
+      - import_created
+      - import_last_seen
+      - active
+      - negated
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -4235,6 +4931,26 @@ tables:
       filter:
         uuid:
           _eq: x-hasura-uuid
+    role: recertifier
+  - permission:
+      columns:
+      - uiuser_id
+      - uiuser_username
+      - uuid
+      - uiuser_first_name
+      - uiuser_last_name
+      - uiuser_start_date
+      - uiuser_end_date
+      - uiuser_email
+      - tenant_id
+      - uiuser_language
+      - uiuser_password_must_be_changed
+      - uiuser_last_login
+      - uiuser_last_password_change
+      - uiuser_pwd_history
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
     role: reporter
   - permission:
       columns:
@@ -4307,6 +5023,14 @@ tables:
       filter:
         uuid:
           _eq: x-hasura-uuid
+    role: recertifier
+  - permission:
+      check: null
+      columns:
+      - uiuser_language
+      filter:
+        uuid:
+          _eq: x-hasura-uuid
     role: reporter
   - permission:
       check: null
@@ -4340,6 +5064,16 @@ tables:
       - active
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - usergrp_id
+      - usergrp_member_id
+      - import_created
+      - import_last_seen
+      - active
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -4386,6 +5120,16 @@ tables:
       - import_last_seen
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - active
+      - usergrp_flat_id
+      - usergrp_flat_member_id
+      - import_created
+      - import_last_seen
+      filter: {}
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:
@@ -4550,6 +5294,35 @@ tables:
       filter:
         mgm_id:
           _in: X-Hasura-visible-managements
+    role: recertifier
+  - permission:
+      allow_aggregations: true
+      columns:
+      - user_id
+      - usr_typ_id
+      - user_color_id
+      - mgm_id
+      - user_name
+      - active
+      - user_member_names
+      - user_member_refs
+      - user_authmethod
+      - user_valid_from
+      - user_valid_until
+      - src_restrict
+      - dst_restrict
+      - time_restrict
+      - user_create
+      - user_last_seen
+      - user_comment
+      - user_uid
+      - user_firstname
+      - user_lastname
+      - last_change_admin
+      - tenant_id
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -4676,6 +5449,19 @@ tables:
       - active
       filter: {}
     role: auditor
+  - permission:
+      allow_aggregations: true
+      columns:
+      - zone_id
+      - zone_create
+      - zone_last_seen
+      - mgm_id
+      - zone_name
+      - active
+      filter:
+        mgm_id:
+          _in: x-hasura-visible-managements
+    role: recertifier
   - permission:
       allow_aggregations: true
       columns:

@@ -1,0 +1,50 @@
+﻿@page "/help/API/query"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+
+<div class="p-2">
+    <h3>Sample Queries</h3>
+    <br>
+    <h4>Get the names of all firewall managements using admin access</h4>
+    <pre>
+curl --insecure --request POST \
+    --url https://localhost:9443/api/v1/graphql \
+    --header 'content-type: application/json' \
+    --header 'x-hasura-admin-secret: &lt;hasura admin pwd&gt;' \
+    --header 'x-hasura-role: admin' \
+    --data '{"query":"query { management {mgm_name} }"}'
+    </pre>
+
+    <h4>Get the names of all firewall managements using standard JWT access</h4>
+    Note that the query will not work as the sample JWT is not valid anymore.
+    <br>
+    <pre>
+curl --insecure --request POST \
+    --url https://localhost:9443/api/v1/graphql \
+    --header 'content-type: application/json' \
+    --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InVzZXIxX2RlbW8iLCJ4LWhhc3VyYS11c2VyLWlkIjoiNCIsIngtaGFzdXJhLXV1aWQiOiJ1aWQ9dXNlcjFfZGVtbyxvdT10ZW5hbnQyLG91PW9wZXJhdG9yLG91PXVzZXIsZGM9ZndvcmNoLGRjPWludGVybmFsIiwieC1oYXN1cmEtdGVuYW50LWlkIjoiMyIsIngtaGFzdXJhLXZpc2libGUtbWFuYWdlbWVudHMiOiJ7IDIgfSIsIngtaGFzdXJhLXZpc2libGUtZGV2aWNlcyI6InsgMiB9Iiwicm9sZSI6ImF1ZGl0b3IiLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbImF1ZGl0b3IiXSwieC1oYXN1cmEtZGVmYXVsdC1yb2xlIjoiYXVkaXRvciIsIm5iZiI6MTYyMjkxNTA3NCwiZXhwIjoxNjIyOTI5NTM0LCJpYXQiOjE2MjI5MTUwNzQsImlzcyI6IkZXTyBNaWRkbGV3YXJlIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.bs5hTz6eZSV3xKDzsKxGuyDbdIIQfZgoEgKBoBZ-eBVlwzkHSgE5A0Z5Bg3BuyzP8VDPYfu4YfKGJNxjadumU7QVFKtrDlueNfYlUb_dBNQl2DSqdQmD9TfphAtclcBDuFKe7DKnEsPNvskoXbrDgrBQPK7talEKqTNkkKEORmpd3czuviLZyAyD5Uez_5Tc0T-9dlpENs4m4t8_FfpMpUW7i5-5BEE-ma4a1SPpmltdCJRsRQIwJUkjg_vJAHjzFuxGBXkKd7LdX7S7wiDiNUWfz0yy86zamDmeinEDnRX-mkjIN7f9vNCtldznZxvWOiRyHERxd9ek9To3WZIDMw' \
+    --data '{"query":"query { management {mgm_name} }"}'
+    </pre>
+    <br>
+    Result on a system with demo data:
+    <code>{"data":{"management":[{"mgm_name":"sting-mgmt2"}, {"mgm_name":"checkpoint_demo"}, {"mgm_name":"fortigate_demo"}]}}</code>
+<br><br>
+    <h4>Get the names of all firewall managements using standard JWT access and specifying a certain role</h4>
+    Note that the query will not work as the sample JWT is not valid anymore.
+    <br>
+    <pre>
+curl --insecure --request POST \
+    --url https://localhost:9443/api/v1/graphql \
+    --header 'content-type: application/json' \
+    --header 'x-hasura-role: auditor' \
+    --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InVzZXIxX2RlbW8iLCJ4LWhhc3VyYS11c2VyLWlkIjoiNCIsIngtaGFzdXJhLXV1aWQiOiJ1aWQ9dXNlcjFfZGVtbyxvdT10ZW5hbnQyLG91PW9wZXJhdG9yLG91PXVzZXIsZGM9ZndvcmNoLGRjPWludGVybmFsIiwieC1oYXN1cmEtdGVuYW50LWlkIjoiMyIsIngtaGFzdXJhLXZpc2libGUtbWFuYWdlbWVudHMiOiJ7IDIgfSIsIngtaGFzdXJhLXZpc2libGUtZGV2aWNlcyI6InsgMiB9Iiwicm9sZSI6ImF1ZGl0b3IiLCJ4LWhhc3VyYS1hbGxvd2VkLXJvbGVzIjpbImF1ZGl0b3IiXSwieC1oYXN1cmEtZGVmYXVsdC1yb2xlIjoiYXVkaXRvciIsIm5iZiI6MTYyMjkxNTA3NCwiZXhwIjoxNjIyOTI5NTM0LCJpYXQiOjE2MjI5MTUwNzQsImlzcyI6IkZXTyBNaWRkbGV3YXJlIE1vZHVsZSIsImF1ZCI6IkZXTyJ9.bs5hTz6eZSV3xKDzsKxGuyDbdIIQfZgoEgKBoBZ-eBVlwzkHSgE5A0Z5Bg3BuyzP8VDPYfu4YfKGJNxjadumU7QVFKtrDlueNfYlUb_dBNQl2DSqdQmD9TfphAtclcBDuFKe7DKnEsPNvskoXbrDgrBQPK7talEKqTNkkKEORmpd3czuviLZyAyD5Uez_5Tc0T-9dlpENs4m4t8_FfpMpUW7i5-5BEE-ma4a1SPpmltdCJRsRQIwJUkjg_vJAHjzFuxGBXkKd7LdX7S7wiDiNUWfz0yy86zamDmeinEDnRX-mkjIN7f9vNCtldznZxvWOiRyHERxd9ek9To3WZIDMw' \
+    --data '{"query":"query { management {mgm_name} }"}'
+    </pre>
+
+</div>

@@ -10,7 +10,7 @@
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 
-@page "/"
+@* @page "/" *@
 @page "/report"
 
 @inject APIConnection Connection
@@ -23,6 +23,8 @@
 
 @* ==== Middle div ==== *@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
+<h3>@(userConfig.GetText("reporting"))</h3>
+
 @* ==== Filter line ==== *@
     <form class="m-1 position-relative" @onsubmit="GenerateReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
@@ -41,7 +43,7 @@
 
     <hr />
 
-    <PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning" OnClose="() => ShowNoDeviceSelectedWarning = false">
+    <!-- PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning" OnClose="() => ShowNoDeviceSelectedWarning = false">
         <Body>
             <div>
                 <p>@(userConfig.GetText("E1001"))</p>
@@ -50,7 +52,7 @@
         <Footer>
             <button class="btn btn-primary" @onclick="() => ShowNoDeviceSelectedWarning = false">OK</button>
         </Footer>
-    </PopUp>
+    </PopUp -->
 
 @* ==== Templates ==== *@
     <ReportTemplateComponent OnTemplateLoad="
@@ -121,11 +123,7 @@
 @* ==== RIGHT SIDEBAR ==== *@
 <Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="sidebarRightWidth">
     <div class="p-3">
-        <div class="card mb-1">
-            <div class="card-body text-center p-1">
-                @(userConfig.GetText("objects"))
-            </div>
-        </div>
+        <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
         <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
             <Tab Title="@(userConfig.GetText("all"))">
                 <div class="d-md-flex justify-content-md-end">
@@ -155,9 +153,9 @@
                 <CascadingValue Value="collapseSidebarRule">
                     <ObjectGroupCollection FetchObjects="FetchContent" Type="30" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                           NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
+                                           NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                           NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                                           NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Union(rule.Tos.Select(nl => nl.User)).ToArray(), user => user != null)" />
                 </CascadingValue>
             </Tab>
         </TabSet>
@@ -187,7 +185,7 @@
     private int elementsPerFetch = 100;
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
-    private bool ShowNoDeviceSelectedWarning = false;
+    // private bool ShowNoDeviceSelectedWarning = false;
 
     private bool autoFillRightSidebar = false;
     private int maxInitFetchRightSidebar = 10;
@@ -363,7 +361,8 @@
 
         // collapse report templates
         reportTemplateControl.Collapse();
-        deviceSelectionSidebar.ToggleCollapse(true);
+        // disabling left side bar collapse for now
+        // deviceSelectionSidebar.ToggleCollapse(true);
 
         try
         {
@@ -373,8 +372,9 @@
             currentReport = ReportBase.ConstructReport(filterInput);
             if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
-                ShowNoDeviceSelectedWarning = true;
-                StateHasChanged();
+                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+//                ShowNoDeviceSelectedWarning = true;
+//                StateHasChanged();
                 return;
             }
 

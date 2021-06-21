@@ -5,7 +5,7 @@
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
 - Display reports on firewall configuration and changes
 - Document changes and integrate with ticketing systems
-- Demo: if you want to see what it looks like in advance, visit <https://demo.itsecorg.de> (user: admin, password: fworch.1)
+- Demo: if you want to see what it looks like in advance, visit <https://fwodemo.cactus.de> (user: test, password: drive2)
 
 ## Installation instructions
 ### Server installation

@@ -170,15 +170,28 @@ BEGIN
 		RAISE DEBUG 'f_add_single_rule_from_element - 3 before inserting';
 		IF (NOT i_obj IS NULL) THEN
 			IF i_usr IS NULL THEN
-				INSERT INTO rule_from (rule_id,obj_id,rf_create,rf_last_seen)
-					VALUES (i_rule_id,i_obj,i_current_import_id,i_current_import_id);
-				PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id, i_obj);
-			ELSE 
+					INSERT INTO rule_from (rule_id,obj_id,rf_create,rf_last_seen)
+						VALUES (i_rule_id,i_obj,i_current_import_id,i_current_import_id);
+			ELSE
 				INSERT INTO rule_from (rule_id,obj_id,user_id,rf_create,rf_last_seen)
 					VALUES (i_rule_id,i_obj,i_usr,i_current_import_id,i_current_import_id);
-				PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id, i_obj);
-				PERFORM import_rule_resolved_usr(i_mgm_id, i_rule_id, i_usr);
+				BEGIN
+					PERFORM import_rule_resolved_usr(i_mgm_id, i_rule_id, NULL, i_usr, i_current_import_id, 'I', 'R');
+				EXCEPTION
+					WHEN others THEN
+						raise notice 'f_add_single_rule_from_element - rule_from with user import_rule_resolved_usr - uncommittable state. Rolling back';
+						raise notice '% %', SQLERRM, SQLSTATE;    
+				END;
+
 			END IF;
+			BEGIN
+				PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id, NULL, i_obj, i_current_import_id, 'I', 'R');
+			EXCEPTION
+				WHEN others THEN
+					raise notice 'f_add_single_rule_from_element - rule_from import_rule_resolved_nwobj - uncommittable state. Rolling back';
+					raise EXCEPTION '% %', SQLERRM, SQLSTATE;    
+			END;
+
 		END IF;
 	END IF;
 	RETURN;
@@ -243,7 +256,7 @@ BEGIN
 	ELSE 
 		INSERT INTO rule_to (rule_id,obj_id,rt_create,rt_last_seen)
 			VALUES (i_rule_id,r_obj.obj_id,i_current_import_id,i_current_import_id);
-		PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id,r_obj.obj_id);
+		PERFORM import_rule_resolved_nwobj(i_mgm_id, i_rule_id, NULL, r_obj.obj_id, i_current_import_id, 'I', 'R');
 	END IF;
 	RETURN;
 END;
@@ -298,7 +311,7 @@ BEGIN
 	ELSE
 		INSERT INTO rule_service (rule_id,svc_id,rs_create,rs_last_seen)
 			VALUES (i_rule_id,r_svc.svc_id,i_current_import_id,i_current_import_id);
-		PERFORM import_rule_resolved_svc(i_mgm_id, i_rule_id,r_svc.svc_id);
+		PERFORM import_rule_resolved_svc(i_mgm_id, i_rule_id, NULL, r_svc.svc_id, i_current_import_id, 'I', 'R');
 	END IF;	
 	RETURN;
 END;

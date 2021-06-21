@@ -6,16 +6,17 @@
 @using FWO.Ui.Services
 
 @page "/settings/report"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin, auditor")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor")]
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
 
 <h3>@(userConfig.GetText("report_settings"))</h3>
+@(userConfig.GetText("U5413"))
 <hr />
 
 <form class="form-inline">
-    <label for="elementsPerFetch" class="col-form-label mr-2">@(userConfig.GetText("elements_per_fetch")):</label>
+    <label for="elementsPerFetch" class="col-form-label mr-2">@(userConfig.GetText("elementsPerFetch")):</label>
     <div class="col-sm-2">
         <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>

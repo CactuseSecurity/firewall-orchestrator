@@ -3,13 +3,14 @@
 @using FWO.ApiClient
 
 @page "/settings/language"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin, auditor")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject APIConnection apiConnection
 
 <h3>@(userConfig.GetText("language_settings"))</h3>
+@(userConfig.GetText("U5412"))
 <hr />
 
 <form class="form-inline">

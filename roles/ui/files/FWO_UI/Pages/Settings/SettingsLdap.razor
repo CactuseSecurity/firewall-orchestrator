@@ -10,6 +10,7 @@
 @inject UserConfig userConfig
 
 <h3 class="m-2">@(userConfig.GetText("ldap_conns"))</h3>
+@(userConfig.GetText("U5211"))
 <hr />
 
 <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_ldap"))</button>

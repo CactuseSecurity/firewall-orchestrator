@@ -425,8 +425,8 @@ INSERT INTO txt VALUES ('login_secret',         'German', 	'Privater Schlüssel'
 INSERT INTO txt VALUES ('login_secret',         'English', 	'Login Secret');
 INSERT INTO txt VALUES ('public_key',           'German', 	'Öffentlicher Schlüssel');
 INSERT INTO txt VALUES ('public_key',           'English', 	'Public Key');
-INSERT INTO txt VALUES ('force_initial_import', 'German', 	'Initialen Import erzwingen');
-INSERT INTO txt VALUES ('force_initial_import', 'English', 	'Force Initial Import');
+-- INSERT INTO txt VALUES ('force_initial_import', 'German', 	'Initialen Import erzwingen');
+-- INSERT INTO txt VALUES ('force_initial_import', 'English', 	'Force Initial Import');
 INSERT INTO txt VALUES ('hide_in_ui',           'German', 	'Nicht sichtbar');
 INSERT INTO txt VALUES ('hide_in_ui',           'English', 	'Hide in UI');
 INSERT INTO txt VALUES ('add_new_gateway',      'German', 	'Neues Gateway hinzufügen');

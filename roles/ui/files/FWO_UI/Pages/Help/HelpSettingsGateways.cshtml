@@ -17,12 +17,13 @@
     <ul>
         <li>Name*: Name of the Gateway. For Fortinet this must be the real name of the firewall gateway as defined in the config.</li>
         <li>Comment: Optional comment regarding this gateway.</li>
-        <li>Device Type*: Out of a list of available types, e.g. Checkpoint R8x or Fortinet 5.x</li>
-        <li>Management*: Related Management. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page</li>
+        <li>Device Type*: Out of a list of available types. For a list of available device types see 
+            <a href="/help/settings/managements">management settings help</a></li>
+        <li>Management*: Select the management system that controls this gateway. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page</li>
         <li>Rulebase*: Enter the name of the rulebase here. 
             For Check Point R8x the top level access layer name goes here. 
             For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
         <li>Import Disabled: Flag if the data import is disabled</li>
-        <li>Hide in UI:</li>
+        <li>Hide in UI: If set, this management is not visible to the standard reporter role.</li>
     </ul>
 </div>

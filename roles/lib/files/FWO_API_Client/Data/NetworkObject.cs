@@ -59,7 +59,6 @@ namespace FWO.Api.Data
                     return Id == nobj.Id;
                 default:
                     return base.Equals(obj);
-
             }
         }
 

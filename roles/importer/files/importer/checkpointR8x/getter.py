@@ -149,7 +149,8 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
                     if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
                         collect_uids_from_rule(rule, nw_uids_found, svc_uids_found)
                     else:
-                        if 'rulebase' in rule:
+                        if 'rulebase' in rule: # found a layer within a rulebase, recursing
+                            logging.debug ("getter::collect_uids_from_rulebase found embedded rulebase - recursing")
                             collect_uids_from_rulebase(rule['rulebase'], nw_uids_found, svc_uids_found, debug_text + '.')
     else:
         for rule in rulebase:
@@ -223,7 +224,10 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
         else:
             logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
                 + str(current_layer_json))
-        current=rulebase['to']
+        if 'to' in rulebase:
+            current=rulebase['to']
+        else:
+            sys.exit(1)
         logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
     return current_layer_json

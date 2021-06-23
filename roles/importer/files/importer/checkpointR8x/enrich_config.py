@@ -97,21 +97,21 @@ svc_uids_from_rulebase = []
 
 for rulebase in config['rulebases']:
     logging.debug ( "enrich_config - searching for all uids in rulebase: " + rulebase['layername'] )
-    # (nw_uids, svc_uids) = getter.collect_uids_from_rulebase(rulebase, "top_level")
     getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
+    #nw_uids_from_rulebase.extend(nw_uids_from_rulebase)
+    #svc_uids_from_rulebase.extend(svc_uids_from_rulebase)
 
-    if common.debug_new_uid in nw_uids_from_rulebase:
-        logging.debug("found " + common.debug_new_uid + " in enrich_config")
+    # if common.debug_new_uid in nw_uids_from_rulebase:
+    #     logging.debug("found " + common.debug_new_uid + " in enrich_config")
 
-    nw_uids_from_rulebase.extend(nw_uids_from_rulebase)
-    svc_uids_from_rulebase.extend(svc_uids_from_rulebase)
 
 # remove duplicates from uid lists
 nw_uids_from_rulebase = list(set(nw_uids_from_rulebase))
 svc_uids_from_rulebase = list(set(svc_uids_from_rulebase))
 # logging.debug ("enrich_config - found (unique) nw_objects in rulebase:\n" + str(nw_uids_from_rulebase))
-if common.debug_new_uid in nw_uids_from_rulebase:
-    logging.debug("enrich_config: found " + common.debug_new_uid + " in enrich_config after cleanup")
+
+# if common.debug_new_uid in nw_uids_from_rulebase:
+#     logging.debug("enrich_config: found " + common.debug_new_uid + " in enrich_config after cleanup")
 
 # get all uids in objects tables
 for obj_table in config['object_tables']:

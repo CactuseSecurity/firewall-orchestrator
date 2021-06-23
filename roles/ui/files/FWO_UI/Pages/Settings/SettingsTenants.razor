@@ -116,7 +116,12 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-primary" @onclick="AddTenant">@(userConfig.GetText("add"))</button>
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="AddTenant">@(userConfig.GetText("add"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -135,7 +140,12 @@
             @if (DeleteTenantAllowed)
             {
                 <AuthorizeView Roles="admin">
-                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteTenant(actTenant)">@(userConfig.GetText("delete"))</button>
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteTenant(actTenant)">@(userConfig.GetText("delete"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    </NotAuthorized> 
                 </AuthorizeView>
             }
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
@@ -165,7 +175,12 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-success" @onclick="() => AddDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                <Authorized>
+                    <button class="btn btn-sm btn-success" @onclick="() => AddDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -194,7 +209,12 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteDevice(selectedDevice)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -213,7 +233,12 @@
             @if (SampleRemoveAllowed)
             {
                 <AuthorizeView Roles="admin">
-                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    </NotAuthorized> 
                 </AuthorizeView>
             }
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>

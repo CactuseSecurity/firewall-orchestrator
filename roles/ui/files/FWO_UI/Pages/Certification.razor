@@ -30,7 +30,12 @@
             </div>
         </div>
         <AuthorizeView Roles="admin, recertifier">
-            <button class="btn btn-sm btn-dark" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+            <Authorized>
+                <button class="btn btn-sm btn-dark" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+            </Authorized>
+            <NotAuthorized>
+                <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("execute_selected"))</button>
+            </NotAuthorized>
         </AuthorizeView>
     </div>
 

@@ -148,7 +148,8 @@ namespace FWO.Middleware.Server
                     LdapSearchResults possibleUsers = (LdapSearchResults)connection.Search(
                         UserSearchPath,             // top-level path under which to search for user
                         LdapConnection.ScopeSub,    // search all levels beneath
-                        $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
+                        getUserSearchFilter(user.Name),
+     //                   $"(|(&(sAMAccountName={user.Name})(objectClass=person))(&(objectClass=inetOrgPerson)(uid:dn:={user.Name})))", // matching both AD and openldap filter
                         attrList,
                         typesOnly: false
                     );
@@ -750,6 +751,79 @@ namespace FWO.Middleware.Server
                 Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to modify user", exception);
             }
             return userModified;
+        }
+
+        public bool AddTenant(string tenantName)
+        {
+            Log.WriteInfo("Add Tenant", $"Trying to add Tenant: \"{tenantName}\"");
+            bool tenantAdded = false;
+            string tenantDn = "";
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    tenantDn = $"ou={tenantName},{UserSearchPath}";
+                    LdapAttributeSet attributeSet = new LdapAttributeSet();
+                    attributeSet.Add( new LdapAttribute("objectclass", "organizationalUnit"));
+
+                    LdapEntry newEntry = new LdapEntry( tenantDn, attributeSet );
+
+                    try
+                    {
+                        //Add the entry to the directory
+                        connection.Add(newEntry);
+                        tenantAdded = true;
+                        Log.WriteDebug("Add tenant", $"Tenant {tenantName} added in {Address}");
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Add Tenant", $"couldn't add tenant to LDAP {Address}: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to add tenant", exception);
+            }
+            return tenantAdded;
+        }
+
+        public bool DeleteTenant(string tenantName)
+        {
+            Log.WriteInfo("Delete Tenant", $"Trying to delete Tenant: \"{tenantName}\"");
+            bool tenantDeleted = false;
+            try         
+            {
+                // Connecting to Ldap
+                using (LdapConnection connection = Connect())
+                {
+                    // Authenticate as write user
+                    connection.Bind(WriteUser, WriteUserPwd);
+
+                    try
+                    {
+                        string tenantDn = tenantName + "," + UserSearchPath;
+
+                        //Delete the entry in the directory
+                        connection.Delete(tenantDn);
+                        tenantDeleted = true;
+                        Log.WriteDebug("Delete Tenant", $"tenant {tenantDn} deleted in {Address}");
+                    }
+                    catch(Exception exception)
+                    {
+                        Log.WriteInfo("Delete Tenant", $"couldn't delete tenant in LDAP {Address}: {exception.ToString()}");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError($"Non-LDAP exception {Address}", "Unexpected error while trying to delete tenant", exception);
+            }
+            return tenantDeleted;
         }
     }
 }

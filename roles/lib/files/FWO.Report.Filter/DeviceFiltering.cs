@@ -82,7 +82,7 @@ namespace FWO.Report.Filter
             return false;
         }
 
-        public static bool fullDeviceSelection(Management[] managements, bool fullDeviceActionIsSelect)
+        public static bool applyFullDeviceSelection(Management[] managements, bool fullDeviceActionIsSelect)
         {
             foreach (Management management in managements)
             {
@@ -94,7 +94,7 @@ namespace FWO.Report.Filter
                     }
                 }
             }
-            return !fullDeviceActionIsSelect;
+            return fullDeviceActionIsSelect;
         }
 
         /// <summary>

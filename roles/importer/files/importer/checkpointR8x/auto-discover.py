@@ -140,7 +140,7 @@ devices = {"domains": domains_essential }
 if args.format == 'json':
     print (json.dumps(devices, indent=3))
 
-if args.format == 'table':
+elif args.format == 'table':
     # compact print in FWO UI input format
     colsize_number = 35
     colsize = "{:"+str(colsize_number)+"}"
@@ -187,3 +187,8 @@ if args.format == 'table':
         table += "\n"  # empty line between domains for readability
 
     print (table)
+
+else:
+    logging.error("You specified a wrong output format: " + args.format )
+    parser.print_help(sys.stderr)
+    sys.exit(1)

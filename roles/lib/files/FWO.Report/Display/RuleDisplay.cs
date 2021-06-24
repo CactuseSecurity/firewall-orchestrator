@@ -45,30 +45,21 @@ namespace FWO.Ui.Display
             result.AppendLine("<p>");
 
             if (rule.SourceNegated)
-            {
                 result.AppendLine("anything but <br>");
-            }
 
+            string symbol = "";
             foreach (NetworkLocation source in rule.Froms)
             {
-                if (source.User != null)
-                {
-                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"#user{source.User.Id}\" target=\"_top\">{source.User.Name}</a>@");
-                }
-
                 if (source.Object.Type.Name == "group")
-                {
-                    result.Append($"<span class=\"oi oi-list-rich\">&nbsp;</span><a href=\"#nwobj{source.Object.Id}\" target=\"_top\">{source.Object.Name}</a>");
-                }
+                    symbol = "oi oi-list-rich";
                 else if (source.Object.Type.Name == "network")
-                {
-                    result.Append($"<span class=\"oi oi-rss\">&nbsp;</span><a href=\"#nwobj{source.Object.Id}\" target=\"_top\">{source.Object.Name}</a>");
-                }
+                    symbol = "oi oi-rss";
                 else
-                {
-                    result.Append($"<span class=\"oi oi-monitor\">&nbsp;</span><a href=\"#nwobj{source.Object.Id}\" target=\"_top\">{source.Object.Name}</a>");
-                }
+                    symbol = "oi oi-monitor";
 
+                if (source.User != null)
+                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"report#user{source.User.Id}\" target=\"_top\">{source.User.Name}</a>@");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#nwobj{source.Object.Id}\" target=\"_top\">{source.Object.Name}</a>");
                 result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
                 result.AppendLine("<br>");
             }
@@ -94,21 +85,17 @@ namespace FWO.Ui.Display
                 result.AppendLine("anything but <br>");
             }
 
+            string symbol = "";
             foreach (NetworkLocation destination in rule.Tos)
             {
                 if (destination.Object.Type.Name == "group")
-                {
-                    result.Append($"<span class=\"oi oi-list-rich\">&nbsp;</span><a href=\"#nwobj{destination.Object.Id}\" target=\"_top\">{destination.Object.Name}</a>");
-                }
+                    symbol = "oi oi-list-rich";
                 else if (destination.Object.Type.Name == "network")
-                {
-                    result.Append($"<span class=\"oi oi-rss\">&nbsp;</span><a href=\"#nwobj{destination.Object.Id}\" target=\"_top\">{destination.Object.Name}</a>");
-                }
+                    symbol = "oi oi-rss";
                 else
-                {
-                    result.Append($"<span class=\"oi oi-monitor\">&nbsp;</span><a href=\"#nwobj{destination.Object.Id}\" target=\"_top\">{destination.Object.Name}</a>");
-                }
-                // result.Append($"<a href=\"#nwobj{destination.Object.Id}\" target=\"_top\">{destination.Object.Name}</a>");
+                    symbol = "oi oi-monitor";
+
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#nwobj{destination.Object.Id}\" target=\"_top\">{destination.Object.Name}</a>");
                 result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
                 result.AppendLine("<br>");
             }
@@ -129,22 +116,19 @@ namespace FWO.Ui.Display
                 result.AppendLine("anything but <br>");
             }
 
+            string symbol = "";
             foreach (ServiceWrapper service in rule.Services)
             {
                 if (service.Content.Type.Name == "group")
-                {
-                    result.Append($"<span class=\"oi oi-list-rich\">&nbsp;</span><a href=\"#svc{service.Content.Id}\" target=\"_top\">{service.Content.Name}</a>");
-                }
+                    symbol = "oi oi-list-rich";
                 else
-                {
-                    result.Append($"<span class=\"oi oi-wrench\">&nbsp;</span><a href=\"#svc{service.Content.Id}\" target=\"_top\">{service.Content.Name}</a>");
-                }
+                    symbol = "oi oi-wrench";
 
-                // result.Append(service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{service.Content.Protocol.Name})" : "");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report/#svc{service.Content.Id}\" target=\"_top\">{service.Content.Name}</a>");
+
                 if (service.Content.DestinationPort != null)
                     result.Append(service.Content.DestinationPort == service.Content.DestinationPortEnd ? $" ({service.Content.DestinationPort}/{service.Content.Protocol?.Name})"
                         : $" ({service.Content.DestinationPort}-{service.Content.DestinationPortEnd}/{service.Content.Protocol?.Name})");
-                //result.Append(service.Content.DestinationPort != null ? $" ({service.Content.DestinationPort}/{protoName})" : "");
                 result.AppendLine("<br>");
             }
 

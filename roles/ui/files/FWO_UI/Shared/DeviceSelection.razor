@@ -8,8 +8,9 @@
     <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
     <button class="btn btn-sm btn-secondary"
             @onclick="@((Func<Task>)(async () => {
-                allDevicesSelected = DeviceFilter.fullDeviceSelection(Managements, allDevicesSelected);
+                allDevicesSelected = DeviceFilter.applyFullDeviceSelection(Managements, allDevicesSelected);
                 toggleDeviceSelectionButtonText = allDevicesSelected ? clearAll : selectAll;
+                allDevicesSelected = !allDevicesSelected;
                 FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
                 await FilterInputChanged.InvokeAsync(FilterInput);
             }))">

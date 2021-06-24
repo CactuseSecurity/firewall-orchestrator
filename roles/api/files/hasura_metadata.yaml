@@ -936,7 +936,7 @@ tables:
       - import_errors
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
@@ -956,7 +956,7 @@ tables:
       - import_errors
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -1366,7 +1366,7 @@ tables:
       - mgm_update
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
@@ -1386,7 +1386,7 @@ tables:
       - mgm_update
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -1588,7 +1588,7 @@ tables:
       - obj_last_seen
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
@@ -1625,7 +1625,7 @@ tables:
       - obj_last_seen
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3062,7 +3062,7 @@ tables:
       - track_id
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
@@ -3104,7 +3104,7 @@ tables:
       - track_id
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3361,8 +3361,7 @@ tables:
       - rule_recertification_comment
       filter:
         dev_id:
-          _in:
-          - x-hasura-visible-devices
+          _in: x-hasura-visible-devices
     role: reporter
   - permission:
       allow_aggregations: true
@@ -3863,7 +3862,7 @@ tables:
       - svc_last_seen
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
@@ -3903,7 +3902,7 @@ tables:
       - svc_last_seen
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
@@ -5293,7 +5292,7 @@ tables:
       - tenant_id
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
@@ -5322,7 +5321,7 @@ tables:
       - tenant_id
       filter:
         mgm_id:
-          _in: X-Hasura-visible-managements
+          _in: x-hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true

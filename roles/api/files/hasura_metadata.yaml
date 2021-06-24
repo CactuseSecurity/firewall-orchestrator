@@ -3362,7 +3362,7 @@ tables:
       filter:
         dev_id:
           _in:
-          - X-Hasura-visible-Devices
+          - x-hasura-visible-devices
     role: reporter
   - permission:
       allow_aggregations: true

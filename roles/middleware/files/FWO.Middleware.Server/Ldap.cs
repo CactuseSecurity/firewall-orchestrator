@@ -806,7 +806,7 @@ namespace FWO.Middleware.Server
 
                     try
                     {
-                        string tenantDn = tenantName + "," + UserSearchPath;
+                        string tenantDn = "ou=" + tenantName + "," + UserSearchPath;
 
                         //Delete the entry in the directory
                         connection.Delete(tenantDn);

@@ -12,7 +12,7 @@
 @(userConfig.GetText("U5414"))
 <hr />
 
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="recertificationDisplayPeriod" class="col-form-label mr-2">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
     <div class="col-sm-2">
         <input id="recertificationDisplayPeriod" type="number" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />

@@ -607,6 +607,10 @@ INSERT INTO txt VALUES ('view_all_devices',     'German', 	'Sicht auf alle Ger&a
 INSERT INTO txt VALUES ('view_all_devices',     'English', 	'View All Devices');
 INSERT INTO txt VALUES ('superadmin',           'German', 	'Superadmin');
 INSERT INTO txt VALUES ('superadmin',           'English', 	'Superadmin');
+INSERT INTO txt VALUES ('tenant_action',        'German', 	'Mandantenaktion');
+INSERT INTO txt VALUES ('tenant_action',        'English', 	'Tenant Action');
+INSERT INTO txt VALUES ('gateway_action',       'German', 	'Gatewayaktion');
+INSERT INTO txt VALUES ('gateway_action',       'English', 	'Gateway Action');
 INSERT INTO txt VALUES ('role_handling',        'German', 	'Rollenverwaltung');
 INSERT INTO txt VALUES ('role_handling',        'English', 	'Role handling');
 INSERT INTO txt VALUES ('group_handling',       'German', 	'Gruppenverwaltung');
@@ -655,6 +659,18 @@ INSERT INTO txt VALUES ('new_user',             'German', 	'Neuer Nutzer');
 INSERT INTO txt VALUES ('new_user',             'English', 	'New User');
 INSERT INTO txt VALUES ('get_tenant_data',      'German', 	'Mandantendaten abholen');
 INSERT INTO txt VALUES ('get_tenant_data',      'English', 	'Get tenant data');
+INSERT INTO txt VALUES ('add_tenant',           'German', 	'Mandant hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_tenant',           'English', 	'Add tenant');
+INSERT INTO txt VALUES ('delete_tenant',        'German', 	'Mandant l&ouml;schen');
+INSERT INTO txt VALUES ('delete_tenant',        'English', 	'Delete tenant');
+INSERT INTO txt VALUES ('add_tenant_ldap',      'German', 	'Mandant in LDAP hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_tenant_ldap',      'English', 	'Add tenant in LDAP');
+INSERT INTO txt VALUES ('add_tenant_local',     'German', 	'Mandant lokal hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_tenant_local',     'English', 	'Add tenant locally');
+INSERT INTO txt VALUES ('delete_tenant_ldap',   'German', 	'Mandant in LDAP l&ouml;schen');
+INSERT INTO txt VALUES ('delete_tenant_ldap',   'English', 	'Delete tenant in LDAP');
+INSERT INTO txt VALUES ('delete_tenant_local',  'German', 	'Mandant lokal l&ouml;schen');
+INSERT INTO txt VALUES ('delete_tenant_local',  'English', 	'Delete tenant locally');
 INSERT INTO txt VALUES ('add_device_to_tenant', 'German', 	'Gateway dem Mandanten zuordnen');
 INSERT INTO txt VALUES ('add_device_to_tenant', 'English', 	'Add gateway to tenant');
 INSERT INTO txt VALUES ('delete_device_from_tenant','German','Gateway vom Mandanten l&ouml;schen');
@@ -751,8 +767,14 @@ INSERT INTO txt VALUES ('U5205', 'German',  'L&ouml;scht alle Beispielgruppen (a
 INSERT INTO txt VALUES ('U5205', 'English', 'Deletes all sample groups (ending with "_demo") in local LDAP.');
 INSERT INTO txt VALUES ('U5206', 'German',  '(es k&ouml;nnen keine Nutzer zugeordnet werden)');
 INSERT INTO txt VALUES ('U5206', 'English', '(no users can be assigned)');
-INSERT INTO txt VALUES ('U5207', 'German',  '(zu allen Gateways zugeordnet)');
-INSERT INTO txt VALUES ('U5207', 'English', '(linked to all gateways)');
+INSERT INTO txt VALUES ('U5207', 'German',  '(kann nicht gel&ouml;scht werden)');
+INSERT INTO txt VALUES ('U5207', 'English', '(cannot be deleted)');
+INSERT INTO txt VALUES ('U5208', 'German',  '(zu allen Gateways zugeordnet)');
+INSERT INTO txt VALUES ('U5208', 'English', '(linked to all gateways)');
+INSERT INTO txt VALUES ('U5209', 'German',  'L&ouml;scht alle Beispielmandanten (auf "_demo" endend) im lokalen LDAP.');
+INSERT INTO txt VALUES ('U5209', 'English', 'Deletes all sample tenants (ending with "_demo") in local LDAP.');
+INSERT INTO txt VALUES ('U5210', 'German',  'Sind sie sicher, dass sie folgenden Mandanten l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5210', 'English', 'Are you sure you want to delete tenant: ');
 INSERT INTO txt VALUES ('U5211', 'German',  'Verwaltung aller LDAP-Verbindungen');
 INSERT INTO txt VALUES ('U5211', 'English', 'Administrate all LDAP connections');
 INSERT INTO txt VALUES ('U5212', 'German',  'Anzeige aller Mandanten und Verkn&uuml;pfungen zu den Gateways');
@@ -760,7 +782,7 @@ INSERT INTO txt VALUES ('U5212', 'English', 'Show all tenants and link them to g
 INSERT INTO txt VALUES ('U5213', 'German',  'Anzeige und Verwaltung aller Nutzer des lokalen LDAPs. Anzeige aller Nutzer von externen LDAPs, die schon angemeldet waren');
 INSERT INTO txt VALUES ('U5213', 'English', 'Show and administrate all users from internal LDAP. Show users from external LDAPs who have already logged in');
 INSERT INTO txt VALUES ('U5214', 'German',  'Anzeige und Verwaltung aller Nutzergruppen (internes LDAP)');
-INSERT INTO txt VALUES ('U5214', 'English', 'Show and assign all user groups (internal LDAP)');
+INSERT INTO txt VALUES ('U5214', 'English', 'Show and administrate all user groups (internal LDAP)');
 INSERT INTO txt VALUES ('U5215', 'German',  'Anzeige und Verwaltung aller Rollen (internes LDAP)');
 INSERT INTO txt VALUES ('U5215', 'English', 'Show and assign all user roles (internal LDAP)');
 
@@ -901,6 +923,12 @@ INSERT INTO txt VALUES ('E5271', 'German',  'Keine Gateways zum Hinzuf&uuml;gen 
 INSERT INTO txt VALUES ('E5271', 'English', 'No remaining gateways found to add');
 INSERT INTO txt VALUES ('E5272', 'German',  'Keine Gateways zum L&ouml;schen gefunden');
 INSERT INTO txt VALUES ('E5272', 'English', 'No remaining gateways found to delete');
+INSERT INTO txt VALUES ('E5281', 'German',  'Mandant konnte im LDAP nicht angelegt werden');
+INSERT INTO txt VALUES ('E5281', 'English', 'Tenant could not be added in LDAP');
+INSERT INTO txt VALUES ('E5282', 'German',  'Mandant konnte im LDAP nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E5282', 'English', 'Tenant could not be deleted in LDAP');
+INSERT INTO txt VALUES ('E5283', 'German',  'Mindestens ein Nutzer zum Mandanten zugeordnet. Bitte zuerst l&ouml;schen!');
+INSERT INTO txt VALUES ('E5283', 'English', 'At least one user assigned to tenant. Delete first!');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');

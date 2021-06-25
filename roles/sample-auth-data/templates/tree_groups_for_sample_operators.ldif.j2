@@ -2,16 +2,16 @@
 dn: cn=group1_demo,ou=group,{{ openldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=user1_demo,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user1_demo,ou=tenant1_demo,ou=operator,ou=user,dc=fworch,dc=internal
 
 
 dn: cn=group1_demo,ou=group,{{ openldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=user2_demo,ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user2_demo,ou=tenant1_demo,ou=operator,ou=user,dc=fworch,dc=internal
 
 
 dn: cn=group2_demo,ou=group,{{ openldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=user1_demo,ou=tenant2,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user1_demo,ou=tenant2_demo,ou=operator,ou=user,dc=fworch,dc=internal

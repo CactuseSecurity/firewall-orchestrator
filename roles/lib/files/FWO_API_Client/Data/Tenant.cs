@@ -30,7 +30,9 @@ namespace FWO.Api.Data
         public int[] VisibleManagements { get; set; } // TODO: Remove later (probably not possible)
 
         public Tenant()
-        {}
+        {
+            TenantDevices = new TenantDevice[]{};
+        }
 
         public Tenant(Tenant tenant)
         {

@@ -25,58 +25,58 @@
     </div>
 </form>
 <hr />
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
     <div class="col-sm-2">
         <input id="elementsPerFetch" type="text" class="form-control form-control-sm" @bind="elementsPerFetch" />
     </div>
 </form>
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="maxInitFetch" class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
     <div class="col-sm-2">
         <input id="maxInitFetch" type="text" class="form-control form-control-sm" @bind="maxInitFetch" />
     </div>
 </form>
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="autoFillRightSidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
     <div class="col-sm-2">
         <input id="autoFillRightSidebar" type="checkbox" class="form-control form-control-sm" @bind="autoFillRightSidebar">
     </div>
 </form>
 <hr />
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="dataRetentionTime" class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
     <div class="col-sm-2">
         <input id="dataRetentionTime" type="text" class="form-control form-control-sm" @bind="dataRetentionTime" />
     </div>
 </form>
 <hr />
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="importSleepTime" class="col-form-label col-sm-4">@(userConfig.GetText("importSleepTime")):</label>
     <div class="col-sm-2">
         <input id="importSleepTime" type="text" class="form-control form-control-sm" @bind="importSleepTime" />
     </div>
 </form>
 <hr />
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="recertificationPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
     <div class="col-sm-2">
         <input id="recertificationPeriod" type="text" class="form-control form-control-sm" @bind="recertificationPeriod" />
     </div>
 </form>
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="recertificationNoticePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationNoticePeriod")):</label>
     <div class="col-sm-2">
         <input id="recertificationNoticePeriod" type="text" class="form-control form-control-sm" @bind="recertificationNoticePeriod" />
     </div>
 </form>
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod"))*:</label>
     <div class="col-sm-2">
         <input id="recertificationDisplayPeriod" type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
     </div>
 </form>
-<form class="form-inline">
+<form class="form-inline" onsubmit="return false">
     <label for="ruleRemovalGracePeriod" class="col-form-label col-sm-4">@(userConfig.GetText("ruleRemovalGracePeriod")):</label>
     <div class="col-sm-2">
         <input id="ruleRemovalGracePeriod" type="text" class="form-control form-control-sm" @bind="ruleRemovalGracePeriod" />
@@ -90,7 +90,12 @@
 </form>
 <hr />
 <AuthorizeView Roles="admin">
-    <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+    <Authorized>
+        <button class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+    </Authorized>
+    <NotAuthorized>
+        <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+    </NotAuthorized> 
 </AuthorizeView>
 <br><br>
 <p>@(userConfig.GetText("U5303"))</p>

@@ -82,7 +82,12 @@
                     </div>
                     <div class="col-sm-2">
                         <AuthorizeView Roles="admin">
-                            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                            <Authorized>
+                                <button class="btn btn-sm btn-success" @onclick="() => AddUserFromUiUsers(selectedUiUser)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                            </NotAuthorized> 
                         </AuthorizeView>
                     </div>
                 </form>
@@ -93,7 +98,12 @@
                     </div>
                     <div class="col-sm-2">
                         <AuthorizeView Roles="admin">
-                            <button class="btn btn-sm btn-success" @onclick="() => NewUser(newUserDn)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                            <Authorized>
+                                <button class="btn btn-sm btn-success" @onclick="() => NewUser(newUserDn)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                            </Authorized>
+                            <NotAuthorized>
+                                <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                            </NotAuthorized> 
                         </AuthorizeView>
                     </div>
                 </form>
@@ -129,7 +139,12 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserToDelete)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="async () => await DeleteUser(selectedUserToDelete)" @onclick:preventDefault>@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
@@ -152,7 +167,12 @@
                         </select>
                     </div>
                     <AuthorizeView Roles="admin">
-                        <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedLdapUser)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                        <Authorized>
+                            <button class="btn btn-sm btn-success" @onclick="() => AddUserFromLdap(selectedLdapUser)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                        </NotAuthorized> 
                     </AuthorizeView>
                 </div>
                 <div class="form-group row">
@@ -166,7 +186,12 @@
                         </select>
                     </div>
                     <AuthorizeView Roles="admin">
-                        <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap(selectedGroup)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                        <Authorized>
+                            <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap(selectedGroup)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
+                        </NotAuthorized> 
                     </AuthorizeView>
                 </div>
             </form>

@@ -8,6 +8,8 @@ namespace FWO.ApiClient.Queries
     {
         public static readonly string getTenantId;
         public static readonly string getTenants;
+        public static readonly string addTenant;
+        public static readonly string deleteTenant;
         public static readonly string addDeviceToTenant;
         public static readonly string deleteDeviceFromTenant;
         public static readonly string getUsers;
@@ -34,6 +36,8 @@ namespace FWO.ApiClient.Queries
             {
                 getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
                 getTenants = File.ReadAllText(QueryPath + "auth/getTenants.graphql");
+                addTenant = File.ReadAllText(QueryPath + "auth/addTenant.graphql");
+                deleteTenant = File.ReadAllText(QueryPath + "auth/deleteTenant.graphql");
                 addDeviceToTenant = File.ReadAllText(QueryPath + "auth/addDeviceToTenant.graphql");
                 deleteDeviceFromTenant = File.ReadAllText(QueryPath + "auth/deleteDeviceFromTenant.graphql");
                 getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleDeviceIdsPerTenant.graphql");

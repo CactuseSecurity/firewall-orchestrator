@@ -147,7 +147,7 @@
     <Body>
         @if (ResetPasswordMode)
         {
-            <form>
+            <form onsubmit="return false">
                 <div class="form-group row">
                     <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                     <label class="m-2">@actUser.Name</label>

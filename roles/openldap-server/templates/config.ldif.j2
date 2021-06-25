@@ -74,7 +74,7 @@ olcAccess: to dn.subtree="{{ openldap_std_group_dn }}"
     by dn.base="{{ openldap_superuser_dn }}" write
     by dn.base="{{ openldap_readonly_user_dn }}" read
     by * none
-olcAccess: to dn.children="{{ openldap_std_user_dn }}"
+olcAccess: to dn.subtree="{{ openldap_std_user_dn }}"
     by dn.base="{{ openldap_writer_dn }}" write
     by dn.base="{{ openldap_superuser_dn }}" write
     by dn.base="{{ openldap_readonly_user_dn }}" read

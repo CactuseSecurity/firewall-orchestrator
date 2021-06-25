@@ -30,7 +30,12 @@
             </div>
         </div>
         <AuthorizeView Roles="admin, recertifier">
-            <button class="btn btn-sm btn-dark" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+            <Authorized>
+                <button class="btn btn-sm btn-dark" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+            </Authorized>
+            <NotAuthorized>
+                <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("execute_selected"))</button>
+            </NotAuthorized>
         </AuthorizeView>
     </div>
 
@@ -124,7 +129,6 @@
     private ReportBase currentReport;
 
     private Sidebar deviceSelectionSidebar;
-//    private bool ShowNoDeviceSelectedWarning = false;
     private bool fullDeviceActionIsSelect = true;
     private bool AddCommentMode = false;
     private string actComment = "";
@@ -155,7 +159,6 @@
     {
         // clear selected rules
         selectedRules.Clear();
-        // deviceSelectionSidebar.ToggleCollapse(true);
 
         try
         {
@@ -167,8 +170,6 @@
             if (!DeviceFilter.isAnyDeviceFilterSet(managements, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
-//                ShowNoDeviceSelectedWarning = true;
-//                StateHasChanged();
                 return;
             }
 

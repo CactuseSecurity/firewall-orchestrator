@@ -595,7 +595,7 @@ INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfel
 INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
-INSERT INTO txt VALUES ('apply_changes',        'German', 	'&auml;nderungen anwenden');
+INSERT INTO txt VALUES ('apply_changes',        'German', 	'&Auml;nderungen anwenden');
 INSERT INTO txt VALUES ('apply_changes',        'English', 	'Apply Changes');
 INSERT INTO txt VALUES ('description',          'German', 	'Beschreibung');
 INSERT INTO txt VALUES ('description',          'English', 	'Description');

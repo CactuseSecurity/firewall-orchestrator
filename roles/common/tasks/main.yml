@@ -121,16 +121,16 @@
         local6.warning                 /var/log/{{ product_name }}/error.log
         local6.=info                   /var/log/{{ product_name }}/login_info.log
         local6.debug                   /var/log/{{ product_name }}/debug.log
-        :msg, startswith, "Audit",  /var/log/{{ product_name }}/audit.log
-        #:programname, isequal, "postgres-{{ product_name }}" /var/log/{{ product_name }}/database.log
-        :programname, isequal, "{{ product_name }}-database" /var/log/{{ product_name }}/database.log
-        :programname, isequal, "{{ middleware_server_syslog_id }}" /var/log/{{ product_name }}/middleware.log
-        :programname, isequal, "{{ ui_syslog_id }}" /var/log/{{ product_name }}/ui.log
-        :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log
-        :programname, startswith, "{{ product_name }}-import" /var/log/{{ product_name }}/importer.log
-        :programname, isequal, "{{ product_name }}-api" /var/log/{{ product_name }}/api.log
+
+        if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
+        if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
+        if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
+        if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
+        if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
+        if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
+        if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
         # only for devsrv:
-        :programname, isequal, "{{ product_name }}-webhook" /var/log/{{ product_name }}/webhook.log
+        if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
 
   - name: edit logrotate
     blockinfile:

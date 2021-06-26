@@ -3,7 +3,7 @@
 ![Build passing](https://github.com/CactuseSecurity/firewall-orchestrator/workflows/Build/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Open Source Love svg1](https://github.com/ellerbrock/open-source-badges/blob/master/badges/open-source-v1/open-source.svg)](https://github.com/ellerbrock/open-source-badges/)
-[![HitCount](http://hits.dwyl.io/Naereen/badges.svg)](http://hits.dwyl.io/Naereen/badges)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
 - Display reports on firewall configuration and changes

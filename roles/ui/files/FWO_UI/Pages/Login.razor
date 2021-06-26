@@ -139,6 +139,8 @@
 
                 if (apiAuthResponse.Status == HttpStatusCode.OK)
                 {
+                    Log.WriteAudit("AuthenticateUser", $"user {Username} successfully authenticated");
+
                     string jwt = apiAuthResponse.GetResult<string>("jwt");
 
                     // Save it in session storage.

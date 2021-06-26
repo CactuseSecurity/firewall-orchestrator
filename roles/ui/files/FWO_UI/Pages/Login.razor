@@ -17,7 +17,10 @@
 {
     <div class="row m-4 justify-content-center">
         <div>
-            <h2 class="text-center"> @(userConfig.GetText("login")) </h2>
+            <br><br>
+            <img src="images/FWO_logo.png">
+            <br><br>
+            @* <h2 class="text-center"> @(userConfig.GetText("login")) </h2> *@
             <div class="shadow-sm card p-3" style="width: 250px;">
                 <form class="d-flex flex-column">
                     <div class="form-group">
@@ -28,7 +31,8 @@
                     </div>
                     @if (loginInProgress == false)
                     {
-                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button>
+                        <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit">@(userConfig.GetText("login"))</button>
+                        @* <button class="btn btn-block btn-primary" @onclick:preventDefault="true" @onclick="LoginSubmit"><div class="oi oi-account-login"></div></button> *@
                     }
                     else
                     {
@@ -135,6 +139,8 @@
 
                 if (apiAuthResponse.Status == HttpStatusCode.OK)
                 {
+                    Log.WriteAudit("AuthenticateUser", $"user {Username} successfully authenticated");
+
                     string jwt = apiAuthResponse.GetResult<string>("jwt");
 
                     // Save it in session storage.

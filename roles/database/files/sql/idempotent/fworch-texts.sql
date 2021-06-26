@@ -136,8 +136,12 @@ The following top-level menu items are available (depending on role memberships)
 INSERT INTO txt VALUES ('getting_support',	    'German', 	'Unterst&uuml;tzung ben&ouml;tigt? Ihre Kontaktm&ouml;glichkeiten');
 INSERT INTO txt VALUES ('getting_support',	    'English', 	'Do you need help? Our Contact options');
 INSERT INTO txt VALUES ('support_details',	    'German', 	'
-Wenn Sie einen Supportvertrag abschlie&szlig;en m&ouml;chten, um bei Problemen Unterst&uuml;tzung zu bekommen, 
-stehen Ihnen folgende Kontaktm&ouml;glichkeiten zur Verf&uuml;gung:
+M&ouml; Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
+<ul>
+<li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
+<li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>
+</ul>
+Folgende Kontaktm&ouml;glichkeiten stehen Ihnen zur Verf&uuml;gung:
 <ul>
     <li>Telefon: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a></li>
@@ -146,8 +150,13 @@ stehen Ihnen folgende Kontaktm&ouml;glichkeiten zur Verf&uuml;gung:
 </ul>
 ');
 INSERT INTO txt VALUES ('support_details',	    'English', 	'
-If you wish to sign a support contract to get a direct line to qualified support personnel, 
+Do you wish to sign a support contract for the following benefits?
 choose from the following contact options:
+Ihre Vorteile: <br>
+<ul>
+<li>get a direct line to qualified support personnel</li>
+<li>Customizing: can we help your with individual changes or extensions of functionality?</li>
+</ul>
 <ul>
     <li>Phone: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a> </li>
@@ -217,6 +226,8 @@ INSERT INTO txt VALUES ('total_no_obj_mgt',		'German', 	'Gesamtzahl der Objekte 
 INSERT INTO txt VALUES ('total_no_obj_mgt',		'English', 	'Total number of Objects per Management');
 INSERT INTO txt VALUES ('no_rules_gtw',		    'German', 	'Anzahl Regeln pro Gateway');
 INSERT INTO txt VALUES ('no_rules_gtw',		    'English', 	'Number of Rules per Gateway');
+INSERT INTO txt VALUES ('negated',		        'German', 	'negated');
+INSERT INTO txt VALUES ('negated',		        'English', 	'negiert');
 INSERT INTO txt VALUES ('network_objects',		'German', 	'Netzwerkobjekte');
 INSERT INTO txt VALUES ('network_objects',		'English', 	'Network objects');
 INSERT INTO txt VALUES ('service_objects',		'German', 	'Serviceobjekte');

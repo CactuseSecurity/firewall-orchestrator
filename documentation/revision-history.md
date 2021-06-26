@@ -126,3 +126,6 @@ adding report template format fk and permissions
 
 ### 5.2.8 - 18.06.2021
 - add column rule_recertification_comment to rule_metadata
+
+### 5.3.1 - 01.07.2021
+- first public open source version

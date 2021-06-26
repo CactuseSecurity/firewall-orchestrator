@@ -81,7 +81,8 @@ INSERT INTO txt VALUES ('archive', 				'German',	'Archiv');
 INSERT INTO txt VALUES ('archive', 				'English',	'Archive');
 INSERT INTO txt VALUES ('recertification', 		'German',	'Rezertifizierung');
 INSERT INTO txt VALUES ('recertification', 		'English',	'Recertification');
-
+INSERT INTO txt VALUES ('api', 		            'German',	'API');
+INSERT INTO txt VALUES ('api', 		            'English',	'API');
 
 -- start
 INSERT INTO txt VALUES ('welcome_to',           'German', 	'Willkommen zu Firewall Orchestrator');
@@ -713,6 +714,31 @@ INSERT INTO txt VALUES ('change_language',      'English', 	'Change Language');
 INSERT INTO txt VALUES ('recert_settings',      'German', 	'Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Settings');
 
+-- help pages
+INSERT INTO txt VALUES ('filter_syntax',        'German', 	'Filtersyntax');
+INSERT INTO txt VALUES ('filter_syntax',        'English', 	'Filter Syntax');
+INSERT INTO txt VALUES ('report_data_output',   'German', 	'Reportdatenausgabe');
+INSERT INTO txt VALUES ('report_data_output',   'English', 	'Report Data Output');
+INSERT INTO txt VALUES ('left_sidebar',         'German', 	'Linke Randleiste');
+INSERT INTO txt VALUES ('left_sidebar',         'English', 	'Left Sidebar');
+INSERT INTO txt VALUES ('right_sidebar',        'German', 	'Rechte Randleiste');
+INSERT INTO txt VALUES ('right_sidebar',        'English', 	'Right Sidebar');
+INSERT INTO txt VALUES ('introduction',         'German', 	'Einleitung');
+INSERT INTO txt VALUES ('introduction',         'English', 	'Introduction');
+INSERT INTO txt VALUES ('graphql',              'German', 	'GraphQL');
+INSERT INTO txt VALUES ('graphql',              'English', 	'GraphQL');
+INSERT INTO txt VALUES ('hasura',               'German', 	'Hasura');
+INSERT INTO txt VALUES ('hasura',               'English', 	'Hasura');
+INSERT INTO txt VALUES ('security',             'German', 	'Sicherheit / JWT');
+INSERT INTO txt VALUES ('security',             'English', 	'Security / JWT');
+INSERT INTO txt VALUES ('further_reading',      'German', 	'Weiterf&uuml;hrendes');
+INSERT INTO txt VALUES ('further_reading',      'English', 	'Further reading');
+INSERT INTO txt VALUES ('basic_commands',       'German', 	'Wichtige Kommandos');
+INSERT INTO txt VALUES ('basic_commands',       'English', 	'Basic Commands');
+INSERT INTO txt VALUES ('query',                'German', 	'Wichtige Querys');
+INSERT INTO txt VALUES ('query',                'English', 	'Basic Query');
+INSERT INTO txt VALUES ('mutation',             'German', 	'Wichtige Mutation');
+INSERT INTO txt VALUES ('mutation',             'English', 	'Basic Mutation');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1008,3 +1034,17 @@ INSERT INTO txt VALUES ('T0103', 'German',  'Anzahl der Objekte und Regeln pro D
 INSERT INTO txt VALUES ('T0103', 'English', 'Number of objects and rules per device');
 INSERT INTO txt VALUES ('T0104', 'German',  'Alle Regeln, die offene Quellen, Ziele oder Dienste haben');
 INSERT INTO txt VALUES ('T0104', 'English', 'All pass rules that contain any as source, destination or service');
+
+-- help pages
+INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
+    Die Daten werden direkt &uuml;ber APIs von den angeschlossenen Systemen importiert. Filter, Vorlagen und Terminsetzungen helfen, die Reporterzeugung an die spezifischen Bed&uuml;rfnisse anzupassen.
+    Die Reports k&ouml;nnen in verschiedenen Ausgabeformaten exportiert werden. Ausserdem wird ein Rezertifizierungsprozess unterst&uuml;tzt.
+    Firewall Orchestrator hat eine interne Nutzerverwaltung, es k&ouml;nnen aber auch externe Nutzerverwaltungen angeschlossen werden.
+');
+INSERT INTO txt VALUES ('H0001', 'English', 'Firewall Orchestrator is an application to create and administrate different reports out of configuration data of distributed firewall systems.
+    The data is imported directly via APIs from the connected systems. There are several possibilities to customize the report creation by filters, templates and scheduling.
+    The reports can be exported in different output formats. Additionally a recertification workflow is supported.
+    Firewall Orchestrator has an internal user management, but is also able to connect to external user management systems.
+');
+
+

@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -7,7 +10,7 @@
     <link rel="stylesheet" href="~/css/bootstrap/bootstrap.min.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-sm navbar-dark bg-dark shadow w-100">
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark shadow w-100 sticky-top">
         <a class="navbar-brand" href="/help">
             <img src="images/FWO_logo_navbar.png" />
             Firewall-Orchestrator
@@ -17,39 +20,39 @@
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/reporting">
-                        <span class="oi oi-spreadsheet"></span> Reporting
+                        <span class="oi oi-spreadsheet"></span> @userConfig.GetText("reporting")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/scheduling">
-                        <span class="oi oi-calendar"></span> Scheduling
+                        <span class="oi oi-calendar"></span> @userConfig.GetText("scheduling")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/archive">
-                        <span class="oi oi-box"></span> Archive
+                        <span class="oi oi-box"></span> @userConfig.GetText("archive")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/recertification">
-                        <span class="oi oi-badge"></span> Recertification
+                        <span class="oi oi-badge"></span> @userConfig.GetText("recertification")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/settings">
-                        <span class="oi oi-cog"></span> Settings
+                        <span class="oi oi-cog"></span> @userConfig.GetText("settings")
                     </a>
                 </li>
                 <li class="nav-item px-2">
                     <a class="nav-link" href="/help/API">
-                        <span class="oi oi-eye"></span> API
+                        <span class="oi oi-eye"></span> @userConfig.GetText("api")
                     </a>
                 </li>                
             </ul>
         </div>
     </nav>
     @RenderSection("sidebar", false)
-    <div style="margin-left: 220px">
+    <div style="margin-left: 270px">
         @RenderBody()
     </div>
 </body>

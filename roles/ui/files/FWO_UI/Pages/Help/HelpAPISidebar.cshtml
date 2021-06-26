@@ -1,33 +1,36 @@
-﻿<nav class="sidebar sidebar-expand-sm sidebar-dark bg-dark shadow w-100">
+﻿@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<nav class="sidebar sidebar-expand-sm sidebar-dark bg-dark shadow w-100">
     <div class="sidebar-main d-flex flex-row" style="left: 0px;">
-        <div class="sidebar-dark bg-dark" style="width: 200px overflow-x: scroll">
+        <div class="sidebar-dark bg-dark" style="width: 250px overflow-x: scroll">
             <ul class="sidebar-nav mr-auto">
                 <p></p>
-                <h5>Introduction</h5>
+                <h5>@userConfig.GetText("introduction")</h5>
                 <a class="nav-link" href="/help/API/graphql">
-                    <span class="oi oi-inbox"></span> GraphQL
+                    <span class="oi oi-inbox"></span> @userConfig.GetText("graphql")
                 </a>
                 <a class="nav-link" href="/help/API/hasura">
-                    <span class="oi oi-shield"></span> Hasura
+                    <span class="oi oi-shield"></span> @userConfig.GetText("hasura")
                 </a>
                 <a class="nav-link" href="/help/API/security">
-                    <span class="oi oi-shield"></span> Security / JWT
+                    <span class="oi oi-shield"></span> @userConfig.GetText("security")
                 </a>
                 <a class="nav-link" href="/help/API/links">
-                    <span class="oi oi-data-transfer-download"></span> Further readings
+                    <span class="oi oi-data-transfer-download"></span> @userConfig.GetText("further_reading")
                 </a>
-                <h5>Basic commands</h5>
+                <h5>@userConfig.GetText("basic_commands")</h5>
                 <a class="nav-link" href="/help/API/login">
-                    <span class="oi oi-account-login"></span> Login
+                    <span class="oi oi-account-login"></span> @userConfig.GetText("login")
                 </a>
                 <a class="nav-link" href="/help/API/logout">
-                    <span class="oi oi-account-logout"></span> Logout
+                    <span class="oi oi-account-logout"></span> @userConfig.GetText("logout")
                 </a>
                 <a class="nav-link" href="/help/API/query">
-                    <span class="oi oi-eye"></span> Basic Query
+                    <span class="oi oi-eye"></span> @userConfig.GetText("query")
                 </a>
                 <a class="nav-link" href="/help/API/mutation">
-                    <span class="oi oi-command"></span> Basic Mutation
+                    <span class="oi oi-command"></span> @userConfig.GetText("mutation")
                 </a>
             </ul>
         </div>

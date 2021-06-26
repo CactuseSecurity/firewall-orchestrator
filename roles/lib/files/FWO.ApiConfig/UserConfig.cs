@@ -87,7 +87,7 @@ namespace FWO.ApiConfig
         {
             if(Translate.ContainsKey(key))
             {
-                return Translate[key];
+                return Convert(Translate[key]);
             }
             else 
             {
@@ -98,17 +98,22 @@ namespace FWO.ApiConfig
                 }
                 if (globalConfig.langDict[defaultLanguage].ContainsKey(key))
                 {
-                    return globalConfig.langDict[defaultLanguage][key];
+                    return Convert(globalConfig.langDict[defaultLanguage][key]);
                 }
                 else if (defaultLanguage != GlobalConfig.kEnglish && globalConfig.langDict[GlobalConfig.kEnglish].ContainsKey(key))
                 {
-                    return globalConfig.langDict[GlobalConfig.kEnglish][key];
+                    return Convert(globalConfig.langDict[GlobalConfig.kEnglish][key]);
                 }
                 else
                 {
                     return "(undefined text)";
                 }
             }
+        }
+
+        public string Convert(string key)
+        {
+            return System.Web.HttpUtility.HtmlDecode(key);
         }
 
         public string GetApiText(string key)

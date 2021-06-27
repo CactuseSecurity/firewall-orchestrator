@@ -247,9 +247,9 @@ INSERT INTO txt VALUES ('rule',		            'German', 	'Regel');
 INSERT INTO txt VALUES ('rule',		            'English', 	'Rule');
 INSERT INTO txt VALUES ('objects',		        'German', 	'Objekt');
 INSERT INTO txt VALUES ('objects',		        'English', 	'Objects');
-INSERT INTO txt VALUES ('change_time',		    'German', 	'&auml;nderungszeit');
+INSERT INTO txt VALUES ('change_time',		    'German', 	'&Auml;nderungszeit');
 INSERT INTO txt VALUES ('change_time',		    'English', 	'Change Time');
-INSERT INTO txt VALUES ('change_type',		    'German', 	'&auml;nderungstyp');
+INSERT INTO txt VALUES ('change_type',		    'German', 	'&Auml;nderungstyp');
 INSERT INTO txt VALUES ('change_type',		    'English', 	'Change Type');
 INSERT INTO txt VALUES ('source_zone',		    'German', 	'Quellzone');
 INSERT INTO txt VALUES ('source_zone',		    'English', 	'Source Zone');
@@ -295,7 +295,7 @@ INSERT INTO txt VALUES ('template_fetch',       'German', 	'Abholen der Vorlagen
 INSERT INTO txt VALUES ('template_fetch',       'English', 	'Report Template Fetch');
 INSERT INTO txt VALUES ('save_template',        'German', 	'Speichern der Vorlage');
 INSERT INTO txt VALUES ('save_template',        'English', 	'Save Report Template');
-INSERT INTO txt VALUES ('edit_template',        'German', 	'&auml;ndern der Vorlage');
+INSERT INTO txt VALUES ('edit_template',        'German', 	'&Auml;ndern der Vorlage');
 INSERT INTO txt VALUES ('edit_template',        'English', 	'Edit Report Template');
 INSERT INTO txt VALUES ('delete_template',      'German', 	'L&ouml;schen der Vorlage');
 INSERT INTO txt VALUES ('delete_template',      'English', 	'Delete Report Template');
@@ -397,7 +397,7 @@ INSERT INTO txt VALUES ('managements',			'German', 	'Managements');
 INSERT INTO txt VALUES ('managements',			'English', 	'Managements');
 INSERT INTO txt VALUES ('gateways',		    	'German', 	'Gateways');
 INSERT INTO txt VALUES ('gateways',		    	'English', 	'Gateways');
-INSERT INTO txt VALUES ('import_status',       	'German', 	'Import Status');
+INSERT INTO txt VALUES ('import_status',       	'German', 	'Importstatus');
 INSERT INTO txt VALUES ('import_status',    	'English', 	'Import Status');
 INSERT INTO txt VALUES ('authorization',		'German', 	'Berechtigungen');
 INSERT INTO txt VALUES ('authorization',		'English', 	'Authorization');
@@ -463,7 +463,7 @@ INSERT INTO txt VALUES ('rulebase',             'German', 	'Rulebase');
 INSERT INTO txt VALUES ('rulebase',             'English', 	'Rulebase');
 INSERT INTO txt VALUES ('details',              'German', 	'Details');
 INSERT INTO txt VALUES ('details',              'English', 	'Details');
-INSERT INTO txt VALUES ('import_status_details','German', 	'Import Status Details f&uuml;r ');
+INSERT INTO txt VALUES ('import_status_details','German', 	'Importstatusdetails f&uuml;r ');
 INSERT INTO txt VALUES ('import_status_details','English', 	'Import Status Details for ');
 INSERT INTO txt VALUES ('last_incomplete',      'German', 	'Letzter Unvollendeter');
 INSERT INTO txt VALUES ('last_incomplete',      'English', 	'Last Incomplete');
@@ -595,7 +595,7 @@ INSERT INTO txt VALUES ('commentRequired',      'German', 	'Kommentar Pflichtfel
 INSERT INTO txt VALUES ('commentRequired',      'English',  'Comment Required');
 INSERT INTO txt VALUES ('language_settings',    'German', 	'Spracheinstellungen');
 INSERT INTO txt VALUES ('language_settings',    'English', 	'Language Settings');
-INSERT INTO txt VALUES ('apply_changes',        'German', 	'&auml;nderungen anwenden');
+INSERT INTO txt VALUES ('apply_changes',        'German', 	'&Auml;nderungen anwenden');
 INSERT INTO txt VALUES ('apply_changes',        'English', 	'Apply Changes');
 INSERT INTO txt VALUES ('description',          'German', 	'Beschreibung');
 INSERT INTO txt VALUES ('description',          'English', 	'Description');
@@ -611,7 +611,7 @@ INSERT INTO txt VALUES ('last_login',           'German', 	'Letzte Anmeldung');
 INSERT INTO txt VALUES ('last_login',           'English', 	'Last Login');
 INSERT INTO txt VALUES ('last_pw_change',       'German', 	'Letzte Passwort&auml;nderung');
 INSERT INTO txt VALUES ('last_pw_change',       'English', 	'Last Pwd Change');
-INSERT INTO txt VALUES ('pwd_chg_req',          'German', 	'PW &auml;nd. erf.');
+INSERT INTO txt VALUES ('pwd_chg_req',          'German', 	'PW &Auml;nd. erf.');
 INSERT INTO txt VALUES ('pwd_chg_req',          'English', 	'Pwd Chg Req');
 INSERT INTO txt VALUES ('project',              'German', 	'Projekt');
 INSERT INTO txt VALUES ('project',              'English', 	'Project');
@@ -629,9 +629,9 @@ INSERT INTO txt VALUES ('group_handling',       'German', 	'Gruppenverwaltung');
 INSERT INTO txt VALUES ('group_handling',       'English', 	'Group handling');
 INSERT INTO txt VALUES ('read_config',          'German', 	'Lesen der Konfiguration');
 INSERT INTO txt VALUES ('read_config',          'English', 	'Read Config');
-INSERT INTO txt VALUES ('change_default',       'German', 	'&auml;ndern der Voreinstellungen');
+INSERT INTO txt VALUES ('change_default',       'German', 	'&Auml;ndern der Voreinstellungen');
 INSERT INTO txt VALUES ('change_default',       'English', 	'Change Default Settings');
-INSERT INTO txt VALUES ('change_policy',        'German', 	'&auml;ndern der Passworteinstellungen');
+INSERT INTO txt VALUES ('change_policy',        'German', 	'&Auml;ndern der Passworteinstellungen');
 INSERT INTO txt VALUES ('change_policy',        'English', 	'Change Password Policy');
 INSERT INTO txt VALUES ('add_user',             'German', 	'Nutzer hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_user',             'English', 	'Add user');
@@ -703,13 +703,13 @@ INSERT INTO txt VALUES ('save_gateway',         'German', 	'Gateway speichern');
 INSERT INTO txt VALUES ('save_gateway',         'English', 	'Save Gateway');
 INSERT INTO txt VALUES ('add_device_to_tenant0','German', 	'Ger&auml;t zu Mandant 0 zuordnen');
 INSERT INTO txt VALUES ('add_device_to_tenant0','English', 	'Add device to tenant 0');
-INSERT INTO txt VALUES ('fetch_import_status',  'German', 	'Import Status abholen');
+INSERT INTO txt VALUES ('fetch_import_status',  'German', 	'Importstatus abholen');
 INSERT INTO txt VALUES ('fetch_import_status',  'English', 	'Fetch Import Status');
 INSERT INTO txt VALUES ('rollback_import',      'German', 	'Import zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('rollback_import',      'English', 	'Rollback Import');
 INSERT INTO txt VALUES ('report_settings',      'German', 	'Reporteinstellungen');
 INSERT INTO txt VALUES ('report_settings',      'English', 	'Report Settings');
-INSERT INTO txt VALUES ('change_language',      'German', 	'&auml;ndern der Passworteinstellungen');
+INSERT INTO txt VALUES ('change_language',      'German', 	'&Auml;ndern der Passworteinstellungen');
 INSERT INTO txt VALUES ('change_language',      'English', 	'Change Language');
 INSERT INTO txt VALUES ('recert_settings',      'German', 	'Rezertifizierungseinstellungen');
 INSERT INTO txt VALUES ('recert_settings',      'English', 	'Recertification Settings');
@@ -745,7 +745,7 @@ INSERT INTO txt VALUES ('mutation',             'English', 	'Basic Mutation');
 -- E: error texts
 -- A: Api errors
 -- T: texts from external sources (Ldap, other database tables)
--- H: help pages (tbd)
+-- H: help pages
 -- 0000-0999: General
 -- 1000-1999: Reporting
 -- 2000-2999: Scheduling
@@ -757,6 +757,7 @@ INSERT INTO txt VALUES ('mutation',             'English', 	'Basic Mutation');
 --            5200-5299: authorization
 --            5300-5399: defaults
 --            5400-5499: personal settings
+-- 6000-6999: API
 
 -- user messages
 INSERT INTO txt VALUES ('U1002', 'German',  'Sind sie sicher, dass sie folgende Reportvorlage l&ouml;schen wollen: ');
@@ -836,7 +837,7 @@ INSERT INTO txt VALUES ('U5312', 'English', 'Set the policy for all user passwor
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
-INSERT INTO txt VALUES ('U5411', 'German',  '&auml;nderung des pers&ouml;nlichen Anmeldepassworts');
+INSERT INTO txt VALUES ('U5411', 'German',  '&Auml;nderung des pers&ouml;nlichen Anmeldepassworts');
 INSERT INTO txt VALUES ('U5411', 'English', 'Change your personal login password');
 INSERT INTO txt VALUES ('U5412', 'German',  'Einstellung der bevorzugten Sprache');
 INSERT INTO txt VALUES ('U5412', 'English', 'Set your preferred language');
@@ -1047,4 +1048,90 @@ INSERT INTO txt VALUES ('H0001', 'English', 'Firewall Orchestrator is an applica
     Firewall Orchestrator has an internal user management, but is also able to connect to external user management systems.
 ');
 
+INSERT INTO txt VALUES ('H4001', 'German',  'In diesem Abschnitt k&ouml;nnen Regeln re- oder dezertifiziert werden. Daf&uuml;r wird die Rolle "recertifier" (oder "admin") ben&ouml;tigt.');
+INSERT INTO txt VALUES ('H4001', 'English', 'In this part rules can be re- or decertified. For this the role "recertifier" (or "admin") is necessary.');
+INSERT INTO txt VALUES ('H4011', 'German',  'Im ersten Schritt muss ein Report mit den demn&auml;chst zu rezertifizierenden Regeln geladen werden.
+    Der Zeitraum f&uuml;r die Vorausschau kann im Feld "F&auml;llig in" gew&auml;hlt werden.
+    Diese wird im "Rezertifizierungsanzeigeintervall" in den <a href="/help/settings/recertification">Rezertifizierungseinstellungen</a> bzw. 
+    in den <a href="/help/settings/defaults">Standardeinstellungen</a> initialisiert.
+    Desweiteren m&uuml;ssen die zu betrachtenden Ger&auml;te in der linken Randleiste ausgew&auml;hlt werden.
+');
+INSERT INTO txt VALUES ('H4011', 'English', 'In the first step a report of upcoming rules to be certified has to be loaded. 
+    The lookahead period for this can be chosen in the "Due within" field. 
+    It is initialized by the settings value "Recertification Display Period" in the 
+    <a href="/help/settings/recertification">Recertification Settings</a> resp. <a href="/help/settings/defaults">Default Settings</a>.
+    Also the regarded devices have to be chosen in the left sidebar.
+');
+INSERT INTO txt VALUES ('H4012', 'German',  'Der Report zeigt nun alle Regeln, die im gew&auml;hlten Zeitraum zertifiziert werden m&uuml;ssen.
+    Das Rezertifizierungsdatum wird errechnet aus dem letzten Rezertifizierungsdatum (falls unbekannt, wird das Erzeugungsdatum der Regel genommen)
+    und dem Rezertifizierungsintervall, welches in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert wurde.
+    Rezertifizierungen, die in den n&auml;chsten Tagen (definiert im Rezertifizierungserinnerungsintervall in den Standardeinstellungen) f&auml;llig sind, 
+    werden in gelb, &uuml;berf&auml;llige Rezertifizierungen in rot unterlegt.
+    Zus&auml;tzlich wird der letzte Rezertifizierer dargestellt ("unbekannt" zeigt an, dass noch keine Rezertifizierung stattgefunden hat).
+');
+INSERT INTO txt VALUES ('H4012', 'English', 'The report shows all rules that are upcoming for recertification within the selected interval.
+    The recertification date is computed from the last recertification date (if unknown the rule creation date is taken)
+    and the Recertification Period, defined in the <a href="/help/settings/defaults">Default Settings</a>.
+    Recertifications upcoming in the next days (defined in the Recertification Notice Period in the Default Settings) are marked in yellow, overdue recertifications in red.
+    Additionally the last recertifier is mentioned ("unknown" indicates that there has been no recertification so far).
+');
+INSERT INTO txt VALUES ('H4013', 'German',  'Der Rezertifizierer hat nun die M&ouml;glichkeit alle zu re- oder dezertifizierenden Regeln zu markieren.
+    Durch klicken der "Ausgew&auml;hlte Aktionen ausf&uuml;hren"-Schaltfl&auml;che wird zun&auml;chst ein Kommentar abgefragt.
+    Dieser ist ein Pflichtfeld, wenn "Kommentar Pflichtfeld" in den <a href="/help/settings/defaults">Standardeinstellungen</a> gesetzt wurde.
+    Nach der Best&auml;tigung werden alle markierten Re- und Dezertifizierungen in einem Schritt ausgef&uuml;hrt.
+    Danach werden nur noch die verbleibenden anstehenden Rezertifizierungen angezeigt.
+');
+INSERT INTO txt VALUES ('H4013', 'English', 'The recertifier has now the possibility to mark each of the displayed rules for recertification or decertification.
+    After clicking the "Execute Selected Actions" button a comment is requested. 
+    This has to be filled, if the setting "Comment Required" in <a href="/help/settings/defaults">Default Settings</a> is activated.
+    When confirmed all selected re- and decertifications are executed in on step. 
+    After that only the remaining open certifications are displayed.
+');
+INSERT INTO txt VALUES ('H4014', 'German',  'Dezertifizierte Regel k&ouml;nnen im Abschnitt <a href="/help/reporting">Reporting</a> mit dem Filterparameter "remove=true" dargestellt werden.');
+INSERT INTO txt VALUES ('H4014', 'English', 'Decertified rules can be displayed in the <a href="/help/reporting">Reporting</a> part with the filter parameter "remove=true".');
+INSERT INTO txt VALUES ('H4021', 'German',  'Dieses Rezertifizierungsszenario ist als Basis f&uuml;r weitere angepasste Abl&auml;ufe vorgesehen.');
+INSERT INTO txt VALUES ('H4021', 'English', 'This recertification scenario is intended to be a base for further customized workflows.');
+
+INSERT INTO txt VALUES ('H5001', 'German',  'Im diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
+    Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
+    Der Auditor kann zwar die Einstellungen sehen, da er aber keine Schreibrechte hat, sind alle Schaltfl&auml;chen, die zu &Auml;nderungen f&uuml;hren w&uuml;rden, deaktiviert.
+');
+INSERT INTO txt VALUES ('H5001', 'English', 'In the settings section the setup and administration topics are handled.
+    Most settings can only be seen and done by users with administrator role.
+    The auditor is able to see the settings, but as he has no write permissions all buttons leading to changes are disabled.
+');
+INSERT INTO txt VALUES ('H5011', 'German',  'Im ersten Kapitel "Ger&auml;te" wird das Setup der Datenquellen behandelt: 
+    Die Abschnitte <a href="/help/settings/managements">Managements</a> und <a href="/help/settings/gateways">Gateways</a> dienen der Definition der verbundenen Hardware,
+    der <a href="/help/settings/import">Importstatus</a> -Abschnitt unterst&uuml;tzt das Monitoring des Datenimports.
+');
+INSERT INTO txt VALUES ('H5011', 'English', 'In the first chapter "Devices" the setup of the report data sources is done:
+    The sections <a href="/help/settings/managements">Managements</a> and <a href="/help/settings/gateways">Gateways</a> are for the definition of the connected hardware,
+    the <a href="/help/settings/import">Import Status</a> section allows the monitoring of the data import.
+');
+INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet die Funktionalit&auml;t f&uuml;r die Nutzerverwaltung:
+    In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
+    <a href="/help/settings/tenants">Mandanten</a> k&ouml;nnen definiert und mit spezifischen Gateways verkn&uuml;pft werden.
+    Interne oder externe <a href="/help/settings/users">Nutzer</a> k&ouml;nnen zu <a href="/help/settings/groups">Gruppen</a> zusammengefasst
+    und zu <a href="/help/settings/roles">Rollen</a> zugeordnet werden.
+');
+INSERT INTO txt VALUES ('H5012', 'English', 'The chapter "Authorization" offers the functionality for the user administration:
+    In <a href="/help/settings/ldap">LDAP Connections</a> external connections besides the internal LDAP can be defined.
+    <a href="/help/settings/tenants">Tenants</a> can be defined and associated with specific gateways.
+    Internal or external <a href="/help/settings/users">Users</a> can be assigned to <a href="/help/settings/groups">User Groups</a>
+    and <a href="/help/settings/roles">Roles</a>
+');
+INSERT INTO txt VALUES ('H5013', 'German',  'Im Kapitel "Voreinstellungen" kann der Administrator <a href="/help/settings/defaults">Standardeinstellungen</a> vornehmen,
+    die f&uuml;r alle Nutzer gelten, sowie die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> definieren, welche f&uuml;r alle Passwort&auml;nderungen g&uuml;ltig sind.
+');
+INSERT INTO txt VALUES ('H5013', 'English', 'In the "Defaults" chapter the administrator can define <a href="/help/settings/defaults">Default Values</a> applicable to all users
+    and set a <a href="/help/settings/passwordpolicy">Password Policy</a> valid for all password changes.
+');
+INSERT INTO txt VALUES ('H5014', 'German',  'Das Kapitel "Pers&ouml;nlich" ist f&uuml;r alle Nutzer zug&auml;nglich. Hier k&ouml;nnen das individuelle <a href="/help/settings/password">Password</a>,
+    die bevorzugte <a href="/help/settings/language">Sprache</a> und <a href="/help/settings/report">Reporting</a>-Einstellungen gesetzt werden.
+    Nutzer mit Rezertifizierer-Rolle k&ouml;nnen auch ihre <a href="/help/settings/recertification">Rezertifizierungseinstellungen</a> anpassen.
+');
+INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessible by all users, where they can set their individual <a href="/help/settings/password">Password</a>,
+    <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences. 
+    Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
+');
 

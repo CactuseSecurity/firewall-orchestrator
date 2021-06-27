@@ -7,21 +7,18 @@
         await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>API</h3>
-    Firewall Orchestrator has a <a href="/help/API/graphql">GraphQl</a> API which is based on <a href="/help/API/hasura">Hasura</a>. 
-    This allows us to flexibly provide access to all data in the database
-    and also define the level of granularity the data is returned in.
+    <h3>@userConfig.GetText("api")</h3>
+    @(Html.Raw(userConfig.GetText("H6001")))
     <ul>
         <li>
-            The section "Introduction" provides a quick overview touching basic underlying technology 
-            like <a href="/help/API/graphql">GraphQl</a> and <a href="/help/API/hasura">Hasura</a>, 
-            gives some insight into <a href="/help/API/security">Security</a> mechanisms as well as 
-            <a href="/help/API/links">further reading</a> material.
+            @(Html.Raw(userConfig.GetText("H6011")))
         </li>
         <li>
-            The chapter "Basic commands" gives more detailed examples for the usage of the API.
+            @(Html.Raw(userConfig.GetText("H6012")))
         </li>
     </ul>
 </div>

@@ -1048,6 +1048,23 @@ INSERT INTO txt VALUES ('H0001', 'English', 'Firewall Orchestrator is an applica
     Firewall Orchestrator has an internal user management, but is also able to connect to external user management systems.
 ');
 
+INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filterzeile, wo die Parameter f&uuml;r den Report definiert werden.
+    Sie unterliegt einer speziellen <a href="/help/reporting/filter">Filtersyntax</a>.
+    Sie kann komplett manuell gef&uuml;llt werden oder unterst&uuml;tzt durch <a href="/help/reporting/templates">Vorlagen</a>, welche weiter unten ausgew&auml;hlt werden k&ouml;nnen.
+    In der <a href="/help/reporting/leftside">Linken Randleiste</a> werden die verf&uuml;gbaren Devices dargestellt. Eine dortige Auswahl wird automatisch in die Filterzeile &uuml;bernommen.<br>
+    Nach klicken der "Report erstellen" Schaltfl&auml;che werden die <a href="/help/reporting/output">Reportdaten</a> im unteren Teil des Fensters dargestellt.
+    In der <a href="/help/reporting/rightside">Rechten Randleiste</a> werden Details zu den markierten Objekten gezeigt.<br>
+    Der Report kann in verschiedenen Ausgabeformaten <a href="/help/reporting/export">exportiert</a> werden.
+');
+INSERT INTO txt VALUES ('H1001', 'English', 'The first input line is the filter line, where the parameters for the report creation are defined.
+    It is subject to a special <a href="/help/reporting/filter">Filter Syntax</a>. 
+    It can be filled completely manually or supported by <a href="/help/reporting/templates">Templates</a>, which can be chosen below.
+    In the <a href="/help/reporting/leftside">Left Sidebar</a> the available devices are displayed. Selections out of them are also automatically integrated to the filter line.<br>
+    After selecting the "Generate Report" button the <a href="/help/reporting/output">Report Data</a> is shown in the lower part of the window.
+    In the <a href="/help/reporting/rightside">Right Sidebar</a> details about the selected objects are given.<br>
+    The report can be <a href="/help/reporting/export">exported</a> to different output formats.
+');
+
 INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r einen bestimmten Termin oder als wiederkehrende Auftr&auml;ge festgelegt werden.
     Jeder Nutzer kann seine eigenen Terminpl&auml;ne verwalten.
 ');
@@ -1181,3 +1198,19 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
     Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
 ');
 
+INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator hat eine <a href="/help/API/graphql">GraphQl</a> API welche auf <a href="/help/API/hasura">Hasura</a> basiert. 
+    Diese erlaubt, flexibel den Zugang zu allen Daten der Datenbank und die Granularit&auml;t der zur&uuml;ckgegebenen Daten zu steuern.
+');
+INSERT INTO txt VALUES ('H6001', 'English', 'Firewall Orchestrator has a <a href="/help/API/graphql">GraphQl</a> API which is based on <a href="/help/API/hasura">Hasura</a>. 
+    This allows us to flexibly provide access to all data in the database and also define the level of granularity the data is returned in.
+');
+INSERT INTO txt VALUES ('H6011', 'German',  'Der Abschnitt "Einleitung" gibt einen kurzen &Uuml;berblick in die zugrundeliegende Technologie wie <a href="/help/API/graphql">GraphQl</a>
+    und <a href="/help/API/hasura">Hasura</a>, gibt einen Einblick in die <a href="/help/API/security">Sicherheits</a>-Mechanismen sowie
+    <a href="/help/API/links">weiterf&uuml;hrendes</a> Material.
+');
+INSERT INTO txt VALUES ('H6011', 'English', 'The section "Introduction" provides a quick overview touching basic underlying technology like <a href="/help/API/graphql">GraphQl</a> 
+    and <a href="/help/API/hasura">Hasura</a>, gives some insight into <a href="/help/API/security">Security</a> mechanisms as well as 
+    <a href="/help/API/links">further reading</a> material.
+');
+INSERT INTO txt VALUES ('H6012', 'German',  'Das Kapitel "Wichtige Kommandos" liefert detailliertere Beispiele f&uuml;r die Nutzung der API.');
+INSERT INTO txt VALUES ('H6012', 'English', 'The chapter "Basic commands" gives more detailed examples for the usage of the API.');

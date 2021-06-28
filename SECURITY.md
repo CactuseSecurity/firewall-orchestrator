@@ -9,5 +9,5 @@
 
 ## Reporting a Vulnerability
 
-In case you discover a security issue/vulnerability, please contact security@cactus.de
-Do not open an issue!
+In case you discover a security issue/vulnerability, please contact security@cactus.de.
+**Do not open an issue!**

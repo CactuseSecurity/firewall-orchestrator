@@ -33,7 +33,7 @@
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" >
                                     <Template>
-                                        <div class="@(context.Metadata.Background)">
+                                        <div style="@(context.Metadata.Style)">
                                             @context.Metadata.NextRecert
                                         </div>
                                     </Template>

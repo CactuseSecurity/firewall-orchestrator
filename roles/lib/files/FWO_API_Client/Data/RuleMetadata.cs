@@ -42,6 +42,6 @@ namespace FWO.Api.Data
 
         public bool Recert { get; set; } 
 
-        public string Background { get; set; }
+        public string Style { get; set; }
     }
 }

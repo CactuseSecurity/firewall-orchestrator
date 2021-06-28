@@ -1,4 +1,4 @@
-# Firewall Orchestrator
+# ![FWO_logo-40px](https://user-images.githubusercontent.com/19877770/123625365-fc10ca80-d80f-11eb-80bf-0a858149b1d9.png) Firewall Orchestrator
 
 ![Build passing](https://github.com/CactuseSecurity/firewall-orchestrator/workflows/Build/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)

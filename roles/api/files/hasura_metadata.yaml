@@ -3451,32 +3451,44 @@ tables:
   - permission:
       allow_aggregations: true
       columns:
+      - created
       - mgm_id
       - obj_id
+      - removed
       - rule_id
       filter: {}
     role: auditor
   - permission:
       allow_aggregations: true
       columns:
+      - created
       - mgm_id
       - obj_id
+      - removed
       - rule_id
-      filter: {}
+      filter:
+        mgm_id:
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
       columns:
+      - created
       - mgm_id
       - obj_id
+      - removed
       - rule_id
-      filter: {}
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
       columns:
+      - created
       - mgm_id
       - obj_id
+      - removed
       - rule_id
       filter: {}
     role: reporter-viewall
@@ -3573,6 +3585,8 @@ tables:
       allow_aggregations: true
       columns:
       - mgm_id
+      - created
+      - removed
       - rule_id
       - svc_id
       filter: {}
@@ -3583,20 +3597,30 @@ tables:
       - mgm_id
       - rule_id
       - svc_id
-      filter: {}
+      - created
+      - removed
+      filter:
+        mgm_id:
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
       columns:
       - mgm_id
+      - created
+      - removed
       - rule_id
       - svc_id
-      filter: {}
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
       columns:
       - mgm_id
+      - created
+      - removed
       - rule_id
       - svc_id
       filter: {}
@@ -3686,28 +3710,35 @@ tables:
       - mgm_id
       - rule_id
       - user_id
+      - created
+      - removed
       filter: {}
     role: auditor
   - permission:
       allow_aggregations: true
       columns:
       - mgm_id
+      - created
+      - removed
       - rule_id
       - user_id
-      filter: {}
+      filter:
+        mgm_id:
+          _in: x-hasura-visible-managements
     role: recertifier
   - permission:
       allow_aggregations: true
-      columns:
-      - mgm_id
-      - rule_id
-      - user_id
-      filter: {}
+      columns: []
+      filter:
+        mgm_id:
+          _in: X-Hasura-visible-managements
     role: reporter
   - permission:
       allow_aggregations: true
       columns:
       - mgm_id
+      - created
+      - removed
       - rule_id
       - user_id
       filter: {}

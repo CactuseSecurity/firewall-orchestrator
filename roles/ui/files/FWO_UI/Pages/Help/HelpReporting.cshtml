@@ -7,14 +7,10 @@
         await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Reporting</h3>
-    The first input line is the filter line, where the parameters for the report creation are defined.
-    It is subject to a special <a href="/help/reporting/filter">Filter Syntax</a>. 
-    It can be filled completely manually or supported by <a href="/help/reporting/templates">Templates</a>, which can be chosen below.
-    In the <a href="/help/reporting/leftside">Left Sidebar</a> the available devices are displayed. Selections out of them are also automatically integrated to the filter line.<br>
-    After selecting the "Generate Report" button the <a href="/help/reporting/output">Report Data</a> is shown in the lower part of the window.
-    In the <a href="/help/reporting/rightside">Right Sidebar</a> details about the selected objects are given.<br>
-    The report can be <a href="/help/reporting/export">exported</a> to different output formats.
+    <h3>@userConfig.GetText("reporting")</h3>
+    @(Html.Raw(userConfig.GetText("H1001")))
 </div>

@@ -1,3 +1,5 @@
+test only
+
 # Firewall Orchestrator
 
 ![Build passing](https://github.com/CactuseSecurity/firewall-orchestrator/workflows/Build/badge.svg)

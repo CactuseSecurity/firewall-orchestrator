@@ -2172,27 +2172,29 @@ tables:
       backend_only: false
       check: {}
       columns:
+      - report_schedule_active
+      - report_schedule_every
       - report_schedule_id
       - report_schedule_name
-      - report_template_id
       - report_schedule_owner
-      - report_schedule_start_time
       - report_schedule_repeat
-      - report_schedule_every
-      - report_schedule_active
+      - report_schedule_repetitions
+      - report_schedule_start_time
+      - report_template_id
     role: recertifier
   - permission:
       backend_only: false
       check: {}
       columns:
+      - report_schedule_active
+      - report_schedule_every
       - report_schedule_id
       - report_schedule_name
-      - report_template_id
       - report_schedule_owner
-      - report_schedule_start_time
       - report_schedule_repeat
-      - report_schedule_every
-      - report_schedule_active
+      - report_schedule_repetitions
+      - report_schedule_start_time
+      - report_template_id
     role: reporter
   - permission:
       backend_only: false
@@ -2200,12 +2202,13 @@ tables:
       columns:
       - report_schedule_active
       - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
       - report_schedule_owner
       - report_schedule_repeat
-      - report_template_id
-      - report_schedule_id
+      - report_schedule_repetitions
       - report_schedule_start_time
-      - report_schedule_name
+      - report_template_id
     role: reporter-viewall
   object_relationships:
   - name: report_template
@@ -2246,12 +2249,13 @@ tables:
       columns:
       - report_schedule_active
       - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
       - report_schedule_owner
       - report_schedule_repeat
-      - report_template_id
-      - report_schedule_id
+      - report_schedule_repetitions
       - report_schedule_start_time
-      - report_schedule_name
+      - report_template_id
       filter:
         report_schedule_owner:
           _eq: X-Hasura-User-Id
@@ -2260,12 +2264,13 @@ tables:
       columns:
       - report_schedule_active
       - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
       - report_schedule_owner
       - report_schedule_repeat
-      - report_template_id
-      - report_schedule_id
+      - report_schedule_repetitions
       - report_schedule_start_time
-      - report_schedule_name
+      - report_template_id
       filter:
         report_schedule_owner:
           _eq: X-Hasura-User-Id
@@ -2274,12 +2279,13 @@ tables:
       columns:
       - report_schedule_active
       - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
       - report_schedule_owner
       - report_schedule_repeat
-      - report_template_id
-      - report_schedule_id
+      - report_schedule_repetitions
       - report_schedule_start_time
-      - report_schedule_name
+      - report_template_id
       filter:
         _or:
         - report_schedule_owner:
@@ -2323,12 +2329,13 @@ tables:
       columns:
       - report_schedule_active
       - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
       - report_schedule_owner
       - report_schedule_repeat
-      - report_template_id
-      - report_schedule_id
+      - report_schedule_repetitions
       - report_schedule_start_time
-      - report_schedule_name
+      - report_template_id
       filter:
         report_schedule_owner:
           _eq: X-Hasura-User-Id
@@ -2338,12 +2345,13 @@ tables:
       columns:
       - report_schedule_active
       - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
       - report_schedule_owner
       - report_schedule_repeat
-      - report_template_id
-      - report_schedule_id
+      - report_schedule_repetitions
       - report_schedule_start_time
-      - report_schedule_name
+      - report_template_id
       filter:
         report_schedule_owner:
           _eq: X-Hasura-User-Id
@@ -2353,12 +2361,13 @@ tables:
       columns:
       - report_schedule_active
       - report_schedule_every
+      - report_schedule_id
+      - report_schedule_name
       - report_schedule_owner
       - report_schedule_repeat
-      - report_template_id
-      - report_schedule_id
+      - report_schedule_repetitions
       - report_schedule_start_time
-      - report_schedule_name
+      - report_template_id
       filter:
         report_schedule_owner:
           _eq: X-Hasura-User-Id

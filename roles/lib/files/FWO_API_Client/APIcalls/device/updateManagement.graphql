@@ -6,7 +6,7 @@ mutation updateManagement(
   $importUserSecret: String!
   $hostname: String!
   $port: Int!
-  $sshPublicKey: String!
+  $sshPublicKey: String
   $importDisabled: Boolean!
   $forceInitialImport: Boolean!
   $hideInUi: Boolean!

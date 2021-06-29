@@ -10,12 +10,10 @@
     state: present
   become: yes
 
-- name: add localhost hostkey to known_hosts - remove before adding to stay idempotent
-  # todo:
-  # I don't dare to change this, but my tests produce an error for "$ ssh-keygen -R localhost":
-  # "Host localhost not found in /home/alf/.ssh/known_hosts"
-  # Maybe localhost is added to known_hosts earlier?
-  shell: "ssh-keygen -R localhost; ssh-keyscan localhost >> ~/.ssh/known_hosts"
+- name: add localhost hostkey to known_hosts
+  known_hosts:
+    name: localhost
+    key: "{{ lookup('pipe', 'ssh-keyscan localhost') }}"
   become: yes
   become_user: "{{ fworch_user }}"
 
@@ -34,20 +32,16 @@
   become: yes
   become_user: postgres
 
+# above we are adding localhost keys to known_hosts, here again but hashed. Both necessary?
 - name: scan localhost ssh keys
-  shell: "ssh-keyscan -H 127.0.0.1 >> ~/.ssh/known_hosts"
+  known_hosts:
+    name: 127.0.0.1
+    key: "{{ lookup('pipe', 'ssh-keyscan -H 127.0.0.1') }}"
   become: yes
   become_user: "{{ fworch_user }}" 
 
 - name: establish cron job to simulate hourly changes to configs
   import_tasks: setup-config-changes.yml
-
-# - name: restart importing sample configs
-#   #command: "/etc/init.d/{{ product_name }}-importer restart"
-#   ansible.builtin.systemd:
-#     name: "{{ product_name }}-importer"
-#     state: restarted
-#   become: yes
 
 - name: add second ldap database
   import_tasks: add_second_ldap_db.yml

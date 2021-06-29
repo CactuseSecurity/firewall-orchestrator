@@ -74,6 +74,22 @@ namespace FWO.Api.Data
         [JsonPropertyName("svcgrp_flats")]
         public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; }
 
+        public override bool Equals(object obj)
+        {
+            switch (obj)
+            {
+                case NetworkService nsrv:
+                    return Id == nsrv.Id;
+                default:
+                    return base.Equals(obj);
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
+
         //  svc_id
         //  svc_name
         //  svc_uid

@@ -101,6 +101,8 @@ namespace FWO.Middleware.Server
                 listener.Prefixes.Add(middlewareListenerUri + "AddUserToGroup/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromGroup/");
                 listener.Prefixes.Add(middlewareListenerUri + "RemoveUserFromAllEntries/");
+                listener.Prefixes.Add(middlewareListenerUri + "AddTenant/");
+                listener.Prefixes.Add(middlewareListenerUri + "DeleteTenant/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddLdap/");
                 listener.Prefixes.Add(middlewareListenerUri + "AddReportSchedule/");
                 listener.Prefixes.Add(middlewareListenerUri + "EditReportSchedule/");
@@ -372,6 +374,24 @@ namespace FWO.Middleware.Server
 
                                     // Try to remove user from all roles and groups
                                     (status, responseString) = await removeUserFromAllEntriesRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "AddTenant":
+
+                                    // Initialize Request Handler  
+                                    AddTenantRequestHandler addTenantRequestHandler = new AddTenantRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to add tenant in Ldap
+                                    (status, responseString) = await addTenantRequestHandler.HandleRequestAsync(request);
+                                    break;
+
+                                case "DeleteTenant":
+
+                                    // Initialize Request Handler  
+                                    DeleteTenantRequestHandler deleteTenantRequestHandler = new DeleteTenantRequestHandler(ldapsCopy, apiConnectionCopy);
+
+                                    // Try to delete tenant in Ldap
+                                    (status, responseString) = await deleteTenantRequestHandler.HandleRequestAsync(request);
                                     break;
 
                                 // TODO: REMOVE TEST PREFIX

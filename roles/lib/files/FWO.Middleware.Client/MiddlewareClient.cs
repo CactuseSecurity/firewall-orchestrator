@@ -209,6 +209,26 @@ namespace FWO.Middleware.Client
 
             return await requestSender.SendRequest(parameters, "RemoveUserFromAllEntries", jwt);
         }
+
+        public async Task<MiddlewareServerResponse> AddTenant(string TenantName, string jwt)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "TenantName", TenantName }
+            };
+
+            return await requestSender.SendRequest(parameters, "AddTenant", jwt);
+        }
+
+        public async Task<MiddlewareServerResponse> DeleteTenant(string TenantName, string jwt)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "TenantName", TenantName }
+            };
+
+            return await requestSender.SendRequest(parameters, "DeleteTenant", jwt);
+        }
     }
 }
 

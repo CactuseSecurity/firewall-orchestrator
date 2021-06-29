@@ -7,32 +7,24 @@
         await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Settings</h3>
-    In the settings section the setup and administration topics are handled.
-    Most settings can only be seen and done by users with administrator role.
-    The auditor is able to see the settings, but as he has no write permissions all buttons leading to changes are disabled.
+    <h3>@userConfig.GetText("settings")</h3>
+    @userConfig.GetText("H5001")
     <ul>
         <li>
-            In the first chapter "Devices" the setup of the report data sources is done:
-            The sections <a href="/help/settings/managements">Managements</a> and <a href="/help/settings/gateways">Gateways</a> are for the definition of the connected hardware,
-            the <a href="/help/settings/import">Import Status</a> section allows the monitoring of the data import.<br>
+            @(Html.Raw(userConfig.GetText("H5011")))
         </li>
         <li>
-            The chapter "Authorization" offers the functionality for the user administration:
-            In <a href="/help/settings/ldap">Ldap Connections</a> external connections besides the internal Ldap can be defined.
-            <a href="/help/settings/tenants">Tenants</a> can be associated with specific gateways.
-            Internal or external <a href="/help/settings/users">Users</a> can be assigned to <a href="/help/settings/groups">User Groups</a>
-            and <a href="/help/settings/roles">Roles</a>
+            @(Html.Raw(userConfig.GetText("H5012")))
         </li>
         <li>
-            In the "Defaults" chapter the administrator can define <a href="/help/settings/defaults">Default Values</a> applicable to all users
-            and set a <a href="/help/settings/passwordpolicy">Password Policy</a> valid for all password changes.
+            @(Html.Raw(userConfig.GetText("H5013")))
         </li>
         <li>
-            The "Personal" chapter is assessible by all users, where they can set their individual <a href="/help/settings/password">Password</a>,
-            <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences.
+            @(Html.Raw(userConfig.GetText("H5014")))
         </li>
     </ul>
 </div>

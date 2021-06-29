@@ -9,11 +9,8 @@ using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 using System.Text.Json;
-using PdfSharpCore.Pdf;
 using FWO.Ui.Display;
-using VetCV.HtmlRendererCore.PdfSharpCore;
-using PdfSharpCore;
-using System.Text.Json.Serialization;
+using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -21,14 +18,13 @@ namespace FWO.Report
     {
         public ReportRules(DynGraphqlQuery query) : base(query) { }
 
-        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
+        private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
+        public bool GotReportedRuleIds { get; protected set; } = false;
+        public async Task GetReportedRuleIds(APIConnection apiConnection)
         {
             List<int> relevantDevIds = DeviceFilter.ExtractSelectedDevIds(Managements);
-            Management filteredObjectsPerManagement;
-
             for (int i = 0; i < Managements.Length; i++)
             {
-                // get rule ids per import (= management)
                 Dictionary<string, object> ruleQueryVariables = new Dictionary<string, object>();
                 if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
                 {
@@ -36,22 +32,102 @@ namespace FWO.Report
                     ruleQueryVariables["devIds"] = relevantDevIds;
                     Rule[] rules = await apiConnection.SendQueryAsync<Rule[]>(RuleQueries.getRuleIdsOfImport, ruleQueryVariables);
                     Managements[i].ReportedRuleIds = rules.Select(x => Convert.ToInt64(x.Id)).Distinct().ToList();
-
-                    // set query variables for object query
-                    Dictionary<string, object> objQueryVariables = new Dictionary<string, object>
-                    {
-                        {"ruleIds", Managements[i].ReportedRuleIds },
-                        {"mgmIds", Managements[i].Id }
-                    };
-
-                    // get objects for this management in the current report
-                    filteredObjectsPerManagement = (await apiConnection.SendQueryAsync<Management[]>(ObjectQueries.getReportFilteredObjectDetails, objQueryVariables))[0];
-                    Managements[i].ReportObjects = filteredObjectsPerManagement.ReportObjects;
-                    Managements[i].ReportServices = filteredObjectsPerManagement.ReportServices;
-                    Managements[i].ReportUsers = filteredObjectsPerManagement.ReportUsers;
                 }
             }
-            await callback(Managements);
+            GotReportedRuleIds = true;
+        }
+
+        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback) // to be called when exporting
+        {
+            // get rule ids per import (= management)
+            if (!GotReportedRuleIds)
+                await GetReportedRuleIds(apiConnection);
+
+            if (!GotObjectsInReport)
+            {
+
+                for (int i = 0; i < Managements.Length; i++)
+                {
+                    if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
+                    {
+                        // set query variables for object query
+                        Dictionary<string, object> objQueryVariables = new Dictionary<string, object>
+                        {
+                            { "mgmIds", Managements[i].Id },
+                            { "importId", Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId },
+                            { "limit", objectsPerFetch },
+                            { "offset", 0 },
+                        };
+
+                        // get objects for this management in the current report
+                        await GetObjectsForManagementInReport(objQueryVariables, all, apiConnection, callback);
+                    }
+                }
+                GotObjectsInReport = true;
+            }
+        }
+
+        public override async Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
+        {
+            if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
+                throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
+
+            int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds");
+            Management management = Managements.FirstOrDefault(m => m.Id == mid);
+            if (management == null)
+                throw new ArgumentException("Given management id does not exist for this report");
+
+            if (!GotReportedRuleIds)
+                await GetReportedRuleIds(apiConnection);
+
+            objQueryVariables.Add("ruleIds", management.ReportedRuleIds);
+
+            string query = "";
+            switch (objects)
+            {
+                case all:
+                    query = ObjectQueries.getReportFilteredObjectDetails; break;
+                case nobj:
+                    query = ObjectQueries.getReportFilteredNetworkObjectDetails; break;
+                case nsrv:
+                    query = ObjectQueries.getReportFilteredNetworkServiceObjectDetails; break;
+                case user:
+                    query = ObjectQueries.getReportFilteredUserDetails; break;
+            }
+
+            bool newObjects = true;
+            int fetchCount = 0;
+            int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault("limit");
+            Management filteredObjects;
+            Management allFilteredObjects = new Management();
+            while (newObjects)
+            {
+                fetchCount++;
+
+                filteredObjects = (await apiConnection.SendQueryAsync<Management[]>(query, objQueryVariables))[0];
+
+                if (fetchCount == 1)
+                {
+                    allFilteredObjects = filteredObjects;
+                }
+                else
+                {
+                    newObjects = allFilteredObjects.Merge(filteredObjects);
+                }
+
+                if (objects == all || objects == nobj)
+                    management.ReportObjects = allFilteredObjects?.ReportObjects;
+                if (objects == all || objects == nsrv)
+                    management.ReportServices = allFilteredObjects?.ReportServices;
+                if (objects == all || objects == user)
+                    management.ReportUsers = allFilteredObjects?.ReportUsers;
+
+                objQueryVariables["offset"] = (int)objQueryVariables["offset"] + elementsPerFetch;
+
+                await callback(Managements);
+            }
+
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
         }
 
         public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)

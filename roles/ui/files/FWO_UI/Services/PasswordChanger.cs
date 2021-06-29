@@ -45,22 +45,22 @@ namespace FWO.Ui.Services
         {
             if(oldPassword == "")
             {
-                errorMsg = "please insert the old password";
+                errorMsg = userConfig.GetText("E5401");
                 return false;
             }
             else if(newPassword1 == "")
             {
-                errorMsg = "please insert a new password";
+                errorMsg = userConfig.GetText("E5402");
                 return false;
             }
             else if(newPassword1 == oldPassword)
             {
-                errorMsg = "new password must differ from old one";
+                errorMsg = userConfig.GetText("E5403");
                 return false;
             }
             else if(newPassword1 != newPassword2)
             {
-                errorMsg = "please insert the same new password twice";
+                errorMsg = userConfig.GetText("E5404");
                 return false;
             }
             else if(!((new PasswordPolicy()).checkPolicy(newPassword1, userConfig, out errorMsg)))

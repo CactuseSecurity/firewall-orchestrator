@@ -7,8 +7,8 @@ query getNetworkServiceDetails(
   $offset: Int
 ) {
   management(where: { mgm_id: { _in: $management_id } }) {
-    mgm_id
-    mgm_name
+    id: mgm_id
+    name: mgm_name
     serviceObjects : services(
       limit: $limit
       offset: $offset

@@ -1,6 +1,5 @@
 # Installation instructions server
 
-- for client installation see [client install instructions](client-eto-install.md)
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
 - this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
@@ -41,7 +40,6 @@ ansible -m ping 127.0.0.1
 
 ```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
-(or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git, needs ssh key to be uploaded)
 ```
 
 4) if ansible version < 2.8 (older systems like ubuntu 18.04, debian 10), install latest ansible 
@@ -74,3 +72,12 @@ fworch-srv                 : ok=302  changed=171  unreachable=0    failed=0    s
 Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password.
 
 The api hasura admin secret can be used to access the API at <https://localhost:9443/>.
+
+
+6) upgrade
+
+```console
+  cd firewall-orchestrator
+  git pull
+  ansible-playbook site.yml -K -e "installation_mode=upgrade"
+```

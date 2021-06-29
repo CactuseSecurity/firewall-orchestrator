@@ -12,7 +12,7 @@
 
 4. Install fworch
 
-        ansible-playbook/ -e "clean_install=1 ui_php=1 ui_web_port=6443 ui_php_web_port=443" site.yml -K
+        ansible-playbook/ -e "clean_install=1 ui_web_port=6443 site.yml -K
 
 5. allow login without pwd change for users
 

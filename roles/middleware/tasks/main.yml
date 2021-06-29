@@ -51,10 +51,6 @@
 - name: import ldif driven changes
   import_tasks: set_initial_ldap_tree.yml
 
-- name: import ldif driven upgrades
-  import_tasks: upgrade_ldap_tree.yml
-  when: installation_mode == "upgrade"
-
 - name: install python modules for ansible ldap module via package
   package:
     name:
@@ -129,7 +125,7 @@
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
 
-- name: Set "{{ audit_user }}" password in ldap
+- name: Set {{ audit_user }} password in ldap
   ldap_passwd:
     dn: "uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
     passwd: "{{ auditor_initial_pwd }}"
@@ -204,6 +200,10 @@
 - name: install middleware https reverse proxy
   import_tasks: mw_apache_install_and_setup.yml
 
-- name: include upgrade script
+- name: upgrade with ldif files
+  import_tasks: upgrade_ldap_tree.yml
+  when: installation_mode == "upgrade"
+
+- name: upgrade with yaml script
   import_tasks: run-upgrades.yml
-  when: "installation_mode == 'upgrade'"
+  when: installation_mode == "upgrade"

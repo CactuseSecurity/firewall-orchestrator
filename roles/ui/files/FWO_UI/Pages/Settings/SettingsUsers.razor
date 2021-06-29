@@ -13,57 +13,66 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 
-<h3 class="m-2">UI Users</h3>
+<h3 class="m-2">@(userConfig.GetText("users"))</h3>
+@(userConfig.GetText("U5213"))
 <hr />
 
 <div class="form-group row">
-    <button class="btn btn-success m-2" @onclick="Add">Add new user</button>
-    <button class="btn btn-info m-2" @onclick="Refresh">Refresh</button>
+    <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_user"))</button>
+    <button class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button>
     @if (showSampleRemoveButton)
     {
-        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">Remove Sample Data</button>
+        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
     }
 </div>
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="UiUser" Items="uiUsers" PageSize="0" ColumnReorder="true">
-        <Column TableItem="UiUser" Title="Action" Field="(x => x.DbId)" Sortable="false" Filterable="false">
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("action"))" Field="(x => x.DbId)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     @if(context.isInternal())
                     {
-                        <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
+                        <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
                     }
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                     @if(context.isInternal())
                     {
-                        <button class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">Reset Password</button>
+                        <button class="btn btn-sm btn-info" @onclick="() => RequestResetPassword(context)">@(userConfig.GetText("reset_password"))</button>
                     }
                 </div>
             </Template>
         </Column>
-        <Column TableItem="UiUser" Title="Name" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Tenant" Field="@(x => x.Tenant.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Email" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Language" Field="@(x => x.Language)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Last Login" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Last Pwd Change" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="Pwd Chg Req" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("email"))" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("language"))" Field="@(x => x.Language)" Sortable="true" Filterable="true" >
+            <Template>
+                @((context.Language != null && context.Language != "") ? userConfig.GetText(context.Language) : "" )
+            </Template>
+        </Column>
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("last_login"))" Field="@(x => x.LastLogin)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("last_pw_change"))" Field="@(x => x.LastPasswordChange)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("pwd_chg_req"))" Field="@(x => x.PasswordMustBeChanged)" Sortable="true" Filterable="true" >
+            <Template>
+                @(GlobalConfig.ShowBool(context.PasswordMustBeChanged))
+            </Template>
+        </Column>
     </Table>
 </div>
 
-<PopUp Title="Edit User" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_user"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
             <form>
                 <div class="form-group row">
-                    <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">Name:</label>
+                    <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                     <label class="m-2">@actUser.Name</label>
                 </div>
                 <div class="form-group row">
-                    <label for="userTenant" class="col-sm-2 col-form-label col-form-label-sm">Tenant:</label>
+                    <label for="userTenant" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     <label class="m-2">@actUser.Tenant.Name</label>
                 </div>
                 <div class="form-group row">
@@ -82,14 +91,14 @@
                 @if (AddMode)
                 {
                     <div class="form-group row">
-                        <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">Password*:</label>
+                        <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
                         <div class="col-sm-8">
                             <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
                         </div>
                     </div>
                 }
                 <div class="form-group row">
-                    <label for="userEmail" class="col-sm-2 col-form-label col-form-label-sm">Email:</label>
+                    <label for="userEmail" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
                     <div class="col-sm-8">
                         <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
                     </div>
@@ -100,14 +109,19 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-primary" @onclick="() => Save()">Save</button>
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="Delete" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+<PopUp Title="@(userConfig.GetText("delete_user"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
     <Body>
         @if (DeleteMode)
         {
@@ -117,24 +131,29 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-danger" @onclick="() => Delete()">Delete</button>
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="() => Delete()">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="Reset Password" Show="@ResetPasswordMode" Large="true" OnClose="() => ResetPasswordMode = false">
+<PopUp Title="@(userConfig.GetText("reset_password"))" Show="@ResetPasswordMode" Large="true" OnClose="() => ResetPasswordMode = false">
     <Body>
         @if (ResetPasswordMode)
         {
-            <form>
+            <form onsubmit="return false">
                 <div class="form-group row">
-                    <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">Name:</label>
+                    <label for="userName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
                     <label class="m-2">@actUser.Name</label>
                 </div>
                 <div class="form-group row">
-                    <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">Password*:</label>
+                    <label for="userPassword" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
                     <div class="col-sm-8">
                         <input id="userPassword" type="password" class="form-control form-control-sm" @bind="actUser.Password" />
                     </div>
@@ -145,14 +164,19 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">Set</button>
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="() => ResetPassword()">@(userConfig.GetText("set"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("set"))</button>
+                </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="Remove Sample Data" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
+<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@SampleRemoveMode" OnClose="() => SampleRemoveMode = false">
     <Body>
         @if (SampleRemoveMode)
         {
@@ -164,10 +188,15 @@
             @if (SampleRemoveAllowed)
             {
                 <AuthorizeView Roles="admin">
-                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">Delete</button>
+                    <Authorized>
+                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                    </NotAuthorized> 
                 </AuthorizeView>
             }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -210,7 +239,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "UI User", "Error while fetching LDAP connections from API", false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), null, true);
         }
 
         // Get all users from internal ldap
@@ -220,7 +249,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "UI User", "Error while fetching users from internal LDAP", false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), null, true);
         }
 
         // Get users from uiusers table
@@ -231,7 +260,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "UI User", "Error while fetching users from API", false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_local"), null, true);
         }
 
         // Get the tenants
@@ -241,7 +270,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "UI User", "Error while fetching tenants from API", false);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), null, true);
         }
 
         // Synchronize both
@@ -261,14 +290,7 @@
                 if (relatedUiUser.Email != ldapUser.Email)
                 {
                     relatedUiUser.Email = ldapUser.Email;
-                    try
-                    {
-                        await updateUserInDb(relatedUiUser);
-                    }
-                    catch (System.Exception exception)
-                    {
-                        DisplayMessageInUi(exception, "UI User", "Error while updating user data via API", false);
-                    }
+                    await updateUserInDb(relatedUiUser);
                 }
             }
             else
@@ -276,14 +298,7 @@
                 // Add new user to UiUsers table
                 ldapUser.setNamesFromDn();
                 ldapUser.PasswordMustBeChanged = false;
-                try
-                {
-                    await addUserToDb(ldapUser);
-                }
-                catch (System.Exception exception)
-                {
-                    DisplayMessageInUi(exception, "UI User", "Error while adding user data via API", false);
-                }
+                await addUserToDb(ldapUser);
                 uiUsers.Add(ldapUser);
             }
         }
@@ -308,7 +323,7 @@
         UiLdapConnection internalLdap = connectedLdaps.Find(x => (new DistName(x.UserSearchPath)).IsInternal());
         if (internalLdap == null)
         {
-            DisplayMessageInUi(null, "UI User", "No internal Ldap found.", true);
+            DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5207"), true);
             return;
         }
 
@@ -316,7 +331,7 @@
         MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Address, "", userConfig.User.Jwt);
         if (usersMiddlewareResponse.Status == HttpStatusCode.BadRequest)
         {
-            DisplayMessageInUi(null, "UI User", "No users found.", true);
+            DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
         }
         else
         {
@@ -341,7 +356,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Update User Error", $"User {user.Name} could not be updated in database.", false);
+            DisplayMessageInUi(exception, userConfig.GetText("update_user_local"), null, false);
         }
     }
 
@@ -363,7 +378,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Add User Error", $"User {user.Name} could not be added.", false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_local"), null, false);
         }
     }
 
@@ -400,15 +415,15 @@
                 actUser.setNamesFromDn();
                 if (actUser.Dn == null || actUser.Dn == "" || actUser.Password == null || actUser.Password == "")
                 {
-                    DisplayMessageInUi(null, "Add User Error", "Dn and Password have to be filled", true);
+                    DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
                 }
                 else if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
                 {
-                    DisplayMessageInUi(null, "Add User Error", errorMsg, true);
+                    DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
                 }
                 else if (!tenants.Exists(x => x.Name == actUser.Tenant.Name))
                 {
-                    DisplayMessageInUi(null, "Add User Error", "Unknown tenant", true);
+                    DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
                 }
                 else
                 {
@@ -416,7 +431,7 @@
                     MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUser(actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
                     if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userAdded") == false)
                     {
-                        DisplayMessageInUi(null, "Add User Error", "No user could be added", true);
+                        DisplayMessageInUi(null, userConfig.GetText("add_user_ldap"), userConfig.GetText("E5213"), true);
                     }
                     else
                     {
@@ -434,7 +449,7 @@
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateUser(actUser.Dn, actUser.Email, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userUpdated") == false)
                 {
-                    DisplayMessageInUi(null, "Add User Error", "User could not be updated", true);
+                    DisplayMessageInUi(null, userConfig.GetText("update_user_ldap"), userConfig.GetText("E5214"), true);
                 }
                 else
                 {
@@ -446,7 +461,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Save User in Ldap", $"Error: {exception.Message}", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_user"), null, true);
         }
     }
 
@@ -455,14 +470,14 @@
         actUser = user;
         if (actUser.Dn == userConfig.User.Dn)
         {
-            DisplayMessageInUi(null, "Delete LDAP user", $"Self deletion of user {actUser.Name} not allowed.", true);
+            DisplayMessageInUi(null, userConfig.GetText("delete_user_ldap"), userConfig.GetText("E5215"), true);
         }
         else
         {
-            deleteMessage = $"Are you sure you want to delete user {actUser.Name}?";
+            deleteMessage = userConfig.GetText("U5201") + actUser.Name + "?";
             if (!actUser.isInternal())
             {
-                deleteMessage += " Users from external Ldaps are only deleted locally.";
+                deleteMessage += userConfig.GetText("U5202");
             }
             DeleteMode = true;
         }
@@ -476,7 +491,7 @@
             MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteUser(actUser.Dn, userConfig.User.Jwt);
             if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
             {
-                DisplayMessageInUi(null, "Delete LDAP user", "User could not be deleted", true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_user_ldap"), userConfig.GetText("E5216"), true);
             }
             else
             {
@@ -486,7 +501,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Delete LDAP user", $"User could not be deleted: {exception}", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user_ldap"), null, true);
         }
     }
 
@@ -503,7 +518,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Delete UIUser", $"Exception occurred: {exception.Message}", false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user_local"), null, false);
         }
     }
 
@@ -511,7 +526,7 @@
     {
         if(!(new DistName(user.Dn)).IsInternal())
         {
-            DisplayMessageInUi(null, "Reset Password", "Password can only be reset for internal users", true);
+            DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5217"), true);
         }
         else
         {
@@ -527,25 +542,25 @@
             string errorMsg;
             if (actUser.Password == null || actUser.Password == "")
             {
-                DisplayMessageInUi(null, "Reset Password Error", "Password has to be filled", true);
+                DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
             }
             else if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
             {
-                DisplayMessageInUi(null, "Reset Password Error", errorMsg, true);
+                DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
             }
             else
             {
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.SetPassword(actUser.Dn, actUser.Password, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
                 {
-                    DisplayMessageInUi(null, "Reset Password Error", "Password could not be updated", true);
+                    DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
                 }
                 else
                 {
                     errorMsg = apiAuthResponse.GetResult<string>("errorMsg");
                     if(errorMsg != "")
                     {
-                        DisplayMessageInUi(null, "Reset Password Error", errorMsg, true);
+                        DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
                     }
                 }
                 ResetPasswordMode = false;
@@ -553,7 +568,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Reset Password", "Unexpected error occured:", true);
+            DisplayMessageInUi(exception, userConfig.GetText("reset_password"), null, true);
         }
     }
 
@@ -561,12 +576,12 @@
     {
         if (sampleUsers.Exists(user => user.DbId == userConfig.User.DbId))
         {
-            sampleRemoveMessage = $"You are logged in as sample user. Delete not possible.";
+            sampleRemoveMessage = userConfig.GetText("E5220");
             SampleRemoveAllowed = false;
         }
         else
         {
-            sampleRemoveMessage = $"Deletes all sample users (ending with '_demo') in local LDAP.";
+            sampleRemoveMessage = userConfig.GetText("U5203");
             SampleRemoveAllowed = true;
         }
         SampleRemoveMode = true;
@@ -582,7 +597,7 @@
                 MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromAllEntries(user.Dn, userConfig.User.Jwt);
                 if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("userRemoved") == false)
                 {
-                    DisplayMessageInUi(null, "Remove user from all roles and groups", "User could not be removed", true);
+                    DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
                     showSampleRemoveButton = true;
                 }
                 else
@@ -593,7 +608,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, "Delete sample user", "Unexpected error occured", false);
+                DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), null, false);
             }
         }
         SampleRemoveMode = false;

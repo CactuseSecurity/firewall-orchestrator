@@ -1,49 +1,56 @@
-﻿<nav class="sidebar sidebar-expand-sm sidebar-dark bg-dark shadow w-100">
+﻿@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<nav class="sidebar sidebar-expand-sm sidebar-dark bg-dark shadow w-100">
     <div class="sidebar-main d-flex flex-row" style="left: 0px;">
-        <div class="sidebar-dark bg-dark" style="width: 200px overflow-x: scroll">
+        <div class="sidebar-dark bg-dark" style="width: 250px overflow-x: scroll">
             <ul class="sidebar-nav mr-auto">
-                <h5>Devices</h5>
+                <p></p>
+                <h5>@(userConfig.GetText("devices"))</h5>
                 <a class="nav-link" href="/help/settings/managements">
-                    <span class="oi oi-inbox"></span> Managements
+                    <span class="oi oi-inbox"></span> @(userConfig.GetText("managements"))
                 </a>
                 <a class="nav-link" href="/help/settings/gateways">
-                    <span class="oi oi-shield"></span> Gateways
+                    <span class="oi oi-shield"></span> @(userConfig.GetText("gateways"))
                 </a>
                 <a class="nav-link" href="/help/settings/import">
-                    <span class="oi oi-data-transfer-download"></span> Import
+                    <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_status"))
                 </a>
-                <h5>Authorization</h5>
+                <h5>@(userConfig.GetText("authorization"))</h5>
                 <a class="nav-link" href="/help/settings/ldap">
-                    <span class="oi oi-key"></span> LDAP
+                    <span class="oi oi-key"></span> @(userConfig.GetText("ldap_conns"))
                 </a>
                 <a class="nav-link" href="/help/settings/tenants">
-                    <span class="oi oi-command"></span> Tenants
+                    <span class="oi oi-command"></span> @(userConfig.GetText("tenants"))
                 </a>
                 <a class="nav-link" href="/help/settings/users">
-                    <span class="oi oi-person"></span> Users
+                    <span class="oi oi-person"></span> @(userConfig.GetText("users"))
                 </a>
                 <a class="nav-link" href="/help/settings/groups">
-                    <span class="oi oi-people"></span> Groups
+                    <span class="oi oi-people"></span> @(userConfig.GetText("groups"))
                 </a>
                 <a class="nav-link" href="/help/settings/roles">
-                    <span class="oi oi-tags"></span> Roles
+                    <span class="oi oi-tags"></span> @(userConfig.GetText("roles"))
                 </a>
-                <h5>Defaults</h5>
+                <h5>@(userConfig.GetText("defaults"))</h5>
                 <a class="nav-link" href="/help/settings/defaults">
-                    <span class="oi oi-cog"></span> Defaults
+                    <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
                 </a>
                 <a class="nav-link" href="/help/settings/passwordpolicy">
-                    <span class="oi oi-document"></span> Password Policy
+                    <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
                 </a>
-                <h5>Personal</h5>
+                <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/settings/password">
-                    <span class="oi oi-account-login"></span> Password
+                    <span class="oi oi-account-login"></span> @(userConfig.GetText("password"))
                 </a>
                 <a class="nav-link" href="/help/settings/language">
-                    <span class="oi oi-comment-square"></span> Language
+                    <span class="oi oi-comment-square"></span> @(userConfig.GetText("language"))
                 </a>
                 <a class="nav-link" href="/help/settings/report">
-                    <span class="oi oi-list"></span> Reporting
+                    <span class="oi oi-list"></span> @(userConfig.GetText("reporting"))
+                </a>
+                <a class="nav-link" href="/help/settings/recertification">
+                    <span class="oi oi-badge"></span> @(userConfig.GetText("recertification"))
                 </a>
             </ul>
         </div>

@@ -12,6 +12,7 @@
       ignore_errors: yes
   tags:
     - frontend
+    - importer
 
 - hosts: all
   tasks:
@@ -70,7 +71,6 @@
     # do not install lib role twice (for non distributed install, already installed for middlewareserver)
     - { role: lib, when: "'middlewareserver' not in group_names and not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
-    - { role: frontend-php, when: "ui_php is defined and not installation_mode == 'uninstall'"}
   tags:
     - frontend
     - csharp
@@ -89,6 +89,7 @@
   tags:
     - samples
     - backend
+    - importer
 
 - hosts: middlewareserver
   roles:
@@ -108,6 +109,7 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
+    - importer
 
 - hosts: all
   roles:
@@ -115,6 +117,7 @@
   tags:
     - backend
     - frontend
+    - importer
 
 - hosts: frontends
   tasks:

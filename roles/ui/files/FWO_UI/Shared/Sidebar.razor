@@ -55,9 +55,6 @@
     [Parameter]
     public int Width { get; set; }
 
-    [Parameter]
-    public int InitialWidth { get; set; } = 300;
-
     private bool Collapsed = false;
 
     [CascadingParameter]
@@ -69,15 +66,6 @@
 
     private string minMaxButtonSymbol = "collapse-right";
     private string overflowSidebar = "scroll";
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Width = InitialWidth;
-            AdjustSidebarOverflow();
-        }
-    }
 
     private void ResizeStart(DragEventArgs dragArgs)
     {
@@ -106,24 +94,32 @@
 
     private void MinMaxSidebar()
     {
-        if (Collapsed)
+        ToggleCollapse(!Collapsed);
+    }
+
+    public void ToggleCollapse(bool collapse)
+    {
+        if (Collapsed != collapse)
         {
-            minMaxButtonSymbol = "collapse-right";
+            if (collapse)
+            {
+                minMaxButtonSymbol = "collapse-left";
 
-            Width = WidthBeforeMinimize;
-            WidthChanged.InvokeAsync(Width);
+                WidthBeforeMinimize = Width;
+                Width = 0;
+                WidthChanged.InvokeAsync(Width);
+            }
+            else
+            {
+                minMaxButtonSymbol = "collapse-right";
+
+                Width = WidthBeforeMinimize;
+                WidthChanged.InvokeAsync(Width);
+            }
+
+            Collapsed = !Collapsed;
+            AdjustSidebarOverflow();
         }
-        else
-        {
-            minMaxButtonSymbol = "collapse-left";
-
-            WidthBeforeMinimize = Width;
-            Width = 0;
-            WidthChanged.InvokeAsync(Width);
-        }
-
-        Collapsed = !Collapsed;
-        AdjustSidebarOverflow();
     }
 
     private void AdjustSidebarOverflow()

@@ -9,84 +9,123 @@
     }
 }
 
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
 <div class="p-2">
-    <h2>Help</h2>
-    Firewall Orchestrator is an application to create and administrate different reports out of configuration data of distributed firewall systems.<br>
-    The data is imported directly via APIs from the connected systems. There are several possibilities to customize the report creation by filters, templates and scheduling.
-    The reports can be exported in different output formats. Firewall Orchestrator has an internal user management, but is also able to connect to external user management systems.
+    <h2>@userConfig.GetText("help")</h2>
+    @(userConfig.GetText("H0001"))
+   
     <ul class="navbar-nav mr-auto">
         <li class="nav-item px-2">
-            <a href="/help/reporting">Reporting</a>
+            <a href="/help/reporting">@userConfig.GetText("reporting")</a>
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item px-2">
-                    <a href="/help/reporting/filter">Filter Syntax</a>
+                    <a href="/help/reporting/filter">@userConfig.GetText("filter_syntax")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/reporting/templates">Templates</a>
+                    <a href="/help/reporting/templates">@userConfig.GetText("templates")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/reporting/export">Export</a>
+                    <a href="/help/reporting/export">@userConfig.GetText("export")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/reporting/output">Report Data Output</a>
+                    <a href="/help/reporting/output">@userConfig.GetText("report_data_output")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/reporting/leftside">Left Sidebar</a>
+                    <a href="/help/reporting/leftside">@userConfig.GetText("left_sidebar")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/reporting/rightside">Right Sidebar</a>
+                    <a href="/help/reporting/rightside">@userConfig.GetText("right_sidebar")</a>
                 </li>
             </ul>
         </li>
         <li class="nav-item px-2">
-            <a href="/help/scheduling">Scheduling</a>
+            <a href="/help/scheduling">@userConfig.GetText("scheduling")</a>
         </li>
         <li class="nav-item px-2">
-            <a href="/help/archive">Archive</a>
+            <a href="/help/archive">@userConfig.GetText("archive")</a>
         </li>
         <li class="nav-item px-2">
-            <a href="/help/settings">Settings</a>
+            <a href="/help/recertification">@userConfig.GetText("recertification")</a>
+        </li>
+        <li class="nav-item px-2">
+            <a href="/help/settings">@userConfig.GetText("settings")</a>
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item px-2">
-                    <a href="/help/settings/managements">Managements</a>
+                    <a href="/help/settings/managements">@userConfig.GetText("managements")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/gateways">Gateways</a>
+                    <a href="/help/settings/gateways">@userConfig.GetText("gateways")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/import">Import</a>
+                    <a href="/help/settings/import">@userConfig.GetText("import_status")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/ldap">Ldaps</a>
+                    <a href="/help/settings/ldap">@userConfig.GetText("ldap_conns")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/tenants">Tenants</a>
+                    <a href="/help/settings/tenants">@userConfig.GetText("tenants")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/users">Users</a>
+                    <a href="/help/settings/users">@userConfig.GetText("users")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/groups">Groups</a>
+                    <a href="/help/settings/groups">@userConfig.GetText("groups")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/roles">Roles</a>
+                    <a href="/help/settings/roles">@userConfig.GetText("roles")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/defaults">Defaults</a>
+                    <a href="/help/settings/defaults">@userConfig.GetText("defaults")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/passwordpolicy">Password Policy</a>
+                    <a href="/help/settings/passwordpolicy">@userConfig.GetText("password_policy")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/password">Password</a>
+                    <a href="/help/settings/password">@userConfig.GetText("password")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/language">Language</a>
+                    <a href="/help/settings/language">@userConfig.GetText("language")</a>
                 </li>
                 <li class="nav-item px-2">
-                    <a href="/help/settings/report">Reporting</a>
+                    <a href="/help/settings/report">@userConfig.GetText("report_settings")</a>
                 </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/recertification">@userConfig.GetText("recert_settings")</a>
+                </li>
+
             </ul>
+         <li class="nav-item px-2">
+            <a href="/help/API">@userConfig.GetText("api")</a>
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/API/introduction">@userConfig.GetText("introduction")</a>
+                <li class="nav-item px-2">
+                    <a href="/help/API/graphql">@userConfig.GetText("graphql")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/API/hasura">@userConfig.GetText("hasura")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/API/security">@userConfig.GetText("security")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/API/links">@userConfig.GetText("further_reading")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/API/login">@userConfig.GetText("login")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/API/logout">@userConfig.GetText("logout")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/API/query">@userConfig.GetText("query")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/API/mutation">@userConfig.GetText("mutation")</a>
+                </li>
+            </ul>            
         </li>
     </ul>
 </div>

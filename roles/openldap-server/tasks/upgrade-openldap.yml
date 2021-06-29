@@ -1,0 +1,51 @@
+
+  # install all upgrades between running version and version currently being installed
+
+- name: Add the OS specific varibles
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: create upgrade dir
+  file:
+    path: "{{ fworch_home }}/openldap/upgrade"
+    state: directory
+  become: yes
+ 
+- set_fact: 
+    installed_version: "{{ old_version }}"
+    current_version: "{{ product_version }}"
+    all_upgrades_available: "{{ lookup('fileglob', 'upgrade/*.ldif.j2') }}"
+    upgrade_files: []
+
+- name: set list of relevant upgrade files (without extension)
+  set_fact:
+    upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | splitext | first ] }}"
+  when: |
+    installed_version < item | basename | splitext | first | splitext | first
+    and
+    current_version >= item | basename | splitext | first | splitext | first
+  with_fileglob:
+    - "../templates/upgrade/*.ldif.j2"
+
+- name: copy the upgrade ldif templates to target
+  template:
+    src: "upgrade/{{ item }}.ldif.j2"
+    dest: "{{ fworch_home }}/openldap/upgrade/{{ item }}.ldif"
+  loop: "{{ upgrade_files }}"
+  become: yes
+
+- name: Stop the slapd service
+  systemd:
+    name: slapd
+    state: stopped
+  become: yes
+
+- name: install ldap upgrades
+  command: ldapmodify -H {{ openldap_url }} -D cn=config -y {{ fworch_home }}/etc/secrets/ldap_manager_pw.txt  -x -f {{ fworch_home }}/openldap/upgrade/{{ item }}.ldif
+  loop: "{{ upgrade_files | sort }}"
+  become: yes
+
+- name: Start the slapd service
+  systemd:
+    name: slapd
+    state: started
+  become: yes

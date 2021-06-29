@@ -39,6 +39,8 @@ namespace FWO.Report.Filter.Ast
             functions["Protocol"] = this.ExtractProtocolQuery;
             functions["Management"] = this.ExtractManagementQuery;
             functions["Gateway"] = this.ExtractGatewayQuery;
+            functions["Remove"] = this.ExtractRemoveQuery;
+            functions["RecertDisplay"] = this.ExtractRecertDisplay;
 
             // call the method matching the Name of the current node to build the graphQL query
             query = functions[Name.ToString()](query);
@@ -332,6 +334,35 @@ namespace FWO.Report.Filter.Ast
             query.ruleWhereStatement +=
                 " rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte" +
                 ": $" + QueryVarName + "}, svc_port_end: {_gte: $" + QueryVarName + "} } } } }";
+            return query;
+        }
+
+        private DynGraphqlQuery ExtractRemoveQuery(DynGraphqlQuery query)
+        {
+            string QueryVarName = "remove" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: Boolean ");
+            query.QueryVariables[QueryVarName] = $"{Value}";
+            query.ruleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ _eq: ${QueryVarName} }}}}";
+            return query;
+        }
+
+        private DynGraphqlQuery ExtractRecertDisplay(DynGraphqlQuery query)
+        {
+            string QueryVarName = "refdate" + query.parameterCounter++;
+            query.QueryParameters.Add($"${QueryVarName}: timestamp! ");
+            string refDate = DateTime.Now.AddDays(-Convert.ToInt16(Value)).ToString("yyyy-MM-dd HH:mm:ss");
+            query.QueryVariables[QueryVarName] = refDate;
+
+            query.ruleWhereStatement += $@"
+                _or: [
+                        {{ rule_metadatum: {{ rule_last_certified: {{ _lte: ${QueryVarName} }} }} }}
+                        {{ _and:[ 
+                                    {{ rule_metadatum: {{ rule_last_certified: {{ _is_null: true }} }} }}
+                                    {{ rule_metadatum: {{ rule_created: {{ _lte: ${QueryVarName} }} }} }}
+                                ]
+                        }}
+                    ]";
             return query;
         }
 

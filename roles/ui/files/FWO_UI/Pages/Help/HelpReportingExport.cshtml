@@ -7,14 +7,14 @@
         await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Export Reports</h3>
-    Reports can be exported to different output formats.
+    <h3>@userConfig.GetText("export_report")</h3>
+    @(Html.Raw(userConfig.GetText("H1301")))
     <ul>
-        <li>pdf</li>
-        <li>html</li>
-        <li>csv</li>
-        <li>json</li>
+        @(Html.Raw(userConfig.GetText("H1302")))
     </ul>
+    @(Html.Raw(userConfig.GetText("H1303")))
 </div>

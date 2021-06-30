@@ -7,8 +7,10 @@
         await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Left Sidebar</h3>
-    Here all available devices are displayed. For the creation of a report a selection out of them has to be done.
+    <h3>@userConfig.GetText("left_sidebar")</h3>
+    @(Html.Raw(userConfig.GetText("H1501")))
 </div>

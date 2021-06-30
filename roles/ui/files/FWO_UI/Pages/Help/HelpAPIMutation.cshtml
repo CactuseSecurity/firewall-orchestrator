@@ -7,11 +7,14 @@
         await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Mutation</h3>
-    
-The following mutation (does not work yet) sets the language of user with id 1 to German.
+    <h3>@userConfig.GetText("sample_mutation")</h3>
+    @(Html.Raw(userConfig.GetText("H6801")))
+    <br>
+
 <pre>
 curl --insecure --request POST \
         --url https://localhost:9443/api/v1/graphql \

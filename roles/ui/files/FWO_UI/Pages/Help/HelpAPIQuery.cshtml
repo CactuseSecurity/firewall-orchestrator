@@ -7,11 +7,14 @@
         await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Sample Queries</h3>
+    <h3>@userConfig.GetText("sample_queries")</h3>
     <br>
-    <h4>Get the names of all firewall managements using admin access</h4>
+
+    <h4>@userConfig.GetText("get_with_admin")</h4>
     <pre>
 curl --insecure --request POST \
     --url https://localhost:9443/api/v1/graphql \
@@ -21,9 +24,9 @@ curl --insecure --request POST \
     --data '{"query":"query { management {mgm_name} }"}'
     </pre>
 
-    <h4>Get the names of all firewall managements using standard JWT access</h4>
-    Note that the query will not work as the sample JWT is not valid anymore.
-    <br>
+    <h4>@userConfig.GetText("get_with_jwt")</h4>
+    @(Html.Raw(userConfig.GetText("H6701")))
+    <br><br>
     <pre>
 curl --insecure --request POST \
     --url https://localhost:9443/api/v1/graphql \
@@ -32,12 +35,14 @@ curl --insecure --request POST \
     --data '{"query":"query { management {mgm_name} }"}'
     </pre>
     <br>
-    Result on a system with demo data:
+    @(Html.Raw(userConfig.GetText("H6702")))
+    <br>
     <code>{"data":{"management":[{"mgm_name":"sting-mgmt2"}, {"mgm_name":"checkpoint_demo"}, {"mgm_name":"fortigate_demo"}]}}</code>
 <br><br>
-    <h4>Get the names of all firewall managements using standard JWT access and specifying a certain role</h4>
-    Note that the query will not work as the sample JWT is not valid anymore.
-    <br>
+
+    <h4>@userConfig.GetText("get_with_jwt_role")</h4>
+    @(Html.Raw(userConfig.GetText("H6701")))
+    <br><br>
     <pre>
 curl --insecure --request POST \
     --url https://localhost:9443/api/v1/graphql \

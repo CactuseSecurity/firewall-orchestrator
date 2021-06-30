@@ -7,12 +7,10 @@
         await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Security</h3>
-    Login to the API is controlled by providing standard username password credentials which
-    results in the generation of a JSON Web Token (JWT). The JWT can be used for a limited time (default = 2 hours)
-    to access the API afterwards. After that time period (independant of activity) you need to login again, as the JWT is no longer considered valid.<br><br>
-    You may use the same credentials you also use for accessing the web user interface and will 
-    have the same restrictions and views based on the role based access model.<br>
+    <h3>@userConfig.GetText("security")</h3>
+    @(Html.Raw(userConfig.GetText("H6301")))
 </div>

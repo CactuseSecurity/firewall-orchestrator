@@ -7,23 +7,21 @@
         await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Gateways</h3>
-    Admins can create and administrate several different gateways.<br>
-    The clone button helps defining new gateways by copying the data from existing ones.
-    Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.<br>
-    Parameters:
+    <h3>@userConfig.GetText("gateways")</h3>
+    @(Html.Raw(userConfig.GetText("H5141")))
+    <br><br>
+    @userConfig.GetText("parameters"):
     <ul>
-        <li>Name*: Name of the Gateway. For Fortinet this must be the real name of the firewall gateway as defined in the config.</li>
-        <li>Comment: Optional comment regarding this gateway.</li>
-        <li>Device Type*: Out of a list of available types. For a list of available device types see 
-            <a href="/help/settings/managements">management settings help</a></li>
-        <li>Management*: Select the management system that controls this gateway. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page</li>
-        <li>Rulebase*: Enter the name of the rulebase here. 
-            For Check Point R8x the top level access layer name goes here (default is "Network").
-            For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
-        <li>Import Disabled: Flag if the data import is disabled</li>
-        <li>Hide in UI: If set, this management is not visible to the standard reporter role.</li>
+        <li>@(Html.Raw(userConfig.GetText("H5151")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5152")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5153")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5154")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5155")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5156")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5157")))</li>
     </ul>
 </div>

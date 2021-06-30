@@ -7,15 +7,13 @@
         await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Right Sidebar</h3>
-    There are two Tabs shown in the right sidebar: The "All" tab displays all currently fetched objects,
-    while in the "Rule" tab only the objects of a rule selected in the report output are shown.
-    The following data are displayed grouped by the selected devices:
+    <h3>@userConfig.GetText("right_sidebar")</h3>
+    @(Html.Raw(userConfig.GetText("H1601")))
     <ul>
-        <li>Network objects</li>
-        <li>Services</li>
-        <li>Users</li>
+        @(Html.Raw(userConfig.GetText("H1602")))
     </ul>
 </div>

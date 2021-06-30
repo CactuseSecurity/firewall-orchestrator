@@ -7,8 +7,10 @@
         await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Logout</h3>
-        There is no logout functionality. When the JWT becomes invalid, API simply can no longer be made with this JWT.
+    <h3>@userConfig.GetText("logout")</h3>
+    @(Html.Raw(userConfig.GetText("H6601")))
 </div>

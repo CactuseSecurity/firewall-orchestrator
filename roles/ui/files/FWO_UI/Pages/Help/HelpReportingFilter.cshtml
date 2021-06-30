@@ -7,82 +7,30 @@
         await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Filter Syntax</h3>
+    <h3>@userConfig.GetText("filter_syntax")</h3>
     <ul>
-        <li> All filtering is case insensitive.</li>
-        <li>
-            There are multiple variants for most keywords, e.g. DestinationPort filters can be written as:
-            port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port
-        </li>
-        <li> All filter statements must be logically combined using either: and, or, not.</li>
-        <li> Brackets can be used for structuring the filter statement.</li>
-        <li> Quotation marks (") can be used optionally for the value definition. If there are white spaces in the value (e.g. for date/time values) the quotation marks have to be used.</li>
-        <li> A gateway has to be selected. This can be done manually or via the left sidebar, from where the selection is automatically integrated to the filter.</li>
-        <li> No IP address (CIDR) filtering yet.</li>
-        <li> Time filtering (due to a logical glitch) currently only works for points in time before the last import that found a config change. </li>
-        <li>
-            Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
-            There is currently no option to only search at the rule top-level.
-        </li>
+        @(Html.Raw(userConfig.GetText("H1101")))
     </ul>
-    <h4>Keywords (alternative spellings in brackets)</h4>
+    <h4>@userConfig.GetText("keywords")</h4>
     <ul>
-        <li>reporttype (type): Possible Values: statistics, rules, changes</li>
-        <li>time: Possible Values/Formats: now, last month, this month, last year, this year, YYYYMMDD, YYYYMMDD HHMMSS, ...</li>
-        <li>gateway (gw, firewall, fw, device, dev): can be selected on left sidebar or typed manually</li>
-        <li>management (mgmt, manager, mgm, mgr)</li>
-        <li>source (src)</li>
-        <li>destination (dst, dest)</li>
-        <li>service (svc, srv)</li>
-        <li>protocol (proto)</li>
-        <li>destinationport (port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port)</li>
-        <li>action (act, enforce)</li>
-        <li>remove: Possible Values: true/false. If 'true', only decertified rules are searched</li>
-        <li>recertdisplay (recertdisp): Defines the lookahead period (in days) for next recertification. Only rules in this time range are searched.</li>
-        <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
+        @(Html.Raw(userConfig.GetText("H1111")))
     </ul>
-    <h4>Operators</h4>
+    <h4>@userConfig.GetText("operators")</h4>
     <ul>
-        <li>and (&)</li>
-        <li>or (|)</li>
-        <li>not (!)</li>
-        <li>eq (=, :)</li>
-        <li>neq</li>
-        <li>(</li>
-        <li>)</li>
+        @(Html.Raw(userConfig.GetText("H1131")))
     </ul>
-    <h4>Examples</h4>
+    <h4>@userConfig.GetText("examples")</h4>
     <ul>
-        <li> full text searches</li>
-        <ul>
-            <li>cactus - searches the fields "source, destination, service" for the string "cactus".</li>
-            <li>fulltext=cactus - same as above</li>
-        </ul>
+        @(Html.Raw(userConfig.GetText("H1141")))
 
-        <li> time searches</li>
-        <ul>
-            <li> If you do not enter a time statement, the current config status is displayed.</li>
-            <li>time="2020-11-23" - searches at midnight.</li>
-            <li>time="2020-11-23 09:29" - searches at a specific time.</li>
-        </ul>
+        @(Html.Raw(userConfig.GetText("H1142")))
 
-        <li> Specific rule content searches</li>
-        <ul>
-            <li>src=cactus</li>
-            <li>src=subnet</li>
-            <li>dst=daba</li>
-            <li>svc=valve_udp</li>
-            <li>action=accept</li>
-            <li>not action=drop</li>
-        </ul>
+        @(Html.Raw(userConfig.GetText("H1143")))
 
-        <li> filter for gateways or managements</li>
-        <ul>
-            <li>gateway=forti and src=cactus</li>
-            <li>gateway=forti or gateway=check</li>
-            <li>not gateway=check</li>
-        </ul>
+        @(Html.Raw(userConfig.GetText("H1144")))
     </ul>
 </div>

@@ -7,16 +7,19 @@
         await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>GraphQL</h3>
-    GraphQL uses a slightly different approach as REST, not defining fixed entry points to the API.
-    Instead you are free to use a custom query specifying exactly which level of detail you want to return each time.<br>
+    <h3>@userConfig.GetText("graphql")</h3>
+    @(Html.Raw(userConfig.GetText("H6101")))
     <br>
-    <h4>Admin Access</h4>
-    GraphQL provides you with an interactive web user interface that can be used to construct and test queries as well as mutations.<br>
-    It can be accesses via the following link: <code>https://&lt;name of your firewall orchestrator instance&gt;:9443/api/</code>.<br>
     <br>
-    Note that the admin secret can be found on the API server in following file:<br>
+    <h4>@userConfig.GetText("admin_access")</h4>
+    @(Html.Raw(userConfig.GetText("H6102")))
+    <br>
+    <br>
+    @(Html.Raw(userConfig.GetText("H6103")))
+    <br>
     <pre>/etc/fworch/secrets/hasura_admin_pwd</pre>
 </div>

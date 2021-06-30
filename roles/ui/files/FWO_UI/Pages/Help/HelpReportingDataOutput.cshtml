@@ -7,25 +7,13 @@
         await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Report Data Output</h3>
-    In the lower part of the main page the output data of the generated report is displayed.
-    Unwanted columns can be removed by clicking on the respective "-" button. 
-    If diplayed the columns can be used for sorting or filtering.
-    The available data columns are:
+    <h3>@userConfig.GetText("report_data_output")</h3>
+    @(Html.Raw(userConfig.GetText("H1401")))
     <ul>
-        <li>Number</li>
-        <li>Name</li>
-        <li>Source Zone</li>
-        <li>Source</li>
-        <li>Destination Zone</li>
-        <li>Destination</li>
-        <li>Services</li>
-        <li>Action</li>
-        <li>Track</li>
-        <li>Enabled</li>
-        <li>UID</li>
-        <li>Comment</li>
+        @(Html.Raw(userConfig.GetText("H1402")))
     </ul>
 </div>

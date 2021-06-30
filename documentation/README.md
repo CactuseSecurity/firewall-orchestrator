@@ -1,9 +1,7 @@
 # Documentation Firewall Orchestrator
 
 ## architecture
-
-###
-Edit architecture diagram at https://xfer.cactus.de/index.php/f/18376
+[architecture diagram in draw.io format](fworch-architecture.xml)
 
 ## Product port list
 

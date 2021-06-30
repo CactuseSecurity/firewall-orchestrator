@@ -7,9 +7,10 @@
         await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Hasura</h3>
-    <a href="https://hasura.io/" target="_blank">Hasura</a> provides the link to the underlying PostgreSQL database.<br>
-    It implements the access control layer and could also provide a REST API interface if need be.
+    <h3>@userConfig.GetText("hasura")</h3>
+    @(Html.Raw(userConfig.GetText("H6201")))
 </div>

@@ -735,10 +735,28 @@ INSERT INTO txt VALUES ('further_reading',      'German', 	'Weiterf&uuml;hrendes
 INSERT INTO txt VALUES ('further_reading',      'English', 	'Further reading');
 INSERT INTO txt VALUES ('basic_commands',       'German', 	'Wichtige Kommandos');
 INSERT INTO txt VALUES ('basic_commands',       'English', 	'Basic Commands');
-INSERT INTO txt VALUES ('query',                'German', 	'Wichtige Querys');
-INSERT INTO txt VALUES ('query',                'English', 	'Basic Query');
-INSERT INTO txt VALUES ('mutation',             'German', 	'Wichtige Mutation');
-INSERT INTO txt VALUES ('mutation',             'English', 	'Basic Mutation');
+INSERT INTO txt VALUES ('sample_queries',       'German', 	'Beispiel-Querys');
+INSERT INTO txt VALUES ('sample_queries',       'English', 	'Sample Queries');
+INSERT INTO txt VALUES ('sample_mutation',      'German', 	'Beispiel-Mutation');
+INSERT INTO txt VALUES ('sample_mutation',      'English', 	'Sample Mutation');
+INSERT INTO txt VALUES ('admin_access',         'German', 	'Admin-Zugang');
+INSERT INTO txt VALUES ('admin_access',         'English', 	'Admin Access');
+INSERT INTO txt VALUES ('keywords',             'German', 	'Schl&uuml;sselw&ouml;rter (alternative Schreibweisen in Klammern)');
+INSERT INTO txt VALUES ('keywords',             'English', 	'Keywords (alternative spellings in brackets)');
+INSERT INTO txt VALUES ('operators',            'German', 	'Operatoren');
+INSERT INTO txt VALUES ('operators',            'English', 	'Operators');
+INSERT INTO txt VALUES ('examples',             'German', 	'Beispiele');
+INSERT INTO txt VALUES ('examples',             'English', 	'Examples');
+INSERT INTO txt VALUES ('jwt_corr_login',       'German', 	'JWT nach korrekter Anmeldung');
+INSERT INTO txt VALUES ('jwt_corr_login',       'English', 	'Get JWT with correct login');
+INSERT INTO txt VALUES ('err_incorr_login',     'German', 	'Fehler nach inkorrekter Anmeldung');
+INSERT INTO txt VALUES ('err_incorr_login',     'English', 	'Error with incorrect login');
+INSERT INTO txt VALUES ('get_with_admin',       'German', 	'Holen der Namen aller Firewall-Managements mit Admin-Zugang');
+INSERT INTO txt VALUES ('get_with_admin',       'English', 	'Get the names of all firewall managements using admin access');
+INSERT INTO txt VALUES ('get_with_jwt',         'German', 	'Holen der Namen aller Firewall-Managements mit Standard-JWT-Zugang');
+INSERT INTO txt VALUES ('get_with_jwt',         'English', 	'Get the names of all firewall managements using standard JWT access');
+INSERT INTO txt VALUES ('get_with_jwt_role',    'German', 	'Holen der Namen aller Firewall-Managements mit Standard-JWT-Zugang und spezifischer Rolle');
+INSERT INTO txt VALUES ('get_with_jwt_role',    'English', 	'Get the names of all firewall managements using standard JWT access and specifying a certain role');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1064,6 +1082,152 @@ INSERT INTO txt VALUES ('H1001', 'English', 'The first input line is the filter 
     In the <a href="/help/reporting/rightside">Right Sidebar</a> details about the selected objects are given.<br>
     The report can be <a href="/help/reporting/export">exported</a> to different output formats.
 ');
+INSERT INTO txt VALUES ('H1101', 'German',  '<li> Alle Filter sind schreibungsunabh&auml;ngig.</li>
+    <li> Es gibt verschiedene Varianten f&uuml;r die meisten Schl&uuml;sselw&ouml;rter, z.B. k&ouml;nnen DestinationPort-Filter geschrieben werden als:
+        port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port</li>
+    <li> Alle Filterausdr&uuml;cke m&uuml;ssen logisch mit den Operatoren: and, or, not miteinander kombiniert werden.</li>
+    <li> Klammern k&ouml;nnen genutzt werden, um die Filterausdr&uuml;cke zu strukturieren.</li>
+    <li> Anf&uuml;hrungszeichen (") k&ouml;nnen optional f&uuml;r Wertdefinitionen genutzt werden. Wenn Leerzeichen im Wert vorkommen (z.B. f&uuml;r Datum/Zeit-Werte), m&uuml;ssen sie genutzt werden.</li>
+    <li> Ein Gateway muss ausgew&auml;hlt werden. Dies kann manuell oder &uuml;ber die linke Randleiste, von wo die Auswahl automatisch in den Filter integriert wird, erfolgen.</li>
+    <li> Filterung nach IP-Adressen (CIDR) wird noch nicht angeboten.</li>
+    <li> Zeitfilterung funktioniert zur Zeit nur f&uuml;r Zeitpunkte vor dem letzten Import, der einen Config Change gefunden hat. </li>
+    <li> Regeln werden immer in voller Tiefe durchsucht, d.h. alle Gruppen in Quell-, Ziel- und Dienstfeldern werden aufgel&ouml;st.
+        Zur Zeit gibt es noch keine M&ouml;glichkeit, nur auf der obersten Regelebene zu suchen.</li>
+');
+INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensitive.</li>
+    <li> There are multiple variants for most keywords, e.g. DestinationPort filters can be written as:
+        port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port</li>
+    <li> All filter statements must be logically combined using either: and, or, not.</li>
+    <li> Brackets can be used for structuring the filter statement.</li>
+    <li> Quotation marks (") can be used optionally for the value definition. If there are white spaces in the value (e.g. for date/time values) the quotation marks have to be used.</li>
+    <li> A gateway has to be selected. This can be done manually or via the left sidebar, from where the selection is automatically integrated to the filter.</li>
+    <li> No IP address (CIDR) filtering yet.</li>
+    <li> Time filtering currently only works for points in time before the last import that found a config change. </li>
+    <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
+        There is currently no option to only search at the rule top-level.</li>
+');
+INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;gliche Werte: statistics, rules, changes</li>
+    <li>time: M&ouml;gliche Werte/Formate: now, last month, this month, last year, this year, YYYYMMDD, YYYYMMDD HHMMSS, ...</li>
+    <li>gateway (gw, firewall, fw, device, dev): kann in der linken Randleiste ausgew&auml;hlt oder manuell eingegeben werden</li>
+    <li>management (mgmt, manager, mgm, mgr)</li>
+    <li>source (src)</li>
+    <li>destination (dst, dest)</li>
+    <li>service (svc, srv)</li>
+    <li>protocol (proto)</li>
+    <li>destinationport (port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port)</li>
+    <li>action (act, enforce)</li>
+    <li>remove: M&ouml;gliche Werte: true/false. Wenn "true", werden nur dezertifizierte Regeln gesucht</li>
+    <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
+    <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
+');
+INSERT INTO txt VALUES ('H1111', 'English', '<li>reporttype (type): Possible Values: statistics, rules, changes</li>
+    <li>time: Possible Values/Formats: now, last month, this month, last year, this year, YYYYMMDD, YYYYMMDD HHMMSS, ...</li>
+    <li>gateway (gw, firewall, fw, device, dev): can be selected on left sidebar or typed manually</li>
+    <li>management (mgmt, manager, mgm, mgr)</li>
+    <li>source (src)</li>
+    <li>destination (dst, dest)</li>
+    <li>service (svc, srv)</li>
+    <li>protocol (proto)</li>
+    <li>destinationport (port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port)</li>
+    <li>action (act, enforce)</li>
+    <li>remove: Possible Values: true/false. If "true", only decertified rules are searched</li>
+    <li>recertdisplay (recertdisp): Defines the lookahead period (in days) for next recertification. Only rules in this time range are searched.</li>
+    <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
+');
+INSERT INTO txt VALUES ('H1131', 'German',  '<li>and (&)</li><li>or (|)</li><li>not (!)</li><li>eq (=, :)</li><li>neq</li><li>(</li><li>)</li>');
+INSERT INTO txt VALUES ('H1131', 'English', '<li>and (&)</li><li>or (|)</li><li>not (!)</li><li>eq (=, :)</li><li>neq</li><li>(</li><li>)</li>');
+INSERT INTO txt VALUES ('H1141', 'German',  '<li> Volltextsuche</li>
+    <ul><li>cactus - durchsucht die Felder "source, destination, service" nach dem String "cactus".</li>
+    <li>fulltext=cactus - das gleiche wie oben</li></ul>
+');
+INSERT INTO txt VALUES ('H1141', 'English', '<li> full text searches</li><ul>
+    <li>cactus - searches the fields "source, destination, service" for the string "cactus".</li>
+    <li>fulltext=cactus - same as above</li></ul>
+');
+INSERT INTO txt VALUES ('H1142', 'German',  '<li> Zeitsuche</li><ul>
+    <li> Wenn kein Zeitausdruck eingegeben wird, wird der aktuelle Konfigurationsstatus angezeigt.</li>
+    <li>time="2020-11-23" - sucht um Mitternacht.</li>
+    <li>time="2020-11-23 09:29" - sucht zu einer spezifischen Zeit.</li></ul>
+');
+INSERT INTO txt VALUES ('H1142', 'English', '<li> time searches</li><ul>
+    <li> If you do not enter a time statement, the current config status is displayed.</li>
+    <li>time="2020-11-23" - searches at midnight.</li>
+    <li>time="2020-11-23 09:29" - searches at a specific time.</li></ul>
+');
+INSERT INTO txt VALUES ('H1143', 'German',  '<li> Suche nach spezifischem Regelinhalt</li><ul>
+    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li></ul>
+');
+INSERT INTO txt VALUES ('H1143', 'English', '<li> Specific rule content searches</li><ul>
+    <li>src=cactus</li><li>src=subnet</li><li>dst=daba</li><li>svc=valve_udp</li><li>action=accept</li><li>not action=drop</li></ul>
+');
+INSERT INTO txt VALUES ('H1144', 'German',  '<li> Filtern nach Gateways oder Managements</li><ul>
+    <li>gateway=forti and src=cactus</li><li>gateway=forti or gateway=check</li><li>not gateway=check</li></ul>
+');
+INSERT INTO txt VALUES ('H1144', 'English', '<li> filter for gateways or managements</li><ul>
+    <li>gateway=forti and src=cactus</li><li>gateway=forti or gateway=check</li><li>not gateway=check</li></ul>
+');
+INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden, um wiederkehrende Reports zu definieren. Diese werden f&uuml;r das Scheduling ben&ouml;tigt.
+    Jeder Nutzer kann seine eigenen Vorlagen definieren und sie mit anderen teilen.<br>Es werden einige vordefinierte Vorlagen f&uuml;r verschiedene Reporttypen angeboten:
+');
+INSERT INTO txt VALUES ('H1201', 'English', 'Templates can be used to define recurring reports. They have to be defined if they shall be used for the scheduling.
+    Every user can define his own templates and share them with others.<br>There are some predefined templates for the different report types:
+');
+INSERT INTO txt VALUES ('H1202', 'German',  'Diese Vorlagen k&ouml;nnen als Basis f&uuml;r die Erzeugung eigener Vorlagen genutzt werden.');
+INSERT INTO txt VALUES ('H1202', 'English', 'These templates can be used as basis for the creation of own self-defined templates.');
+INSERT INTO txt VALUES ('H1211', 'German',  'Einfache Statistik: Etwas Statistik &uuml;ber Netzwerk-, Dienst- und Nutzerobjekte aller Devices.');
+INSERT INTO txt VALUES ('H1211', 'English', 'Basic Statistics: Some statistics about network, service and user objects and rules of all devices.');
+INSERT INTO txt VALUES ('H1212', 'German',  'Compliance: Durchlassregeln mit "any": Alle Durchlassregeln, die "any" als Quelle, Ziel oder Dienst enthalten.');
+INSERT INTO txt VALUES ('H1212', 'English', 'Compliance: Pass rules with "any": All pass rules that contain "any" as source, destination or service.');
+INSERT INTO txt VALUES ('H1213', 'German',  'Aktuelle Regeln: Aktuell aktive Regeln aller ausgew&auml;hlten Devices.');
+INSERT INTO txt VALUES ('H1213', 'English', 'Current Rules: Currently active rules of all selected devices.');
+INSERT INTO txt VALUES ('H1214', 'German',  'Regel&auml;nderungen des aktuellen Jahrs: Alle im aktuellen Jahr ge&auml;nderten Regeln in den ausgew&auml;hlten Devices.');
+INSERT INTO txt VALUES ('H1214', 'English', 'This year&apos;s Rule Changes: All rule change performed in the current year in the selected devices.');
+INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
+INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
+INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (noch nicht unterst&uuml;tzt)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1302', 'English', '<li>pdf</li><li>html</li><li>csv (currently not supported)</li><li>json</li>');
+INSERT INTO txt VALUES ('H1303', 'German',  'Nach bet&auml;tigen des "Report exportieren"-Auswahlfeldes kann eines oder mehrere dieser Formate ausgew&auml;hlt werden.
+    Auch kann der Report mit einem Namen versehen und <a href="/help/archive">archiviert</a> werden.
+    Ein weiteres Ausgabefenster erlaubt dann das separate Abholen der ausgew&auml;hlten Ausgabedateien.
+');
+INSERT INTO txt VALUES ('H1303', 'English', 'After clicking the "Export Report" button one or more of them can be selected.
+    Also the possibility to name and save the report in the <a href="/help/archive">archive</a> is given.
+    Another Popup allows then to download the selected output files separately.    
+');
+INSERT INTO txt VALUES ('H1401', 'German',  'Im unteren Teil der Hauptseite werden die Ausgabedaten des generierten Reports dargestellt.
+    Unerw&uuml;nschte Spalten k&ouml;nnen mit der jeweiligen "-" Schaltfl&auml;che ausgeblendet werden.
+    Wenn dargestellt, k&ouml;nnen die Spalten auch zum Sortieren oder Filtern genutzt werden.<br>
+    Die zur Verf&uuml;gung stehenden Datenspalten sind:
+');
+INSERT INTO txt VALUES ('H1401', 'English', 'In the lower part of the main page the output data of the generated report is displayed.
+    Unwanted columns can be removed by clicking on the respective "-" button. 
+    If diplayed the columns can be used for sorting or filtering.<br>
+    The available data columns are:
+');
+INSERT INTO txt VALUES ('H1402', 'German',  '<li>Nummer</li><li>Name</li><li>Quellzone</li><li>Quelle</li><li>Zielzone</li>
+    <li>Ziel</li><li>Dienste</li><li>Aktion</li><li>Logging</li><li>Aktiviert</li><li>UID</li><li>Kommentar</li>
+');
+INSERT INTO txt VALUES ('H1402', 'English', '<li>Number</li><li>Name</li><li>Source Zone</li><li>Source</li><li>Destination Zone</li>
+    <li>Destination</li><li>Services</li><li>Action</li><li>Logging</li><li>Enabled</li><li>UID</li><li>Comment</li>
+');
+INSERT INTO txt VALUES ('H1501', 'German',  'Hier werden alle verf&uuml;gbaren Devices dargestellt.
+    Die Ansicht kann f&uuml;r unterschiedliche Nutzer entsprechend der <a href="/help/settings/tenants">Mandantenzuordnung</a> variieren.
+    F&uuml;r eine Reporterstellung muss hier eine Auswahl getroffen werden.
+');
+INSERT INTO txt VALUES ('H1501', 'English', 'Here all available devices are displayed.
+    This may view may differ for the different users according to the <a href="/help/settings/tenants">tenant assignments</a>.
+    For the creation of a report a selection out of them has to be done.
+');
+INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat zwei Reiter: Unter "Alle" werden alle aktuell abgeholten Objekte dargestellt,
+    w&auml;hrend unter "Regel" nur die in der Reportausgabe ausgew&auml;hlten Regeln gezeigt werden.<br>
+    Folgende Daten werden dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
+');
+INSERT INTO txt VALUES ('H1601', 'English', 'There are two Tabs shown in the right sidebar: The "All" tab displays all currently fetched objects,
+    while in the "Rule" tab only the objects of rules selected in the report output are shown.<br>
+    The following data are displayed grouped by the selected devices:
+');
+INSERT INTO txt VALUES ('H1602', 'German',  '<li>Netzwerkobjekte</li><li>Dienste</li><li>Nutzer</li>');
+INSERT INTO txt VALUES ('H1602', 'English', '<li>Network objects</li><li>Services</li><li>Users</li>');
 
 INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r einen bestimmten Termin oder als wiederkehrende Auftr&auml;ge festgelegt werden.
     Jeder Nutzer kann seine eigenen Terminpl&auml;ne verwalten.
@@ -1214,3 +1378,53 @@ INSERT INTO txt VALUES ('H6011', 'English', 'The section "Introduction" provides
 ');
 INSERT INTO txt VALUES ('H6012', 'German',  'Das Kapitel "Wichtige Kommandos" liefert detailliertere Beispiele f&uuml;r die Nutzung der API.');
 INSERT INTO txt VALUES ('H6012', 'English', 'The chapter "Basic commands" gives more detailed examples for the usage of the API.');
+INSERT INTO txt VALUES ('H6101', 'German',  'GraphQL nutzt einen leicht anderen Ansatz als REST, indem es keine fixen Entry points zur API definiert.
+    Stattdessen hat man die Freiheit, eine exakt auf die gew&uuml;nschte Detailtiefe angepasste Query zu nutzen. 
+');
+INSERT INTO txt VALUES ('H6101', 'English', 'GraphQL uses a slightly different approach as REST, not defining fixed entry points to the API.
+    Instead you are free to use a custom query specifying exactly which level of detail you want to return each time.
+');
+INSERT INTO txt VALUES ('H6102', 'German',  'GraphQL bietet eine interaktive Web-Oberfl&auml;che, die genutzt werden kann, um Querys und Mutations zu erstellen und zu testen.<br>
+    Sie kann unter folgendem Link erreicht werden: <code>https://&lt;Name ihrer Firewall Orchestrator-Instanz&gt;:9443/api/</code>.
+');
+INSERT INTO txt VALUES ('H6102', 'English', 'GraphQL provides you with an interactive web user interface that can be used to construct and test queries as well as mutations.<br>
+    It can be accesses via the following link: <code>https://&lt;name of your firewall orchestrator instance&gt;:9443/api/</code>.
+');
+INSERT INTO txt VALUES ('H6103', 'German',  'Das Admin Kennwort kann auf dem API-Server in folgender Datei gefunden werden:');
+INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in following file:');
+INSERT INTO txt VALUES ('H6201', 'German',  '<a href="https://hasura.io/" target="_blank">Hasura</a> stellt einen Link zur darunterliegenden PostgreSQL-Datenbank zur Verf&uuml;gung.<br>
+    Es implementiert eine Zugriffskontrollschicht und k&ouml;nnte auch einen REST API Zugang anbieten, falls Bedarf besteht.
+');
+INSERT INTO txt VALUES ('H6201', 'English', '<a href="https://hasura.io/" target="_blank">Hasura</a> provides the link to the underlying PostgreSQL database.<br>
+    It implements the access control layer and could also provide a REST API interface if need be.
+');
+INSERT INTO txt VALUES ('H6301', 'German',  'Der Zugang zur API wird standardm&auml;ssig durch Nutzername/Passwort-Anmeldedaten kontrolliert, was zur Erzeugung eines JSON Web Token (JWT) f&uuml;hrt.
+    Der JWT kann nur f&uuml;r eine begrenzte Zeit genutzt werden (Standard = 2 Stunden), um auf die dahinterliegende API zuzugreifen.
+    Nach dieser Zeitperiode (unabh&auml;ngig von der Aktivit&auml;t) muss ein erneutes Anmelden erfolgen, da der JWT nicht l&auml;nger als g&uuml;ltig anerkannt wird.<br><br>
+    Es k&ouml;nnen die gleichen Zugangsdaten wie f&uuml;r die Web-Oberfl&auml;che genutzt werden, und es gelten die gleichen Einschr&auml;nkungen und Sichten entsprechend dem rollenbasierten Zugriffsmodell.
+');
+INSERT INTO txt VALUES ('H6301', 'English', 'Login to the API is controlled by providing standard username password credentials which results in the generation of a JSON Web Token (JWT).
+    The JWT can be used for a limited time (default = 2 hours) to access the API afterwards.
+    After that time period (independant of activity) you need to login again, as the JWT is no longer considered valid.<br><br>
+    You may use the same credentials you also use for accessing the web user interface and will have the same restrictions and views based on the role based access model.
+');
+INSERT INTO txt VALUES ('H6401', 'German',  'Mehr zur im Firewall Orchestrator eingesetzten API kann unter folgenden Seiten gefunden werden:');
+INSERT INTO txt VALUES ('H6401', 'English', 'More resources around the API deployed in Firewall Orchestrator can be found at the following sites:');
+INSERT INTO txt VALUES ('H6402', 'German',  '<li><a href="https://hasura.io/" target="_blank">Hasura Homepage</a></li>
+    <li><a href="https://graphql.org/" target="_blank">GraphQL Homepage</a></li>
+    <li><a href="https://www.howtographql.com/basics/1-graphql-is-the-better-rest/" target="_blank">Vergleich GraphQL vs. REST</a></li>
+');
+INSERT INTO txt VALUES ('H6402', 'English', '<li><a href="https://hasura.io/" target="_blank">Hasura home page</a></li>
+    <li><a href="https://graphql.org/" target="_blank">GraphQL home page</a></li>
+    <li><a href="https://www.howtographql.com/basics/1-graphql-is-the-better-rest/" target="_blank">Comparison GraphQL vs. REST</a></li>
+');
+INSERT INTO txt VALUES ('H6501', 'German',  'Der Middlewareserver liefert den JWT f&uuml;r die Authentifizierung gegen&uuml;ber der API.');
+INSERT INTO txt VALUES ('H6501', 'English', 'The middleware server provides the JWT for authentication against the API.');
+INSERT INTO txt VALUES ('H6601', 'German',  'Es gibt keine spezielle Abmeldefunktionalit&auml;t. Wenn der JWT ung&uuml;ltig wird, kann die API einfach nicht mehr damit genutzt werden.');
+INSERT INTO txt VALUES ('H6601', 'English', 'There is no specific logout functionality. When the JWT becomes invalid, API simply can no longer be made with this JWT.');
+INSERT INTO txt VALUES ('H6701', 'German',  '(Bitte beachten, dass diese Query nicht funktionieren kann, da der JWT nicht mehr g&uuml;ltig ist.)');
+INSERT INTO txt VALUES ('H6701', 'English', '(Note that the query will not work as the sample JWT is not valid anymore.)');
+INSERT INTO txt VALUES ('H6702', 'German',  'Ergebnis auf einem System mit Beispieldaten:');
+INSERT INTO txt VALUES ('H6702', 'English', 'Result on a system with demo data:');
+INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation (funktioniert noch nicht) setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');
+INSERT INTO txt VALUES ('H6801', 'English', 'The following mutation (does not work yet) sets the language of user with id 1 to German:');

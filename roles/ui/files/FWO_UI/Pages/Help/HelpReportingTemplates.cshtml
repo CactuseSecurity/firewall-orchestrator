@@ -7,17 +7,17 @@
         await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Templates</h3>
-    Templates can be used to define recurring reports. They have to be defined if they shall be used for the scheduling.
-    Every user can define his own templates and share them with others. <br>
-    There are some predefined templates for the different report types:
+    <h3>@userConfig.GetText("templates")</h3>
+    @(Html.Raw(userConfig.GetText("H1201")))
     <ul>
-        <li>Basic Statistics: Some statistics about network, service and user objects and rules of all devices.</li>
-        <li>Compliance: Pass rules with ANY: All pass rules that contain any as source, destination or service.</li>
-        <li>Current Rules: Currently active rules of all selected devices.</li>
-        <li>This year's Rule Changes: All rule change performed in the current year in the selected devices.</li>
+        <li>@(Html.Raw(userConfig.GetText("H1211")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H1212")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H1213")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H1214")))</li>
     </ul>
-    These templates can be used as basis for the creation of own self-defined templates.
+    @(Html.Raw(userConfig.GetText("H1202")))
 </div>

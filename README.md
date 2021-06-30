@@ -14,10 +14,10 @@
 
 ## Installation instructions
 
-See [Server installation instructions](documentation/installer/server-install.md).
+See [installation instructions](documentation/installer/server-install.md).
 
 If your system is positioned behind a proxy or you have other specific installation needs like in a distributed installation, see [advanced server installation instructions](documentation/installer/install-advanced.md).
 
 ## Further documentation
 
-See [Getting started with Firewall Orchestrator](documentation/get-started.MD).
+See [getting started](documentation/get-started.MD).

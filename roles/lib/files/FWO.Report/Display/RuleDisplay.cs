@@ -124,7 +124,7 @@ namespace FWO.Ui.Display
                 else
                     symbol = "oi oi-wrench";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report/#svc{service.Content.Id}\" target=\"_top\">{service.Content.Name}</a>");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#svc{service.Content.Id}\" target=\"_top\">{service.Content.Name}</a>");
 
                 if (service.Content.DestinationPort != null)
                     result.Append(service.Content.DestinationPort == service.Content.DestinationPortEnd ? $" ({service.Content.DestinationPort}/{service.Content.Protocol?.Name})"

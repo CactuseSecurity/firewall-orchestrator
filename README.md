@@ -16,7 +16,7 @@
 
 See [installation instructions](documentation/installer/server-install.md).
 
-If your system is positioned behind a proxy or you have other specific installation needs like in a distributed installation, see [advanced server installation instructions](documentation/installer/install-advanced.md).
+If your system is positioned behind a proxy or you have other specific installation needs like in a distributed installation, see [advanced server installation instructions](documentation/installer/install-advanced.md). Here you can also find information on upgrading and uninstalling the product.
 
 ## Further documentation
 

@@ -447,7 +447,7 @@ INSERT INTO txt VALUES ('import_user',          'German', 	'Import Nutzer');
 INSERT INTO txt VALUES ('import_user',          'English', 	'Import User');
 INSERT INTO txt VALUES ('login_secret',         'German', 	'Privater Schl&uuml;ssel');
 INSERT INTO txt VALUES ('login_secret',         'English', 	'Login Secret');
-INSERT INTO txt VALUES ('public_key',           'German', 	'&ouml;ffentlicher Schl&uuml;ssel');
+INSERT INTO txt VALUES ('public_key',           'German', 	'&Ouml;ffentlicher Schl&uuml;ssel');
 INSERT INTO txt VALUES ('public_key',           'English', 	'Public Key');
 -- INSERT INTO txt VALUES ('force_initial_import', 'German', 	'Initialen Import erzwingen');
 -- INSERT INTO txt VALUES ('force_initial_import', 'English', 	'Force Initial Import');
@@ -757,6 +757,8 @@ INSERT INTO txt VALUES ('get_with_jwt',         'German', 	'Holen der Namen alle
 INSERT INTO txt VALUES ('get_with_jwt',         'English', 	'Get the names of all firewall managements using standard JWT access');
 INSERT INTO txt VALUES ('get_with_jwt_role',    'German', 	'Holen der Namen aller Firewall-Managements mit Standard-JWT-Zugang und spezifischer Rolle');
 INSERT INTO txt VALUES ('get_with_jwt_role',    'English', 	'Get the names of all firewall managements using standard JWT access and specifying a certain role');
+INSERT INTO txt VALUES ('parameters',           'German', 	'Parameter');
+INSERT INTO txt VALUES ('parameters',           'English',  'Parameters');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1361,6 +1363,141 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
     <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences. 
     Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
 ');
+INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements erzeugen und verwalten.<br>
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren eines neuen Managements, indem Daten von einem existierenden kopiert werden.
+    Vor dem Speichern muss sich mindestens einer der Parameter Hostname, Port oder Config Path von den existierenden Managements unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
+');
+INSERT INTO txt VALUES ('H5101', 'English', 'Admins can create and administrate several different managements.<br>
+    The clone button helps defining new managements by copying the data from existing ones.
+    Before saving at least one of the parameters Hostname, Port or Config Path has to be different from the existing managements if the Import Disabled flag is not set.
+');
+INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallproducte k&ouml;nnen integriert werden:<ul>
+    <li>Check Point R5x/R6x/R7x - ssh-Zugang zum Management Server (SmartCenter)</li>
+    <li>Check Point R8x - https-API-Zugang zum SmartCenter</li>
+    <li>Check Point R8x - https-API-Zugang zum MDS (Multi Domain Server)</li>
+    <li>Fortinet 5.0 - 6.4</li>
+    <li>Barracuda Firewall Control Center Vx - ssh-Zugang direkt zum Firewallgateway</li>
+    <li>phion netfence 3.x - ssh-Zugang direkt zum Firewallgateway</li>
+    <li>JUNOS 10 - 17 - ssh-Zugang direkt zum Firewallgateway</li>
+    <li>Netscreen 5.x/6.x - ssh-Zugang direkt zum Firewallgateway</li></ul>
+');
+INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can be integrated:<ul>
+    <li>Check Point R5x/R6x/R7x - ssh access to management server (SmartCenter)</li>
+    <li>Check Point R8x - https API access to SmartCenter</li>
+    <li>Check Point R8x - https API access to MDS (Multi Domain Server)</li>
+    <li>Fortinet 5.0 - 6.4</li>
+    <li>Barracuda Firewall Control Center Vx - ssh access to firewall gateway directly</li>
+    <li>phion netfence 3.x - ssh access to firewall gateway directly</li>
+    <li>JUNOS 10 - 17 - ssh access to firewall gateway directly</li>
+    <li>Netscreen 5.x/6.x - ssh access to firewall gateway directly</li></ul>
+');
+INSERT INTO txt VALUES ('H5103', 'German',  'F&uuml;r Firewallgateways ohne separates Management oder im Falle, dass das zentrale Management nicht in den Firewall Orchestrator eingebunden werden kann,
+    k&ouml;nnen die Details des Gateways hier als Management und gleichzeitig noch einmal als Gateway eingetragen werden.
+');
+INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
+    you may enter the details of the gateway here as a management system as well and then add it again as a gateway.
+');
+INSERT INTO txt VALUES ('H5104', 'German',  'Wenn Beispieldaten (definiert durch die Endung "_demo" vom Namen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese und alle verkn&uuml;pften <a href="/help/settings/gateways">Gateways</a> zu l&ouml;schen.');
+INSERT INTO txt VALUES ('H5104', 'English', 'If there are sample data (defined by the ending "_demo" of the name), a button is displayed to delete them and all related <a href="/help/settings/gateways">gateways</a>.');
+INSERT INTO txt VALUES ('H5111', 'German',  'Name*: Name des Mangements. <br>
+    F&uuml;r die meisten Firewalls ist dies ein willk&uuml;rlicher Name. Ausnahmen sind direkt verbundene Gateways von Fortigate, Netscreen und Juniper.
+    Hier muss der Name des Firewallgateways eingetragen werden.<br>
+    Ein Management dessen Name mit "_demo" endet, wird beim bet&auml;tigen der "Beispieldaten l&ouml;schen"-Schaltfl&auml;che gel&ouml;scht.
+');
+INSERT INTO txt VALUES ('H5111', 'English', 'Name*: Name of the mangement. <br>
+    For most firewalls this is an arbitrary name. Exceptions are Fortigate, Netscreen and Juniper directly connected gateways.
+    Here the name give needs to be the name of the firewall gateway.<br>
+    A management whose name ends with "_demo" will be deleted when using the "Remove Sample Data" button.
+');
+INSERT INTO txt VALUES ('H5112', 'German',  'Kommentar: Optionale Beschreibung des Managements.');
+INSERT INTO txt VALUES ('H5112', 'English', 'Comment: Optional description of this management.');
+INSERT INTO txt VALUES ('H5113', 'German',  'Ger&auml;tetyp*: bitte das korrekte Produkt von der Liste ausw&auml;hlen (siehe oben)');
+INSERT INTO txt VALUES ('H5113', 'English', 'Device Type*: Select correct product from a list of available types, see above.');
+INSERT INTO txt VALUES ('H5114', 'German',  'Hostname*: Adresse des Hosts (entweder IP-Addresse oder aufl&ouml;sbarer Name). 
+    F&uuml;r Check Point R8x MDS Installationen die Addresse des MDS-Servers f&uuml;r alle Domains benutzen.<br>
+    F&uuml;r Fortinet, Barradua, Juniper muss die IP vom aufl&ouml;sbaren Namen des Firewallgateways spezifiziert werden.
+');
+INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (either IP address or resolvable name). 
+    For Check Point R8x MDS installations use the address of the MDS server for all domains.<br>
+    For Fortinet, Barradua, Juniper you need to specify the IP of resolvable name of the firewall gateway.
+');
+INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
+    Wenn das Ziel Check Point R8x ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Check Point Managment zu aktivieren.<br>
+    Wenn das Ziel nicht Check Point R8x ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist 22.
+');
+INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
+    If the target is Check Point R8x the connection is established via API. The default port number is 443. Remember to enable API access on your Check Point managment.<br>
+    If the target is not Check Point R8x Firewall Orchestrator needs ssh-based access. The default port number is 22.
+');
+INSERT INTO txt VALUES ('H5116', 'German',  'Import Nutzer*: Der Nutzer, der zum Anmelden am Firewall Management benutzt wird.
+    Er muss vorher auf dem Firewallsystem angelegt sein und vollen Lesezugriff auf das System besitzen.<br>
+    Auf Check Point R8x wird empfohlen, das vordefinierte "Read Only All"-Profil (sowohl globales als auch Domainmanagement) zu verwenden.
+');
+INSERT INTO txt VALUES ('H5116', 'English', 'Import User*: The user used to login to the firewall management. 
+    This user needs to be created on the firewall system in advance and needs full read access to the system.<br>
+    On Check Point R8x we recommend using the predefined "Read Only All" profile (both global and domain management) for the user.
+');
+INSERT INTO txt VALUES ('H5117', 'German',  'Privater Schl&uuml;ssel*: F&uuml;r den ssh-Zugang hier den privaten ssh-Schl&uuml;ssel hinterlegen (Schl&uuml;ssel muss unverschl&uuml;sselt und ohne Passphrase sein)<br>
+    F&uuml;r den API-Zugang ist dies das Passwort des API-Nutzers.
+');
+INSERT INTO txt VALUES ('H5117', 'English', 'Login Secret*: For ssh access enter the private ssh key (key needs to be unencrypted without passphrase)<br>
+    For API access this is the password of the API user.
+');
+INSERT INTO txt VALUES ('H5118', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
+INSERT INTO txt VALUES ('H5118', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
+INSERT INTO txt VALUES ('H5119', 'German',  'Konfigurationspfad: Pfad der Config-Datei.<br>
+    F&uuml;r Standard-Zugang (ohne die Konfiguration in einer Datei zu halten) leer lassen.
+    Ausnahme: F&uuml;r Check Point R8x MDS Installationen wird hier der Domainname eingetragen.
+');
+INSERT INTO txt VALUES ('H5119', 'English', 'Config Path: Path of the config file.<br>
+    Leave empty in case of standard access (without buffering the config in a file).
+    Exception: For Check Point R8x MDS installations, the domain name is entered here.
+');
+INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: Der Name des Servers, auf dem der Importprozess laufen soll.
+    Muss individuell konfiguriert werden, wenn mehrere verteilte Importmodule laufen sollen, so dass nicht jeder Importer alle Managements importiert.
+');
+INSERT INTO txt VALUES ('H5120', 'English', 'Importer Hostname: This must be the name of the server, the import process should run on. 
+    Needs to be individually configured if you want to have multiple distributed import modules, so that not every importer imports all managements.
+');
+INSERT INTO txt VALUES ('H5121', 'German',  'Debug Stufe (0-9): Erlaubt individuelle Debug-Granularit&auml;t pro Management.');
+INSERT INTO txt VALUES ('H5121', 'English', 'Debug Level (0-9): For allowing for individual debug granularity per management.');
+INSERT INTO txt VALUES ('H5122', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
+INSERT INTO txt VALUES ('H5122', 'English', 'Import Disabled: Flag if the data import needs to be disabled.');
+INSERT INTO txt VALUES ('H5123', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Management nicht mit Standard-Reporter-Rolle sichtbar.');
+INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management is not visible to the standard reporter role.');
+INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways erzeugen und verwalten.<br>
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
+    Vor dem Speichern muss sich mindestens einer der Parameter Ger&auml;tetyp, Management oder Rulebase von den existierenden Gateways unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
+');
+INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate several different gateways.<br>
+    The clone button helps defining new gateways by copying the data from existing ones.
+    Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.
+');
+INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Fortinet muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
+INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For Fortinet this must be the real name of the firewall gateway as defined in the config.');
+INSERT INTO txt VALUES ('H5152', 'German',  'Kommentar: Optionaler Kommentar zu diesem Gateway.');
+INSERT INTO txt VALUES ('H5152', 'English', 'Comment: Optional comment regarding this gateway.');
+INSERT INTO txt VALUES ('H5153', 'German',  'Ger&auml;tetyp*: Auswahlliste der verf&uuml;gbaren Typen. F&uuml;r die verf&uuml;gbaren Typen siehe
+    <a href="/help/settings/managements">Managementeinstellungen</a>.
+');
+INSERT INTO txt VALUES ('H5153', 'English', 'Device Type*: Out of a list of available types. For a list of available device types see 
+    <a href="/help/settings/managements">management settings</a>.
+');
+INSERT INTO txt VALUES ('H5154', 'German',  'Management*: W&auml;hlen Sie das Management, welches dieses Gateway kontrolliert. Wenn zu einem Beispielmanagement zugeordnet, wird es mitgel&ouml;scht, wenn die "Beispieldaten l&ouml;schen"-Schaltfl&auml;che bei den Managementeinstellungen bet&auml;tigt wird.');
+INSERT INTO txt VALUES ('H5154', 'English', 'Management*: Select the management system that controls this gateway. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page.');
+INSERT INTO txt VALUES ('H5155', 'German',  'Rulebase*: Hier wird der Name der Rulebase hinterlegt.
+    F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").
+    For Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".
+');
+INSERT INTO txt VALUES ('H5155', 'English', 'Rulebase*: Enter the name of the rulebase here. 
+    For Check Point R8x the top level access layer name goes here (default is "Network").
+    For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".
+');
+INSERT INTO txt VALUES ('H5156', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
+INSERT INTO txt VALUES ('H5156', 'English', 'Import Disabled: Flag if the data import is disabled.');
+INSERT INTO txt VALUES ('H5157', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Gateway nicht mit Standard-Reporter-Rolle sichtbar.');
+INSERT INTO txt VALUES ('H5157', 'English', 'Hide in UI: If set, this gateway is not visible to the standard reporter role.');
+
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator hat eine <a href="/help/API/graphql">GraphQl</a> API welche auf <a href="/help/API/hasura">Hasura</a> basiert. 
     Diese erlaubt, flexibel den Zugang zu allen Daten der Datenbank und die Granularit&auml;t der zur&uuml;ckgegebenen Daten zu steuern.

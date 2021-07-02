@@ -12,7 +12,7 @@
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
-    <DeviceSelection Managements="managements" @bind-FilterInput="filterInput"></DeviceSelection>
+    <DeviceSelection Managements="managements" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
 </Sidebar>
 
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
@@ -105,6 +105,7 @@
 
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
+    private bool selectAll = true;
 
     private string filterInput = "remove=false and recertdisplay=0";
 

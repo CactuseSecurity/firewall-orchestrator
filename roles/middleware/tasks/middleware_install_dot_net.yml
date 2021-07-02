@@ -58,8 +58,5 @@
     enabled: yes
   become: yes
 
-  # this will fail to start the server as the api is not ready yet
+  # not starting the server as the api is not ready yet
   # we will restart the middlewareserver later 
-
-  # command: "dotnet publish -c {{ dotnet_mode }} -o {{ middleware_server_start_dir }}"
-  # -o {{ middleware_server_start_dir }}"

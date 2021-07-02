@@ -48,11 +48,10 @@
         template => {
             filterInput = template.Filter;
             DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
-            if (!DeviceFilter.isAnyDeviceFilterSet(filterInput) && !DeviceFilter.areAllDevicesSelected(managementsReport))
-                selectAll = true;
-            else
+            if (DeviceFilter.isAnyDeviceFilterSet(filterInput) || DeviceFilter.areAllDevicesSelected(managementsReport))
                 selectAll = false;
-            // SelectAllChanged.InvokeAsync(selectAll);
+            else
+                selectAll = true;
             StateHasChanged();
         }"
     @ref="reportTemplateControl"></ReportTemplateComponent>
@@ -428,7 +427,6 @@
             int errorStart = filterError.ErrorPosition.Start.Value;
             int errorEnd = filterError.ErrorPosition.End.Value;
 
-            // TODO: RESTRUCTURE (current structure only for debug purpose)
             filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
             filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
             filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";

@@ -7,15 +7,14 @@
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
     <button class="btn btn-sm btn-secondary"
-            @onclick="@((Func<Task>)(async () => {
+            @onclick="@((async () => {
                 DeviceFilter.applyFullDeviceSelection(Managements, SelectAll);
                 FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
                 SelectAll = !SelectAll;
-                toggleDeviceSelectionButtonText = SelectAll ? selectAll : clearAll;
                 await FilterInputChanged.InvokeAsync(FilterInput);
                 await SelectAllChanged.InvokeAsync(SelectAll);
             }))">
-        @toggleDeviceSelectionButtonText
+        @(SelectAll ? selectAllText : clearAllText)
     </button>
     <br><br>
 
@@ -33,12 +32,10 @@
                                     device.selected = !device.selected;
                                     if (DeviceFilter.areAllDevicesSelected(Managements))
                                     {
-                                        toggleDeviceSelectionButtonText = clearAll;
                                         SelectAll = false;
                                     }
                                     if (!DeviceFilter.isAnyLSBDeviceFilterSet(Managements))
                                     {
-                                        toggleDeviceSelectionButtonText = selectAll;
                                         SelectAll = true;
                                     }
                                     FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
@@ -66,21 +63,18 @@
     [Parameter]
     public Management[] Managements { get; set; }
 
-//    [CascadingParameter(Name = "SelectAll")]
     [Parameter]
     public bool SelectAll { get; set; } // state of the device select/clear all button
-//    [CascadingParameter(Name = "SelectAllChanged")]
+
     [Parameter]
     public EventCallback<bool> SelectAllChanged { get; set; }
 
-    public string toggleDeviceSelectionButtonText;
-    private string selectAll;
-    private string clearAll;
+    private string selectAllText;
+    private string clearAllText;
 
     protected override void OnInitialized()
     {
-        selectAll = userConfig.GetText("select_all");
-        clearAll = userConfig.GetText("clear_all");
-        toggleDeviceSelectionButtonText = selectAll;
+        selectAllText = userConfig.GetText("select_all");
+        clearAllText = userConfig.GetText("clear_all");
     }
 }

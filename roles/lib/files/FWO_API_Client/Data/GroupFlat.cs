@@ -10,7 +10,7 @@ namespace FWO.Api.Data
     public class GroupFlat<T>
     {
         [JsonPropertyName("flat_id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("byFlatId")]
         public T Object { get; set; }

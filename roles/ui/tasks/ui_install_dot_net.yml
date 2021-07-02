@@ -41,11 +41,6 @@
         mode: "0644"
         owner: "root"
 
-    - name: make blazor ui run at host startup
-      systemd:
-        name: "{{ ui_service_name }}"
-        enabled: yes
-
   become: yes
   environment: "{{ proxy_env }}"
 
@@ -57,8 +52,15 @@
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
 
+- name: make blazor ui run at host startup
+  systemd:
+    name: "{{ ui_service_name }}"
+    enabled: yes
+  become: yes
+
 - name: start blazor ui
   systemd:
     name: "{{ ui_service_name }}"
     state: restarted
   become: yes
+  become_user: "{{ fworch_user }}"

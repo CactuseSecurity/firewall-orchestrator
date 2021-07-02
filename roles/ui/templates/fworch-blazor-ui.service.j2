@@ -13,7 +13,7 @@ After=network.target remote-fs.target nss-lookup.target
 WorkingDirectory={{ ui_start_dir }}
 # adding an extra 10 secs for docker api to come up?
 ExecStartPre=/bin/sleep 10
-ExecStart={{ ui_start_dir }}/bin/{{ dotnet_mode }}/{{ dotnet_version }}/FWO.dll
+ExecStart={{ ui_start_dir }}/bin/{{ dotnet_mode }}/{{ dotnet_version }}/publish/FWO.UI.dll
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier={{ ui_syslog_id }}

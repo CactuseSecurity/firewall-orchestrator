@@ -61,6 +61,7 @@
         name: "{{ middleware_service_name }}"
         state: restarted
       become: yes
+      become_user: "{{ fworch_user }}"
       when: "not installation_mode == 'uninstall'"
   tags:
     - backend

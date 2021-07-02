@@ -190,11 +190,6 @@
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data
 
-      # - name: delete complete ldap tree
-      #   command: "ldapdelete -r -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ middleware_manager_pwd }} -x '{{ openldap_path }}'"
-      #   ignore_errors: yes
-        # todo: only execute if this is an ldap server (maybe just ignore_errors)
-
     - name: remove OS users and delete home directories
       user:
         name: "{{ item }}"

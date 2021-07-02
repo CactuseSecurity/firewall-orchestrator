@@ -116,7 +116,9 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
     <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
-        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a></li>
+        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme.</a>
+        N.B. Stellen Sie sicher, dass sie alle Demo-Daten (insbesondere die Demo-User) l&ouml;schen (mit Hilfe der "Beispieldaten l&ouml;schen" Option in den Einstellungen), 
+        bevor Sie in den produktiven Betrieb &uuml;bergehen, da andernfalls ggf. Ihre Daten mit Default-Logins angezeigt werden k&ouml;nnten.</li>
     <li><a href="/logout">Abmelden</a>: Firewall Orchestrator verlassen</li>
 </ul>
 ');
@@ -129,7 +131,10 @@ The following top-level menu items are available (depending on role memberships)
     <li><a href="/certification">Recertification</a>: Workflow for removing unnecessary rules from your rulebases</li>
     <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
     <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or 
-        integration of <a href="/settings/managements">your own firewalls</a>.</li>
+        integration of <a href="/settings/managements">your own firewalls</a>.
+        N.B. Please make sure to delete all demo data (using the "Remove sample data" option under settings) 
+        before using Firewall Orchestrator with production data.
+        Otherwise you might expose your data by providing default accounts.</li>
     <li><a href="/logout">Logout</a>: Leave Firewall Orchestrator</li>
 </ul>
 ');

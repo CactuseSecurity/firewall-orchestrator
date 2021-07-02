@@ -43,7 +43,11 @@
 ########## docker for api ##################
 
     - name: add apt signing key for docker
-      shell: "wget -qO - -e use_proxy=yes -e https_proxy={{ https_proxy }} https://download.docker.com/linux/ubuntu/gpg | apt-key add -"
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      environment:
+        https_proxy: "{{ https_proxy }}"
       when: https_proxy is defined
 
     - name: add docker repo

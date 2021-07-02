@@ -117,7 +117,7 @@
     private ReportBase currentReport;
 
     private Sidebar deviceSelectionSidebar;
-    private bool fullDeviceActionIsSelect = true;
+    // private bool fullDeviceActionIsSelect = true;
     private bool AddCommentMode = false;
     private string actComment = "";
 
@@ -151,7 +151,7 @@
         try
         {
             // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements, fullDeviceActionIsSelect);
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements);
             SyncFilterToDisplay();
 
             currentReport = ReportBase.ConstructReport(filterInput);

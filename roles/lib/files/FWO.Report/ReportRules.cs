@@ -151,7 +151,7 @@ namespace FWO.Report
 
             // save selected device state
             Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
-            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter, false);
+            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
 
             Managements = new Management[managementsWithRelevantImportId.Length];
             int i;

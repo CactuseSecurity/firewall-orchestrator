@@ -62,4 +62,5 @@
   systemd:
     name: "{{ ui_service_name }}"
     state: restarted
+    daemon_reload: yes
   become: yes

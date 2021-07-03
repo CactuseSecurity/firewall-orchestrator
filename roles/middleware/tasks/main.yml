@@ -132,7 +132,7 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-  when: audit_user is defined and auditor_initial_pwd is defined
+  when: audit_user is defined and auditor_initial_pwd is defined and installation_mode='new'
   
 - name: insert admin tenant0 to database
   postgresql_query:

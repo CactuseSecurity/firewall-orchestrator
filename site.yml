@@ -60,6 +60,7 @@
       systemd:
         name: "{{ middleware_service_name }}"
         state: restarted
+        daemon_reload: yes
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:

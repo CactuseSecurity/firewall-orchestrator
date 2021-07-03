@@ -28,7 +28,7 @@ namespace FWO.Ui.Auth
                 ClaimsIdentity identity = new ClaimsIdentity
                 (
                     claims: jwt.GetClaims(),
-                    authenticationType: "fake type", // TODO: change authentication type
+                    authenticationType: "ldap",
                     nameType: JwtRegisteredClaimNames.UniqueName,
                     roleType: "role"
                 );

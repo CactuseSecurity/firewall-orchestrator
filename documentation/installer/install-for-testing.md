@@ -74,14 +74,6 @@ if you want to install a second ldap database "dc=example,dc=com"
 cd firewall-orchestrator; ansible-playbook -e "second_ldap_db=yes" site.yml -K
 ```
 
-## Parameter "connect_sting" to add Cactus test firewall CP R8x
-
-The following command adds the sting test firewall to your fw orch system (needs VPN tunnel to Cactus)
-
-```console
-ansible-playbook -e "connect_sting=yes" site.yml -K
-```
-
 ### Parameter "sample_data_rate" to ramp up sample data
 
 if you want to create sample-data changes every minute set sample_data_rate to high

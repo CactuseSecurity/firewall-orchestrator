@@ -10,16 +10,16 @@ namespace FWO.Api.Data
     {
         [JsonPropertyName("management_id")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public long ManagementId { get; set; }
+        public int ManagementId { get; set; }
 
         [JsonPropertyName("device_id")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public long DeviceId { get; set; }
+        public int DeviceId { get; set; }
 
         [JsonPropertyName("limit")]
-        public long Limit { get; set; }
+        public int Limit { get; set; }
 
         [JsonPropertyName("offset")]
-        public long Offset { get; set; }
+        public int Offset { get; set; }
     }
 }

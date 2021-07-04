@@ -233,7 +233,7 @@
         });
     }
 
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, int id = 0)
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0)
     {
         const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
 

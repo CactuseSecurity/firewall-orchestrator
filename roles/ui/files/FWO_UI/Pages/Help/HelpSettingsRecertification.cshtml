@@ -7,12 +7,14 @@
         await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Recertification Settings</h3>
-    A recertifier can overwrite some personal setting for the recertification report. 
-    The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
+    <h3>@(userConfig.GetText("recert_settings"))</h3>
+    @(Html.Raw(userConfig.GetText("H5481")))
+    <br><br>
     <ul>
-        <li>Recertification Display Period (in days): Lookahead period for upcoming recertifications.</li>
+        <li>@(Html.Raw(userConfig.GetText("H5419")))</li>
     </ul>
 </div>

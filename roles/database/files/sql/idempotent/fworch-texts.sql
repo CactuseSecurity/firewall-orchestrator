@@ -559,11 +559,11 @@ INSERT INTO txt VALUES ('group_search_path',    'English', 	'Group Search Path')
 INSERT INTO txt VALUES ('search_user',          'German', 	'Nutzer f&uuml;r Suche');
 INSERT INTO txt VALUES ('search_user',          'English', 	'Search User');
 INSERT INTO txt VALUES ('search_user_pwd',      'German', 	'Passwort Nutzer f&uuml;r Suche');
-INSERT INTO txt VALUES ('search_user_pwd',      'English', 	'Search User Pwd');
+INSERT INTO txt VALUES ('search_user_pwd',      'English', 	'Search User Password');
 INSERT INTO txt VALUES ('write_user',           'German', 	'Schreibender Nutzer');
 INSERT INTO txt VALUES ('write_user',           'English', 	'Write User');
 INSERT INTO txt VALUES ('write_user_pwd',       'German', 	'Passwort Schreibender Nutzer');
-INSERT INTO txt VALUES ('write_user_pwd',       'English', 	'Write User Pwd');
+INSERT INTO txt VALUES ('write_user_pwd',       'English', 	'Write User Password');
 INSERT INTO txt VALUES ('tenant',               'German', 	'Mandant');
 INSERT INTO txt VALUES ('tenant',               'English', 	'Tenant');
 INSERT INTO txt VALUES ('pwMinLength',          'German', 	'Mindestl&auml;nge');
@@ -574,8 +574,8 @@ INSERT INTO txt VALUES ('pwLowerCaseRequired',  'German', 	'Kleinbuchstaben enth
 INSERT INTO txt VALUES ('pwLowerCaseRequired',  'English', 	'Lower Case Required');
 INSERT INTO txt VALUES ('pwNumberRequired',     'German', 	'Ziffern enthalten');
 INSERT INTO txt VALUES ('pwNumberRequired',     'English', 	'Number Required');
-INSERT INTO txt VALUES ('pwSpecialCharactersRequired','German','Sonderzeichen enthalten (!?(){}=~$%&#*-+.,_)');
-INSERT INTO txt VALUES ('pwSpecialCharactersRequired','English','Special Characters Required (!?(){}=~$%&#*-+.,_)');
+INSERT INTO txt VALUES ('pwSpecialCharactersRequired','German','Sonderzeichen enthalten (!?(){}=~$%&amp;#*-+.,_)');
+INSERT INTO txt VALUES ('pwSpecialCharactersRequired','English','Special Characters Required (!?(){}=~$%&amp;#*-+.,_)');
 INSERT INTO txt VALUES ('default_language',     'German', 	'Standardsprache');
 INSERT INTO txt VALUES ('default_language',     'English', 	'Default Language');
 INSERT INTO txt VALUES ('elementsPerFetch',     'German', 	'Pro Abruf geholte Elemente');
@@ -615,7 +615,7 @@ INSERT INTO txt VALUES ('email',                'English', 	'Email');
 INSERT INTO txt VALUES ('last_login',           'German', 	'Letzte Anmeldung');
 INSERT INTO txt VALUES ('last_login',           'English', 	'Last Login');
 INSERT INTO txt VALUES ('last_pw_change',       'German', 	'Letzte Passwort&auml;nderung');
-INSERT INTO txt VALUES ('last_pw_change',       'English', 	'Last Pwd Change');
+INSERT INTO txt VALUES ('last_pw_change',       'English', 	'Last Password Change');
 INSERT INTO txt VALUES ('pwd_chg_req',          'German', 	'PW &Auml;nd. erf.');
 INSERT INTO txt VALUES ('pwd_chg_req',          'English', 	'Pwd Chg Req');
 INSERT INTO txt VALUES ('project',              'German', 	'Projekt');
@@ -1014,8 +1014,8 @@ INSERT INTO txt VALUES ('E5413', 'German',  'Passwort muss mindestens einen Klei
 INSERT INTO txt VALUES ('E5413', 'English', 'Password must contain at least one lower case character');
 INSERT INTO txt VALUES ('E5414', 'German',  'Passwort muss mindestens eine Ziffer enthalten');
 INSERT INTO txt VALUES ('E5414', 'English', 'Password must contain at least one number');
-INSERT INTO txt VALUES ('E5415', 'German',  'Passwort muss mindestens ein Sonderzeichen enthalten (!?(){}=~$%&#*-+.,_)');
-INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one special character (!?(){}=~$%&#*-+.,_)');
+INSERT INTO txt VALUES ('E5415', 'German',  'Passwort muss mindestens ein Sonderzeichen enthalten (!?(){}=~$%&amp;#*-+.,_)');
+INSERT INTO txt VALUES ('E5415', 'English', 'Password must contain at least one special character (!?(){}=~$%&amp;#*-+.,_)');
 INSERT INTO txt VALUES ('E5421', 'German',  'Schl&uuml;ssel nicht gefunden oder Wert nicht konvertierbar: Wert wird gesetzt auf: ');
 INSERT INTO txt VALUES ('E5421', 'English', 'Key not found or could not convert value to int: taking value: ');
 
@@ -1368,7 +1368,7 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
     <a href="/help/settings/language">Language</a> and <a href="/help/settings/report">Reporting</a> preferences. 
     Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
 ');
-INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements erzeugen und verwalten.<br>
+INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements einrichten und verwalten.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren eines neuen Managements, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss sich mindestens einer der Parameter Hostname, Port oder Config Path von den existierenden Managements unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
 ');
@@ -1470,7 +1470,7 @@ INSERT INTO txt VALUES ('H5122', 'German',  'Import Deaktiviert: Schalter um den
 INSERT INTO txt VALUES ('H5122', 'English', 'Import Disabled: Flag if the data import needs to be disabled.');
 INSERT INTO txt VALUES ('H5123', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Management nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management is not visible to the standard reporter role.');
-INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways erzeugen und verwalten.<br>
+INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss sich mindestens einer der Parameter Ger&auml;tetyp, Management oder Rulebase von den existierenden Gateways unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
 ');
@@ -1502,7 +1502,279 @@ INSERT INTO txt VALUES ('H5156', 'German',  'Import Deaktiviert: Schalter um den
 INSERT INTO txt VALUES ('H5156', 'English', 'Import Disabled: Flag if the data import is disabled.');
 INSERT INTO txt VALUES ('H5157', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Gateway nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5157', 'English', 'Hide in UI: If set, this gateway is not visible to the standard reporter role.');
-
+INSERT INTO txt VALUES ('H5171', 'German',  'Hier wird ein &Uuml;berblick &uuml;ber den Status der Importjobs der verschiedenen Managements gegeben.');
+INSERT INTO txt VALUES ('H5171', 'English', 'The status of the import jobs for the different managements is displayed here.');
+INSERT INTO txt VALUES ('H5181', 'German',  'Neu anzeigen: Aktualisiert die dargestellten Daten.');
+INSERT INTO txt VALUES ('H5181', 'English', 'Refresh: Updates the displayed data.');
+INSERT INTO txt VALUES ('H5182', 'German',  'Details: F&uuml;r das ausgew&auml;hlte Management wird hier eine genauere &Uuml;bersicht &uuml;ber die Start/Stop-Zeiten des ersten, letzten erfolgreichen und letzten Imports gegeben.');
+INSERT INTO txt VALUES ('H5182', 'English', 'Details: For the selected management a detailed view on Start/Stop times and errors of the first, last successful and last import.');
+INSERT INTO txt VALUES ('H5183', 'German',  'Letzter Unvollendeter: Die Startzeit eines aktuell laufenden Imports falls vorhanden.
+    Dann wird eine Schaltfl&auml;che zum Zur&uuml;cksetzen des Imports angeboten. Sie soll f&uuml;r h&auml;ngengebliebene Imports genutzt werden.
+    Da ein erfolgreicher Import einige Minuten dauern kann, sollte der Rollback nicht zu fr&uuml;h angestossen werden.
+');
+INSERT INTO txt VALUES ('H5183', 'English', 'Last incomplete: The start time of an import actually running, if there is one.
+    Then a button is displayed to rollback the import. This is intended to be used for hanging imports.
+    As a successful import may take some minutes, be careful not to rollback too early.
+');
+INSERT INTO txt VALUES ('H5184', 'German',  'Letzter Erfolg: Die Stopzeit des letzten erfolgreichen Imports.');
+INSERT INTO txt VALUES ('H5184', 'English', 'Last success: The stop time of the last successful import.');
+INSERT INTO txt VALUES ('H5185', 'German',  'Letzter Import: Die Stopzeit des letzten Imports.');
+INSERT INTO txt VALUES ('H5185', 'English', 'Last import: The stop time of the last import.');
+INSERT INTO txt VALUES ('H5186', 'German',  'Erfolg: Zeigt an, ob der letzte Import erfolgreich war.');
+INSERT INTO txt VALUES ('H5186', 'English', 'Success: Flag showing the success of the last import.');
+INSERT INTO txt VALUES ('H5187', 'German',  'Fehler: Zeigt die Fehlermeldung, falls der letzte Import nicht erfolgreich war.');
+INSERT INTO txt VALUES ('H5187', 'English', 'Errors: Is only filled with an error message, if the success flag is false.');
+INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
+    Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
+    Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.
+    Eine L&ouml;schung ist nur zul&auml;ssig, wenn es nicht das interne Ldap (definiert durch den gesetzten Rollensuchpfad) und nicht das letzte vorhandene Ldap ist.<br>
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren einer neuen Ldap-Verbindung, indem Daten von einem existierenden kopiert werden.
+    Vor dem Speichern muss mindestens Adresse oder Portnummer ge&auml;ndert werden.
+');
+INSERT INTO txt VALUES ('H5201', 'English', 'Admins can create and administrate several different Ldap connections. All of them can be used for user authentication.<br>
+    The internal Ldap (part of the initial installation) is needed at least for role assignment, but can also be used for user authentication and user group handling.<br>
+    The Ldap connections can be added, changed and deleted.
+    Deletion is only allowed, if it is not the internal Ldap (defined by the existence of a role search path) and if it is not the last Ldap.<br>
+    The clone button helps defining new Ldaps by copying the data from existing ones. Before saving at least the address or port number have to be changed.
+');
+INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Adresse des verbundenen Ldap (z.B. IP-Adresse)');
+INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Address of the connected Ldap (e.g. IP address).');
+INSERT INTO txt VALUES ('H5212', 'German',  'Port*: Portnummer des verbundenen Ldap.');
+INSERT INTO txt VALUES ('H5212', 'English', 'Port*: Port number of the connected Ldap.');
+INSERT INTO txt VALUES ('H5213', 'German',  'Tls: Zeigt an, ob TLS in der Kommunikation verwendet wird.');
+INSERT INTO txt VALUES ('H5213', 'English', 'Tls: Flag if TLS is used for communication.');
+INSERT INTO txt VALUES ('H5214', 'German',  'Mandantenebene: Wenn Mandanten Teil des Distinguished Name (Dn) des Nutzers sind, definiert diese Zahl die Pfadtiefe, wo dieser zu finden ist. 
+    Das beginnt mit 1 f&uuml;r den ersten Eintrag nach dem Nutzernamen. Wenn keine Mandanten genutzt werden, auf 0 setzen.
+');
+INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part of the distinguished names (Dn) of the user, this number defines the level in the path, where they are found.
+    Starting with 1 for the first Dn entry after the user name. Set to 0 if no tenants are used.
+');
+INSERT INTO txt VALUES ('H5215', 'German',  'Typ*: Implementierungstyp des Ldap, welcher die Syntax des Zugangs festlegt. Zur Zeit werden "OpenLdap" und "ActiveDirectory" unterst&uuml;tzt.
+    "Default" ist eine &Uuml;bermenge von verschiedenen Syntax-Varianten, die m&ouml;glicherweise weiterhilft, wenn die anderen nicht anwendbar sind.
+');
+INSERT INTO txt VALUES ('H5215', 'English', 'Type*: Implementation type of the Ldap, which defines the syntax of the access. Currently "OpenLdap" and "ActiveDirectory" are supported.
+    "Default" is a supergroup of several syntax variants, which may be appropriate, if the others are not applicable.
+');
+INSERT INTO txt VALUES ('H5216', 'German',  'Suchmusterl&auml;nge: Minimale L&auml;nge f&uuml;r Suchmuster im Ldap.
+    Um zu grosse Treffermengen in Systemen mit vielen Nutzern zu vermeiden, wird eine L&auml;nge von mindestens 3 empfohlen.
+    F&uuml;r Systeme mit geringer Nutzerzahl kann der Wert auf 0 gesetzt werden.
+');
+INSERT INTO txt VALUES ('H5216', 'English', 'Pattern Length: Defines a minimal length for patterns for searches in the Ldap.
+    To avoid a high hit rate in Ldaps with high amounts of users a length of at least 3 is recommended.
+    For systems with few users the value can be set to 0.
+');
+INSERT INTO txt VALUES ('H5217', 'German',  'Suchpfad Nutzer*: Der Distinguished name (Dn) des Wurzelverzeichnisses des Nutzersuchbaums.');
+INSERT INTO txt VALUES ('H5217', 'English', 'User Search Path*: The distinguished name (Dn) of the root of the users search tree.');
+INSERT INTO txt VALUES ('H5218', 'German',  'Suchpfad Rollen: Der Distinguished name (Dn) des Wurzelverzeichnisses des Rollensuchbaums. Da Rollen nur vom internen Ldap verwaltet werden, sollte dieser Parameter nur dort gesetzt werden.');
+INSERT INTO txt VALUES ('H5218', 'English', 'Role Search Path: The distinguished name (Dn) of the root of the role search tree. As the roles are administrated only by the internal Ldap this parameter should only be set there.');
+INSERT INTO txt VALUES ('H5219', 'German',  'Suchpfad Gruppen: Der Distinguished name (Dn) des Wurzelverzeichnisses des Gruppensuchbaums. Dieser Parameter sollte f&uuml;r das interne Ldap nur gesetzt werden, wenn Gruppen verwendet werden.');
+INSERT INTO txt VALUES ('H5219', 'English', 'Group Search Path: The distinguished name (Dn) of the root of the group search tree. This parameter should only be set for the internal Ldap, if user group handling is used.');
+INSERT INTO txt VALUES ('H5220', 'German',  'Nutzer f&uuml;r Suche*: Der Distinguished name (Dn) des Nutzers, der die Rechte f&uuml;r Suchen im Ldap hat.');
+INSERT INTO txt VALUES ('H5220', 'English', 'Search User*: The distinguished name (Dn) of the user having the rights performing searches in the Ldap.');
+INSERT INTO txt VALUES ('H5221', 'German',  'Passwort Nutzer f&uuml;r Suche*: Passwort des f&uuml;r Suchen verwendeten Nutzers.');
+INSERT INTO txt VALUES ('H5221', 'English', 'Search User Password*: The password for the search user.');
+INSERT INTO txt VALUES ('H5222', 'German',  'Schreibender Nutzer: Der Distinguished name (Dn) des Nutzers, der die Rechte f&uuml;r Schreiboperationen im Ldap hat. Notwendig nur f&uuml;r das interne Ldap, um Nutzer und Gruppen zu verwalten.');
+INSERT INTO txt VALUES ('H5222', 'English', 'Write User: The distinguished name (Dn) of the user having the rights performing write operations in the Ldap. Necessary only for the internal Ldap to administrate users and groups.');
+INSERT INTO txt VALUES ('H5223', 'German',  'Passwort Schreibender Nutzer: Passwort des zum Schreiben verwendeten Nutzers.');
+INSERT INTO txt VALUES ('H5223', 'English', 'Write User Password: The password for the write user.');
+INSERT INTO txt VALUES ('H5224', 'German',  'Mandant: Wenn das Ldap nur f&uuml;r einen Mandanten genutzt werden soll, kann dieser hier ausgew&auml;hlt werden.');
+INSERT INTO txt VALUES ('H5224', 'English', 'Tenant: If the Ldap is used only for one tenant, it can be selected here.');
+INSERT INTO txt VALUES ('H5231', 'German',  'Die verf&uuml;gbaren Mandanten werden hier mit den zugeordneten Gateways dargestellt.<br>
+    Es ist m&ouml;glich, Mandanten im lokalen Ldap sowie Verkn&uuml;pfungen zu den vorhandenen <a href="/help/settings/gateways">Gateways</a> anzulegen oder zu l&ouml;schen.
+    Wenn Beispieldaten (definiert durch die Endung "_demo" vom Mandantennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
+');
+INSERT INTO txt VALUES ('H5231', 'English', 'The available tenants are listed in the table with the related gateways.<br>
+    It is possible to add or delete tenants in the local LDAP and relationships to the defined <a href="/help/settings/gateways">gateways</a>.
+    If there are sample data (defined by the ending "_demo" of the tenant name), a button is displayed to delete them.
+');
+INSERT INTO txt VALUES ('H5241', 'German',  'Mandantenaktion: M&ouml;glichkeit zum L&ouml;schen des Mandanten vom lokalen Ldap. Ausnahme ist der Superadmin, da er zu allen Mandanten zugeordnet ist.');
+INSERT INTO txt VALUES ('H5241', 'English', 'Tenant Action: Possibility to delete tenant from local Ldap. The superadmin is excepted from this as it is related to all tenants.');
+INSERT INTO txt VALUES ('H5242', 'German',  'Gatewayaktion: M&ouml;glichkeit zum Anlegen oder L&ouml;schen von Zuweisungen von Gateways zu Mandanten. Ausnahme ist der Superadmin, da er automatisch zu allen Mandanten zugeordnet ist.');
+INSERT INTO txt VALUES ('H5242', 'English', 'Gateway Action: Possibility to add or delete assignments from gateways to tenants. The superadmin is excepted from this as it is automatically related to all tenants.');
+INSERT INTO txt VALUES ('H5243', 'German',  'Name: Name des Mandanten');
+INSERT INTO txt VALUES ('H5243', 'English', 'Name: Tenant name');
+INSERT INTO txt VALUES ('H5244', 'German',  'Kommentar: Hier kann ein Kommentar eingetragen werden.');
+INSERT INTO txt VALUES ('H5244', 'English', 'Comment: Possibility to enter a comment.');
+INSERT INTO txt VALUES ('H5245', 'German',  'Projekt: Hier kann ein Projekt eingetragen werden.');
+INSERT INTO txt VALUES ('H5245', 'English', 'Project: Possibility to enter a project.');
+INSERT INTO txt VALUES ('H5246', 'German',  'Sicht auf alle Ger&auml;te: Zeigt an, dass der Mandant alle Ger&auml;te sehen darf.');
+INSERT INTO txt VALUES ('H5246', 'English', 'View All Devices: Flag indicating that this tenant has view on all devices.');
+INSERT INTO txt VALUES ('H5247', 'German',  'Superadmin: Zeigt an, dass es sich um den Superadmin handelt.');
+INSERT INTO txt VALUES ('H5247', 'English', 'Superadmin: Flag indicating the superadmin.');
+INSERT INTO txt VALUES ('H5248', 'German',  'Gateways: Alle mit diesem Mandanten verkn&uuml;pften Gateways.');
+INSERT INTO txt VALUES ('H5248', 'English', 'Gateways: All gateways related to this tenant.');
+INSERT INTO txt VALUES ('H5261', 'German',  'Hier werden alle dem System bekannten Nutzer dargestellt.
+    Das sind alle im internen Ldap angelegten Nutzer, sowie Nutzer von externen Ldaps, die sich schon mindestens einmal angemeldet haben.<br>
+    Der Administrator kann Nutzer anlegen, &auml;ndern oder l&ouml;schen.
+    Wenn Beispieldaten (definiert durch die Endung "_demo" vom Nutzernamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
+');
+INSERT INTO txt VALUES ('H5261', 'English', 'Here all users known to the system are displayed. 
+    These are all users defined in the internal Ldap and users from external Ldaps who have already logged in at least once.<br>
+    The administrator can add, change or delete users.
+    If there are sample data (defined by the ending "_demo" of the user name), a button is displayed to delete them.
+');
+INSERT INTO txt VALUES ('H5271', 'German',  'Aktionen: Nutzer k&ouml;nnen geklont, ge&auml;ndert oder gel&ouml;scht werden.
+    Ausserdem kann der Administrator das Passwort der Nutzer zur&uuml;cksetzen und ein neues setzen, welches den Vorgaben der <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> gen&uuml;gen muss.
+');
+INSERT INTO txt VALUES ('H5271', 'English', 'Actions: Users can be cloned, edited or deleted. 
+    Additionally the administrator has the possibility to reset the password of the users and set a new password which has to comply with the <a href="/help/settings/passwordpolicy">Password Policy</a>.
+');
+INSERT INTO txt VALUES ('H5272', 'German',  'Name: Nutzername.');
+INSERT INTO txt VALUES ('H5272', 'English', 'Name: Name of the user.');
+INSERT INTO txt VALUES ('H5273', 'German',  'Mandant: Mandant, zu dem der Nutzer zugeordnet ist.');
+INSERT INTO txt VALUES ('H5273', 'English', 'Tenant: Tenant the user belongs to.');
+INSERT INTO txt VALUES ('H5274', 'German',  'Email: Email-Adresse des Nutzers.');
+INSERT INTO txt VALUES ('H5274', 'English', 'Email: Email address of the user.');
+INSERT INTO txt VALUES ('H5275', 'German',  'Sprache: Bevorzugte Sprache des Nutzers. Wird nur dargestellt, wenn der Nutzer sich bereits mindestens einmal angemeldet hat.');
+INSERT INTO txt VALUES ('H5275', 'English', 'Language: Preferred language of the user. Is only displayed, when the user has already logged in at least once.');
+INSERT INTO txt VALUES ('H5276', 'German',  'Letzte Anmeldung: Datum und Zeit der letzten Anmeldung des Nutzers.');
+INSERT INTO txt VALUES ('H5276', 'English', 'Last login: Last login date and time of the user.');
+INSERT INTO txt VALUES ('H5277', 'German',  'Letzte Passwort&auml;nderung: Datum und Zeit der letzten Passwort&auml;nderung. Die kann vom Admin oder vom Nutzer selbst gemacht worden sein.');
+INSERT INTO txt VALUES ('H5277', 'English', 'Last Password Change: Date and time of the last password change. This may have been made by the admin or the user itself.');
+INSERT INTO txt VALUES ('H5278', 'German',  'PW &Auml;nd. erf.: Zeigt an, dass der Nutzer beim n&auml;chsten Anmelden sein Passwort &auml;ndern muss.
+    Der Nutzer muss dann das Passwort in einem separaten Fenster &auml;ndern, bevor er in die eigentliche Anwendung weitergeleitet wird.
+    Der Schalter wird gesetzt, wenn ein neuer Nutzer angelegt oder das Passwort vom Admin zur&uuml;ckgesetzt wurde,
+    ausser f&uuml;r Nutzer mit Auditor-Rolle, da diese keinerlei &Auml;nderungen im System machen d&uuml;rfen.
+');
+INSERT INTO txt VALUES ('H5278', 'English', 'Pwd Chg Req: Flag that the user has to change his password at next login.
+    The user is then forced to change the password in a separate popup window before he can proceed to the application.
+    The flag is set when a new user is added or when the admin has reset the password, 
+    except for users with auditor role, because that role is not allowed to make any changes in the system.
+');
+INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren.<br>
+    Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
+    Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
+');
+INSERT INTO txt VALUES ('H5301', 'English', 'Groups of users can be defined by the admin in the internal Ldap.<br>
+    If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
+    The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
+');
+INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden.');
+INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups.');
+INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) der Gruppe zugeordnet oder von dieser entfernt werden.');
+INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) can be assigned to or removed from the user groups.');
+INSERT INTO txt VALUES ('H5313', 'German',  'Name: Name der Nutzergruppe.');
+INSERT INTO txt VALUES ('H5313', 'English', 'Name: Name of the user group.');
+INSERT INTO txt VALUES ('H5314', 'German',  'Nutzer: Liste der der Gruppe zugeordneten Nutzer.');
+INSERT INTO txt VALUES ('H5314', 'English', 'Users: List of assigned users to the group.');
+INSERT INTO txt VALUES ('H5331', 'German',  'Alle definierten Rollen werden mit einer kurzen Erkl&auml;rung dargestellt.<br>
+    Der Admin kann Nutzer oder Nutzergruppen den Rollen zuweisen bzw. von diesen entfernen.
+');
+INSERT INTO txt VALUES ('H5331', 'English', 'All defined roles in the system are displayed with a short explanation.<br>
+    The admin can assign or remove users or user groups to/from the roles.
+');
+INSERT INTO txt VALUES ('H5341', 'German',  'Aktionen: Der Admin hat die M&ouml;glichkeit, Nutzer den Rollen zuzuordnen oder sie von ihnen zu entfernen,
+    ausser f&uuml;r "anonymous" oder "middleware-server", welche nur intern genutzt werden kann.
+    Das Hinzuf&uuml;gen der Nutzer kann auf drei Arten erfolgen:
+');
+INSERT INTO txt VALUES ('H5341', 'English', 'Actions: The admin can add or delete users from the roles, 
+    except for "anonymous" or "middleware-server" which can only be used internally.
+    For adding users there are three possibilities:
+');
+INSERT INTO txt VALUES ('H5342', 'German',  'Name: Rollenname');
+INSERT INTO txt VALUES ('H5342', 'English', 'Name: Name of the role');
+INSERT INTO txt VALUES ('H5343', 'German',  'Beschreibung: Kurze Beschreibung des vorgesehenen Einsatzgebietes der Rolle.');
+INSERT INTO txt VALUES ('H5343', 'English', 'Description: Short description of the intended scope of the role.');
+INSERT INTO txt VALUES ('H5344', 'German',  'Nutzer/Gruppen: Zugeordnete Nutzer oder Nutzergruppen.');
+INSERT INTO txt VALUES ('H5344', 'English', 'Users/Groups: Assigned users or user groups.');
+INSERT INTO txt VALUES ('H5351', 'German',  'Suche in einem der <a href="/help/settings/ldap">verbundenen Ldaps</a>.
+    M&ouml;glicherweise ist ein Suchstring der in der Ldap-Verbindung definierten Mindestl&auml;nge einzutragen.
+    Die Syntax daf&uuml;r ist dieselbe, die auch f&uuml;r eine direkte Suche im Ldap erwartet wird.
+');
+INSERT INTO txt VALUES ('H5351', 'English', 'Search in one of the <a href="/help/settings/ldap">connected Ldaps</a>.
+    A search string may be necessary with the minimal length defined in the Ldap connection. 
+    For that the syntax is the same as searching directly in the connected Ldap.
+');
+INSERT INTO txt VALUES ('H5352', 'German',  'Auswahl aus der Liste der bekannten Nutzer, wie sie in den <a href="/help/settings/users">Nutzereinstellungen</a> dargestellt wird.');
+INSERT INTO txt VALUES ('H5352', 'English', 'Select from the list of known users also displayed in the <a href="/help/settings/users">Users settings</a>.');
+INSERT INTO txt VALUES ('H5353', 'German',  'Manuelle Eingabe des Distinguished name (Dn).');
+INSERT INTO txt VALUES ('H5353', 'English', 'Manually insert a new distinguished name (Dn).');
+INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
+    Manche von ihnen k&ouml;nnen in den individuellen Nutzereinstellungen &uuml;berschrieben werden.
+');
+INSERT INTO txt VALUES ('H5401', 'English', 'The admin can define several default values, which are valid for all users.<br>
+    Some of them can be overwritten in the individual settings of each user.
+');
+INSERT INTO txt VALUES ('H5411', 'German',  'Standardsprache: Die Sprache, die neuen Nutzern beim ersten Anmelden zugewiesen wird.
+    Nach dem Anmelden kann jeder Nutzer seine eigene bevorzugte <a href="/help/settings/language">Sprache</a> definieren.
+');
+INSERT INTO txt VALUES ('H5411', 'English', 'Default Language: The language which every user gets at first login. 
+    After login each user can define its own preferred <a href="/help/settings/language">language</a>.
+');
+INSERT INTO txt VALUES ('H5412', 'German',  'Pro Abruf geholte Elemente: Definiert die (maximale) Anzahl der Objekte, die bei der Reporterzeugung und beim Aufbau der rechten Randleiste in einem Schritt geholt werden.
+    Dies kann genutzt werden, um die Performanz zu optimieren, wenn n&ouml;tig.
+');
+INSERT INTO txt VALUES ('H5412', 'English', 'Elements per fetch: Defines the (maximum) number of objects which are fetched in one step for the report creation and the build up of the right sidebar.
+    This can be used to optimize performance if necessary.
+');
+INSERT INTO txt VALUES ('H5413', 'German',  'Max initiale Abrufe rechte Randleiste: Definiert die (maximale) Anzahl an Abrufen w&auml;hrend der Initialisierung der rechten Randleiste.
+    Dies kann genutzt werden, um die Performanz zu optimieren, wenn n&ouml;tig.
+');
+INSERT INTO txt VALUES ('H5413', 'English', 'Max initial fetches right sidebar: Defines the (maximum) number of fetches during initialization of the right sidebar.
+    This can be used to optimize performance if necessary.
+');
+INSERT INTO txt VALUES ('H5414', 'German',  'Komplettes F&uuml;llen rechte Randleiste: Erzwingt, dass die rechte Randleiste immer komplett gef&uuml;llt wird.
+    Kann gesetzt werden, wenn die Gesamtzahl der Objekte moderat ist, so dass keine Performanzprobleme zu erwarten sind.
+');
+INSERT INTO txt VALUES ('H5414', 'English', 'Completely auto-fill right sidebar: A flag to enforce that the right sidebar is always filled completely.
+    It can be set, if the total amount of objects is moderate, so there are no performance issues expected.
+');
+INSERT INTO txt VALUES ('H5415', 'German',  'Datenaufbewahrungszeit (in Tagen): Legt fest, wie lange die Daten in der Datenbank gehalten werden.');
+INSERT INTO txt VALUES ('H5415', 'English', 'Data retention time (in days): Defines how long the data is kept in the database.');
+INSERT INTO txt VALUES ('H5416', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Imports');
+INSERT INTO txt VALUES ('H5416', 'English', 'Import sleep time (in seconds): Time between import loops.');
+INSERT INTO txt VALUES ('H5417', 'German',  'Rezertifizierungsintervall (in Tagen): Maximale Zeit, nach der eine Regel rezertifiziert werden soll.');
+INSERT INTO txt VALUES ('H5417', 'English', 'Recertification Period (in days): Maximum time, after when a rule should be recertified.');
+INSERT INTO txt VALUES ('H5418', 'German',  'Rezertifizierungserinnerungsintervall (in Tagen): Zeit vor dem F&auml;lligkeitsdatum, ab der eine Regel als f&auml;llig hervorgehoben werden soll.');
+INSERT INTO txt VALUES ('H5418', 'English', 'Recertification Notice Period (in days): Time before the due date when the rule should be marked as upcoming recertification.');
+INSERT INTO txt VALUES ('H5419', 'German',  'Rezertifizierungsanzeigeintervall (in Tagen): Vorausschauintervall f&uuml;r f&auml;llige Rezertifizierungen.');
+INSERT INTO txt VALUES ('H5419', 'English', 'Recertification Display Period (in days): Lookahead period for upcoming recertifications.');
+INSERT INTO txt VALUES ('H5420', 'German',  'Frist zum L&ouml;schen der Regeln (in Tagen): Maximale Zeit, die dem fwadmin zum L&ouml;schen der dezertifizierten Regeln einger&auml;umt wird.');
+INSERT INTO txt VALUES ('H5420', 'English', 'Rule Removal Grace Period (in days): Maximum time the fwadmin has to remove the decertified rules.');
+INSERT INTO txt VALUES ('H5421', 'German',  'Kommentar Pflichtfeld: Legt fest, dass das Kommentarfeld f&uuml;r Re- und Dezertifizierungen gef&uuml;llt sein muss.');
+INSERT INTO txt VALUES ('H5421', 'English', 'Comment Required: A non-empty comment for the re- or decertification is required.');
+INSERT INTO txt VALUES ('H5431', 'German',  'Der Administrator kann Vorgaben f&uuml;r Passw&ouml;rter definieren, gegen die alle neuen Passw&ouml;rter aller (internen) Nutzer gepr&uuml;ft werden.');
+INSERT INTO txt VALUES ('H5431', 'English', 'The admin user can define a password policy, against which all new passwords of all (internal) users are checked.');
+INSERT INTO txt VALUES ('H5441', 'German',  'Mindestl&auml;nge: Minimale L&auml;nge des Passworts');
+INSERT INTO txt VALUES ('H5441', 'English', 'Min Length: Minimal length of the password.');
+INSERT INTO txt VALUES ('H5442', 'German',  'Grossbuchstaben enthalten: Das Passwort muss mindestens einen Grossbuchstaben enthalten.');
+INSERT INTO txt VALUES ('H5442', 'English', 'Upper Case Required: There has to be at least one character in upper case in the password.');
+INSERT INTO txt VALUES ('H5443', 'German',  'Kleinbuchstaben enthalten: Das Passwort muss mindestens einen Kleinbuchstaben enthalten.');
+INSERT INTO txt VALUES ('H5443', 'English', 'Lower Case Required: There has to be at least one character in lower case in the password.');
+INSERT INTO txt VALUES ('H5444', 'German',  'Ziffern enthalten: Das Passwort muss mindestens eine Ziffer enthalten.');
+INSERT INTO txt VALUES ('H5444', 'English', 'Number Required: There has to be at least one number in the password.');
+INSERT INTO txt VALUES ('H5445', 'German',  'Sonderzeichen enthalten: Das Passwort muss mindestens ein Sonderzeichen enthalten. M&ouml;gliche Werte: !?(){}=~$%&amp;#*-+.,_');
+INSERT INTO txt VALUES ('H5445', 'English', 'Special Characters Required: There has to be at least one special character in the password. Possible values are: !?(){}=~$%&amp;#*-+.,_');
+INSERT INTO txt VALUES ('H5451', 'German',  'Jeder Nutzer (ausser Demo-Nutzer) kann sein eigenes Passwort &auml;ndern.<br>
+    Bitte das alte Passwort einmal und das neue Passwort zweimal eingeben, um Eingabefehler zu vermeiden.
+    Das neue Passwort muss sich vom alten unterscheiden und wird gegen die <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> gepr&uuml;ft.
+');
+INSERT INTO txt VALUES ('H5451', 'English', 'Every user (except demo user) can change his own password.<br>
+    Please insert the old password once and the new password twice to avoid input mistakes.
+    The new password has to be different from the old one and is checked against the <a href="/help/settings/passwordpolicy">Password Policy</a>.
+');
+INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
+    Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
+    Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>
+    Zur Zeit verf&uuml;gbar:
+');
+INSERT INTO txt VALUES ('H5461', 'English', 'Every user can set his own preferred language of the application.<br>
+    All texts are displayed in this language if available. If not, the default language is used. If the text is not available there either, English is used.
+    The default language at first login can be defined by the admin for all users in the <a href="/help/settings/defaults">Default Settings</a>.<br><br>
+    Currently available:
+');
+INSERT INTO txt VALUES ('H5471', 'German',  'Jeder Nutzer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r die Reporteinstellungen &uuml;berschreiben.
+    Ausgangswert ist der vom Admin in den <a href="/help/settings/defaults">Standardeinstellungen</a> gesetzte Wert.
+');
+INSERT INTO txt VALUES ('H5471', 'English', 'Every user can overwrite some personal settings for the report creation.
+    The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
+');
+INSERT INTO txt VALUES ('H5481', 'German',  'Ein Rezertifizierer kann einige pers&ouml;nliche Voreinstellungen f&uuml;r den Rezertifizierungsreport &uuml;berschreiben.
+    Ausgangswert ist der vom Admin in den <a href="/help/settings/defaults">Standardeinstellungen</a> gesetzte Wert.
+');
+INSERT INTO txt VALUES ('H5481', 'English', 'A recertifier can overwrite some personal settings for the recertification report. 
+    The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
+');
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator hat eine <a href="/help/API/graphql">GraphQl</a> API welche auf <a href="/help/API/hasura">Hasura</a> basiert. 
     Diese erlaubt, flexibel den Zugang zu allen Daten der Datenbank und die Granularit&auml;t der zur&uuml;ckgegebenen Daten zu steuern.

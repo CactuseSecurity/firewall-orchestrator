@@ -7,11 +7,17 @@
         await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Groups</h3>
-    Groups of users can be defined in the internal Ldap.<br>
-    There is the possibility to add/edit/delete self defined groups and to add/remove users to/from these groups.<br>
-    If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
-    The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
+    <h3>@userConfig.GetText("groups")</h3>
+    @(Html.Raw(userConfig.GetText("H5301")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5311")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5312")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5313")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5314")))</li>
+    </ul>
 </div>

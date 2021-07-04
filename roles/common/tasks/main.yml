@@ -77,7 +77,7 @@
       name: "rsyslog"
       state: present
 
-  - name: change rsyslog config to receive logs TODO on backend only
+  - name: change rsyslog config to receive logs
     blockinfile:
       path: /etc/rsyslog.conf
       block: |

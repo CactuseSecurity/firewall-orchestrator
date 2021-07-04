@@ -4,8 +4,6 @@ sample_config_user_home: "/home/{{ sample_config_user }}"
 import_sample_server: localhost
 sample_config_hostname: isosrv
 importer_hostname: localhost
-sting_ip: "192.168.100.110"
-sting_port: "443"
 sample_data_rate: medium
 
 # sample openldap server

@@ -86,7 +86,6 @@
 - hosts: sampleserver
   roles:
     - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
-    - { role: sample-data-connect-sting, when: "connect_sting is defined and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend

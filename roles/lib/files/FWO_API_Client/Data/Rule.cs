@@ -12,7 +12,7 @@ namespace FWO.Api.Data
     public class Rule
     {
         [JsonPropertyName("rule_id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("rule_uid")]
         public string Uid { get; set; }

@@ -6,7 +6,7 @@ namespace FWO.Api.Data
     public class ImportControl
     {
         [JsonPropertyName("control_id")]
-        public int ControlId { get; set; }
+        public long ControlId { get; set; }
 
         [JsonPropertyName("start_time")]
         public DateTime? StartTime { get; set; }

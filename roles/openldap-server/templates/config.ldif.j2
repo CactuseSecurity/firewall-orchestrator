@@ -21,6 +21,7 @@ olcModulePath: /usr/lib/ldap
 olcModuleLoad: {0}back_bdb.la
 olcModuleLoad: {1}memberof.la
 olcModuleLoad: {2}refint.la
+olcModuleLoad: {3}ppolicy.la
 
 # internal schema
 dn: cn=schema,cn=config
@@ -32,6 +33,7 @@ include: file:///etc/ldap/schema/core.ldif
 include: file:///etc/ldap/schema/cosine.ldif
 include: file:///etc/ldap/schema/inetorgperson.ldif
 include: file:///etc/ldap/schema/nis.ldif
+include: file:///etc/ldap/schema/ppolicy.ldif
 
 # configure config database
 dn: olcDatabase=config,cn=config
@@ -108,3 +110,12 @@ objectClass: top
 olcOverlay: refint
 olcRefintAttribute: memberOf
 olcRefintAttribute: uniqueMember
+
+# Password policy overlay
+dn: olcOverlay=ppolicy,olcDatabase={1}bdb,cn=config
+objectClass: olcConfig
+objectClass: top
+objectClass: olcOverlayConfig
+objectClass: olcPPolicyConfig
+olcOverlay: ppolicy
+olcPPolicyHashCleartext: TRUE

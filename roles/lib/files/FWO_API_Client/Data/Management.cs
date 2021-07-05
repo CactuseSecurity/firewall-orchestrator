@@ -83,7 +83,7 @@ namespace FWO.Api.Data
 
         // [JsonPropertyName("pointInTime")]
         // public DateTime ReportTime { get; set; }
-        public int? RelevantImportId { get; set; }
+        public long? RelevantImportId { get; set; }
 
         //[JsonPropertyName("rule_id")]
         public List<long> ReportedRuleIds { get; set; }

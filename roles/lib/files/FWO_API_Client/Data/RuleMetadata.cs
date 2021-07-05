@@ -6,7 +6,7 @@ namespace FWO.Api.Data
     public class RuleMetadata
     {
         [JsonPropertyName("rule_metadata_id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("rule_created")]
         public DateTime? Created { get; set; }

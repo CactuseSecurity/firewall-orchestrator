@@ -7,14 +7,14 @@
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
     <button class="btn btn-sm btn-secondary"
-            @onclick="@((Func<Task>)(async () => {
-                allDevicesSelected = DeviceFilter.applyFullDeviceSelection(Managements, allDevicesSelected);
-                toggleDeviceSelectionButtonText = allDevicesSelected ? clearAll : selectAll;
-                allDevicesSelected = !allDevicesSelected;
+            @onclick="@((async () => {
+                DeviceFilter.applyFullDeviceSelection(Managements, SelectAll);
                 FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
+                SelectAll = !SelectAll;
                 await FilterInputChanged.InvokeAsync(FilterInput);
+                await SelectAllChanged.InvokeAsync(SelectAll);
             }))">
-        @toggleDeviceSelectionButtonText
+        @(SelectAll ? selectAllText : clearAllText)
     </button>
     <br><br>
 
@@ -32,16 +32,15 @@
                                     device.selected = !device.selected;
                                     if (DeviceFilter.areAllDevicesSelected(Managements))
                                     {
-                                        toggleDeviceSelectionButtonText = clearAll;
-                                        allDevicesSelected = false;
+                                        SelectAll = false;
                                     }
                                     if (!DeviceFilter.isAnyLSBDeviceFilterSet(Managements))
                                     {
-                                        toggleDeviceSelectionButtonText = selectAll;
-                                        allDevicesSelected = true;
+                                        SelectAll = true;
                                     }
                                     FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
                                     await FilterInputChanged.InvokeAsync(FilterInput);
+                                    await SelectAllChanged.InvokeAsync(SelectAll);
                                 }" />
                         <label class="form-check-label" for="@device.Id">
                             @device.Name
@@ -64,15 +63,18 @@
     [Parameter]
     public Management[] Managements { get; set; }
 
-    private bool allDevicesSelected = true;
-    private string toggleDeviceSelectionButtonText;
-    private string selectAll;
-    private string clearAll;
+    [Parameter]
+    public bool SelectAll { get; set; } // state of the device select/clear all button
+
+    [Parameter]
+    public EventCallback<bool> SelectAllChanged { get; set; }
+
+    private string selectAllText;
+    private string clearAllText;
 
     protected override void OnInitialized()
     {
-        selectAll = userConfig.GetText("select_all");
-        clearAll = userConfig.GetText("clear_all");
-        toggleDeviceSelectionButtonText = selectAll;
+        selectAllText = userConfig.GetText("select_all");
+        clearAllText = userConfig.GetText("clear_all");
     }
 }

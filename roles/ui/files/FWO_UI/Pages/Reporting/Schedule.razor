@@ -168,10 +168,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
-        reportTemplates = await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates);
-        uiUserDbId = userConfig.User.DbId;
-        authenticationState = await authenticationStateTask;
+        try
+        {
+            scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
+            reportTemplates = await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates);
+            uiUserDbId = userConfig.User.DbId;
+            authenticationState = await authenticationStateTask;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("schedule_fetch"), null, true);
+        }
     }
 
     private async Task SaveScheduledReport()

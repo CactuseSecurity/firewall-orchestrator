@@ -7,12 +7,21 @@
         await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Tenants</h3>
-    The available tenants are listed in the table with the related gateways.<br>
-    It is possible to add or delete tenants in the local LDAP.
-    New relationships to the defined <a href="/help/settings/gateways">gateways</a> can be added or deleted.
-    The first one is excepted from this as it is the superadmin which is related to all tenants.
-    If there are sample data (defined by the ending "_demo" of the tenant name), a button is displayed to delete them.
+    <h3>@userConfig.GetText("tenants")</h3>
+    @(Html.Raw(userConfig.GetText("H5231")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5241")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5242")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5243")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5244")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5245")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5246")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5247")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5248")))</li>
+    </ul>
 </div>

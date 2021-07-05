@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -35,6 +36,7 @@ namespace FWO.Middleware.Server.Requests
                     await Task.Run(() =>
                     {
                         groupDeleted = currentLdap.DeleteGroup(groupDn);
+                        Log.WriteAudit("DeleteGroup", $"Group {groupDeleted} deleted");                        
                     });
                 }
             }

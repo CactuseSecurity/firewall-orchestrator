@@ -31,13 +31,9 @@
                                @oninput="async () => {
                                     device.selected = !device.selected;
                                     if (DeviceFilter.areAllDevicesSelected(Managements))
-                                    {
                                         SelectAll = false;
-                                    }
                                     if (!DeviceFilter.isAnyLSBDeviceFilterSet(Managements))
-                                    {
                                         SelectAll = true;
-                                    }
                                     FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
                                     await FilterInputChanged.InvokeAsync(FilterInput);
                                     await SelectAllChanged.InvokeAsync(SelectAll);

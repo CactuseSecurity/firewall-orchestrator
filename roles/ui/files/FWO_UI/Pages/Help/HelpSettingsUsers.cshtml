@@ -7,11 +7,21 @@
         await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Users</h3>
-    Here all users known to the system are displayed. 
-    These are all users defined in the internal Ldap and users from external Ldaps who have already logged in at least once.<br>
-    The administrator has the possibility to reset the password of the users and set a new password which has to comply with the <a href="/help/settings/passwordpolicy">Password Policy</a>. A flag is set that the user has to change his password at next login (except for users with auditor role, because that role is nor allowed to make any changes).<br>
-    If there are sample data (defined by the ending "_demo" of the user name), a button is displayed to delete them.
+    <h3>@userConfig.GetText("users")</h3>
+    @(Html.Raw(userConfig.GetText("H5261")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5271")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5272")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5273")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5274")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5275")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5276")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5277")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5278")))</li>
+    </ul>
 </div>

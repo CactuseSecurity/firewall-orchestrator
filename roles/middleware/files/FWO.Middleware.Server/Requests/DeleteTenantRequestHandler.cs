@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -41,6 +42,7 @@ namespace FWO.Middleware.Server.Requests
             }
 
             // Return status and result
+            // Log.WriteAudit("DeleteTenant", $"Tenant {tenantName} deleted");
             return WrapResult(HttpStatusCode.OK, ("tenantDeleted", tenantDeleted.ToString()));
         }
     }

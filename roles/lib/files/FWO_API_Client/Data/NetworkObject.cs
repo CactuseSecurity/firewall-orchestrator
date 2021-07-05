@@ -10,7 +10,7 @@ namespace FWO.Api.Data
     public class NetworkObject
     {
         [JsonPropertyName("obj_id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("obj_name")]
         public string Name { get; set; }

@@ -12,7 +12,7 @@
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
-    <DeviceSelection Managements="managements" @bind-FilterInput="filterInput"></DeviceSelection>
+    <DeviceSelection Managements="managements" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
 </Sidebar>
 
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
@@ -105,6 +105,7 @@
 
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
+    private bool selectAll = true;
 
     private string filterInput = "remove=false and recertdisplay=0";
 
@@ -117,7 +118,7 @@
     private ReportBase currentReport;
 
     private Sidebar deviceSelectionSidebar;
-    private bool fullDeviceActionIsSelect = true;
+    // private bool fullDeviceActionIsSelect = true;
     private bool AddCommentMode = false;
     private string actComment = "";
 
@@ -151,7 +152,7 @@
         try
         {
             // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements, fullDeviceActionIsSelect);
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements);
             SyncFilterToDisplay();
 
             currentReport = ReportBase.ConstructReport(filterInput);
@@ -229,7 +230,7 @@
         }
     }
 
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, int id = 0)
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0)
     {
         const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
 
@@ -351,8 +352,8 @@
         try
         {
             // collect selected recerts + decerts
-            List<int> RecertIds = new List<int>();
-            List<int> DecertIds = new List<int>();
+            List<long> RecertIds = new List<long>();
+            List<long> DecertIds = new List<long>();
             
             foreach (Management management in managements)
             {

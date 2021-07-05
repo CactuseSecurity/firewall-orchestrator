@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -36,6 +37,7 @@ namespace FWO.Middleware.Server.Requests
                     await Task.Run(() =>
                     {
                         userAdded = currentLdap.AddUserToEntry(userDn, group);
+                        Log.WriteAudit("AddUserToGroup", $"user {userAdded} successfully added to group {group}");                        
                     });
                 }
             }

@@ -1,5 +1,6 @@
 ﻿using FWO.ApiClient;
 using FWO.ApiClient.Queries;
+using FWO.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,6 +46,8 @@ namespace FWO.Middleware.Server.Requests
             // Add ldap to DB and to middleware ldap list
             Ldap addedLdap = (await apiConnection.SendQueryAsync<Ldap[]>(AuthQueries.newLdapConnection, ldapData))[0];
             connectedLdaps.Add(addedLdap);
+
+            Log.WriteAudit("AddLdap", $"LDAP server {ldapData.address}:{ldapData.port} successfully added");
 
             // Return status and result
             return WrapResult(HttpStatusCode.OK, ("Ldap", addedLdap));

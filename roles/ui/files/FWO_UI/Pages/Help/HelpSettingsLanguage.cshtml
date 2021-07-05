@@ -7,14 +7,14 @@
         await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
     }
 }
+@using FWO.ApiConfig
+@inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>Language</h3>
-    Every user can set his own preferred language of the application.<br>
-    The default language at first login can be defined by the admin for all users in the <a href="/help/settings/defaults">Default Settings</a>.<br>
-    Currently available:
+    <h3>@(userConfig.GetText("language"))</h3>
+    @(Html.Raw(userConfig.GetText("H5461")))
     <ul>
-        <li>English</li>
-        <li>German (except help pages)</li>
+        <li>@(userConfig.GetText("English"))</li>
+        <li>@(userConfig.GetText("German"))</li>
     </ul>
 </div>

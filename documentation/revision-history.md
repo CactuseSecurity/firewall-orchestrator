@@ -129,3 +129,6 @@ adding report template format fk and permissions
 
 ### 5.3.1 - 01.07.2021
 - first public open source version
+
+### 5.3.2 - 05.07.2021
+- some minor bufixes

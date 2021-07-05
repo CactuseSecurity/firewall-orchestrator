@@ -794,7 +794,7 @@ namespace FWO.Middleware.Server
 
         public bool DeleteTenant(string tenantName)
         {
-            Log.WriteInfo("Delete Tenant", $"Trying to delete Tenant: \"{tenantName}\"");
+            Log.WriteDebug("Delete Tenant", $"Trying to delete Tenant: \"{tenantName}\"");
             bool tenantDeleted = false;
             try         
             {
@@ -812,6 +812,7 @@ namespace FWO.Middleware.Server
                         connection.Delete(tenantDn);
                         tenantDeleted = true;
                         Log.WriteDebug("Delete Tenant", $"tenant {tenantDn} deleted in {Address}");
+                        Log.WriteAudit("Delete Tenant", $"tenant {tenantDn} deleted in {Address}");
                     }
                     catch(Exception exception)
                     {

@@ -212,6 +212,7 @@
                 {
                     showPasswordChangeForm = false;
                     ((AuthStateProvider)AuthService).ConfirmPasswordChanged();
+                    Log.WriteAudit("ChangePassword", $"user {Username} successfully change password");
                 }
             }
             catch (Exception exception)

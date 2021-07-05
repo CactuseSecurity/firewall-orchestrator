@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using FWO.Logging;
 
 namespace FWO.Middleware.Server.Requests
 {
@@ -38,6 +39,7 @@ namespace FWO.Middleware.Server.Requests
                     if (currentLdap.IsInternal() && currentLdap.AddUser(userDn, password, email))
                     {
                         userAdded = true;
+                        Log.WriteAudit("AddUser", $"user {userDn} successfully added");
                     }
                 }));
             }

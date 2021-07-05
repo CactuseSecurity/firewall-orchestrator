@@ -60,6 +60,7 @@
       systemd:
         name: "{{ middleware_service_name }}"
         state: restarted
+        daemon_reload: yes
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:
@@ -85,7 +86,6 @@
 - hosts: sampleserver
   roles:
     - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
-    - { role: sample-data-connect-sting, when: "connect_sting is defined and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend

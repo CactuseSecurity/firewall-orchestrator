@@ -68,7 +68,7 @@ namespace FWO.Report.Filter
             return false;
         }
 
-        public static bool isAnyDeviceFilterSet(Management[] managements, DynGraphqlQuery query)
+        public static bool isAnyDeviceFilterSet(Management[] managements)
         {
             foreach (Management management in managements)
                 if (management != null)
@@ -76,25 +76,45 @@ namespace FWO.Report.Filter
                         if (device != null)
                             if (device.selected)
                                 return true;
+            return false;
+        }
+
+        public static bool isAnyDeviceFilterSet(DynGraphqlQuery query)
+        {
             // check if filterline contains a device filter
             if (query.FullQuery.Contains("device: {dev_name : {_ilike:") || query.FullQuery.Contains("management: {mgm_name : {_ilike:"))
                 return true;
             return false;
         }
 
-        public static bool applyFullDeviceSelection(Management[] managements, bool fullDeviceActionIsSelect)
+        public static bool isAnyDeviceFilterSet(string filterLine)
+        {
+            Match m = Regex.Match(filterLine, @"gateway|gw|device|firewall");
+            if (m.Success)
+                return true;
+            else
+                return false;
+        }
+
+        public static bool isAnyDeviceFilterSet(Management[] managements, DynGraphqlQuery query)
+        {
+            return isAnyDeviceFilterSet(managements) || isAnyDeviceFilterSet(query);
+        }
+
+        public static bool isAnyDeviceFilterSet(Management[] managements, string filterLine)
+        {
+            return isAnyDeviceFilterSet(managements) || isAnyDeviceFilterSet(filterLine);
+        }
+
+        /// <summary>
+        /// apply all device action (either clear all device selections or set them all)
+        /// </summary>
+        public static void applyFullDeviceSelection(Management[] managements, bool selectAll)
         {
             foreach (Management management in managements)
-            {
                 if (management != null)
-                {
                     foreach (Device device in management.Devices)
-                    {
-                        device.selected = fullDeviceActionIsSelect;
-                    }
-                }
-            }
-            return fullDeviceActionIsSelect;
+                        device.selected = selectAll;
         }
 
         /// <summary>
@@ -167,7 +187,7 @@ namespace FWO.Report.Filter
         /// clears current dev filter from left side bar and sets it to device & management filters from filter line
         //// returns either empty string or the new text for the "select/clear all" button
         /// </summary>
-        public static bool syncFilterLineToLSBFilter(string currentFilterLine, Management[] LSBFilter, bool deviceAllFilter)
+        public static void syncFilterLineToLSBFilter(string currentFilterLine, Management[] LSBFilter)
         {
             List<string> filteredGatewayList = new List<string>();
             List<string> gatewayList = new List<string>();
@@ -203,12 +223,11 @@ namespace FWO.Report.Filter
                     if (filteredGatewayList.Contains(LSBFilter[midx].Devices[didx].Name))
                         LSBFilter[midx].Devices[didx].selected = true;
 
-
-            if (!DeviceFilter.isAnyLSBDeviceFilterSet(LSBFilter))
-                return true;
-            if (DeviceFilter.areAllDevicesSelected(LSBFilter))
-                return false;
-            return deviceAllFilter;
+            // if (!DeviceFilter.isAnyLSBDeviceFilterSet(LSBFilter))
+            //     return true;
+            // if (DeviceFilter.areAllDevicesSelected(LSBFilter))
+            //     return false;
+            return;
         }
     }
 }

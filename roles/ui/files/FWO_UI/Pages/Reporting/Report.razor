@@ -18,7 +18,7 @@
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
-   <DeviceSelection Managements="managementsReport" @bind-FilterInput="filterInput"></DeviceSelection>
+   <DeviceSelection Managements="managementsReport" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
 
 @* ==== Middle div ==== *@
@@ -43,25 +43,16 @@
 
     <hr />
 
-    <!-- PopUp Title="@(userConfig.GetText("no_device_selected"))" Show="@ShowNoDeviceSelectedWarning" OnClose="() => ShowNoDeviceSelectedWarning = false">
-        <Body>
-            <div>
-                <p>@(userConfig.GetText("E1001"))</p>
-            </div>
-        </Body>
-        <Footer>
-            <button class="btn btn-primary" @onclick="() => ShowNoDeviceSelectedWarning = false">OK</button>
-        </Footer>
-    </PopUp -->
-
 @* ==== Templates ==== *@
     <ReportTemplateComponent OnTemplateLoad="
         template => {
-            fullDeviceActionIsSelect = syncTemplateFilter(template, fullDeviceActionIsSelect);
-            if (fullDeviceActionIsSelect)
-                deviceSelectButtonText = deviceSelectButtonTextSelect;
+            filterInput = template.Filter;
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
+            if (DeviceFilter.isAnyDeviceFilterSet(filterInput) || DeviceFilter.areAllDevicesSelected(managementsReport))
+                selectAll = false;
             else
-                deviceSelectButtonText = deviceSelectButtonTextClear;
+                selectAll = true;
+            StateHasChanged();
         }"
     @ref="reportTemplateControl"></ReportTemplateComponent>
 
@@ -214,22 +205,14 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
+    private bool selectAll = true;
     private string reportGenerationTimeLine = "";
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
-    private DynGraphqlQuery query = null;
-    private bool fullDeviceActionIsSelect = true;
-    private string deviceSelectButtonTextSelect = "";
-    private string deviceSelectButtonTextClear = "";
-    private string deviceSelectButtonText = "";
 
     protected override void OnInitialized()
     {
-        deviceSelectButtonTextSelect = userConfig.GetText("select_all");
-        deviceSelectButtonTextClear = userConfig.GetText("clear_all");
-        deviceSelectButtonText = deviceSelectButtonTextSelect;
-
         Task.Run(async () =>
         {
             try
@@ -250,7 +233,7 @@
         });
     }
 
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, int id = 0)
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0)
     {
         const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
 
@@ -345,7 +328,7 @@
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
         }
-        catch (Exception exception)
+        catch (Exception)
         {
             //DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
@@ -361,20 +344,17 @@
 
         // collapse report templates
         reportTemplateControl.Collapse();
-        // disabling left side bar collapse for now
-        // deviceSelectionSidebar.ToggleCollapse(true);
+        // deviceSelectionSidebar.ToggleCollapse(true); // disabling left side bar collapse for now
 
         try
         {
             // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport, fullDeviceActionIsSelect);
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
 
             currentReport = ReportBase.ConstructReport(filterInput);
-            if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
+            if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display warning
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
-//                ShowNoDeviceSelectedWarning = true;
-//                StateHasChanged();
                 return;
             }
 
@@ -432,13 +412,11 @@
 
     private void TryFilter(ChangeEventArgs changeArgs)
     {
-        DynGraphqlQuery query;
-
         try
         {
             filterInput = changeArgs.Value.ToString();
 
-            query = Compiler.Compile(filterInput);
+            DynGraphqlQuery query = Compiler.Compile(filterInput);
 
             filterFeedbackStart = filterInput;
             filterFeedbackError = "";
@@ -449,7 +427,6 @@
             int errorStart = filterError.ErrorPosition.Start.Value;
             int errorEnd = filterError.ErrorPosition.End.Value;
 
-            // TODO: RESTRUCTURE (current structure only for debug purpose)
             filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
             filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
             filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
@@ -485,13 +462,5 @@
         {
             Log.WriteError("Read Config", $"Error reading config value", exception);
         }
-    }
-
-    private bool syncTemplateFilter(ReportTemplate template, bool fullDeviceActionIsSelect)
-    {
-        filterInput = template.Filter;
-        fullDeviceActionIsSelect = DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport, fullDeviceActionIsSelect);
-        StateHasChanged();
-        return fullDeviceActionIsSelect;
     }
 }

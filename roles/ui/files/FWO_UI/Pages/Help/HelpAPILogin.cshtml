@@ -1,0 +1,35 @@
+﻿@page "/help/API/login"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("login")</h3>
+    @(Html.Raw(userConfig.GetText("H6501")))
+    <br><br>
+
+    <h4>@userConfig.GetText("jwt_corr_login")</h4>
+<br>
+<pre>
+curl --insecure --request POST \
+    --url https://localhost:8888/AuthenticateUser/ \
+    --header 'content-type: application/json' \
+    --data '{"Username": "user1_demo", "Password": "cactus1"}'
+    </pre>
+
+    <h4>@userConfig.GetText("err_incorr_login")</h4>
+<br>
+    <pre>
+curl --insecure --request POST \
+    --url https://localhost:8888/AuthenticateUser/ \
+    --header 'content-type: application/json' \
+    --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'
+    </pre>
+

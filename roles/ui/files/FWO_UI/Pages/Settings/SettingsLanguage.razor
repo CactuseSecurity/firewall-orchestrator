@@ -1,30 +1,29 @@
-﻿@using BlazorTable
-@using FWO.ApiConfig;
+﻿@using FWO.ApiConfig;
 @using FWO.ApiConfig.Data;
-@using FWO.Api.Data
 @using FWO.ApiClient
-@using FWO.Ui.Services
 
 @page "/settings/language"
-@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, workflow-user, workflow-admin, auditor")]
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor")]
 
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject APIConnection apiConnection
 
-<h3>Language Settings</h3>
+<h3>@(userConfig.GetText("language_settings"))</h3>
+@(userConfig.GetText("U5412"))
 <hr />
 
 <form class="form-inline">
-    <label for="languageSelect" class="col-form-label mr-2">Language</label>
+    <label for="languageSelect" class="col-form-label mr-2">@(userConfig.GetText("language"))</label>
     <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedLanguage">
         @foreach (Language language in globalConfig.uiLanguages)
         {
-            <option value="@(language.Name)">@(language.Name)</option>
+            <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
         }
     </select>
-    <button class="btn btn-sm btn-success" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>Apply Changes</button>
 </form>
+<hr />
+<button class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
 
 @code
 {
@@ -48,7 +47,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Change Lanaguage error", exception.Message, true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_language"), null, true);
         }
     }
 }

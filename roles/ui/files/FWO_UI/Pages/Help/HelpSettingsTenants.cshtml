@@ -1,0 +1,27 @@
+﻿@page "/help/settings/tenants"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("tenants")</h3>
+    @(Html.Raw(userConfig.GetText("H5231")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5241")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5242")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5243")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5244")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5245")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5246")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5247")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5248")))</li>
+    </ul>
+</div>

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using FWO.Logging;
+using FWO.Report.Filter.Exceptions;
+
+
 namespace FWO.Report.Filter.Ast
 {
     class AstNodeFilter : AstNode
@@ -36,6 +39,8 @@ namespace FWO.Report.Filter.Ast
             functions["Protocol"] = this.ExtractProtocolQuery;
             functions["Management"] = this.ExtractManagementQuery;
             functions["Gateway"] = this.ExtractGatewayQuery;
+            functions["Remove"] = this.ExtractRemoveQuery;
+            functions["RecertDisplay"] = this.ExtractRecertDisplay;
 
             // call the method matching the Name of the current node to build the graphQL query
             query = functions[Name.ToString()](query);
@@ -332,6 +337,35 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
+        private DynGraphqlQuery ExtractRemoveQuery(DynGraphqlQuery query)
+        {
+            string QueryVarName = "remove" + query.parameterCounter++;
+
+            query.QueryParameters.Add($"${QueryVarName}: Boolean ");
+            query.QueryVariables[QueryVarName] = $"{Value}";
+            query.ruleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ _eq: ${QueryVarName} }}}}";
+            return query;
+        }
+
+        private DynGraphqlQuery ExtractRecertDisplay(DynGraphqlQuery query)
+        {
+            string QueryVarName = "refdate" + query.parameterCounter++;
+            query.QueryParameters.Add($"${QueryVarName}: timestamp! ");
+            string refDate = DateTime.Now.AddDays(-Convert.ToInt16(Value)).ToString("yyyy-MM-dd HH:mm:ss");
+            query.QueryVariables[QueryVarName] = refDate;
+
+            query.ruleWhereStatement += $@"
+                _or: [
+                        {{ rule_metadatum: {{ rule_last_certified: {{ _lte: ${QueryVarName} }} }} }}
+                        {{ _and:[ 
+                                    {{ rule_metadatum: {{ rule_last_certified: {{ _is_null: true }} }} }}
+                                    {{ rule_metadatum: {{ rule_created: {{ _lte: ${QueryVarName} }} }} }}
+                                ]
+                        }}
+                    ]";
+            return query;
+        }
+
         private static string SetQueryOpString(TokenKind Operator, TokenKind Name, string Value)
         {
             string operation = "";
@@ -471,12 +505,12 @@ namespace FWO.Report.Filter.Ast
                         start = times[0];
                         stop = times[1];
                         if (start != Convert.ToDateTime(start).ToString() || stop != Convert.ToDateTime(stop).ToString())
-                            throw new Exception($"Error: wrong time range format");
+                            throw new SyntaxException($"Error: wrong time range format.", new System.Range(23, 26)); // Unexpected token
                     }
                     else
-                    {
-                        throw new Exception($"Error: wrong time range format");
-                    }
+                        throw new SyntaxException($"Error: wrong time range format.", new System.Range(23, 26)); // Unexpected token
+                    // we have some hard coded string positions here which we should get rid off
+                    // how can we access the tokens[position].Position information here?
                     break;
             }
             return (start, stop);

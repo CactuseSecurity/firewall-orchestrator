@@ -13,14 +13,6 @@
       role_attr_flags: LOGIN,NOSUPERUSER,INHERIT,NOCREATEDB,NOCREATEROLE
     loop: "{{ database_users }}"
 
-  # todo: remove admin user before publishing
-  - name: create db admin user (only for old php ui)
-    postgresql_user:
-      name: admin
-      password: "{{ admin_pwd }}"
-      role_attr_flags: login,inherit
-      groups: secuadmins
-
   - name: add user dbbackup to group dbbackupusers
     postgresql_query:
       db: "{{ fworch_db_name }}"

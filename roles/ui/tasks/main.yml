@@ -1,19 +1,27 @@
 
 - block:
 
+    - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - libjpeg62
+        - libgdiplus
+
     - name: create ui dir
       file:
         dest: "{{ ui_dir }}"
         state: directory
         owner: "{{ fworch_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
 
     - name: copy ui files to frontend target
       copy:
         src: "{{ item }}"
         dest: "{{ ui_dir }}"
         owner: "{{ fworch_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
       loop:
         - FWO_UI
 
@@ -23,3 +31,6 @@
 
 - include: ui_install_dot_net.yml
 
+- name: include upgrade script
+  import_tasks: run-upgrades.yml
+  when: "installation_mode == 'upgrade'"

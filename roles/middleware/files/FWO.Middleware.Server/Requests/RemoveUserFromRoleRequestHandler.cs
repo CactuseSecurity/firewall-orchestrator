@@ -34,7 +34,7 @@ namespace FWO.Middleware.Server.Requests
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
                     // if current Ldap has roles stored: Try to remove user from role in current Ldap
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.RemoveUserFromRole(userDn, role))
+                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.RemoveUserFromEntry(userDn, role))
                     {
                         userRemoved = true;
                     }

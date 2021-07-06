@@ -23,6 +23,7 @@ namespace FWO.Middleware.Server.Requests
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
             string ldap = GetRequestParameter<string>("Ldap", notNull: true);
+            string searchPattern = GetRequestParameter<string>("SearchPattern", notNull: true);
 
             List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
 
@@ -33,7 +34,7 @@ namespace FWO.Middleware.Server.Requests
                     await Task.Run(() =>
                     {
                         // Get all users from current Ldap
-                        allUsers = currentLdap.GetAllUsers();
+                        allUsers = currentLdap.GetAllUsers(searchPattern);
                     });
                 }
             }

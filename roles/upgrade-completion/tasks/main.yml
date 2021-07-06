@@ -25,8 +25,11 @@
   lineinfile:
     path: "{{ fworch_conf_file }}"
     create: yes
-    regexp: "product_version:"
-    line: "product_version: {{ product_version }}"
+    regexp: "product_version"
+    line: "    \"product_version\": \"{{ product_version }}\""
   when: installation_mode == "upgrade"
-  
   become: yes
+
+- name: include upgrade script
+  import_tasks: run-upgrades.yml
+  when: "installation_mode == 'upgrade'"

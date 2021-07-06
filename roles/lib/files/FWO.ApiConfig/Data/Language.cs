@@ -10,15 +10,14 @@ namespace FWO.ApiConfig.Data
 
         [JsonPropertyName("name")]
         public string Name { get; set; }
-    }
 
-    public class LanguageDict
-    {
-        public string LanguageName { get; set; }
-        public Dictionary<string,string> Dict; 
-        public LanguageDict(string languageName)
-        {
-            LanguageName = languageName;
-        }
+        [JsonPropertyName("culture_info")]
+
+        public string CultureInfo { get; set; }
+
+        // might later also add the full culture name, if needed:
+        // [JsonPropertyName("culture_name_english")]
+        // public string CultureNameEnglish { get; set; }
+
     }
 }

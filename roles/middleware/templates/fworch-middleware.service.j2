@@ -1,13 +1,17 @@
 [Unit]
 Description=FWOrch Middleware Server
 {% if 'apiserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service
+After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service slapd.service
 {% else -%}
-After=network.target remote-fs.target nss-lookup.target
+After=network.target remote-fs.target nss-lookup.target slapd.service
 {%- endif %}
 [Service]
+Type=exec
 WorkingDirectory={{ middleware_server_start_dir }}
-ExecStart=/usr/bin/dotnet run FWO.Middleware.Server.dll
+ExecStartPre=/bin/sleep 10
+# ExecStart={{ middleware_server_start_dir }}/FWO.Middleware.Server
+# ExecStart={{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/publish/FWO.Middleware.Server
+ExecStart={{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.Middleware.Server
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier={{ middleware_server_syslog_id }}

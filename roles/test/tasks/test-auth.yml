@@ -7,21 +7,29 @@
     connect_timeout: 1
     delay: 10
     timeout: 25
-  when: "run_on_github is not defined"
+  when: "not run_on_github|bool"
 
 # curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"user1_demo","Password":"cactus1"}'
+# Todo: Produces error invalid credentials, api is inactive (with command above)
 - name: middleware test get jwt valid creds
-  command: |
-    curl --request POST --insecure 
-      --url https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/ 
-      --header 'content-type: application/json' 
-      --data '{"Username":"user1_demo","Password":"cactus1"}'
+  uri:
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    method: POST
+    headers:
+      Content-Type: application/json
+    body:
+      Username: user1_demo
+      Password: cactus1
+    body_format: json
+    validate_certs: false
+    return_content: yes
   register: sample_jwt
   changed_when: false
+  environment: "{{ proxy_env }}"
 
 - debug: var=sample_jwt
 
-- set_fact: jwt_header="{{ ((sample_jwt.stdout.split('.')[0]).split(':')[1]).split('\"')[1] }}"
+- set_fact: jwt_header="{{sample_jwt.content.split('.')[0].split(':')[1].split('\"')[1]}}"
 
 - debug: var=jwt_header
 
@@ -45,8 +53,10 @@
     msg: "ERROR unexpected jwt test result (jwt_type does not match 'JWT'): {{ jwt_type }}"
   when: "jwt_type is not match('JWT')"
 
-- set_fact: jwt_encoded_payload="{{ sample_jwt.stdout.split('.')[1] }}"
+- set_fact: jwt_encoded_payload="{{sample_jwt.content.split('.')[1]}}"
 
+- name: show jwt encoded payload pre padding
+  debug: var=jwt_encoded_payload
 ## adding potentially missing base64 = padding to payload:
 - set_fact: jwt_encoded_payload="{{ jwt_encoded_payload }}=" cacheable=yes
   when: "jwt_encoded_payload|length % 4 > 0"
@@ -55,8 +65,19 @@
     - 2
     - 3
 
+- name: show jwt encoded payload post padding
+  debug: var=jwt_encoded_payload
+
 - set_fact: jwt_payload="{{ jwt_encoded_payload|b64decode }}"
+
+- name: show jwt decoded payload
+  debug: var=jwt_payload
+
 - set_fact: jwt_unique_user_name="{{ jwt_payload.unique_name }}"
+  when: "'unique_name' in jwt_payload"
+
+- set_fact: jwt_unique_user_name="{{ jwt_payload.name }}"
+  when: "'name' in jwt_payload"
 
 - name: middleware get jwt check valid creds output user user1_demo
   debug:
@@ -64,15 +85,25 @@
   when: "jwt_unique_user_name is not match('user1_demo')"
 
 - name: middleware test get jwt wrong creds
-  command: |
-    curl --request POST --insecure 
-      --url https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
-      --header 'content-type: application/json' 
-      --data '{"Username":"user1_demo","Password":"wrong-pwd"}'
+  uri:
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    method: POST
+    headers:
+      Content-Type: application/json
+    body:
+      Username: user1_demo
+      Password: wrong-pwd
+    body_format: json
+    validate_certs: false
+    return_content: yes
   register: sample_jwt
   changed_when: false
+  ignore_errors: yes
+
+- debug:
+    var: sample_jwt
 
 - name: middleware get jwt test wrong creds output
   debug:
-    msg: "ERROR unexpected jwt test result (not equal 'InvalidCredentials'): {{ sample_jwt.stdout }}"
-  when: sample_jwt.stdout is not match('InvalidCredentials')
+    msg: "ERROR unexpected jwt test result (not equal 'error: Invalid credentials.'): {{ sample_jwt.content }}"
+  when: sample_jwt.content is not match(".*error.*Invalid\scredentials\..*")

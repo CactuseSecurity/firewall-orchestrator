@@ -1,9 +1,10 @@
 ---
+# installation options: see docs at https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
 - hosts: importers
   tasks:
     - name: stop importer service before making any changes
-      ansible.builtin.systemd:
+      systemd:
         name: "{{ product_name }}-importer"
         state: stopped
       become: yes
@@ -11,6 +12,7 @@
       ignore_errors: yes
   tags:
     - frontend
+    - importer
 
 - hosts: all
   tasks:
@@ -42,14 +44,14 @@
     - { role: middleware, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
+    - csharp
 
 - hosts: apiserver
   roles:
-    - { role: docker, when: "not run_on_github|bool and not installation_mode == 'uninstall'" }
-    - { role: api, when: "not run_on_github|bool and not installation_mode == 'uninstall'" }
+    - { role: docker, when: "not installation_mode == 'uninstall'" }
+    - { role: api, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
-   # todo: make api (and docker) work with github actions
 
 # restart middlewareserver now that the API is ready.
 - hosts: middlewareserver
@@ -58,33 +60,36 @@
       systemd:
         name: "{{ middleware_service_name }}"
         state: restarted
+        daemon_reload: yes
       become: yes
       when: "not installation_mode == 'uninstall'"
   tags:
     - backend
+    - csharp
 
 - hosts: frontends
   roles:
     # do not install lib role twice (for non distributed install, already installed for middlewareserver)
     - { role: lib, when: "'middlewareserver' not in group_names and not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
-    - { role: frontend-php, when: "ui_php is defined and not installation_mode == 'uninstall'"}
   tags:
     - frontend
+    - csharp
 
 - hosts: importers
   roles:
     - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
     - frontend
+    - importer
 
 - hosts: sampleserver
   roles:
     - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
-    - { role: sample-data-connect-sting, when: "connect_sting is defined and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend
+    - importer
 
 - hosts: middlewareserver
   roles:
@@ -104,6 +109,7 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
+    - importer
 
 - hosts: all
   roles:
@@ -111,6 +117,7 @@
   tags:
     - backend
     - frontend
+    - importer
 
 - hosts: frontends
   tasks:
@@ -125,7 +132,7 @@
 
 - hosts: testservers
   roles:
-    - { role: webhook, when: install_webhook|bool }
+    - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
   tags:
     - test
     
@@ -143,3 +150,13 @@
   tags:
     - backend
     - frontend
+
+- hosts: backendserver
+  tasks:
+    - name: display secrets for this installation
+      debug:
+        msg:
+          - "Your initial UI admin password is '{{ admin_password }}'"
+          - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
+      when: admin_password is defined and api_hasura_admin_secret is defined
+ 

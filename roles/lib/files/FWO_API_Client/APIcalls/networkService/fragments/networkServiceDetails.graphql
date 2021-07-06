@@ -23,7 +23,7 @@ fragment networkServiceDetails on service {
   }
   svc_member_names
   svc_member_refs
-  svcgrps {
+  svcgrps(order_by: { svcgrp_member_id: asc }) {
     id: svcgrp_member_id
     byId: serviceBySvcgrpMemberId {
       svc_id
@@ -33,7 +33,7 @@ fragment networkServiceDetails on service {
       }
     }
   }
-  svcgrp_flats {
+  svcgrp_flats(order_by: { svcgrp_flat_member_id: asc }) {
     flat_id: svcgrp_flat_id
     byFlatId: serviceBySvcgrpFlatMemberId {
       svc_id

@@ -1,4 +1,4 @@
-# example config file - global configuration entry
+# global configuration entry
 dn: cn=config
 objectClass: olcGlobal
 cn: config
@@ -18,7 +18,9 @@ dn: cn=module{0},cn=config
 objectClass: olcModuleList
 cn: module{0}
 olcModulePath: /usr/lib/ldap
-olcModuleLoad: back_bdb.la
+olcModuleLoad: {0}back_bdb.la
+olcModuleLoad: {1}memberof.la
+olcModuleLoad: {2}refint.la
 
 # internal schema
 dn: cn=schema,cn=config
@@ -57,14 +59,7 @@ olcAccess: to attrs=userPassword
     by anonymous auth
     by dn.base="{{ openldap_superuser_dn }}" write
     by dn.base="{{ openldap_readonly_user_dn }}" read
-    by dn.base="{{ openldap_writer_dn }}" read
-    by * none
-olcAccess: to attrs=userPassword
-    by self write
-    by anonymous auth
-    by dn.base="{{ openldap_superuser_dn }}" write
-    by dn.base="{{ openldap_readonly_user_dn }}" read
-    by dn.base="{{ openldap_writer_dn }}" read
+    by dn.base="{{ openldap_writer_dn }}" write
     by * none
 olcAccess: to attrs=shadowLastChange
     by self write
@@ -74,7 +69,12 @@ olcAccess: to dn.children="{{ openldap_std_role_dn }}"
     by dn.base="{{ openldap_superuser_dn }}" write
     by dn.base="{{ openldap_readonly_user_dn }}" read
     by * none
-olcAccess: to dn.children="{{ openldap_std_user_dn }}"
+olcAccess: to dn.subtree="{{ openldap_std_group_dn }}"
+    by dn.base="{{ openldap_writer_dn }}" write
+    by dn.base="{{ openldap_superuser_dn }}" write
+    by dn.base="{{ openldap_readonly_user_dn }}" read
+    by * none
+olcAccess: to dn.subtree="{{ openldap_std_user_dn }}"
     by dn.base="{{ openldap_writer_dn }}" write
     by dn.base="{{ openldap_superuser_dn }}" write
     by dn.base="{{ openldap_readonly_user_dn }}" read
@@ -85,3 +85,26 @@ olcAccess: to *
     by dn.base="{{ openldap_readonly_user_dn }}" read
     by dn.base="{{ openldap_writer_dn }}" read
     by * none
+
+# Backend memberOf overlay
+dn: olcOverlay=memberof,olcDatabase={1}bdb,cn=config
+objectClass: olcMemberOf
+objectClass: olcOverlayConfig
+objectClass: olcConfig
+objectClass: top
+olcOverlay: memberof
+olcMemberOfDangling: ignore
+olcMemberOfRefInt: TRUE
+olcMemberOfGroupOC: groupOfUniqueNames
+olcMemberOfMemberAD: uniqueMember
+olcMemberOfMemberOfAD: memberOf
+
+# Referential integrity overlay
+dn: olcOverlay=refint,olcDatabase={1}bdb,cn=config
+objectClass: olcConfig
+objectClass: olcOverlayConfig
+objectClass: olcRefintConfig
+objectClass: top
+olcOverlay: refint
+olcRefintAttribute: memberOf
+olcRefintAttribute: uniqueMember

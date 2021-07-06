@@ -1,0 +1,20 @@
+﻿@page "/help/reporting/export"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("export_report")</h3>
+    @(Html.Raw(userConfig.GetText("H1301")))
+    <ul>
+        @(Html.Raw(userConfig.GetText("H1302")))
+    </ul>
+    @(Html.Raw(userConfig.GetText("H1303")))
+</div>

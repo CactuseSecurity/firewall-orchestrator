@@ -82,7 +82,7 @@ namespace FWO.Report.Filter
 
                 TokenKind.Gateway => new TokenSyntax
                 {
-                    WhiteSpaceRequiered = new string[] { "gateway", "gw", "firewall", "fw", "dev" },
+                    WhiteSpaceRequiered = new string[] { "gateway", "gw", "firewall", "fw", "device", "dev" },
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
@@ -100,13 +100,25 @@ namespace FWO.Report.Filter
 
                 TokenKind.DestinationPort => new TokenSyntax
                 {
-                    WhiteSpaceRequiered = new string[] { "port", "dport", "dst_port", "dst-port", "dest-port", "destination-port", "dest_port", "destination_port" },
+                    WhiteSpaceRequiered = new string[] { "destinationport", "port", "dport", "dst_port", "dst-port", "dest-port", "destination-port", "dest_port", "destination_port" },
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 
                 TokenKind.Protocol => new TokenSyntax
                 {
                     WhiteSpaceRequiered = new string[] { "proto", "protocol" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.Remove => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "remove" },
+                    NoWhiteSpaceRequiered = new string[] { }
+                },
+
+                TokenKind.RecertDisplay => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "recertdisplay", "recertdisp" },
                     NoWhiteSpaceRequiered = new string[] { }
                 },
 

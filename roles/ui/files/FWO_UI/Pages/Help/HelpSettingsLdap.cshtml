@@ -1,0 +1,34 @@
+﻿@page "/help/settings/ldap"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("ldap_conns")</h3>
+    @(Html.Raw(userConfig.GetText("H5201")))
+    <br><br>
+    @userConfig.GetText("parameters"):
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5211")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5212")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5213")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5214")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5215")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5216")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5217")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5218")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5219")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5220")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5221")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5222")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5223")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5224")))</li>
+    </ul>
+</div>

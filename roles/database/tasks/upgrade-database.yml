@@ -41,10 +41,21 @@
   loop: "{{ upgrade_files }}"
   become: yes
 
-- name: install upgrades
+- name: install upgrades as_single_query
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
+    as_single_query: "{{ postgresql_query_as_single_query }}"
+  loop: "{{ upgrade_files | sort }}"
+  become: yes
+  become_user: postgres
+  when: ansible_version.string is version_compare('2.10', '>=')
+
+- name: install upgrades normally
   postgresql_query:
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
   loop: "{{ upgrade_files | sort }}"
   become: yes
   become_user: postgres
+  when: ansible_version.string is version_compare('2.10', '<')

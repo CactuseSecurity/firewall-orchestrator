@@ -6,14 +6,14 @@
         dest: "{{ lib_dir }}"
         state: directory
         owner: "{{ fworch_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
 
     - name: copy dotnet lib files to lib target
       copy:
         src: "{{ item }}"
         dest: "{{ lib_dir }}"
         owner: "{{ fworch_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
       loop:
         - FWO_API_Client
         - FWO.Middleware.Client

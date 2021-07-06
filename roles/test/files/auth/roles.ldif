@@ -3,64 +3,70 @@ objectClass: top
 objectClass: groupofuniquenames
 cn: anonymous
 uniqueMember: cn=anonymous,ou=role,dc=fworch,dc=internal
-description: anonymous users can only access the login page and health statistics
+description: T0001
 
 dn: cn=middleware-server,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: middleware-server
-description: allows the middleware server to read necessary tables (ldap_connection)
+description: T0002
 
 dn: cn=reporter,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: reporter
-description: reporters have access to basic tables (stm_...) and limited rights for object and rule tables depending on the visible devices for the tenant the user belongs to
+description: T0003
 
 dn: cn=reporter-viewall,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: reporter-viewall
-description: reporter role for full read access to all devices
+description: T0004
 
 dn: cn=importer,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: importer
-description: users can import config changes into the database
+description: T0005
 
 dn: cn=dbbackup,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: dbbackup
-description: users that are able to read data tables for backup purposes
+description: T0006
 
 dn: cn=auditor,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: auditor
-description: users that can view all data & settings (in the UI) but cannot make any changes
+description: T0007
 
 dn: cn=workflow-user,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: workflow-user
-description: (for future use) users who can request firewall changes
+description: T0008
 
 dn: cn=workflow-admin,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: workflow-admin
-description: (for future use) users who can create change request workflows
+description: T0009
 
 dn: cn=fw-admin,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: fw-admin
-description: users who can document open changes
+description: T0010
 
 dn: cn=admin,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames
 cn: admin
-description: users with full access rights to firewall orchestrator (this is also the pre-defined hasura role 'admin')
+description: T0011
+
+dn: cn=recertifier,ou=role,dc=fworch,dc=internal
+objectClass: top
+objectClass: groupofuniquenames
+cn: recertifier
+description: T0012

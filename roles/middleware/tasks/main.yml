@@ -4,7 +4,7 @@
     dest: "{{ middleware_server_base_dir }}"
     state: directory
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   become: yes
 
 - name: copy middleware module files to middlewareserver
@@ -12,7 +12,7 @@
     src: "{{ middleware_path_rel }}"
     dest: "{{ middleware_server_base_dir }}"
     owner: "{{ fworch_user }}"
-    group: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
   become: yes
 
 - name: install python3-openssl for openssl key generation
@@ -21,6 +21,15 @@
   loop:
     - python3-cryptography
     - python3-openssl
+  become: yes
+
+- name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
+  package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - libjpeg62
+    - libgdiplus
   become: yes
 
 - name: create auth secrets (jwt key, ldap)
@@ -42,10 +51,6 @@
 - name: import ldif driven changes
   import_tasks: set_initial_ldap_tree.yml
 
-- name: import ldif driven upgrades
-  import_tasks: upgrade_ldap_tree.yml
-  when: installation_mode == "upgrade"
-
 - name: install python modules for ansible ldap module via package
   package:
     name:
@@ -63,18 +68,51 @@
 #     name: pyldap
 #   become: yes
 
-- name: Set {{ openldap_readonly_user_name }} password in ldap
-  ldap_passwd:
-    dn: "{{ openldap_readonly_user_dn }}"
-    passwd: "{{ ldap_inspector_pw }}"
-    server_uri: "{{ openldap_url }}"
-    bind_dn: "{{ openldap_superuser_dn }}"
-    bind_pw: "{{ ldap_manager_pwd }}"
+- name: make sure {{ fworch_secrets_dir }} exists
+  file:
+    path: "{{ fworch_secrets_dir }}"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+    mode: "0700"
+  become: yes
+
+# - name: set UI admin password from parameter
+#   set_fact:
+#     admin_password: "{{ admin_initial_password }}"
+#   when: admin_initial_password is defined
+
+- name: set UI admin password for testing
+  set_fact:
+    admin_password: "{{ ui_admin_testonly_password }}"
+  when: testkeys is defined and testkeys|bool
+
+- name: set UI admin password randomly
+  set_fact:
+    admin_password: "{{ random_generated_pw }}"
+  when: testkeys is not defined or not testkeys|bool
+
+- name: write admin_password password to secrets directory
+  copy:
+    content: "{{ admin_password }}"
+    dest: "{{ ui_admin_password_file }}"
+    mode: '0600'
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
 
 - name: Set admin password in ldap
   ldap_passwd:
     dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
-    passwd: "{{ admin_pwd }}"
+    passwd: "{{ admin_password }}"
+    server_uri: "{{ openldap_url }}"
+    bind_dn: "{{ openldap_superuser_dn }}"
+    bind_pw: "{{ ldap_manager_pwd }}"
+
+- name: Set {{ openldap_readonly_user_name }} password in ldap
+  ldap_passwd:
+    dn: "{{ openldap_readonly_user_dn }}"
+    passwd: "{{ ldap_inspector_pw }}"
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
@@ -86,6 +124,15 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+
+- name: Set {{ audit_user }} password in ldap
+  ldap_passwd:
+    dn: "uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
+    passwd: "{{ auditor_initial_pwd }}"
+    server_uri: "{{ openldap_url }}"
+    bind_dn: "{{ openldap_superuser_dn }}"
+    bind_pw: "{{ ldap_manager_pwd }}"
+  when: audit_user is defined and auditor_initial_pwd is defined and installation_mode=='new'
   
 - name: insert admin tenant0 to database
   postgresql_query:
@@ -99,17 +146,17 @@
   become: yes
   become_user: postgres
 
-- name: insert admin tenant0 to device mapping - tenant0 can see all devices
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')
-        THEN INSERT INTO tenant_to_device (tenant_id, device_id) 
-          select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name='tenant0'; 
-        END IF; 
-      END $do$
-  become: yes
-  become_user: postgres
+# - name: insert admin tenant0 to device mapping - tenant0 can see all devices
+#   postgresql_query:
+#     db: "{{ fworch_db_name }}"
+#     query: >
+#       DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')
+#         THEN INSERT INTO tenant_to_device (tenant_id, device_id) 
+#           select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name='tenant0'; 
+#         END IF; 
+#       END $do$
+#   become: yes
+#   become_user: postgres
 
 - name: add connection for internal ldap
   postgresql_query:
@@ -118,12 +165,12 @@
       DO $do$ BEGIN IF NOT EXISTS
       (SELECT * FROM ldap_connection WHERE ldap_server = '{{ openldap_server }}')
       THEN INSERT INTO ldap_connection
-      (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles,
-      ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd)
+      (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups,
+      ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd, ldap_type)
       VALUES ('{{ openldap_server }}', {{ openldap_port }},
-      '{{ openldap_std_user_dn }}', '{{ openldap_std_role_dn }}',
+      '{{ openldap_std_user_dn }}', '{{ openldap_std_role_dn }}', '{{ openldap_std_group_dn }}',
       1, '{{ openldap_readonly_user_dn }}', '{{ ldap_inspector_pw }}',
-      '{{ openldap_writer_dn }}', '{{ ldap_writer_pw }}');
+      '{{ openldap_writer_dn }}', '{{ ldap_writer_pw }}', 2);
       END IF; END $do$
   become: yes
   become_user: postgres
@@ -137,10 +184,11 @@
       THEN UPDATE ldap_connection
       SET ldap_server='{{ openldap_server }}',
       ldap_port={{ openldap_port }}, ldap_searchpath_for_users='{{ openldap_std_user_dn }}',
-      ldap_searchpath_for_roles='{{ openldap_std_role_dn }}', ldap_tenant_level=1,
+      ldap_searchpath_for_roles='{{ openldap_std_role_dn }}', ldap_searchpath_for_groups='{{ openldap_std_group_dn }}',
+      ldap_tenant_level=1,
       ldap_search_user='{{ openldap_readonly_user_dn }}',
       ldap_search_user_pwd='{{ ldap_inspector_pw }}',
-      ldap_write_user= '{{ openldap_writer_dn }}', ldap_write_user_pwd='{{ ldap_writer_pw }}'
+      ldap_write_user= '{{ openldap_writer_dn }}', ldap_write_user_pwd='{{ ldap_writer_pw }}', ldap_type=2
       WHERE ldap_server='{{ openldap_server }}';
       END IF; END $do$
   become: yes
@@ -151,3 +199,11 @@
 
 - name: install middleware https reverse proxy
   import_tasks: mw_apache_install_and_setup.yml
+
+- name: upgrade with ldif files
+  import_tasks: upgrade_ldap_tree.yml
+  when: installation_mode == "upgrade"
+
+- name: upgrade with yaml script
+  import_tasks: run-upgrades.yml
+  when: installation_mode == "upgrade"

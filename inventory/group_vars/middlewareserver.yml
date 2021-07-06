@@ -5,6 +5,7 @@ openldap_url: "ldaps://{{ openldap_server }}"
 openldap_superuser_dn: "cn=Manager,ou=systemuser,ou=user,{{ openldap_path }}"
 openldap_std_user_dn: "ou=operator,ou=user,{{ openldap_path }}"
 openldap_std_role_dn: "ou=role,{{ openldap_path }}"
+openldap_std_group_dn: "ou=group,{{ openldap_path }}"
 openldap_readonly_user_name: "inspector"
 openldap_readonly_user_dn: "uid={{ openldap_readonly_user_name }},ou=systemuser,ou=user,{{ openldap_path }}"
 openldap_writer_name: "ldapwriter"
@@ -18,14 +19,6 @@ middleware_server_base_dir: "{{ fworch_home }}/middleware/files"
 middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Server"
 middleware_change_local_ldap: "yes"
 
-# use static jwt generation test key if set to 1 - only for testing, not for production environment
+# use static jwt generation test key if set to yes
+# only for testing, not for production environment
 testkeys: no
-
-########## test data only ##############
-
-test_ldap_external_server: 192.168.100.8
-test_ldap_external_user_search_path: "DC=int,DC=cactus,DC=de"
-test_ldap_external_user_fq_name: "ad-readonly@int.cactus.de"
-test_ldap_external_user_pwd: "fworch.123!"
-test_ldap_external_tls: false
-test_ldap_external_port: 389

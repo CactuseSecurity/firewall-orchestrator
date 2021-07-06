@@ -1,4 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@using FWO.ApiConfig
+
+@inject UserConfig userConfig
 
 <div style="z-index:2; top:0px;" class="position-sticky">
     <NavigationMenu />
@@ -16,8 +19,17 @@
 {
     <div class="footer alert alert-danger">
         <div class="d-flex flex-row justify-content-between">
-            <div>@errorDialogTitle - @errorDialogMessage See logs for details!</div>
+            <div>@dialogTitle - @dialogMessage . @(userConfig.GetText("E0002"))</div>
             <div class="oi oi-x" @onclick="@(() => { errorDialogShow = false; StateHasChanged();})"></div>
+        </div>
+    </div>
+}
+@if (successDialogShow)
+{
+    <div class="footer alert alert-success">
+        <div class="d-flex flex-row justify-content-between">
+            <div>@dialogTitle - @dialogMessage</div>
+            <div class="oi oi-x" @onclick="@(() => { successDialogShow = false; StateHasChanged();})"></div>
         </div>
     </div>
 }
@@ -25,8 +37,9 @@
 @code
 {
     private bool errorDialogShow = false;
-    private string errorDialogTitle;
-    private string errorDialogMessage;
+    private bool successDialogShow = false;
+    private string dialogTitle;
+    private string dialogMessage;
 
     private object errorLock = new object();
 
@@ -46,20 +59,42 @@
         // Needed so there is no chance an error is announced by 2 threads at the same time.
         lock (errorLock)
         {
-            errorDialogTitle = title;
-            errorDialogMessage = message;
+            dialogTitle = title;
+            dialogMessage = message;
             errorDialogShow = true;
+            successDialogShow = false;
             InvokeAsync(StateHasChanged);
         }
     }
 
-    private void DisplayMessageInUi(Exception exception = null, string title = null, string message = null, bool showException = false)
+    private void ShowSuccess(string title, string message)
+    {
+        // Needed so there is no chance an error is announced by 2 threads at the same time.
+        lock (errorLock)
+        {
+            dialogTitle = title;
+            dialogMessage = message;
+            errorDialogShow = false;
+            successDialogShow = true;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void DisplayMessageInUi(Exception exception = null, string title = null, string message = null, bool ErrorFlag = false)
     {
         if (exception == null)
         {
-            // User message to be displayed
-            ShowError(title, message); // todo: display warnings in yellow
-            Log.WriteWarning(title, message);
+            if (ErrorFlag)
+            {
+                // User message to be displayed as error
+                ShowError(title, message); // todo: display warnings in yellow
+                Log.WriteWarning(title, message);
+            }
+            else
+            {
+                // User message is no error
+                ShowSuccess(title, message);
+            }
         }
         else
         {
@@ -68,24 +103,24 @@
             {
                 // todo: consider redirect to login page
                 Log.WriteError("Auth Token Error", "JWT expired in session.", exception);
-                ShowError("JWT Expiry Error", "JWT expired in session - please log in again.");
+                ShowError(userConfig.GetText("jwt_expiry"), userConfig.GetText("E0003"));
             }
             else if (exception.Message == "no such type exists in the schema: 'cidr'")
             {
                 // this is the default error message when user's access rights are not sufficient for API access
-                ShowError("API access", "Insufficient access rights.");
+                ShowError(userConfig.GetText("api_access"), userConfig.GetText("E0004"));
             }
-            else if (showException)
+            else if (ErrorFlag)
             {
                 // the exception message is shown to the user
                 Log.WriteError((title != null ? title : "Unspecified Error"), (message != null ? message : "Unspecified error occured: "), exception);
-                ShowError((title != null ? title : "Unspecified Error"), $"{(message != null ? message : "Unexpected error condition encountered")}: {exception.Message}");
+                ShowError((title != null ? title : userConfig.GetText("unspecified_error")), $"{(message != null ? message : userConfig.GetText("E0001"))}: {exception.Message}");
             }
             else
             {
                 // only title and message (if given) or unspecific error message is shown to the user
                 Log.WriteError((title != null ? title : "Unspecified Error"), (message != null ? message : "Unspecified error occured: "), exception);
-                ShowError((title != null ? title : "Unspecified Error"), $"{(message != null ? message : "Unexpected error condition encountered.")}");
+                ShowError((title != null ? title : userConfig.GetText("unspecified_error")), $"{(message != null ? message : userConfig.GetText("E0001"))}");
             }
         }
     }

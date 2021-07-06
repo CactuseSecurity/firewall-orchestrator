@@ -1,0 +1,23 @@
+﻿@page "/help/settings/groups"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("groups")</h3>
+    @(Html.Raw(userConfig.GetText("H5301")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5311")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5312")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5313")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5314")))</li>
+    </ul>
+</div>

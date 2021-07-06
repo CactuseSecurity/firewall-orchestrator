@@ -1,12 +1,18 @@
-﻿<li class="nav-item">
-    <div @onclick="ActivateTab" class="d-flex justify-content-center nav-link @CssClass @(ContainerTabSet.ActiveTab == this ? "active" : "")">
-        @Title
-        @*@if (Closeable)
-        {
-            <div class="ml-1 oi oi-x"></div>
-        }*@
+﻿@implements IDisposable
+
+@if (ContainerTabSet?.KeepPanelsAlive == true)
+{
+    <div style="display:@(ContainerTabSet?.ActiveTab == this ? "contents" : "none")">
+        @ChildContent
     </div>
-</li>
+}
+else
+{
+    @if (ContainerTabSet?.ActiveTab == this)
+    {
+        @ChildContent
+    }
+}
 
 @code {
     [CascadingParameter]
@@ -26,11 +32,20 @@
 
     protected override void OnInitialized()
     {
-        ContainerTabSet.AddTab(this);
+        ContainerTabSet?.AddTab(this);
     }
 
     private void ActivateTab()
     {
-        ContainerTabSet.SetActiveTab(this);
+        ContainerTabSet?.SetActiveTab(this);
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            ContainerTabSet?.RemoveTab(this);
+        }
+        catch { }
     }
 }

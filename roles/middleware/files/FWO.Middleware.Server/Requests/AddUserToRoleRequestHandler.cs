@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -34,9 +35,10 @@ namespace FWO.Middleware.Server.Requests
                 ldapRoleRequests.Add(Task.Run(() =>
                 {
                     // if current Ldap has roles stored: Try to add user to role in current Ldap
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.AddUserToRole(userDn, role))
+                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.AddUserToEntry(userDn, role))
                     {
                         userAdded = true;
+                        Log.WriteAudit("AddUserToRole", $"user {userDn} successfully added to group {role}");                        
                     }
                 }));
             }

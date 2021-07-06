@@ -66,6 +66,15 @@ namespace FWO.Api.Data
         [JsonPropertyName("userObjects")]
         public NetworkUser[] Users { get; set; }
 
+        [JsonPropertyName("reportNetworkObjects")]
+        public NetworkObjectWrapper[] ReportObjects { get; set; }
+
+        [JsonPropertyName("reportServiceObjects")]
+        public ServiceWrapper[] ReportServices { get; set; }
+
+        [JsonPropertyName("reportUserObjects")]
+        public UserWrapper[] ReportUsers { get; set; }
+
         [JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; }
 
@@ -74,7 +83,11 @@ namespace FWO.Api.Data
 
         // [JsonPropertyName("pointInTime")]
         // public DateTime ReportTime { get; set; }
-        public int? RelevantImportId { get; set; }
+        public long? RelevantImportId { get; set; }
+
+        //[JsonPropertyName("rule_id")]
+        public List<long> ReportedRuleIds { get; set; }
+        public List<long> ReportedNetworkServiceIds { get; set; }
 
         [JsonPropertyName("objects_aggregate")]
         public ObjectStatistics NetworkObjectStatistics { get; set; } = new ObjectStatistics();
@@ -121,7 +134,7 @@ namespace FWO.Api.Data
         public string Host()
         {
             return Hostname + ":" + Port;
-        }
+        }      
     }
 
     public static class ManagementUtility

@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.1.10"
+product_version: "5.3.2"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -12,6 +12,8 @@ installation_mode: new
 run_on_github: false
 without_sample_data: false
 api_docu: false
+# initialize upgrade files list to empty, needed when running in test only mode (-t test):
+upgrade_files: []
 
 ### operating system settings
 user_id: 60320
@@ -20,16 +22,23 @@ fworch_group: "{{ fworch_user }}"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworchtest_user: "{{ product_name }}test"
-fworchtest_home: "{{ fworch_home }}/{{ fworchtest_user }}"
-fworch_conf_file: "{{ fworch_home }}/etc/fworch.yaml"
+fworchtest_home: "/home/{{ fworchtest_user }}"
+fworch_conf_dir: "{{ fworch_home }}/etc"
+fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
+fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
+
+# set your proxy here:
 http_proxy: ""
-#http_proxy: http://admsrv.int.cactus:3128
 https_proxy: "{{ http_proxy }}"
-proxy_exceptions: ""
+proxy_exceptions: "127.0.0.1, localhost"
 proxy_env:
         http_proxy: "{{ http_proxy }}"
         https_proxy: "{{ https_proxy }}"
-        validate_certs: false
+        HTTP_PROXY: "{{ http_proxy }}"
+        HTTPS_PROXY: "{{ https_proxy }}"
+        no_proxy: "{{ proxy_exceptions }}"
+#        validate_certs: false
+# proxy in capitals needed for debian and ubuntu <20
 test_packages:
   - postgresql-client
   - curl
@@ -44,11 +53,12 @@ fworch_db_port: 5432
 fworch_db_host: localhost
 fworch_db_name: fworchdb
 fworch_dbadmin_name: dbadmin
+dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
+fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 
 ### middleware server 
-#middleware_JWT_key_file: "{{ fworch_home }}/etc/secrets/jwt_private.key"
-jwt_private_key_file: "{{ fworch_home }}/etc/secrets/jwt_private_key.pem"
-jwt_public_key_file: "{{ fworch_home }}/etc/secrets/jwt_public_key.pem"
+jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
+jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
 ldif_dir: "{{ fworch_home }}/etc/ldif"
 
 middleware_hostname: "127.0.0.1"
@@ -62,7 +72,10 @@ middleware_web_listener_port: 8888
 middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
 ##### application server data
 middleware_internal_port: 8880
-web_server_name: "{{ middleware_server_name }}"
+# currently not used: web_server_name: "{{ middleware_server_name }}"
+
+ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
+ui_admin_testonly_password: "fworch.1"
 
 ### database & api
 api_service_name: fworch-hasura-docker-api
@@ -94,21 +107,10 @@ ldap_syslog_id: slapd
 api_log_level: info
 
 ### apache: both package and dir name (needed both on ui and api hosts):
-web_server_name: apache2
-http_conf_dir: /etc/{{ web_server_name }}/sites-available/
+webserver_package_name: apache2
+http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 
 ################# testing #########################
 
 test_dir: "{{ fworch_home }}/test"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO_Test"
-
-################# to be removed ###################
-
-### importer test data
-
-sting_fworch_user: itsecorg
-
-# todo: can be moved to vault before project goes public
-dbadmin_pwd: "st8chel"
-fworch_pwd: "st8chel"
-admin_pwd: "fworch.1"

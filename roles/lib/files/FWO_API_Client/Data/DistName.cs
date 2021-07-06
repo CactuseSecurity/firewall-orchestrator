@@ -6,6 +6,7 @@ namespace FWO.Api.Data
     {
         public string UserName { get; set; }
         public string Role { get; set; }
+        public string Group { get; set; }
         public List<string> Root { get; set; }
         public List<string> Path { get; set; }
 
@@ -13,6 +14,7 @@ namespace FWO.Api.Data
         {
             UserName = "";
             Role = "";
+            Group = "";
             Root = new List<string>();
             Path = new List<string>();
             bool lastValue = false;
@@ -37,17 +39,31 @@ namespace FWO.Api.Data
                     }
                     switch (Name.ToLower())
                     {
-                        case "uid": 
+                        case "uid":
+                        case "samaccountname":
+                        case "userprincipalname":
+                        case "mail":
                             UserName = Value;
                             break;
-                        case "cn": 
-                            Role = Value;
-                            break;
-                        case "dc":
-                            Root.Add(Value);
+                        case "cn":
+                            if(UserName == "")
+                            {
+                                // the first one may be the user if not delivered as uid or a role or a group
+                                UserName = Value;
+                                Role = Value;
+                                Group = Value;
+                            }
+                            else
+                            {
+                                // following ones belong to the path
+                                Path.Add(Value);
+                            }
                             break;
                         case "ou":
                             Path.Add(Value);
+                            break;
+                        case "dc":
+                            Root.Add(Value);
                             break;
                         default: 
                             break;
@@ -67,8 +83,7 @@ namespace FWO.Api.Data
 
         public string getTenant (int tenantLevel = 1)
         {
-            return (Path.Count >= tenantLevel ? Path[tenantLevel - 1] : "");
+            return ((tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[tenantLevel - 1] : "");
         }
     }
-
 }

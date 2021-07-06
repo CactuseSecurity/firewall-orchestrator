@@ -3,12 +3,11 @@
 - name: add auth test data to database
   include_tasks: auth_sample_data.yml
 
-- name: add auth test ext. ldap to database
-  include_tasks: auth_sample_ext_ldap.yml
-
 - name: include ldif driven changes
   import_tasks: modify_ldap_tree.yml
 
 - name: restart middleware server in case any changes to ldap_connections were made
-  command: "systemctl restart {{ middleware_service_name }}"
+  systemd:
+    name: "{{ middleware_service_name }}"
+    state: restarted
   become: yes

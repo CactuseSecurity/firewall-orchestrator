@@ -1,13 +1,7 @@
 
-GRANT SELECT ON TABLE text_msg TO configimporters;
-GRANT SELECT ON TABLE text_msg TO dbbackupusers;
-GRANT SELECT ON TABLE text_msg TO textreader;
+-- Create Group Permissions
 
-
-/* Create Group Permissions */
-
-/*  grants for all (implicit) sequences */
-
+--  grants for all (implicit) sequences
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "secuadmins";
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "secuadmins";
 
@@ -23,11 +17,10 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO gr
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "fworchadmins";
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "fworchadmins";
 
-/* Group permissions on tables */
+-- Group permissions on tables
 
 -- general grants:
-
-Grant ALL on ALL tables in SCHEMA public to group fworchadmins;
+Grant ALL on ALL tables in SCHEMA public to group fworchadmins; -- todo: could be reduced
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO group fworchadmins;
 
 Grant select on ALL TABLES in SCHEMA public to group dbbackupusers;
@@ -56,6 +49,7 @@ Grant update on "management" to group "configimporters";
 Grant update,insert on "object" to group "configimporters";
 Grant update,insert on "objgrp" to group "configimporters";
 Grant update,insert on "rule" to group "configimporters";
+Grant update,insert on "rule_metadata" to group "configimporters";
 Grant update,insert on "rule_from" to group "configimporters";
 Grant update,insert on "rule_review" to group "configimporters";
 Grant update,insert on "rule_service" to group "configimporters";
@@ -66,7 +60,6 @@ Grant update,insert on "usr" to group "configimporters";
 Grant update,insert on "zone" to group "configimporters";
 Grant update,insert on "usergrp" to group "configimporters";
 Grant update,insert on "usergrp_flat" to group "configimporters";
-Grant update,insert on "rule_order" to group "configimporters";
 Grant update,insert on "objgrp_flat" to group "configimporters";
 Grant update,insert on "svcgrp_flat" to group "configimporters";
 Grant update,insert on "tenant_user" to group "configimporters";
@@ -75,18 +68,17 @@ Grant insert on "changelog_service" to group "configimporters";
 Grant insert on "changelog_user" to group "configimporters";
 Grant insert on "changelog_rule" to group "configimporters";
 Grant insert on "error_log" to group "configimporters";
+Grant insert,update on "rule_nwobj_resolved" to group "configimporters";
+Grant insert,update on "rule_svc_resolved" to group "configimporters";
+Grant insert,update on "rule_user_resolved" to group "configimporters";
 
 -- secuadmins:
-
 Grant ALL on "request" to group "secuadmins";
 Grant ALL on "request_object_change" to group "secuadmins";
 Grant ALL on "request_service_change" to group "secuadmins";
 Grant ALL on "request_rule_change" to group "secuadmins";
 Grant ALL on "request_user_change" to group "secuadmins";
-Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "secuadmins";
 Grant ALL on "tenant_username" to group "secuadmins";
-Grant ALL on "temp_filtered_rule_ids" to group "secuadmins";
-Grant ALL on "temp_mgmid_importid_at_report_time" to group "secuadmins";
 
 Grant update on "uiuser" to group "secuadmins";
 Grant update,insert on "changelog_object" to group "secuadmins";
@@ -97,11 +89,6 @@ Grant update,insert on "error_log" to group "secuadmins";
 Grant insert on "report" to group "secuadmins";
 
 -- reporters:
-
-Grant ALL on "temp_table_for_tenant_filtered_rule_ids" to group "reporters";
-Grant ALL on "temp_filtered_rule_ids" to group "reporters";
-Grant ALL on "temp_mgmid_importid_at_report_time" to group "reporters";
-
 Grant update on "uiuser" to group "reporters";
 Grant insert on "error_log" to group "reporters";
 Grant insert on "report" to group "reporters";

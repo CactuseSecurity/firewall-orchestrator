@@ -1,72 +1,79 @@
 ﻿@using System.Text
+@using FWO.ApiConfig
 
 @inject APIConnection apiConnection
+@inject UserConfig userConfig
 
 @page "/archive"
 
-<h3>Archive</h3>
+<h3>@(userConfig.GetText("archive"))</h3>
 
 <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportFile" Items="archivedReports">
-    <Column TableItem="ReportFile" Title="Actions">
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("action"))">
         <Template>
             <div class="btn-group">
-                <button class="btn btn-sm btn-info" @onclick="async () => { await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; }">Download</button>
-                <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">Delete</button>
+                <button class="btn btn-sm btn-info" @onclick="async () => { await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; }">@(userConfig.GetText("download"))</button>
+                @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask.Result.User.IsInRole("admin"))
+                {
+                    <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
+                }
             </div>
         </Template>
     </Column>
-    <Column TableItem="ReportFile" Title="Name" Field="@(reportFile => reportFile.Name)" />
-    <Column TableItem="ReportFile" Title="Generation Date" Field="@(reportFile => reportFile.GenerationDateStart)" />
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("name"))" Field="@(reportFile => reportFile.Name)" />
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("generation_date"))" Field="@(reportFile => reportFile.GenerationDateStart)" />
     @*<Column TableItem="ReportFile" Title="Output Format" Field="@(reportFile => reportFile.Type)" /> TODO: ADD TYPE*@
     @*<Column TableItem="ReportFile" Title="Template" Field="@(reportFile => reportFile.Template.Name)" /> TODO: Template (is not always defined - report export)*@
-    <Column TableItem="ReportFile" Title="Owner" Field="@(reportFile => reportFile.Owner.Name)" />
-
+    <Column TableItem="ReportFile" Title="@(userConfig.GetText("owner"))" Field="@(reportFile => reportFile.Owner.Name)" />
 </Table>
 
-<PopUp Show="ShowDeleteReportFileDialog" Title="Generated Report">
+<PopUp Show="ShowDeleteReportFileDialog" Title="@(userConfig.GetText("generated_report"))">
     <Body>
-        <p>Do you really want to delete generated report "@reportFileContext.Name" ?</p>
+        <p>@(userConfig.GetText("U3002")) "@reportFileContext.Name" ?</p>
     </Body>
     <Footer>
-        <button class="btn btn-sm btn-danger" @onclick="DeleteGeneratedReport">Delete</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">Cancel</button>
+        <button class="btn btn-sm btn-danger" @onclick="DeleteGeneratedReport">@(userConfig.GetText("delete"))</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowDeleteReportFileDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
-<PopUp Show="ShowDownloadReportFileDialog" Title="Generated Report">
+<PopUp Show="ShowDownloadReportFileDialog" Title="@(userConfig.GetText("generated_report"))">
     <Body>
         <div class="d-flex flex-column align">
             @if (reportFileContext?.Csv != null)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Csv)))"
-                   target="_blank" download="@(reportFileContext.Name).@("csv")">Download as CSV</a>
+                   target="_blank" download="@(reportFileContext.Name).@("csv")">@(userConfig.GetText("download_as_csv"))</a>
             }
             @if (reportFileContext?.Pdf != null)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportFileContext.Pdf)"
-                   target="_blank" download="@(reportFileContext.Name).@("pdf")">Download as PDF</a>
+                   target="_blank" download="@(reportFileContext.Name).@("pdf")">@(userConfig.GetText("download_as_pdf"))</a>
             }
             @if (reportFileContext?.Html != null)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Html)))"
-                   target="_blank" download="@(reportFileContext.Name).@("html")">Download as HTML</a>
+                   target="_blank" download="@(reportFileContext.Name).@("html")">@(userConfig.GetText("download_as_html"))</a>
             }
             @if (reportFileContext?.Json != null)
             {
                 <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportFileContext.Json)))"
-                   target="_blank" download="@(reportFileContext.Name).@("json")">Download as JSON</a>
+                   target="_blank" download="@(reportFileContext.Name).@("json")">@(userConfig.GetText("download_as_json"))</a>
             }
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-secondary" @onclick="() => ShowDownloadReportFileDialog = false">Cancel</button>
+        <button class="btn btn-secondary" @onclick="() => ShowDownloadReportFileDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
 
 @code
 {
     [CascadingParameter]
-    Action<string, string> ShowError { get; set; }
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     private List<ReportFile> archivedReports = new List<ReportFile>();
 
@@ -93,7 +100,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Fetch downloads of generated report", "Unclassified error.", exception);
-            ShowError("Error while fetching downloads of generated report", "Unclassified error.");
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_report"), null, false);
         }
     }
 
@@ -115,7 +122,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Delete generated report", "Unclassified error.", exception);
-            ShowError("Error while deleting generated report", "Unclassified error.");
+            DisplayMessageInUi(exception, userConfig.GetText("delete_report"), null, false);
         }
     }
 }

@@ -1,0 +1,20 @@
+﻿@page "/help/settings/language"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("language"))</h3>
+    @(Html.Raw(userConfig.GetText("H5461")))
+    <ul>
+        <li>@(userConfig.GetText("English"))</li>
+        <li>@(userConfig.GetText("German"))</li>
+    </ul>
+</div>

@@ -1,0 +1,16 @@
+﻿@page "/help/API/logout"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("logout")</h3>
+    @(Html.Raw(userConfig.GetText("H6601")))
+</div>

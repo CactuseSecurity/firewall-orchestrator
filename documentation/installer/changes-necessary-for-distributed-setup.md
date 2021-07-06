@@ -54,7 +54,7 @@ this does not work remotely (auth host <> db host), as there is no postgres user
         src: pre_auth_functions.sql
         dest: "{{ fworch_home }}/auth/"
         owner: "{{ fworch_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
     become: yes
 
     - name: create functions needed during authentication

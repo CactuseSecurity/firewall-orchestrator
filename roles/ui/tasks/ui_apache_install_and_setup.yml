@@ -3,7 +3,7 @@
     - name: Install webserver packages
       package: name={{ item }} state=present
       with_items:
-        - "{{ web_server_name }}"
+        - "{{ webserver_package_name }}"
       environment: "{{ proxy_env }}"
 
     - name: enable apache modules proxy proxy_http ssl
@@ -27,10 +27,6 @@
 
     - name: enable {{ product_name }} web site
       command: "a2ensite {{ product_name }}-ui"
-      # todo: I received an error with the uncommented code below: module fworch does not exist
-#      apache2_module:
-#        state: present
-#        name: "{{ product_name }}"
       register: testoutput
 
     - name: test
@@ -44,7 +40,7 @@
 
     - name: restart apache
       service:
-       name: "{{ web_server_name }}"
+       name: "{{ webserver_package_name }}"
        state: restarted     
 
   become: yes

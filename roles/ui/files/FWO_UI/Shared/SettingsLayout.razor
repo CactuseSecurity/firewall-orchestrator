@@ -1,84 +1,103 @@
-﻿@using FWO.Ui.Data
-@using FWO.ApiConfig
+﻿@using FWO.ApiConfig
 
 @inherits LayoutComponentBase
 @layout MainLayout
 
 @inject UserConfig userConfig
 
-<Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" InitialWidth="sidebarWidth" @bind-Width="sidebarWidth">
+<Sidebar PositionLeft="true" Collapsible="false" Resizeable="false" SidebarCssClass="navbar-dark bg-dark" @bind-Width="sidebarWidth">
     <div class="m-2 mt-4">
         <ul class="navbar-nav flex-column">
             <AuthorizeView Roles="admin, importer, auditor">
-                <li class="nav-item px-2">
-                    <h5>Devices</h5>
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
+                    <h5>@(userConfig.GetText("devices"))</h5>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="admin, auditor">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/managements">
-                        Managements <span class="oi oi-inbox"></span>
+                        <span class="oi oi-inbox"></span> @(userConfig.GetText("managements"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/gateways">
-                        Gateways <span class="oi oi-shield"></span>
+                        <span class="oi oi-shield"></span> @(userConfig.GetText("gateways"))
                     </NavLink>
                 </li>
             </AuthorizeView>
             <AuthorizeView Roles="admin, importer, auditor">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/import">
-                        Import <span class="oi oi-arrow-thick-bottom"></span>
+                        <span class="oi oi-data-transfer-download"></span> @(userConfig.GetText("import_status"))
                     </NavLink>
                 </li>
                 <hr />
             </AuthorizeView>
             <AuthorizeView Roles="admin, auditor">
-                <li class="nav-item px-2">
-                    <h5>Authorization</h5>
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
+                    <h5>@(userConfig.GetText("authorization"))</h5>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/ldap">
-                        LDAP <span class="oi oi-key"></span>
+                        <span class="oi oi-key"></span> @(userConfig.GetText("ldap_conns"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/tenants">
-                        Tenants <span class="oi oi-command"></span>
+                        <span class="oi oi-command"></span> @(userConfig.GetText("tenants"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/users">
-                        Users <span class="oi oi-people"></span>
+                        <span class="oi oi-person"></span> @(userConfig.GetText("users"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/groups">
+                        <span class="oi oi-people"></span> @(userConfig.GetText("groups"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/roles">
-                        Roles <span class="oi oi-tags"></span>
+                        <span class="oi oi-tags"></span> @(userConfig.GetText("roles"))
                     </NavLink>
                 </li>
                 <hr />
-                <li class="nav-item px-2">
-                    <h5>Defaults</h5>
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5013"))">
+                    <h5>@(userConfig.GetText("defaults"))</h5>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/defaults">
-                        Defaults <span class="oi oi-cog"></span>
+                        <span class="oi oi-cog"></span> @(userConfig.GetText("standards"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/passwordpolicy">
+                        <span class="oi oi-document"></span> @(userConfig.GetText("password_policy"))
                     </NavLink>
                 </li>
                 <hr />
             </AuthorizeView>
-            <AuthorizeView Roles="admin, reporter, reporter-viewall, workflow-user, workflow-admin, auditor">
-                <li class="nav-item px-2">
-                    <h5>Personal</h5>
+            <AuthorizeView Roles="admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor">
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
+                    <h5>@(userConfig.GetText("personal"))</h5>
                 </li>
                 <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/password">
+                        <span class="oi oi-account-login"></span> @(userConfig.GetText("password"))
+                    </NavLink>
                     <NavLink class="nav-link" href="settings/language">
-                        Language <span class="oi oi-comment-square"></span>
+                        <span class="oi oi-comment-square"></span> @(userConfig.GetText("language"))
                     </NavLink>
                     <NavLink class="nav-link" href="settings/report">
-                        Reporting <span class="oi oi-list"></span>
+                        <span class="oi oi-list"></span> @(userConfig.GetText("reporting"))
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+            <AuthorizeView Roles="admin, recertifier, auditor">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/recertification">
+                        <span class="oi oi-check"></span> @(userConfig.GetText("recertification"))
                     </NavLink>
                 </li>
             </AuthorizeView>
@@ -93,6 +112,15 @@
 
 @code
 {
-    private int sidebarWidth = 200;
+    private int sidebarWidth = 250;
+    
+    protected override void OnInitialized()
+    {
+        userConfig.OnChange += OnChange;
+    }
+    private async Task OnChange(UserConfig _)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
 }
 

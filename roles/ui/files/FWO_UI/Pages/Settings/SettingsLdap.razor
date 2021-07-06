@@ -1,37 +1,62 @@
 ﻿@using BlazorTable
 @using FWO.Api.Data
 @using FWO.ApiClient
+@using FWO.ApiConfig
 
 @page "/settings/ldap"
 @attribute [Authorize(Roles = "admin, auditor")]
 
 @inject APIConnection apiConnection
+@inject UserConfig userConfig
 
-<h3 class="m-2">LDAP Connections</h3>
+<h3 class="m-2">@(userConfig.GetText("ldap_conns"))</h3>
+@(userConfig.GetText("U5211"))
 <hr />
 
-<button class="btn btn-success m-2" @onclick="Add">Add new LDAP connection</button>
+<button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_ldap"))</button>
 
 <div class="m-2">
     <Table class="table table-bordered table-responsive" TableItem="UiLdapConnection" Items="connectedLdaps" PageSize="0" ColumnReorder="true">
-        <Column TableItem="UiLdapConnection" Title="Action" Field="(x => x.Id)" Sortable="false" Filterable="false">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">Clone</button>
-                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">Edit</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">Delete</button>
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                 </div>
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="Host" Field="@(x => x.Address)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("host"))" Field="@(x => x.Address)" Sortable="true" Filterable="true">
             <Template>
                 @(context.Host())
             </Template>
         </Column>
-        <Column TableItem="UiLdapConnection" Title="Search User" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiLdapConnection" Title="Write User" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiLdapConnection" Title="Role Search Path" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiLdapConnection" Title="Tenant" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("type"))" Field="@(x => x.Type)" Sortable="true" Filterable="true">
+            <Template>
+                @(Enum.GetName(typeof(LdapType), context.Type))
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("search_user"))" Field="@(x => x.SearchUser)" Sortable="true" Filterable="true">
+            <Template>
+                @(GlobalConfig.ShowBool(context.SearchUser != null && context.SearchUser != ""))
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true">
+            <Template>
+                @(GlobalConfig.ShowBool(context.WriteUser != null && context.WriteUser != ""))
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true">
+            <Template>
+                @(GlobalConfig.ShowBool(context.RoleSearchPath != null && context.RoleSearchPath != ""))
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true" Filterable="true">
+            <Template>
+                @(GlobalConfig.ShowBool(context.GroupSearchPath != null && context.GroupSearchPath != ""))
+            </Template>
+        </Column>
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
             <Template>
                 @(context.TenantId != null ? tenants.Find(x => x.Id == context.TenantId).Name : "" )
             </Template>
@@ -39,19 +64,19 @@
     </Table>
 </div>
 
-<PopUp Title="Edit LDAP connection" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@(userConfig.GetText("edit_ldap"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
             <form>
                 <div class="form-group row">
-                    <label for="ldapAddress" class="col-sm-3 col-form-label col-form-label-sm">Address:</label>
+                    <label for="ldapAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
                     <div class="col-sm-8">
                         <input id="ldapAddress" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Address" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapPort" class="col-sm-3 col-form-label col-form-label-sm">Port:</label>
+                    <label for="ldapPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
                     <div class="col-sm-2">
                         <input id="ldapPort" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Port" />
                     </div>
@@ -59,49 +84,70 @@
                         <input class="form-check-input" id="ldapTls" type="checkbox" @bind="actLdapConnection.Tls">
                         <label class="form-check-label" for="ldapTls"><small>Tls</small></label>
                     </div>
-                    <label for="ldapTenantLevel" class="col-sm-3 col-form-label col-form-label-sm">TenantLevel:</label>
+                    <label for="ldapTenantLevel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant_level")):</label>
                     <div class="col-sm-2">
                         <input id="ldapTenantLevel" type="text" class="form-control form-control-sm" @bind="actLdapConnection.TenantLevel" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUser" class="col-sm-3 col-form-label col-form-label-sm">Search User:</label>
-                    <div class="col-sm-8">
-                        <input id="ldapSearchUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
+                    <label for="ldapType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+                    <div class="col-sm-4">
+                        <select id="ldapType" class="form-control form-control-sm" @bind="actLdapConnection.Type">
+                            @foreach (int type in Enum.GetValues(typeof(LdapType)))
+                            {
+                                <option value="@type">@(Enum.GetName(typeof(LdapType), type))</option>
+                            }
+                        </select>
+                    </div>
+                    <label for="ldapPattern" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("pattern_length")):</label>
+                    <div class="col-sm-2">
+                        <input id="ldapPattern" type="text" class="form-control form-control-sm" @bind="actLdapConnection.PatternLength" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapSearchUserPwd" class="col-sm-3 col-form-label col-form-label-sm">Search User Pwd:</label>
-                    <div class="col-sm-8">
-                        <input id="ldapSearchUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="ldapUserSearchPath" class="col-sm-3 col-form-label col-form-label-sm">User Search Path:</label>
+                    <label for="ldapUserSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("user_search_path"))*:</label>
                     <div class="col-sm-8">
                         <input id="ldapUserSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.UserSearchPath" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapRoleSearchPath" class="col-sm-3 col-form-label col-form-label-sm">Role Search Path:</label>
+                    <label for="ldapRoleSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("role_search_path")):</label>
                     <div class="col-sm-8">
                         <input id="ldapRoleSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.RoleSearchPath" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapWriteUser" class="col-sm-3 col-form-label col-form-label-sm">Write User:</label>
+                    <label for="ldapGroupSearchPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("group_search_path")):</label>
+                    <div class="col-sm-8">
+                        <input id="ldapGroupSearchPath" type="text" class="form-control form-control-sm" @bind="actLdapConnection.GroupSearchPath" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapSearchUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user"))*:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapSearchUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.SearchUser" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapSearchUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("search_user_pwd"))*:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapSearchUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.SearchUserPwd" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="ldapWriteUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user")):</label>
                     <div class="col-sm-8">
                         <input id="ldapWriteUser" type="text" class="form-control form-control-sm" @bind="actLdapConnection.WriteUser" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="ldapWriteUserPwd" class="col-sm-3 col-form-label col-form-label-sm">Write User Pwd:</label>
+                    <label for="ldapWriteUserPwd" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_user_pwd")):</label>
                     <div class="col-sm-8">
                         <input id="ldapWriteUserPwd" type="password" class="form-control form-control-sm" @bind="actLdapConnection.WriteUserPwd" />
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">Tenant:</label>
+                    <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     <div class="col-sm-8">
                         <select id="deviceTenant" class="form-control form-control-sm" @bind="actLdapConnection.TenantIdAsString">
                             <option value="null">None</option>
@@ -118,14 +164,19 @@
     <Footer>
         <div class="btn-group">
             <AuthorizeView Roles="admin">
-                <button class="btn btn-sm btn-primary" @onclick="Save">Save</button>
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
             </AuthorizeView>
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
 
-<PopUp Title="Delete" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+<PopUp Title="@(userConfig.GetText("delete_ldap_conn"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
     <Body>
         @if (DeleteMode)
         {
@@ -134,13 +185,15 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            @if (DeleteAllowed)
-            {
-                <AuthorizeView Roles="admin">
-                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actLdapConnection)">Delete</button>
-                </AuthorizeView>
-            }
-            <button class="btn btn-sm btn-secondary" @onclick="Cancel">Cancel</button>
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actLdapConnection)">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
 </PopUp>
@@ -156,7 +209,6 @@
 
     private bool EditMode = false;
     private bool DeleteMode = false;
-    private bool DeleteAllowed = false;
     private bool AddMode = false;
 
     private UiLdapConnection newLdapConnection;
@@ -172,7 +224,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "API error", "Unable to fetch LDAP connections.", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), null, true);
         }
         try
         {
@@ -180,7 +232,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, "API error", "Unable to fetch tenant information.", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), null, true);
         }
     }
 
@@ -196,20 +248,17 @@
         // Checks if delete possible. Todo: further checks?
         if (connectedLdaps.Count == 1)
         {
-            deleteMessage = $"Deletion of ldapConnection {actLdapConnection.Address} not allowed as it is the last one.";
-            DeleteAllowed = false;
+            DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5261"), true);
         }
         else if (actLdapConnection.RoleSearchPath != null && actLdapConnection.RoleSearchPath != "")
         {
-            deleteMessage = $"Deletion of ldapConnection {actLdapConnection.Address} not allowed as it contains role search path. Delete it first if possible.";
-            DeleteAllowed = false;
+            DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5262"), true);
         }
         else
         {
             deleteMessage = $"Are you sure you want to delete ldapConnection {actLdapConnection.Address}?";
-            DeleteAllowed = true;
+            DeleteMode = true;
         }
-        DeleteMode = true;
     }
 
     private async Task Delete(UiLdapConnection ldapConnection)
@@ -227,7 +276,7 @@
         catch (Exception exception)
         {
             // Log.WriteDebug("Delete Ldap Connection", $"Exception occurred: {exception}");
-            DisplayMessageInUi(exception, "Ldap Connection", "Error while deleting.", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_ldap_conn"), null, true);
         }
     }
 
@@ -249,56 +298,91 @@
     {
         try
         {
-            // Todo: Value checks?
-            if (AddMode)
-            {
-                var Variables = new
+            if (CheckValues())
+            {    
+                if (AddMode)
                 {
-                    address = actLdapConnection.Address,
-                    port = actLdapConnection.Port,
-                    searchUser = actLdapConnection.SearchUser,
-                    tls = actLdapConnection.Tls,
-                    tenantLevel = actLdapConnection.TenantLevel,
-                    searchUserPwd = actLdapConnection.SearchUserPwd,
-                    searchpathForUsers = actLdapConnection.UserSearchPath,
-                    searchpathForRoles = actLdapConnection.RoleSearchPath,
-                    writeUser = actLdapConnection.WriteUser,
-                    writeUserPwd = actLdapConnection.WriteUserPwd,
-                    tenantId = actLdapConnection.TenantId
-                };
-                actLdapConnection.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.newLdapConnection, Variables)).ReturnIds[0].NewId;
-                connectedLdaps.Add(actLdapConnection);
-                AddMode = false;
-                EditMode = false;
-            }
-            else
-            {
-                var Variables = new
+                    var Variables = new
+                    {
+                        address = actLdapConnection.Address,
+                        port = actLdapConnection.Port,
+                        type = actLdapConnection.Type,
+                        patternLength = actLdapConnection.PatternLength,
+                        searchUser = actLdapConnection.SearchUser,
+                        tls = actLdapConnection.Tls,
+                        tenantLevel = actLdapConnection.TenantLevel,
+                        searchUserPwd = actLdapConnection.SearchUserPwd,
+                        searchpathForUsers = actLdapConnection.UserSearchPath,
+                        searchpathForRoles = actLdapConnection.RoleSearchPath,
+                        searchpathForGroups = actLdapConnection.GroupSearchPath,
+                        writeUser = actLdapConnection.WriteUser,
+                        writeUserPwd = actLdapConnection.WriteUserPwd,
+                        tenantId = actLdapConnection.TenantId
+                    };
+                    actLdapConnection.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.newLdapConnection, Variables)).ReturnIds[0].NewId;
+                    connectedLdaps.Add(actLdapConnection);
+                    AddMode = false;
+                    EditMode = false;
+                }
+                else
                 {
-                    id = actLdapConnection.Id,
-                    address = actLdapConnection.Address,
-                    port = actLdapConnection.Port,
-                    searchUser = actLdapConnection.SearchUser,
-                    tls = actLdapConnection.Tls,
-                    tenantLevel = actLdapConnection.TenantLevel,
-                    searchUserPwd = actLdapConnection.SearchUserPwd,
-                    searchpathForUsers = actLdapConnection.UserSearchPath,
-                    searchpathForRoles = actLdapConnection.RoleSearchPath,
-                    writeUser = actLdapConnection.WriteUser,
-                    writeUserPwd = actLdapConnection.WriteUserPwd,
-                    tenantId = actLdapConnection.TenantId
-                };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateLdapConnection, Variables)).UpdatedId;
-                EditMode = (udId == actLdapConnection.Id ? false : true);
-                connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
+                    var Variables = new
+                    {
+                        id = actLdapConnection.Id,
+                        address = actLdapConnection.Address,
+                        port = actLdapConnection.Port,
+                        type = actLdapConnection.Type,
+                        patternLength = actLdapConnection.PatternLength,
+                        searchUser = actLdapConnection.SearchUser,
+                        tls = actLdapConnection.Tls,
+                        tenantLevel = actLdapConnection.TenantLevel,
+                        searchUserPwd = actLdapConnection.SearchUserPwd,
+                        searchpathForUsers = actLdapConnection.UserSearchPath,
+                        searchpathForRoles = actLdapConnection.RoleSearchPath,
+                        searchpathForGroups = actLdapConnection.GroupSearchPath,
+                        writeUser = actLdapConnection.WriteUser,
+                        writeUserPwd = actLdapConnection.WriteUserPwd,
+                        tenantId = actLdapConnection.TenantId
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateLdapConnection, Variables)).UpdatedId;
+                    EditMode = (udId == actLdapConnection.Id ? false : true);
+                    connectedLdaps[connectedLdaps.FindIndex(x => x.Id == actLdapConnection.Id)] = actLdapConnection;
+                }
             }
         }
         catch (Exception exception)
         {
-            // Todo: Error message? Ignore?
             // Log.WriteDebug("Save Ldap Connection", $"Exception occurred: {exception}");
-            DisplayMessageInUi(exception, "Edit Ldap Connection", "Error while saving changes.", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_ldap_conn"), null, true);
         }
+    }
+
+    private bool CheckValues()
+    {
+        if (actLdapConnection.Address == null || actLdapConnection.Address == "" ||
+            actLdapConnection.SearchUser == null || actLdapConnection.SearchUser == "" ||
+            actLdapConnection.SearchUserPwd == null || actLdapConnection.SearchUserPwd == "" ||
+            actLdapConnection.UserSearchPath == null || actLdapConnection.UserSearchPath == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if (actLdapConnection.Port < 1 || actLdapConnection.Port > 65535)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5103"), true);
+            return false;
+        }
+        if (actLdapConnection.PatternLength < 0)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5263"), true);
+            return false;
+        }
+        if (connectedLdaps.FirstOrDefault(x => x.Address == actLdapConnection.Address && x.Port == actLdapConnection.Port && x.Id != actLdapConnection.Id) != null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5264"), true);
+            return false;
+        }
+        return true;
     }
 
     private void Cancel()

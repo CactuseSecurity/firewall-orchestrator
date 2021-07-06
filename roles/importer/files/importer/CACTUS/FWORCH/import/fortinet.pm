@@ -410,6 +410,7 @@ sub copy_config_from_mgm_to_iso {
 	my $prev_import_time= shift;
 	my $ssh_port		= shift;
 	my $config_path_on_mgmt		= shift;
+	my $debug_level   = shift;
 	my $cmd;
 	my $fehler_count = 0;
 	my $result;
@@ -1055,8 +1056,15 @@ sub parse_config_rules  { # ($debuglevel_main, $mgm_name_in_config)
 			if ($policy_type ne '') { $uid_postfix = ".ipv$policy_type.uid"; } else { $uid_postfix = ''; }
 			&print_debug("found rule from $from_zone to $to_zone, name=$policy_name, disabled=$disabled, src=$source, dst=$destination, svc=$application, action=$action, track=$track", $debug,3);
 			# Regel wegschreiben
+
+			# using UID as uid
+			# $rule_no = &add_rule ($rule_no, $from_zone, $to_zone, $policy_uid, $disabled, $source, $destination, $application,
+			# 	$action, $track, $comment, $policy_name, $svc_neg, $src_neg, $dst_neg, $uid_postfix, $debug);
+
+			# using id as uid
 			$rule_no = &add_rule ($rule_no, $from_zone, $to_zone, $policy_id, $disabled, $source, $destination, $application,
 				$action, $track, $comment, $policy_name, $svc_neg, $src_neg, $dst_neg, $uid_postfix, $debug);
+
 			$context = &switch_context($context, 'firewall policy', $debug);
 			# reset all values after a rule has been parsed:
 			$action='deny'; # default value for action = deny (not contained in config!)
@@ -1135,6 +1143,7 @@ sub parse_config { # ($obj_file, $rule_file, $rulebases, $user, $fworch_workdir,
 	my $mgm_name = shift;
 	my $config_dir = shift;
 	my $import_id = shift;
+	my $debug_level   = shift;
 	my $vdom_name;
 
 	# initializing global variables:

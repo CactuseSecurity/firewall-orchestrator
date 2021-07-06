@@ -1,0 +1,19 @@
+﻿@page "/help/API/links"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("further_reading")</h3>
+    @(Html.Raw(userConfig.GetText("H6401")))
+    <ul>
+        @(Html.Raw(userConfig.GetText("H6402")))
+    </ul>
+</div>

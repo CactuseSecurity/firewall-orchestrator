@@ -14,7 +14,11 @@ namespace FWO.Report.Filter.Ast
         {
             switch (ConnectorType)
             {
-                case TokenKind.And: // and is the default operator
+                case TokenKind.And: // and terms should be enclosed in []
+                    query.ruleWhereStatement += "_and: [{"; 
+                    query.nwObjWhereStatement += "_and: [{";
+                    query.svcObjWhereStatement += "_and: [{";
+                    query.userObjWhereStatement += "_and: [{"; 
                     break;
                 case TokenKind.Or: // or terms need to be enclosed in []
                     query.ruleWhereStatement += "_or: [{"; 
@@ -28,7 +32,7 @@ namespace FWO.Report.Filter.Ast
 
             Left.Extract(ref query);
 
-            if (ConnectorType == TokenKind.Or)
+            if (ConnectorType == TokenKind.Or || ConnectorType == TokenKind.And)
             {
                 query.ruleWhereStatement += "}, {";
                 query.nwObjWhereStatement += "}, {";
@@ -38,7 +42,7 @@ namespace FWO.Report.Filter.Ast
 
             Right.Extract(ref query);
 
-            if (ConnectorType == TokenKind.Or)
+            if (ConnectorType == TokenKind.Or || ConnectorType == TokenKind.And)
             {
                 query.ruleWhereStatement += "}] ";
                 query.nwObjWhereStatement += "}] ";

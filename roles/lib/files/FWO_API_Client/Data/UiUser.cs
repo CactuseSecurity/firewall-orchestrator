@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
 namespace FWO.Api.Data
 {
@@ -40,6 +41,8 @@ namespace FWO.Api.Data
 
         public string Jwt { get; set; }
 
+        public List<string> Groups { get; set; }
+
         public UiUser()
         {
             Tenant = new Tenant();
@@ -57,6 +60,10 @@ namespace FWO.Api.Data
             Password = user.Password;
             Email = user.Email;
             Language = user.Language;
+            if (user.Groups != null)
+            {
+                Groups = user.Groups;
+            }
         }
 
         public void setNamesFromDn()
@@ -65,6 +72,11 @@ namespace FWO.Api.Data
             Name = distname.UserName;
             Tenant = new Tenant();
             Tenant.Name = distname.getTenant();
+        }
+
+        public bool isInternal()
+        {
+            return (new DistName(Dn)).IsInternal();
         }
     }
 }

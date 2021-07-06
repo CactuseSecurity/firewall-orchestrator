@@ -20,9 +20,11 @@
 
 import common
 import getter
-import requests, json, argparse, pdb
-import requests.packages.urllib3, time, logging, re, sys
+import json, argparse, pdb
+import requests, requests.packages.urllib3
+import time, logging, re, sys
 import os
+
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
@@ -39,9 +41,11 @@ parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='D
 parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
 
-# TODO: fix ugly use of --out for input file def of enrich mode
-
 args = parser.parse_args()
+if len(sys.argv)==1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+
 api_host = args.apihost
 api_port = args.port
 config_filename = args.out
@@ -59,88 +63,89 @@ use_object_dictionary = 'false'
 
 # logging config
 debug_level = int(args.debug)
-# todo: save the initial value, reset initial value at the end
-# todo: switch to native syslog
-if debug_level == 1:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-elif debug_level == 2:
-    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-if debug_level == 3:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    logging.basicConfig(filename='/var/tmp/get_config_cp_r8x_api.debug', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# ssl_verification mode
-ssl_verification_mode = args.ssl
-if ssl_verification_mode == '':
-    ssl_verification = False
-else:
-    ssl_verification = ssl_verification_mode
-    # todo: supplement error handling: redable file, etc
+common.set_log_level(log_level=debug_level, debug_level=debug_level)
+ssl_verification = getter.set_ssl_verification(args.ssl)
 
 starttime = int(time.time())
 # top level dict start
 sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string)
 v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
 
-config_json = "{\n"
-config_json += "\"rulebases\": [\n"
+
+config_json = { 'rulebases': [] }
 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
+
 # read all rulebases:
 for layer in args.layer.split(','):
+    logging.debug ( "get_config - dealing with layer: " + layer )
+    domain_layer_name = ""
+    current_layer_json = ""
     show_params_rules['name'] = layer
-    config_json += "{\n\"layername\": \"" + layer + "\",\n"
-    config_json +=  "\"layerchunks\": [\n"
-    current=0
-    total=current+1
-    logging.debug ( "get_config_cp_r8x_api - layer:"+ layer )
-    while (current<total) :
-#        show_params_rules = {'name':layer,'offset':current,'limit':limit,'use-object-dictionary':'false','details-level':'full'}
-        show_params_rules['offset']=current
-        rulebase = getter.api_call(api_host, args.port, v_url, 'show-access-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
-        config_json +=  json.dumps(rulebase, indent=json_indent)
-        config_json +=  ",\n"
-        total=rulebase['total']
-        current=rulebase['to']
-        logging.debug ( "get_config_cp_r8x_api - rulebase current:"+ str(current) )
-    config_json = config_json[:-2]
-    config_json +=  "]\n},\n"
-config_json = config_json[:-2]
-config_json += "],\n"  # 'level': 'rulebases'
-logging.debug ( "get_config_cp_r8x_api - rulebase total:"+ str(total) )
 
-config_json += "\"object_tables\": [\n"
+    if '/' in layer:
+        logging.debug ( "get_config - layer contains global and domain part separated by slash, parsing individually: " + layer )
+        (global_layer_name, domain_layer_name) = layer.split('/')
+        show_params_rules['name'] = global_layer_name
+
+    # either get complete rulebase or global layer rulebase if domain rules are present
+    logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
+    # current_layer_json = getter.get_layer_from_api (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules)
+    current_layer_json = getter.get_layer_from_api_as_dict (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
+
+    # now handling possible reference to domain rules within global rules
+    # if we find the reference, replace it with the domain rules
+    if domain_layer_name != "":
+        show_params_rules['name'] = domain_layer_name
+        # current_layer = json.loads(current_layer_json)
+        
+        # changing layer name to individual combination of global and domain rule
+        # this is necessary for multiple references to global layer
+        current_layer_json['layername'] = layer
+        # current_layer['name'] = layer
+        logging.debug ( "get_config - getting domain rule layer: " + show_params_rules['name'] )
+        domain_rules = getter.get_layer_from_api_as_dict (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
+        # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
+
+        if 'layerchunks' in current_layer_json:
+            for chunk in current_layer_json["layerchunks"]:
+                for rule in chunk['rulebase']:
+                    if "type" in rule and rule["type"] == "place-holder":
+                        logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
+                        current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
+                        # logging.debug ("substituted domain rules with chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
+    # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
+    # config_json += current_layer_json + ",\n"
+    config_json['rulebases'].append(current_layer_json)
+
+# leaving rules, moving on to objects
+
+config_json["object_tables"] = []
 show_params_objs = {'limit':limit,'details-level': details_level}
 
 for obj_type in getter.api_obj_types:
-    config_json += "{\n\"object_type\": \"" + obj_type + "\",\n"
-    config_json += "\"object_chunks\": [\n"
+    object_table = { "object_type": obj_type, "object_chunks": [] }
     current=0
     total=current+1
     show_cmd = 'show-' + obj_type
-    logging.debug ( "get_config_cp_r8x_api - obj_type: "+ obj_type )
+    logging.debug ( "get_config - obj_type: "+ obj_type )
     while (current<total) :
         show_params_objs['offset']=current
         objects = getter.api_call(api_host, args.port, v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy_string)
-        config_json += json.dumps(objects, indent=json_indent)
-        config_json += ",\n"
+        object_table["object_chunks"].append(objects)
         if 'total' in objects  and 'to' in objects:
             total=objects['total']
             current=objects['to']
-            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" current:"+ str(current) )
-            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
+            logging.debug ( "get_config - "+ obj_type +" current:"+ str(current) )
+            logging.debug ( "get_config - "+ obj_type +" total:"+ str(total) )
         else :
             current = total
-            logging.debug ( "get_config_cp_r8x_api - "+ obj_type +" total:"+ str(total) )
-    config_json = config_json[:-2]
-    config_json += "]\n},\n" # 'level': 'top::object'\n"
-config_json = config_json[:-2]
-config_json += "]\n" # 'level': 'objects'\n"
-config_json += "}\n" # 'level': 'top'"
+            logging.debug ( "get_config - "+ obj_type +" total:"+ str(total) )
+    config_json["object_tables"].append(object_table)
 with open(config_filename, "w") as configfile_json:
-    configfile_json.write(config_json)
+    configfile_json.write(json.dumps(config_json))
 
-
-logout_result = api_call(api_host, args.port, base_url, 'logout', {}, sid)
+#logout_result = getter.api_call(api_host, args.port, base_url, 'logout', {}, sid)
+logout_result = getter.api_call(api_host, args.port, v_url, 'logout', '', sid, ssl_verification, proxy_string)
 duration = int(time.time()) - starttime
 logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
 

@@ -11,7 +11,6 @@
       loop:
         - postgresql-server
         - python3-psycopg2
-        #- libpq-devel
       when: ansible_os_family == "RedHat"
       # todo: check if we need and if yes, how to install libpq-dev(el)
 
@@ -25,8 +24,7 @@
         - libpq-dev
       when: ansible_os_family == "Debian"
 
-    - name: initdb redhat
-      #command: "postgresql-setup --initdb --locale=en_US.UTF-8"
+    - name: initdb as extra step for redhat
       shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
       become: yes
       when: ansible_os_family == "RedHat"
@@ -38,6 +36,11 @@
 
     - name: set fact pg_version
       set_fact: pg_version={{ pg_version_result.stdout | float }}
+
+    - name: activate as_single_query if ansible_version is sufficient
+      set_fact:
+        postgresql_query_as_single_query: yes
+      when: ansible_version.string is version_compare('2.10', '>=')
 
     - name: pg_version to int when possible
       set_fact: pg_version={{ pg_version | int }}
@@ -119,7 +122,6 @@
           # with only local import modules:
           host    all         +configimporters    127.0.0.1/32           trust
           host    all         confexporter        127.0.0.1/32           trust
-          host    all         textreader          127.0.0.1/32           trust
           
           # with local web frontend:
           host    all         +secuadmins         127.0.0.1/32           md5

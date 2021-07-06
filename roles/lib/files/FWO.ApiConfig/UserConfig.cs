@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using FWO.Logging;
 using FWO.ApiConfig.Data;
 using System.Linq;
@@ -17,8 +18,8 @@ namespace FWO.ApiConfig
     {
         private readonly GlobalConfig globalConfig;
 
-        private Dictionary<string, string> userConfigItems;
-        private Dictionary<string, string> defaultConfigItems;
+        private Dictionary<string, string> userConfigItems = new Dictionary<string, string>();
+        private Dictionary<string, string> defaultConfigItems = new Dictionary<string, string>();
 
         public Dictionary<string, string> Translate {get; set; }
 
@@ -80,6 +81,55 @@ namespace FWO.ApiConfig
             Translate = globalConfig.langDict[languageName];
             if (OnChange != null)
                 await OnChange.Invoke(this);
+        }
+
+        public string GetText(string key)
+        {
+            if(Translate.ContainsKey(key))
+            {
+                return Convert(Translate[key]);
+            }
+            else 
+            {
+                string defaultLanguage = GetConfigValue(GlobalConfig.kDefaultLanguage);
+                if(defaultLanguage == "")
+                {
+                    defaultLanguage = GlobalConfig.kEnglish;
+                }
+                if (globalConfig.langDict[defaultLanguage].ContainsKey(key))
+                {
+                    return Convert(globalConfig.langDict[defaultLanguage][key]);
+                }
+                else if (defaultLanguage != GlobalConfig.kEnglish && globalConfig.langDict[GlobalConfig.kEnglish].ContainsKey(key))
+                {
+                    return Convert(globalConfig.langDict[GlobalConfig.kEnglish][key]);
+                }
+                else
+                {
+                    return "(undefined text)";
+                }
+            }
+        }
+
+        public string Convert(string key)
+        {
+            return System.Web.HttpUtility.HtmlDecode(key);
+        }
+
+        public string GetApiText(string key)
+        {
+            string text = key;
+            string pattern = @"[A]\d\d\d\d";
+            Match m = Regex.Match(key, pattern);
+            if (m.Success)
+            {
+                string msg = GetText(key.Substring(0,5));
+                if (msg != "(undefined text)")
+                {
+                    text = msg;
+                }
+            }
+            return text;
         }
 
         public string GetConfigValue(string key)

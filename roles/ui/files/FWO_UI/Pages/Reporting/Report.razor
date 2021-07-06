@@ -4,43 +4,28 @@
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
 @using System.Text
+@using System
+@using System.Collections
 @using FWO.Ui.Services
 @using FWO.Ui.Data
+@using FWO.Ui.Pages.Reporting.Reports
 
-@page "/"
+@* @page "/" *@
 @page "/report"
 
 @inject APIConnection Connection
 @inject UserConfig userConfig
 
-<Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" PositionLeft="true" @bind-Width="sidebarLeftWidth">
-    <div class="p-3">
-
-        <h5 class="text-left">Select device(s)</h5>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { fullDeviceSelectionState = DeviceFilter.fullDeviceSelection(managementsOverview, fullDeviceSelectionState, out selectButtonText); }">@selectButtonText</button>
-        <br><br>
-
-        @foreach (Management management in managementsOverview)
-        {
-            @if (management != null)
-            {
-                <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
-                    @foreach (Device device in management.Devices)
-                    {
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="device.Id" @bind="device.selected" />
-                            <label class="form-check-label" for="@device.Id">
-                                &nbsp;@device.Name
-                            </label>
-                        </div>
-                    }
-                </Collapse>
-            }
-        }
-    </div>
+@* ==== LEFT SIDEBAR ==== *@
+<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+   <DeviceSelection Managements="managementsReport" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll"></DeviceSelection>
 </Sidebar>
 
+@* ==== Middle div ==== *@
 <div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
+<h3>@(userConfig.GetText("reporting"))</h3>
+
+@* ==== Filter line ==== *@
     <form class="m-1 position-relative" @onsubmit="GenerateReport">
         <input style="position:relative; z-index:1; background-color:rgba(0,0,0,0);" translate="no" autocapitalize="off"
                class="form-control" spellcheck="false" placeholder="Filter" @oninput="TryFilter" @bind="filterInput" />
@@ -51,351 +36,70 @@
     </form>
 
     <div class="btn-group mr-1 ml-1 mb-1">
-        <button class="btn btn-sm btn-primary" @onclick="GenerateReport">Generate Report</button>
-        <button class="btn btn-sm btn-dark" @onclick="() => { ShowExportDialog = true; }">Export Report</button>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateInEdit = new ReportTemplate { Filter = filterInput }; ShowSaveTemplateDialog = true; }">Save as Template</button>
+        <button class="btn btn-sm btn-primary" @onclick="GenerateReport">@(userConfig.GetText("generate_report"))</button>
+        <ReportExport ReportToExport="currentReport"></ReportExport>
+        <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput); }">@(userConfig.GetText("save_as_template"))</button>
     </div>
 
     <hr />
 
-    <PopUp Title="No device(s) selected." Show="@ShowNoDeviceSelectedWarning">
-        <Body>
-            <div>
-                <p>Please select at least one device in the left side-bar before generating a report.</p>
-            </div>
-        </Body>
-        <Footer>
-            <button class="btn btn-primary" @onclick="() => ShowNoDeviceSelectedWarning = false">OK</button>
-        </Footer>
-    </PopUp>
+@* ==== Templates ==== *@
+    <ReportTemplateComponent OnTemplateLoad="
+        template => {
+            filterInput = template.Filter;
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
+                                             
+            if (DeviceFilter.isAnyDeviceFilterSet(filterInput) || DeviceFilter.areAllDevicesSelected(managementsReport))
+                selectAll = false;
+            else
+                selectAll = true;
 
-    <PopUp Title="Export Report" Show="@ShowExportDialog">
-        <Body>
-            <div>
-                <p>Export as...</p>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
-                    <label class="form-check-label" for="reportExportPdf">
-                        PDF
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
-                    <label class="form-check-label" for="reportExportHtml">
-                        HTML
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="reportExportCsv" @bind="ExportCsv">
-                    <label class="form-check-label" for="reportExportCsv">
-                        CSV
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="reportExportJson" @bind="ExportJson">
-                    <label class="form-check-label" for="reportExportJson">
-                        JSON
-                    </label>
-                </div>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="reportExportArchive" @bind="ExportArchive">
-                <label class="form-check-label" for="reportExportArchive">
-                    Archive
-                </label>
-            </div>
-        </Body>
-        <Footer>
-            <button class="btn btn-sm btn-primary" @onclick="async () => { await Export(); ShowExportDialog = false; ShowExportDownloadDialog = true; }">Export</button>
-            <button class="btn btn-sm btn-secondary" @onclick="() => ShowExportDialog = false">Cancel</button>
-        </Footer>
-    </PopUp>
+            StateHasChanged();
+        }"
+    @ref="reportTemplateControl"></ReportTemplateComponent>
 
-    <PopUp Title="Export Report Download" Show="@ShowExportDownloadDialog">
-        <Body>
-            <div class="d-flex flex-column align">
-                <label class="ml-1 mr-1" for="reportExportFilename">Name:</label>
-                <input class="form-control-sm ml-1 mr-1 mb-1" id="reportExportFileName" @bind:event="oninput" @bind="reportExportFile.Name" />
-                @if (reportExportFile?.Csv != null)
-                {
-                    <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Csv)))"
-                       target="_blank" download="@(reportExportFile.Name).@("csv")">Download CSV</a>
-                }
-                @if (reportExportFile?.Pdf != null)
-                {
-                    <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(reportExportFile.Pdf)"
-                       target="_blank" download="@(reportExportFile.Name).@("pdf")">Download PDF</a>
-                }
-                @if (reportExportFile?.Html != null)
-                {
-                    <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Html)))"
-                       target="_blank" download="@(reportExportFile.Name).@("html")">Download HTML</a>
-                }
-                @if (reportExportFile?.Json != null)
-                {
-                    <a class="btn btn-sm btn-info m-1" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.UTF8.GetBytes(reportExportFile.Json)))"
-                       target="_blank" download="@(reportExportFile.Name).@("json")">Download JSON</a>
-                }
-            </div>
-        </Body>
-        <Footer>
-            <button class="btn btn-sm btn-danger" @onclick="() => ShowExportDownloadDialog = false">Close</button>
-        </Footer>
-    </PopUp>
-
-    <PopUp Large="true" Title="Report Template" Show="@(ShowEditTemplateDialog || ShowSaveTemplateDialog)">
-        <Body>
-            <div>
-                <div class="form-group">
-                    <label for="saveTemplateName">Name:</label>
-                    <input id="saveTemplateName" type="text" class="form-control" @bind="reportTemplateInEdit.Name">
-                </div>
-                <div class="form-group">
-                    <label for="saveTemplateComment">Comment:</label>
-                    <textarea id="saveTemplateComment" class="form-control" @bind="reportTemplateInEdit.Comment" />
-                </div>
-                <div class="form-group">
-                    <label for="saveTemplateFilterLineTextarea">Filter:</label>
-                    <textarea id="saveTemplateFilterLineTextarea" class="form-control" @bind="reportTemplateInEdit.Filter" />
-                </div>
-            </div>
-        </Body>
-        <Footer>
-            <button class="btn btn-primary" @onclick="async () => { if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">Save</button>
-            <button class="btn btn-secondary" @onclick="() => ShowEditTemplateDialog = ShowSaveTemplateDialog = false">Cancel</button>
-        </Footer>
-    </PopUp>
-
-    <PopUp Title="Report Template" Show="@ShowDeleteTemplateDialog">
-        <Body>
-            <p>Do you really want to delete report template "@reportTemplateInEdit.Name" ?</p>
-        </Body>
-        <Footer>
-            <button class="btn btn-danger" @onclick="DeleteTemplate">Delete</button>
-            <button class="btn btn-secondary" @onclick="() => ShowDeleteTemplateDialog = false">Cancel</button>
-        </Footer>
-    </PopUp>
-
-    <div class="mr-1 ml-1 mb-1 shadow">
-        <Collapse Title="Templates" Style="@("primary")">
-            <div class="card-body">
-                <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates">
-                    <Column Title="Actions" TableItem="ReportTemplate">
-                        <Template>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-success" @onclick="() => filterInput = context.Filter">Load</button>
-                                @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                                @if (context.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-allowed-roles" && claim.Value == "admin") != null)
-                                {
-                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = context; ShowEditTemplateDialog = true; }">Edit</button>
-                                    <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = context; ShowDeleteTemplateDialog = true; }">Delete</button>
-                                }
-                            </div>
-                        </Template>
-                    </Column>
-                    <Column Title="Name" TableItem="ReportTemplate">
-                        <Template>
-                            @if (context.Owner==0) { <b>@context.Name</b>} else { @context.Name }
-                        </Template>
-                    </Column>
-                    <Column Title="Comment" TableItem="ReportTemplate" Field="x => x.Comment" />
-                    <Column Title="Creation Date" TableItem="ReportTemplate" Field="x => x.CreationDate" />
-                    <Column Title="Filter" TableItem="ReportTemplate" Field="x => x.Filter" />
-                </Table>
-            </div>
-        </Collapse>
-    </div>
-
+@* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
         <div class="card-body">
 
-            <a class="btn btn-sm btn-info" href="data:application/octet-stream;base64,@(Convert.ToBase64String(Encoding.ASCII.GetBytes("test")))"
-               target="_blank" download="@("test").@("txt")">Download</a>
-
-            @if (query != null)
+            @if (currentReport != null)
             {
-                @switch (query.ReportType)
+                @switch (currentReport)
                 {
-                    case rulesReport:
-                        @foreach (Management management in managementsReport)
-                        {
-                            <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-
-                                @foreach (Device device in management.Devices)
-                                {
-                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
-                                        <Table SelectedItems="selectedItemsReportRuleTable"
-                                               RowClickAction="tableItem => { if (!selectedItemsReportRuleTable.Remove(tableItem)) selectedItemsReportRuleTable.Add(tableItem); StateHasChanged(); }"
-                                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="true"
-                                               PageSize="rulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")">
-
-                                            <Column TableItem="Rule" Title="Number" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="true" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayNumber(device.Rules))
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="Rule" Title="Name" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true" />
-                                            <Column TableItem="Rule" Title="Source Zone" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="true" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplaySourceZone())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="Rule" Title="Source" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplaySource())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="Rule" Title="Destination Zone" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayDestinationZone())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="Rule" Title="Destination" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayDestination())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="Rule" Title="Services" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="true" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayService())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="Rule" Title="Action" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="true" Hideable="true" />
-                                            <Column TableItem="Rule" Title="Track" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="true" Hideable="true" />
-                                            <Column TableItem="Rule" Title="Disabled" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="true" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayDisabled())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="Rule" Title="UID" Field="@(rChange => rChange.Uid)" Sortable="true" Filterable="true" Hideable="true" />
-                                            <Column TableItem="Rule" Title="Comment" Field="@(rChange => rChange.Comment)" Sortable="true" Filterable="true" Hideable="true" />
-
-                                            <DetailTemplate TableItem="Rule">
-                                                <div>test</div>
-                                            </DetailTemplate>
-
-                                            <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                                        </Table>
-                                    </Collapse>
-                                }
-                            </Collapse>
-                        }
+                    case ReportRules rulesReport:
+                        <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
-                    case changesReport:
-                        @foreach (Management management in managementsReport)
-                        {
-                            <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-
-                                @foreach (Device device in management.Devices)
-                                {
-                                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
-
-                                        <Table SelectedItems="selectedItemsReportChangeTable"
-                                               RowClickAction="tableItem => { if (!selectedItemsReportChangeTable.Remove(tableItem)) selectedItemsReportChangeTable.Add(tableItem); StateHasChanged(); }"
-                                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
-                                               PageSize="rulesPerPage" ColumnReorder="true">
-
-                                            <Column TableItem="RuleChange" Title="Change Time" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
-                                            <Column TableItem="RuleChange" Title="Change Type" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayChangeAction())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Name" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayName())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Source Zone" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplaySourceZone())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Source" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplaySource())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Destination Zone" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayDestinationZone())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Destination" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayDestination())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Services" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayService())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Action" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayAction())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Track" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayTrack())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Disabled" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayDisabled())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="UID" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayUid())
-                                                </Template>
-                                            </Column>
-                                            <Column TableItem="RuleChange" Title="Comment" Hideable="true">
-                                                <Template>
-                                                    @((MarkupString)context.DisplayComment())
-                                                </Template>
-                                            </Column>
-
-                                            <DetailTemplate TableItem="RuleChange">
-                                                <div>test</div>
-                                            </DetailTemplate>
-
-                                            <Pager ShowPageNumber="true" ShowTotalCount="true" />
-                                        </Table>
-                                    </Collapse>
-                                }
-                            </Collapse>
-                        }
+                    case ReportChanges changesReport:
+                        <ChangesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRuleChanges="selectedItemsChangeReportTable"></ChangesReport>
                         break;
 
-                    case statisticsReport:
+                    case ReportStatistics statisticsReport:
                         @if (globalStats != null)
                         {
-                            <h5>Gobal number of Objects</h5>
+                            <h5>@(userConfig.GetText("glob_no_obj"))</h5>
                             <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {globalStats}">
-                                <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
                             </Table>
                         }
                         @foreach (Management management in managementsReport)
                         {
                             <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                                <h6>Total number of Objects per Management</h6>
+                                <h6>@(userConfig.GetText("total_no_obj_mgt"))</h6>
                                 <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
-                                    <Column TableItem="Management" Title="Network objects" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="Service objects" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="User objects" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                    <Column TableItem="Management" Title="Rules" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
                                 </Table>
 
-                                <h6>Number of Rules per Gateway</h6>
+                                <h6>@(userConfig.GetText("no_rules_gtw"))</h6>
                                 <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
-                                    <Column TableItem="Device" Title="Gateway" Field="@(Device => Device.Name)" />
-                                    <Column TableItem="Device" Title="Number of Rules" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Device" Title="@(userConfig.GetText("gateway"))" Field="@(Device => Device.Name)" />
+                                    <Column TableItem="Device" Title="@(userConfig.GetText("no_of_rules"))" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
                                 </Table>
                             </Collapse>
                         }
@@ -409,30 +113,42 @@
     </div>
 </div>
 
-<Sidebar Collapsible="true" Resizeable="true" InitialWidth="sidebarRightWidth" PositionLeft="false" @bind-Width="sidebarRightWidth">
+@* ==== RIGHT SIDEBAR ==== *@
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="sidebarRightWidth">
     <div class="p-3">
-        <TabSet>
-            <Tab Title="All">
-                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarAll.CollapseAll())">collapse all</div>
+        <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
+        <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
+            <Tab Title="@(userConfig.GetText("all"))">
+                <div class="d-md-flex justify-content-md-end">
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarAll.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                </div>
                 <CascadingValue Value="collapseSidebarAll">
-                    <ObjectGroup InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    <ObjectGroupCollection FetchObjects="FetchContent" Type="10" InputDataType="Management" Data="managementsAllObjects" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
+                                           NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
                 </CascadingValue>
             </Tab>
             <Tab Title="Report">
-                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarReport.CollapseAll())">collapse all</div>
+                <div class="d-md-flex justify-content-md-end">
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarReport.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                </div>
                 <CascadingValue Value="collapseSidebarReport">
-                    <ObjectGroup InputDataType="Management" Data="managementsReport" NameExtractor="man => man.Name" NetworkObjectExtractor="man => man.Objects"
-                                 NetworkServiceExtractor="man => man.Services" NetworkUserExtractor="man => man.Users" />
+                    <ObjectGroupCollection FetchObjects="FetchContent" Type="20" InputDataType="Management" Data="managementsReport.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                                           NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
+                                           NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
+                                           NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
                 </CascadingValue>
             </Tab>
-            <Tab Title="Rule">
-                <div class="btn btn-secondary" @onclick="@(() => collapseSidebarRule.CollapseAll())">collapse all</div>
+            <Tab Title="@(userConfig.GetText("rule"))">
+                <div class="d-md-flex justify-content-md-between">
+                    <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedItemsRuleReportTable.Clear())">@(userConfig.GetText("clear_all"))</div>
+                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseSidebarRule.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                </div>
                 <CascadingValue Value="collapseSidebarRule">
-                    <ObjectGroup InputDataType="Rule" Data="selectedItemsReportRuleTable" NameExtractor="rule => rule.Name"
-                                 NetworkObjectExtractor="rule => Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.Object)"
-                                 NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                 NetworkUserExtractor="rule => Array.FindAll(Array.ConvertAll(rule.Tos.Concat(rule.Froms).ToArray(), location => location.User), user => user != null)" />
+                    <ObjectGroupCollection FetchObjects="FetchContent" Type="30" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedItemsRuleReportTable"
+                                           NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                           NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
+                                           NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                           NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).ToArray(), user => user != null)" />
                 </CascadingValue>
             </Tab>
         </TabSet>
@@ -447,50 +163,36 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-    private List<Rule> selectedItemsReportRuleTable = new List<Rule>();
-    private List<RuleChange> selectedItemsReportChangeTable = new List<RuleChange>();
+    private List<Rule> selectedItemsRuleReportTable = new List<Rule>();
+    private List<RuleChange> selectedItemsChangeReportTable = new List<RuleChange>();
 
-    private Management[] managementsOverview = new Management[0];
+    private Management[] managementsDevFilter = new Management[0];
     private Management[] managementsReport = new Management[0];
     private Management[] managementsAllObjects = new Management[0];
-    private Management[] managementsWithRelevantImportId = new Management[0];
+    // private Management[] managementsWithRelevantImportId = new Management[0];
     private Management globalStats = null;
 
     // private Dictionary<int,bool> deviceSelected = new Dictionary<int,bool>();
-
-    private List<ReportTemplate> reportTemplates = new List<ReportTemplate>();
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
     private int elementsPerFetch = 100;
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
-    private bool ShowNoDeviceSelectedWarning = false;
-    private bool ShowExportDialog = false;
-    private bool ShowExportDownloadDialog = false;
-    private bool ShowSaveTemplateDialog = false;
-    private bool ShowEditTemplateDialog = false;
-    private bool ShowDeleteTemplateDialog = false;
-    private bool ShowDeleteReportFileDialog = false;
-    private bool ShowEditScheduledReportDialog = false;
-    private bool ShowDeleteScheduledReportDialog = false;
+    // private bool ShowNoDeviceSelectedWarning = false;
 
     private bool autoFillRightSidebar = false;
     private int maxInitFetchRightSidebar = 10;
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private ReportTemplate reportTemplateInEdit = null;
+    private ReportTemplateComponent reportTemplateControl;
 
     private ReportBase currentReport;
 
-    private int reportFileId = 0;
+    private TabSet rsbTabset;
+    private Sidebar deviceSelectionSidebar;
 
-    private bool ExportPdf = false;
-    private bool ExportJson = false;
-    private bool ExportHtml = false;
-    private bool ExportCsv = false;
-    private bool ExportArchive = false;
-    private ReportFile reportExportFile;
+    private int reportFileId = 0;
 
     private int scheduledReportId = 0;
     private string scheduledReportName = "";
@@ -505,25 +207,11 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
-    private const string rulesReportDefaultFilterLine = "type=rules and time=now ";
-    //private string changesReportDefaultFilterLine = "type=changes and time=\"last year\" ";
-    private const string changesReportDefaultFilterLine = "type=changes and time=\"this year\" ";
-    private const string statisticsReportDefaultFilterLine = "type=statistics and time=now ";
-    private const string anyObjcomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny)";
-    private const string cleanupRulecomplianceReportDefaultFilterLine = "type=compliance and time=now and (src=any and dst=any and svc=any) or (src=all and dst=all and svc=all) and (action=drop or action=reject or action=deny)";
-    private const string inactiveRulescomplianceReportDefaultFilterLine = "type=compliance and time=now and active=false";
-    private const string complianceReportDefaultFilterLine = anyObjcomplianceReportDefaultFilterLine;
+    private bool selectAll = true;
     private string reportGenerationTimeLine = "";
-    private const string rulesReport = "rules";
-    private const string changesReport = "changes";
-    private const string complianceReport = "compliance";
-    private const string statisticsReport = "statistics";
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
     private CollapseState collapseSidebarRule = new CollapseState();
-    private DynGraphqlQuery query = null;
-    private bool fullDeviceSelectionState = false;
-    private string selectButtonText = "Select all devices";
 
     protected override void OnInitialized()
     {
@@ -533,81 +221,151 @@
             {
                 GetSettings();
 
-                PaginationVariables paginationVariables = new PaginationVariables() { Limit = elementsPerFetch, Offset = 0 };
-                bool newObjects = true;
-                int fetchCount = 0;
+                managementsReport = await Connection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+                await InvokeAsync(StateHasChanged);
 
-                // lazy fetch all objects for right sidebar
-                while (newObjects && ( ++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
-                {
-                    paginationVariables.Offset += elementsPerFetch;
-                    Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
-                    if (fetchCount == 1)
-                    {
-                        managementsAllObjects = managementsCurrentFetch;
-                    }
-                    else
-                    {
-                        newObjects = managementsAllObjects.Merge(managementsCurrentFetch);
-                    }
-
-                    await InvokeAsync(StateHasChanged);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, "Object Fetch", "Error while fetching objects from API", true);
-            }
-        });
-
-        Task.Run(async () =>
-        {
-            managementsOverview = await Connection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
-            await InvokeAsync(StateHasChanged);
-        });
-
-        Task.Run(async () =>
-        {
-            try
-            {
-                reportTemplates = (await Connection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates)).ToList();
+                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
+                managementsAllObjects = await Connection.SendQueryAsync<Management[]>(ObjectQueries.getAllObjectDetails, paginationVariables);
                 await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, "Report Template Fetch", "Error while fetching report templates from API", true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
             }
         });
     }
 
-    private async Task GenerateReport()
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0)
     {
+        const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
+
+        Log.WriteDebug("Fetching Content..", "");
+
+        Management[] managements = new Management[0];
+
         try
         {
-            query = Compiler.Compile(filterInput);
-            if (!DeviceFilter.areAllDevicesSeclected(managementsOverview))  // if all devices are selected, we do no additional filtering
+            GetSettings();
+
+            string query = "";
+            Dictionary<String, object> queryVars = new Dictionary<string, object>();
+
+            bool newObjects = true;
+            int fetchCount = 0;
+
+            switch (contentType)
             {
-                if (DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query)) // remove all existing device filters first before adding new ones
-                    filterInput = DeviceFilter.replaceDeviceFilter(filterInput, managementsOverview, query);
-                else 
-                    filterInput = DeviceFilter.removeDeviceFilterPart(filterInput);
-                if (!DeviceFilter.isAnyDeviceFilterSet(managementsOverview, query))            // display pop-up with warning, todo: check if device is selected in filter line
-                {
-                    ShowNoDeviceSelectedWarning = true;
-                    StateHasChanged();
-                    return;
-                }
+                case all:
+                    query = ObjectQueries.getAllObjectDetails;
+                    break;
+                case all_nobj:
+                    query = ObjectQueries.getNetworkObjectDetails;
+                    break;
+                case all_nsrv:
+                    query = ObjectQueries.getNetworkServiceObjectDetails;
+                    break;
+                case all_user:
+                    query = ObjectQueries.getUserDetails;
+                    break;
+                case rule:
+                    query = RuleQueries.getRuleDetails;
+                    break;
             }
-            else
-                filterInput = DeviceFilter.removeDeviceFilterPart(filterInput);
-            query = Compiler.Compile(filterInput);  // recompile after reading device filter
+
+            switch (contentType)
+            {
+                case all or all_nobj or all_nsrv or all_user:
+
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", 0 },
+                        { "management_id", id }
+                    };
+
+                    break;
+
+                case report or report_nobj or report_nsrv or report_user:
+
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", 0 },
+                        { "mgmIds", id }
+                    };
+
+                    await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), Connection, callback);
+
+                    return;
+
+                case rule:
+
+                    queryVars = new Dictionary<string, object>()
+                    {
+                        { "limit", elementsPerFetch },
+                        { "offset", (int)0 },
+                        { "rule_id", id }
+                    };
+
+                    break;
+            }
+
+            // lazy fetch all objects for right sidebar
+            while (newObjects && (++fetchCount <= maxInitFetchRightSidebar || autoFillRightSidebar))
+            {
+                Management[] managementsCurrentFetch = await Connection.SendQueryAsync<Management[]>(query, queryVars);
+                if (fetchCount == 1)
+                {
+                    managements = managementsCurrentFetch;
+                }
+                else
+                {
+                    newObjects = managements.Merge(managementsCurrentFetch);
+                }
+
+                if (queryVars.ContainsKey("offset"))
+                    queryVars["offset"] = (int)queryVars["offset"] + elementsPerFetch;
+                await callback(managements);
+            }
+
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+        }
+        catch (Exception)
+        {
+            //DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            // TODO: Error Interface for all Components, that enables displaying a message in the ui
+        }
+
+    }
+
+    private async Task GenerateReport()
+    {
+        // clear selected rules
+        selectedItemsRuleReportTable.Clear();
+        selectedItemsChangeReportTable.Clear();
+
+        // collapse report templates
+        reportTemplateControl.Collapse();
+        // deviceSelectionSidebar.ToggleCollapse(true); // disabling left side bar collapse for now
+
+        try
+        {
+            // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
+
+            currentReport = ReportBase.ConstructReport(filterInput);
+            if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display warning
+            {
+                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                return;
+            }
+
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
-            switch (query.ReportType)
+            switch (currentReport)
             {
-                case rulesReport:
-                    currentReport = new ReportRules();
-                    await currentReport.Generate(elementsPerFetch, filterInput, Connection,
+                case ReportRules rulesReport:
+                    await currentReport.Generate(elementsPerFetch, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -615,9 +373,8 @@
                         });
                     break;
 
-                case changesReport:
-                    currentReport = new ReportChanges();
-                    await currentReport.Generate(elementsPerFetch, filterInput, Connection,
+                case ReportChanges changesReport:
+                    await currentReport.Generate(elementsPerFetch, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -625,10 +382,9 @@
                         });
                     break;
 
-                case statisticsReport:
+                case ReportStatistics statisticsReport:
                     globalStats = new Management();
-                    currentReport = new ReportStatistics();
-                    await currentReport.Generate(0, filterInput, Connection,
+                    await currentReport.Generate(0, Connection,
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
@@ -647,137 +403,22 @@
                     break;
             }
             reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
+            rsbTabset.SetActiveTab(1);
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, "Report generation", "Unclassified error.", true);
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
         }
-    }
-      
-    private async Task SaveTemplate()
-    {
-        try
-        {
-            reportTemplateInEdit.CreationDate = DateTime.Now;
-
-            var queryVariables = new
-            {
-                reportTemplateName = reportTemplateInEdit.Name,
-                reportFilterLine = reportTemplateInEdit.Filter,
-                reportTemplateCreate = reportTemplateInEdit.CreationDate,
-                reportTemplateComment = reportTemplateInEdit.Comment,
-                reportTemplateOwner = userConfig.User.DbId
-            };
-
-            reportTemplateInEdit.Id = (await Connection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds[0].NewId;
-            reportTemplates.Add(reportTemplateInEdit);
-
-            ShowSaveTemplateDialog = false;
-            StateHasChanged();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, "Save report template", "Unclassified error.", true);
-        }
-    }
-
-    private async Task EditTemplate()
-    {
-        try
-        {
-            await Connection.SendQueryAsync<object>(ReportQueries.editReportTemplate, reportTemplateInEdit);
-            reportTemplates[reportTemplates.FindIndex(reportTemplate => reportTemplate.Id == reportTemplateInEdit.Id)] = reportTemplateInEdit;
-
-            ShowEditTemplateDialog = false;
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, "Edit report template", "Unclassified error.", true);
-        }
-    }
-
-    private async Task DeleteTemplate()
-    {
-        try
-        {
-            var queryVariables = new
-            {
-                reportTemplateId = reportTemplateInEdit.Id
-            };
-
-            await Connection.SendQueryAsync<object>(ReportQueries.deleteReportTemplate, queryVariables);
-            reportTemplates.Remove(reportTemplates.Find(reportTemplate => reportTemplate.Id == reportTemplateInEdit.Id));
-
-            ShowDeleteTemplateDialog = false;
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, "Delete report template", "Unclassified error.", true);
-        }
-    }
-
-    private async Task Export()
-    {
-        await Task.Run(async () =>
-        {
-            try
-            {
-                reportExportFile = new ReportFile { Name = "Report", OwnerId = userConfig.User.DbId };
-
-                if (ExportHtml)
-                {
-                    reportExportFile.Html = currentReport.ToHtml();
-                }
-
-                if (ExportPdf)
-                {
-                    reportExportFile.Pdf = Convert.ToBase64String(currentReport.ToPdf());
-                }
-
-                if (ExportCsv)
-                {
-                    reportExportFile.Csv = currentReport.ToCsv();
-                }
-
-                if (ExportJson)
-                {
-                    reportExportFile.Json = currentReport.ToJson();
-                }
-
-                if (ExportArchive)
-                {
-                    var queryVariables = new
-                    {
-                        report_name = reportExportFile.Name,
-                        report_start_time = DateTime.Now, // TODO: Change to correct dates
-                        report_end_time = DateTime.Now,
-                        report_owner_id = reportExportFile.OwnerId,
-                        report_csv = reportExportFile.Csv,
-                        report_pdf = reportExportFile.Pdf,
-                        report_html = reportExportFile.Html,
-                        report_json = reportExportFile.Json,
-                    };
-
-                    await Connection.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, "Export report", "Unclassified error.", true);
-            }
-        });
     }
 
     private void TryFilter(ChangeEventArgs changeArgs)
     {
-        DynGraphqlQuery query;
-
         try
         {
             filterInput = changeArgs.Value.ToString();
 
-            query = Compiler.Compile(filterInput);
+            DynGraphqlQuery query = Compiler.Compile(filterInput);
 
             filterFeedbackStart = filterInput;
             filterFeedbackError = "";
@@ -788,7 +429,6 @@
             int errorStart = filterError.ErrorPosition.Start.Value;
             int errorEnd = filterError.ErrorPosition.End.Value;
 
-            // TODO: RESTRUCTURE (current structure only for debug purpose)
             filterFeedbackStart = $"{filterInput.Substring(0, errorStart)}";
             filterFeedbackError = filterInput.Substring(errorStart, errorEnd + 1 - errorStart);
             filterFeedbackEnd = $"{filterInput.Substring(errorEnd, filterInput.Length - 1 - errorEnd)}";
@@ -796,7 +436,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi(unexpectedError, "Filter", "Unclassified error.", false);
+            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), null, false);
 #endif
         }
     }

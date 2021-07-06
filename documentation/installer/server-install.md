@@ -1,6 +1,5 @@
 # Installation instructions server
 
-- for client installation see [client install instructions](client-eto-install.md)
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
 - this will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
@@ -41,20 +40,42 @@ ansible -m ping 127.0.0.1
 
 ```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
-(or via ssh: git clone ssh://git@github.com/CactuseSecurity/firewall-orchestrator.git, needs ssh key to be uploaded)
 ```
 
-4) install (on localhost)
+4) if ansible version < 2.8 (older systems like ubuntu 18.04, debian 10), install latest ansible 
 
-If your system does not have an ansible client with version >=2.8, you may want to install before running it via running
-```console
-cd firewall-orchestrator; ansible-playbook -i inventory scripts/install-latest-ansible.yml -K
-```
-Otherwise, directly run:
+       cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
+
+5) install (on localhost)
 
 ```console
-cd firewall-orchestrator; ansible-playbook -i inventory site.yml -K
+cd firewall-orchestrator; ansible-playbook site.yml -K
 ```
 Enter sudo password when prompted "BECOME or SUDO password:"
 
-That's it firewall-orchestrator is ready for usage
+That's it firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
+```
+...
+TASK [display secrets for this installation] ***********************************
+ok: [fworch-srv] => {
+    "msg": [
+        "Your initial UI admin password is 'xxx'",
+        "Your api hasura admin secret is 'yyy'"
+    ]
+}
+
+PLAY RECAP *********************************************************************
+fworch-srv                 : ok=302  changed=171  unreachable=0    failed=0    skipped=127  rescued=0    ignored=0
+```
+Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password.
+
+The api hasura admin secret can be used to access the API at <https://localhost:9443/>.
+
+
+6) upgrade
+
+```console
+  cd firewall-orchestrator
+  git pull
+  ansible-playbook site.yml -K -e "installation_mode=upgrade"
+```

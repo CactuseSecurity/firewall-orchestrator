@@ -1,0 +1,16 @@
+﻿@page "/help/archive"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpEmptySidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("archive")</h3>
+    @(Html.Raw(userConfig.GetText("H3001")))
+</div>

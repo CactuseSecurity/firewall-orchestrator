@@ -99,6 +99,7 @@ sub copy_config_from_mgm_to_iso {
 	my $prev_import_time= shift;	# unused in phion
 	my $ssh_port		= shift;
 	my $config_path_on_mgmt		= shift; # unused in phion
+	my $debug_level   = shift;
 	
 	my $cmd;
 	my $return_code;
@@ -174,6 +175,7 @@ sub parse_config {
 	my $import_id = shift;
 	my $audit_log_file= shift;
 	my $last_import_time_local = shift;
+	my $debug_level   = shift;
 	
 	$debug_level = $debug;
 	# setting global vars as find cannot take any parameters

@@ -7,7 +7,7 @@
         shell: /bin/bash
         home: "{{ fworchtest_home }}"
         state: present
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
         generate_ssh_key: yes
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa     
@@ -18,18 +18,20 @@
         path: /etc/sudoers
         line: "{{ fworchtest_user }} ALL=(ALL) NOPASSWD:ALL"
 
+    # ansible is needed for running auto install on the fwo host itself
     - name: Install packages for webhook receiver
       package:
         name: "{{ item }}"
       loop:
         - python3-flask
-
+        - ansible
+        
     - name: create webhook dir {{ fworchtest_home }}/webhook
       file:
         dest: "{{ fworchtest_home }}/webhook"
         state: directory
         owner: "{{ fworchtest_user }}"
-        group: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
         mode: "0775"
 
     - name: copy startup file from template
@@ -55,5 +57,15 @@
       systemd:
         name: fworch-webhook-receiver
         state: restarted
+
+    - name: create webhook secret file
+      lineinfile:
+        path: "{{ fworchtest_home }}/fworch-webhook.secret"
+        line: "{{ webhook_secret }}"
+        create: yes
+        backup: yes
+        mode: 0600
+        owner: "{{ fworchtest_user }}"
+        group: "{{ fworch_group }}"
 
   become: yes

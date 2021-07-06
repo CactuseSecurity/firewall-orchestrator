@@ -7,6 +7,8 @@ namespace FWO.Report.Filter
 {
     public class DynGraphqlQuery
     {
+        public string RawFilter { get; private set; }
+
         public int parameterCounter = 0;
         public Dictionary<string, object> QueryVariables { get; set; } = new Dictionary<string, object>();
         public string FullQuery { get; set; } = "";
@@ -25,13 +27,13 @@ namespace FWO.Report.Filter
         public string ReportType { get; set; } = "";
 
         // $mgmId and $relevantImporId are only needed for time based filtering
-        private DynGraphqlQuery() { }
+        private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
-        public static DynGraphqlQuery Generate(AstNode ast)
+        public static DynGraphqlQuery Generate(string rawInput, AstNode ast, bool detailed)
         {
-            string ruleOverviewFragment = RuleQueries.ruleOverviewFragments;
+            DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
 
-            DynGraphqlQuery query = new DynGraphqlQuery();
+            // now we convert the ast into a graphql query:
             ast.Extract(ref query);
 
             // if any filter is set, optionally leave out all header texts
@@ -72,7 +74,7 @@ namespace FWO.Report.Filter
 
                 case "rules":
                     query.FullQuery = $@"
-                    {ruleOverviewFragment}
+                    {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
                     {{ 
@@ -90,15 +92,16 @@ namespace FWO.Report.Filter
                                             where: {{ {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
-                                                ...ruleOverview
+                                                ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                             }} 
                                     }}
                             }} 
                     }}";
                     break;
+                    
                 case "changes":
                     query.FullQuery = $@"
-                    {ruleOverviewFragment}
+                    {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
                         management(where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{mgm_name: asc}}) 
@@ -119,10 +122,10 @@ namespace FWO.Report.Filter
                                         import: import_control {{ time: stop_time }}
                                         change_action
                                         old: ruleByOldRuleId {{
-                                        ...ruleOverview
+                                        ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                         }}
                                         new: rule {{
-                                        ...ruleOverview
+                                        ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                         }}
                                     }}
                                 }}
@@ -133,10 +136,10 @@ namespace FWO.Report.Filter
             }
 
             // remove line breaks and duplicate whitespaces
-            Regex pattern = new Regex("\n");
-            pattern.Replace(query.FullQuery, "");
-            pattern = new Regex("[ ]{2}");
-            pattern.Replace(query.FullQuery, "");
+            Regex pattern = new Regex("\\n");
+            query.FullQuery = pattern.Replace(query.FullQuery, "");
+            pattern = new Regex("\\s+");
+            query.FullQuery = pattern.Replace(query.FullQuery, " ");
             return query;
         }
     }

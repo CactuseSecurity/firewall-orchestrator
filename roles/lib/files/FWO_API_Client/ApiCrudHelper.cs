@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace FWO.ApiClient
 {
@@ -19,6 +15,9 @@ namespace FWO.ApiClient
 
         [JsonPropertyName("affected_rows")]
         public int AffectedRows { get; set; }
+
+        [JsonPropertyName("uiuser_password_must_be_changed")]
+        public bool PasswordMustBeChanged { get; set; }
     }
     
     public class NewReturning

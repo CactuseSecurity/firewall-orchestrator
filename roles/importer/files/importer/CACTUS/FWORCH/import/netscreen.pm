@@ -194,7 +194,7 @@ sub ns_object_address {
 	if ($params[6]) { 
 		$act_obj_comm	=	$params[6];
 	} else {
-		if ($act_obj_mask !~ /\d+\.\d+\.\d+\.\d+/) {	# 5. Parameter ist keine Netzmask, sondern Kommentar (bei v6-Objekten)
+		if (defined($act_obj_mask) && $act_obj_mask !~ /\d+\.\d+\.\d+\.\d+/) {	# 5. Parameter ist keine Netzmask, sondern Kommentar (bei v6-Objekten)
 			$act_obj_comm = $act_obj_mask;
 			($test, $act_obj_mask) = split(/\//, $act_obj_ipaddr);
 		}
@@ -913,6 +913,7 @@ sub copy_config_from_mgm_to_iso {
 	my $cfg_dir = shift;
 	my $rule_file_base = shift;
 	my $workdir = shift;
+	my $debug_level   = shift;
 	my $cmd;
 	my $fehler_count = 0;
 	my $result;
@@ -1030,6 +1031,7 @@ sub parse_config {
 	my $mgm_name = shift;
 	my $config_dir = shift;
 	my $import_id = shift;	
+	my $debug_level   = shift;
 	my $line = '';
 	my $ln_cnt = $#config_lines;
 	my @vsys_lines = ();

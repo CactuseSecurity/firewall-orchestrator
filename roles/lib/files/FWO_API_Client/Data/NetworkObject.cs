@@ -10,7 +10,7 @@ namespace FWO.Api.Data
     public class NetworkObject
     {
         [JsonPropertyName("obj_id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("obj_name")]
         public string Name { get; set; }
@@ -50,6 +50,22 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("objgrp_flats")]
         public GroupFlat<NetworkObject>[] ObjectGroupFlats { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            switch (obj)
+            {
+                case NetworkObject nobj:
+                    return Id == nobj.Id;
+                default:
+                    return base.Equals(obj);
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
 
         //    obj_id
         //    obj_name

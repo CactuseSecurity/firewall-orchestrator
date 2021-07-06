@@ -14,3 +14,21 @@ objectClass: groupofuniquenames
 cn: B
 uniqueMember:
 description: des B
+
+
+dn: cn=worker,ou=group,{{ sample_ldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: worker
+uniqueMember:
+description: worker group
+
+
+dn: cn=manager,ou=group,{{ sample_ldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: manager
+uniqueMember:
+description: manager group

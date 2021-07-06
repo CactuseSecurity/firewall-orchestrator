@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.IO;
 using FWO.Logging;
 
@@ -11,6 +8,8 @@ namespace FWO.ApiClient.Queries
     {
         public static readonly string getTenantId;
         public static readonly string getTenants;
+        public static readonly string addTenant;
+        public static readonly string deleteTenant;
         public static readonly string addDeviceToTenant;
         public static readonly string deleteDeviceFromTenant;
         public static readonly string getUsers;
@@ -20,6 +19,7 @@ namespace FWO.ApiClient.Queries
         public static readonly string updateUserEmail;
         public static readonly string updateUserLanguage;
         public static readonly string updateUserLastLogin;
+        public static readonly string updateUserPasswordChange;
         public static readonly string deleteUser;
         public static readonly string assertUserExists;
         public static readonly string getVisibleDeviceIdsPerTenant;
@@ -36,6 +36,8 @@ namespace FWO.ApiClient.Queries
             {
                 getTenantId = File.ReadAllText(QueryPath + "auth/getTenantId.graphql");
                 getTenants = File.ReadAllText(QueryPath + "auth/getTenants.graphql");
+                addTenant = File.ReadAllText(QueryPath + "auth/addTenant.graphql");
+                deleteTenant = File.ReadAllText(QueryPath + "auth/deleteTenant.graphql");
                 addDeviceToTenant = File.ReadAllText(QueryPath + "auth/addDeviceToTenant.graphql");
                 deleteDeviceFromTenant = File.ReadAllText(QueryPath + "auth/deleteDeviceFromTenant.graphql");
                 getVisibleDeviceIdsPerTenant = File.ReadAllText(QueryPath + "auth/getVisibleDeviceIdsPerTenant.graphql");
@@ -49,6 +51,7 @@ namespace FWO.ApiClient.Queries
                 updateUserEmail = File.ReadAllText(QueryPath + "auth/updateUserEmail.graphql");
                 updateUserLanguage = File.ReadAllText(QueryPath + "auth/updateUserLanguage.graphql");
                 updateUserLastLogin = File.ReadAllText(QueryPath + "auth/updateUserLastLogin.graphql");
+                updateUserPasswordChange = File.ReadAllText(QueryPath + "auth/updateUserPasswordChange.graphql");
                 deleteUser = File.ReadAllText(QueryPath + "auth/deleteUser.graphql");
                 assertUserExists = File.ReadAllText(QueryPath + "auth/assertUserExists.graphql");
                 newLdapConnection = File.ReadAllText(QueryPath + "auth/newLdapConnection.graphql");

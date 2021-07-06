@@ -25,7 +25,7 @@
   - name: fail if already installed and installation_mode is new
     fail:
       msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
-    when: already_installed and installation_mode == "new"
+    when: already_installed|bool and installation_mode == "new"
 
   - name: fail if not already installed and installation_mode is upgrade
     fail:
@@ -77,7 +77,7 @@
       name: "rsyslog"
       state: present
 
-  - name: change rsyslog config to receive logs TODO on backend only
+  - name: change rsyslog config to receive logs
     blockinfile:
       path: /etc/rsyslog.conf
       block: |
@@ -121,16 +121,16 @@
         local6.warning                 /var/log/{{ product_name }}/error.log
         local6.=info                   /var/log/{{ product_name }}/login_info.log
         local6.debug                   /var/log/{{ product_name }}/debug.log
-        :msg, startwith, "Audit"  /var/log/{{ product_name }}/audit.log
-        #:programname, isequal, "postgres-{{ product_name }}" /var/log/{{ product_name }}/database.log
-        :programname, isequal, "{{ product_name }}-database" /var/log/{{ product_name }}/database.log
-        :programname, isequal, "{{ middleware_server_syslog_id }}" /var/log/{{ product_name }}/middleware.log
-        :programname, isequal, "{{ ui_syslog_id }}" /var/log/{{ product_name }}/ui.log
-        :programname, isequal, "{{ ldap_syslog_id }}" /var/log/{{ product_name }}/ldap.log
-        :programname, startswith, "{{ product_name }}-import" /var/log/{{ product_name }}/importer.log
-        :programname, isequal, "{{ product_name }}-api" /var/log/{{ product_name }}/api.log
+
+        if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
+        if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
+        if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
+        if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
+        if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
+        if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
+        if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
         # only for devsrv:
-        :programname, isequal, "{{ product_name }}-webhook" /var/log/{{ product_name }}/webhook.log
+        if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
 
   - name: edit logrotate
     blockinfile:
@@ -171,7 +171,7 @@
       uid: "{{ user_id }}"
       home: "{{ fworch_home }}"
       shell: /bin/bash
-      group: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
       generate_ssh_key: yes
       ssh_key_bits: 4096
       ssh_key_file: .ssh/id_rsa
@@ -209,6 +209,10 @@
 
   - name: include fworch.yaml config file creator
     import_tasks: conf_file_creator.yml
-        
+
+  - name: include upgrade script
+    import_tasks: run-upgrades.yml
+    when: "installation_mode == 'upgrade'"
+
   become: yes
   

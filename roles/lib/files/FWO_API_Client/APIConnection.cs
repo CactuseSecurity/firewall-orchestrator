@@ -71,9 +71,9 @@ namespace FWO.ApiClient
             try
             {
                 // Log.WriteDebug("API Response", $"API Call variables: { variables }");
-                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0,30)}.");
+                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0,50)}.");
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
-                Log.WriteDebug("API call", "API call received.");
+                // Log.WriteDebug("API call", "API response received.");
 
                 if (response.Errors != null)
                 {
@@ -90,7 +90,7 @@ namespace FWO.ApiClient
                 else
                 {
                     // DEBUG
-                    string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions {});
+                    // // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { });
                     // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
                     // Log.WriteDebug("API Response", $"API response: { JsonResponse }");
 

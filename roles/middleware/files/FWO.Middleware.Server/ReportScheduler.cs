@@ -73,7 +73,7 @@ namespace FWO.Middleware.Server
         {
             List<Task> reportGeneratorTasks = new List<Task>();
 
-            DateTime dateTimeNowRounded = RoundUp(DateTime.Now, CheckScheduleInterval);
+            DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
 
             lock (scheduledReports)
             {
@@ -84,7 +84,7 @@ namespace FWO.Middleware.Server
                         if (scheduledReport.Active)
                         {
                             // Add schedule interval as long as schedule time is smaller then current time 
-                            while (RoundUp(scheduledReport.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
+                            while (RoundDown(scheduledReport.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
                             {
                                 scheduledReport.StartTime = scheduledReport.RepeatInterval switch
                                 {
@@ -92,11 +92,12 @@ namespace FWO.Middleware.Server
                                     Interval.Weeks => scheduledReport.StartTime.AddDays(scheduledReport.RepeatOffset * 7),
                                     Interval.Months => scheduledReport.StartTime.AddMonths(scheduledReport.RepeatOffset),
                                     Interval.Years => scheduledReport.StartTime.AddYears(scheduledReport.RepeatOffset),
+                                    Interval.Never => scheduledReport.StartTime.AddYears(42_42),
                                     _ => throw new NotSupportedException("Time interval is not supported.")
                                 };
                             }
 
-                            if (RoundUp(scheduledReport.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
+                            if (RoundDown(scheduledReport.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
                             {
                                 reportGeneratorTasks.Add(GenerateReport(scheduledReport, dateTimeNowRounded));
                             }
@@ -138,7 +139,6 @@ namespace FWO.Middleware.Server
                     await reportRules.Generate
                     (
                         int.MaxValue,
-                        report.Template.Filter,
                         apiConnectionUserContext, 
                         _ => Task.CompletedTask
                     );
@@ -148,11 +148,11 @@ namespace FWO.Middleware.Server
                         switch (format.Name)
                         {
                             case "csv":
-                                reportFile.Csv = reportRules.ToCsv();
+                                reportFile.Csv = reportRules.ExportToCsv();
                                 break;
 
                             case "html":
-                                reportFile.Html = reportRules.ToHtml();
+                                reportFile.Html = reportRules.ExportToHtml();
                                 break;
 
                             case "pdf":
@@ -160,7 +160,7 @@ namespace FWO.Middleware.Server
                                 break;
 
                             case "json":
-                                reportFile.Json = reportRules.ToJson();
+                                reportFile.Json = reportRules.ExportToJson();
                                 break;
 
                             default:
@@ -192,9 +192,10 @@ namespace FWO.Middleware.Server
             });
         }
 
-        private static DateTime RoundUp(DateTime dateTime, TimeSpan roundInterval)
+        private static DateTime RoundDown(DateTime dateTime, TimeSpan roundInterval)
         {
-            return new DateTime((dateTime.Ticks + roundInterval.Ticks - 1) / roundInterval.Ticks * roundInterval.Ticks, dateTime.Kind);
+            long delta = dateTime.Ticks % roundInterval.Ticks;
+            return new DateTime(dateTime.Ticks - delta);
         }
     }
 }

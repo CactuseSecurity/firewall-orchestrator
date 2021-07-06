@@ -1,0 +1,23 @@
+﻿@page "/help/reporting/templates"
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
+    }
+}
+@using FWO.ApiConfig
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("templates")</h3>
+    @(Html.Raw(userConfig.GetText("H1201")))
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H1211")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H1212")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H1213")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H1214")))</li>
+    </ul>
+    @(Html.Raw(userConfig.GetText("H1202")))
+</div>

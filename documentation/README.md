@@ -1,9 +1,7 @@
 # Documentation Firewall Orchestrator
 
 ## architecture
-
-###
-Edit architecture diagram at https://xfer.cactus.de/index.php/f/18376
+[architecture diagram in draw.io format](fworch-architecture.xml)
 
 ## Product port list
 
@@ -15,7 +13,7 @@ Edit architecture diagram at https://xfer.cactus.de/index.php/f/18376
     tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      0          2747498    453210/graphql-engi 
     tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      101        20385      752/systemd-resolve 
     tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      0          25300      926/sshd: /usr/sbin 
-    tcp        0      0 0.0.0.0:60344           0.0.0.0:*               LISTEN      1003       2804048    458979/python3      
+    tcp        0      0 0.0.0.0:60355           0.0.0.0:*               LISTEN      1003       2804048    458979/python3      
     tcp        0      0 127.0.0.1:8888          0.0.0.0:*               LISTEN      60320      2803725    458848/FWO.Middlewa 
     tcp        0      0 127.0.0.1:5432          0.0.0.0:*               LISTEN      113        2678510    445585/postgres     
     tcp        0      0 0.0.0.0:636             0.0.0.0:*               LISTEN      0          2736285    451690/slapd        

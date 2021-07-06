@@ -334,6 +334,8 @@ INSERT INTO txt VALUES ('Months', 		        'German',	'Monat(e)');
 INSERT INTO txt VALUES ('Months', 		        'English',	'Month(s)');
 INSERT INTO txt VALUES ('Years', 		        'German',	'Jahr(e)');
 INSERT INTO txt VALUES ('Years', 		        'English',	'Year(s)');
+INSERT INTO txt VALUES ('schedule_fetch',       'German', 	'Abholen der Termine');
+INSERT INTO txt VALUES ('schedule_fetch',       'English', 	'Report Schedule Fetch');
 INSERT INTO txt VALUES ('save_scheduled_report','German',	'Termin speichern');
 INSERT INTO txt VALUES ('save_scheduled_report','English',	'Save scheduled report');
 INSERT INTO txt VALUES ('edit_scheduled_report','German',	'Termin bearbeiten');
@@ -356,6 +358,8 @@ INSERT INTO txt VALUES ('download_as_html',		'German', 	'Herunterladen als HTML'
 INSERT INTO txt VALUES ('download_as_html',		'English', 	'Download as HTML');
 INSERT INTO txt VALUES ('download_as_json',		'German', 	'Herunterladen als JSON');
 INSERT INTO txt VALUES ('download_as_json',		'English', 	'Download as JSON');
+INSERT INTO txt VALUES ('archive_fetch',        'German', 	'Abholen der archivierten Reports');
+INSERT INTO txt VALUES ('archive_fetch',        'English', 	'Archived Reports Fetch');
 INSERT INTO txt VALUES ('fetch_report',		    'German', 	'Erstellten Report holen');
 INSERT INTO txt VALUES ('fetch_report',		    'English', 	'Fetch downloads of generated report');
 INSERT INTO txt VALUES ('delete_report',		'German', 	'Erstellten Report l&ouml;schen');

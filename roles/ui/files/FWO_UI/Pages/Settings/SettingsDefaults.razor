@@ -119,9 +119,9 @@
 
     protected override void OnInitialized()
     {
-        config = new ConfigDbAccess(apiConnection, 0);
         try
         {
+            config = new ConfigDbAccess(apiConnection, 0);
             selectedDefaultLanguage = config.Get(GlobalConfig.kDefaultLanguage);
             Log.WriteDebug("Default language", $"got language: {selectedDefaultLanguage}");
         }

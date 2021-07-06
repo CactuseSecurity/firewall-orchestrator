@@ -9,7 +9,7 @@ namespace FWO.Api.Data
     public class NetworkService
     {
         [JsonPropertyName("svc_id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("svc_name")]
         public string Name { get; set; }

@@ -10,7 +10,7 @@ namespace FWO.Api.Data
     public class Group<T>
     {
         [JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("byId")]
         public T Object { get; set; }

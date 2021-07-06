@@ -75,7 +75,7 @@
                                 }
                             </Content1>
                             <Content2>
-                                @{ List<int> shownMemberIds = new List<int>(); }
+                                @{ List<long> shownMemberIds = new List<long>(); }
                                 @foreach (GroupFlat<NetworkObject> member in context.ObjectGroupFlats)
                                 {
                                     if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
@@ -143,7 +143,7 @@
                                 }
                             </Content1>
                             <Content2>
-                                @{ List<int> shownMemberIds = new List<int>(); }
+                                @{ List<long> shownMemberIds = new List<long>(); }
                                 @foreach (GroupFlat<NetworkService> member in context.ServiceGroupFlats)
                                 {
                                     if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
@@ -204,7 +204,7 @@
                                 }
                             </Content1>
                             <Content2>
-                                @{ List<int> shownMemberIds = new List<int>(); }
+                                @{ List<long> shownMemberIds = new List<long>(); }
                                 @foreach (GroupFlat<NetworkUser> member in context.UserGroupFlats)
                                 {
                                     if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
@@ -234,7 +234,7 @@
 @code
 {
     [Parameter]
-    public Func<byte, Func<Management[], Task>, int, Task> FetchObjects { get; set; }
+    public Func<byte, Func<Management[], Task>, long, Task> FetchObjects { get; set; }
 
     [Parameter]
     public byte Type { get; set; }

@@ -30,14 +30,10 @@
                 @if (context.LastIncompleteImport.Length > 0)
                 {
                     <div class="btn-group">
-                        <AuthorizeView Roles="admin, importer" Context="xxx">
-                            <Authorized>
-                                <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback(context.MgmId)">@(userConfig.GetText("rollback"))</button>
-                            </Authorized>
-                            <NotAuthorized>
-                                <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
-                            </NotAuthorized> 
-                        </AuthorizeView>
+                        @if(context.LastIncompleteImport[0].StartTime < DateTime.Now.AddMinutes(-5))
+                        {
+                            <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => RequestRollback(context)">@(userConfig.GetText("rollback"))</button>
+                        }
                         @(context.LastIncompleteImport[0].StartTime)
                     </div>
                 }
@@ -77,6 +73,7 @@
         </Column>
     </Table>
 </div>
+
 <PopUp Title="@(userConfig.GetText("import_status_details") + actStatus.MgmName)" Show="@DetailsMode" Large="true" OnClose="() => DetailsMode = false">
     <Body>
         @if (DetailsMode)
@@ -140,12 +137,42 @@
     </Footer>
 </PopUp>
 
+<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + actStatus.MgmName)" Show="@RollbackMode" OnClose="() => RollbackMode = false">
+    <Body>
+        @if (RollbackMode)
+        {
+            if(actStatus.LastIncompleteImport.Length > 0)
+            {
+                <p>@(userConfig.GetText("U5104") + Math.Round(((TimeSpan)(DateTime.Now - actStatus.LastIncompleteImport[0].StartTime)).TotalMinutes).ToString() + userConfig.GetText("U5105"))</p>
+            }
+            else
+            {
+                <p>@(userConfig.GetText("U5106"))</p>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin, importer" Context="xxx">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => Rollback()">@(userConfig.GetText("rollback"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("rollback"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
 @code
 {
     [CascadingParameter]
     Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
     private List<ImportStatus> importStati = new List<ImportStatus>();
     private bool DetailsMode = false;
+    private bool RollbackMode = false;
     private ImportStatus actStatus = new ImportStatus();
 
     protected override async Task OnInitializedAsync()
@@ -176,17 +203,29 @@
         DetailsMode = false;
     }
 
-    private async Task Rollback(int mgmId)
+    private void RequestRollback(ImportStatus status)
+    {
+        actStatus = status;
+        RollbackMode = true;
+    }
+
+    private async Task Rollback()
     {
         try
         {
-            var Variables = new { mgmId = mgmId };
+            RollbackMode = false;
+            var Variables = new { mgmId = actStatus.MgmId };
             int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteImport, Variables)).AffectedRows;
             if (affectedRows > 0)
             {
-                Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {mgmId}");
-                await fetchImportStati();
+                Log.WriteDebug("Delete Import", $"deleted {affectedRows} rows from Management Id {actStatus.MgmId}");
+                DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
             }
+            else
+            {
+                DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5106"), false);
+            }
+            await fetchImportStati();
         }
         catch (System.Exception exception)
         {
@@ -196,6 +235,13 @@
 
     private async Task Refresh()
     {
+        await fetchImportStati();
+    }
+
+    private async Task Cancel()
+    {
+        DetailsMode = false;
+        RollbackMode = false;
         await fetchImportStati();
     }
 }

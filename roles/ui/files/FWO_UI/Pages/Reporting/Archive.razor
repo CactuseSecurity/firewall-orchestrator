@@ -83,7 +83,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
+        try
+        {
+            archivedReports = (await apiConnection.SendQueryAsync<ReportFile[]>(ReportQueries.getGeneratedReports)).ToList();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), null, true);
+        }
     }
 
     private async Task GetGeneratedReportContent(int reportId)

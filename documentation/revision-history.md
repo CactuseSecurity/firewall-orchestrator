@@ -132,3 +132,7 @@ adding report template format fk and permissions
 
 ### 5.3.2 - 05.07.2021
 - some minor bufixes
+
+### 5.3.3 - 10.07.2021
+- add column ldap_name to ldap_connection
+- add column ldap_connection_id to uiuser

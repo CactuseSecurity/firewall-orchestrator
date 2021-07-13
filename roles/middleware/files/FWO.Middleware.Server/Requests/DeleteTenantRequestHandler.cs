@@ -32,7 +32,7 @@ namespace FWO.Middleware.Server.Requests
             foreach (Ldap currentLdap in Ldaps)
             {
                 // if current Ldap is internal: Try to delete tenant in current Ldap
-                if (currentLdap.IsInternal())
+                if (currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {

@@ -61,7 +61,8 @@ namespace FWO.Middleware.Server
                     email = user.Email,
                     tenant = (user.Tenant != null ? user.Tenant.Id : (int?)null),
                     loginTime = DateTime.UtcNow,
-                    passwordMustBeChanged = false
+                    passwordMustBeChanged = false,
+                    ldapConnectionId = user.LdapConnection.Id
                 };
                 user.DbId = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
             }

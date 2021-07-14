@@ -21,7 +21,7 @@ Aug 25 16:48:19 ubu2004test fworch.middleware-server[403234]: FWO_Auth_Server::L
 ==> ldap.log <==
 Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 fd=12 ACCEPT from IP=127.0.0.1:35558 (IP=0.0.0.0:636)
 Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 fd=12 TLS established tls_ssf=256 ssf=256
-Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 op=0 BIND dn="uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal" method=128
+Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 op=0 BIND dn="uid=admin,ou=systemuser,ou=user,h,dc=internal" method=128
 Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 op=0 BIND dn="uid=admin,ou=systemuser,ou=user,dc=fworch,dc=internal" mech=SIMPLE ssf=0
 Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 op=0 RESULT tag=97 err=0 text=
 Aug 25 16:48:19 ubu2004test slapd[403175]: conn=1002 op=1 UNBIND

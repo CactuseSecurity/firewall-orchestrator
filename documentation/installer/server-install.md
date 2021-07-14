@@ -29,8 +29,6 @@ git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 
 4) install (on localhost)
 
-Otherwise, directly run:
-
 ```console
 cd firewall-orchestrator; ansible-playbook site.yml -K
 ```

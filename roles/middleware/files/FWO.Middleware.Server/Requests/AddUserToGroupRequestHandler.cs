@@ -32,7 +32,7 @@ namespace FWO.Middleware.Server.Requests
             foreach (Ldap currentLdap in Ldaps)
             {
                 // if current Ldap is internal: Try to add user to group in current Ldap
-                if (currentLdap.IsInternal() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
+                if (currentLdap.IsWritable() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
                 {
                     await Task.Run(() =>
                     {

@@ -16,6 +16,7 @@ namespace FWO.Middleware.Server.Requests
         private int tenantLevel = 1;
         private int? fixedTenantId;
         private bool internalLdap = false;
+        private int ldapId = 0;
 
         private object rolesLock = new object();
         private object dnLock = new object();
@@ -75,6 +76,8 @@ namespace FWO.Middleware.Server.Requests
             // Get tenant of user
             user.Tenant = await GetTenantAsync(user);
 
+            user.LdapConnection.Id = ldapId;
+
             // Create JWT for validated user with roles and tenant
             return (await tokenGenerator.CreateJWT(user));
         }
@@ -111,7 +114,8 @@ namespace FWO.Middleware.Server.Requests
                                 tenantLevel = currentLdap.TenantLevel;
                                 userDn = currentDn;
                                 fixedTenantId = currentLdap.TenantId;
-                                internalLdap = currentLdap.IsInternal();
+                                internalLdap = currentLdap.IsWritable();
+                                ldapId = currentLdap.Id;
                             }
                         }
                     }));

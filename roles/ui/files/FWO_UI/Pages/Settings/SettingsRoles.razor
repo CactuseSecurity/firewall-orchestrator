@@ -58,7 +58,7 @@
                         <select id="ldapUser" class="form-control-sm col-sm" @bind="selectedLdapId">
                             @foreach (UiLdapConnection ldap in connectedLdaps)
                             {
-                                <option value="@ldap.Id">@(ldap.Host())</option>
+                                <option value="@ldap.Id">@(ldap.Name)</option>
                             }
                         </select>
                     </div>
@@ -234,14 +234,14 @@
         // get roles from LDAP
         try
         {
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetAllRoles(userConfig.User.Jwt);
-            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetAllRoles(userConfig.User.Jwt);
+            if (middlewareServerResponse.Status != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
             else
             {
-                foreach (var ldapRole in apiAuthResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
+                foreach (var ldapRole in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
                 {
                     Role role = new Role() { Dn = ldapRole.Key, Name = (new DistName(ldapRole.Key)).Role };
                     foreach (var roleAttr in ldapRole.Value)
@@ -315,14 +315,14 @@
             {
                 ldapUsers.Clear();
                 groupList.Clear();
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetUsers(selectedLdap.Address, searchPattern, userConfig.User.Jwt);
-                if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetUsers(selectedLdap.Host(), searchPattern, userConfig.User.Jwt);
+                if (middlewareServerResponse.Status != HttpStatusCode.OK)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
                 }
                 else
                 {
-                    foreach (var user in apiAuthResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+                    foreach (var user in middlewareServerResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
                     {
                         UiUser newUser = new UiUser() { Dn = user.Key, Name = (new DistName(user.Key)).UserName };
                         ldapUsers.Add(newUser);
@@ -331,14 +331,14 @@
 
                 if(selectedLdap.GroupSearchPath != null && selectedLdap.GroupSearchPath != "")
                 {
-                    apiAuthResponse = await middlewareClient.GetGroups(selectedLdap.Address, searchPattern, userConfig.User.Jwt);
-                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                    middlewareServerResponse = await middlewareClient.GetGroups(selectedLdap.Host(), searchPattern, userConfig.User.Jwt);
+                    if (middlewareServerResponse.Status != HttpStatusCode.OK)
                     {
                         DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
                     }
                     else
                     {
-                        groupList = apiAuthResponse.GetResult<List<string>>("allGroups");
+                        groupList = middlewareServerResponse.GetResult<List<string>>("allGroups");
                     }
                 }
             }
@@ -364,28 +364,28 @@
         else
         {
             UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
-            await AddUser(newUser);
+            await AddUserToRole(newUser);
         }
     }
 
     private async Task AddUserFromUiUsers(string userDn)
     {
         UiUser selectedUser = uiUsers.Find(x => x.Dn == userDn);
-        await AddUser(selectedUser);
+        await AddUserToRole(selectedUser);
     }
 
     private async Task AddUserFromLdap(string userDn)
     {
         UiUser selectedUser = ldapUsers.Find(x => x.Dn == userDn);
-        await AddUser(selectedUser);
+        await AddUserToRole(selectedUser);
     }
 
     private async Task AddGroupFromLdap(string groupDn)
     {
-        await AddUser(new UiUser(){ Dn = groupDn , Name = (new DistName(groupDn)).Group});
+        await AddUserToRole(new UiUser(){ Dn = groupDn , Name = (new DistName(groupDn)).Group});
     }
 
-    private async Task AddUser(UiUser user)
+    private async Task AddUserToRole(UiUser user)
     {
         if (user == null)
         {
@@ -397,11 +397,11 @@
         }
         else
         {
-            // add user in LDAP
+            // add user to role in LDAP
             try
             {
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUserToRole(user.Dn, actRole.Dn, userConfig.User.Jwt);
-                if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userAdded") == false))
+                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUserToRole(user.Dn, actRole.Dn, userConfig.User.Jwt);
+                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userAdded") == false))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5255"), true);
                 }
@@ -434,8 +434,8 @@
                 // delete user in LDAP
                 try
                 {
-                    MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromRole(userDn, actRole.Dn, userConfig.User.Jwt);
-                    if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
+                    MiddlewareServerResponse middlewareServerResponse = await middlewareClient.RemoveUserFromRole(userDn, actRole.Dn, userConfig.User.Jwt);
+                    if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userRemoved") == false))
                     {
                         DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5257"), true);
                     }

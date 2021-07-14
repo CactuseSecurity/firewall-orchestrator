@@ -23,28 +23,26 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            // Get parameters from request. Expected parameters: "Username", "Password", "Email" from Type string
+            // Get parameters from request. Expected parameters: "Ldap", "Username", "Password", "Email" from Type string
+            string ldap = GetRequestParameter<string>("Ldap", notNull: true);
             string userDn = GetRequestParameter<string>("Username", notNull: true);
             string password = GetRequestParameter<string>("Password", notNull: true);
             string email = GetRequestParameter<string>("Email", notNull: false);
 
             bool userAdded = false;
-            List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                if (currentLdap.Host() == ldap && currentLdap.IsWritable())
                 {
-                    // if current Ldap is internal: Try to add user to current Ldap
-                    if (currentLdap.IsInternal() && currentLdap.AddUser(userDn, password, email))
+                    await Task.Run(() =>
                     {
-                        userAdded = true;
-                        Log.WriteAudit("AddUser", $"user {userDn} successfully added");
-                    }
-                }));
+                        // Try to add user to current Ldap
+                        userAdded = currentLdap.AddUser(userDn, password, email);
+                        if (userAdded) Log.WriteAudit("AddUser", $"user {userDn} successfully added");
+                    });
+                }
             }
-
-            await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result
             return WrapResult(HttpStatusCode.OK, ("userAdded", userAdded));

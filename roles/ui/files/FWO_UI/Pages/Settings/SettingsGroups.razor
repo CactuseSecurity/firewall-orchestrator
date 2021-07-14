@@ -230,14 +230,14 @@
         // get groups from internal LDAP
         try
         {
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.GetInternalGroups(userConfig.User.Jwt);
-            if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetInternalGroups(userConfig.User.Jwt);
+            if (middlewareServerResponse.Status != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
             else
             {
-                foreach (var ldapUserGroup in apiAuthResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allGroups"))
+                foreach (var ldapUserGroup in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allGroups"))
                 {
                     UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
                     foreach (var userDn in ldapUserGroup.Value)
@@ -311,9 +311,9 @@
                 else
                 {
                     // insert new group to ldap
-                    MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddGroup(newGroupName, userConfig.User.Jwt);
-                    actGroup.Dn = apiAuthResponse.GetResult<string>("groupAdded");
-                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest || actGroup.Dn == "")
+                    MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddGroup(newGroupName, userConfig.User.Jwt);
+                    actGroup.Dn = middlewareServerResponse.GetResult<string>("groupAdded");
+                    if (middlewareServerResponse.Status != HttpStatusCode.OK || actGroup.Dn == "")
                     {
                         DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
                     }
@@ -329,9 +329,9 @@
             else
             {
                 // Update existing group in ldap --> currently only name
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.UpdateGroup(actGroup.Name, newGroupName, userConfig.User.Jwt);
-                string newDn = apiAuthResponse.GetResult<string>("groupUpdated");
-                if (apiAuthResponse.Status == HttpStatusCode.BadRequest || newDn == "")
+                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.UpdateGroup(actGroup.Name, newGroupName, userConfig.User.Jwt);
+                string newDn = middlewareServerResponse.GetResult<string>("groupUpdated");
+                if (middlewareServerResponse.Status != HttpStatusCode.OK || newDn == "")
                 {
                     DisplayMessageInUi(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
                 }
@@ -371,8 +371,8 @@
         try
         {
             // delete group from Ldap
-            MiddlewareServerResponse apiAuthResponse = await middlewareClient.DeleteGroup(actGroup.Name, userConfig.User.Jwt);
-            if (apiAuthResponse.Status == HttpStatusCode.BadRequest || apiAuthResponse.GetResult<bool>("groupDeleted") == false)
+            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.DeleteGroup(actGroup.Name, userConfig.User.Jwt);
+            if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("groupDeleted") == false)
             {
                 DisplayMessageInUi(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
             }
@@ -418,8 +418,8 @@
             // add user in LDAP
             try
             {
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.AddUserToGroup(user.Dn, actGroup.Dn, userConfig.User.Jwt);
-                if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userAdded") == false))
+                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUserToGroup(user.Dn, actGroup.Dn, userConfig.User.Jwt);
+                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userAdded") == false))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5242"), true);
                 }
@@ -445,8 +445,8 @@
             // delete user in LDAP
             try
             {
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.RemoveUserFromGroup(userDn, actGroup.Dn, userConfig.User.Jwt);
-                if ((apiAuthResponse.Status == HttpStatusCode.BadRequest) || (apiAuthResponse.GetResult<bool>("userRemoved") == false))
+                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.RemoveUserFromGroup(userDn, actGroup.Dn, userConfig.User.Jwt);
+                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userRemoved") == false))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5243"), true);
                 }

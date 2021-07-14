@@ -22,26 +22,24 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            // Get parameters from request. Expected parameters: "Username", "Email" from Type string
+            // Get parameters from request. Expected parameters: "Ldap", "Username", "Email" from Type string
+            string ldap = GetRequestParameter<string>("Ldap", notNull: true);
             string userDn = GetRequestParameter<string>("Username", notNull: true);
             string email = GetRequestParameter<string>("Email", notNull: false);
 
             bool userUpdated = false;
-            List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                if (currentLdap.Host() == ldap && currentLdap.IsWritable())
                 {
-                    // if current Ldap is internal: Try to update user in current Ldap
-                    if (currentLdap.IsInternal() && currentLdap.UpdateUser(userDn, email))
+                    await Task.Run(() =>
                     {
-                        userUpdated = true;
-                    }
-                }));
+                        // Try to update user to current Ldap
+                        userUpdated = currentLdap.UpdateUser(userDn, email);
+                    });
+                }
             }
-
-            await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result
             return WrapResult(HttpStatusCode.OK, ("userUpdated", userUpdated));

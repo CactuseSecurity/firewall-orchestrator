@@ -63,7 +63,7 @@
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("edit_user"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+<PopUp Title="@((AddMode ? userConfig.GetText("add_user") : userConfig.GetText("edit_user")))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
     <Body>
         @if (EditMode)
         {
@@ -503,7 +503,7 @@
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
                 }
-                else if (actUser.Tenant != null && !tenants.Exists(x => x.Name == actUser.Tenant.Name))
+                else if (actUser.LdapConnection.TenantLevel > 0 && (actUser.Tenant == null || !tenants.Exists(x => x.Name == actUser.Tenant.Name)))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
                 }
@@ -633,7 +633,7 @@
             }
             else
             {
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.SetPassword(actUser.Dn, actUser.Password, userConfig.User.Jwt);
+                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.SetPassword(actUser.LdapConnection.Host(), actUser.Dn, actUser.Password, userConfig.User.Jwt);
                 if (middlewareServerResponse.Status != HttpStatusCode.OK)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);

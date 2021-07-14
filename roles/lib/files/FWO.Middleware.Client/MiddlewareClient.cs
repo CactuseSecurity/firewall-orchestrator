@@ -106,10 +106,11 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "UpdateUser", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> SetPassword(string Username, string Password, string jwt)
+        public async Task<MiddlewareServerResponse> SetPassword(string Ldap, string Username, string Password, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
+                { "Ldap", Ldap },
                 { "Username", Username },
                 { "Password", Password }
             };

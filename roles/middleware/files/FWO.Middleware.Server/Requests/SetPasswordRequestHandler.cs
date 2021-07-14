@@ -23,7 +23,8 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            // Get parameters from request. Expected parameters: "Username", "Password" from Type string
+            // Get parameters from request. Expected parameters: "Ldap", "Username", "Password" from Type string
+            string ldap = GetRequestParameter<string>("Ldap", notNull: true);
             string userDn = GetRequestParameter<string>("Username", notNull: true);
             string password = GetRequestParameter<string>("Password", notNull: true);
 
@@ -32,7 +33,7 @@ namespace FWO.Middleware.Server.Requests
             foreach (Ldap currentLdap in Ldaps)
             {
                 // if current Ldap is internal: Try to update user password in current Ldap
-                if (currentLdap.IsWritable())
+                if (currentLdap.Host() == ldap && currentLdap.IsWritable())
                 {
                     await Task.Run(async () =>
                     {

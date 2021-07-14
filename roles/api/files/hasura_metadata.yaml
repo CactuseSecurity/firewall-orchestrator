@@ -1167,7 +1167,15 @@ tables:
   table:
     name: language
     schema: public
-- object_relationships:
+- array_relationships:
+  - name: uiusers
+    using:
+      foreign_key_constraint_on:
+        column: ldap_connection_id
+        table:
+          name: uiuser
+          schema: public
+  object_relationships:
   - name: tenant
     using:
       foreign_key_constraint_on: tenant_id
@@ -1175,39 +1183,41 @@ tables:
   - permission:
       columns:
       - ldap_connection_id
-      - ldap_server
+      - ldap_name
+      - ldap_pattern_length
       - ldap_port
-      - ldap_tls
-      - ldap_searchpath_for_users
-      - ldap_searchpath_for_roles
-      - ldap_tenant_level
       - ldap_search_user
       - ldap_search_user_pwd
-      - ldap_write_user
-      - tenant_id
-      - ldap_write_user_pwd
       - ldap_searchpath_for_groups
+      - ldap_searchpath_for_roles
+      - ldap_searchpath_for_users
+      - ldap_server
+      - ldap_tenant_level
+      - ldap_tls
       - ldap_type
-      - ldap_pattern_length
+      - ldap_write_user
+      - ldap_write_user_pwd
+      - tenant_id
       filter: {}
     role: auditor
   - permission:
       columns:
-      - ldap_tls
+      - ldap_connection_id
+      - ldap_name
       - ldap_pattern_length
       - ldap_port
-      - ldap_tenant_level
-      - ldap_type
-      - tenant_id
-      - ldap_connection_id
+      - ldap_search_user
+      - ldap_search_user_pwd
       - ldap_searchpath_for_groups
       - ldap_searchpath_for_roles
       - ldap_searchpath_for_users
-      - ldap_search_user
-      - ldap_search_user_pwd
       - ldap_server
+      - ldap_tenant_level
+      - ldap_tls
+      - ldap_type
       - ldap_write_user
       - ldap_write_user_pwd
+      - tenant_id
       filter: {}
     role: middleware-server
   table:
@@ -4892,18 +4902,19 @@ tables:
       backend_only: false
       check: {}
       columns:
-      - uiuser_password_must_be_changed
-      - uiuser_end_date
-      - uiuser_start_date
+      - ldap_connection_id
       - tenant_id
-      - uiuser_id
-      - uiuser_pwd_history
-      - uiuser_last_login
-      - uiuser_last_password_change
       - uiuser_email
+      - uiuser_end_date
       - uiuser_first_name
+      - uiuser_id
       - uiuser_language
+      - uiuser_last_login
       - uiuser_last_name
+      - uiuser_last_password_change
+      - uiuser_password_must_be_changed
+      - uiuser_pwd_history
+      - uiuser_start_date
       - uiuser_username
       - uuid
     role: middleware-server
@@ -4911,100 +4922,108 @@ tables:
   - name: language
     using:
       foreign_key_constraint_on: uiuser_language
+  - name: ldap_connection
+    using:
+      foreign_key_constraint_on: ldap_connection_id
   - name: tenant
     using:
       foreign_key_constraint_on: tenant_id
   select_permissions:
   - permission:
       columns:
-      - uiuser_password_must_be_changed
-      - uiuser_end_date
-      - uiuser_start_date
+      - ldap_connection_id
       - tenant_id
-      - uiuser_id
-      - uiuser_pwd_history
-      - uiuser_last_login
-      - uiuser_last_password_change
       - uiuser_email
+      - uiuser_end_date
       - uiuser_first_name
+      - uiuser_id
       - uiuser_language
+      - uiuser_last_login
       - uiuser_last_name
+      - uiuser_last_password_change
+      - uiuser_password_must_be_changed
+      - uiuser_pwd_history
+      - uiuser_start_date
       - uiuser_username
       - uuid
       filter: {}
     role: auditor
   - permission:
       columns:
+      - ldap_connection_id
+      - tenant_id
+      - uiuser_email
+      - uiuser_end_date
+      - uiuser_first_name
       - uiuser_id
+      - uiuser_language
+      - uiuser_last_login
+      - uiuser_last_name
+      - uiuser_last_password_change
+      - uiuser_password_must_be_changed
+      - uiuser_pwd_history
+      - uiuser_start_date
       - uiuser_username
       - uuid
-      - uiuser_first_name
-      - uiuser_last_name
-      - uiuser_start_date
-      - uiuser_end_date
-      - uiuser_email
-      - tenant_id
-      - uiuser_language
-      - uiuser_password_must_be_changed
-      - uiuser_last_login
-      - uiuser_last_password_change
-      - uiuser_pwd_history
       filter: {}
     role: middleware-server
   - permission:
       columns:
+      - ldap_connection_id
+      - tenant_id
+      - uiuser_email
+      - uiuser_end_date
+      - uiuser_first_name
       - uiuser_id
+      - uiuser_language
+      - uiuser_last_login
+      - uiuser_last_name
+      - uiuser_last_password_change
+      - uiuser_password_must_be_changed
+      - uiuser_pwd_history
+      - uiuser_start_date
       - uiuser_username
       - uuid
-      - uiuser_first_name
-      - uiuser_last_name
-      - uiuser_start_date
-      - uiuser_end_date
-      - uiuser_email
-      - tenant_id
-      - uiuser_language
-      - uiuser_password_must_be_changed
-      - uiuser_last_login
-      - uiuser_last_password_change
-      - uiuser_pwd_history
       filter:
         uuid:
           _eq: x-hasura-uuid
     role: recertifier
   - permission:
       columns:
+      - ldap_connection_id
+      - tenant_id
+      - uiuser_email
+      - uiuser_end_date
+      - uiuser_first_name
       - uiuser_id
+      - uiuser_language
+      - uiuser_last_login
+      - uiuser_last_name
+      - uiuser_last_password_change
+      - uiuser_password_must_be_changed
+      - uiuser_pwd_history
+      - uiuser_start_date
       - uiuser_username
       - uuid
-      - uiuser_first_name
-      - uiuser_last_name
-      - uiuser_start_date
-      - uiuser_end_date
-      - uiuser_email
-      - tenant_id
-      - uiuser_language
-      - uiuser_password_must_be_changed
-      - uiuser_last_login
-      - uiuser_last_password_change
-      - uiuser_pwd_history
       filter:
         uuid:
           _eq: x-hasura-uuid
     role: reporter
   - permission:
       columns:
-      - uiuser_password_must_be_changed
-      - uiuser_end_date
-      - uiuser_start_date
+      - ldap_connection_id
       - tenant_id
-      - uiuser_id
-      - uiuser_pwd_history
-      - uiuser_last_login
-      - uiuser_last_password_change
       - uiuser_email
+      - uiuser_end_date
       - uiuser_first_name
+      - uiuser_id
       - uiuser_language
+      - uiuser_last_login
       - uiuser_last_name
+      - uiuser_last_password_change
+      - uiuser_password_must_be_changed
+      - uiuser_pwd_history
+      - uiuser_start_date
       - uiuser_username
       - uuid
       filter:
@@ -5018,18 +5037,19 @@ tables:
   - permission:
       check: null
       columns:
-      - uiuser_password_must_be_changed
-      - uiuser_end_date
-      - uiuser_start_date
+      - ldap_connection_id
       - tenant_id
-      - uiuser_id
-      - uiuser_pwd_history
-      - uiuser_last_login
-      - uiuser_last_password_change
       - uiuser_email
+      - uiuser_end_date
       - uiuser_first_name
+      - uiuser_id
       - uiuser_language
+      - uiuser_last_login
       - uiuser_last_name
+      - uiuser_last_password_change
+      - uiuser_password_must_be_changed
+      - uiuser_pwd_history
+      - uiuser_start_date
       - uiuser_username
       - uuid
       filter:
@@ -5039,18 +5059,19 @@ tables:
   - permission:
       check: null
       columns:
-      - uiuser_password_must_be_changed
-      - uiuser_end_date
-      - uiuser_start_date
+      - ldap_connection_id
       - tenant_id
-      - uiuser_id
-      - uiuser_pwd_history
-      - uiuser_last_login
-      - uiuser_last_password_change
       - uiuser_email
+      - uiuser_end_date
       - uiuser_first_name
+      - uiuser_id
       - uiuser_language
+      - uiuser_last_login
       - uiuser_last_name
+      - uiuser_last_password_change
+      - uiuser_password_must_be_changed
+      - uiuser_pwd_history
+      - uiuser_start_date
       - uiuser_username
       - uuid
       filter: {}

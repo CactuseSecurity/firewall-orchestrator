@@ -35,6 +35,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("uiuser_password_must_be_changed")]
         public bool PasswordMustBeChanged { get; set; }
 
+       [JsonPropertyName("ldap_connection")]
+        public UiLdapConnection LdapConnection { get; set;}
+
         public string DefaultRole { get; set; }
 
         public string[] Roles { get; set; }
@@ -46,6 +49,7 @@ namespace FWO.Api.Data
         public UiUser()
         {
             Tenant = new Tenant();
+            LdapConnection = new UiLdapConnection();
         }
         
         public UiUser(UiUser user)
@@ -63,6 +67,10 @@ namespace FWO.Api.Data
             if (user.Groups != null)
             {
                 Groups = user.Groups;
+            }
+            if (user.LdapConnection != null)
+            {
+                LdapConnection = new UiLdapConnection(user.LdapConnection);
             }
         }
 

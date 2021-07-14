@@ -317,7 +317,7 @@
             {
                 // add tenant in local Ldap
                 MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddTenant(actTenant.Name, userConfig.User.Jwt);
-                if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<string>("tenantAdded") == "False")
+                if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("tenantAdded") == false)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_tenant_ldap"), userConfig.GetText("E5281"), true);
                 }
@@ -380,7 +380,7 @@
         {
             // delete tenant from Ldap
             MiddlewareServerResponse middlewareServerResponse = await middlewareClient.DeleteTenant(tenant.Name, userConfig.User.Jwt);
-            if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<string>("tenantDeleted") == "False")
+            if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("tenantDeleted") == false)
             {
                 DisplayMessageInUi(null, userConfig.GetText("delete_tenant_ldap"), userConfig.GetText("E5282"), true);
             }

@@ -33,13 +33,13 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
+                // Try to add user to current Ldap
                 if (currentLdap.Host() == ldap && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
-                        // Try to add user to current Ldap
                         userAdded = currentLdap.AddUser(userDn, password, email);
-                        if (userAdded) Log.WriteAudit("AddUser", $"user {userDn} successfully added");
+                        if (userAdded) Log.WriteAudit("AddUser", $"user {userDn} successfully added to {ldap}");
                     });
                 }
             }

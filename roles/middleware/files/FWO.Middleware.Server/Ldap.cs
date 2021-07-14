@@ -83,14 +83,29 @@ namespace FWO.Middleware.Server
             }
         }
 
+        public string Host()
+        {
+            return Address + ":" + Port;
+        }
+
         public bool IsWritable()
         {
             return (WriteUser != null && WriteUser != "");
         }
 
-        public string Host()
+        public bool HasGroupHandling()
         {
-            return Address + ":" + Port;
+            return (GroupSearchPath != null && GroupSearchPath != "");
+        }
+
+        public bool HasRoleHandling()
+        {
+            return (RoleSearchPath != null && RoleSearchPath != "");
+        }
+
+        public bool IsInternal()
+        {
+            return ((new DistName(UserSearchPath)).IsInternal());
         }
 
         private string getUserSearchFilter(string searchPattern)
@@ -305,7 +320,7 @@ namespace FWO.Middleware.Server
             List<string> userMemberships = new List<string>();
 
             // If this Ldap is containing roles / groups
-            if (searchPath != null)
+            if (searchPath != null && searchPath != "")
             {
                 try
                 {
@@ -364,7 +379,7 @@ namespace FWO.Middleware.Server
             List<KeyValuePair<string, List<KeyValuePair<string, string>>>> roleUsers = new List<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
 
             // If this Ldap is containing roles
-            if (RoleSearchPath != null)
+            if (HasRoleHandling())
             {
                 try
                 {
@@ -746,13 +761,10 @@ namespace FWO.Middleware.Server
             {
                 allRemoved &= RemoveUserFromEntry(userDn, $"cn={role},{RoleSearchPath}");
             }
-            if(GroupSearchPath != null && GroupSearchPath != "")
+            List<string> groups = GetGroups(dnList);
+            foreach(var group in groups)
             {
-                List<string> groups = GetGroups(dnList);
-                foreach(var group in groups)
-                {
-                    allRemoved &= RemoveUserFromEntry(userDn, $"cn={group},{GroupSearchPath}");
-                }
+                allRemoved &= RemoveUserFromEntry(userDn, $"cn={group},{GroupSearchPath}");
             }
             return allRemoved;
         }

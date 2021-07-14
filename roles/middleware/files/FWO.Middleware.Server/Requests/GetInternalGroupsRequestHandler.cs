@@ -25,18 +25,22 @@ namespace FWO.Middleware.Server.Requests
             // No parameters
 
             List<KeyValuePair<string, List<string>>> allGroups = new List<KeyValuePair<string, List<string>>>();
+            List<Task> ldapGroupRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                if (currentLdap.IsWritable() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
+                if (currentLdap.IsInternal() && currentLdap.HasGroupHandling())
                 {
-                    await Task.Run(() =>
+                    ldapGroupRequests.Add(Task.Run(() =>
                     {
                         // Get all groups from internal Ldap
-                        allGroups = currentLdap.GetAllInternalGroups();
-                    });
+                        List<KeyValuePair<string, List<string>>> currentGroups = currentLdap.GetAllInternalGroups();
+                        allGroups.AddRange(currentGroups);
+                    }));
                 }
             }
+
+            await Task.WhenAll(ldapGroupRequests);
 
             // Return status and result
             return WrapResult(HttpStatusCode.OK, ("allGroups", allGroups));

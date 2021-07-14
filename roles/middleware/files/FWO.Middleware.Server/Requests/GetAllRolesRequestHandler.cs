@@ -29,16 +29,15 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                if (currentLdap.HasRoleHandling())
                 {
-                    // if current Ldap has roles stored
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "")
+                    ldapRoleRequests.Add(Task.Run(() =>
                     {
-                        // Get all roles from current Ldap
+                        // if current Ldap has roles stored: Get all roles from current Ldap
                         List<KeyValuePair<string, List<KeyValuePair<string, string>>>> currentRoles = currentLdap.GetAllRoles();
                         allRoles.AddRange(currentRoles);
-                    }
-                }));
+                    }));
+                }
             }
 
             await Task.WhenAll(ldapRoleRequests);

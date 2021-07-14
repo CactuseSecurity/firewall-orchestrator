@@ -151,10 +151,10 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                // if current Ldap has roles stored
+                if (currentLdap.HasRoleHandling())
                 {
-                    // if current Ldap has roles stored
-                    if (currentLdap.RoleSearchPath != "")
+                    ldapRoleRequests.Add(Task.Run(() =>
                     {
                         // Get roles from current Ldap
                         string[] currentRoles = currentLdap.GetRoles(dnList);
@@ -163,8 +163,8 @@ namespace FWO.Middleware.Server.Requests
                         {
                             UserRoles.AddRange(currentRoles);
                         }
-                    }
-                }));
+                    }));                    
+                }
             }
 
             await Task.WhenAll(ldapRoleRequests);

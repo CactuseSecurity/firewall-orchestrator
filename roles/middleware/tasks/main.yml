@@ -5,6 +5,7 @@
   changed_when: true
   notify:
   - middleware handler
+  when: installation_mode == "upgrade"
 
 - name: create middleware directory
   file:
@@ -221,3 +222,4 @@
   changed_when: true
   notify:
   - middleware handler
+  when: installation_mode == "upgrade"

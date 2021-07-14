@@ -49,6 +49,7 @@
     copy:
       src: "{{ fworch_home }}"
       dest: "{{ fworch_parent_dir }}/{{ product_name }}_backup"
+    when: installation_mode == "upgrade"
 
   - name: remove complete {{ fworch_home }} dir except for etc
     file:

@@ -16,9 +16,10 @@
     apt_key:
       url: https://download.docker.com/linux/ubuntu/gpg
       state: present
-    environment:
-      https_proxy: "{{ https_proxy }}"
-    when: https_proxy is defined
+    environment: "{{ proxy_env }}"
+    # environment:
+    #   https_proxy: "{{ https_proxy }}"
+    # when: https_proxy is defined
 
   - name: add docker repo
     lineinfile:

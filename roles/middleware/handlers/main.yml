@@ -1,0 +1,7 @@
+---
+- name: middleware handler
+  copy:
+    src: "{{ fworch_parent_dir }}/{{ product_name }}_backup"
+    dest: "{{ fworch_home }}"
+    force: yes
+  when: middleware_handler == start

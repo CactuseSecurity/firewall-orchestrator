@@ -1,4 +1,11 @@
 ---
+- name: initialize handler for datarecovery
+  set_fact:
+    middleware_handler: start
+  changed_when: true
+  notify:
+  - middleware handler
+
 - name: create middleware directory
   file:
     dest: "{{ middleware_server_base_dir }}"
@@ -207,3 +214,10 @@
 - name: upgrade with yaml script
   import_tasks: run-upgrades.yml
   when: installation_mode == "upgrade"
+
+- name: finalize handler for datarecovery
+  set_fact:
+    middleware_handler: stop
+  changed_when: true
+  notify:
+  - middleware handler

@@ -45,6 +45,11 @@
   #   meta: end_play
   #   when: installation_mode == "uninstall"
 
+  - name: backup {{ fworch_home }} dir
+    copy:
+      src: "{{ fworch_home }}"
+      dest: "{{ fworch_parent_dir }}/{{ product_name }}_backup"
+
   - name: remove complete {{ fworch_home }} dir except for etc
     file:
       state: absent

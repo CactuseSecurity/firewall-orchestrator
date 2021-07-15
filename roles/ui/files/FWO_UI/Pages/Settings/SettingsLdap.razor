@@ -157,7 +157,7 @@
                     <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     <div class="col-sm-8">
                         <select id="deviceTenant" class="form-control form-control-sm" @bind="actLdapConnection.TenantIdAsString">
-                            <option value="null">None</option>
+                            <option value="null">@(userConfig.GetText("none"))</option>
                             @foreach (Tenant tenant in tenants)
                             {
                                 <option value="@tenant.Id">@(tenant.Name)</option>

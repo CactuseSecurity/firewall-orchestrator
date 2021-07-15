@@ -305,9 +305,9 @@ namespace FWO.Middleware.Server
             return "";
         }
 
-        public string[] GetRoles(List<string> dnList)
+        public List<string> GetRoles(List<string> dnList)
         {
-            return GetMemberships(dnList, RoleSearchPath).ToArray();
+            return GetMemberships(dnList, RoleSearchPath);
         }
 
         public List<string> GetGroups(List<string> dnList)
@@ -755,7 +755,7 @@ namespace FWO.Middleware.Server
         {
             List<string> dnList = new List<string>();
             dnList.Add(userDn); // group memberships do not need to be regarded here
-            string[] roles = GetRoles(dnList);
+            List<string> roles = GetRoles(dnList);
             bool allRemoved = true;
             foreach(var role in roles)
             {

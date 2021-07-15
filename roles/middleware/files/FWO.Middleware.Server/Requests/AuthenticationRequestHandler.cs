@@ -47,7 +47,7 @@ namespace FWO.Middleware.Server.Requests
 
             // Return status and result
             HttpStatusCode status;
-            if(user.Roles.Length == 0 || user.Roles[0] == "anonymous")
+            if(user.Roles.Count == 0 || user.Roles[0] == "anonymous")
             {
                 status = HttpStatusCode.PreconditionFailed;
             }
@@ -136,7 +136,7 @@ namespace FWO.Middleware.Server.Requests
             throw new Exception("A0002 Invalid credentials");
         }
 
-        public async Task<string[]> GetRoles(UiUser user)
+        public async Task<List<string>> GetRoles(UiUser user)
         {
             List<string> dnList = new List<string>();
             dnList.Add(user.Dn);
@@ -157,7 +157,7 @@ namespace FWO.Middleware.Server.Requests
                     ldapRoleRequests.Add(Task.Run(() =>
                     {
                         // Get roles from current Ldap
-                        string[] currentRoles = currentLdap.GetRoles(dnList);
+                        List<string> currentRoles = currentLdap.GetRoles(dnList);
 
                         lock(rolesLock)
                         {
@@ -177,7 +177,7 @@ namespace FWO.Middleware.Server.Requests
                 UserRoles.Add("anonymous");
             }
 
-            return UserRoles.ToArray();
+            return UserRoles;
         }
 
         public async Task<Tenant> GetTenantAsync(UiUser user)

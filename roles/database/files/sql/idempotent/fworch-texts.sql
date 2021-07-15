@@ -1515,12 +1515,22 @@ INSERT INTO txt VALUES ('H5153', 'English', 'Device Type*: Out of a list of avai
 INSERT INTO txt VALUES ('H5154', 'German',  'Management*: W&auml;hlen Sie das Management, welches dieses Gateway kontrolliert. Wenn zu einem Beispielmanagement zugeordnet, wird es mitgel&ouml;scht, wenn die "Beispieldaten l&ouml;schen"-Schaltfl&auml;che bei den Managementeinstellungen bet&auml;tigt wird.');
 INSERT INTO txt VALUES ('H5154', 'English', 'Management*: Select the management system that controls this gateway. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page.');
 INSERT INTO txt VALUES ('H5155', 'German',  'Rulebase*: Hier wird der Name der Rulebase hinterlegt.
-    F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").
-    For Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".
+    <ul>
+        <li>F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").</li>
+        <li>F&uuml;r Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".</li>
+        <li>F&uuml;r Fortinet-Systeme muss jedes Gateway (auch jede vdom) als separates Management mit einem einzelnen Gateway eingeragen werden.
+            Bei vdoms sind sowohl Management-Name, Gateway-Name als auch Regelsname wie folgt zu bilden: Systemname___vdom-name (Trennzeichen: 3x Unterstrich) 
+            </li>
+    </ul>
 ');
 INSERT INTO txt VALUES ('H5155', 'English', 'Rulebase*: Enter the name of the rulebase here. 
-    For Check Point R8x the top level access layer name goes here (default is "Network").
-    For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".
+    <ul>
+        <li>For Check Point R8x the top level access layer name goes here (default is "Network").</li>
+        <li>For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
+        <li>For Fortinet systems every gateway (and every vdom) must be defined as a separate management system with a single gateway.
+            When dealing with vdoms set management name, gateway name and rulebase name as follows: system name___vdom name (separator: 3x underscore) 
+            </li>
+    </ul>
 ');
 INSERT INTO txt VALUES ('H5156', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
 INSERT INTO txt VALUES ('H5156', 'English', 'Import Disabled: Flag if the data import is disabled.');

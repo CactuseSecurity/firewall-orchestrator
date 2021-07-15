@@ -45,6 +45,8 @@ INSERT INTO txt VALUES ('jwt_expiry',           'German', 	'JWT abgelaufen');
 INSERT INTO txt VALUES ('jwt_expiry',           'English', 	'JWT expired');
 INSERT INTO txt VALUES ('api_access',           'German', 	'Zugang zur API');
 INSERT INTO txt VALUES ('api_access',           'English', 	'API access');
+INSERT INTO txt VALUES ('none',		            'German', 	'Keine(r/s)');
+INSERT INTO txt VALUES ('none',		            'English', 	'None');
 
 -- login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -370,8 +372,8 @@ INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
 INSERT INTO txt VALUES ('recertify',		    'English', 	'Recertify');
 INSERT INTO txt VALUES ('decertify',		    'German', 	'Dezertifizieren');
 INSERT INTO txt VALUES ('decertify',		    'English', 	'Decertify');
-INSERT INTO txt VALUES ('none',		            'German', 	'Sp&auml;ter');
-INSERT INTO txt VALUES ('none',		            'English', 	'None');
+INSERT INTO txt VALUES ('later',		        'German', 	'Sp&auml;ter');
+INSERT INTO txt VALUES ('later',		        'English', 	'None');
 INSERT INTO txt VALUES ('due_within',		    'German', 	'F&auml;llig in (Tagen)');
 INSERT INTO txt VALUES ('due_within',		    'English', 	'Due within (days)');
 INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln laden');

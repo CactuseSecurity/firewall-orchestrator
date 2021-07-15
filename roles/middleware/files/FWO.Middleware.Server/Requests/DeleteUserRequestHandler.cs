@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -30,12 +31,13 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
+                // Try to delete user in current Ldap
                 if (currentLdap.Host() == ldap && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
-                        // Try to delete user in current Ldap
                         userDeleted = currentLdap.DeleteUser(userDn);
+                        if (userDeleted) Log.WriteAudit("DeleteUser", $"User {userDn} deleted from {ldap}");                        
                     });
                 }
             }

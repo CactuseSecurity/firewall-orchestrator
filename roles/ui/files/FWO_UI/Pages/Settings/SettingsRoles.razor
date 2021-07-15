@@ -329,7 +329,7 @@
                     }
                 }
 
-                if(selectedLdap.GroupSearchPath != null && selectedLdap.GroupSearchPath != "")
+                if(selectedLdap.HasGroupHandling())
                 {
                     middlewareServerResponse = await middlewareClient.GetGroups(selectedLdap.Host(), searchPattern, userConfig.User.Jwt);
                     if (middlewareServerResponse.Status != HttpStatusCode.OK)

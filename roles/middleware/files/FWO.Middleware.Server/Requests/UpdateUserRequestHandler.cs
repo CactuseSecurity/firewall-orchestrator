@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -31,12 +32,13 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
+                // Try to update user in current Ldap
                 if (currentLdap.Host() == ldap && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
-                        // Try to update user to current Ldap
                         userUpdated = currentLdap.UpdateUser(userDn, email);
+                        if (userUpdated) Log.WriteAudit("UpdateUser", $"User {userDn} updated in {ldap}");
                     });
                 }
             }

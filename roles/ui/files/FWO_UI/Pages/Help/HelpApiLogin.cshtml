@@ -19,7 +19,7 @@
     <h4>@userConfig.GetText("jwt_corr_login")</h4>
 <br>
 <pre>
-curl --insecure --request POST \
+curl --request POST \
     --url https://localhost:8888/AuthenticateUser/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "cactus1"}'
@@ -28,7 +28,7 @@ curl --insecure --request POST \
     <h4>@userConfig.GetText("err_incorr_login")</h4>
 <br>
     <pre>
-curl --insecure --request POST \
+curl --request POST \
     --url https://localhost:8888/AuthenticateUser/ \
     --header 'content-type: application/json' \
     --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'

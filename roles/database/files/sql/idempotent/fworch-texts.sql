@@ -734,8 +734,16 @@ INSERT INTO txt VALUES ('left_sidebar',         'German', 	'Linke Randleiste');
 INSERT INTO txt VALUES ('left_sidebar',         'English', 	'Left Sidebar');
 INSERT INTO txt VALUES ('right_sidebar',        'German', 	'Rechte Randleiste');
 INSERT INTO txt VALUES ('right_sidebar',        'English', 	'Right Sidebar');
-INSERT INTO txt VALUES ('introduction',         'German', 	'Einleitung');
-INSERT INTO txt VALUES ('introduction',         'English', 	'Introduction');
+INSERT INTO txt VALUES ('api_general',          'German', 	'API allgemein');
+INSERT INTO txt VALUES ('api_general',          'English', 	'API general');
+INSERT INTO txt VALUES ('api_user_mgmt',        'German', 	'User Management');
+INSERT INTO txt VALUES ('api_user_mgmt',        'English', 	'User Management');
+INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
+INSERT INTO txt VALUES ('api_umgmt_auth',       'English', 	'Authentication');
+INSERT INTO txt VALUES ('umgmt_auth_expl',      'German', 	'Zur Authentisierung verwenden Sie folgenden API-Call, der bei erfolgreicher Authentisierung einen JWT zur&uuml;ckliefert');
+INSERT INTO txt VALUES ('umgmt_auth_expl',      'English', 	'For authentication use the following API call, which will return a JWT for the user upon successful authentication');
+INSERT INTO txt VALUES ('api_fwo',              'German', 	'FWO API');
+INSERT INTO txt VALUES ('api_fwo',              'English', 	'FWO API');
 INSERT INTO txt VALUES ('graphql',              'German', 	'GraphQL');
 INSERT INTO txt VALUES ('graphql',              'English', 	'GraphQL');
 INSERT INTO txt VALUES ('hasura',               'German', 	'Hasura');
@@ -1792,22 +1800,33 @@ INSERT INTO txt VALUES ('H5481', 'English', 'A recertifier can overwrite some pe
     The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
 ');
 
-INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator hat eine <a href="/help/API/graphql">GraphQl</a> API welche auf <a href="/help/API/hasura">Hasura</a> basiert. 
-    Diese erlaubt, flexibel den Zugang zu allen Daten der Datenbank und die Granularit&auml;t der zur&uuml;ckgegebenen Daten zu steuern.
+INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
+    <ul>
+        <li>Die Haupt- (oder FWO) API, die den Zugriff auf die Firewall-Nutzdaten erlaubt.</li>
+        <li>Die User Management API, mit deren Hilfe der die Firewall Orchestrator Nutzer ausgelesen oder ge&auml;ndert werden k&ouml;nnen.</li>
+    </ul>
+    Die FWO API ist eine <a href="/help/API/graphql">GraphQl</a> API, welche auf <a href="/help/API/hasura">Hasura</a> basiert. 
+    Diese erlaubt es, flexibel den Zugang zu allen Daten der Datenbank und die Granularit&auml;t der zur&uuml;ckgegebenen Daten zu steuern.
+    <br>
+    <br>
+    Die User Management API erm&ouml;glicht sowohl die Benutzer-Authentifizierung als auch das Anlegen von lokalen Nutzern sowie die Vergabe von Berechtigungen in Form von Rollen oder Tenant-Zugeh&ouml;rigkeit auf Nutzer- und Nutzergruppenebene.
+    <br><br>
+    Beim Testen der API-Zugriffe ohne g&uuml;ltiges Zertifikat kann der "--insecure" parameter bei den angegebenen curl Beispielen verwendet werden.
 ');
-INSERT INTO txt VALUES ('H6001', 'English', 'Firewall Orchestrator has a <a href="/help/API/graphql">GraphQl</a> API which is based on <a href="/help/API/hasura">Hasura</a>. 
-    This allows us to flexibly provide access to all data in the database and also define the level of granularity the data is returned in.
+INSERT INTO txt VALUES ('H6001', 'English', 'Firewall Orchestrator features two APIs:
+    <ul>
+        <li>The main (or FWO) API which allows access to the firewall configuration data</li>
+        <li>The User Management API which can be used to handle Firewall Orchestrator users</li>
+    </ul>
+
+    The FWO API is a <a href="/help/API/graphql">GraphQl</a> API which is based on <a href="/help/API/hasura">Hasura</a>. 
+    This allows us to flexibly provide access to all data in the database and also define the level of granularity the data is returned in.<br>
+    <br>
+    The User Management API allows user authentication as well as user manipulation such as listing, adding, deleting, changing users and 
+    their access permissions (roles and tenant memberships).
+    <br><br>
+    Note that when API testing without a valid certificate installed for your API, consider using the "--insecure" parameter for your curl test calls.
 ');
-INSERT INTO txt VALUES ('H6011', 'German',  'Der Abschnitt "Einleitung" gibt einen kurzen &Uuml;berblick in die zugrundeliegende Technologie wie <a href="/help/API/graphql">GraphQl</a>
-    und <a href="/help/API/hasura">Hasura</a>, gibt einen Einblick in die <a href="/help/API/security">Sicherheits</a>-Mechanismen sowie
-    <a href="/help/API/links">weiterf&uuml;hrendes</a> Material.
-');
-INSERT INTO txt VALUES ('H6011', 'English', 'The section "Introduction" provides a quick overview touching basic underlying technology like <a href="/help/API/graphql">GraphQl</a> 
-    and <a href="/help/API/hasura">Hasura</a>, gives some insight into <a href="/help/API/security">Security</a> mechanisms as well as 
-    <a href="/help/API/links">further reading</a> material.
-');
-INSERT INTO txt VALUES ('H6012', 'German',  'Das Kapitel "Wichtige Kommandos" liefert detailliertere Beispiele f&uuml;r die Nutzung der API.');
-INSERT INTO txt VALUES ('H6012', 'English', 'The chapter "Basic commands" gives more detailed examples for the usage of the API.');
 INSERT INTO txt VALUES ('H6101', 'German',  'GraphQL nutzt einen leicht anderen Ansatz als REST, indem es keine fixen Entry points zur API definiert.
     Stattdessen hat man die Freiheit, eine exakt auf die gew&uuml;nschte Detailtiefe angepasste Query zu nutzen. 
 ');
@@ -1815,13 +1834,13 @@ INSERT INTO txt VALUES ('H6101', 'English', 'GraphQL uses a slightly different a
     Instead you are free to use a custom query specifying exactly which level of detail you want to return each time.
 ');
 INSERT INTO txt VALUES ('H6102', 'German',  'GraphQL bietet eine interaktive Web-Oberfl&auml;che, die genutzt werden kann, um Querys und Mutations zu erstellen und zu testen.<br>
-    Sie kann unter folgendem Link erreicht werden: <code>https://&lt;Name ihrer Firewall Orchestrator-Instanz&gt;:9443/api/</code>.
+    Sie kann unter folgendem Link erreicht werden: <code>https://"Name ihrer Firewall Orchestrator-Instanz":9443/api/</code>.
 ');
 INSERT INTO txt VALUES ('H6102', 'English', 'GraphQL provides you with an interactive web user interface that can be used to construct and test queries as well as mutations.<br>
-    It can be accesses via the following link: <code>https://&lt;name of your firewall orchestrator instance&gt;:9443/api/</code>.
+    It can be accesses via the following link: <code>https://"name of your firewall orchestrator instance":9443/api/</code>.
 ');
 INSERT INTO txt VALUES ('H6103', 'German',  'Das Admin Kennwort kann auf dem API-Server in folgender Datei gefunden werden:');
-INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in following file:');
+INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in the following file:');
 INSERT INTO txt VALUES ('H6201', 'German',  '<a href="https://hasura.io/" target="_blank">Hasura</a> stellt einen Link zur darunterliegenden PostgreSQL-Datenbank zur Verf&uuml;gung.<br>
     Es implementiert eine Zugriffskontrollschicht und k&ouml;nnte auch einen REST API Zugang anbieten, falls Bedarf besteht.
 ');

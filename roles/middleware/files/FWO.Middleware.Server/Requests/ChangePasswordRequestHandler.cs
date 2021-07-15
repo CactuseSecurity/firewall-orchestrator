@@ -31,7 +31,7 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                // if current Ldap is internal: Try to change password in current Ldap
+                // if current Ldap is writable: Try to change password in current Ldap
                 if (currentLdap.IsWritable())
                 {
                     await Task.Run(async () =>

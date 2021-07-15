@@ -114,6 +114,16 @@ namespace FWO.Api.Data
             return (WriteUser != null && WriteUser != "");
         }
 
+        public bool HasGroupHandling()
+        {
+            return (GroupSearchPath != null && GroupSearchPath != "");
+        }
+
+        public bool HasRoleHandling()
+        {
+            return (RoleSearchPath != null && RoleSearchPath != "");
+        }
+
         public bool IsInternal()
         {
             return ((new DistName(UserSearchPath)).IsInternal());

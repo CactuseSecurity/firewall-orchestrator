@@ -37,7 +37,7 @@ namespace FWO.Middleware.Server
             if (user != null)
                 subject = GetClaims(await (new UiUserHandler()).handleUiUserAtLogin(user, CreateJWTMiddlewareServer()));
             else
-                subject = GetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new string[] { "anonymous" } });
+                subject = GetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new List<string> { "anonymous" } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT
 
             // Create JWToken
@@ -105,7 +105,7 @@ namespace FWO.Middleware.Server
             }
 
             // adding roles
-            string[] roles = user.Roles;
+            string[] roles = user.Roles.ToArray();
 
             // we need to create an extra list beacause hasura only accepts an array of roles even if there is only one
             List<string> hasuraRolesList = new List<string>();

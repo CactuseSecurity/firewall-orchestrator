@@ -1834,13 +1834,13 @@ INSERT INTO txt VALUES ('H6101', 'English', 'GraphQL uses a slightly different a
     Instead you are free to use a custom query specifying exactly which level of detail you want to return each time.
 ');
 INSERT INTO txt VALUES ('H6102', 'German',  'GraphQL bietet eine interaktive Web-Oberfl&auml;che, die genutzt werden kann, um Querys und Mutations zu erstellen und zu testen.<br>
-    Sie kann unter folgendem Link erreicht werden: <code>https://&lt;Name ihrer Firewall Orchestrator-Instanz&gt;:9443/api/</code>.
+    Sie kann unter folgendem Link erreicht werden: <code>https://"Name ihrer Firewall Orchestrator-Instanz":9443/api/</code>.
 ');
 INSERT INTO txt VALUES ('H6102', 'English', 'GraphQL provides you with an interactive web user interface that can be used to construct and test queries as well as mutations.<br>
-    It can be accesses via the following link: <code>https://&lt;name of your firewall orchestrator instance&gt;:9443/api/</code>.
+    It can be accesses via the following link: <code>https://"name of your firewall orchestrator instance":9443/api/</code>.
 ');
 INSERT INTO txt VALUES ('H6103', 'German',  'Das Admin Kennwort kann auf dem API-Server in folgender Datei gefunden werden:');
-INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in following file:');
+INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in the following file:');
 INSERT INTO txt VALUES ('H6201', 'German',  '<a href="https://hasura.io/" target="_blank">Hasura</a> stellt einen Link zur darunterliegenden PostgreSQL-Datenbank zur Verf&uuml;gung.<br>
     Es implementiert eine Zugriffskontrollschicht und k&ouml;nnte auch einen REST API Zugang anbieten, falls Bedarf besteht.
 ');

@@ -14,8 +14,7 @@ if not already configured, add your current user to sudo group (make sure to act
 
 ```console
 usermod -a -G sudo `whoami`
-
-exit
+```
 
 2) get Firewall Orchestrator with the following command
 

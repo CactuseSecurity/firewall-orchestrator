@@ -27,23 +27,22 @@ namespace FWO.Middleware.Server.Requests
             string tenantName = GetRequestParameter<string>("TenantName", notNull: true);
 
             bool tenantDeleted = false;
-            List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                // if current Ldap is internal: Try to delete tenant in current Ldap
-                if (currentLdap.IsInternal())
+                // Try to delete tenant in current Ldap
+                if (currentLdap.IsInternal() && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
                         tenantDeleted = currentLdap.DeleteTenant(tenantName);
+                        if (tenantDeleted) Log.WriteAudit("DeleteTenant", $"Tenant {tenantName} deleted from {currentLdap.Host()}");
                     });
                 }
             }
 
             // Return status and result
-            // Log.WriteAudit("DeleteTenant", $"Tenant {tenantName} deleted");
-            return WrapResult(HttpStatusCode.OK, ("tenantDeleted", tenantDeleted.ToString()));
+            return WrapResult(HttpStatusCode.OK, ("tenantDeleted", tenantDeleted));
         }
     }
 }

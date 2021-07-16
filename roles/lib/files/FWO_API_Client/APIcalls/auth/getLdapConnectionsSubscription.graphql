@@ -1,5 +1,6 @@
 ﻿subscription getLdapConnections {
   ldap_connection {
+    ldap_name
     ldap_server
     ldap_port
     ldap_type

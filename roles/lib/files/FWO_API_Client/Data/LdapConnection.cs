@@ -18,6 +18,21 @@ namespace FWO.Api.Data
         [JsonPropertyName("ldap_connection_id")]
         public int Id { get; set; }
 
+        private string name = "";
+        [JsonPropertyName("ldap_name")]
+        public string Name 
+        { 
+            get
+            {
+                // for compatibility: take hostname if not filled
+                return ((name != null && name != "") ? name : Host());
+            }
+            set
+            {
+                name = value;
+            } 
+        }
+
         [JsonPropertyName("ldap_server")]
         public string Address { get; set; }
 
@@ -72,6 +87,7 @@ namespace FWO.Api.Data
         public UiLdapConnection(UiLdapConnection ldapConnection)
         {
             Id = ldapConnection.Id;
+            Name = ldapConnection.Name;
             Address = ldapConnection.Address;
             Port = ldapConnection.Port;
             Type = ldapConnection.Type;
@@ -90,7 +106,27 @@ namespace FWO.Api.Data
 
         public string Host()
         {
-            return Address + ":" + Port;
+            return ((Address != null && Address != "") ? Address + ":" + Port : "");
+        }
+        
+        public bool IsWritable()
+        {
+            return (WriteUser != null && WriteUser != "");
+        }
+
+        public bool HasGroupHandling()
+        {
+            return (GroupSearchPath != null && GroupSearchPath != "");
+        }
+
+        public bool HasRoleHandling()
+        {
+            return (RoleSearchPath != null && RoleSearchPath != "");
+        }
+
+        public bool IsInternal()
+        {
+            return ((new DistName(UserSearchPath)).IsInternal());
         }
     }
 }

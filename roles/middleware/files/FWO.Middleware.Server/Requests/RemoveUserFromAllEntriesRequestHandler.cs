@@ -30,14 +30,17 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                // Try to remove user from all roles and groups in current Ldap
+                if (currentLdap.IsWritable() && (currentLdap.HasRoleHandling() || currentLdap.HasGroupHandling()))
                 {
-                    // if current Ldap has roles stored: Try to remove user from all roles in current Ldap
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.RemoveUserFromAllEntries(userDn))
+                    ldapRoleRequests.Add(Task.Run(() =>
                     {
-                        userRemoved = true;
-                    }
-                }));
+                        if (currentLdap.RemoveUserFromAllEntries(userDn))
+                        {
+                            userRemoved = true;
+                        }
+                    }));
+                }
             }
 
             await Task.WhenAll(ldapRoleRequests);

@@ -168,7 +168,8 @@ Alter table "tenant_user" add  foreign key ("user_id") references "usr" ("user_i
 Alter table "tenant_username" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "txt" add foreign key ("language") references "language" ("name") on update restrict on delete cascade;
 Alter table "uiuser" add  foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
-Alter table "uiuser" add foreign key ("uiuser_language") references "language" ("name") on update restrict on delete cascade;
+Alter table "uiuser" add  foreign key ("uiuser_language") references "language" ("name") on update restrict on delete cascade;
+Alter table "uiuser" add  foreign key ("ldap_connection_id") references "ldap_connection" ("ldap_connection_id") on update restrict on delete cascade;
 Alter table "usergrp" add  foreign key ("import_created") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "usergrp" add  foreign key ("import_last_seen") references "import_control" ("control_id") on update restrict on delete cascade;
 Alter table "usergrp" add  foreign key ("usergrp_id") references "usr" ("user_id") on update restrict on delete cascade;

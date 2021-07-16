@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -31,16 +32,19 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                // Try to remove user from role in current Ldap
+                if (currentLdap.IsWritable() && currentLdap.HasRoleHandling())
                 {
-                    // if current Ldap has roles stored: Try to remove user from role in current Ldap
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.RemoveUserFromEntry(userDn, role))
+                    ldapRoleRequests.Add(Task.Run(() =>
                     {
-                        userRemoved = true;
-                    }
-                }));
+                        if(currentLdap.RemoveUserFromEntry(userDn, role))
+                        {
+                            userRemoved = true;
+                            Log.WriteAudit("RemoveUserFromRole", $"Removed user {userDn} from {role} in {currentLdap.Host()}");
+                        }
+                    }));
+                }
             }
-
             await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result

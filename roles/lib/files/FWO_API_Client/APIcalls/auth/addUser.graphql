@@ -5,6 +5,7 @@ mutation addUser(
   $tenant: Int
   $loginTime: timestamptz
   $passwordMustBeChanged: Boolean
+  $ldapConnectionId: bigint
 ) {
   insert_uiuser(
     objects: {
@@ -14,6 +15,7 @@ mutation addUser(
       tenant_id: $tenant
       uiuser_last_login: $loginTime
       uiuser_password_must_be_changed: $passwordMustBeChanged
+      ldap_connection_id: $ldapConnectionId
     }
   ) {
     returning {

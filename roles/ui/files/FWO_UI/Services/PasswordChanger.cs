@@ -23,14 +23,14 @@ namespace FWO.Ui.Services
                 if(doChecks(oldPassword, newPassword1, newPassword2, userConfig))
                 {
                     // Ldap call
-                    MiddlewareServerResponse apiAuthResponse = await middlewareClient.ChangePassword(userConfig.User.Dn, oldPassword, newPassword1, userConfig.User.Jwt);
-                    if (apiAuthResponse.Status == HttpStatusCode.BadRequest)
+                    MiddlewareServerResponse middlewareServerResponse = await middlewareClient.ChangePassword(userConfig.User.Dn, oldPassword, newPassword1, userConfig.User.Jwt);
+                    if (middlewareServerResponse.Status != HttpStatusCode.OK)
                     {
                         errorMsg = "internal error";
                     }
                     else
                     {
-                        errorMsg = apiAuthResponse.GetResult<string>("errorMsg");
+                        errorMsg = middlewareServerResponse.GetResult<string>("errorMsg");
                     }
                 }
             }

@@ -33,7 +33,7 @@ cd firewall-orchestrator; ansible-playbook site.yml -K
 ```
 Enter sudo password when prompted "BECOME or SUDO password:"
 
-That's it firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
+That's it. firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
 ```
 ...
 TASK [display secrets for this installation] ***********************************

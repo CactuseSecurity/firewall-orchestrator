@@ -30,13 +30,13 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                // if current Ldap is internal: Try to add group to current Ldap
-                if (currentLdap.IsInternal() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
+                // Try to add group to current Ldap
+                if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
                     await Task.Run(() =>
                     {
                         groupAdded = currentLdap.AddGroup(groupName);
-                        Log.WriteAudit("AddGroup", $"group {groupAdded} successfully added");
+                        if (groupAdded != "") Log.WriteAudit("AddGroup", $"group {groupAdded} successfully added to {currentLdap.Host()}");
                     });
                 }
             }

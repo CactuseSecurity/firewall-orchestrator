@@ -39,10 +39,10 @@
     protected override async Task OnInitializedAsync()
     {
         AuthenticationState authState = await authenticationStateTask;
-        UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
-        config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
         try
         {
+            UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
+            config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
             string settingsValue = config.Get(GlobalConfig.kElementsPerFetch);
             if (settingsValue != "")
             {

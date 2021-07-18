@@ -1,4 +1,5 @@
 ﻿@page "/help/settings/ldap"
+@model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
 }
@@ -16,6 +17,7 @@
     <br><br>
     @userConfig.GetText("parameters"):
     <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5210")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5211")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5212")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5213")))</li>

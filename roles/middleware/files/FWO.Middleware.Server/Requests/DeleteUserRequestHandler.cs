@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -22,25 +23,24 @@ namespace FWO.Middleware.Server.Requests
 
         protected override async Task<(HttpStatusCode status, string wrappedResult)> HandleRequestInternalAsync(HttpListenerRequest request)
         {
-            // Get parameters from request. Expected parameters: "Username" from Type string
+            // Get parameters from request. Expected parameters: "Ldap", "Username" from Type string
+            string ldap = GetRequestParameter<string>("Ldap", notNull: true);
             string userDn = GetRequestParameter<string>("Username", notNull: true);
 
             bool userDeleted = false;
-            List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                // Try to delete user in current Ldap
+                if (currentLdap.Host() == ldap && currentLdap.IsWritable())
                 {
-                    // if current Ldap has is internal: Try to delete user in current Ldap
-                    if (currentLdap.IsInternal() && currentLdap.DeleteUser(userDn))
+                    await Task.Run(() =>
                     {
-                        userDeleted = true;
-                    }
-                }));
+                        userDeleted = currentLdap.DeleteUser(userDn);
+                        if (userDeleted) Log.WriteAudit("DeleteUser", $"User {userDn} deleted from {ldap}");                        
+                    });
+                }
             }
-
-            await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result
             return WrapResult(HttpStatusCode.OK, ("userDeleted", userDeleted));

@@ -83,6 +83,19 @@ namespace FWO.ApiConfig
                 await OnChange.Invoke(this);
         }
 
+        public void SetLanguage(string languageName)
+        {
+            User = new UiUser(){Language = globalConfig.defaultLanguage};
+            if(languageName != null && languageName != "")
+            {
+                User.Language = languageName;
+            }
+            if (globalConfig.langDict.ContainsKey(User.Language))
+            {
+                Translate = globalConfig.langDict[User.Language];
+            }
+        }
+
         public string GetText(string key)
         {
             if(Translate.ContainsKey(key))
@@ -111,9 +124,43 @@ namespace FWO.ApiConfig
             }
         }
 
-        public string Convert(string key)
+        public string Convert(string rawText)
         {
-            return System.Web.HttpUtility.HtmlDecode(key);
+            string plainText = System.Web.HttpUtility.HtmlDecode(rawText);
+
+            // Heuristic to add language parameter to internal links
+            if(User != null && User.Language != null)
+            {
+                string startLink = "<a href=\"/";
+                string insertString = $"/?lang={User.Language}";
+
+                int begin, end;
+                int index = 0;
+                bool cont = true;
+
+                while(cont)
+                {
+                    begin = plainText.IndexOf(startLink, index);
+                    if(begin > 0)
+                    {
+                        end = plainText.IndexOf("\"", begin + startLink.Length);
+                        if (end > 0)
+                        {
+                            plainText = plainText.Insert(end, insertString);
+                            index = end + insertString.Length;
+                        }
+                        else
+                        {
+                            cont = false;
+                        }
+                    }
+                    else
+                    {
+                        cont = false;
+                    }
+                }
+            }
+            return plainText;
         }
 
         public string GetApiText(string key)

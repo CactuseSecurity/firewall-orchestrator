@@ -30,13 +30,13 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                // if current Ldap is internal: Try to delete group in current Ldap
-                if (currentLdap.IsInternal() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
+                // Try to delete group in current Ldap
+                if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
                     await Task.Run(() =>
                     {
                         groupDeleted = currentLdap.DeleteGroup(groupDn);
-                        Log.WriteAudit("DeleteGroup", $"Group {groupDeleted} deleted");                        
+                        if (groupDeleted) Log.WriteAudit("DeleteGroup", $"Group {groupDn} deleted from {currentLdap.Host()}");                        
                     });
                 }
             }

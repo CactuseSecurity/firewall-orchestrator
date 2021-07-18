@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -30,12 +31,13 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                // if current Ldap is internal: Try to update group in current Ldap
-                if (currentLdap.IsInternal() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
+                // Try to update group in current Ldap
+                if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
                     await Task.Run(() =>
                     {
                         groupUpdated = currentLdap.UpdateGroup(oldName, newName);
+                        if (groupUpdated != "") Log.WriteAudit("UpdateGroup", $"Group {oldName} updated to {newName} in {currentLdap.Host()}");
                     });
                 }
             }

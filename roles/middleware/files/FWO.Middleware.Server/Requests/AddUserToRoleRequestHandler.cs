@@ -32,15 +32,18 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                // Try to add user to role in current Ldap
+                if (currentLdap.IsWritable() && currentLdap.HasRoleHandling())
                 {
-                    // if current Ldap has roles stored: Try to add user to role in current Ldap
-                    if (currentLdap.RoleSearchPath != null && currentLdap.RoleSearchPath != "" && currentLdap.AddUserToEntry(userDn, role))
+                    ldapRoleRequests.Add(Task.Run(() =>
                     {
-                        userAdded = true;
-                        Log.WriteAudit("AddUserToRole", $"user {userDn} successfully added to group {role}");                        
-                    }
-                }));
+                        if(currentLdap.AddUserToEntry(userDn, role))
+                        {
+                            userAdded = true;
+                            Log.WriteAudit("AddUserToRole", $"user {userDn} successfully added to role {role} in {currentLdap.Host()}");
+                        }
+                    }));
+                }
             }
 
             await Task.WhenAll(ldapRoleRequests);

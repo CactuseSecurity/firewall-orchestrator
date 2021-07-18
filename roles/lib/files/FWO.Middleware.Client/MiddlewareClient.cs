@@ -81,10 +81,11 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "GetUsers", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> AddUser(string Username, string Password, string Email, string jwt)
+        public async Task<MiddlewareServerResponse> AddUser(string Ldap, string Username, string Password, string Email, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
+                { "Ldap", Ldap },
                 { "Username", Username },
                 { "Password", Password },
                 { "Email", Email }
@@ -93,10 +94,11 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "AddUser", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> UpdateUser(string Username, string Email, string jwt)
+        public async Task<MiddlewareServerResponse> UpdateUser(string Ldap, string Username, string Email, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
+                { "Ldap", Ldap },
                 { "Username", Username },
                 { "Email", Email }
             };
@@ -104,10 +106,11 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "UpdateUser", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> SetPassword(string Username, string Password, string jwt)
+        public async Task<MiddlewareServerResponse> SetPassword(string Ldap, string Username, string Password, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
+                { "Ldap", Ldap },
                 { "Username", Username },
                 { "Password", Password }
             };
@@ -115,10 +118,11 @@ namespace FWO.Middleware.Client
             return await requestSender.SendRequest(parameters, "SetPassword", jwt);
         }
 
-        public async Task<MiddlewareServerResponse> DeleteUser(string Username, string jwt)
+        public async Task<MiddlewareServerResponse> DeleteUser(string Ldap, string Username, string jwt)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
+                { "Ldap", Ldap },
                 { "Username", Username }
             };
 

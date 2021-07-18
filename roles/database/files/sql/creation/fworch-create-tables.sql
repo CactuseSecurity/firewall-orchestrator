@@ -408,6 +408,7 @@ Create table "uiuser"
 	"uiuser_last_login" Timestamp with time zone,
 	"uiuser_last_password_change" Timestamp with time zone,
 	"uiuser_pwd_history" Text,
+	"ldap_connection_id" BIGINT,
  primary key ("uiuser_id")
 );
 
@@ -988,6 +989,7 @@ Create table "ldap_connection"
 	"ldap_searchpath_for_groups" Varchar,
 	"ldap_type" Integer NOT NULL Default 0,
 	"ldap_pattern_length" Integer NOT NULL Default 0,
+	"ldap_name" Varchar,
 	primary key ("ldap_connection_id")
 );
 

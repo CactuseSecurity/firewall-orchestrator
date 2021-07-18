@@ -29,7 +29,7 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                if (currentLdap.Address == ldap)
+                if (currentLdap.Host() == ldap && currentLdap.HasGroupHandling())
                 {
                     await Task.Run(() =>
                     {

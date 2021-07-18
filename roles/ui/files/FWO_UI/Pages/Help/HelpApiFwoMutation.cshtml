@@ -1,4 +1,5 @@
 ﻿@page "/help/API/mutation"
+@model FWO.Ui.Pages.Help.MainModel
 @{
     Layout = "HelpLayout";
 }
@@ -16,7 +17,7 @@
     <br>
 
 <pre>
-curl --insecure --request POST \
+curl --request POST \
         --url https://localhost:9443/api/v1/graphql \
         --header 'content-type: application/json' \
         --header 'x-hasura-role: auditor' \

@@ -7,12 +7,12 @@
             <ul class="sidebar-nav mr-auto">
                 <p></p>
                 <h5>@userConfig.GetText("reporting")</h5>
-                <a class="nav-link" href="/help/reporting/filter"> @userConfig.GetText("filter_syntax")</a>
-                <a class="nav-link" href="/help/reporting/templates"> @userConfig.GetText("templates")</a>
-                <a class="nav-link" href="/help/reporting/export"> @userConfig.GetText("export")</a>
-                <a class="nav-link" href="/help/reporting/output"> @userConfig.GetText("report_data_output")</a>
-                <a class="nav-link" href="/help/reporting/leftside"> @userConfig.GetText("left_sidebar")</a>
-                <a class="nav-link" href="/help/reporting/rightside"> @userConfig.GetText("right_sidebar")</a>
+                <a class="nav-link" href="/help/reporting/filter/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("filter_syntax")</a>
+                <a class="nav-link" href="/help/reporting/templates/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("templates")</a>
+                <a class="nav-link" href="/help/reporting/export/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("export")</a>
+                <a class="nav-link" href="/help/reporting/output/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("report_data_output")</a>
+                <a class="nav-link" href="/help/reporting/leftside/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("left_sidebar")</a>
+                <a class="nav-link" href="/help/reporting/rightside/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("right_sidebar")</a>
             </ul>
         </div>
     </div>

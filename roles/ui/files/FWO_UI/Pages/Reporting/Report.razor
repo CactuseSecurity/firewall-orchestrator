@@ -278,7 +278,7 @@
                     {
                         { "limit", elementsPerFetch },
                         { "offset", 0 },
-                        { "management_id", id }
+                        { "management_id", (int) id }
                     };
 
                     break;
@@ -289,7 +289,7 @@
                     {
                         { "limit", elementsPerFetch },
                         { "offset", 0 },
-                        { "mgmIds", id }
+                        { "mgmIds", (int) id }
                     };
 
                     await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), Connection, callback);
@@ -328,9 +328,9 @@
 
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            //DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
 

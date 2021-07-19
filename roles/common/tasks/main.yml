@@ -46,9 +46,7 @@
   #   when: installation_mode == "uninstall"
 
   - name: backup {{ fworch_home }} dir
-    copy:
-      src: "{{ fworch_home }}"
-      dest: "{{ fworch_parent_dir }}/{{ product_name }}_backup"
+    command: "cp -rf {{ fworch_home }} {{ fworch_parent_dir }}/{{ product_name }}_backup"
     when: installation_mode == "upgrade"
 
   - name: remove complete {{ fworch_home }} dir except for etc

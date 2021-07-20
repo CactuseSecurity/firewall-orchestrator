@@ -27,23 +27,22 @@ namespace FWO.Middleware.Server.Requests
             string tenantName = GetRequestParameter<string>("TenantName", notNull: true);
 
             bool tenantAdded = false;
-            List<Task> ldapRoleRequests = new List<Task>();
-
+    
             foreach (Ldap currentLdap in Ldaps)
             {
-                // if current Ldap is internal: Try to add tenant in current Ldap
-                if (currentLdap.IsInternal())
+                // Try to add tenant in current Ldap
+                if (currentLdap.IsInternal() && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
                         tenantAdded = currentLdap.AddTenant(tenantName);
-                        Log.WriteAudit("AddTenant", $"Tenant {tenantAdded} successfully added");                        
+                        if (tenantAdded) Log.WriteAudit("AddTenant", $"Tenant {tenantName} successfully added to {currentLdap.Host()}");                        
                     });
                 }
             }
 
             // Return status and result
-            return WrapResult(HttpStatusCode.OK, ("tenantAdded", tenantAdded.ToString()));
+            return WrapResult(HttpStatusCode.OK, ("tenantAdded", tenantAdded));
         }
     }
 }

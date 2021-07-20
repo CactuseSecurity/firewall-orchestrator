@@ -16,6 +16,7 @@ namespace FWO.Middleware.Server.Requests
         private int tenantLevel = 1;
         private int? fixedTenantId;
         private bool internalLdap = false;
+        private int ldapId = 0;
 
         private object rolesLock = new object();
         private object dnLock = new object();
@@ -46,7 +47,7 @@ namespace FWO.Middleware.Server.Requests
 
             // Return status and result
             HttpStatusCode status;
-            if(user.Roles.Length == 0 || user.Roles[0] == "anonymous")
+            if(user.Roles.Count == 0 || user.Roles[0] == "anonymous")
             {
                 status = HttpStatusCode.PreconditionFailed;
             }
@@ -74,6 +75,8 @@ namespace FWO.Middleware.Server.Requests
 
             // Get tenant of user
             user.Tenant = await GetTenantAsync(user);
+
+            user.LdapConnection.Id = ldapId;
 
             // Create JWT for validated user with roles and tenant
             return (await tokenGenerator.CreateJWT(user));
@@ -111,7 +114,8 @@ namespace FWO.Middleware.Server.Requests
                                 tenantLevel = currentLdap.TenantLevel;
                                 userDn = currentDn;
                                 fixedTenantId = currentLdap.TenantId;
-                                internalLdap = currentLdap.IsInternal();
+                                internalLdap = currentLdap.IsWritable();
+                                ldapId = currentLdap.Id;
                             }
                         }
                     }));
@@ -132,7 +136,7 @@ namespace FWO.Middleware.Server.Requests
             throw new Exception("A0002 Invalid credentials");
         }
 
-        public async Task<string[]> GetRoles(UiUser user)
+        public async Task<List<string>> GetRoles(UiUser user)
         {
             List<string> dnList = new List<string>();
             dnList.Add(user.Dn);
@@ -147,20 +151,20 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                ldapRoleRequests.Add(Task.Run(() =>
+                // if current Ldap has roles stored
+                if (currentLdap.HasRoleHandling())
                 {
-                    // if current Ldap has roles stored
-                    if (currentLdap.RoleSearchPath != "")
+                    ldapRoleRequests.Add(Task.Run(() =>
                     {
                         // Get roles from current Ldap
-                        string[] currentRoles = currentLdap.GetRoles(dnList);
+                        List<string> currentRoles = currentLdap.GetRoles(dnList);
 
                         lock(rolesLock)
                         {
                             UserRoles.AddRange(currentRoles);
                         }
-                    }
-                }));
+                    }));                    
+                }
             }
 
             await Task.WhenAll(ldapRoleRequests);
@@ -173,7 +177,7 @@ namespace FWO.Middleware.Server.Requests
                 UserRoles.Add("anonymous");
             }
 
-            return UserRoles.ToArray();
+            return UserRoles;
         }
 
         public async Task<Tenant> GetTenantAsync(UiUser user)

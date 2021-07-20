@@ -1,5 +1,6 @@
 mutation updateLdapConnection(
   $id: bigint!
+  $name: String!
   $address: String!
   $port: Int!
   $type: Int!
@@ -19,6 +20,7 @@ mutation updateLdapConnection(
     pk_columns: { ldap_connection_id: $id }
     _set: {
       ldap_server: $address
+      ldap_name: $name
       ldap_port: $port
       ldap_type: $type
       ldap_pattern_length: $patternLength

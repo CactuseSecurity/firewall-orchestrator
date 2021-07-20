@@ -26,6 +26,7 @@
                 </div>
             </Template>
         </Column>
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("host"))" Field="@(x => x.Address)" Sortable="true" Filterable="true">
             <Template>
                 @(context.Host())
@@ -43,17 +44,17 @@
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("write_user"))" Field="@(x => x.WriteUser)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.WriteUser != null && context.WriteUser != ""))
+                @(GlobalConfig.ShowBool(context.IsWritable()))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("role_handling"))" Field="@(x => x.RoleSearchPath)" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.RoleSearchPath != null && context.RoleSearchPath != ""))
+                @(GlobalConfig.ShowBool(context.HasRoleHandling()))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("group_handling"))" Field="@(x => (x.GroupSearchPath))" Sortable="true" Filterable="true">
             <Template>
-                @(GlobalConfig.ShowBool(context.GroupSearchPath != null && context.GroupSearchPath != ""))
+                @(GlobalConfig.ShowBool(context.HasGroupHandling()))
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true" Filterable="true">
@@ -69,6 +70,12 @@
         @if (EditMode)
         {
             <form>
+                <div class="form-group row">
+                    <label for="ldapName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <div class="col-sm-8">
+                        <input id="ldapName" type="text" class="form-control form-control-sm" @bind="actLdapConnection.Name" />
+                    </div>
+                </div>
                 <div class="form-group row">
                     <label for="ldapAddress" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
                     <div class="col-sm-8">
@@ -150,7 +157,7 @@
                     <label for="deviceTenant" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("tenant")):</label>
                     <div class="col-sm-8">
                         <select id="deviceTenant" class="form-control form-control-sm" @bind="actLdapConnection.TenantIdAsString">
-                            <option value="null">None</option>
+                            <option value="null">@(userConfig.GetText("none"))</option>
                             @foreach (Tenant tenant in tenants)
                             {
                                 <option value="@tenant.Id">@(tenant.Name)</option>
@@ -250,7 +257,7 @@
         {
             DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5261"), true);
         }
-        else if (actLdapConnection.RoleSearchPath != null && actLdapConnection.RoleSearchPath != "")
+        else if (actLdapConnection.HasRoleHandling())
         {
             DisplayMessageInUi(null, userConfig.GetText("delete_ldap_conn"), userConfig.GetText("E5262"), true);
         }
@@ -291,6 +298,7 @@
     {
         AddMode = true;
         newLdapConnection = new UiLdapConnection(ldapConnection);
+        newLdapConnection.Id = 0;
         Edit(newLdapConnection);
     }
 
@@ -304,6 +312,7 @@
                 {
                     var Variables = new
                     {
+                        name = actLdapConnection.Name,
                         address = actLdapConnection.Address,
                         port = actLdapConnection.Port,
                         type = actLdapConnection.Type,
@@ -329,6 +338,7 @@
                     var Variables = new
                     {
                         id = actLdapConnection.Id,
+                        name = actLdapConnection.Name,
                         address = actLdapConnection.Address,
                         port = actLdapConnection.Port,
                         type = actLdapConnection.Type,
@@ -380,6 +390,11 @@
         if (connectedLdaps.FirstOrDefault(x => x.Address == actLdapConnection.Address && x.Port == actLdapConnection.Port && x.Id != actLdapConnection.Id) != null)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5264"), true);
+            return false;
+        }
+        if (actLdapConnection.HasRoleHandling() && !actLdapConnection.IsInternal())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
             return false;
         }
         return true;

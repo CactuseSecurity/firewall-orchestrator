@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.Logging;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -30,12 +31,13 @@ namespace FWO.Middleware.Server.Requests
 
             foreach (Ldap currentLdap in Ldaps)
             {
-                // if current Ldap is internal: Try to remove user from group in current Ldap
-                if (currentLdap.IsInternal() && currentLdap.GroupSearchPath != null && currentLdap.GroupSearchPath != "")
+                // Try to remove user from group in current Ldap
+                if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
                     await Task.Run(() =>
                     {
                         userRemoved = currentLdap.RemoveUserFromEntry(userDn, group);
+                        if (userRemoved) Log.WriteAudit("RemoveUserFromGroup", $"Removed user {userDn} from {group} in {currentLdap.Host()}");
                     });
                 }
             }

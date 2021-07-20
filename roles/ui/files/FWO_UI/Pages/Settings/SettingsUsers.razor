@@ -638,10 +638,12 @@
         // todo: further dn specification maybe in ldapconnection?
         user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
             (selectedLdap.TenantLevel > 0 ? ",ou=" + selectedTenant.Name : "") + "," + selectedLdap.UserSearchPath;
+        user.Groups = new List<string>();
         if(selectedGroupName != null)
         {
             user.Groups.Add(selectedGroupName);
         }
+        user.Roles = new List<string>();
         if(selectedRoleName != null)
         {
             user.Roles.Add(selectedRoleName);
@@ -654,24 +656,10 @@
         {
             if (AddMode)
             {
-                // Todo: Further value checks?
-                string errorMsg;
-                if (actUser.Name == null || actUser.Name == "" || actUser.Password == null || actUser.Password == "")
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
-                }
-                else if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
-                }
-                else if (actUser.LdapConnection.TenantLevel > 0 && (actUser.Tenant == null || !tenants.Exists(x => x.Name == actUser.Tenant.Name)))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
-                }
-                else
-                {
-                    SynchronizeUserData(actUser); 
+                SynchronizeUserData(actUser); 
 
+                if (CheckValues())
+                {
                     // insert new user to ldap
                     MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUser(actUser.LdapConnection.Host(), actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
                     if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("userAdded") == false)
@@ -710,6 +698,32 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_user"), null, true);
         }
+    }
+
+    private bool CheckValues()
+    {
+        string errorMsg;
+        if (actUser.Name == null || actUser.Name == "" || actUser.Password == null || actUser.Password == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
+            return false;
+        }
+        if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
+            return false;
+        }
+        if (actUser.LdapConnection.TenantLevel > 0 && (actUser.Tenant == null || !tenants.Exists(x => x.Name == actUser.Tenant.Name)))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
+            return false;
+        }
+        if (uiUsers.Exists(x => x.Dn == actUser.Dn))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
+            return false;
+        }
+        return true;
     }
 
     private async Task AddUserToGroupsInLdap(UiUser user)

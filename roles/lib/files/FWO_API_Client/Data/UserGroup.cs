@@ -7,6 +7,7 @@ namespace FWO.Api.Data
         public string Name;
         public string Dn;
         public List<UiUser> Users { get; set; }
+        public List<string> Roles { get; set; }
 
         public UserGroup()
         { 
@@ -21,6 +22,11 @@ namespace FWO.Api.Data
             {
                 Users = new List<UiUser>(group.Users);
             }
+            if (group.Roles != null)
+            {
+                Roles = group.Roles;
+            }
+
         }
 
         public string UserList()

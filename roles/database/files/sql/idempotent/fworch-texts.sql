@@ -534,8 +534,8 @@ INSERT INTO txt VALUES ('from_ldap',            'German', 	'von LDAP');
 INSERT INTO txt VALUES ('from_ldap',            'English', 	'from LDAP');
 INSERT INTO txt VALUES ('search_pattern',       'German', 	'Suchmuster');
 INSERT INTO txt VALUES ('search_pattern',       'English', 	'Search Pattern');
-INSERT INTO txt VALUES ('new_dn',               'German', 	'Neu (Dn)');
-INSERT INTO txt VALUES ('new_dn',               'English', 	'New (Dn)');
+INSERT INTO txt VALUES ('internal_group',       'German', 	'Interne Gruppe');
+INSERT INTO txt VALUES ('internal_group',       'English', 	'Internal Group');
 INSERT INTO txt VALUES ('user_group',           'German', 	'Nutzer/Gruppe');
 INSERT INTO txt VALUES ('user_group',           'English', 	'User/Group');
 INSERT INTO txt VALUES ('add_gateway',          'German', 	'Gateway hinzuf&uuml;gen');
@@ -678,8 +678,6 @@ INSERT INTO txt VALUES ('fetch_ldap_conn',      'German', 	'LDAP-Verbindungen ho
 INSERT INTO txt VALUES ('fetch_ldap_conn',      'English', 	'Fetch LDAP connections');
 INSERT INTO txt VALUES ('search_users',         'German', 	'Nutzer suchen');
 INSERT INTO txt VALUES ('search_users',         'English', 	'Search Users');
-INSERT INTO txt VALUES ('new_user',             'German', 	'Neuer Nutzer');
-INSERT INTO txt VALUES ('new_user',             'English', 	'New User');
 INSERT INTO txt VALUES ('get_tenant_data',      'German', 	'Mandantendaten abholen');
 INSERT INTO txt VALUES ('get_tenant_data',      'English', 	'Get tenant data');
 INSERT INTO txt VALUES ('add_tenant',           'German', 	'Mandant hinzuf&uuml;gen');
@@ -932,6 +930,8 @@ INSERT INTO txt VALUES ('E5207', 'German',  'kein internes LDAP gefunden');
 INSERT INTO txt VALUES ('E5207', 'English', 'No internal LDAP found');
 INSERT INTO txt VALUES ('E5208', 'German',  'Keine Nutzer gefunden');
 INSERT INTO txt VALUES ('E5208', 'English', 'No users found');
+INSERT INTO txt VALUES ('E5210', 'German',  'Nutzer (Dn) existiert bereits');
+INSERT INTO txt VALUES ('E5210', 'English', 'User (Dn) is already existing');
 INSERT INTO txt VALUES ('E5211', 'German',  'Name und Passwort m&uuml;ssen gef&uuml;llt sein');
 INSERT INTO txt VALUES ('E5211', 'English', 'Name and Password have to be filled');
 INSERT INTO txt VALUES ('E5212', 'German',  'Unbekannter Mandant');
@@ -980,14 +980,14 @@ INSERT INTO txt VALUES ('E5244', 'German',  'Zu l&ouml;schender Nutzer nicht gef
 INSERT INTO txt VALUES ('E5244', 'English', 'User to delete not found');
 INSERT INTO txt VALUES ('E5245', 'German',  'Nicht-Beispielnutzer zur Gruppe zugeordnet. L&ouml;schen nicht m&ouml;glich');
 INSERT INTO txt VALUES ('E5245', 'English', 'Non-sample user assigned to group. Delete not possible');
+INSERT INTO txt VALUES ('E5246', 'German',  'Gruppe konnte der Rolle im LDAP nicht zugewiesen werden');
+INSERT INTO txt VALUES ('E5246', 'English', 'Group could not be added to role in LDAP');
 INSERT INTO txt VALUES ('E5251', 'German',  'Keine Rollen gefunden');
 INSERT INTO txt VALUES ('E5251', 'English', 'No roles found');
 INSERT INTO txt VALUES ('E5252', 'German',  'Bitte nutzen sie ein Suchmuster mit Mindestl&auml;nge ');
 INSERT INTO txt VALUES ('E5252', 'English', 'Please use pattern of min length ');
-INSERT INTO txt VALUES ('E5253', 'German',  'Bitte einen richtigen Nutzer definieren');
-INSERT INTO txt VALUES ('E5253', 'English', 'Please define a proper user');
-INSERT INTO txt VALUES ('E5254', 'German',  'Nutzer ist dieser Rolle schon zugewiesen');
-INSERT INTO txt VALUES ('E5254', 'English', 'User is already assigned to this role');
+INSERT INTO txt VALUES ('E5254', 'German',  'Nutzer/Gruppe ist dieser Rolle schon zugewiesen');
+INSERT INTO txt VALUES ('E5254', 'English', 'User/group is already assigned to this role');
 INSERT INTO txt VALUES ('E5255', 'German',  'Nutzer konnte der Rolle im LDAP nicht zugewiesen werden');
 INSERT INTO txt VALUES ('E5255', 'English', 'User could not be added to role in LDAP');
 INSERT INTO txt VALUES ('E5256', 'German',  'Der letzte Admin kann nicht gel&ouml;scht werden');
@@ -1571,6 +1571,8 @@ INSERT INTO txt VALUES ('H5201', 'English', 'Admins can create and administrate 
     Deletion is only allowed, if it is not the internal Ldap (defined by the existence of a role search path) and if it is not the last Ldap.<br>
     The clone button helps defining new Ldaps by copying the data from existing ones. Before saving at least the address or port number have to be changed.
 ');
+INSERT INTO txt VALUES ('H5210', 'German',  'Name*: Name des verbundenen Ldap. Kann frei gew&auml;hlt werden. Wenn nicht vergeben, wird der Host (Adresse:Port) dargestellt.');
+INSERT INTO txt VALUES ('H5210', 'English', 'Name*: Name of the connected Ldap to be freely given. If not assigned the Host (Address:Port) is displayed.');
 INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Adresse des verbundenen Ldap (z.B. IP-Adresse)');
 INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Address of the connected Ldap (e.g. IP address).');
 INSERT INTO txt VALUES ('H5212', 'German',  'Port*: Portnummer des verbundenen Ldap.');
@@ -1639,12 +1641,14 @@ INSERT INTO txt VALUES ('H5248', 'German',  'Gateways: Alle mit diesem Mandanten
 INSERT INTO txt VALUES ('H5248', 'English', 'Gateways: All gateways related to this tenant.');
 INSERT INTO txt VALUES ('H5261', 'German',  'Hier werden alle dem System bekannten Nutzer dargestellt.
     Das sind alle im internen Ldap angelegten Nutzer, sowie Nutzer von externen Ldaps, die sich schon mindestens einmal angemeldet haben.<br>
-    Der Administrator kann Nutzer anlegen, &auml;ndern oder l&ouml;schen.
+    Der Administrator kann Nutzer anlegen, &auml;ndern oder l&ouml;schen. Beim Anlegen besteht auch die M&ouml;glichkeit, sofort Gruppen- und Rollenzugeh&ouml;rigkeiten festzulegen.
+    Weitere Gruppen- und Rollenzuordnungen k&ouml;nnen dann in den Abschnitten <a href="/help/settings/groups">Gruppen</a> bzw. <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
     Wenn Beispieldaten (definiert durch die Endung "_demo" vom Nutzernamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
 ');
 INSERT INTO txt VALUES ('H5261', 'English', 'Here all users known to the system are displayed. 
     These are all users defined in the internal Ldap and users from external Ldaps who have already logged in at least once.<br>
-    The administrator can add, change or delete users.
+    The administrator can add, change or delete users. When adding there is the possibility to assign group or role memberships.
+    Further memberships can be administrated in the <a href="/help/settings/groups">groups</a> resp. <a href="/help/settings/roles">roles</a> sections.<br>
     If there are sample data (defined by the ending "_demo" of the user name), a button is displayed to delete them.
 ');
 INSERT INTO txt VALUES ('H5271', 'German',  'Aktionen: Nutzer k&ouml;nnen geklont, ge&auml;ndert oder gel&ouml;scht werden.
@@ -1675,11 +1679,13 @@ INSERT INTO txt VALUES ('H5278', 'English', 'Pwd Chg Req: Flag that the user has
     The flag is set when a new user is added or when the admin has reset the password, 
     except for users with auditor role, because that role is not allowed to make any changes in the system.
 ');
-INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren.<br>
+INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren. Dabei besteht die M&ouml;glichkeit, sie gleich einer Rolle zuzuordnen.
+    Weitere Rollenzuordnungen k&ouml;nnen dann unter <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
     Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
     Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
 ');
-INSERT INTO txt VALUES ('H5301', 'English', 'Groups of users can be defined by the admin in the internal Ldap.<br>
+INSERT INTO txt VALUES ('H5301', 'English', 'Groups of users can be defined by the admin in the internal Ldap. When adding there is the possibility to assign a role membership.
+    Further memberships can be administrated in the <a href="/help/settings/roles">roles</a> section.<br>
     If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
     The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
 ');
@@ -1720,9 +1726,9 @@ INSERT INTO txt VALUES ('H5351', 'English', 'Search in one of the <a href="/help
     For that the syntax is the same as searching directly in the connected Ldap.
 ');
 INSERT INTO txt VALUES ('H5352', 'German',  'Auswahl aus der Liste der bekannten Nutzer, wie sie in den <a href="/help/settings/users">Nutzereinstellungen</a> dargestellt wird.');
-INSERT INTO txt VALUES ('H5352', 'English', 'Select from the list of known users also displayed in the <a href="/help/settings/users">Users settings</a>.');
-INSERT INTO txt VALUES ('H5353', 'German',  'Manuelle Eingabe des Distinguished name (Dn).');
-INSERT INTO txt VALUES ('H5353', 'English', 'Manually insert a new distinguished name (Dn).');
+INSERT INTO txt VALUES ('H5352', 'English', 'Select from the list of known users also displayed in the <a href="/help/settings/users">users settings</a>.');
+INSERT INTO txt VALUES ('H5353', 'German',  'Auswahl aus der Liste der internen Gruppen, wie sie in den <a href="/help/settings/groups">Gruppeneinstellungen</a> dargestellt wird.');
+INSERT INTO txt VALUES ('H5353', 'English', 'Select from the list of internal groups also displayed in the <a href="/help/settings/groups">groups settings</a>.');
 INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
     Manche von ihnen k&ouml;nnen in den individuellen Nutzereinstellungen &uuml;berschrieben werden.
 ');

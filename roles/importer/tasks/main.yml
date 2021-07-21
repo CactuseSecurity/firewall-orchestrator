@@ -14,6 +14,12 @@
     delegate_to: "{{ inventory_hostname }}"
     when: installation_mode == "upgrade"
 
+  - name: remove importer dir
+    file:
+      state: absent
+      path: "{{ fworch_home }}/importer"
+    when: installation_mode == "upgrade"
+
   - name: Install importer perl modules 
     package: name={{ item }} state=present
     loop:

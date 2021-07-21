@@ -15,6 +15,12 @@
       delegate_to: "{{ inventory_hostname }}"
       when: installation_mode == "upgrade"
 
+    - name: remove database dir
+      file:
+        state: absent
+        path: "{{ fworch_home }}/database"
+      when: installation_mode == "upgrade"
+
     - name: include redhat db install parts
       include_tasks: redhat_preps.yml
       when: installation_mode == "new" and ansible_os_family == "RedHat"

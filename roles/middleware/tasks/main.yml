@@ -9,15 +9,17 @@
     when: installation_mode == "upgrade"
 
   - name: backup middleware dir
-    ansible.posix.synchronize:
+    synchronize:
       src: "{{ fworch_home }}/middleware"
       dest: "{{ fworch_home }}/backup_middleware"
     delegate: middleware
+    when: installation_mode == "upgrade"
       
   - name: remove middleware dir
     file:
       state: absent
       path: "{{ fworch_home }}/middleware"
+    when: installation_mode == "upgrade"
 
   - name: create middleware directory
     file:
@@ -230,6 +232,5 @@
   set_fact:
     middleware_handler_guard: stop
   changed_when: true
-  notify:
-  - middleware handler
+  notify: "middleware handler"
   when: installation_mode == "upgrade"

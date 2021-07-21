@@ -1,8 +1,16 @@
 ---
-- name: middleware handler
-  ansible.posix.synchronize:
+- name: recover backup
+  synchronize:
     src: "{{ fworch_home }}/backup_middleware/middleware"
     dest: "{{ fworch_home }}"
   delegate: middleware
+  listen: "middleware handler"
   when: middleware_handler_guard == "start"
+  become: yes
+
+- name: delete backup
+  file:
+    state: absent
+    path: "{{ fworch_home }}/backup_middleware"
+  listen: "middleware handler"
   become: yes

@@ -60,13 +60,13 @@
       state: absent
       path: "{{ fworch_home }}/{{ item }}"
     loop:
-      - api
+#      - api
 #      - middleware
       - bin
-      - importer  
-      - database  
-      - ui
-      - lib
+#      - importer  
+#      - database  
+#      - ui
+#      - lib
 
   - name: include redhat install basics
     include_tasks: redhat_preps.yml

@@ -12,7 +12,7 @@
     synchronize:
       src: "{{ fworch_home }}/middleware"
       dest: "{{ fworch_home }}/backup_middleware"
-    delegate_to: middlewareserver
+    delegate_to: "{{ inventory_hostname }}"
     when: installation_mode == "upgrade"
       
   - name: remove middleware dir

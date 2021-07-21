@@ -1,0 +1,16 @@
+---
+- name: recover backup
+  synchronize:
+    src: "{{ fworch_home }}/backup_database/database"
+    dest: "{{ fworch_home }}"
+  delegate_to: "{{ inventory_hostname }}"
+  listen: "database handler"
+  when: database_handler_guard == "start"
+  become: yes
+
+- name: delete backup
+  file:
+    state: absent
+    path: "{{ fworch_home }}/backup_database"
+  listen: "database handler"
+  become: yes

@@ -1,5 +1,8 @@
 ---
 - name: middleware handler
-  command: "mv -f {{ fworch_parent_dir }}/{{ product_name }}_backup {{ fworch_home }}"
-  when: middleware_handler == "start"
+  ansible.posix.synchronize:
+    src: "{{ fworch_home }}/backup_middleware/middleware"
+    dest: "{{ fworch_home }}"
+  delegate: middleware
+  when: middleware_handler_guard == "start"
   become: yes

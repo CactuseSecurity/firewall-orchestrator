@@ -45,15 +45,15 @@
   #   meta: end_play
   #   when: installation_mode == "uninstall"
 
-  - name: remove old backups
-    file:
-      path: "{{ fworch_parent_dir }}/{{ product_name }}_backup"
-      state: absent
-    when: installation_mode == "upgrade"
+ # - name: remove old backups
+ #   file:
+ #     path: "{{ fworch_parent_dir }}/{{ product_name }}_backup"
+ #     state: absent
+ #   when: installation_mode == "upgrade"
 
-  - name: backup {{ fworch_home }} dir
-    command: "cp -rf {{ fworch_parent_dir }}/{{ product_name }} {{ fworch_parent_dir }}/{{ product_name }}_backup"
-    when: installation_mode == "upgrade"
+ # - name: backup {{ fworch_home }} dir
+ #   command: "cp -rf {{ fworch_parent_dir }}/{{ product_name }} {{ fworch_parent_dir }}/{{ product_name }}_backup"
+ #   when: installation_mode == "upgrade"
 
   - name: remove complete {{ fworch_home }} dir except for etc
     file:
@@ -61,7 +61,7 @@
       path: "{{ fworch_home }}/{{ item }}"
     loop:
       - api
-      - middleware
+#      - middleware
       - bin
       - importer  
       - database  

@@ -1,3 +1,0 @@
-collections:
-  - name: ansible.posix
-    source: https://galaxy.ansible.com

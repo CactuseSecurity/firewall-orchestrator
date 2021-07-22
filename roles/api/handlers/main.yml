@@ -21,3 +21,5 @@
     - "An error occured during the upgrade of role {{ role_name }}"
     - "Please restart the server {{ inventory_hostname }}"
     - "Try to upgrade {{ product_name }} later or contact the support support@cactus.de"
+  listen: "api handler"
+  when: api_handler_guard == "start"

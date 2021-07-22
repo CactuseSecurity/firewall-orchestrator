@@ -14,4 +14,10 @@
     path: "{{ fworch_home }}/backup_importer"
   listen: "importer handler"
   become: yes
-  
+    
+- name: fail message
+  debug:
+    msg:
+    - "An error occured during the upgrade of role {{ role_name }}"
+    - "Please restart the server {{ inventory_hostname }}"
+    - "Try to upgrade {{ product_name }} later or contact the support support@cactus.de"

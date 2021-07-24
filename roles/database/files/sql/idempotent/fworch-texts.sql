@@ -774,6 +774,8 @@ INSERT INTO txt VALUES ('get_with_jwt',         'German', 	'Holen der Namen alle
 INSERT INTO txt VALUES ('get_with_jwt',         'English', 	'Get the names of all firewall managements using standard JWT access');
 INSERT INTO txt VALUES ('get_with_jwt_role',    'German', 	'Holen der Namen aller Firewall-Managements mit Standard-JWT-Zugang und spezifischer Rolle');
 INSERT INTO txt VALUES ('get_with_jwt_role',    'English', 	'Get the names of all firewall managements using standard JWT access and specifying a certain role');
+INSERT INTO txt VALUES ('get_single_dev_rules', 'German', 	'Alle aktuellen Regeln von Gateway mit ID 1 holen');
+INSERT INTO txt VALUES ('get_single_dev_rules', 'English', 	'Get all current rules of gateway with ID 1');
 INSERT INTO txt VALUES ('parameters',           'German', 	'Parameter');
 INSERT INTO txt VALUES ('parameters',           'English',  'Parameters');
 
@@ -1887,8 +1889,8 @@ INSERT INTO txt VALUES ('H6501', 'German',  'Der Middlewareserver liefert den JW
 INSERT INTO txt VALUES ('H6501', 'English', 'The middleware server provides the JWT for authentication against the API.');
 INSERT INTO txt VALUES ('H6601', 'German',  'Es gibt keine spezielle Abmeldefunktionalit&auml;t. Wenn der JWT ung&uuml;ltig wird, kann die API einfach nicht mehr damit genutzt werden.');
 INSERT INTO txt VALUES ('H6601', 'English', 'There is no specific logout functionality. When the JWT becomes invalid, API simply can no longer be made with this JWT.');
-INSERT INTO txt VALUES ('H6701', 'German',  '(Bitte beachten, dass diese Query nicht funktionieren kann, da der JWT nicht mehr g&uuml;ltig ist.)');
-INSERT INTO txt VALUES ('H6701', 'English', '(Note that the query will not work as the sample JWT is not valid anymore.)');
+INSERT INTO txt VALUES ('H6701', 'German',  '(Bitte ihren aktuellen JWT in der Query einsetzen. Der hier angegebene JWT ist nicht mehr g&uuml;ltig.)');
+INSERT INTO txt VALUES ('H6701', 'English', '(Note that the query will not work as the sample JWT is not valid anymore. Please use a current JWT.)');
 INSERT INTO txt VALUES ('H6702', 'German',  'Ergebnis auf einem System mit Beispieldaten:');
 INSERT INTO txt VALUES ('H6702', 'English', 'Result on a system with demo data:');
 INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation (funktioniert noch nicht) setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');

@@ -27,7 +27,6 @@
 - hosts: all
   roles:
     - { role: common, when: "not installation_mode == 'uninstall'" }
-
   tags:
     - backend
 

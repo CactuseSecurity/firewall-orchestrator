@@ -33,12 +33,12 @@
 - name: install apache2
   import_tasks: api-apache-install-and-setup.yml
 
+- name: hasura install 
+  import_tasks: hasura-install.yml
+
 - name: include upgrade script
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
-
-- name: hasura install 
-  import_tasks: hasura-install.yml
 
 - name: api create documentation
   import_tasks: api-create-docu.yml

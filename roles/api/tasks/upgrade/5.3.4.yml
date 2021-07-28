@@ -120,7 +120,7 @@
   environment: "{{ proxy_env }}"
 
 - name: update hasura config to v3
-  command: "{{ api_hasura_cli_bin }} scripts update-project-v3 --force"
+  command: "{{ api_hasura_cli_bin }} scripts update-project-v3 --force --database-name default"
   args:
     chdir: "{{ api_home }}/{{ product_name }}"
   become: yes

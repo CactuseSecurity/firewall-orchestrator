@@ -1,6 +1,26 @@
 
 - block:
 
+    - name: initialize handler for datarecovery
+      set_fact:
+        lib_handler_guard: start
+      changed_when: true
+      notify:
+      - lib handler
+      when: installation_mode == "upgrade"
+
+    - name: backup lib dir
+      synchronize:
+        src: "{{ fworch_home }}/lib"
+        dest: "{{ fworch_home }}/backup_lib"
+      delegate_to: "{{ inventory_hostname }}"
+      when: installation_mode == "upgrade"
+
+    - name: remove lib dir
+      file:
+        state: absent
+        path: "{{ fworch_home }}/lib"
+
     - name: create lib dir
       file:
         dest: "{{ lib_dir }}"
@@ -22,5 +42,12 @@
         - FWO.ApiConfig
         - FWO.Report
         - FWO.Report.Filter
+
+    - name: finalize handler for datarecovery
+      set_fact:
+        lib_handler_guard: stop
+      changed_when: true
+      notify: "lib handler"
+      when: installation_mode == "upgrade"
 
   become: yes

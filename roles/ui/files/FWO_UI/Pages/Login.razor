@@ -12,6 +12,7 @@
 @inject APIConnection ApiConnection
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
+@inject CircuitHandlerService circuitHandler
 
 @if (showLoginForm)
 {
@@ -82,7 +83,7 @@
     // so there might be a immediate redirect
     private bool showLoginForm = false;
     private bool showPasswordChangeForm = false;
-    
+
     private bool loginInProgress = false;
     private bool passwordChangeInProgress = false;
 
@@ -94,7 +95,7 @@
     private string errorMessage = "";
 
     private ElementReference usernameInput;
-    
+
     private string oldPassword = "";
     private string newPassword1 = "";
     private string newPassword2 = "";
@@ -148,8 +149,8 @@
 
                     // Add all user relevant information to the current session. Also used when reloading page.
                     await CreateUserContext(jwt);
-                    
-                    if(userConfig.User.PasswordMustBeChanged)
+
+                    if (userConfig.User.PasswordMustBeChanged)
                     {
                         showLoginForm = false;
                         showPasswordChangeForm = true;
@@ -160,7 +161,7 @@
                 else
                 {
                     // There was an error trying to authenticate the user. Probably invalid credentials
-                    if(apiAuthResponse.Status == HttpStatusCode.PreconditionFailed)
+                    if (apiAuthResponse.Status == HttpStatusCode.PreconditionFailed)
                     {
                         errorMessage = userConfig.GetText("E0011");
                     }
@@ -176,7 +177,7 @@
                     StateHasChanged();
                 }
             }
-            catch(Exception)
+            catch (Exception)
             {
                 errorMessage = userConfig.GetText("E0012");
             }
@@ -197,18 +198,18 @@
         ApiConnection.SetAuthHeader(jwt);
 
         // Try to auth with jwt (validates it and creates user context on UI side).
-        await ((AuthStateProvider)AuthService).AuthenticateUser(jwt, userConfig, ApiConnection);
+        await ((AuthStateProvider)AuthService).AuthenticateUser(jwt, userConfig, ApiConnection, circuitHandler);
     }
 
     private async Task ChangePassword()
     {
-        if(passwordChangeInProgress == false)                    
+        if (passwordChangeInProgress == false)
         {
             passwordChangeInProgress = true;
             try
             {
                 chgPwErrorMessage = await (new PasswordChanger(middlewareClient)).ChangePassword(oldPassword, newPassword1, newPassword2, userConfig);
-                if(chgPwErrorMessage == "")
+                if (chgPwErrorMessage == "")
                 {
                     showPasswordChangeForm = false;
                     ((AuthStateProvider)AuthService).ConfirmPasswordChanged();

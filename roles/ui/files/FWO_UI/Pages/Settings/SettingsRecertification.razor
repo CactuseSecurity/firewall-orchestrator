@@ -39,8 +39,8 @@
         try
         {
             UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
-            config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
-            string settingsValue = config.Get(GlobalConfig.kRecertificationDisplayPeriod);
+            config = new ConfigDbAccess(apiConnection, userConfig);
+            string settingsValue = config.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
             if (settingsValue != "")
             {
                 recertificationDisplayPeriod = Int32.Parse(settingsValue);
@@ -48,8 +48,8 @@
             else
             {
                 // get default value
-                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection, 0);
-                settingsValue = defaultConfig.Get(GlobalConfig.kRecertificationDisplayPeriod);
+                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection);
+                settingsValue = defaultConfig.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
                 if (settingsValue != "")
                 {
                     recertificationDisplayPeriod = Int32.Parse(settingsValue);

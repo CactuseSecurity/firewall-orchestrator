@@ -20,6 +20,7 @@ using FWO.ApiConfig;
 using FWO.Logging;
 using FWO.Ui.Services;
 using BlazorTable;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 
 namespace FWO.Ui
 {
@@ -40,6 +41,8 @@ namespace FWO.Ui
             services.AddServerSideBlazor();
 
             services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
+
+            services.AddScoped<CircuitHandlerService, CircuitHandlerService>();
 
             ConfigFile configConnection = new ConfigFile();
 

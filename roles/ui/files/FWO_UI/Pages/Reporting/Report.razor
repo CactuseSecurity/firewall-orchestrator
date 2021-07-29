@@ -169,10 +169,8 @@
     private Management[] managementsDevFilter = new Management[0];
     private Management[] managementsReport = new Management[0];
     private Management[] managementsAllObjects = new Management[0];
-    // private Management[] managementsWithRelevantImportId = new Management[0];
     private Management globalStats = null;
 
-    // private Dictionary<int,bool> deviceSelected = new Dictionary<int,bool>();
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
     private int elementsPerFetch = 100;
@@ -191,17 +189,6 @@
 
     private TabSet rsbTabset;
     private Sidebar deviceSelectionSidebar;
-
-    private int reportFileId = 0;
-
-    private int scheduledReportId = 0;
-    private string scheduledReportName = "";
-    private string scheduledReportRepeatInterval = "";
-    private int scheduledReportRepeatCount = 0;
-    private string scheduledReportTemplateName = "";
-    private string scheduledReportOwner = "";
-    private string scheduledReportOutputFormat = "";
-    private bool scheduledReportActive = false;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";

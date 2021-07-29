@@ -4,40 +4,47 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.ApiConfig.Data;
+using FWO.ApiClient.Queries;
+using System.ComponentModel;
 
 namespace FWO.ApiConfig
 {
     public class ConfigDbAccess
     {
-        public Dictionary<String, String> configItems;
-        static APIConnection apiConnection;
-        int userid;
+        private readonly Dictionary<string, string> configItems = new Dictionary<string, string>();
+        private readonly APIConnection apiConnection;
+        private readonly UserConfig userConfig;
+        private readonly int userId;
 
-        public ConfigDbAccess(APIConnection apiConn, int id)
+        public ConfigDbAccess(APIConnection apiConnection, UserConfig userConfig = null)
         {
-            apiConnection = apiConn;
-            userid = id;
-            configItems = new Dictionary<String, String>();
+            this.userConfig = userConfig;
+            this.apiConnection = apiConnection;
+            userId = userConfig == null ? 0 : userConfig.User.DbId;
 
             var Variables = new
             {
-                user = userid,
+                user = userId,
             };
-            ConfigItem [] confItems = (Task.Run(() => apiConnection.SendQueryAsync<ConfigItem[]>(FWO.ApiClient.Queries.ConfigQueries.getConfigItemsByUser, Variables))).Result;
+            ConfigItem[] confItems = apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, Variables).Result;
             foreach (ConfigItem confItem in confItems)
             {
                 configItems.Add(confItem.Key, confItem.Value);
             }
         }
 
-        public string Get(string key)
+        public ConfigValueType Get<ConfigValueType>(string key)
         {
-            string value = "";
             if (configItems.ContainsKey(key))
             {
-                value = configItems[key];
+                try
+                {
+                    TypeConverter converter = TypeDescriptor.GetConverter(typeof(ConfigValueType));
+                    return (ConfigValueType)converter.ConvertTo(configItems[key], typeof(ConfigValueType));
+                }
+                catch (Exception exception){ }
             }
-            return value;
+            return default;
         }
 
         public async Task Set(string key, string value)
@@ -46,20 +53,21 @@ namespace FWO.ApiConfig
             {
                 key = key,
                 value = value,
-                user = userid
+                user = userId
             };
             try
             {
-                var updpk = (await Task.Run(() => apiConnection.SendQueryAsync<object>(FWO.ApiClient.Queries.ConfigQueries.updateConfigItem, Variables)));
+                // TODO: Use one upsert query instead of seperate update and insert queries
+                var updpk = await apiConnection.SendQueryAsync<object>(ConfigQueries.updateConfigItem, Variables);
                 if (updpk == null)
                 {
                     // key not found: add new
-                    await Task.Run(() => apiConnection.SendQueryAsync<object>(FWO.ApiClient.Queries.ConfigQueries.addConfigItem, Variables));
+                    _ = await apiConnection.SendQueryAsync<object>(ConfigQueries.addConfigItem, Variables);
                 }
             }
             catch(Exception exception)
             {
-                Log.WriteError("Write Config", $"Could not write key:{key}, user:{userid}, value:{value}: to config: ", exception);
+                Log.WriteError("Write Config", $"Could not write key:{key}, user:{userId}, value:{value}: to config: ", exception);
             }
         }
     }

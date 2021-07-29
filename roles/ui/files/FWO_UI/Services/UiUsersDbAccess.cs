@@ -19,10 +19,10 @@ namespace FWO.Ui.Services
             string userDn = user.FindFirstValue("x-hasura-uuid");
 
             //UiUser = apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }).Result?[0]; // SHORTER
-			
-			Log.WriteDebug("Get User Data", $"userDn: {userDn}");
+
+            Log.WriteDebug("Get User Data", $"userDn: {userDn}");
             UiUser[] uiUsers = (Task.Run(() => apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUserByDn, new { dn = userDn }))).Result;
-            if(uiUsers != null && uiUsers.Length > 0)
+            if (uiUsers != null && uiUsers.Length > 0)
             {
                 UiUser = uiUsers[0];
             }

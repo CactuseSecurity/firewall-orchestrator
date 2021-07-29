@@ -42,8 +42,8 @@
         try
         {
             UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
-            config = new ConfigDbAccess(apiConnection, uiUser.UiUser.DbId);
-            string settingsValue = config.Get(GlobalConfig.kElementsPerFetch);
+            config = new ConfigDbAccess(apiConnection, userConfig);
+            string settingsValue = config.Get<string>(GlobalConfig.kElementsPerFetch);
             if (settingsValue != "")
             {
                 elementsPerFetch = Int32.Parse(settingsValue);
@@ -51,8 +51,8 @@
             else
             {
                 // get default value
-                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection, 0);
-                settingsValue = defaultConfig.Get(GlobalConfig.kElementsPerFetch);
+                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection);
+                settingsValue = defaultConfig.Get<string>(GlobalConfig.kElementsPerFetch);
                 if (settingsValue != "")
                 {
                     elementsPerFetch = Int32.Parse(settingsValue);

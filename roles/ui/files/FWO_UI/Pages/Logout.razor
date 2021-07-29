@@ -1,9 +1,12 @@
 ﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@using FWO.Ui.Auth;
+@using FWO.Ui.Services
+@using FWO.Ui.Auth
 
 @inject ProtectedSessionStorage sessionStorage
 @inject AuthenticationStateProvider AuthService
 @inject NavigationManager NavigationManager
+@inject UserConfig userConfig
+@inject CircuitHandlerService circuitHandler
 
 @page "/logout"
 
@@ -13,9 +16,13 @@
 {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await sessionStorage.DeleteAsync("jwt");
+        UiUser user = userConfig.User;
 
+        await sessionStorage.DeleteAsync("jwt");
         ((AuthStateProvider)AuthService).Deauthenticate();
+
+        Log.WriteAudit($"Logout from \"{user.Name}\"", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
+        circuitHandler.User = null;
 
         NavigationManager.NavigateTo("");
     }

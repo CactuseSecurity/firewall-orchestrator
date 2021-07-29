@@ -206,7 +206,7 @@ namespace FWO.ApiConfig
                 }
                 else
                 {
-                    await Task.Run(() => apiConnection.SendQueryAsync<object>(ConfigQueries.addConfigItem, apiVariables));
+                    await apiConnection.SendQueryAsync<object>(ConfigQueries.addConfigItem, apiVariables);
                     userConfigItems.Add(key, value);
                 }
             }

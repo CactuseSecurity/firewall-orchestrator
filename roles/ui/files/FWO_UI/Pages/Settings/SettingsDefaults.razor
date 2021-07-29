@@ -121,8 +121,8 @@
     {
         try
         {
-            config = new ConfigDbAccess(apiConnection, 0);
-            selectedDefaultLanguage = config.Get(GlobalConfig.kDefaultLanguage);
+            config = new ConfigDbAccess(apiConnection, userConfig);
+            selectedDefaultLanguage = config.Get<string>(GlobalConfig.kDefaultLanguage);
             Log.WriteDebug("Default language", $"got language: {selectedDefaultLanguage}");
 
             GetIntSetting(ref elementsPerFetch, GlobalConfig.kElementsPerFetch);
@@ -146,8 +146,8 @@
     {
         try
         {
-            string confValue = config.Get(setting);
-            value = (confValue != "" ? Int32.Parse(confValue) : value);
+            value = config.Get<int>(setting);
+            //value = (confValue != "" ? Int32.Parse(confValue) : value);
         }
         catch (Exception exception)
         {
@@ -159,8 +159,8 @@
     {
         try
         {
-            string confValue = config.Get(setting);
-            value = (confValue == "True" ? true : false);
+            value = config.Get<bool>(setting);
+            //value = (confValue == "True" ? true : false);
         }
         catch (Exception exception)
         {

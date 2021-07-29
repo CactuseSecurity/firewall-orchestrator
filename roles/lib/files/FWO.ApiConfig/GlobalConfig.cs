@@ -47,8 +47,8 @@ namespace FWO.ApiConfig
         public static readonly string kPwSpecialCharactersRequired = "pwSpecialCharactersRequired";
 
         public string productVersion { get; set; }
-        public UiText[] uiTexts { get; set; }
 
+        public UiText[] uiTexts { get; set; }
         public Language[] uiLanguages { get; set; }
 
         public Dictionary<string, Dictionary<string, string>> langDict { get; set; }
@@ -60,19 +60,16 @@ namespace FWO.ApiConfig
         public GlobalConfig(string jwt)
         {
             ConfigFile config = new ConfigFile();
-            RsaSecurityKey jwtPublicKey = config.JwtPublicKey;
-            string middlewareServerUri = config.MiddlewareServerUri;
-            string middlewareServerNativeUri = config.MiddlewareServerNativeUri;
-            string apiServerUri = config.ApiServerUri;
             productVersion = config.ProductVersion;
-            authClient = new MiddlewareClient(middlewareServerUri);
-            apiConnection = new APIConnection(apiServerUri);
+
+            authClient = new MiddlewareClient(config.MiddlewareServerUri);
+            apiConnection = new APIConnection(config.ApiServerUri);
             apiConnection.SetAuthHeader(jwt);
             
-            ConfigDbAccess configTable = new ConfigDbAccess(apiConnection, 0);
+            ConfigDbAccess configTable = new ConfigDbAccess(apiConnection);
             try
             {
-                defaultLanguage = configTable.Get(kDefaultLanguage);
+                defaultLanguage = configTable.Get<string>(kDefaultLanguage);
             }
             catch(Exception exception)
             {

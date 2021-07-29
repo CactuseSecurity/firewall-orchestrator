@@ -164,12 +164,12 @@
     msg: "The container status is: {{ result }}"
   when: result.exists and result.container['State']['Status'] == 'exited'
 
-- name: update hasura cli
-  command: "{{ api_hasura_cli_bin }} update-cli --version={{ api_hasura_version }}"
-  args:
-    chdir: "{{ api_home }}/{{ product_name }}"
-  become: yes
-  environment: "{{ proxy_env }}"
+# - name: update hasura cli
+#   command: "{{ api_hasura_cli_bin }} update-cli --version={{ api_hasura_version }}"
+#   args:
+#     chdir: "{{ api_home }}/{{ product_name }}"
+#   become: yes
+#   environment: "{{ proxy_env }}"
 
 # - name: update hasura config to v2
 #   command: "{{ api_hasura_cli_bin }} scripts update-project-v2"
@@ -217,14 +217,25 @@
     timeout: 25
   #when: "not run_on_github|bool"
 
-- name: import hasura metadata
-  command: "{{ api_hasura_cli_bin }} metadata apply"
-  args:
-    chdir: "{{ api_home }}/{{ product_name }}"
-  become: yes
-  become_user: "{{ fworch_user }}"
-  environment: "{{ proxy_env }}"
-  when: "not api_no_metadata | bool"
+# - name: import hasura metadata
+#   command: "{{ api_hasura_cli_bin }} metadata apply"
+#   args:
+#     chdir: "{{ api_home }}/{{ product_name }}"
+#   become: yes
+#   become_user: "{{ fworch_user }}"
+#   environment: "{{ hasura_env }}"
+#   when: "not api_no_metadata | bool"
+
+- name: import API metadata via metadata API
+  uri: 
+    url: "http://{{ api_ip_address }}:{{ api_port }}/api/v1/metadata"
+    method: POST
+    return_content: yes
+    HEADER_Content-Type: "application/json"
+    headers:
+      x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+      x-hasura-role: "admin"
+    body: "{{ lookup('file','replace_metadata.json') | to_json }}"
 
 # - name: migrate hasura metadata
 #   command: "{{ api_hasura_cli_bin }} migrate apply --all-databases"

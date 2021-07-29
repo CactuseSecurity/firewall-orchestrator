@@ -10,12 +10,6 @@
     - python3-docker
   become: yes
 
-# - name: install docker sdk for python via pip3
-#   pip:
-#     name: docker
-#   become: yes
-#   become_user: "{{ fworch_user }}"
-
 - name: read dbadmin pwd from secrets file
   slurp:
     src: "{{ dbadmin_password_file }}"
@@ -90,20 +84,10 @@
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
 
-# - name: copy hasura metadata yaml to cli directory
-#   copy:
-#      src: hasura_metadata.yaml
-#      dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.yaml"
-#      backup: yes
-#      mode: "0644"
-#      owner: "{{ fworch_user }}"
-#      group: "{{ fworch_group }}"
-#   become: yes
-
-- name: copy hasura metadata json to cli directory
+- name: copy hasura metadata yaml to cli directory
   copy:
-     src: hasura_metadata.json
-     dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.json"
+     src: metadata.yaml
+     dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.yaml"
      backup: yes
      mode: "0644"
      owner: "{{ fworch_user }}"

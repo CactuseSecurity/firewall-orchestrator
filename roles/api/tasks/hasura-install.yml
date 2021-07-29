@@ -84,15 +84,25 @@
   become_user: "{{ fworch_user }}"
   environment: "{{ proxy_env }}"
 
-- name: copy hasura metadata yaml to cli directory
+- name: copy hasura metadata json to destination machine
   copy:
-     src: metadata.yaml
-     dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.yaml"
+     src: replace_metadata.json
+     dest: "{{ api_home }}/replace_metadata.json"
      backup: yes
      mode: "0644"
      owner: "{{ fworch_user }}"
      group: "{{ fworch_group }}"
   become: yes
+
+# - name: copy hasura metadata yaml to cli directory
+#   copy:
+#      src: metadata.yaml
+#      dest: "{{ api_home }}/{{ product_name }}/migrations/metadata.yaml"
+#      backup: yes
+#      mode: "0644"
+#      owner: "{{ fworch_user }}"
+#      group: "{{ fworch_group }}"
+#   become: yes
 
 - name: set hasura env variable
   set_fact:
@@ -231,11 +241,16 @@
     url: "http://{{ api_ip_address }}:{{ api_port }}/api/v1/metadata"
     method: POST
     return_content: yes
-    HEADER_Content-Type: "application/json"
+    body_format: json    
     headers:
+      Content-Type: application/json      
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
       x-hasura-role: "admin"
-    body: "{{ lookup('file','replace_metadata.json') | to_json }}"
+    body: "{{ lookup('file','api/replace_metadata.json') | to_json }}"
+  become: yes
+  become_user: "{{ fworch_user }}"
+  environment: "{{ proxy_env }}"
+  when: "not api_no_metadata | bool"
 
 # - name: migrate hasura metadata
 #   command: "{{ api_hasura_cli_bin }} migrate apply --all-databases"

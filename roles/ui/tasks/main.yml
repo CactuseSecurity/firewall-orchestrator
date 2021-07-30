@@ -1,5 +1,25 @@
 
 - block:
+    - name: initialize handler for datarecovery
+      set_fact:
+        ui_handler_guard: start
+      changed_when: true
+      notify:
+      - ui handler
+      when: installation_mode == "upgrade"
+
+    - name: backup ui dir
+      synchronize:
+        src: "{{ fworch_home }}/ui"
+        dest: "{{ fworch_home }}/backup_ui"
+      delegate_to: "{{ inventory_hostname }}"
+      when: installation_mode == "upgrade"
+
+    - name: remove ui dir
+      file:
+        state: absent
+        path: "{{ fworch_home }}/ui"
+      when: installation_mode == "upgrade"
 
     - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
       package:
@@ -34,3 +54,10 @@
 - name: include upgrade script
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
+
+- name: finalize handler for datarecovery
+  set_fact:
+    ui_handler_guard: stop
+  changed_when: true
+  notify: "ui handler"
+  when: installation_mode == "upgrade"

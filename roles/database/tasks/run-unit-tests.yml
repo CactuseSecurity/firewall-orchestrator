@@ -1,5 +1,5 @@
 
-- name: (re)defines functions and views (idempotent) from ansible 2.10
+- name: run db unit tests from ansible 2.10
   postgresql_query:
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
@@ -10,10 +10,10 @@
   loop:
     - unit-tests.sql
 
-- name: (re)defines functions and views (idempotent) prior to ansible 2.10
+- name: run db unit tests prior to ansible 2.10
   postgresql_query:
     db: "{{ fworch_db_name }}"
-    path_to_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
+    path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
   become: yes
   become_user: postgres
   when: ansible_version.string is version_compare('2.10', '<')

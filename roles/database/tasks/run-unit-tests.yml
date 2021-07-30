@@ -51,10 +51,10 @@
 #     msg: "Some database unit tests failed: {{ testresults }}"
 #   when: testresults.failed | bool
 
-- name: Print db test status success
-  debug: 
-    msg: "All database unit tests completed successfully"
-  when: not testresults.failed | bool
+# - name: Print db test status success
+#   debug: 
+#     msg: "All database unit tests completed successfully"
+#   when: not testresults.failed | bool
 
 # - name: fail
 #   fail:

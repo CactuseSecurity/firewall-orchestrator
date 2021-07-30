@@ -69,11 +69,6 @@ namespace FWO.ApiConfig
             return result;
         }
 
-        public string GetUserLanguage()
-        {
-            return User.Language;
-        }
-
         public async Task ChangeLanguage(string languageName, APIConnection apiConnection)
         {
             await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });

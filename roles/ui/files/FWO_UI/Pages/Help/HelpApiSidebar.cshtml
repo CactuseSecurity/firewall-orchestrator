@@ -7,38 +7,38 @@
             <ul class="sidebar-nav mr-auto">
                 <p></p>
                 <h5>@userConfig.GetText("api_general")</h5>
-                <a class="nav-link" href="/help/API/security/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/security/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-shield"></span> @userConfig.GetText("security")
                 </a>
-                <a class="nav-link" href="/help/API/login/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/login/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-account-login"></span> @userConfig.GetText("login")
                 </a>
-                <a class="nav-link" href="/help/API/logout/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/logout/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-account-logout"></span> @userConfig.GetText("logout")
                 </a>
 
                 <h5>@userConfig.GetText("api_user_mgmt")</h5>
-                <a class="nav-link" href="/help/API/userAuth/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/userAuth/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-command"></span> @userConfig.GetText("api_umgmt_auth")
                     @* <span class="oi oi-command"></span> @userConfig.GetText("api_umgmt_add_user") *@
                     @* <span class="oi oi-command"></span> @userConfig.GetText("api_umgmt_list_users") *@
                 </a>
 
                 <h5>@userConfig.GetText("api_fwo")</h5>
-                <a class="nav-link" href="/help/API/graphql/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/graphql/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-inbox"></span> @userConfig.GetText("graphql")
                 </a>
-                <a class="nav-link" href="/help/API/hasura/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/hasura/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-shield"></span> @userConfig.GetText("hasura")
                 </a>
-                <a class="nav-link" href="/help/API/links/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/links/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-data-transfer-download"></span> @userConfig.GetText("further_reading")
                 </a>
 
-                <a class="nav-link" href="/help/API/query/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/query/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-eye"></span> @userConfig.GetText("sample_queries")
                 </a>
-                <a class="nav-link" href="/help/API/mutation/?lang=@($"{userConfig.GetUserLanguage()}")">
+                <a class="nav-link" href="/help/API/mutation/?lang=@($"{userConfig.User.Language}")">
                     <span class="oi oi-command"></span> @userConfig.GetText("sample_mutation")
                 </a>
             </ul>

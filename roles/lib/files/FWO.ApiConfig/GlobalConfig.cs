@@ -106,7 +106,7 @@ namespace FWO.ApiConfig
             }
             catch (Exception exception)
             {
-                Log.WriteError("ApiConfig connection", $"Could not connect to API server .", exception);
+                Log.WriteError("ApiConfig connection", $"Could not connect to API server.", exception);
                 Environment.Exit(1); // Exit with error
             }
         }

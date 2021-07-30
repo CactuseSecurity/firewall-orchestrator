@@ -38,7 +38,6 @@
         AuthenticationState authState = await authenticationStateTask;
         try
         {
-            UiUsersDbAccess uiUser = new UiUsersDbAccess(authState, apiConnection);
             config = new ConfigDbAccess(apiConnection, userConfig);
             string settingsValue = config.Get<string>(GlobalConfig.kRecertificationDisplayPeriod);
             if (settingsValue != "")

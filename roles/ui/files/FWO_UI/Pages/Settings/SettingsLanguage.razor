@@ -33,7 +33,7 @@
 
     protected override void OnInitialized()
     {
-        selectedLanguage = userConfig.GetUserLanguage();
+        selectedLanguage = userConfig.User.Language;
         StateHasChanged();
     }
 

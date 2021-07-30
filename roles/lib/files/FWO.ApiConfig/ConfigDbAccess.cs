@@ -9,7 +9,7 @@ namespace FWO.ApiConfig
 {
     public class ConfigDbAccess
     {
-        public Dictionary<String, String> configItems;
+        public Dictionary<string, string> configItems;
         static APIConnection apiConnection;
         int userid;
 

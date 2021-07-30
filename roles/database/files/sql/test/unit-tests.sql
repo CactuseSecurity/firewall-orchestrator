@@ -11,7 +11,6 @@
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
 BEGIN;
--- SELECT plan(5);
     
 -- SELECT is(select * from is_obj_group(select obj_id from object where obj_name='AuxiliaryNet'), false);
 -- SELECT is(select * from is_obj_group(select obj_id from object where obj_name='CactusDA'), true);
@@ -23,6 +22,7 @@ BEGIN
     RETURN NEXT has_table( 'rule' );
     RETURN NEXT has_table( 'service' );
     RETURN NEXT has_table( 'usr' );
+    RETURN NEXT hasnt_table( 'rule_order' );
 END;
 $$;
 

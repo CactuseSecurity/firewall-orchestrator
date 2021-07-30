@@ -1,6 +1,6 @@
 {
   "type": "replace_metadata",
-  "version": 3,
+  "version": 2,
   "args": {
     "allow_inconsistent_metadata": false,
     "metadata": {

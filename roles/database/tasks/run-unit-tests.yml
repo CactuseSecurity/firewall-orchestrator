@@ -1,0 +1,21 @@
+
+- name: (re)defines functions and views (idempotent) from ansible 2.10
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
+    as_single_query: "{{ postgresql_query_as_single_query }}"
+  become: yes
+  become_user: postgres
+  when: ansible_version.string is version_compare('2.10', '>=')
+  loop:
+    - unit-tests.sql
+
+- name: (re)defines functions and views (idempotent) prior to ansible 2.10
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    path_to_script: "{{ database_install_dir }}/sql/idempotent/{{ item }}"
+  become: yes
+  become_user: postgres
+  when: ansible_version.string is version_compare('2.10', '<')
+  loop:
+    - unit-tests.sql

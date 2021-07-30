@@ -196,6 +196,10 @@
 - name: (re)define functions and views
   import_tasks: recreate-functions-and-views.yml
 
+- name: run unit tests
+  import_tasks: run-unit-tests.yml
+  when: not installation_mode == "uninstall"
+
 - name: finalize handler for datarecovery
   set_fact:
     database_handler_guard: stop

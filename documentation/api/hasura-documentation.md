@@ -2,10 +2,10 @@
 
 ## Upgrade tables & permissions
 
-From FWO 5.3.4 upgrades to database tables and permissions are to be handled as follows:
-
-- go to graphql console (https://<ip>:9443/api/) and login with hasura admin secret (to be found in ~/etc/secrets/hasura_admin_pwd)
-- got to settings menu (sprocket in top right corner)
+In FWO v5.3.4 we are migrating from hasura v1.x to v2.x. 
+Therefore upgrades to database tables and permissions now need to be handled as follows:
+- apply your changes (e.g. permissions) in the graphql console (https://<ip>:9443/api/) after logging in with hasura admin secret (to be found in ~/etc/secrets/hasura_admin_pwd)
+- go to settings menu (cogwheel in top right corner)
 - choose export metadata to json file
 - copy the metadata {...} part of this file to source roles/api/files/replace_metadata.json (also into metadata {} part)
 - run `ansible-playbook site.yml "installation_mode=upgrade" -K`

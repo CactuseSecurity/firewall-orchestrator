@@ -1,4 +1,22 @@
 
+# - name: run db unit tests from ansible 2.10
+#   postgresql_query:
+#     db: "{{ fworch_db_name }}"
+#     path_to_script: "{{ database_install_dir }}/sql/test/unit-tests.sql"
+#     as_single_query: "{{ postgresql_query_as_single_query }}"
+#   become: yes
+#   become_user: postgres
+#   when: ansible_version.string is version_compare('2.10', '>=')
+
+# - name: run db unit tests prior to ansible 2.10
+#   postgresql_query:
+#     db: "{{ fworch_db_name }}"
+#     path_to_script: "{{ database_install_dir }}/sql/test/unit-tests.sql"
+#   become: yes
+#   become_user: postgres
+#   when: ansible_version.string is version_compare('2.10', '<')
+#   register: testresults
+
 - name: run db unit tests from ansible 2.10
   postgresql_query:
     db: "{{ fworch_db_name }}"
@@ -9,6 +27,7 @@
   when: ansible_version.string is version_compare('2.10', '>=')
   loop:
     - unit-tests.sql
+    - import-test.sql
 
 - name: run db unit tests prior to ansible 2.10
   postgresql_query:
@@ -17,5 +36,17 @@
   become: yes
   become_user: postgres
   when: ansible_version.string is version_compare('2.10', '<')
+  register: testresults
   loop:
     - unit-tests.sql
+    - import-test.sql
+
+- name: Print db test status failure
+  fail: 
+    msg: "Some database unit tests failed: {{ testresults }}"
+  when: testresults.failed | bool
+
+- name: Print db test status success
+  debug: 
+    msg: "All database unit tests completed successfully"
+  when: not testresults.failed | bool

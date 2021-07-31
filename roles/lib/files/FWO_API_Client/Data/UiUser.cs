@@ -88,7 +88,7 @@ namespace FWO.Api.Data
 
         public bool isInternal()
         {
-            return (new DistName(Dn)).IsInternal();
+            return new DistName(Dn).IsInternal();
         }
     }
 }

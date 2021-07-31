@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using FWO.Api.Data;
+using FWO.Middleware.Server;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -12,19 +14,23 @@ namespace FWO.Middleware.Controllers
     [Route("api/[controller]")]
     public class JwtController : ControllerBase
     {
+        private readonly JwtWriter jwtWriter;
+
         // GET: api/<JwtController>
         [AllowAnonymous]
         [HttpGet]
-        public string Get([FromBody] string username, [FromBody] string password)
+        public async Task<string> GetAsync([FromBody] string username, [FromBody] string password)
         {
-            return "jwt";
+            UiUser user = new UiUser { Name = username, Password = password };
+            
+            return await jwtWriter.CreateJWT(user);
         }
 
-        // GET api/<JwtController>/5
-        [HttpGet("{id}")]
-        public async Task<string> GetAsync()
+        // GET api/<JwtController>
+        [HttpGet]
+        public async Task<string> GetEmptyAsync()
         {
-            return "";//await tokenGenerator.CreateJWT();
+            return await jwtWriter.CreateJWT();
         }
 
         // POST api/<JwtController>

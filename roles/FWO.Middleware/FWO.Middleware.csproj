@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\lib\files\FWO_Config\FWO.Config.File.csproj" />
+    <ProjectReference Include="..\middleware\files\FWO.Middleware.Server\FWO.Middleware.Server.csproj" />
   </ItemGroup>
 
 </Project>

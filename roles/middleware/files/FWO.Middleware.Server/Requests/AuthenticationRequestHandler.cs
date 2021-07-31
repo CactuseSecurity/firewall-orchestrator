@@ -193,7 +193,7 @@ namespace FWO.Middleware.Server.Requests
             }
             else
             {
-                tenant.Name = (new FWO.Api.Data.DistName(user.Dn)).getTenant(tenantLevel);
+                tenant.Name = new DistName(user.Dn).getTenant(tenantLevel);
                 if(tenant.Name == "")
                 {
                     return null;

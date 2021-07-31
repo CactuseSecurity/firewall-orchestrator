@@ -51,7 +51,8 @@ api_host = args.apihost
 api_port = args.port
 config_filename = args.out
 with open(args.password, "r") as password_file:
-    api_password = password_file.read()
+    api_password = password_file.read().rstrip()
+print("pwd:" + api_password +".")
 api_domain = args.domain
 proxy_string = { "http" : args.proxy, "https" : args.proxy }
 offset = 0

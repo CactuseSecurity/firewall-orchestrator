@@ -177,7 +177,7 @@
         name: slapd
         purge: yes
 
-    - name: remove fworch dirs
+    - name: remove fworch dirs and files
       file:
         name: "{{ item }}"
         state: absent
@@ -189,6 +189,7 @@
         - /var/lib/ldap/fworch.internal
         - /var/lib/ldap/example.com
         - /var/lib/pgsql/data
+        - "{{ api_hasura_cli_bin }}"
 
     - name: remove OS users and delete home directories
       user:

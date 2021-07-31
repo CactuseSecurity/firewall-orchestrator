@@ -36,8 +36,9 @@
 - name: hasura install 
   import_tasks: hasura-install.yml
 
-- name: hasura basic config
-  import_tasks: hasura-basic-config.yml
+- name: include upgrade script
+  import_tasks: run-upgrades.yml
+  when: "installation_mode == 'upgrade'"
 
 - name: api create documentation
   import_tasks: api-create-docu.yml

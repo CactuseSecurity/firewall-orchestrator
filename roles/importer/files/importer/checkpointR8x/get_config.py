@@ -29,7 +29,8 @@ requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--apihost', metavar='api_host', required=True, help='Check Point R8x management server')
-parser.add_argument('-w', '--password', metavar='api_password', required=True, help='password for management server')
+#parser.add_argument('-m', '--mgmid', metavar='management_id', required=True, default='fworch', help='database id of the management system to import')
+parser.add_argument('-w', '--password', metavar='api_password_file', default='import_user_secret', help='name of the file to read the password for management server from')
 parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='user for connecting to Check Point R8x management server, default=fworch')
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Envireonment')
@@ -49,7 +50,8 @@ if len(sys.argv)==1:
 api_host = args.apihost
 api_port = args.port
 config_filename = args.out
-api_password = args.password
+with open(args.password, "r") as password_file:
+    api_password = password_file.read().rstrip()
 api_domain = args.domain
 proxy_string = { "http" : args.proxy, "https" : args.proxy }
 offset = 0
@@ -70,7 +72,6 @@ starttime = int(time.time())
 # top level dict start
 sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string)
 v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
-
 
 config_json = { 'rulebases': [] }
 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}

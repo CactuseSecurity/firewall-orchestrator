@@ -28,6 +28,9 @@
   loop:
     - unit-tests.sql
     - import-test.sql
+  tags:
+    - unittest
+    - test
 
 - name: run db unit tests prior to ansible 2.10
   postgresql_query:
@@ -40,6 +43,9 @@
   loop:
     - unit-tests.sql
     - import-test.sql
+  tags:
+    - unittest
+    - test
 
 # - name: collect results of tests in list and check for "# Looks like you failed"
 #   set_fact:

@@ -76,13 +76,6 @@
     - frontend
     - csharp
 
-- hosts: importers
-  roles:
-    - { role: importer, when: "not installation_mode == 'uninstall'" }
-  tags:
-    - frontend
-    - importer
-
 - hosts: sampleserver
   roles:
     - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
@@ -98,6 +91,13 @@
     - samples
     - backend
   # todo: add a meta dependency on role sample-data
+
+- hosts: importers
+  roles:
+    - { role: importer, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - frontend
+    - importer
 
 - hosts: importers
   tasks:

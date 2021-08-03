@@ -17,28 +17,31 @@
 #   when: ansible_version.string is version_compare('2.10', '<')
 #   register: testresults
 
-- name: run db unit tests from ansible 2.10
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
-    as_single_query: "{{ postgresql_query_as_single_query }}"
-  become: yes
-  become_user: postgres
-  when: ansible_version.string is version_compare('2.10', '>=')
-  loop:
-    - unit-tests.sql
-    - import-test.sql
-  tags:
-    - unittest
-    - test
+# - name: run db unit tests from ansible 2.10
+#   postgresql_query:
+#     db: "{{ fworch_db_name }}"
+#     path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
+#     as_single_query: "{{ postgresql_query_as_single_query }}"
+#   become: yes
+#   become_user: postgres
+#   when: ansible_version.string is version_compare('2.10', '>=')
+#   loop:
+#     - unit-tests.sql
+#     - import-test.sql
+#   tags:
+#     - unittest
+#     - test
+
+- name: copy database test files to backend target
+  copy: src="test" dest="{{ database_install_dir }}" owner="{{ fworch_user }}" group="{{ fworch_user }}"
 
 - name: run db unit tests prior to ansible 2.10
   postgresql_query:
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
   become: yes
-  become_user: postgres
-  when: ansible_version.string is version_compare('2.10', '<')
+  become_user: "{{ fworch_dbadmin_name }}"
+  # when: ansible_version.string is version_compare('2.10', '<')
   register: testresults
   loop:
     - unit-tests.sql

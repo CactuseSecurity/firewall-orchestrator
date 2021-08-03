@@ -99,18 +99,6 @@
     - frontend
     - importer
 
-- hosts: importers
-  tasks:
-    - name: restart importer service to make sure it works correctly with sample data
-      ansible.builtin.systemd:
-        name: "{{ product_name }}-importer"
-        state: restarted
-      become: yes
-      when: "not installation_mode == 'uninstall'"
-  tags:
-    - frontend
-    - importer
-
 - hosts: all
   roles:
     - { role: upgrade-completion, when: "installation_mode == 'upgrade'" }
@@ -141,6 +129,18 @@
     - { role: test, when: "not installation_mode == 'uninstall'" }
   tags:
     - test
+
+- hosts: importers
+  tasks:
+    - name: restart importer service to make sure it works correctly with sample data
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer"
+        state: restarted
+      become: yes
+      when: "not installation_mode == 'uninstall'"
+  tags:
+    - frontend
+    - importer
 
 - hosts: all
   tasks:

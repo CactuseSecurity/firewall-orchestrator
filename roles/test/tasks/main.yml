@@ -24,6 +24,10 @@
 - name: csharp testing
   import_tasks: test-csharp.yml
 
+- name: imorter testing
+  import_tasks: importer-test.yml
+  when: #current srv is sampleserver
+
 # - name: remove all test data
 #   import_tasks: test-data-cleanup.yml
 #   when: test == 'with_cleanup'

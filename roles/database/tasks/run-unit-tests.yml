@@ -4,7 +4,7 @@
   become: yes
 
 - set_fact:
-    unit-test-scripts:
+    unit_test_scripts:
       - unit-tests.sql
       - hasura-test.sql
       - unit-test-cleanup.sql
@@ -12,7 +12,7 @@
 
 # do not run hasura tests during first install (as the tables are not there yet)
 - set_fact:
-    unit-test-scripts:
+    unit_test_scripts:
       - unit-tests.sql
       - unit-test-cleanup.sql
   when: installation_mode == 'new'
@@ -24,7 +24,7 @@
   become: yes
   become_user: "postgres"
   register: testresults
-  loop: "{{ unit-test-scripts }}"
+  loop: "{{ unit_test_scripts }}"
   tags:
     - unittest
     - test

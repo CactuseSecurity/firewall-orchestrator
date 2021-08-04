@@ -12,30 +12,12 @@
   register: testresults
   loop:
     - unit-tests.sql
-    - import-test.sql
+    - unit-test-cleanup.sql
+    - hasura-test.sql
   tags:
     - unittest
     - test
 
 - name: Print db test results
   debug: 
-    msg: "test results: {{ testresults }}"
-
-# - name: collect results of tests in list and check for "# Looks like you failed"
-#   set_fact:
-#     msg: "Key={{ item.0.key }} value={{ item.1 }}"
-#   loop: "{{ testresults.results }}"    
-
-# - name: Print db test status failure
-#   fail: 
-#     msg: "Some database unit tests failed: {{ testresults }}"
-#   when: testresults.failed | bool
-
-# - name: Print db test status success
-#   debug: 
-#     msg: "All database unit tests completed successfully"
-#   when: not testresults.failed | bool
-
-# - name: fail
-#   fail:
-#     msg: stopping after tests
+    msg: "test results: {{ testresults | to_nice_json }}"

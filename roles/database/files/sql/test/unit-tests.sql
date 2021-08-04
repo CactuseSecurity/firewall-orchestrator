@@ -1,21 +1,8 @@
--- \set ECHO none
--- \set QUIET 1
--- \set ON_ERROR_ROLLBACK 1
--- \set ON_ERROR_STOP true
--- \set QUIET 1
-
--- \pset format unaligned
--- \pset tuples_only true
--- \pset pager
-
-CREATE EXTENSION IF NOT EXISTS pgtap;
 
 BEGIN;
-    
--- SELECT is(select * from is_obj_group(select obj_id from object where obj_name='AuxiliaryNet'), false);
--- SELECT is(select * from is_obj_group(select obj_id from object where obj_name='CactusDA'), true);
+CREATE EXTENSION IF NOT EXISTS pgtap;
 
-CREATE OR REPLACE FUNCTION public.testschema()
+CREATE OR REPLACE FUNCTION public.test_1_schema()
 RETURNS SETOF TEXT LANGUAGE plpgsql AS $$
 BEGIN
     RETURN NEXT has_table( 'object' );
@@ -26,17 +13,20 @@ BEGIN
 END;
 $$;
 
--- CREATE OR REPLACE FUNCTION hdb_catalog.testschema()
--- RETURNS SETOF TEXT LANGUAGE plpgsql AS $$
--- BEGIN
---     RETURN NEXT has_table( 'hdb_action_log' );
---     RETURN NEXT has_table( 'hdb_metadata' );
---     RETURN NEXT has_table( 'hdb_version' );
--- END;
--- $$;
+CREATE OR REPLACE FUNCTION public.test_2_functions()
+RETURNS SETOF TEXT LANGUAGE plpgsql AS $$
+BEGIN
+    RETURN NEXT results_eq('SELECT * FROM are_equal(CAST(''1.2.3.4'' AS CIDR),CAST(''1.2.3.4/32'' AS CIDR))', 'SELECT TRUE', 'cidr are_equal should return true');
+    RETURN NEXT results_eq('SELECT * FROM are_equal(7*0, 0)', 'SELECT TRUE', 'int are_equal should return true');
+    RETURN NEXT results_eq('SELECT * FROM remove_spaces(''     abc '')', 'SELECT CAST(''abc'' AS VARCHAR)', 'remove_spaces should return abc');
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.shutdown_1() RETURNS VOID LANGUAGE plpgsql AS $$
+BEGIN
+    drop function if exists test_1_schema();
+    drop function if exists test_2_functions();
+END;
+$$;
 
 SELECT * FROM runtests('public'::name);
--- SELECT * FROM runtests('hdb_catalog'::name);
-
---SELECT * FROM finish();
-ROLLBACK;

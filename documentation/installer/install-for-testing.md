@@ -44,10 +44,11 @@ ansible-playbook/ site.yml --tags test -K
 
 ## Running unit tests only
 
-To only run tests (for an existing installation) use tags as follows:
+To only run tests (for an existing installation, can only be combined with installation_mode=upgrade) use tags as follows:
 
 ```console
-ansible-playbook/ site.yml --tags unittest -K
+ansible-playbook/ site.yml --tags unittest -e "installation_mode=upgrade" -K
+```
 
 ## Parameter "api_no_metadata" to prevent meta data import
 

@@ -20,4 +20,4 @@ BEGIN
 END;
 $$;
 
-SELECT * FROM runtests('public'::name);
+SELECT * FROM runtests('hdb_catalog'::name);

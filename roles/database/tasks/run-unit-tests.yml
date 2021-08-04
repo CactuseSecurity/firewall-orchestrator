@@ -12,8 +12,8 @@
   register: testresults
   loop:
     - unit-tests.sql
-    - unit-test-cleanup.sql
     - hasura-test.sql
+    - unit-test-cleanup.sql
   tags:
     - unittest
     - test

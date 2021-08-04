@@ -3,6 +3,20 @@
   copy: src="sql/test" dest="{{ database_install_dir }}/sql" owner="{{ fworch_user }}" group="{{ fworch_user }}"
   become: yes
 
+- set_fact:
+    unit-test-scripts:
+      - unit-tests.sql
+      - hasura-test.sql
+      - unit-test-cleanup.sql
+  when: installation_mode == 'upgrade'
+
+# do not run hasura tests during first install (as the tables are not there yet)
+- set_fact:
+    unit-test-scripts:
+      - unit-tests.sql
+      - unit-test-cleanup.sql
+  when: installation_mode == 'new'
+
 - name: run db unit tests
   postgresql_query:
     db: "{{ fworch_db_name }}"
@@ -10,10 +24,7 @@
   become: yes
   become_user: "postgres"
   register: testresults
-  loop:
-    - unit-tests.sql
-    - hasura-test.sql
-    - unit-test-cleanup.sql
+  loop: "{{ unit-test-scripts }}"
   tags:
     - unittest
     - test

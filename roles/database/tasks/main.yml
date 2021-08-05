@@ -164,7 +164,7 @@
       copy: src="{{ item }}" dest="{{ database_install_dir }}" owner="{{ fworch_user }}" group="{{ fworch_user }}"
       loop:
         - csv
-        - sql
+        - sql        
 
     - name: create tablespace directory 
       file:
@@ -195,6 +195,11 @@
 
 - name: (re)define functions and views
   import_tasks: recreate-functions-and-views.yml
+
+- name: run unit tests
+  import_tasks: run-unit-tests.yml
+  when: not installation_mode == "uninstall" 
+  tags: [ 'never', 'unittest' ]
 
 - name: finalize handler for datarecovery
   set_fact:

@@ -25,7 +25,7 @@
   import_tasks: test-csharp.yml
 
 - name: imorter testing
-  import_tasks: importer-test.yml
+  import_tasks: test-importer.yml
   when: false #current srv is sampleserver
 
 - debug:

@@ -142,12 +142,6 @@
     - frontend
     - importer
 
-#######
-# Teste manuellen import mit ansible command
-# Teste test-importer
-# Teste test-importer, vorher lösche conf Verzeichniss
-# Schreibe output test für manuellen imprt prozess
-
 - hosts: all
   tasks:
     - name: show listener status

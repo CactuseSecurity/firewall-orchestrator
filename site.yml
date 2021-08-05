@@ -143,7 +143,6 @@
     - importer
 
 #######
-# Next time: Ist importer restart nach test in Ordnung?
 # Teste manuellen import mit ansible command
 # Teste test-importer
 # Teste test-importer, vorher lösche conf Verzeichniss

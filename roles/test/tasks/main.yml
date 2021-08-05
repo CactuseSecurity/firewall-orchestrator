@@ -26,7 +26,7 @@
 
 - name: imorter testing
   import_tasks: test-importer.yml
-  when: false #current srv is sampleserver
+  when: "'testservers' in {{ group_names }}"
 
 - debug:
     var: ansible_play_hosts

@@ -28,9 +28,6 @@
   import_tasks: test-importer.yml
   when: "'testservers' in {{ group_names }}"
 
-- debug:
-    var: ansible_play_hosts
-
 # - name: remove all test data
 #   import_tasks: test-data-cleanup.yml
 #   when: test == 'with_cleanup'

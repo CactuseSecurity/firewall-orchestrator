@@ -26,7 +26,10 @@
 
 - name: imorter testing
   import_tasks: importer-test.yml
-  when: #current srv is sampleserver
+  when: false #current srv is sampleserver
+
+- debug:
+    var: ansible_play_hosts
 
 # - name: remove all test data
 #   import_tasks: test-data-cleanup.yml

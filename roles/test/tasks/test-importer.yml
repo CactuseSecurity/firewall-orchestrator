@@ -11,6 +11,7 @@
     owner: "{{ sample_config_user }}"
     group: "{{ fworch_group }}"
   when: not forti_sample_config.stat.exists
+  become: yes
 
 - name: make sample import
   command: "./fworch-importer-single.pl mgm_id=1"
@@ -24,3 +25,4 @@
     path: "{{ sample_config_user_home }}/sample-configs"
     state: absent
   when: "without_sample_data|bool"
+  become: yes

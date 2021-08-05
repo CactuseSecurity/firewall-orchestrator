@@ -13,6 +13,16 @@
   when: not forti_sample_config.stat.exists
   become: yes
 
+- name: include test data
+  include_role:
+    name: sample-data
+  vars:
+    sample_role_purpose: test
+    sample_fortigate_name: fortigate_test
+    sample_config_user: fworchtest
+    sample_config_user_home: "/home/{{ sample_config_user }}"
+    import_sample_server: localhost
+
 - name: make sample import
   command: "./fworch-importer-single.pl mgm_id=1"
   args:

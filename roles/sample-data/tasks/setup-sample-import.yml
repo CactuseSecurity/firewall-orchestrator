@@ -3,7 +3,6 @@
       user:
         name: "{{ sample_config_user }}"
         comment: fworch import user for sample configs
-        uid: 60322
         home: "{{ sample_config_user_home }}"
         shell: /bin/bash
         group: "{{ fworch_group }}"
@@ -46,6 +45,7 @@
         dest: "{{ sample_config_user_home }}"
         owner: "{{ sample_config_user }}"
         group: "{{ fworch_group }}"
+      when: sample_role_purpose is not match('test')
 
   become: yes
   

@@ -26,7 +26,7 @@
 
 - name: imorter testing
   import_tasks: test-importer.yml
-  when: "'sampleserver' in {{ group_names }}"
+  when: "'sampleserver' in group_names"
 
 # - name: remove all test data
 #   import_tasks: test-data-cleanup.yml

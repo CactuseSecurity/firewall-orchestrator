@@ -1,6 +1,6 @@
-# Integrating Palo Alto firewall 9-x
+# Integrating Palo Alto firewall
 
-PAN-OS has two APIs: XML and REST. There is also an extra REST API for the central management server Panorama.
+All examples here are given for PanOS 9.0. PAN-OS has two APIs: XML and REST. There is also an extra REST API for the central management server Panorama. The XML-API can be used to get the whole config in one go.
 
 ## Create api user
 see <https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-panorama-api/get-started-with-the-pan-os-xml-api/enable-api-access.html>
@@ -9,11 +9,6 @@ see <https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-panorama-api/get-starte
 ```console
 curl --insecure --request GET --url 'https://PAN-IP/api/?type=keygen&user=fwo&password=xxx'
 ```
-
-(more secure:
-see <https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-panorama-api/about-the-pan-os-xml-api/structure-of-a-pan-os-xml-api-request/api-authentication-and-security.html>)
-
-
 gets us a session key in XML format which seems to be valid indefinetly?!:
 ```xml
 <response status = 'success'>
@@ -23,11 +18,19 @@ gets us a session key in XML format which seems to be valid indefinetly?!:
 </response>
 ```
 
+More secure:
+see <https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-panorama-api/about-the-pan-os-xml-api/structure-of-a-pan-os-xml-api-request/api-authentication-and-security.html>, but note: You cannot use basic authentication when you Get Your API Key.
+
+
+## get API version
+
+`curl -X GET "https://<firewall>/api/?type=version&key=<apikey>"' 
+
 ## Get all network objects
 The session key can be used to get objects as follows (for single fw, the name of the vsys seems to be vsys1):
 ```console
 curl --insecure --request GET \
-  --url 'https://PAN-IP/restapi/9.0/Objects/Addresses?location=vsys&vsys=vsys1' \
+  --url 'https://PAN-IP/restapi/v9.1/Objects/Addresses?location=vsys&vsys=vsys1' \
   --header 'X-PAN-KEY: LUFRPT1JdHF6SnVndXNEU2VxVFIvNnZ1bG1yeFk0S2c9clVWeGhkdnNQNTBRK1BzNXBCeEMvNzdTSks1NWVDdzJLSmZXa1JsUkYzdW9OUnJSb1pDREdseitlVUtNc1VKSw==' 
 ```
 Gives us the network objects in JSON format:
@@ -82,7 +85,7 @@ To get address groups:
 
 ```console
 curl --request GET \
-  --url 'https://10.8.6.3/restapi/9.0/Objects/AddressGroups?location=vsys&vsys=vsys1' \
+  --url 'https://10.8.6.3/restapi/v9.1/Objects/AddressGroups?location=vsys&vsys=vsys1' \
   --header 'X-PAN-KEY: LUFRPT1zUmdXTlZjUFZPaWxmc0R2eHRPa1FvdmtlV009T3ZLZFhydER6SDZKYk9OQit2cmVTZHNYWDJrdHREWDVyN1VnZG01VXNKWT0=' \
 ```
 
@@ -125,9 +128,52 @@ Retrieves tag-based filters:
 ```
 ## get service objects
 
+first predefined services:
+
+```console
+curl --request GET \
+  --url 'https://10.8.6.3/restapi/v9.1/Objects/Services?location=predefined' \
+  --header 'X-PAN-KEY: LUFRPT1JdHF6SnVndXNEU2VxVFIvNnZ1bG1yeFk0S2c9clVWeGhkdnNQNTBRK1BzNXBCeEMvNzdTSks1NWVDdzJLSmZXa1JsUkYzdW9OUnJSb1pDREdseitlVUtNc1VKSw==' \
+```
+  
+yields:
+
+```json
+{
+  "@status": "success",
+  "@code": "19",
+  "result": {
+    "@total-count": "2",
+    "@count": "2",
+    "entry": [
+      {
+        "@name": "service-http",
+        "@location": "predefined",
+        "protocol": {
+          "tcp": {
+            "port": "80,8080"
+          }
+        }
+      },
+      {
+        "@name": "service-https",
+        "@location": "predefined",
+        "protocol": {
+          "tcp": {
+            "port": "443"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+Then self-defined:
+
 ```console
 curl --insecure --request GET \
-  --url 'https://PAN-IP/restapi/9.0/Objects/Services?location=vsys&vsys=vsys1' \
+  --url 'https://PAN-IP/restapi/v9.1/Objects/Services?location=vsys&vsys=vsys1' \
   --header 'X-PAN-KEY: LUFRPT1JdHF6SnVndXNEU2VxVFIvNnZ1bG1yeFk0S2c9clVWeGhkdnNQNTBRK1BzNXBCeEMvNzdTSks1NWVDdzJLSmZXa1JsUkYzdW9OUnJSb1pDREdseitlVUtNc1VKSw=='
 ```
 
@@ -198,11 +244,134 @@ give us:
 }
 ```
 
+
+## get (predefined) applications
+
+in order to get the application names we need API v9.1!
+
+with version 9.0:
+```console
+curl --insecure --request GET \
+  --url 'https://10.8.6.3/restapi/9.0/Objects/Applications?location=predefined' \
+  --header 'X-PAN-KEY: LUFRPT1zUmdXTlZjUFZPaWxmc0R2eHRPa1FvdmtlV009T3ZLZFhydER6SDZKYk9OQit2cmVTZHNYWDJrdHREWDVyN1VnZG01VXNKWT0=' \
+```
+```json
+{
+  "@status": "success",
+  "@code": "19",
+  "result": {
+    "@total-count": "3566",
+    "@count": "3566",
+    "entry": [
+      {
+        "default": {
+          "port": {
+            "member": [
+              "tcp\/3468,6346,11300"
+            ]
+          }
+        },
+        "category": "general-internet",
+        "subcategory": "file-sharing",
+        "technology": "peer-to-peer",
+        "risk": "5",
+        "evasive-behavior": "yes",
+        "consume-big-bandwidth": "yes",
+        "used-by-malware": "yes",
+        "able-to-transfer-file": "yes",
+        "has-known-vulnerability": "yes",
+        "tunnel-other-application": "no",
+        "prone-to-misuse": "yes",
+        "pervasive-use": "yes"
+      }
+    ]
+  }
+}
+```
+With v9.1:
+
+```console
+curl --request GET \
+  --url 'https://10.8.6.3/restapi/v9.1/Objects/Applications?location=predefined' \
+  --header 'X-PAN-KEY: LUFRPT1zUmdXTlZjUFZPaWxmc0R2eHRPa1FvdmtlV009T3ZLZFhydER6SDZKYk9OQit2cmVTZHNYWDJrdHREWDVyN1VnZG01VXNKWT0='
+```
+
+```json
+{
+  "@status": "success",
+  "@code": "19",
+  "result": {
+    "@total-count": "3566",
+    "@count": "3566",
+    "entry": [
+      {
+        "@name": "100bao",
+        "@location": "predefined",
+        "default": {
+          "port": {
+            "member": [
+              "tcp\/3468,6346,11300"
+            ]
+          }
+        },
+        "category": "general-internet",
+        "subcategory": "file-sharing",
+        "technology": "peer-to-peer",
+        "risk": "5",
+        "evasive-behavior": "yes",
+        "consume-big-bandwidth": "yes",
+        "used-by-malware": "yes",
+        "able-to-transfer-file": "yes",
+        "has-known-vulnerability": "yes",
+        "tunnel-other-application": "no",
+        "prone-to-misuse": "yes",
+        "pervasive-use": "yes"
+      },
+      {
+        "@name": "open-vpn",
+        "@location": "predefined",
+        "default": {
+          "port": {
+            "member": [
+              "tcp\/1194",
+              "tcp\/443",
+              "udp\/1194"
+            ]
+          }
+        },
+        "category": "networking",
+        "subcategory": "encrypted-tunnel",
+        "technology": "client-server",
+        "timeout": "3600",
+        "risk": "3",
+        "evasive-behavior": "no",
+        "consume-big-bandwidth": "no",
+        "used-by-malware": "no",
+        "able-to-transfer-file": "yes",
+        "has-known-vulnerability": "yes",
+        "tunnel-other-application": "yes",
+        "tunnel-applications": {
+          "member": [
+            "cyberghost-vpn",
+            "frozenway",
+            "hotspot-shield",
+            "ipvanish",
+            "spotflux"
+          ]
+        },
+        "prone-to-misuse": "no",
+        "pervasive-use": "yes"
+      }
+    ]
+  }
+}      
+```
+
 ## get rules
 
 ```console
 curl --insecure --request GET \
-  --url 'https://PAN-IP/restapi/9.0/Policies/SecurityRules?location=vsys&vsys=vsys1' \
+  --url 'https://PAN-IP/restapi/v9.1/Policies/SecurityRules?location=vsys&vsys=vsys1' \
   --header 'X-PAN-KEY: LUFRPT1JdHF6SnVndXNEU2VxVFIvNnZ1bG1yeFk0S2c9clVWeGhkdnNQNTBRK1BzNXBCeEMvNzdTSks1NWVDdzJLSmZXa1JsUkYzdW9OUnJSb1pDREdseitlVUtNc1VKSw==' \
 ```
 

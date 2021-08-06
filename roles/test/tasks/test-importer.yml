@@ -1,17 +1,17 @@
 ---
-- name: check if fortigate sample config exists
-  stat:
-    path: "{{ sample_config_user_home }}/sample-configs/fortinet_demo/fortigate.cfg"
-  register: forti_sample_config
+#- name: check if fortigate sample config exists
+#  stat:
+#    path: "{{ sample_config_user_home }}/sample-configs/fortinet_demo/fortigate.cfg"
+#  register: forti_sample_config
 
-- name: copy sample configs
-  copy:
-    src: "sample-configs"
-    dest: "{{ sample_config_user_home }}"
-    owner: "{{ sample_config_user }}"
-    group: "{{ fworch_group }}"
-  when: not forti_sample_config.stat.exists
-  become: yes
+#- name: copy sample configs
+#  copy:
+#    src: "sample-configs"
+#    dest: "{{ sample_config_user_home }}"
+#    owner: "{{ sample_config_user }}"
+#    group: "{{ fworch_group }}"
+#  when: not forti_sample_config.stat.exists
+#  become: yes
 
 - name: include test data
   include_role:

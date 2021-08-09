@@ -1,18 +1,4 @@
 ---
-#- name: check if fortigate sample config exists
-#  stat:
-#    path: "{{ sample_config_user_home }}/sample-configs/fortinet_demo/fortigate.cfg"
-#  register: forti_sample_config
-
-#- name: copy sample configs
-#  copy:
-#    src: "sample-configs"
-#    dest: "{{ sample_config_user_home }}"
-#    owner: "{{ sample_config_user }}"
-#    group: "{{ fworch_group }}"
-#  when: not forti_sample_config.stat.exists
-#  become: yes
-
 - name: include test data
   include_role:
     name: sample-data
@@ -23,16 +9,34 @@
     sample_config_user_home: "/home/{{ sample_config_user }}"
     import_sample_server: localhost
 
-- name: make sample import
+- name: make test import
   command: "./fworch-importer-single.pl mgm_id=1"
   args:
     chdir: "{{ fworch_home }}/importer"
   become_user: "{{ fworch_user }}"
   become: yes
 
-- name: remove sample config dir
-  file:
-    path: "{{ sample_config_user_home }}/sample-configs"
+- name: delete test user and dir
+  user:
+    name: test
     state: absent
-  when: "without_sample_data|bool"
+    remove: yes
+  become: yes
+
+- name: delete test fortinet gateway
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN 
+      DELETE FROM device WHERE dev_name='fortigate_test' 
+      END $do$ 
+  become: yes
+
+- name: delete test fortinet management
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN 
+      DELETE FROM management WHERE mgm_name='fortigate_test' 
+      END $do$ 
   become: yes

@@ -31,6 +31,7 @@
       DELETE FROM device WHERE dev_name='fortigate_test' 
       END $do$ 
   become: yes
+  become_user: postgres
 
 - name: delete test fortinet management
   postgresql_query:
@@ -40,6 +41,7 @@
       DELETE FROM management WHERE mgm_name='fortigate_test' 
       END $do$ 
   become: yes
+  become_user: postgres
 
 - name: make test import
   command: "./fworch-importer-single.pl mgm_id=1"

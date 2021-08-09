@@ -41,7 +41,7 @@
       END $do$ 
   become: yes
 
-  - name: make test import
+- name: make test import
   command: "./fworch-importer-single.pl mgm_id=1"
   args:
     chdir: "{{ fworch_home }}/importer"

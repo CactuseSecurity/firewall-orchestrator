@@ -28,7 +28,7 @@
     db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN 
-      DELETE FROM device WHERE dev_name='fortigate_test' 
+      DELETE FROM device WHERE dev_name='fortigate_test'; 
       END $do$ 
   become: yes
   become_user: postgres
@@ -38,7 +38,7 @@
     db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN 
-      DELETE FROM management WHERE mgm_name='fortigate_test' 
+      DELETE FROM management WHERE mgm_name='fortigate_test'; 
       END $do$ 
   become: yes
   become_user: postgres

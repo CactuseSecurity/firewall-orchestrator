@@ -23,8 +23,8 @@
                 <div class="btn-group">
                     @if (context.Name != "middleware-server" && context.Name != "anonymous")
                     {
-                        <button class="btn btn-sm btn-success" @onclick="() => Add(context)">@(userConfig.GetText("add_user"))</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(context)">@(userConfig.GetText("delete_user"))</button>
+                        <button class="btn btn-sm btn-success" @onclick="() => AddToRole(context)">@(userConfig.GetText("add_user"))</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromRole(context)">@(userConfig.GetText("delete_user"))</button>
                     }
                     else
                     {
@@ -92,14 +92,19 @@
                     </div>
                 </form>
                 <form class="form-group row">
-                    <label for="newUser" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("new_dn")):</label>
+                    <label for="roleInternalGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("internal_group")):</label>
                     <div class="col-sm-8">
-                        <input id="newUser" type="text" class="form-control-sm col-sm" @bind="newUserDn" />
+                        <select id="roleInternalGroup" class="form-control-sm col-sm" @bind="selectedGroup">
+                            @foreach (string group in internalGroupList)
+                            {
+                                <option value="@group">@(group)</option>
+                            }
+                        </select>
                     </div>
                     <div class="col-sm-2">
                         <AuthorizeView Roles="admin">
                             <Authorized>
-                                <button class="btn btn-sm btn-success" @onclick="() => NewUser(newUserDn)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
+                                <button class="btn btn-sm btn-success" @onclick="() => AddGroupFromLdap(selectedGroup)" @onclick:preventDefault>@(userConfig.GetText("add"))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button class="btn btn-sm btn-success" disabled>@(userConfig.GetText("add"))</button>
@@ -179,7 +184,7 @@
                     <label for="roleGroupsearch" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
                     <div class="col-sm-8">
                         <select id="roleGroupsearch" class="form-control form-control-sm" @bind="selectedGroup">
-                            @foreach (string group in groupList)
+                            @foreach (string group in searchedGroupList)
                             {
                                 <option value="@group">@(group)</option>
                             }
@@ -212,9 +217,8 @@
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiUser> ldapUsers = new List<UiUser>();
-    private List<string> groupList = new List<string>();
-
-    private string newUserDn;
+    private List<string> searchedGroupList = new List<string>();
+    private List<string> internalGroupList = new List<string>();
     private UiLdapConnection selectedLdap = new UiLdapConnection();
     private string selectedUiUser;
     private string selectedLdapUser;
@@ -283,17 +287,45 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), null, true);
         }
+
+        // get groups from internal LDAP
+        try
+        {
+            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetInternalGroups(userConfig.User.Jwt);
+            if (middlewareServerResponse.Status != HttpStatusCode.OK)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+            }
+            else
+            {
+                foreach (var ldapUserGroup in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allGroups"))
+                {
+                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
+                    foreach (var userDn in ldapUserGroup.Value)
+                    {
+                        UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
+                        group.Users.Add(newUser);
+                    }
+                    internalGroupList.Add(group.Dn);
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), null, true);
+        }
     }
 
-    private void Add(Role role)
+    private void AddToRole(Role role)
     {
         AddMode = true;
         actRole = role;
         selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.FirstOrDefault().Dn);
         selectedLdapId = connectedLdaps.FirstOrDefault().Id;
+        selectedGroup = (internalGroupList.Count == 0 ? "" : internalGroupList.FirstOrDefault());
     }
 
-    private void Delete(Role role)
+    private void RemoveFromRole(Role role)
     {
         DeleteMode = true;
         actRole = role;
@@ -314,7 +346,7 @@
             try
             {
                 ldapUsers.Clear();
-                groupList.Clear();
+                searchedGroupList.Clear();
                 MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetUsers(selectedLdap.Host(), searchPattern, userConfig.User.Jwt);
                 if (middlewareServerResponse.Status != HttpStatusCode.OK)
                 {
@@ -329,7 +361,7 @@
                     }
                 }
 
-                if(selectedLdap.GroupSearchPath != null && selectedLdap.GroupSearchPath != "")
+                if(selectedLdap.HasGroupHandling())
                 {
                     middlewareServerResponse = await middlewareClient.GetGroups(selectedLdap.Host(), searchPattern, userConfig.User.Jwt);
                     if (middlewareServerResponse.Status != HttpStatusCode.OK)
@@ -338,7 +370,7 @@
                     }
                     else
                     {
-                        groupList = middlewareServerResponse.GetResult<List<string>>("allGroups");
+                        searchedGroupList = middlewareServerResponse.GetResult<List<string>>("allGroups");
                     }
                 }
             }
@@ -348,23 +380,9 @@
             }
 
             selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.FirstOrDefault().Dn);
-            selectedGroup = (groupList.Count == 0 ? "" : groupList.FirstOrDefault());
+            selectedGroup = (searchedGroupList.Count == 0 ? "" : searchedGroupList.FirstOrDefault());
             SearchMode = true;
             AddMode = false;
-        }
-    }
-
-    private async Task NewUser(string userDn)
-    {
-        if ((userDn == null) || (userDn.Length < 5))
-        {
-            // todo: more checks?
-            DisplayMessageInUi(null, userConfig.GetText("new_user"), userConfig.GetText("E5253"), true);
-        }
-        else
-        {
-            UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
-            await AddUserToRole(newUser);
         }
     }
 
@@ -391,7 +409,7 @@
         {
             DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5240"), true);
         }
-        else if (actRole.Users.Contains(user))
+        else if (actRole.Users.Exists(x => x.Dn == user.Dn))
         {
             DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5254"), true);
         }

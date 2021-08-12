@@ -100,7 +100,7 @@ def post_handler():
                os.system('rm -rf ' + tmp_git_dir)
                os.system('mkdir -p ' + tmp_git_dir)
                target_path  =  tmp_git_dir
-               clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone ssh://git@" + github_hostname + project_path + "'"
+               clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone -b {{ webhook_branch }} ssh://git@" + github_hostname + project_path + "'"
                f.write('executing ' + clone_cmd + '\n')
                os.system(clone_cmd) # Cloning
                if (webhook_script_changed):

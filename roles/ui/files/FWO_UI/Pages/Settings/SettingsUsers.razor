@@ -1,4 +1,4 @@
-﻿@using BlazorTable
+@using BlazorTable
 @using System.Net
 @using FWO.Api.Data
 @using FWO.ApiClient
@@ -136,6 +136,44 @@
                         <input id="userEmail" type="text" class="form-control form-control-sm" @bind="actUser.Email" />
                     </div>
                 </div>
+                <div class="form-group row">
+                    <label for="userGroup" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("groups")):</label>
+                    @if (AddMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="userGroup" class="form-control-sm col-sm" @bind="selectedGroupName">
+                                <option value="null">@(userConfig.GetText("none"))</option>
+                                @foreach (UserGroup group in groups)
+                                {
+                                    <option value="@group.Name">@(group.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="m-2">@actUser.Groups.FirstOrDefault()</label>
+                    }
+                </div>
+                <div class="form-group row">
+                    <label for="userRole" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("roles")):</label>
+                    @if (AddMode)
+                    {
+                        <div class="col-sm-8">
+                            <select id="userRole" class="form-control-sm col-sm" @bind="selectedRoleName">
+                                <option value="null">@(userConfig.GetText("none"))</option>
+                                @foreach (Role role in availableRoles)
+                                {
+                                    <option value="@role.Name">@(role.Name)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="m-2">@actUser.Roles.FirstOrDefault()</label>
+                    }
+                </div>
             </form>
         }
     </Body>
@@ -246,7 +284,9 @@
     private List<UiUser> sampleUsers = new List<UiUser>();
     private List<Tenant> tenants = new List<Tenant>();
     private List<Tenant> availableTenants = new List<Tenant>();
-
+    private List<UserGroup> groups = new List<UserGroup>();
+    private List<Role> roles = new List<Role>();
+    private List<Role> availableRoles = new List<Role>();
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -260,7 +300,8 @@
     private UiUser actUser;
     private int selectedLdapId {get; set;}
     private int selectedTenantId;
-
+    private string selectedRoleName;
+    private string selectedGroupName;
 
     private string deleteMessage = "";
     private string sampleRemoveMessage = "";
@@ -293,14 +334,7 @@
         }
 
         // Get all users from internal ldap
-        try
-        {
-            await GetUsersFromInternalLdap();
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), null, true);
-        }
+        await GetUsersFromInternalLdap();
 
         // Get users from uiusers table
         try
@@ -314,12 +348,22 @@
         }
 
         // Synchronize both
-        await Synchronize();
+        await SynchronizeUsers();
+
+        // get groups from internal ldap
+        await GetGroupsFromInternalLdap();
+        SynchronizeUsersToGroups();
+
+        // get roles from internal ldap
+        await GetRolesFromInternalLdap();
+        SynchronizeUsersToRoles();
+
+        availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
 
         CollectSampleUsers();
     }
 
-    private async Task Synchronize()
+    private async Task SynchronizeUsers()
     {
         foreach (var ldapUser in ldapUsers)
         {
@@ -344,6 +388,36 @@
         }
     }
 
+    private void SynchronizeUsersToGroups()
+    {
+        foreach (var user in uiUsers)
+        {
+            user.Groups = new List<string>();
+            foreach (var group in groups)
+            {
+                if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
+                {
+                    user.Groups.Add(group.Name);
+                }
+            }
+        }
+    }
+
+    private void SynchronizeUsersToRoles()
+    {
+        foreach (var user in uiUsers)
+        {
+            user.Roles = new List<string>();
+            foreach (var role in roles)
+            {
+                if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))
+                {
+                    user.Roles.Add(role.Name);
+                }
+            }
+        }
+    }
+
     private void CollectSampleUsers()
     {
         sampleUsers = new List<UiUser>();
@@ -359,34 +433,106 @@
 
     private async Task GetUsersFromInternalLdap()
     {
-        ldapUsers.Clear();
-        UiLdapConnection internalLdap = connectedLdaps.Find(x => x.IsInternal());
-        if (internalLdap == null)
+        try
         {
-            DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5207"), true);
-            return;
-        }
-
-        // get users from Ldap
-        MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Host(), "", userConfig.User.Jwt);
-        if (usersMiddlewareResponse.Status != HttpStatusCode.OK)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
-        }
-        else
-        {
-            foreach (var user in usersMiddlewareResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+            ldapUsers.Clear();
+            UiLdapConnection internalLdap = connectedLdaps.Find(x => x.IsInternal());
+            if (internalLdap == null)
             {
-                UiUser newUser = new UiUser() 
-                { 
-                    Dn = user.Key, 
-                    Name = (new DistName(user.Key)).UserName, 
-                    Email = user.Value, 
-                    PasswordMustBeChanged = true,
-                    LdapConnection = internalLdap
-                };
-                ldapUsers.Add(newUser);
+                DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5207"), true);
+                return;
             }
+
+            // get users from Ldap
+            MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Host(), "", userConfig.User.Jwt);
+            if (usersMiddlewareResponse.Status != HttpStatusCode.OK)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
+            }
+            else
+            {
+                foreach (var user in usersMiddlewareResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+                {
+                    UiUser newUser = new UiUser() 
+                    { 
+                        Dn = user.Key, 
+                        Name = (new DistName(user.Key)).UserName, 
+                        Email = user.Value, 
+                        PasswordMustBeChanged = true,
+                        LdapConnection = internalLdap
+                    };
+                    ldapUsers.Add(newUser);
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), null, true);
+        }
+    }
+
+    private async Task GetGroupsFromInternalLdap()
+    {
+        try
+        {
+            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetInternalGroups(userConfig.User.Jwt);
+            if (middlewareServerResponse.Status != HttpStatusCode.OK)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+            }
+            else
+            {
+                foreach (var ldapUserGroup in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allGroups"))
+                {
+                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
+                    foreach (var userDn in ldapUserGroup.Value)
+                    {
+                        UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
+                        group.Users.Add(newUser);
+                    }
+                    groups.Add(group);
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), null, true);
+        }
+    }
+
+    private async Task GetRolesFromInternalLdap()
+    {
+        try
+        {
+            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetAllRoles(userConfig.User.Jwt);
+            if (middlewareServerResponse.Status != HttpStatusCode.OK)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+            }
+            else
+            {
+                foreach (var ldapRole in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
+                {
+                    Role role = new Role() { Dn = ldapRole.Key, Name = (new DistName(ldapRole.Key)).Role };
+                    foreach (var roleAttr in ldapRole.Value)
+                    {
+                        if (roleAttr.Key == "description")
+                        {
+                            role.Description = roleAttr.Value;
+                        }
+                        else if (roleAttr.Key == "user")
+                        {
+                            UiUser newUser = new UiUser() { Dn = roleAttr.Value, Name = (new DistName(roleAttr.Value)).UserName };
+                            role.Users.Add(newUser);
+                        }
+                    }
+                    roles.Add(role);
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), null, true);
         }
     }
 
@@ -454,6 +600,10 @@
         selectedLdapId = writableLdaps.FirstOrDefault().Id;
         SetAvailableTenants();
         selectedTenantId = availableTenants.FirstOrDefault().Id;
+        selectedGroupName = null;
+        newUser.Groups = new List<string>();
+        selectedRoleName = null;
+        newUser.Roles = new List<string>();
         Edit(newUser);
     }
 
@@ -465,6 +615,10 @@
         selectedLdapId = (newUser.LdapConnection != null ? newUser.LdapConnection.Id :  writableLdaps.FirstOrDefault().Id);
         SetAvailableTenants();
         selectedTenantId = newUser.Tenant.Id;
+        selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
+        newUser.Groups = new List<string>();
+        selectedRoleName = (newUser.Roles != null ? newUser.Roles.FirstOrDefault() : null);
+        newUser.Roles = new List<string>();
         Edit(newUser);
     }
 
@@ -484,6 +638,16 @@
         // todo: further dn specification maybe in ldapconnection?
         user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
             (selectedLdap.TenantLevel > 0 ? ",ou=" + selectedTenant.Name : "") + "," + selectedLdap.UserSearchPath;
+        user.Groups = new List<string>();
+        if(selectedGroupName != null)
+        {
+            user.Groups.Add(selectedGroupName);
+        }
+        user.Roles = new List<string>();
+        if(selectedRoleName != null)
+        {
+            user.Roles.Add(selectedRoleName);
+        }
     }
 
     private async Task Save()
@@ -492,23 +656,12 @@
         {
             if (AddMode)
             {
-                // Todo: Further value checks?
-                string errorMsg;
                 SynchronizeUserData(actUser); 
-                if (actUser.Name == null || actUser.Name == "" || actUser.Password == null || actUser.Password == "")
+
+                if (CheckValues())
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
-                }
-                else if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
-                }
-                else if (actUser.LdapConnection.TenantLevel > 0 && (actUser.Tenant == null || !tenants.Exists(x => x.Name == actUser.Tenant.Name)))
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
-                }
-                else
-                {
+                    SynchronizeUserData(actUser); 
+
                     // insert new user to ldap
                     MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUser(actUser.LdapConnection.Host(), actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
                     if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("userAdded") == false)
@@ -520,6 +673,8 @@
                         actUser.PasswordMustBeChanged = true;
                         await addUserToDb(actUser);
                         uiUsers.Add(actUser);
+                        await AddUserToGroupsInLdap(actUser);
+                        await AddUserToRolesInLdap(actUser);
                         AddMode = false;
                         EditMode = false;
                     }
@@ -544,6 +699,70 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_user"), null, true);
+        }
+    }
+
+    private bool CheckValues()
+    {
+        string errorMsg;
+        if (actUser.Name == null || actUser.Name == "" || actUser.Password == null || actUser.Password == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
+            return false;
+        }
+        if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
+            return false;
+        }
+        if (actUser.LdapConnection.TenantLevel > 0 && (actUser.Tenant == null || !tenants.Exists(x => x.Name == actUser.Tenant.Name)))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
+            return false;
+        }
+        if (uiUsers.Exists(x => x.Dn == actUser.Dn))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task AddUserToGroupsInLdap(UiUser user)
+    {
+        try
+        {
+            foreach(string groupName in user.Groups)
+            {
+                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUserToGroup(user.Dn, groups.Find(x => x.Name == groupName).Dn, userConfig.User.Jwt);
+                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userAdded") == false))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5242"), true);
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_group"), null, true);
+        }
+    }
+
+    private async Task AddUserToRolesInLdap(UiUser user)
+    {
+        try
+        {
+            foreach(string roleName in user.Roles)
+            {
+                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUserToRole(user.Dn, roles.Find(x => x.Name == roleName).Dn, userConfig.User.Jwt);
+                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userAdded") == false))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5255"), true);
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), null, true);
         }
     }
 

@@ -1,0 +1,34 @@
+
+- name: copy database test files to backend target
+  copy: src="sql/test" dest="{{ database_install_dir }}/sql" owner="{{ fworch_user }}" group="{{ fworch_user }}"
+  become: yes
+
+- set_fact:
+    unit_test_scripts:
+      - unit-tests.sql
+      - hasura-test.sql
+      - unit-test-cleanup.sql
+#   when: installation_mode == 'upgrade'
+
+# # do not run hasura tests during first install (as the tables are not there yet)
+# - set_fact:
+#     unit_test_scripts:
+#       - unit-tests.sql
+#       - unit-test-cleanup.sql
+#   when: installation_mode == 'new'
+
+- name: run db unit tests
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    path_to_script: "{{ database_install_dir }}/sql/test/{{ item }}"
+  become: yes
+  become_user: "postgres"
+  register: testresults
+  loop: "{{ unit_test_scripts }}"
+  tags:
+    - unittest
+    - test
+
+- name: Print db test results
+  debug: 
+    msg: "test results: {{ testresults | to_nice_json }}"

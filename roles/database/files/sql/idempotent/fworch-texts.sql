@@ -45,6 +45,8 @@ INSERT INTO txt VALUES ('jwt_expiry',           'German', 	'JWT abgelaufen');
 INSERT INTO txt VALUES ('jwt_expiry',           'English', 	'JWT expired');
 INSERT INTO txt VALUES ('api_access',           'German', 	'Zugang zur API');
 INSERT INTO txt VALUES ('api_access',           'English', 	'API access');
+INSERT INTO txt VALUES ('none',		            'German', 	'Keine(r/s)');
+INSERT INTO txt VALUES ('none',		            'English', 	'None');
 
 -- login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -370,8 +372,8 @@ INSERT INTO txt VALUES ('recertify',		    'German', 	'Rezertifizieren');
 INSERT INTO txt VALUES ('recertify',		    'English', 	'Recertify');
 INSERT INTO txt VALUES ('decertify',		    'German', 	'Dezertifizieren');
 INSERT INTO txt VALUES ('decertify',		    'English', 	'Decertify');
-INSERT INTO txt VALUES ('none',		            'German', 	'Sp&auml;ter');
-INSERT INTO txt VALUES ('none',		            'English', 	'None');
+INSERT INTO txt VALUES ('later',		        'German', 	'Sp&auml;ter');
+INSERT INTO txt VALUES ('later',		        'English', 	'None');
 INSERT INTO txt VALUES ('due_within',		    'German', 	'F&auml;llig in (Tagen)');
 INSERT INTO txt VALUES ('due_within',		    'English', 	'Due within (days)');
 INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln laden');
@@ -532,8 +534,8 @@ INSERT INTO txt VALUES ('from_ldap',            'German', 	'von LDAP');
 INSERT INTO txt VALUES ('from_ldap',            'English', 	'from LDAP');
 INSERT INTO txt VALUES ('search_pattern',       'German', 	'Suchmuster');
 INSERT INTO txt VALUES ('search_pattern',       'English', 	'Search Pattern');
-INSERT INTO txt VALUES ('new_dn',               'German', 	'Neu (Dn)');
-INSERT INTO txt VALUES ('new_dn',               'English', 	'New (Dn)');
+INSERT INTO txt VALUES ('internal_group',       'German', 	'Interne Gruppe');
+INSERT INTO txt VALUES ('internal_group',       'English', 	'Internal Group');
 INSERT INTO txt VALUES ('user_group',           'German', 	'Nutzer/Gruppe');
 INSERT INTO txt VALUES ('user_group',           'English', 	'User/Group');
 INSERT INTO txt VALUES ('add_gateway',          'German', 	'Gateway hinzuf&uuml;gen');
@@ -676,8 +678,6 @@ INSERT INTO txt VALUES ('fetch_ldap_conn',      'German', 	'LDAP-Verbindungen ho
 INSERT INTO txt VALUES ('fetch_ldap_conn',      'English', 	'Fetch LDAP connections');
 INSERT INTO txt VALUES ('search_users',         'German', 	'Nutzer suchen');
 INSERT INTO txt VALUES ('search_users',         'English', 	'Search Users');
-INSERT INTO txt VALUES ('new_user',             'German', 	'Neuer Nutzer');
-INSERT INTO txt VALUES ('new_user',             'English', 	'New User');
 INSERT INTO txt VALUES ('get_tenant_data',      'German', 	'Mandantendaten abholen');
 INSERT INTO txt VALUES ('get_tenant_data',      'English', 	'Get tenant data');
 INSERT INTO txt VALUES ('add_tenant',           'German', 	'Mandant hinzuf&uuml;gen');
@@ -732,8 +732,16 @@ INSERT INTO txt VALUES ('left_sidebar',         'German', 	'Linke Randleiste');
 INSERT INTO txt VALUES ('left_sidebar',         'English', 	'Left Sidebar');
 INSERT INTO txt VALUES ('right_sidebar',        'German', 	'Rechte Randleiste');
 INSERT INTO txt VALUES ('right_sidebar',        'English', 	'Right Sidebar');
-INSERT INTO txt VALUES ('introduction',         'German', 	'Einleitung');
-INSERT INTO txt VALUES ('introduction',         'English', 	'Introduction');
+INSERT INTO txt VALUES ('api_general',          'German', 	'API allgemein');
+INSERT INTO txt VALUES ('api_general',          'English', 	'API general');
+INSERT INTO txt VALUES ('api_user_mgmt',        'German', 	'User Management');
+INSERT INTO txt VALUES ('api_user_mgmt',        'English', 	'User Management');
+INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
+INSERT INTO txt VALUES ('api_umgmt_auth',       'English', 	'Authentication');
+INSERT INTO txt VALUES ('umgmt_auth_expl',      'German', 	'Zur Authentisierung verwenden Sie folgenden API-Call, der bei erfolgreicher Authentisierung einen JWT zur&uuml;ckliefert');
+INSERT INTO txt VALUES ('umgmt_auth_expl',      'English', 	'For authentication use the following API call, which will return a JWT for the user upon successful authentication');
+INSERT INTO txt VALUES ('api_fwo',              'German', 	'FWO API');
+INSERT INTO txt VALUES ('api_fwo',              'English', 	'FWO API');
 INSERT INTO txt VALUES ('graphql',              'German', 	'GraphQL');
 INSERT INTO txt VALUES ('graphql',              'English', 	'GraphQL');
 INSERT INTO txt VALUES ('hasura',               'German', 	'Hasura');
@@ -766,6 +774,8 @@ INSERT INTO txt VALUES ('get_with_jwt',         'German', 	'Holen der Namen alle
 INSERT INTO txt VALUES ('get_with_jwt',         'English', 	'Get the names of all firewall managements using standard JWT access');
 INSERT INTO txt VALUES ('get_with_jwt_role',    'German', 	'Holen der Namen aller Firewall-Managements mit Standard-JWT-Zugang und spezifischer Rolle');
 INSERT INTO txt VALUES ('get_with_jwt_role',    'English', 	'Get the names of all firewall managements using standard JWT access and specifying a certain role');
+INSERT INTO txt VALUES ('get_single_dev_rules', 'German', 	'Alle aktuellen Regeln von Gateway mit ID 1 holen');
+INSERT INTO txt VALUES ('get_single_dev_rules', 'English', 	'Get all current rules of gateway with ID 1');
 INSERT INTO txt VALUES ('parameters',           'German', 	'Parameter');
 INSERT INTO txt VALUES ('parameters',           'English',  'Parameters');
 
@@ -922,6 +932,8 @@ INSERT INTO txt VALUES ('E5207', 'German',  'kein internes LDAP gefunden');
 INSERT INTO txt VALUES ('E5207', 'English', 'No internal LDAP found');
 INSERT INTO txt VALUES ('E5208', 'German',  'Keine Nutzer gefunden');
 INSERT INTO txt VALUES ('E5208', 'English', 'No users found');
+INSERT INTO txt VALUES ('E5210', 'German',  'Nutzer (Dn) existiert bereits');
+INSERT INTO txt VALUES ('E5210', 'English', 'User (Dn) is already existing');
 INSERT INTO txt VALUES ('E5211', 'German',  'Name und Passwort m&uuml;ssen gef&uuml;llt sein');
 INSERT INTO txt VALUES ('E5211', 'English', 'Name and Password have to be filled');
 INSERT INTO txt VALUES ('E5212', 'German',  'Unbekannter Mandant');
@@ -970,14 +982,14 @@ INSERT INTO txt VALUES ('E5244', 'German',  'Zu l&ouml;schender Nutzer nicht gef
 INSERT INTO txt VALUES ('E5244', 'English', 'User to delete not found');
 INSERT INTO txt VALUES ('E5245', 'German',  'Nicht-Beispielnutzer zur Gruppe zugeordnet. L&ouml;schen nicht m&ouml;glich');
 INSERT INTO txt VALUES ('E5245', 'English', 'Non-sample user assigned to group. Delete not possible');
+INSERT INTO txt VALUES ('E5246', 'German',  'Gruppe konnte der Rolle im LDAP nicht zugewiesen werden');
+INSERT INTO txt VALUES ('E5246', 'English', 'Group could not be added to role in LDAP');
 INSERT INTO txt VALUES ('E5251', 'German',  'Keine Rollen gefunden');
 INSERT INTO txt VALUES ('E5251', 'English', 'No roles found');
 INSERT INTO txt VALUES ('E5252', 'German',  'Bitte nutzen sie ein Suchmuster mit Mindestl&auml;nge ');
 INSERT INTO txt VALUES ('E5252', 'English', 'Please use pattern of min length ');
-INSERT INTO txt VALUES ('E5253', 'German',  'Bitte einen richtigen Nutzer definieren');
-INSERT INTO txt VALUES ('E5253', 'English', 'Please define a proper user');
-INSERT INTO txt VALUES ('E5254', 'German',  'Nutzer ist dieser Rolle schon zugewiesen');
-INSERT INTO txt VALUES ('E5254', 'English', 'User is already assigned to this role');
+INSERT INTO txt VALUES ('E5254', 'German',  'Nutzer/Gruppe ist dieser Rolle schon zugewiesen');
+INSERT INTO txt VALUES ('E5254', 'English', 'User/group is already assigned to this role');
 INSERT INTO txt VALUES ('E5255', 'German',  'Nutzer konnte der Rolle im LDAP nicht zugewiesen werden');
 INSERT INTO txt VALUES ('E5255', 'English', 'User could not be added to role in LDAP');
 INSERT INTO txt VALUES ('E5256', 'German',  'Der letzte Admin kann nicht gel&ouml;scht werden');
@@ -1505,12 +1517,22 @@ INSERT INTO txt VALUES ('H5153', 'English', 'Device Type*: Out of a list of avai
 INSERT INTO txt VALUES ('H5154', 'German',  'Management*: W&auml;hlen Sie das Management, welches dieses Gateway kontrolliert. Wenn zu einem Beispielmanagement zugeordnet, wird es mitgel&ouml;scht, wenn die "Beispieldaten l&ouml;schen"-Schaltfl&auml;che bei den Managementeinstellungen bet&auml;tigt wird.');
 INSERT INTO txt VALUES ('H5154', 'English', 'Management*: Select the management system that controls this gateway. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page.');
 INSERT INTO txt VALUES ('H5155', 'German',  'Rulebase*: Hier wird der Name der Rulebase hinterlegt.
-    F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").
-    For Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".
+    <ul>
+        <li>F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").</li>
+        <li>F&uuml;r Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".</li>
+        <li>F&uuml;r Fortinet-Systeme muss jedes Gateway (auch jede vdom) als separates Management mit einem einzelnen Gateway eingeragen werden.
+            Bei vdoms sind sowohl Management-Name, Gateway-Name als auch Regelwerksname wie folgt zu bilden: Systemname___vdom-Name (Trennzeichen: 3x Unterstrich) 
+        </li>
+    </ul>
 ');
 INSERT INTO txt VALUES ('H5155', 'English', 'Rulebase*: Enter the name of the rulebase here. 
-    For Check Point R8x the top level access layer name goes here (default is "Network").
-    For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".
+    <ul>
+        <li>For Check Point R8x the top level access layer name goes here (default is "Network").</li>
+        <li>For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
+        <li>For Fortinet systems every gateway (and every vdom) must be defined as a separate management system with a single gateway.
+            When dealing with vdoms set management name, gateway name and rulebase name as follows: system name___vdom name (separator: 3x underscore) 
+            </li>
+    </ul>
 ');
 INSERT INTO txt VALUES ('H5156', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
 INSERT INTO txt VALUES ('H5156', 'English', 'Import Disabled: Flag if the data import is disabled.');
@@ -1551,6 +1573,8 @@ INSERT INTO txt VALUES ('H5201', 'English', 'Admins can create and administrate 
     Deletion is only allowed, if it is not the internal Ldap (defined by the existence of a role search path) and if it is not the last Ldap.<br>
     The clone button helps defining new Ldaps by copying the data from existing ones. Before saving at least the address or port number have to be changed.
 ');
+INSERT INTO txt VALUES ('H5210', 'German',  'Name*: Name des verbundenen Ldap. Kann frei gew&auml;hlt werden. Wenn nicht vergeben, wird der Host (Adresse:Port) dargestellt.');
+INSERT INTO txt VALUES ('H5210', 'English', 'Name*: Name of the connected Ldap to be freely given. If not assigned the Host (Address:Port) is displayed.');
 INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Adresse des verbundenen Ldap (z.B. IP-Adresse)');
 INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Address of the connected Ldap (e.g. IP address).');
 INSERT INTO txt VALUES ('H5212', 'German',  'Port*: Portnummer des verbundenen Ldap.');
@@ -1619,12 +1643,14 @@ INSERT INTO txt VALUES ('H5248', 'German',  'Gateways: Alle mit diesem Mandanten
 INSERT INTO txt VALUES ('H5248', 'English', 'Gateways: All gateways related to this tenant.');
 INSERT INTO txt VALUES ('H5261', 'German',  'Hier werden alle dem System bekannten Nutzer dargestellt.
     Das sind alle im internen Ldap angelegten Nutzer, sowie Nutzer von externen Ldaps, die sich schon mindestens einmal angemeldet haben.<br>
-    Der Administrator kann Nutzer anlegen, &auml;ndern oder l&ouml;schen.
+    Der Administrator kann Nutzer anlegen, &auml;ndern oder l&ouml;schen. Beim Anlegen besteht auch die M&ouml;glichkeit, sofort Gruppen- und Rollenzugeh&ouml;rigkeiten festzulegen.
+    Weitere Gruppen- und Rollenzuordnungen k&ouml;nnen dann in den Abschnitten <a href="/help/settings/groups">Gruppen</a> bzw. <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
     Wenn Beispieldaten (definiert durch die Endung "_demo" vom Nutzernamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
 ');
 INSERT INTO txt VALUES ('H5261', 'English', 'Here all users known to the system are displayed. 
     These are all users defined in the internal Ldap and users from external Ldaps who have already logged in at least once.<br>
-    The administrator can add, change or delete users.
+    The administrator can add, change or delete users. When adding there is the possibility to assign group or role memberships.
+    Further memberships can be administrated in the <a href="/help/settings/groups">groups</a> resp. <a href="/help/settings/roles">roles</a> sections.<br>
     If there are sample data (defined by the ending "_demo" of the user name), a button is displayed to delete them.
 ');
 INSERT INTO txt VALUES ('H5271', 'German',  'Aktionen: Nutzer k&ouml;nnen geklont, ge&auml;ndert oder gel&ouml;scht werden.
@@ -1655,11 +1681,13 @@ INSERT INTO txt VALUES ('H5278', 'English', 'Pwd Chg Req: Flag that the user has
     The flag is set when a new user is added or when the admin has reset the password, 
     except for users with auditor role, because that role is not allowed to make any changes in the system.
 ');
-INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren.<br>
+INSERT INTO txt VALUES ('H5301', 'German',  'Der Admin kann Nutzergruppen im internen Ldap definieren. Dabei besteht die M&ouml;glichkeit, sie gleich einer Rolle zuzuordnen.
+    Weitere Rollenzuordnungen k&ouml;nnen dann unter <a href="/help/settings/roles">Rollen</a> erfolgen.<br>
     Wenn Beispieldaten (definiert durch die Endung "_demo" vom Gruppennamen) existieren, wird eine Schaltfl&auml;che angezeigt, um diese zu l&ouml;schen.
     Die L&ouml;schung ist nicht m&ouml;glich, wenn Nutzer, die nicht als Beispielnutzer gekennzeichnet sind (Name endet nicht auf "_demo"), der Gruppe zugeordnet sind.
 ');
-INSERT INTO txt VALUES ('H5301', 'English', 'Groups of users can be defined by the admin in the internal Ldap.<br>
+INSERT INTO txt VALUES ('H5301', 'English', 'Groups of users can be defined by the admin in the internal Ldap. When adding there is the possibility to assign a role membership.
+    Further memberships can be administrated in the <a href="/help/settings/roles">roles</a> section.<br>
     If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
     The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
 ');
@@ -1700,9 +1728,9 @@ INSERT INTO txt VALUES ('H5351', 'English', 'Search in one of the <a href="/help
     For that the syntax is the same as searching directly in the connected Ldap.
 ');
 INSERT INTO txt VALUES ('H5352', 'German',  'Auswahl aus der Liste der bekannten Nutzer, wie sie in den <a href="/help/settings/users">Nutzereinstellungen</a> dargestellt wird.');
-INSERT INTO txt VALUES ('H5352', 'English', 'Select from the list of known users also displayed in the <a href="/help/settings/users">Users settings</a>.');
-INSERT INTO txt VALUES ('H5353', 'German',  'Manuelle Eingabe des Distinguished name (Dn).');
-INSERT INTO txt VALUES ('H5353', 'English', 'Manually insert a new distinguished name (Dn).');
+INSERT INTO txt VALUES ('H5352', 'English', 'Select from the list of known users also displayed in the <a href="/help/settings/users">users settings</a>.');
+INSERT INTO txt VALUES ('H5353', 'German',  'Auswahl aus der Liste der internen Gruppen, wie sie in den <a href="/help/settings/groups">Gruppeneinstellungen</a> dargestellt wird.');
+INSERT INTO txt VALUES ('H5353', 'English', 'Select from the list of internal groups also displayed in the <a href="/help/settings/groups">groups settings</a>.');
 INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
     Manche von ihnen k&ouml;nnen in den individuellen Nutzereinstellungen &uuml;berschrieben werden.
 ');
@@ -1790,22 +1818,33 @@ INSERT INTO txt VALUES ('H5481', 'English', 'A recertifier can overwrite some pe
     The default value is set by the admin in the <a href="/help/settings/defaults">Default Settings</a>.
 ');
 
-INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator hat eine <a href="/help/API/graphql">GraphQl</a> API welche auf <a href="/help/API/hasura">Hasura</a> basiert. 
-    Diese erlaubt, flexibel den Zugang zu allen Daten der Datenbank und die Granularit&auml;t der zur&uuml;ckgegebenen Daten zu steuern.
+INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:
+    <ul>
+        <li>Die Haupt- (oder FWO) API, die den Zugriff auf die Firewall-Nutzdaten erlaubt.</li>
+        <li>Die User Management API, mit deren Hilfe der die Firewall Orchestrator Nutzer ausgelesen oder ge&auml;ndert werden k&ouml;nnen.</li>
+    </ul>
+    Die FWO API ist eine <a href="/help/API/graphql">GraphQl</a> API, welche auf <a href="/help/API/hasura">Hasura</a> basiert. 
+    Diese erlaubt es, flexibel den Zugang zu allen Daten der Datenbank und die Granularit&auml;t der zur&uuml;ckgegebenen Daten zu steuern.
+    <br>
+    <br>
+    Die User Management API erm&ouml;glicht sowohl die Benutzer-Authentifizierung als auch das Anlegen von lokalen Nutzern sowie die Vergabe von Berechtigungen in Form von Rollen oder Tenant-Zugeh&ouml;rigkeit auf Nutzer- und Nutzergruppenebene.
+    <br><br>
+    Beim Testen der API-Zugriffe ohne g&uuml;ltiges Zertifikat kann der "--insecure" parameter bei den angegebenen curl Beispielen verwendet werden.
 ');
-INSERT INTO txt VALUES ('H6001', 'English', 'Firewall Orchestrator has a <a href="/help/API/graphql">GraphQl</a> API which is based on <a href="/help/API/hasura">Hasura</a>. 
-    This allows us to flexibly provide access to all data in the database and also define the level of granularity the data is returned in.
+INSERT INTO txt VALUES ('H6001', 'English', 'Firewall Orchestrator features two APIs:
+    <ul>
+        <li>The main (or FWO) API which allows access to the firewall configuration data</li>
+        <li>The User Management API which can be used to handle Firewall Orchestrator users</li>
+    </ul>
+
+    The FWO API is a <a href="/help/API/graphql">GraphQl</a> API which is based on <a href="/help/API/hasura">Hasura</a>. 
+    This allows us to flexibly provide access to all data in the database and also define the level of granularity the data is returned in.<br>
+    <br>
+    The User Management API allows user authentication as well as user manipulation such as listing, adding, deleting, changing users and 
+    their access permissions (roles and tenant memberships).
+    <br><br>
+    Note that when API testing without a valid certificate installed for your API, consider using the "--insecure" parameter for your curl test calls.
 ');
-INSERT INTO txt VALUES ('H6011', 'German',  'Der Abschnitt "Einleitung" gibt einen kurzen &Uuml;berblick in die zugrundeliegende Technologie wie <a href="/help/API/graphql">GraphQl</a>
-    und <a href="/help/API/hasura">Hasura</a>, gibt einen Einblick in die <a href="/help/API/security">Sicherheits</a>-Mechanismen sowie
-    <a href="/help/API/links">weiterf&uuml;hrendes</a> Material.
-');
-INSERT INTO txt VALUES ('H6011', 'English', 'The section "Introduction" provides a quick overview touching basic underlying technology like <a href="/help/API/graphql">GraphQl</a> 
-    and <a href="/help/API/hasura">Hasura</a>, gives some insight into <a href="/help/API/security">Security</a> mechanisms as well as 
-    <a href="/help/API/links">further reading</a> material.
-');
-INSERT INTO txt VALUES ('H6012', 'German',  'Das Kapitel "Wichtige Kommandos" liefert detailliertere Beispiele f&uuml;r die Nutzung der API.');
-INSERT INTO txt VALUES ('H6012', 'English', 'The chapter "Basic commands" gives more detailed examples for the usage of the API.');
 INSERT INTO txt VALUES ('H6101', 'German',  'GraphQL nutzt einen leicht anderen Ansatz als REST, indem es keine fixen Entry points zur API definiert.
     Stattdessen hat man die Freiheit, eine exakt auf die gew&uuml;nschte Detailtiefe angepasste Query zu nutzen. 
 ');
@@ -1813,13 +1852,13 @@ INSERT INTO txt VALUES ('H6101', 'English', 'GraphQL uses a slightly different a
     Instead you are free to use a custom query specifying exactly which level of detail you want to return each time.
 ');
 INSERT INTO txt VALUES ('H6102', 'German',  'GraphQL bietet eine interaktive Web-Oberfl&auml;che, die genutzt werden kann, um Querys und Mutations zu erstellen und zu testen.<br>
-    Sie kann unter folgendem Link erreicht werden: <code>https://&lt;Name ihrer Firewall Orchestrator-Instanz&gt;:9443/api/</code>.
+    Sie kann unter folgendem Link erreicht werden: <code>https://"Name ihrer Firewall Orchestrator-Instanz":9443/api/</code>.
 ');
 INSERT INTO txt VALUES ('H6102', 'English', 'GraphQL provides you with an interactive web user interface that can be used to construct and test queries as well as mutations.<br>
-    It can be accesses via the following link: <code>https://&lt;name of your firewall orchestrator instance&gt;:9443/api/</code>.
+    It can be accesses via the following link: <code>https://"name of your firewall orchestrator instance":9443/api/</code>.
 ');
 INSERT INTO txt VALUES ('H6103', 'German',  'Das Admin Kennwort kann auf dem API-Server in folgender Datei gefunden werden:');
-INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in following file:');
+INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in the following file:');
 INSERT INTO txt VALUES ('H6201', 'German',  '<a href="https://hasura.io/" target="_blank">Hasura</a> stellt einen Link zur darunterliegenden PostgreSQL-Datenbank zur Verf&uuml;gung.<br>
     Es implementiert eine Zugriffskontrollschicht und k&ouml;nnte auch einen REST API Zugang anbieten, falls Bedarf besteht.
 ');
@@ -1850,8 +1889,8 @@ INSERT INTO txt VALUES ('H6501', 'German',  'Der Middlewareserver liefert den JW
 INSERT INTO txt VALUES ('H6501', 'English', 'The middleware server provides the JWT for authentication against the API.');
 INSERT INTO txt VALUES ('H6601', 'German',  'Es gibt keine spezielle Abmeldefunktionalit&auml;t. Wenn der JWT ung&uuml;ltig wird, kann die API einfach nicht mehr damit genutzt werden.');
 INSERT INTO txt VALUES ('H6601', 'English', 'There is no specific logout functionality. When the JWT becomes invalid, API simply can no longer be made with this JWT.');
-INSERT INTO txt VALUES ('H6701', 'German',  '(Bitte beachten, dass diese Query nicht funktionieren kann, da der JWT nicht mehr g&uuml;ltig ist.)');
-INSERT INTO txt VALUES ('H6701', 'English', '(Note that the query will not work as the sample JWT is not valid anymore.)');
+INSERT INTO txt VALUES ('H6701', 'German',  '(Bitte ihren aktuellen JWT in der Query einsetzen. Der hier angegebene JWT ist nicht mehr g&uuml;ltig.)');
+INSERT INTO txt VALUES ('H6701', 'English', '(Note that the query will not work as the sample JWT is not valid anymore. Please use a current JWT.)');
 INSERT INTO txt VALUES ('H6702', 'German',  'Ergebnis auf einem System mit Beispieldaten:');
 INSERT INTO txt VALUES ('H6702', 'English', 'Result on a system with demo data:');
 INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation (funktioniert noch nicht) setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');

@@ -87,3 +87,57 @@ curl --request POST \
 }
 '
 ```
+
+## get a list of fw rules
+
+```console
+curl --request POST \
+  --url https://10.5.1.55/jsonrpc \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "method": "get",
+  "params": [
+    {
+      "url": "/pm/config/adom/my_adom/pkg/mypkg/firewall/policy"
+    }
+  ],
+	"verbose": 1,
+  "id": 2,
+  "session": "++7z161rod0cGMaStLUWohDpyUnsyT030tNuLPyVYvIhd0GCLXwp9vCJRKnYV4I0Q\/di1bSL3Wf7o8oNnWu6cw=="
+}'
+```
+
+## get nat rules
+
+### get snat rules
+```console
+{
+  "method": "get",
+  "params": [
+    {
+      "url": "/pm/config/adom/my_adom/pkg/mypkg/firewall/central-snat-map"
+    }
+  ],
+	"verbose": 1,
+  "id": 2,
+  "session": "++7z161rod0cGMaStLUWohDpyUnsyT030tNuLPyVYvIhd0GCLXwp9vCJRKnYV4I0Q\/di1bSL3Wf7o8oNnWu6cw=="
+}'
+```
+### get dnat rules
+
+```console
+curl --request POST \
+  --url https://10.5.1.55/jsonrpc \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "method": "get",
+  "params": [
+    {
+      "url": "/pm/config/adom/my_adom/pkg/mypkg/firewall/central/dnat"
+    }
+  ],
+	"verbose": 1,
+  "id": 2,
+  "session": "++7z161rod0cGMaStLUWohDpyUnsyT030tNuLPyVYvIhd0GCLXwp9vCJRKnYV4I0Q\/di1bSL3Wf7o8oNnWu6cw=="
+}'
+```

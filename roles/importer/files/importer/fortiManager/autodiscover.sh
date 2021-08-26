@@ -12,10 +12,9 @@ EXIT_BUG=3
 EXIT_SUCCESS=0
 
 
-#KEY='/usr/local/fworch/.ssh/id_rsa_forti'
-KEY='/home/ize0871/.ssh/id_rsa_forti'
+KEY='/usr/local/fworch/.ssh/id_rsa_forti'
 USER='itsecorg'
-SERVER='172.20.128.10'
+SERVER='1.1.1.1'
 REMCOM='diagnose dvm device list'
 DEBUGMODE=0
 GREP="/bin/fgrep"
@@ -58,9 +57,9 @@ while getopts 'dhH:C:D:' OPTION ; do
    esac
 done
 
-: ${SERVER:='172.20.128.10'}
-: ${USER:='itsecorg'}
-: ${KEY:='/home/ize0871/.ssh/id_rsa_forti'}
+# : ${SERVER:='1.1.1.1'}
+# : ${USER:='itsecorg'}
+# : ${KEY:='/usr/local/fworch/.ssh/id_rsa_forti'}
  
 DEBUG () {
       if [ $DEBUGMODE -gt 0 ]; then

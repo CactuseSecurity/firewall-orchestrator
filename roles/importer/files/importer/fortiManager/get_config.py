@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# create api user
+# create api user:
 # config system admin user
 #    edit "apiuser"
 #        set password xxx
@@ -57,25 +57,62 @@ ssl_verification = getter.set_ssl_verification(args.ssl)
 
 starttime = int(time.time())
 # top level dict start
-sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string)
+sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string=proxy_string,debug=debug_level)
 v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
 
-config_json = { 'adoms': [] }
-get_adoms = {
-  "method": "get",
-  "params": [{}],
-}
+config_json = {}
 
-# read all rulebases:
-for layer in args.layer.split(','):
-    logging.debug ( "get_config - dealing with layer: " + layer )
+# get global objects
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/adom/root/obj/firewall/address", "ipv4_objects", debug=debug_level)
+# api_url = "/pm/config/adom/global/obj/firewall/address" # --> error
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/adom/root/obj/firewall/address6", "ipv6_objects", debug=debug_level)
 
-    adoms = getter.api_call(api_host, api_port, v_url, '/dvmdb/adom', get_adoms, sid, ssl_verification, proxy_string)
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/global/obj/application/list", "app_list_objects", debug=debug_level)
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/global/obj/application/group", "app_group_objects", debug=debug_level)
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/global/obj/application/categories", "app_categories", debug=debug_level)
 
-    config_json['adoms'].append(adoms)
+#    user: /pm/config/global/obj/user/local
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/global/obj/user/local", "users_local", debug=debug_level)
 
-# leaving rules, moving on to objects
+# get all custom adoms:
+q_get_custom_adoms = { "params": [ { "fields": ["name", "oid", "uuid"], "filter": ["create_time", "<>", 0] } ] }
+adoms = getter.fortinet_api_call(sid, v_url, '/dvmdb/adom', payload=q_get_custom_adoms, debug=debug_level)
 
+# get root adom:
+q_get_root_adom = { "params": [ { "fields": ["name", "oid", "uuid"], "filter": ["name", "==", "root"] } ] }
+adom_root = getter.fortinet_api_call(sid, v_url, '/dvmdb/adom', payload=q_get_root_adom, debug=debug_level).pop()
+adoms.append(adom_root)
+config_json.update({ "adoms": adoms })
+
+# get all devices
+# q_get_devices = { "params": [ { "fields": ["name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status"] } ] }
+# getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/dvmdb/device", "devices", payload=q_get_devices, debug=debug_level)
+
+# for each adom get devices
+for adom in config_json["adoms"]:
+  q_get_devices_per_adom = { "params": [ { "fields": ["name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status"] } ] }
+  devs = getter.fortinet_api_call(sid, v_url, "/dvmdb/adom/" + adom["name"] + "/device", payload=q_get_devices_per_adom, debug=debug_level)
+  adom.update({"devices": devs})
+
+# for each adom get packages
+for adom in config_json["adoms"]:
+  packages = getter.fortinet_api_call(sid, v_url, "/pm/pkg/adom/" + adom["name"], debug=debug_level)
+  adom.update({"packages": packages})
+
+# now: find mapping device <--> package
+
+# get rulebases 
+# for adom in config_json["adoms"]:
+#   for pkg_name in ["mypkg"]:
+#     config_json.update({"rulebases_per_adom": {} })
+#     api_path = "/pm/config/adom/" + adom['name'] + "/pkg/" + pkg_name + "/firewall/policy"
+#     rules = getter.fortinet_api_call(sid, v_url, api_path, debug=debug_level)
+#     config_json["devices_per_adom"].update({adom_name: rules})
+
+#for layer in args.layer.split(','):
+#    logging.debug ( "get_config - dealing with layer: " + layer )
+
+# now dumping results to file
 with open(config_filename, "w") as configfile_json:
     configfile_json.write(json.dumps(config_json))
 
@@ -86,7 +123,7 @@ logout_payload = {
   "params": [ {} ],
 }
 
-logout_result = getter.api_call(api_host, args.port, v_url, 'sys/logout', logout_payload, sid, ssl_verification, proxy_string)
+logout_result = getter.api_call(v_url, 'sys/logout', logout_payload, sid, ssl_verification, proxy_string)
 duration = int(time.time()) - starttime
 logging.debug ( "fortiManager/get_config - duration: " + str(duration) + "s" )
 

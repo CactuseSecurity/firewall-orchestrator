@@ -1,33 +1,34 @@
-
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import logging
 import json
 import common
 
 
 def csv_dump_nw_obj(nw_obj, import_id):
-    result_line = '"' + import_id + '"' + common.csv_delimiter  # control_id
-    result_line += '"' + nw_obj['obj_name'] + '"' + common.csv_delimiter  # obj_name
-    result_line += '"' + nw_obj['obj_typ'] + '"' + common.csv_delimiter  # ob_typ
-    result_line += '"' + nw_obj['obj_member_names'] + '"' + common.csv_delimiter  # obj_member_names
-    result_line += '"' + nw_obj['obj_member_refs'] + '"' + common.csv_delimiter  # obj_member_refs
-    result_line += common.csv_delimiter  # obj_sw
+    result_line =  common.csv_add_field(import_id)                  # control_id
+    result_line += common.csv_add_field(nw_obj['obj_name'])         # obj_name
+    result_line += common.csv_add_field(nw_obj['obj_typ'])          # ob_typ
+    result_line += common.csv_add_field(nw_obj['obj_member_names']) # obj_member_names
+    result_line += common.csv_add_field(nw_obj['obj_member_refs'])  # obj_member_refs
+    result_line += common.csv_delimiter                             # obj_sw
     if nw_obj['obj_typ'] == 'group':
-        result_line += common.csv_delimiter  # obj_ip for groups = null
+        result_line += common.csv_delimiter                         # obj_ip for groups = null
     else:
-        result_line += '"' + nw_obj['obj_ip'] + '"' + common.csv_delimiter  # obj_ip
+        result_line += common.csv_add_field(nw_obj['obj_ip'])       # obj_ip
     if 'obj_ip_end' in nw_obj:
-        result_line += '"' + nw_obj['obj_ip_end'] + '"' + common.csv_delimiter         # obj_ip_end
+        result_line += common.csv_add_field(nw_obj['obj_ip_end'])   # obj_ip_end
     else:
         result_line += common.csv_delimiter
-    result_line += '"' + nw_obj['obj_color'] + '"' + common.csv_delimiter  # obj_color
-    result_line += '"' + nw_obj['obj_comment'] + '"' + common.csv_delimiter  # obj_comment
-    result_line += common.csv_delimiter  # result_line += '"' + nw_obj['obj_location'] + '"' + csv_delimiter       # obj_location
+    result_line += common.csv_add_field(nw_obj['obj_color'])        # obj_color
+    result_line += common.csv_add_field(nw_obj['obj_comment'])      # obj_comment
+    result_line += common.csv_delimiter                             # obj_location
     if 'obj_zone' in nw_obj:
-        result_line += '"' + nw_obj['obj_zone'] + '"' + common.csv_delimiter           # obj_zone
+        result_line += common.csv_add_field(nw_obj['obj_zone'])     # obj_zone
     else:
         result_line += common.csv_delimiter
-    result_line += '"' + nw_obj['obj_uid'] + '"' + common.csv_delimiter  # obj_uid
-    result_line += common.csv_delimiter  # last_change_admin
+    result_line += common.csv_add_field(nw_obj['obj_uid'])          # obj_uid
+    result_line += common.csv_delimiter                             # last_change_admin
     # add last_change_time
     result_line += common.line_delimiter
     return result_line
@@ -35,13 +36,6 @@ def csv_dump_nw_obj(nw_obj, import_id):
 
 # collect_nw_objects from object tables and write them into global nw_objects dict
 def collect_nw_objects(object_table, nw_objects):
-    result = ''  # todo: delete this line
-    # nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
-    # nw_obj_type_to_host_list = [
-    #     'address-range', 'multicast-address-range',
-    #     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 
-    #     'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
-    # ]
     nw_obj_type_to_host_list = [
         'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiAnyObject', 
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
@@ -75,11 +69,6 @@ def collect_nw_objects(object_table, nw_objects):
                     # logging.debug("parse_network::collect_nw_objects - rewriting non-standard cp-host-type '" + obj['name'] + "' with object type '" + obj_type + "' to host")
                     # logging.debug("obj_dump:" + json.dumps(obj, indent=3))
                     obj_type = 'host'
-                # else:
-                    # if not obj['type'] in ['host', 'network', 'group'] or obj['name']=='test-interop-device' or obj['name']=='test-ext-vpn-gw':
-                        # logging.debug("parse_network::collect_nw_objects - for '" + obj['name'] + "' we are using standard object type '" + obj['type'] + "'")
-                        # logging.debug("obj_dump:" + json.dumps(obj, indent=3))
-
                 # adding the object:
                 nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
                                         'obj_comment': obj['comments'],

@@ -3,6 +3,7 @@ import logging
 csv_delimiter = '%'
 list_delimiter = '|'
 line_delimiter = "\n"
+apostrophe = "\""
 section_header_uids=[]
 
 nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']  
@@ -54,3 +55,14 @@ def get_ip_of_obj(obj):
         ip_addr = '0.0.0.0/0'
     return ip_addr
 
+
+def csv_add_field(content, no_csv_delimiter=False):
+    if content == '' and not no_csv_delimiter:  # do not add apostrophes for empty fields
+        field_result = csv_delimiter
+    else:
+        # add apostrophes at beginning and end and escape any ocurrence of them within the string 
+        field_result = apostrophe + content.replace('"', '\"') + apostrophe
+        if not no_csv_delimiter:
+            field_result += csv_delimiter
+    return field_result
+ 

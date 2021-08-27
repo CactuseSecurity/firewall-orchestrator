@@ -1,5 +1,6 @@
-#!/usr/bin/python3
 # library for API get functions
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import json, argparse, pdb
 import time, logging, re, sys, logging
 import os

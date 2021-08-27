@@ -1,38 +1,39 @@
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import re
 import logging
 import common
 
 
 def csv_dump_svc_obj(svc_obj, import_id):
-    #print("dumping svc: " + svc_obj['svc_name'] + ", svc_member_refs: " + svc_obj['svc_member_refs'])
-    result_line = '"' + import_id + '"' + common.csv_delimiter  # control_id
-    result_line += '"' + svc_obj['svc_name'] + '"' + common.csv_delimiter  # svc_name
-    result_line += '"' + svc_obj['svc_typ'] + '"' + common.csv_delimiter  # svc_typ
-    result_line += '"' + svc_obj['svc_typ'] + '"' + common.csv_delimiter  # svc_prod_specific
-    result_line += '"' + svc_obj['svc_member_names'] + '"' + common.csv_delimiter  # svc_member_names
-    result_line += '"' + svc_obj['svc_member_refs'] + '"' + common.csv_delimiter  # obj_member_refs
-    result_line += '"' + svc_obj['svc_color'] + '"' + common.csv_delimiter  # svc_color
-    result_line += '"' + svc_obj['ip_proto'] + '"' + common.csv_delimiter  # ip_proto
-    result_line += str(svc_obj['svc_port']) + common.csv_delimiter  # svc_port
-    result_line += str(svc_obj['svc_port_end']) + common.csv_delimiter  # svc_port_end
+    result_line =  common.csv_add_field(import_id)                          # control_id
+    result_line += common.csv_add_field(svc_obj['svc_name'])                # svc_name
+    result_line += common.csv_add_field(svc_obj['svc_typ'])                 # svc_typ
+    result_line += common.csv_add_field(svc_obj['svc_typ'])                 # svc_prod_specific
+    result_line += common.csv_add_field(svc_obj['svc_member_names'])        # svc_member_names
+    result_line += common.csv_add_field(svc_obj['svc_member_refs'])         # obj_member_refs
+    result_line += common.csv_add_field(svc_obj['svc_color'])               # svc_color
+    result_line += common.csv_add_field(svc_obj['ip_proto'])                # ip_proto
+    result_line += str(svc_obj['svc_port']) + common.csv_delimiter          # svc_port
+    result_line += str(svc_obj['svc_port_end']) + common.csv_delimiter      # svc_port_end
     if 'svc_source_port' in svc_obj:
-        result_line += '"' + svc_obj['svc_source_port'] + '"' + common.csv_delimiter       # svc_source_port
+        result_line += common.csv_add_field(svc_obj['svc_source_port'])     # svc_source_port
     else:
-        result_line += common.csv_delimiter  # svc_source_port
+        result_line += common.csv_delimiter                                 # svc_source_port
     if 'svc_source_port_end' in svc_obj:
-        result_line += '"' + svc_obj['svc_source_port_end'] + '"' + common.csv_delimiter   # svc_source_port_end
+        result_line += common.csv_add_field(svc_obj['svc_source_port_end']) # svc_source_port_end
     else:
-        result_line += common.csv_delimiter  # svc_source_port_end
-    result_line += '"' + svc_obj['svc_comment'] + '"' + common.csv_delimiter  # svc_comment
-    result_line += '"' + str(svc_obj['rpc_nr']) + '"' + common.csv_delimiter  # rpc_nr
+        result_line += common.csv_delimiter                                 # svc_source_port_end
+    result_line += common.csv_add_field(svc_obj['svc_comment'])             # svc_comment
+    result_line += common.csv_add_field(str(svc_obj['rpc_nr']))             # rpc_nr
     if 'svc_timeout_std' in svc_obj:
-        result_line += '"' + svc_obj['svc_timeout_std'] + '"' + common.csv_delimiter       # svc_timeout_std
+        result_line += common.csv_add_field(svc_obj['svc_timeout_std'])     # svc_timeout_std
     else:
-        result_line += common.csv_delimiter  # svc_timeout_std
-    result_line += str(svc_obj['svc_timeout']) + common.csv_delimiter  # svc_timeout
-    result_line += '"' + svc_obj['svc_uid'] + '"' + common.csv_delimiter  # svc_uid
-    result_line += common.csv_delimiter  # last_change_admin
-    result_line += common.line_delimiter    #  last_change_time
+        result_line += common.csv_delimiter                                 # svc_timeout_std
+    result_line += str(svc_obj['svc_timeout']) + common.csv_delimiter       # svc_timeout
+    result_line += common.csv_add_field(svc_obj['svc_uid'])                 # svc_uid
+    result_line += common.csv_delimiter                                     # last_change_admin
+    result_line += common.line_delimiter                                    # last_change_time
     return result_line
 
 

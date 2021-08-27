@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import common 
 import parse_network, parse_rule, parse_service, parse_user
 import argparse

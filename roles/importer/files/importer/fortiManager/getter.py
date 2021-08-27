@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 # library for API get functions
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import json, argparse, pdb
 import time, logging, re, sys, logging
 import os
@@ -20,7 +22,7 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
             p.update({"url": command})
     if method == '':
         method = 'get'
-        json_payload.update({"method": method})
+    json_payload.update({"method": method})
 
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
@@ -37,7 +39,6 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
 def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string, debug=0):
     payload = {
         "id": 1,
-        "method": "exec",
         "params": [
             {
             "data": [
@@ -57,6 +58,18 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
         sys.exit(1)
     return response["session"]
+
+
+def logout(v_url, sid, ssl_verification='', proxy_string='', debug=0, method='exec'):
+    payload = { "params": [ {} ] }
+
+    response = api_call(v_url, 'sys/logout', payload, sid, ssl_verification=ssl_verification, proxy_string=proxy_string, method="exec", debug=debug)
+    if "result" in response and "status" in response["result"][0] and "code" in response["result"][0]["status"] and response["result"][0]["status"]["code"]==0:
+        logging.debug("\nsuccessfully logged out")
+    else:
+        logging.exception("\ngetter ERROR: did not get status code 0 when logging out, " +
+            "api call: url: " + str(v_url) + ",  + payload: " + str(payload) + ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+        sys.exit(1)
 
 
 def set_ssl_verification(ssl_verification_mode):

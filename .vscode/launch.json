@@ -1,60 +1,81 @@
 {
-   // Use IntelliSense to find out which attributes exist for C# debugging
-   // Use hover for the description of the existing attributes
-   // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
    "version": "0.2.0",
    "configurations": [
-        {
-            "name": ".NET FWO Test",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build_test",
-            "program": "/usr/bin/dotnet",
-            // "program": "${workspaceFolder}/roles/test/files/FWO_Test/bin/Debug/net5.0/FWO.Test.dll",
-            "args": ["test"],
-            "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
-            "stopAtEntry": false,
-            "console": "internalConsole"
-        },
-        {
-            "name": "Blazor (web)",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/net5.0/FWO.Ui.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
-            "stopAtEntry": false,
-            "serverReadyAction": {
-                "action": "openExternally",
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            {
+                "name": "py-cpr8x",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": { "PYTHONPATH":"${PYTHONPATH}:${workspaceRoot}"},
+                "args": ["-a localhost", "-u hugo", "-w secret", "-l layer1", "-c/home/tim/tmp/blb_mgm.cfg.anon"]
+            },            
+            {
+                "name": "py-fortimanager",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": { "PYTHONPATH":"${PYTHONPATH}:${workspaceRoot}"},
+                "args": ["-a10.5.1.55", "-uapiuser", "-w/home/tim/tmp/passwd", "-llayer1", "-d 1", "-o/tmp/outfile"]
             },
-            "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
+            {
+                "name": "py-FWO",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "env": { "PYTHONPATH":"${PYTHONPATH}:${workspaceRoot}"},
+                "args": ["-m 1", "-d 1"]
             },
-            "sourceFileMap": {
-                "/Views": "${workspaceFolder}/Views"
+            {
+                "name": "c#-FWO Test",
+                "type": "coreclr",
+                "request": "launch",
+                "preLaunchTask": "build_test",
+                "program": "/usr/bin/dotnet",
+                "args": ["test"],
+                "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
+                "stopAtEntry": false,
+                "console": "internalConsole"
+            },
+            {
+                "name": "c#-Blazor UI",
+                "type": "coreclr",
+                "request": "launch",
+                "preLaunchTask": "build_UI",
+                "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/net5.0/FWO.Ui.dll",
+                "args": [],
+                "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
+                "stopAtEntry": false,
+                "serverReadyAction": {
+                    "action": "openExternally",
+                    "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+                },
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development"
+                },
+                "sourceFileMap": {
+                    "/Views": "${workspaceFolder}/Views"
+                }
+            },
+            {
+                "name": "c#-.NET Core Attach ",
+                "type": "coreclr",
+                "request": "attach",
+                "processId": "${command:pickProcess}"
+            },
+            {
+                "name": "c#-MiddlewareServer",
+                "type": "coreclr",
+                "request": "launch",
+                "preLaunchTask": "build_middleware",
+                "enableStepFiltering": false,
+                "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net5.0/FWO.Middleware.Server.dll",
+                "args": [],
+                "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
+                "console": "internalConsole",
+                "stopAtEntry": false
             }
-        },
-        {
-            "name": ".NET Core Attach ",
-            "type": "coreclr",
-            "request": "attach",
-            "processId": "${command:pickProcess}"
-        },
-        {
-            "name": "MiddlewareServer",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build_middleware",
-            "enableStepFiltering": false,
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net5.0/FWO.Middleware.Server.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "internalConsole",
-            "stopAtEntry": false
-        }
-    ]
+       ]
 }

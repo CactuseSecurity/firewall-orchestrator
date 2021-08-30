@@ -112,7 +112,7 @@
     admin_password: "{{ random_generated_pw }}"
   when: (testkeys is not defined or not testkeys|bool) and installation_mode == 'new'
 
-- name: write admin_password password to secrets directory
+- name: write ui admin_password to secrets directory
   copy:
     content: "{{ admin_password }}"
     dest: "{{ ui_admin_password_file }}"
@@ -126,6 +126,30 @@
   ldap_passwd:
     dn: uid=admin,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
     passwd: "{{ admin_password }}"
+    server_uri: "{{ openldap_url }}"
+    bind_dn: "{{ openldap_superuser_dn }}"
+    bind_pw: "{{ ldap_manager_pwd }}"
+  when: installation_mode == 'new'
+
+- name: set importer user password randomly
+  set_fact:
+    importer_password: "{{ random_generated_pw }}"
+  when: (testkeys is not defined or not testkeys|bool) and installation_mode == 'new'
+
+- name: write importer_password to secrets directory
+  copy:
+    content: "{{ importer_password }}"
+    dest: "{{ importer_password_file }}"
+    mode: '0600'
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
+  when: installation_mode == 'new'
+
+- name: Set importer password in ldap
+  ldap_passwd:
+    dn: uid=import_user,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+    passwd: "{{ importer_password }}"
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"

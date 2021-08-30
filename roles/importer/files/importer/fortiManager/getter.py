@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # library for API get functions
 import sys
 sys.path.append(r"/usr/local/fworch/importer")

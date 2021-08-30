@@ -6,6 +6,14 @@ cn: admin
 sn: user
 
 
+dn: uid=importer,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+objectClass: top
+objectclass: inetorgperson
+cn: importer
+sn: user
+
+
 {% if audit_user is defined -%}
 dn: uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}

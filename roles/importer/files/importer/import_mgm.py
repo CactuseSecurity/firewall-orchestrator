@@ -13,6 +13,7 @@
 #         otherwise: make an extra FWORCH API call to start import with import_id y
 #         release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 
+from symbol import except_clause
 import common
 import re
 import logging
@@ -101,8 +102,9 @@ requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 user_management_api_base_url = 'https://localhost:8888/'
 method = 'AuthenticateUser' 
-
-jwt = fwo_api.login("user1_demo", "cactus1", user_management_api_base_url, method)
+ssl_mode = args.ssl
+proxy_setting = args.proxy
+jwt = fwo_api.login("user1_demo", "cactus1", user_management_api_base_url, method, ssl_verification=ssl_mode, proxy_string=proxy_setting)
 
 fwo_api_base_url = 'https://localhost:9443/api/v1/graphql'
 query_variables={"mgmId": int(args.mgm_id)}
@@ -112,63 +114,72 @@ check_import_lock = """query runningImportForManagement($mgmId: Int!) {
     control_id
   }
 }"""
-running_import_id = fwo_api.call(fwo_api_base_url, jwt, check_import_lock, query_variables=query_variables, role='importer'); 
-
-lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
-import_id = fwo_api.call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables, role='importer'); 
-
-if import_id < 0:
-    logging.exception(
-        "failed to get import lock for management id " + str(args.mgm_id))
-    sys.exit(1)
-else:
+response = fwo_api.call(fwo_api_base_url, jwt, check_import_lock, query_variables=query_variables, role='importer', ssl_verification=ssl_mode, proxy_string=proxy_setting)
+if 'data' in response and 'import_control' in response['data'] and len(response['data']['import_control'])==1:
+    logging.exception("\nERROR: import for management already running.")
+    sys.exit(1)    
+if 'data' in response and 'import_control' in response['data'] and len(response['data']['import_control'])==0:
+    lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
+    try:
+        lock_result = fwo_api.call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables, role='importer'); 
+        current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
+    except: 
+        logging.exception("failed to get import lock for management id " + str(args.mgm_id))
+        sys.exit(1)
     start_time = int(time.time())
-    print(logging.info(
-        "start import of management {mgm_id} import_id={import_id}"))
-        # $error_count_global = &error_handler_add($current_import_id, $error_level = 3, "set-import-lock-failed", !defined($current_import_id), $error_count_global);
-        # $error_count_global = &error_handler_add($current_import_id, $error_level = 2, "import-already-running: $mgm_name (ID: $mgm_id)",
-        # 	$import_was_already_running, $error_count_global);
+    logging.info("start import of management {mgm_id} import_id={current_import_id}")
+            # $error_count_global = &error_handler_add($current_import_id, $error_level = 3, "set-import-lock-failed", !defined($current_import_id), $error_count_global);
+            # $error_count_global = &error_handler_add($current_import_id, $error_level = 2, "import-already-running: $mgm_name (ID: $mgm_id)",
+            # 	$import_was_already_running, $error_count_global);
 
-#         check if we need to import (md5, better api call if anything has changed since last import)
-#         get config
-#         enrich config (if needed)
+    #         check if we need to import (md5, better api call if anything has changed since last import)
+    #         get config
+    #         enrich config (if needed)
 
-        # if (!$initial_import_flag) {
-        # 	$prev_imp_id	= exec_pgsql_cmd_return_value("SELECT get_last_import_id_for_mgmt($mgm_id)");
-        # 	$prev_imp_time	= exec_pgsql_cmd_return_value("SELECT start_time FROM import_control WHERE control_id=$prev_imp_id AND successful_import");
+            # if (!$initial_import_flag) {
+            # 	$prev_imp_id	= exec_pgsql_cmd_return_value("SELECT get_last_import_id_for_mgmt($mgm_id)");
+            # 	$prev_imp_time	= exec_pgsql_cmd_return_value("SELECT start_time FROM import_control WHERE control_id=$prev_imp_id AND successful_import");
 
-        # 1) read names of rulebases of each device from database
-        # copy config data from management system to fworch import system
-        # &CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso
+            # 1) read names of rulebases of each device from database
+            # copy config data from management system to fworch import system
+            # &CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso
 
-        # check if config has changed
-    # 2) parse config
-    # CACTUS:: FWORCH: : import: : parser: : parse_config ($obj_file, $rule_file, $user_file, $rulebases, $fworch_workdir, $debug_level, $mgm_name, $cfg_dir,
-    #     $current_import_id, "$cfg_dir/$audit_log_file", $prev_imp_time, $fullauditlog, $debug_level);
-    # remove_import_lock($current_import_id)
-    # set_last_change_time($last_change_time_of_config, $current_import_id);  # Zeit eintragen, zu der die letzte Aenderung an der Config vorgenommen wurde (tuning)
-    # if ($clear_whole_mgm_config)
-    #    xxx
-    # if (-e $csv_usr_file) {& iconv_2_utf8($csv_usr_file, $fworch_workdir); }		# utf-8 conversion of user data
-    # fill_import_tables_from_csv($dev_typ_id, $csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, $rulebases, $fworch_workdir, $csv_auditlog_file);
+            # check if config has changed
+        # 2) parse config
+        # CACTUS:: FWORCH: : import: : parser: : parse_config ($obj_file, $rule_file, $user_file, $rulebases, $fworch_workdir, $debug_level, $mgm_name, $cfg_dir,
+        #     $current_import_id, "$cfg_dir/$audit_log_file", $prev_imp_time, $fullauditlog, $debug_level);
+        # remove_import_lock($current_import_id)
+        # set_last_change_time($last_change_time_of_config, $current_import_id);  # Zeit eintragen, zu der die letzte Aenderung an der Config vorgenommen wurde (tuning)
+        # if ($clear_whole_mgm_config)
+        #    xxx
+        # if (-e $csv_usr_file) {& iconv_2_utf8($csv_usr_file, $fworch_workdir); }		# utf-8 conversion of user data
+        # fill_import_tables_from_csv($dev_typ_id, $csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, $rulebases, $fworch_workdir, $csv_auditlog_file);
 
-    # if (!exec_pgsql_cmd_return_value("SET client_min_messages TO NOTICE; SELECT import_all_main($current_import_id)")) {$error_count_local = 1;
-    #    exec_pgsql_cmd_return_value("SET client_min_messages TO DEBUG1; SELECT import_all_main($current_import_id)");
-    # exec_pgsql_cmd_return_value("SELECT show_change_summary($current_import_id)");
-    # exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id"); }
+        # if (!exec_pgsql_cmd_return_value("SET client_min_messages TO NOTICE; SELECT import_all_main($current_import_id)")) {$error_count_local = 1;
+        #    exec_pgsql_cmd_return_value("SET client_min_messages TO DEBUG1; SELECT import_all_main($current_import_id)");
+        # exec_pgsql_cmd_return_value("SELECT show_change_summary($current_import_id)");
+        # exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id"); }
+    error_count_global = 0
     if (error_count_global):
         logging.warning ("Import of management $mgm_name (mgm_id=$mgm_id, import_id=$current_import_id): FOUND $error_count_global error(s)\n")
     else:
         logging.debug("Import of management $mgm_name (mgm_id={mgm_id}, import_id={current_import_id}), total time: ") 
-            # . sprintf("%.2fs", (time() - $first_start_time)) . "): no errors found" . (($changes_found)?"": ", no changes found") . "\n");
-            # exec_pgsql_cmd_no_result($sql_cmd); # if no error occured - set import_control.successful_import to true
-         # exec_pgsql_cmd_no_result("DELETE FROM import_control WHERE control_id=$current_import_id"); # remove imports with unchanged data
-         # exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id");
-        # 'UPDATE import_control SET successful_import=TRUE' . (($changes_found)? ', changes_found=TRUE': '') . ' WHERE control_id=' . $current_import_id;
-    # Cleanup and statistics
-    #&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()
-    #&clean_up_fworch_db($current_import_id);
-    # `cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
+                # . sprintf("%.2fs", (time() - $first_start_time)) . "): no errors found" . (($changes_found)?"": ", no changes found") . "\n");
+                # exec_pgsql_cmd_no_result($sql_cmd); # if no error occured - set import_control.successful_import to true
+            # exec_pgsql_cmd_no_result("DELETE FROM import_control WHERE control_id=$current_import_id"); # remove imports with unchanged data
+            # exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id");
+            # 'UPDATE import_control SET successful_import=TRUE' . (($changes_found)? ', changes_found=TRUE': '') . ' WHERE control_id=' . $current_import_id;
+        # Cleanup and statistics
+        #&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()
+        #&clean_up_fworch_db($current_import_id);
+        # `cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
+    
+else:
+    logging.exception("\nunknonw ERROR" +
+        ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
+        ", ssl_verification: " + str(ssl_mode) + ", proxy_string: " + str(proxy_string))
+    sys.exit(1)    
+
 
 logging.debug ( "import duration: " + str(int(time.time()) - start_time) + "s" )
 sys.exit(0)

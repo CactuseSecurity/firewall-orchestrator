@@ -17,7 +17,7 @@
                 "program": "${file}",
                 "console": "integratedTerminal",
                 "env": { "PYTHONPATH":"${PYTHONPATH}:${workspaceRoot}"},
-                "args": ["-a10.5.1.55", "-uapiuser", "-w/home/tim/tmp/passwd", "-llayer1", "-d 1", "-o/tmp/outfile"]
+                "args": ["-a10.5.1.55", "-uapiuser", "-w/home/tim/tmp/passwd", "-llayer1", "-d1", "-o/tmp/outfile"]
             },
             {
                 "name": "py-FWO",
@@ -26,7 +26,7 @@
                 "program": "${file}",
                 "console": "integratedTerminal",
                 "env": { "PYTHONPATH":"${PYTHONPATH}:${workspaceRoot}"},
-                "args": ["-m 1", "-d 1"]
+                "args": ["-m1", "-d1"]
             },
             {
                 "name": "c#-FWO Test",
@@ -75,7 +75,11 @@
                 "args": [],
                 "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
                 "console": "internalConsole",
-                "stopAtEntry": false
+                "stopAtEntry": false,
+                "serverReadyAction": {
+                    "action": "openExternally",
+                    "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+                }
             }
        ]
 }

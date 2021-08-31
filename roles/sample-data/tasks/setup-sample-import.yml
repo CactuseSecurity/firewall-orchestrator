@@ -45,7 +45,6 @@
         dest: "{{ sample_config_user_home }}"
         owner: "{{ sample_config_user }}"
         group: "{{ fworch_group }}"
-      when: sample_role_purpose is not match('test')
 
   become: yes
   

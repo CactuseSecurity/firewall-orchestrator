@@ -4,17 +4,21 @@
     name: sample-data
   vars:
     sample_role_purpose: test
-    sample_fortigate_name: fortigate_test
+    sample_fortigate_name: "{{ test_fortigate_name }}"
     sample_config_user: fworchtest
     sample_config_user_home: "/home/{{ sample_config_user }}"
     import_sample_server: localhost
 
 - name: make test import
-  command: "./fworch-importer-single.pl mgm_id=1"
+  command: "./fworch-importer-single.pl mgm_name={{ test_fortigate_name }}"
   args:
     chdir: "{{ fworch_home }}/importer"
   become_user: "{{ fworch_user }}"
   become: yes
+
+- name: break to check if working, remove later
+  pause:
+    minutes: 25
 
 - name: delete test user and dir
   user:
@@ -28,7 +32,7 @@
     db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN 
-      DELETE FROM device WHERE dev_name='fortigate_test'; 
+      DELETE FROM device WHERE dev_name='{{ test_fortigate_name }}'; 
       END $do$ 
   become: yes
   become_user: postgres
@@ -38,13 +42,13 @@
     db: "{{ fworch_db_name }}"
     query: >
       DO $do$ BEGIN 
-      DELETE FROM management WHERE mgm_name='fortigate_test'; 
+      DELETE FROM management WHERE mgm_name='{{ test_fortigate_name }}'; 
       END $do$ 
   become: yes
   become_user: postgres
 
 - name: make test import
-  command: "./fworch-importer-single.pl mgm_id=1"
+  command: "./fworch-importer-single.pl mgm_name={{ test_fortigate_name }}"
   args:
     chdir: "{{ fworch_home }}/importer"
   become_user: "{{ fworch_user }}"

@@ -36,6 +36,20 @@
             ]
         },
         {
+            "name": "py-cpr8x-parse-config",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-f/home/tim/tmp/sting.cfg",
+                "-rFirstLayer shared with inline layer"
+            ]
+        },
+        {
             "name": "py-fortimanager",
             "type": "python",
             "request": "launch",

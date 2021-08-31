@@ -141,7 +141,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
             first_rule_time = rule_time[0]
             rule_csv += common.csv_add_field(first_rule_time['name'])  # time
 
-            rule_csv += common.csv_add_field(rule['comments'])  # time
+            rule_csv += common.csv_add_field(rule['comments'])  # comments
 
             if 'name' in rule:
                 rule_name = rule['name']

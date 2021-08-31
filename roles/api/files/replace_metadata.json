@@ -1458,6 +1458,30 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "control_id",
+                      "start_time",
+                      "stop_time",
+                      "is_initial_import",
+                      "delimiter_group",
+                      "delimiter_zone",
+                      "delimiter_user",
+                      "delimiter_list",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "successful_import",
+                      "changes_found",
+                      "import_errors"
+                    ],
+                    "backend_only": false
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -1476,6 +1500,28 @@
                       "successful_import",
                       "changes_found",
                       "import_errors"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "control_id",
+                      "changes_found",
+                      "is_initial_import",
+                      "successful_import",
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1553,6 +1599,38 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "control_id",
+                      "changes_found",
+                      "is_initial_import",
+                      "successful_import",
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
                   }
                 }
               ]

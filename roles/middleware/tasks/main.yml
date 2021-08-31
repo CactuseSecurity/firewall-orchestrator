@@ -148,7 +148,7 @@
 
 - name: Set importer password in ldap
   ldap_passwd:
-    dn: uid=import_user,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+    dn: uid=importer,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
     passwd: "{{ importer_password }}"
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"

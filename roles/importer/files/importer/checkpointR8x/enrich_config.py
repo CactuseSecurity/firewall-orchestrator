@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import sys
 sys.path.append(r"/usr/local/fworch/importer")
-import common, getter
+import cpcommon, common, getter
 import json, argparse, pdb, sys, time, logging
 import requests, requests.packages.urllib3
 import os

@@ -14,6 +14,6 @@ add the following for python debugging (replacing the parameter with sensible va
             "program": "${file}",
             "console": "integratedTerminal",
             "env": { "PYTHONPATH":"${PYTHONPATH}:${workspaceRoot}"},
-            "args": ["-a localhost", "-u hugo", "-w ~/api_pwd", "-l layer1", "-c/home/tim/tmp/blb_mgm.cfg.anon"]
+            "args": ["-a localhost", "-u hugo", "-w ~/api_pwd", "-l layer1", "-c/home/tim/tmp/mgm1.cfg.anon"]
         },
 ```

@@ -2,7 +2,7 @@ import sys
 sys.path.append(r"/usr/local/fworch/importer")
 import re
 import logging
-import common
+import common, cpcommon
 import json
 
 

@@ -2,7 +2,7 @@ import sys
 sys.path.append(r"/usr/local/fworch/importer")
 import re
 import logging
-import common
+import common, cpcommon
 
 
 def csv_dump_svc_obj(svc_obj, import_id):

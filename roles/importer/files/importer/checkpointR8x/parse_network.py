@@ -2,7 +2,7 @@ import sys
 sys.path.append(r"/usr/local/fworch/importer")
 import logging
 import json
-import common
+import common, cpcommon
 
 
 def csv_dump_nw_obj(nw_obj, import_id):

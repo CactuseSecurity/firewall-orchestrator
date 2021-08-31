@@ -5,7 +5,7 @@ import json, argparse, pdb
 import time, logging, re, sys, logging
 import os
 import requests, requests.packages.urllib3
-import common
+import cpcommon
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 

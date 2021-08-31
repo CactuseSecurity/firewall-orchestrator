@@ -16,10 +16,6 @@
   become_user: "{{ fworch_user }}"
   become: yes
 
-- name: break to check if working, remove later
-  pause:
-    minutes: 25
-
 - name: delete test user and dir
   user:
     name: test
@@ -46,10 +42,3 @@
       END $do$ 
   become: yes
   become_user: postgres
-
-- name: make test import
-  command: "./fworch-importer-single.pl mgm_name={{ test_fortigate_name }}"
-  args:
-    chdir: "{{ fworch_home }}/importer"
-  become_user: "{{ fworch_user }}"
-  become: yes

@@ -41,7 +41,7 @@ def collect_nw_objects(object_table, nw_objects):
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
     ]
 
-    if object_table['object_type'] in common.nw_obj_table_names:
+    if object_table['object_type'] in cpcommon.nw_obj_table_names:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
                 members = ''
@@ -53,7 +53,7 @@ def collect_nw_objects(object_table, nw_objects):
                     for member in obj['members']:
                         member_refs += member + common.list_delimiter
                     member_refs = member_refs[:-1]
-                ip_addr = common.get_ip_of_obj(obj)
+                ip_addr = cpcommon.get_ip_of_obj(obj)
                 first_ip = ip_addr
                 last_ip = ip_addr
                 obj_type = obj['type']

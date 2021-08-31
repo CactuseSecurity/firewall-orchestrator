@@ -41,7 +41,7 @@ def csv_dump_svc_obj(svc_obj, import_id):
 def collect_svc_objects(object_table, svc_objects):
     result = ''
 
-    if object_table['object_type'] in common.svc_obj_table_names:
+    if object_table['object_type'] in cpcommon.svc_obj_table_names:
         proto = ''
         session_timeout = ''
         typ = 'undef'

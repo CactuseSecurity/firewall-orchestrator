@@ -25,11 +25,10 @@ our %EXPORT_TAGS = (
         $output_method $dbdriver
         $echo_bin $chmod_bin $scp_bin $ssh_bin $scp_batch_mode_switch $ssh_client_screenos
         $fworch_database $fworch_srv_host $fworch_srv_user $fworch_srv_user $fworch_srv_port $fworch_srv_pw $psql_exe $psql_params
-        &get_client_id_for_user_via_ldap
         &get_client_filter &get_device_ids_for_mgm
         &eval_boolean_sql &exec_pgsql_file &exec_pgsql_cmd &exec_pgsql_cmd_no_result
         &exec_pgsql_cmd_return_value &exec_pgsql_cmd_return_array_ref &exec_pgsql_cmd_return_table_ref
-        &copy_file_to_db &read_user_client_classification_from_ldap &get_rulebase_names &get_ruleset_name_list &evaluate_parameters &replace_import_id_in_csv
+        &copy_file_to_db &get_rulebase_names &get_ruleset_name_list &evaluate_parameters &replace_import_id_in_csv
     ) ]);
 
 our @EXPORT = (@{$EXPORT_TAGS{'basic'}});
@@ -58,10 +57,6 @@ our $csv_user_delimiter = &CACTUS::read_config::read_config("csv_user_delimiter"
 our $fworch_srv_user = &CACTUS::read_config::read_config("fworch_srv_user");
 our $psql_exe = &CACTUS::read_config::read_config("psql_exe");
 our $psql_params = &CACTUS::read_config::read_config("psql_params");
-our $LDAP_enabled = &CACTUS::read_config::read_config("LDAP_enabled");
-our $LDAP_c = &CACTUS::read_config::read_config("LDAP_c");
-our $LDAP_o = &CACTUS::read_config::read_config("LDAP_o");
-our $LDAP_server = &CACTUS::read_config::read_config("LDAP_server");
 our $dbdriver = "Pg";
 #our $ssh_id_basename = 'id_dsa';
 our $ssh_id_basename = 'import_user_secret';
@@ -535,32 +530,6 @@ sub replace_special_chars {
     $output->close;
 }
 
-############################################################
-# get_client_id_for_user_via_ldap 
-# 
-############################################################
-sub get_client_id_for_user_via_ldap {
-    if (!$LDAP_enabled) {return undef;}
-
-    require Net::LDAP;
-
-    my $user_id = $_[0];
-    my ($ldap, $mesg, $entry, $user_name, $result);
-
-    $user_name = &exec_pgsql_cmd_return_value("SELECT user_name FROM usr WHERE user_id=$user_id");
-    $ldap = Net::LDAP->new($LDAP_server) or die "$@";
-    $mesg = $ldap->bind;   # an anonymous bind
-    $mesg = $ldap->search( # perform a search
-        base   => "c=$LDAP_c",
-        filter => "(&(cn=$user_name) (o=$LDAP_o))"
-    );
-    $mesg->code && die $mesg->error;
-    if (count($mesg->entries) != 1) {return undef;}
-    foreach $entry ($mesg->entries) {$result = $entry->dump;}
-    $mesg = $ldap->unbind; # take down session
-    return $result;
-}
-
 
 ############################################################
 # replace_import_id_in_csv
@@ -919,26 +888,6 @@ sub get_ruleset_name_list {
     	return $1;
     }
     return $result;
-}
-
-# falls LDAP vorhanden: Benutzer im LDAP nachschlagen und die Tenant-Zuordnung machen
-sub read_user_client_classification_from_ldap {
-    my $fehler = shift;
-    my $current_import_id = shift;
-
-    if (0 && !$fehler) {
-        # for all changes on users in current import lookup user in LDAP if found update client in usr
-        my $user_changes = &exec_pgsql_cmd_return_table_ref
-            ("SELECT * FROM changelog_user WHERE control_id=$current_import_id AND NOT change_action='D' ", 'new_user_id');
-        my ($client_id, $usr_id);
-        foreach $usr_id (keys %$user_changes) {
-            #					$usr_id = $user_changes->{"$user_change_id"}{"new_user_id"};
-            $client_id = &get_client_id_for_user_via_ldap($usr_id);
-            if (defined($client_id)) {
-                &exec_pgsql_cmd_no_result("UPDATE usr SET client_id=$client_id WHERE user_id=$usr_id");
-            }
-        }
-    }
 }
 
 sub evaluate_parameters {

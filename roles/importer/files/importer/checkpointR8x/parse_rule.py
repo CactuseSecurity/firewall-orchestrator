@@ -15,13 +15,13 @@ def create_section_header(section_name, layer_name, import_id, rule_uid, rule_nu
     header_rule_csv += common.csv_add_field('False')            # rule_disabled
     header_rule_csv += common.csv_add_field('False')            # rule_src_neg
     header_rule_csv += common.csv_add_field('Any')              # src
-    header_rule_csv += common.csv_add_field(common.any_obj_uid) # src_refs
+    header_rule_csv += common.csv_add_field(cpcommon.any_obj_uid) # src_refs
     header_rule_csv += common.csv_add_field('False')            # rule_dst_neg
     header_rule_csv += common.csv_add_field('Any')              # dst
-    header_rule_csv += common.csv_add_field(common.any_obj_uid) # dst_refs
+    header_rule_csv += common.csv_add_field(cpcommon.any_obj_uid) # dst_refs
     header_rule_csv += common.csv_add_field('False')            # rule_svc_neg
     header_rule_csv += common.csv_add_field('Any')              # svc
-    header_rule_csv += common.csv_add_field(common.any_obj_uid) # svc_refs
+    header_rule_csv += common.csv_add_field(cpcommon.any_obj_uid) # svc_refs
     header_rule_csv += common.csv_add_field('Accept')           # action
     header_rule_csv += common.csv_add_field('Log')              # track
     header_rule_csv += common.csv_add_field('Policy Targets')   # install-on
@@ -86,7 +86,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
                 elif src['type'] == 'access-role':
                     if isinstance(src['networks'], str):  # just a single source
                         if src['networks'] == 'any':
-                            rule_src_ref += src['uid'] + '@' + common.any_obj_uid + common.list_delimiter
+                            rule_src_ref += src['uid'] + '@' + cpcommon.any_obj_uid + common.list_delimiter
                         else:
                             rule_src_ref += src['uid'] + '@' + src['networks'] + common.list_delimiter
                     else:  # more than one source

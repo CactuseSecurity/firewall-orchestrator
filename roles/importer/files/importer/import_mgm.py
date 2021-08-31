@@ -92,13 +92,8 @@ requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 #      import a single management (if no import for it is running)
 #         lock mgmt for import via FWORCH API call, generating new import_id y
 
-# get import info
-# ($error_count_local, $error_str_local, $mgm_name, $dev_typ_id, $obj_file_base,$obj_file,$user_file_base,$user_file,$rule_file_base,$rule_file,
-# 		$csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, $csv_auditlog_file,
-# 		$ssh_hostname,$ssh_user,$ssh_private_key,$ssh_public_key,$hersteller,$is_netscreen, $config_files, $ssh_port, $config_path_on_mgmt) =
-# 		&get_import_infos_for_mgm($mgm_id, $fworch_workdir, $cfg_dir);
-
-# jwt = fwo_api.login("fwo_import_user", "cactus1", "localhost")
+debug_level = int(args.debug)
+common.set_log_level(log_level=debug_level, debug_level=debug_level)
 
 user_management_api_base_url = 'https://localhost:8888/'
 method = 'AuthenticateUser' 
@@ -127,7 +122,7 @@ if 'data' in response and 'import_control' in response['data'] and len(response[
         logging.exception("failed to get import lock for management id " + str(args.mgm_id))
         sys.exit(1)
     start_time = int(time.time())
-    logging.info("start import of management {mgm_id} import_id={current_import_id}")
+    logging.info("start import of management "+ str(args.mgm_id) + ", import_id=" + str(current_import_id))
             # $error_count_global = &error_handler_add($current_import_id, $error_level = 3, "set-import-lock-failed", !defined($current_import_id), $error_count_global);
             # $error_count_global = &error_handler_add($current_import_id, $error_level = 2, "import-already-running: $mgm_name (ID: $mgm_id)",
             # 	$import_was_already_running, $error_count_global);
@@ -163,7 +158,6 @@ if 'data' in response and 'import_control' in response['data'] and len(response[
     if (error_count_global):
         logging.warning ("Import of management $mgm_name (mgm_id=$mgm_id, import_id=$current_import_id): FOUND $error_count_global error(s)\n")
     else:
-        logging.debug("Import of management $mgm_name (mgm_id={mgm_id}, import_id={current_import_id}), total time: ") 
                 # . sprintf("%.2fs", (time() - $first_start_time)) . "): no errors found" . (($changes_found)?"": ", no changes found") . "\n");
                 # exec_pgsql_cmd_no_result($sql_cmd); # if no error occured - set import_control.successful_import to true
             # exec_pgsql_cmd_no_result("DELETE FROM import_control WHERE control_id=$current_import_id"); # remove imports with unchanged data
@@ -175,11 +169,10 @@ if 'data' in response and 'import_control' in response['data'] and len(response[
         # `cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
     
 else:
-    logging.exception("\nunknonw ERROR" +
-        ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
-        ", ssl_verification: " + str(ssl_mode) + ", proxy_string: " + str(proxy_string))
+    logging.exception("\nunknon ERROR")
     sys.exit(1)    
 
 
+logging.info("start import of management "+ str(args.mgm_id) + "import_id=" + str(current_import_id) + ", total time: " + str(int(time.time() - start_time)) + "s")
 logging.debug ( "import duration: " + str(int(time.time()) - start_time) + "s" )
 sys.exit(0)

@@ -212,7 +212,6 @@ if (!$error_count_global) {
 						print("found no errors during import\n");
 					}
 					$error_count_global = &error_handler_add ($current_import_id, $error_level = 3, "",	$error_count_local, $error_count_global);
-#					&read_user_client_classification_from_ldap ($error_count_local=1, $current_import_id);
 					$changes = &exec_pgsql_cmd_return_value("SELECT show_change_summary($current_import_id)");
 					# updating md5sum
 					if (!$error_count_global) { &exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id"); }

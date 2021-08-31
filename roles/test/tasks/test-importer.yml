@@ -9,6 +9,10 @@
     sample_config_user_home: "/home/{{ sample_config_user }}"
     import_sample_server: localhost
 
+- name: break to check if working, remove later
+  pause:
+    minutes: 25
+
 - name: make test import
   command: "./fworch-importer-single.pl mgm_name={{ test_fortigate_name }}"
   args:

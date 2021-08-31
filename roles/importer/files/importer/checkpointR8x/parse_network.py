@@ -14,12 +14,13 @@ def csv_dump_nw_obj(nw_obj, import_id):
     result_line += common.csv_delimiter                             # obj_sw
     if nw_obj['obj_typ'] == 'group':
         result_line += common.csv_delimiter                         # obj_ip for groups = null
+        result_line += common.csv_delimiter                         # obj_ip_end for groups = null
     else:
         result_line += common.csv_add_field(nw_obj['obj_ip'])       # obj_ip
-    if 'obj_ip_end' in nw_obj:
-        result_line += common.csv_add_field(nw_obj['obj_ip_end'])   # obj_ip_end
-    else:
-        result_line += common.csv_delimiter
+        if 'obj_ip_end' in nw_obj:
+           result_line += common.csv_add_field(nw_obj['obj_ip_end'])# obj_ip_end
+        else:
+           result_line += common.csv_delimiter
     result_line += common.csv_add_field(nw_obj['obj_color'])        # obj_color
     result_line += common.csv_add_field(nw_obj['obj_comment'])      # obj_comment
     result_line += common.csv_delimiter                             # obj_location

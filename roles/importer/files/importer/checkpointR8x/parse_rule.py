@@ -111,9 +111,10 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
             rule_dst_ref = rule_dst_ref[:-1]
             rule_csv += common.csv_add_field(rule_dst_ref)  # rule_dest_refs
 
+            # SERVICE negate
+            rule_csv += common.csv_add_field(str(rule['service-negate']))  # service negation
             # SERVICE names
             rule_svc_name = ''
-            rule_svc_name += str(rule['service-negate']) + '"' + common.csv_delimiter + '"'
             for svc in rule["service"]:
                 rule_svc_name += svc["name"] + common.list_delimiter
             rule_svc_name = rule_svc_name[:-1]

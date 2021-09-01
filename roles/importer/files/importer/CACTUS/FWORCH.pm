@@ -64,7 +64,7 @@ our $LDAP_o = &CACTUS::read_config::read_config("LDAP_o");
 our $LDAP_server = &CACTUS::read_config::read_config("LDAP_server");
 our $dbdriver = "Pg";
 #our $ssh_id_basename = 'id_dsa';
-our $ssh_id_basename = 'id_rsa';
+our $ssh_id_basename = 'import_user_secret';
 
 ############################################################
 # getnum

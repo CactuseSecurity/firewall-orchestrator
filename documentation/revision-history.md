@@ -136,3 +136,6 @@ adding report template format fk and permissions
 ### 5.3.3 - 10.07.2021
 - add column ldap_name to ldap_connection
 - add column ldap_connection_id to uiuser
+
+### 5.3.4 - 29.07.2021
+- moving to API hasura v2.0

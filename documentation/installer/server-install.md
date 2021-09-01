@@ -14,11 +14,9 @@ if not already configured, add your current user to sudo group (make sure to act
 
 ```console
 usermod -a -G sudo `whoami`
+```
 
-exit
-
-2) get Firewall Orchestrator with the following command
-
+2) get Firewall Orchestrator with the following command (as normal user)
 ```console
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
@@ -34,7 +32,7 @@ cd firewall-orchestrator; ansible-playbook site.yml -K
 ```
 Enter sudo password when prompted "BECOME or SUDO password:"
 
-That's it firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
+That's it. Firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
 ```
 ...
 TASK [display secrets for this installation] ***********************************

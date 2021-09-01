@@ -1,35 +1,55 @@
 ---
-- name: create middleware directory
-  file:
-    dest: "{{ middleware_server_base_dir }}"
-    state: directory
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  become: yes
+- block:
+  - name: initialize handler for datarecovery
+    set_fact:
+      middleware_handler_guard: start
+    changed_when: true
+    notify:
+    - middleware handler
+    when: installation_mode == "upgrade"
 
-- name: copy middleware module files to middlewareserver
-  copy:
-    src: "{{ middleware_path_rel }}"
-    dest: "{{ middleware_server_base_dir }}"
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  become: yes
+  - name: backup middleware dir
+    synchronize:
+      src: "{{ fworch_home }}/middleware"
+      dest: "{{ fworch_home }}/backup_middleware"
+    delegate_to: "{{ inventory_hostname }}"
+    when: installation_mode == "upgrade"
+      
+  - name: remove middleware dir
+    file:
+      state: absent
+      path: "{{ fworch_home }}/middleware"
+    when: installation_mode == "upgrade"
 
-- name: install python3-openssl for openssl key generation
-  package:
-    name: "{{ item }}"
-  loop:
-    - python3-cryptography
-    - python3-openssl
-  become: yes
+  - name: create middleware directory
+    file:
+      dest: "{{ middleware_server_base_dir }}"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
 
-- name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
-  package:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - libjpeg62
-    - libgdiplus
+  - name: copy middleware module files to middlewareserver
+    copy:
+      src: "{{ middleware_path_rel }}"
+      dest: "{{ middleware_server_base_dir }}"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+
+  - name: install python3-openssl for openssl key generation
+    package:
+      name: "{{ item }}"
+    loop:
+      - python3-cryptography
+      - python3-openssl
+
+  - name: install libs needed for pdf creator nuget packet HakanL/WkHtmlToPdf-DotNet
+    package:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - libjpeg62
+      - libgdiplus
+  
   become: yes
 
 - name: create auth secrets (jwt key, ldap)
@@ -90,7 +110,7 @@
 - name: set UI admin password randomly
   set_fact:
     admin_password: "{{ random_generated_pw }}"
-  when: testkeys is not defined or not testkeys|bool
+  when: (testkeys is not defined or not testkeys|bool) and installation_mode == 'new'
 
 - name: write admin_password password to secrets directory
   copy:
@@ -100,6 +120,7 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   become: yes
+  when: installation_mode == 'new'
 
 - name: Set admin password in ldap
   ldap_passwd:
@@ -108,6 +129,7 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+  when: installation_mode == 'new'
 
 - name: Set {{ openldap_readonly_user_name }} password in ldap
   ldap_passwd:
@@ -133,7 +155,7 @@
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
   when: audit_user is defined and auditor_initial_pwd is defined and installation_mode=='new'
-  
+
 - name: insert admin tenant0 to database
   postgresql_query:
     db: "{{ fworch_db_name }}"
@@ -206,4 +228,11 @@
 
 - name: upgrade with yaml script
   import_tasks: run-upgrades.yml
+  when: installation_mode == "upgrade"
+
+- name: finalize handler for datarecovery
+  set_fact:
+    middleware_handler_guard: stop
+  changed_when: true
+  notify: "middleware handler"
   when: installation_mode == "upgrade"

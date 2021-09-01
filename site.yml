@@ -27,7 +27,6 @@
 - hosts: all
   roles:
     - { role: common, when: "not installation_mode == 'uninstall'" }
-
   tags:
     - backend
 
@@ -135,7 +134,7 @@
     - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
   tags:
     - test
-    
+
 - hosts: all
   roles:
     - { role: test, when: "not installation_mode == 'uninstall'" }

@@ -1,68 +1,96 @@
 - block:
-    - name: Install importer perl modules 
-      package: name={{ item }} state=present
-      loop:
-        - libdbi-perl 
-        - libdbd-pg-perl 
-        - libdate-calc-perl 
-        - psmisc 
-        - libnet-cidr-perl 
-        - libsys-syslog-perl 
-        - libexpect-perl
-        - libcgi-pm-perl
+  - name: initialize handler for datarecovery
+    set_fact:
+      importer_handler_guard: start
+    changed_when: true
+    notify:
+    - importer handler
+    when: installation_mode == "upgrade"
 
-    - name: copy importer files
-      copy:
-        src: "importer"
-        dest: "{{ fworch_home }}"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-        mode: "0755"
+  - name: backup importer dir
+    synchronize:
+      src: "{{ fworch_home }}/importer"
+      dest: "{{ fworch_home }}/backup_importer"
+    delegate_to: "{{ inventory_hostname }}"
+    when: installation_mode == "upgrade"
 
-    - name: set x-flag for importer executables (top level only)
-      file:
-        path: "{{ item }}"
-        state: file
-        mode: "0755"
-      with_fileglob: "{{ fworch_home }}/importer/*"
+  - name: remove importer dir
+    file:
+      state: absent
+      path: "{{ fworch_home }}/importer"
+    when: installation_mode == "upgrade"
 
-    - name: create default /var/{{ product_name }} dirs for importer
-      file:
-        path: "{{ item }}"
-        state: directory
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-        mode: "0755"
-      loop:
-        - /var/{{ product_name }}
-        - /var/{{ product_name }}/tmp
-        - /var/{{ product_name }}/import_archive
+  - name: Install importer perl modules 
+    package: name={{ item }} state=present
+    loop:
+      - libdbi-perl 
+      - libdbd-pg-perl 
+      - libdate-calc-perl 
+      - psmisc 
+      - libnet-cidr-perl 
+      - libsys-syslog-perl 
+      - libexpect-perl
+      - libcgi-pm-perl
 
-    - name: copy import.conf
-      copy:
-        src: "import.conf"
-        dest: "{{ fworch_home }}/etc/import.conf"
-        mode: "0755"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
+  - name: copy importer files
+    copy:
+      src: "importer"
+      dest: "{{ fworch_home }}"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0755"
 
-    - name: copy importer systemd service script
-      template:
-        src: "{{ product_name }}-importer.service.j2"
-        dest: "/lib/systemd/system/{{ product_name }}-importer.service"
-        backup: yes
-        mode: "0644"
-        owner: "root"
-      become: yes
+  - name: set x-flag for importer executables (top level only)
+    file:
+      path: "{{ item }}"
+      state: file
+      mode: "0755"
+    with_fileglob: "{{ fworch_home }}/importer/*"
 
-    - name: make importer run at host startup
-      ansible.builtin.systemd:
-        name: "{{ product_name }}-importer"
-        state: started
-        enabled: yes
+  - name: create default /var/{{ product_name }} dirs for importer
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0755"
+    loop:
+      - /var/{{ product_name }}
+      - /var/{{ product_name }}/tmp
+      - /var/{{ product_name }}/import_archive
 
-    - name: include upgrade script
-      import_tasks: run-upgrades.yml
-      when: "installation_mode == 'upgrade'"
+  - name: copy import.conf
+    copy:
+      src: "import.conf"
+      dest: "{{ fworch_home }}/etc/import.conf"
+      mode: "0755"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+
+  - name: copy importer systemd service script
+    template:
+      src: "{{ product_name }}-importer.service.j2"
+      dest: "/lib/systemd/system/{{ product_name }}-importer.service"
+      backup: yes
+      mode: "0644"
+      owner: "root"
+    become: yes
+
+  - name: make importer run at host startup
+    ansible.builtin.systemd:
+      name: "{{ product_name }}-importer"
+      state: started
+      enabled: yes
+
+  - name: include upgrade script
+    import_tasks: run-upgrades.yml
+    when: "installation_mode == 'upgrade'"
+
+  - name: finalize handler for datarecovery
+    set_fact:
+      importer_handler_guard: stop
+    changed_when: true
+    notify: "importer handler"
+    when: installation_mode == "upgrade"
 
   become: yes

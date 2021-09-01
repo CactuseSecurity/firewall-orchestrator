@@ -6,7 +6,7 @@
         - "{{ ansible_version.string is version_compare('2.8', '>=') }}"
       msg: Ansible 2.8 or above is required
 
-  - name: check for existing main config file
+  - name: check for existing main config file {{ fworch_conf_file }}
     stat:
       path: "{{ fworch_conf_file }}"
     register: already_installed
@@ -45,18 +45,28 @@
   #   meta: end_play
   #   when: installation_mode == "uninstall"
 
+ # - name: remove old backups
+ #   file:
+ #     path: "{{ fworch_parent_dir }}/{{ product_name }}_backup"
+ #     state: absent
+ #   when: installation_mode == "upgrade"
+
+ # - name: backup {{ fworch_home }} dir
+ #   command: "cp -rf {{ fworch_parent_dir }}/{{ product_name }} {{ fworch_parent_dir }}/{{ product_name }}_backup"
+ #   when: installation_mode == "upgrade"
+
   - name: remove complete {{ fworch_home }} dir except for etc
     file:
       state: absent
       path: "{{ fworch_home }}/{{ item }}"
     loop:
-      - api
-      - middleware
+#      - api
+#      - middleware
       - bin
-      - importer  
-      - database  
-      - ui
-      - lib
+#      - importer  
+#      - database  
+#      - ui
+#      - lib
 
   - name: include redhat install basics
     include_tasks: redhat_preps.yml
@@ -72,10 +82,13 @@
       upgrade: dist
     when: ansible_facts['distribution'] == "Red Hat" or ansible_facts['distribution'] == "CentOS"
 
-  - name: install package rsyslog
+  - name: install packages rsyslog, rsync
     package:
-      name: "rsyslog"
+      name: "{{ item }}"
       state: present
+    loop:
+      - rsyslog
+      - rsync
 
   - name: change rsyslog config to receive logs
     blockinfile:

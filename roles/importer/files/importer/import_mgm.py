@@ -5,61 +5,29 @@
 #   run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 #      import a single management (if no import for it is running)
 #         lock mgmt for import via FWORCH API call, generating new import_id y
-#         check if we need to import (md5, better api call if anything has changed since last import)
-#         get config
-#         enrich config (if needed)
-#         write config via FWORCH API to import_tables --> can we do this in one call or do we need an extra call for each import_table?
-#         if possible, have a trigger in table import_rule, which calls import_main stored procedure
-#         otherwise: make an extra FWORCH API call to start import with import_id y
+#         check if we need to import (no md5, api call if anything has changed since last import)
+#         get complete config (get, enrich, parse)
+#         write into json dict write json dict to new table (single entry for complete config)
+#         trigger import from json into csv and from there into destination tables
 #         release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
+#         no changes: remove import_control?
 
-from symbol import except_clause
-import common
-import re
-import logging
-import pdb
-import argparse
-import time
-import requests.packages.urllib3
-import requests
+import fwo_api
+import datetime
 import json
 import os
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
-import fwo_api
-# use CACTUS::FWORCH::import;
+import requests
+import requests.packages.urllib3
+import time
+import argparse
+import logging
+import common
+from symbol import except_clause
+base_dir = '/usr/local/fworch'
+
+sys.path.append(base_dir + r"/importer")
 # use CACTUS::read_config;
-
-# sub parse_config {
-# parsing rulebases
-    # foreach my $rulebase (@rulebase_name_ar)
-    # 	my $rulebase_name_sanitized = join('__', split /\//, $rulebase);
-    # 	$cmd = "$parser_py -m $mgm_name -i $import_id -r \"$rulebase\" -f \"$object_file\" -d $debug_level > \"$output_dir/${rulebase_name_sanitized}_rulebase.csv\"";
-    # 	$return_code = system($cmd);
-# parsing users
-#	system("$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\" -d $debug_level > \"$output_dir/${mgm_name}_users.csv\"")
-# parsing svc objects
-#	system("$parser_py -m $mgm_name -i $import_id -s -f \"$object_file\" -d $debug_level > \"$output_dir/${mgm_name}_services.csv\"")
-# parsing nw objects
-#	system("$parser_py -m $mgm_name -i $import_id -n -f \"$object_file\" -d $debug_level > \"$output_dir/${mgm_name}_netzobjekte.csv\"")
-
-# sub copy_config_from_mgm_to_iso {
-    # $lib_path = "$base_path/checkpointR8x";
-    # $get_config_bin = "$lib_path/get_config.py";
-    # $enrich_config_bin = "$lib_path/enrich_config.py";
-    # $get_cmd = "$python_bin $get_config_bin -a $api_hostname -w '$workdir/$CACTUS::FWORCH::ssh_id_basename' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base' -d $debug_level";
-    # $enrich_cmd = "$python_bin $enrich_config_bin -a $api_hostname -w '$workdir/$CACTUS::FWORCH::ssh_id_basename' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -c '$cfg_dir/$obj_file_base' -d $debug_level";
-
-# set basic parameters (read from import.conf)
-    # my $fworch_workdir	= &read_config('fworch_workdir') . "/$mgm_id";
-    # my $archive_dir	= &read_config('archive_dir');
-    # my $cfg_dir	= "${fworch_workdir}/cfg";
-    # my $audit_log_file = "auditlog.export";
-    # my $bin_path	= &read_config('simple_bin_dir') . "/";
-    # my $save_import_results_to_file = &read_config('save_import_results_to_file');
-    # my $new_md5sum = 1;
-    # my $stored_md5sum_of_last_import = 2;
-    # my $rulebases;
 
 parser = argparse.ArgumentParser(
     description='Read configuration from FW management via API calls')
@@ -87,92 +55,111 @@ if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
     sys.exit(1)
 
-requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+error_occured = False
+importer_user_name = 'importer'
+start_time = int(time.time())
 
-#      import a single management (if no import for it is running)
-#         lock mgmt for import via FWORCH API call, generating new import_id y
+requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
 
 user_management_api_base_url = 'https://localhost:8888/'
-method = 'AuthenticateUser' 
+method = 'AuthenticateUser'
 ssl_mode = args.ssl
 proxy_setting = args.proxy
-jwt = fwo_api.login("user1_demo", "cactus1", user_management_api_base_url, method, ssl_verification=ssl_mode, proxy_string=proxy_setting)
 
+# authenticate to get JWT
+importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
+with open(importer_pwd_file, 'r') as file:
+    importer_pwd = file.read().replace('\n', '')
+jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
+                    method, ssl_verification=ssl_mode, proxy_string=proxy_setting)
+
+# set import lock
 fwo_api_base_url = 'https://localhost:9443/api/v1/graphql'
-query_variables={"mgmId": int(args.mgm_id)}
+query_variables = {"mgmId": int(args.mgm_id)}
+current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, query_variables)
+if current_import_id == -1:
+    logging.warn("error while setting import lock for management id " +
+                 str(args.mgm_id) + ", import already running?")
+    sys.exit(1)
 
-check_import_lock = """query runningImportForManagement($mgmId: Int!) {
-  import_control(where: {mgm_id: {_eq: $mgmId}, stop_time: {_is_null: true}}) {
-    control_id
-  }
-}"""
-response = fwo_api.call(fwo_api_base_url, jwt, check_import_lock, query_variables=query_variables, role='importer', ssl_verification=ssl_mode, proxy_string=proxy_setting)
-if 'data' in response and 'import_control' in response['data'] and len(response['data']['import_control'])==1:
-    logging.exception("\nERROR: import for management already running.")
-    sys.exit(1)    
-if 'data' in response and 'import_control' in response['data'] and len(response['data']['import_control'])==0:
-    lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
-    try:
-        lock_result = fwo_api.call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables, role='importer'); 
-        current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
-    except: 
-        logging.exception("failed to get import lock for management id " + str(args.mgm_id))
-        sys.exit(1)
-    start_time = int(time.time())
-    logging.info("start import of management "+ str(args.mgm_id) + ", import_id=" + str(current_import_id))
-            # $error_count_global = &error_handler_add($current_import_id, $error_level = 3, "set-import-lock-failed", !defined($current_import_id), $error_count_global);
-            # $error_count_global = &error_handler_add($current_import_id, $error_level = 2, "import-already-running: $mgm_name (ID: $mgm_id)",
-            # 	$import_was_already_running, $error_count_global);
+logging.info("start import of management " + str(args.mgm_id) +
+             ", import_id=" + str(current_import_id))
+# from here on we have an import lock and need to unlock it before exiting
 
-    #         check if we need to import (md5, better api call if anything has changed since last import)
-    #         get config
-    #         enrich config (if needed)
+mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, query_variables)[
+    'data']['management'][0]  # get mgm_details (fw-type, port, ip, user credentials)
 
-            # if (!$initial_import_flag) {
-            # 	$prev_imp_id	= exec_pgsql_cmd_return_value("SELECT get_last_import_id_for_mgmt($mgm_id)");
-            # 	$prev_imp_time	= exec_pgsql_cmd_return_value("SELECT start_time FROM import_control WHERE control_id=$prev_imp_id AND successful_import");
+full_config_json = {}
+config_filename = base_dir + '/tmp/import/mgm_id_' + \
+    str(args.mgm_id) + '_config.json'
+with open(config_filename, "w") as json_data:  # create empty config file
+    json_data.write(json.dumps(full_config_json))
+secret_filename = base_dir + '/tmp/import/mgm_id_' + \
+    str(args.mgm_id) + '_secret.txt'
+with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
+    secret.write(mgm_details['secret'])
 
-            # 1) read names of rulebases of each device from database
-            # copy config data from management system to fworch import system
-            # &CACTUS::FWORCH::import::parser::copy_config_from_mgm_to_iso
+rulebase_string = ''
+for device in mgm_details['devices']:
+    rulebase_string += device['rulebase'] + ','
+rulebase_string = rulebase_string[:-1]  # remove final comma
 
-            # check if config has changed
-        # 2) parse config
-        # CACTUS:: FWORCH: : import: : parser: : parse_config ($obj_file, $rule_file, $user_file, $rulebases, $fworch_workdir, $debug_level, $mgm_name, $cfg_dir,
-        #     $current_import_id, "$cfg_dir/$audit_log_file", $prev_imp_time, $fullauditlog, $debug_level);
-        # remove_import_lock($current_import_id)
-        # set_last_change_time($last_change_time_of_config, $current_import_id);  # Zeit eintragen, zu der die letzte Aenderung an der Config vorgenommen wurde (tuning)
-        # if ($clear_whole_mgm_config)
-        #    xxx
-        # if (-e $csv_usr_file) {& iconv_2_utf8($csv_usr_file, $fworch_workdir); }		# utf-8 conversion of user data
-        # fill_import_tables_from_csv($dev_typ_id, $csv_zone_file, $csv_obj_file, $csv_svc_file, $csv_usr_file, $rulebases, $fworch_workdir, $csv_auditlog_file);
+# get config from FW API and write to json file
+if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceType']['version'] == 'R8x':
+    logging.info("found Check Point R8x")
+    get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
+        mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
+        secret_filename + " -l \"" + rulebase_string + \
+        "\" -o " + config_filename + " -d " + str(debug_level)
+    get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
+        secret_filename + " -l \"" + rulebase_string + \
+        "\" -c " + config_filename + " -d " + str(debug_level)
+    os.system(get_config_cmd)
 
-        # if (!exec_pgsql_cmd_return_value("SET client_min_messages TO NOTICE; SELECT import_all_main($current_import_id)")) {$error_count_local = 1;
-        #    exec_pgsql_cmd_return_value("SET client_min_messages TO DEBUG1; SELECT import_all_main($current_import_id)");
-        # exec_pgsql_cmd_return_value("SELECT show_change_summary($current_import_id)");
-        # exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id"); }
-    error_count_global = 0
-    if (error_count_global):
-        logging.warning ("Import of management $mgm_name (mgm_id=$mgm_id, import_id=$current_import_id): FOUND $error_count_global error(s)\n")
-    else:
-                # . sprintf("%.2fs", (time() - $first_start_time)) . "): no errors found" . (($changes_found)?"": ", no changes found") . "\n");
-                # exec_pgsql_cmd_no_result($sql_cmd); # if no error occured - set import_control.successful_import to true
-            # exec_pgsql_cmd_no_result("DELETE FROM import_control WHERE control_id=$current_import_id"); # remove imports with unchanged data
-            # exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id");
-            # 'UPDATE import_control SET successful_import=TRUE' . (($changes_found)? ', changes_found=TRUE': '') . ' WHERE control_id=' . $current_import_id;
-        # Cleanup and statistics
-        #&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()
-        #&clean_up_fworch_db($current_import_id);
-        # `cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
-    
+    # now parse all parts (objects, rulebases) and create csv equivalent json config
+    import_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./parse_config.py -n -f " + config_filename + " -d " + str(debug_level) + \
+        " && ./parse_config.py -f " + config_filename + " -s -d " + str(debug_level) + \
+        " && ./parse_config.py -f " + config_filename + \
+        " -u -d " + str(debug_level)
+    for rulebase in rulebase_string.split(','):
+        import_cmd += " && ./parse_config.py -f " + config_filename + \
+            " -r \"" + rulebase + "\" -d " + str(debug_level)
+    os.system(import_cmd)
+
+if mgm_details['deviceType']['name'] == 'Fortinet' and mgm_details['deviceType']['version'] == '5.x-6.x':
+    logging.info("ignoring legacy fortinet devices for now")
+if mgm_details['deviceType']['name'] == 'FortiManager':
+    logging.info("found fortiManager")
+    os.system("fortiManager.parse_config -f " + config_filename)
+
+# read json file and write to FWO database via FWO API
+with open(config_filename, "r") as json_data:
+    full_config_json = json.load(json_data)
+
+import_result = fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
+    "importId": current_import_id, "config": full_config_json})
+
+# some possible enhancements:
+# if ($clear_whole_mgm_config) -->
+# exec_pgsql_cmd_return_value("SELECT show_change_summary($current_import_id)");
+# exec_pgsql_cmd_no_result("DELETE FROM import_control WHERE control_id=$current_import_id"); # remove imports with unchanged data
+# 'UPDATE import_control SET successful_import=TRUE' . (($changes_found)? ', changes_found=TRUE': '') . ' WHERE control_id=' . $current_import_id;
+# `cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
+
+stop_time = int(time.time())
+stop_time_string = datetime.datetime.now().isoformat()
+
+changes_in_import_control = fwo_api.unlock_import(fwo_api_base_url, jwt, int(
+    args.mgm_id), stop_time_string, current_import_id, error_occured)
+error_occured = (changes_in_import_control != 1)
+
+if error_occured:
+    logging.warn("import ran with errors, duration: " +
+                 str(int(time.time()) - start_time) + "s")
 else:
-    logging.exception("\nunknon ERROR")
-    sys.exit(1)    
-
-
-logging.info("start import of management "+ str(args.mgm_id) + "import_id=" + str(current_import_id) + ", total time: " + str(int(time.time() - start_time)) + "s")
-logging.debug ( "import duration: " + str(int(time.time()) - start_time) + "s" )
+    logging.debug("import ran without errors, duration: " +
+                  str(int(time.time()) - start_time) + "s")
 sys.exit(0)

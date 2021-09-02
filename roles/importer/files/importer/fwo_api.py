@@ -103,7 +103,7 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
 def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
     if payload=={}:
         payload = { "params": [ {} ] }
-    result = api_call(api_base_url, api_path, payload, sid, ssl_verification, proxy_string, debug=debug)
+    result = call(api_base_url, api_path, payload, sid, ssl_verification, proxy_string, debug=debug)
     plain_result = result["result"][0]
     if "data" in plain_result:
         result = plain_result["data"]
@@ -112,4 +112,116 @@ def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification=
     return result
 
 
-# def set_import_lock()
+def get_mgm_details(fwo_api_base_url, jwt, query_variables):
+
+    mgm_query="""
+        query getManagementDetails($mgmId: Int!) {
+            management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
+                id: mgm_id
+                name: mgm_name
+                hostname: ssh_hostname
+                port: ssh_port
+                secret: ssh_private_key
+                sshPublicKey: ssh_public_key
+                user: ssh_user
+                deviceType: stm_dev_typ {
+                    id: dev_typ_id
+                    name: dev_typ_name
+                    version: dev_typ_version
+                }
+                configPath: config_path
+                importDisabled: do_not_import
+                forceInitialImport: force_initial_import
+                hideInUi: hide_in_gui
+                importerHostname: importer_hostname
+                comment: mgm_comment
+                debugLevel: debug_level
+                creationDate: mgm_create
+                updateDate: mgm_update
+                lastConfigHash: last_import_md5_complete_config
+                devices {
+                    id: dev_id
+                    name: dev_name
+                    rulebase:dev_rulebase
+                }
+            }  
+        }
+    """
+    return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer'); 
+
+
+def lock_import (fwo_api_base_url, jwt, query_variables):
+    lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
+    try:
+        lock_result = call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables, role='importer'); 
+        current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
+    except: 
+        logging.exception("failed to get import lock for management id " + str(query_variables))
+        return -1
+    return current_import_id
+
+
+def unlock_import (fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_occured):
+    query_variables={ "stopTime": stop_time, "importId": current_import_id, "success": not error_occured }
+
+    unlock_mutation = """
+        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean) {
+            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success}) {
+                affected_rows
+            }
+        }"""
+
+    try:
+        unlock_result = call(fwo_api_base_url, jwt, unlock_mutation, query_variables=query_variables, role='importer'); 
+        changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
+    except: 
+        logging.exception("failed to unlock import for management id " + str(mgm_id))
+        changes_in_import_control = 0
+    return changes_in_import_control
+
+
+def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
+    import_mutation = """
+        mutation import($importId: bigint!, $config: jsonb) {
+            insert_import_config(objects: {import_id: $importId, config: $config}) {
+                affected_rows
+            }
+        }
+    """
+
+    try:
+        import_result = call(fwo_api_base_url, jwt, import_mutation, query_variables=query_variables, role='importer'); 
+        changes_in_import_control = import_result['data']['insert_import_config']['affected_rows']
+    except: 
+        logging.exception("failed to write config for mgm id " + str(mgm_id))
+        changes_in_import_control = 0
+    return changes_in_import_control
+
+
+def store_full_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
+    import_mutation = """
+        mutation store_full_config($importId: bigint!, $config: jsonb) {
+            insert_import_full_config(objects: {import_id: $importId, config: $config}) {
+                affected_rows
+            }
+        }
+    """
+
+    try:
+        import_result = call(fwo_api_base_url, jwt, import_mutation, query_variables=query_variables, role='importer'); 
+        changes_in_import_full_config = import_result['data']['insert_import_full_config']['affected_rows']
+    except: 
+        logging.exception("failed to write full config for mgm id " + str(mgm_id))
+        changes_in_import_full_config = 0
+    return changes_in_import_full_config
+
+# check_import_lock = """query runningImportForManagement($mgmId: Int!) {
+#   import_control(where: {mgm_id: {_eq: $mgmId}, stop_time: {_is_null: true}}) {
+#     control_id
+#   }
+# }"""
+# response = fwo_api.call(fwo_api_base_url, jwt, check_import_lock, query_variables=query_variables, role='importer', ssl_verification=ssl_mode, proxy_string=proxy_setting)
+# if 'data' in response and 'import_control' in response['data'] and len(response['data']['import_control'])==1:
+#     logging.exception("\nERROR: import for management already running.")
+#     sys.exit(1)    
+# if 'data' in response and 'import_control' in response['data'] and len(response['data']['import_control'])==0:

@@ -68,7 +68,7 @@
             ]
         },
         {
-            "name": "py-FWO",
+            "name": "py-import_mgm",
             "type": "python",
             "request": "launch",
             "program": "${file}",
@@ -77,8 +77,8 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m1",
-                "-d1"
+                "-m3",
+                "-d0"
             ]
         },
         {

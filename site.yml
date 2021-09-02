@@ -75,13 +75,6 @@
     - frontend
     - csharp
 
-- hosts: importers
-  roles:
-    - { role: importer, when: "not installation_mode == 'uninstall'" }
-  tags:
-    - frontend
-    - importer
-
 - hosts: sampleserver
   roles:
     - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
@@ -99,13 +92,8 @@
   # todo: add a meta dependency on role sample-data
 
 - hosts: importers
-  tasks:
-    - name: restart importer service to make sure it works correctly with sample data
-      ansible.builtin.systemd:
-        name: "{{ product_name }}-importer"
-        state: restarted
-      become: yes
-      when: "not installation_mode == 'uninstall'"
+  roles:
+    - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
     - frontend
     - importer
@@ -140,6 +128,18 @@
     - { role: test, when: "not installation_mode == 'uninstall'" }
   tags:
     - test
+
+- hosts: importers
+  tasks:
+    - name: restart importer service to make sure it works correctly with sample data
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer"
+        state: restarted
+      become: yes
+      when: "not installation_mode == 'uninstall'"
+  tags:
+    - frontend
+    - importer
 
 - hosts: all
   tasks:

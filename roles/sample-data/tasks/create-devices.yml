@@ -21,10 +21,10 @@
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN
-          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='fortigate_demo') THEN 
+          IF NOT EXISTS (SELECT * FROM management WHERE mgm_name='{{ sample_fortigate_name }}') THEN 
           insert into management 
           (dev_typ_id,mgm_name,ssh_private_key,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname)
-          VALUES (10,'fortigate_demo','{{ sample_ssh_priv_key }}','{{ import_sample_server }}','{{ sample_config_user }}',false,'sample-configs/fortinet_demo/','{{ importer_hostname }}');
+          VALUES (10,'{{ sample_fortigate_name }}','{{ sample_ssh_priv_key }}','{{ import_sample_server }}','{{ sample_config_user }}',false,'sample-configs/fortinet_demo/','{{ importer_hostname }}');
           END IF; END $do$ 
 
     - name: insert test fortinet gateway
@@ -32,9 +32,9 @@
         db: "{{ fworch_db_name }}"
         query: >
           DO $do$ BEGIN 
-          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='fortigate_demo') THEN 
+          IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}') THEN 
           insert into device (mgm_id,dev_name,dev_rulebase,dev_typ_id) 
-          VALUES ((select mgm_id from management where mgm_name='fortigate_demo'),'fortigate_demo','fortigate_demo',10);
+          VALUES ((select mgm_id from management where mgm_name='{{ sample_fortigate_name }}'),'{{ sample_fortigate_name }}','{{ sample_fortigate_name }}',10);
           END IF; END $do$ 
 
     - name: insert test check point R7x management
@@ -46,6 +46,7 @@
           insert into management (dev_typ_id,mgm_name,ssh_private_key,ssh_hostname,ssh_user,do_not_import,config_path,importer_hostname) 
           VALUES (7,'checkpoint_demo','{{ sample_ssh_priv_key }}','{{ import_sample_server }}','{{ sample_config_user }}',false, 'sample-configs/checkpoint_demo/','{{ importer_hostname }}'); 
           END IF; END $do$ 
+      when: sample_role_purpose is not match('test')
 
     - name: insert test CPR7x device
       postgresql_query:
@@ -56,6 +57,7 @@
           insert into device (mgm_id,dev_name,dev_rulebase,dev_typ_id)
           VALUES ((select mgm_id from management where mgm_name='checkpoint_demo'),'checkpoint_demo','IsoAAAA',7); 
           END IF; END $do$ 
+      when: sample_role_purpose is not match('test')
 
   become: yes
   become_user: postgres

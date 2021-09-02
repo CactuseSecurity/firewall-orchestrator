@@ -3,7 +3,6 @@
       user:
         name: "{{ sample_config_user }}"
         comment: fworch import user for sample configs
-        uid: 60322
         home: "{{ sample_config_user_home }}"
         shell: /bin/bash
         group: "{{ fworch_group }}"

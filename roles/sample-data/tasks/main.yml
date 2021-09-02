@@ -42,7 +42,8 @@
 
 - name: establish cron job to simulate hourly changes to configs
   import_tasks: setup-config-changes.yml
+  when: sample_role_purpose is not match('test')
 
 - name: add second ldap database
   import_tasks: add_second_ldap_db.yml
-  when: second_ldap_db | bool
+  when: (second_ldap_db | bool) and (sample_role_purpose is not match('test'))

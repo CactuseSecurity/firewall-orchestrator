@@ -1,7 +1,7 @@
 ---
 - name: Create universal ldif directory
   file:
-    path: "{{ ldif_dir }}"
+    path: "{{ middleware_ldif_dir }}"
     state: directory
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"

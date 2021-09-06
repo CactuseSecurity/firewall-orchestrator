@@ -1,0 +1,10 @@
+# upgrade olcAccess
+
+dn: olcDatabase=bdb,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: to dn.subtree="{{ openldap_std_user_dn }}"
+by dn.base="{{ openldap_writer_dn }}" write
+by dn.base="{{ openldap_superuser_dn }}" write
+by dn.base="{{ openldap_readonly_user_dn }}" read
+by * none

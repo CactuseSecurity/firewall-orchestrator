@@ -186,13 +186,9 @@
       enabled: yes
       daemon_reload: yes
 
-  - name: include upgrade script
-    import_tasks: run-upgrades.yml
-    when: "installation_mode == 'upgrade'"
-
   become: yes
   when: installation_mode == "new"
 
-- name: Upgrade openldap
-  import_tasks: upgrade-openldap.yml
-  when: installation_mode == "upgrade"
+- name: include upgrade script
+  import_tasks: run-upgrades.yml
+  when: "installation_mode == 'upgrade'"

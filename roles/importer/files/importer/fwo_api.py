@@ -1,10 +1,11 @@
 # library for FWORCH API calls
+base_dir = "/usr/local/fworch/"
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
+sys.path.append(base_dir + '/importer')
 import json, argparse, pdb
 import time, logging, re, sys, logging
 import os
-import requests, requests.packages.urllib3
+import requests, requests.packages
 import common
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
@@ -48,14 +49,14 @@ def login(user, password, user_management_api_base_url, method, ssl_verification
         response.raise_for_status()
         #content = response.content
     except requests.exceptions.RequestException as e:
-        logging.exception("\nerror while sending api_call to url " + str(user_management_api_base_url) + " with payload \n" + 
+        logging.exception("\nfwo_api: error while sending api_call to url " + str(user_management_api_base_url) + " with payload \n" + 
             json.dumps(payload, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
         raise SystemExit(e) from None
 
     jsonResponse = response.json()
     if 'jwt' in jsonResponse:
         return jsonResponse["jwt"]        
-    logging.exception("\ngetter ERROR: did not receive a JWT during login, " +
+    logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
         ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
         ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
     sys.exit(1)
@@ -156,17 +157,37 @@ def lock_import (fwo_api_base_url, jwt, query_variables):
         lock_result = call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables, role='importer'); 
         current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
     except: 
-        logging.exception("failed to get import lock for management id " + str(query_variables))
+        logging.exception("fwo_api: failed to get import lock for management id " + str(query_variables))
         return -1
     return current_import_id
 
 
-def unlock_import (fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_occured):
-    query_variables={ "stopTime": stop_time, "importId": current_import_id, "success": not error_occured }
+def count_changes_per_import (fwo_api_base_url, jwt, import_id):
+    change_count_query = """
+        query count_changes($importId: bigint!) {
+            changelog_object_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+            changelog_service_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+            changelog_user_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+            changelog_rule_aggregate(where: {control_id: {_eq: $importId}}) { aggregate { count } }
+        }"""
+    try:
+        count_result = call(fwo_api_base_url, jwt, change_count_query, query_variables={'importId': import_id}, role='importer'); 
+        changes_in_import = int(count_result['data']['changelog_object_aggregate']['aggregate']['count']) + \
+                            int(count_result['data']['changelog_service_aggregate']['aggregate']['count']) + \
+                            int(count_result['data']['changelog_user_aggregate']['aggregate']['count']) + \
+                            int(count_result['data']['changelog_rule_aggregate']['aggregate']['count'])
+    except: 
+        logging.exception("fwo_api: failed to count changes for import id " + str(import_id))
+        changes_in_import = 0
+    return changes_in_import
+
+
+def unlock_import (fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_count, change_count):
+    query_variables={ "stopTime": stop_time, "importId": current_import_id, "success": not error_count, "changeCount": change_count }
 
     unlock_mutation = """
-        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean) {
-            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success}) {
+        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, changeCount: int!) {
+            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changeCount}) {
                 affected_rows
             }
         }"""
@@ -175,15 +196,15 @@ def unlock_import (fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, 
         unlock_result = call(fwo_api_base_url, jwt, unlock_mutation, query_variables=query_variables, role='importer'); 
         changes_in_import_control = unlock_result['data']['update_import_control']['affected_rows']
     except: 
-        logging.exception("failed to unlock import for management id " + str(mgm_id))
+        logging.exception("fwo_api: failed to unlock import for management id " + str(mgm_id))
         changes_in_import_control = 0
-    return changes_in_import_control
+    return changes_in_import_control-1
 
 
 def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     import_mutation = """
-        mutation import($importId: bigint!, $config: jsonb) {
-            insert_import_config(objects: {import_id: $importId, config: $config}) {
+        mutation import($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
+            insert_import_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
                 affected_rows
             }
         }
@@ -193,15 +214,31 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
         import_result = call(fwo_api_base_url, jwt, import_mutation, query_variables=query_variables, role='importer'); 
         changes_in_import_control = import_result['data']['insert_import_config']['affected_rows']
     except: 
-        logging.exception("failed to write config for mgm id " + str(mgm_id))
-        changes_in_import_control = 0
-    return changes_in_import_control
+        logging.exception("fwo_api: failed to write importable config for mgm id " + str(mgm_id))
+        return 2  # indicating 1 error
+    return changes_in_import_control-1
+
+
+def delete_json_config(fwo_api_base_url, jwt, query_variables):
+    delete_mutation = """
+        mutation delete_import_config($importId: bigint!) {
+            delete_import_config(where: {import_id: {_eq: $importId}}) { affected_rows }
+        }
+    """
+
+    try:
+        delete_result = call(fwo_api_base_url, jwt, delete_mutation, query_variables=query_variables, role='importer'); 
+        changes_in_delete_config = delete_result['data']['delete_import_config']['affected_rows']
+    except: 
+        logging.exception("fwo_api: failed to delete config without changes")
+        return 2 # indicating 1 error
+    return changes_in_delete_config-1
 
 
 def store_full_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     import_mutation = """
-        mutation store_full_config($importId: bigint!, $config: jsonb) {
-            insert_import_full_config(objects: {import_id: $importId, config: $config}) {
+        mutation store_full_config($importId: bigint!, $mgmId: Int!, $config: jsonb!) {
+            insert_import_full_config(objects: {import_id: $importId, mgm_id: $mgmId, config: $config}) {
                 affected_rows
             }
         }
@@ -211,9 +248,28 @@ def store_full_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
         import_result = call(fwo_api_base_url, jwt, import_mutation, query_variables=query_variables, role='importer'); 
         changes_in_import_full_config = import_result['data']['insert_import_full_config']['affected_rows']
     except: 
-        logging.exception("failed to write full config for mgm id " + str(mgm_id))
-        changes_in_import_full_config = 0
-    return changes_in_import_full_config
+        logging.exception("fwo_api: failed to write full config for mgm id " + str(mgm_id))
+        return 2 # indicating 1 error because we are expecting exactly one change
+    return changes_in_import_full_config-1
+
+
+def delete_full_json_config(fwo_api_base_url, jwt, query_variables):
+    delete_mutation = """
+        mutation delete_import_full_config($importId: bigint!) {
+            delete_import_full_config(where: {import_id: {_eq: $importId}}) {
+                affected_rows
+            }
+        }
+    """
+
+    try:
+        delete_result = call(fwo_api_base_url, jwt, delete_mutation, query_variables=query_variables, role='importer'); 
+        changes_in_delete_full_config = delete_result['data']['delete_import_full_config']['affected_rows']
+    except: 
+        logging.exception("fwo_api: failed to delete full config ")
+        return 2 # indicating 1 error
+    return changes_in_delete_full_config-1
+
 
 # check_import_lock = """query runningImportForManagement($mgmId: Int!) {
 #   import_control(where: {mgm_id: {_eq: $mgmId}, stop_time: {_is_null: true}}) {

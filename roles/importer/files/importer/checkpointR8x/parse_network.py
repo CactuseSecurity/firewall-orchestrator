@@ -1,7 +1,9 @@
+base_dir = "/usr/local/fworch"
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
+sys.path.append(base_dir + '/importer')
+sys.path.append(base_dir + '/importer/checkpointR8x')
 import logging
-import json
+from requests import NullHandler
 import common, cpcommon
 
 
@@ -35,6 +37,19 @@ def csv_dump_nw_obj(nw_obj, import_id):
     return result_line
 
 
+def parse_network_objects(full_config, config2import, import_id):
+    nw_objects = []
+
+    for obj_table in full_config['object_tables']:
+        collect_nw_objects(obj_table, nw_objects)
+    for nw_obj in nw_objects:
+        nw_obj.update({'control_id': import_id})
+    for idx in range(0, len(nw_objects)-1):
+        if nw_objects[idx]['obj_typ'] == 'group':
+            add_member_names_for_nw_group(idx, nw_objects)
+    config2import.update({'network_objects': nw_objects})
+    
+
 # collect_nw_objects from object tables and write them into global nw_objects dict
 def collect_nw_objects(object_table, nw_objects):
     nw_obj_type_to_host_list = [
@@ -58,6 +73,9 @@ def collect_nw_objects(object_table, nw_objects):
                 first_ip = ip_addr
                 last_ip = ip_addr
                 obj_type = obj['type']
+                if obj_type=='group':
+                    first_ip = None
+                    last_ip = None
 
                 if obj_type == 'address-range' or obj_type == 'multicast-address-range':
                     obj_type = 'ip_range'

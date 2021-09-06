@@ -1,5 +1,8 @@
+base_dir = "/usr/local/fworch"
+
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
+sys.path.append(base_dir + '/importer')
+sys.path.append(base_dir + '/importer/checkpointR8x')
 import re
 import logging
 import common, cpcommon
@@ -136,3 +139,14 @@ def add_member_names_for_svc_group(idx, svc_objects):
         member_names += member_name + common.list_delimiter
     group['svc_member_names'] = member_names[:-1]
     svc_objects.insert(idx, group)
+
+
+def parse_service_objects(full_config, config2import):
+    svc_objects = []
+    for svc_table in full_config['object_tables']:
+        collect_svc_objects(svc_table, svc_objects)
+    for idx in range(0, len(svc_objects)-1):
+        if svc_objects[idx]['svc_typ'] == 'group':
+            add_member_names_for_svc_group(idx, svc_objects)
+    config2import.update({'service_objects': svc_objects})
+    

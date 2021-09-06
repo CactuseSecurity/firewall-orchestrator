@@ -1,5 +1,7 @@
+base_dir = "/usr/local/fworch/"
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
+sys.path.append(base_dir + '/importer')
+sys.path.append(base_dir + '/importer/checkpointR8x')
 import logging
 import common
 
@@ -50,7 +52,6 @@ def collect_users_from_rule(rule, users):
 
 # collect_users writes user info into global users dict
 def collect_users_from_rulebase(rulebase, users):
-    result = ''
     if 'layerchunks' in rulebase:
         for chunk in rulebase['layerchunks']:
             if 'rulebase' in chunk:

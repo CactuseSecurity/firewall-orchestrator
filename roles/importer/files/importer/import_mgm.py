@@ -12,21 +12,26 @@
 #         release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #         no changes: remove import_control?
 
+base_dir = "/usr/local/fworch"
+import sys
+sys.path.append(base_dir + '/importer')
+sys.path.append(base_dir + '/importer/checkpointR8x')
 import fwo_api
 import datetime
 import json
 import os
-import sys
 import requests
-import requests.packages.urllib3
+import requests.packages
+import checkpointR8x.parse_network
+import checkpointR8x.parse_service
+import checkpointR8x.parse_user
+import checkpointR8x.parse_rule
 import time
 import argparse
 import logging
 import common
 from symbol import except_clause
-base_dir = '/usr/local/fworch'
 
-sys.path.append(base_dir + r"/importer")
 # use CACTUS::read_config;
 
 parser = argparse.ArgumentParser(
@@ -55,7 +60,7 @@ if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
     sys.exit(1)
 
-error_occured = False
+error_count = 0
 importer_user_name = 'importer'
 start_time = int(time.time())
 
@@ -81,7 +86,7 @@ fwo_api_base_url = 'https://localhost:9443/api/v1/graphql'
 query_variables = {"mgmId": int(args.mgm_id)}
 current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, query_variables)
 if current_import_id == -1:
-    logging.warn("error while setting import lock for management id " +
+    logging.warning("error while setting import lock for management id " +
                  str(args.mgm_id) + ", import already running?")
     sys.exit(1)
 
@@ -93,6 +98,7 @@ mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, query_variables)[
     'data']['management'][0]  # get mgm_details (fw-type, port, ip, user credentials)
 
 full_config_json = {}
+config2import = {'rulebases': [], 'users': {}}
 config_filename = base_dir + '/tmp/import/mgm_id_' + \
     str(args.mgm_id) + '_config.json'
 with open(config_filename, "w") as json_data:  # create empty config file
@@ -118,16 +124,20 @@ if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceTyp
         secret_filename + " -l \"" + rulebase_string + \
         "\" -c " + config_filename + " -d " + str(debug_level)
     os.system(get_config_cmd)
-
-    # now parse all parts (objects, rulebases) and create csv equivalent json config
-    import_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./parse_config.py -n -f " + config_filename + " -d " + str(debug_level) + \
-        " && ./parse_config.py -f " + config_filename + " -s -d " + str(debug_level) + \
-        " && ./parse_config.py -f " + config_filename + \
-        " -u -d " + str(debug_level)
-    for rulebase in rulebase_string.split(','):
-        import_cmd += " && ./parse_config.py -f " + config_filename + \
-            " -r \"" + rulebase + "\" -d " + str(debug_level)
-    os.system(import_cmd)
+    with open(config_filename, "r") as json_data:
+        full_config_json = json.load(json_data)
+    checkpointR8x.parse_network.parse_network_objects(
+        full_config_json, config2import, current_import_id)
+    checkpointR8x.parse_service.parse_service_objects(
+        full_config_json, config2import)
+    users = {}
+    rulebase_range = range(len(rulebase_string.split(','))-1)
+    for i in rulebase_range:
+        checkpointR8x.parse_user.collect_users_from_rulebase(
+            full_config_json['rulebases'][i], users)
+        #checkpointR8x.parse_rule.parse_rulebase(full_config_json, config2import, rulebase)
+    config2import['users'].update(users)
+    # config2import['rulebases'][rulebase].update)
 
 if mgm_details['deviceType']['name'] == 'Fortinet' and mgm_details['deviceType']['version'] == '5.x-6.x':
     logging.info("ignoring legacy fortinet devices for now")
@@ -135,29 +145,33 @@ if mgm_details['deviceType']['name'] == 'FortiManager':
     logging.info("found fortiManager")
     os.system("fortiManager.parse_config -f " + config_filename)
 
-# read json file and write to FWO database via FWO API
-with open(config_filename, "r") as json_data:
-    full_config_json = json.load(json_data)
+error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
+    "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
 
-import_result = fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
-    "importId": current_import_id, "config": full_config_json})
+change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
 
-# some possible enhancements:
-# if ($clear_whole_mgm_config) -->
-# exec_pgsql_cmd_return_value("SELECT show_change_summary($current_import_id)");
-# exec_pgsql_cmd_no_result("DELETE FROM import_control WHERE control_id=$current_import_id"); # remove imports with unchanged data
-# 'UPDATE import_control SET successful_import=TRUE' . (($changes_found)? ', changes_found=TRUE': '') . ' WHERE control_id=' . $current_import_id;
-# `cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
+if change_count > 0:
+    # store full config
+    with open(config_filename, "r") as json_data:
+        full_config_json = json.load(json_data)
+
+    error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
+        "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
+
+else:
+    # delete imports without changes:
+    error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id} )
+    # read json file and write to FWO database via FWO API
+
+
 
 stop_time = int(time.time())
 stop_time_string = datetime.datetime.now().isoformat()
 
-changes_in_import_control = fwo_api.unlock_import(fwo_api_base_url, jwt, int(
-    args.mgm_id), stop_time_string, current_import_id, error_occured)
-error_occured = (changes_in_import_control != 1)
+error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
 
-if error_occured:
-    logging.warn("import ran with errors, duration: " +
+if error_count:
+    logging.warning("import ran with errors, duration: " +
                  str(int(time.time()) - start_time) + "s")
 else:
     logging.debug("import ran without errors, duration: " +

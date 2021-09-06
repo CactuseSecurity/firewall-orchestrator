@@ -1,6 +1,6 @@
 - name: copy associated ldif files to system
   template:
-    src: 5.4.1.ldif.j2
+    src: upgrade/5.4.1.ldif.j2
     dest: "{{ ldif_dir }}/5.4.1.ldif"
 
 - name: upgrade olcAccess policy

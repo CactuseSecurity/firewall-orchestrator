@@ -14,23 +14,18 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
-  - name: create universal ldif directory
-    file:
-      path: "{{ ldif_dir }}"
-      state: directory
-
   - name: copy the ldif templates to system
     template:
       src: "{{ item }}"
-      dest: "{{ ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
+      dest: "{{ middleware_ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
     with_fileglob:
       - ../templates/*.j2
 
   - name: add new sample database to ldap
-    command: "ldapmodify -H {{ openldap_url }} -D cn=config -w {{ ldap_manager_pwd }} -x -f {{ ldif_dir }}/second_db.ldif"
+    command: "ldapmodify -H {{ openldap_url }} -D cn=config -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/second_db.ldif"
 
   - name: enhance sample ldap with test users and groups
-    command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ ldif_dir }}/{{ item }}.ldif"
+    command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_ldif_dir }}/{{ item }}.ldif"
     loop:
       - ext_role
       - ext_user

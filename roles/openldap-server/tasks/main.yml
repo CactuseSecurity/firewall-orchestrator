@@ -118,6 +118,11 @@
       group: "{{ openldap_server_user }}"
 
 ### Config files
+  - name: Create universal ldif directory
+    file:
+      path: "{{ ldif_dir }}"
+      state: directory
+
   - name: Create the directory for ldap database
     file:
       path: "/var/lib/ldap/{{ openldap_server_domain_name }}/"

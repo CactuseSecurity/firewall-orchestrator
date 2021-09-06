@@ -30,6 +30,12 @@ add: uniquemember
 uniquemember: uid=admin,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
 
 
+dn: cn=importer,ou=role,{{ openldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=importer,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
+
+
 {% if audit_user is defined -%}
 dn: cn=auditor,ou=role,{{ openldap_path }}
 changetype: modify

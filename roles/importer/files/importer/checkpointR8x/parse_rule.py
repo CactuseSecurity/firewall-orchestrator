@@ -1,5 +1,7 @@
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
+base_dir = "/usr/local/fworch/"
+sys.path.append(base_dir + '/importer')
+sys.path.append(base_dir + '/importer/checkpointR8x')
 import re
 import logging
 import common, cpcommon

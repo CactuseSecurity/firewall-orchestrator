@@ -76,7 +76,7 @@ BEGIN
     --     jsonb_populate_recordset(NULL::import_rule, NEW.config -> 'rulebases');
 
     -- finally start the stored procedure import
-    -- SELECT * FROM import_all_main(NEW.import_id);
+    -- PERFORM import_all_main(NEW.import_id);
 
     RETURN NEW;
 END;

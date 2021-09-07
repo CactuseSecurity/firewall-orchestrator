@@ -33,7 +33,7 @@ def csv_dump_svc_obj(svc_obj, import_id):
         result_line += common.csv_add_field(svc_obj['svc_timeout_std'])     # svc_timeout_std
     else:
         result_line += common.csv_delimiter                                 # svc_timeout_std
-    if 'svc_timeout' in svc_obj and svc_obj['svc_timeout']!="":
+    if 'svc_timeout' in svc_obj and svc_obj['svc_timeout']!="" and svc_obj['svc_timeout']!=None:
         result_line += common.csv_add_field(str(svc_obj['svc_timeout']))    # svc_timeout
     else:
         result_line += common.csv_delimiter                                 # svc_timeout null

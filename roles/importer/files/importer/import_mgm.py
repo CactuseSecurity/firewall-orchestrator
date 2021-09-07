@@ -12,25 +12,26 @@
 #         release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #         no changes: remove import_control?
 
-base_dir = "/usr/local/fworch"
+import copy
+from symbol import except_clause
+import common
+import logging
+import argparse
+import time
+import checkpointR8x.parse_rule
+import checkpointR8x.parse_user
+import checkpointR8x.parse_service
+import checkpointR8x.parse_network
+import requests.packages
+import requests
+import os
+import json
+import datetime
+import fwo_api
 import sys
+base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/checkpointR8x')
-import fwo_api
-import datetime
-import json
-import os
-import requests
-import requests.packages
-import checkpointR8x.parse_network
-import checkpointR8x.parse_service
-import checkpointR8x.parse_user
-import checkpointR8x.parse_rule
-import time
-import argparse
-import logging
-import common
-from symbol import except_clause
 
 # use CACTUS::read_config;
 
@@ -88,17 +89,19 @@ query_variables = {"mgmId": int(args.mgm_id)}
 current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, query_variables)
 if current_import_id == -1:
     logging.warning("error while setting import lock for management id " +
-                 str(args.mgm_id) + ", import already running?")
+                    str(args.mgm_id) + ", import already running?")
     sys.exit(1)
 
-logging.info("start import of management " + str(args.mgm_id) + ", import_id=" + str(current_import_id))
+logging.info("start import of management " + str(args.mgm_id) +
+             ", import_id=" + str(current_import_id))
 # from here on we have an import lock and need to unlock it before exiting
 
 # get mgm_details (fw-type, port, ip, user credentials):
-mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, query_variables)['data']['management'][0] 
+mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, query_variables)[
+    'data']['management'][0]
 
 full_config_json = {}
-config2import = {'rulebases': [], 'users': {}}
+config2import = {'rulebases': [], 'users': []}
 config_filename = base_dir + '/tmp/import/mgm_id_' + \
     str(args.mgm_id) + '_config.json'
 with open(config_filename, "w") as json_data:  # create empty config file
@@ -126,14 +129,23 @@ if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceTyp
     os.system(get_config_cmd)
     with open(config_filename, "r") as json_data:
         full_config_json = json.load(json_data)
-    checkpointR8x.parse_network.parse_network_objects(full_config_json, config2import, current_import_id)
-    checkpointR8x.parse_service.parse_service_objects(full_config_json, config2import, current_import_id)
-    users = []
-    rulebase_range = range(len(rulebase_string.split(','))-1)
-    for i in rulebase_range:
-        checkpointR8x.parse_user.collect_users_from_rulebase(full_config_json['rulebases'][i], users)
+    checkpointR8x.parse_network.parse_network_objects(
+        full_config_json, config2import, current_import_id)
+    checkpointR8x.parse_service.parse_service_objects(
+        full_config_json, config2import, current_import_id)
+    if 'users' not in full_config_json:
+        full_config_json.update({'users': {}})
+    rb_range = range(len(rulebase_string.split(',')))
+    for rb_id in rb_range:
+        checkpointR8x.parse_user.parse_user_objects_from_rulebase(
+            full_config_json['rulebases'][rb_id], full_config_json['users'], current_import_id)
         #checkpointR8x.parse_rule.parse_rulebase(full_config_json, config2import, rulebase)
-    config2import.update({'users': users})
+    config2import.update({'user_objects': []})
+    for user_name in full_config_json['users'].keys():
+        user = copy.deepcopy(full_config_json['users'][user_name])
+        user.update({'user_name': user_name})
+        config2import['user_objects'].append(user)
+
     # config2import['rulebases'][rulebase].update)
 
 if mgm_details['deviceType']['name'] == 'Fortinet' and mgm_details['deviceType']['version'] == '5.x-6.x':
@@ -145,27 +157,27 @@ if mgm_details['deviceType']['name'] == 'FortiManager':
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
     "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
 
-change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
+change_count = fwo_api.count_changes_per_import(
+    fwo_api_base_url, jwt, current_import_id)
 
-if change_count > 0 or error_count>0: # store full config
+if change_count > 0 or error_count > 0:  # store full config
     with open(config_filename, "r") as json_data:
         full_config_json = json.load(json_data)
 
     error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
         "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
 
-if change_count > 0 and error_count==0: # delete imports without changes (if no error occured)
-    error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id} )
+# delete imports without changes (if no error occured)
+if change_count > 0 and error_count == 0:
+    error_count += fwo_api.delete_json_config(
+        fwo_api_base_url, jwt, {"importId": current_import_id})
 
 stop_time = int(time.time())
 stop_time_string = datetime.datetime.now().isoformat()
 
-error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(args.mgm_id), stop_time_string, current_import_id, error_count, change_count>0)
-
-if error_count:
-    logging.warning("import ran with errors, duration: " +
-                 str(int(time.time()) - start_time) + "s")
-else:
-    logging.debug("import ran without errors, duration: " +
-                  str(int(time.time()) - start_time) + "s")
+error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
+    args.mgm_id), stop_time_string, current_import_id, error_count, change_count > 0)
+print( "import_mgm.py: import no. " + str(current_import_id) + " for management " + str(args.mgm_id) + " ran " + \
+    str("with" if error_count else "without") + " errors, duration: " + \
+    str(int(time.time()) - start_time) + "s" )
 sys.exit(0)

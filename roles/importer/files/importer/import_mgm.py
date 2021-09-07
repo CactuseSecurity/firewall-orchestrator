@@ -101,7 +101,7 @@ mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, query_variables)[
     'data']['management'][0]
 
 full_config_json = {}
-config2import = {'rulebases': [], 'users': []}
+config2import = {}
 config_filename = base_dir + '/tmp/import/mgm_id_' + \
     str(args.mgm_id) + '_config.json'
 with open(config_filename, "w") as json_data:  # create empty config file
@@ -117,6 +117,12 @@ for device in mgm_details['devices']:
 rulebase_string = rulebase_string[:-1]  # remove final comma
 
 # get config from FW API and write to json file
+
+if mgm_details['deviceType']['name'] == 'Fortinet' and mgm_details['deviceType']['version'] == '5.x-6.x':
+    logging.info("ignoring legacy fortinet devices for now")
+if mgm_details['deviceType']['name'] == 'FortiManager':
+    logging.info("found fortiManager")
+    os.system("fortiManager.parse_config -f " + config_filename)
 if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceType']['version'] == 'R8x':
     logging.info("found Check Point R8x")
     get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
@@ -139,7 +145,10 @@ if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceTyp
     for rb_id in rb_range:
         checkpointR8x.parse_user.parse_user_objects_from_rulebase(
             full_config_json['rulebases'][rb_id], full_config_json['users'], current_import_id)
-        #checkpointR8x.parse_rule.parse_rulebase(full_config_json, config2import, rulebase)
+        # checkpointR8x.parse_rule.parse_rulebase(full_config_json['rulebases'][rb_id], config2import)
+    
+    # copy users from full_config to config2import 
+    # also converting users from dict to array:
     config2import.update({'user_objects': []})
     for user_name in full_config_json['users'].keys():
         user = copy.deepcopy(full_config_json['users'][user_name])
@@ -148,19 +157,17 @@ if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceTyp
 
     # config2import['rulebases'][rulebase].update)
 
-if mgm_details['deviceType']['name'] == 'Fortinet' and mgm_details['deviceType']['version'] == '5.x-6.x':
-    logging.info("ignoring legacy fortinet devices for now")
-if mgm_details['deviceType']['name'] == 'FortiManager':
-    logging.info("found fortiManager")
-    os.system("fortiManager.parse_config -f " + config_filename)
-
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
     "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
+
+# if error_count>0:
+#    get error from import_control table and show it
+
 
 change_count = fwo_api.count_changes_per_import(
     fwo_api_base_url, jwt, current_import_id)
 
-if change_count > 0 or error_count > 0:  # store full config
+if change_count > 0 or error_count > 0:  # store full config in case of change or error
     with open(config_filename, "r") as json_data:
         full_config_json = json.load(json_data)
 
@@ -168,7 +175,7 @@ if change_count > 0 or error_count > 0:  # store full config
         "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
 
 # delete imports without changes (if no error occured)
-if change_count > 0 and error_count == 0:
+if change_count == 0 and error_count == 0:
     error_count += fwo_api.delete_json_config(
         fwo_api_base_url, jwt, {"importId": current_import_id})
 
@@ -176,8 +183,8 @@ stop_time = int(time.time())
 stop_time_string = datetime.datetime.now().isoformat()
 
 error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
-    args.mgm_id), stop_time_string, current_import_id, error_count, change_count > 0)
+    args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
 print( "import_mgm.py: import no. " + str(current_import_id) + " for management " + str(args.mgm_id) + " ran " + \
-    str("with" if error_count else "without") + " errors, duration: " + \
+    str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " + \
     str(int(time.time()) - start_time) + "s" )
 sys.exit(0)

@@ -50,6 +50,7 @@ CREATE OR REPLACE FUNCTION import_config_from_jsonb ()
     AS $BODY$
 DECLARE
     import_id BIGINT;
+    r_import_result RECORD;
 BEGIN
     INSERT INTO import_object
     SELECT
@@ -76,7 +77,9 @@ BEGIN
     --     jsonb_populate_recordset(NULL::import_rule, NEW.config -> 'rulebases');
 
     -- finally start the stored procedure import
-    -- PERFORM import_all_main(NEW.import_id);
+    PERFORM import_all_main(NEW.import_id);
+
+--    RAISE EXCEPTION 'import_result: %', CAST(r_import_result AS VARCHAR);
 
     RETURN NEW;
 END;

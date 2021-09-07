@@ -182,8 +182,8 @@ def count_changes_per_import (fwo_api_base_url, jwt, import_id):
     return changes_in_import
 
 
-def unlock_import (fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_count, changes_found):
-    query_variables={ "stopTime": stop_time, "importId": current_import_id, "success": not error_count, "changesFound": changes_found }
+def unlock_import (fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_count, change_count):
+    query_variables={ "stopTime": stop_time, "importId": current_import_id, "success": error_count==0, "changesFound": change_count>0 }
 
     unlock_mutation = """
         mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!) {

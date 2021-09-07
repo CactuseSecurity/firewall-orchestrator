@@ -77,7 +77,25 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "log_obj_id",
+                      "new_obj_id",
+                      "old_obj_id",
+                      "import_admin",
+                      "doku_admin",
+                      "control_id",
+                      "abs_change_id",
+                      "change_action",
+                      "changelog_obj_comment",
+                      "documented",
+                      "docu_time",
+                      "mgm_id",
+                      "change_type_id",
+                      "security_relevant",
+                      "change_request_info",
+                      "change_time",
+                      "unique_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -184,7 +202,27 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "log_rule_id",
+                      "doku_admin",
+                      "control_id",
+                      "import_admin",
+                      "new_rule_id",
+                      "old_rule_id",
+                      "implicit_change",
+                      "abs_change_id",
+                      "change_action",
+                      "changelog_rule_comment",
+                      "documented",
+                      "docu_time",
+                      "mgm_id",
+                      "dev_id",
+                      "change_type_id",
+                      "security_relevant",
+                      "change_request_info",
+                      "change_time",
+                      "unique_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -350,7 +388,25 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "log_svc_id",
+                      "doku_admin",
+                      "control_id",
+                      "import_admin",
+                      "new_svc_id",
+                      "old_svc_id",
+                      "abs_change_id",
+                      "change_action",
+                      "changelog_svc_comment",
+                      "documented",
+                      "docu_time",
+                      "mgm_id",
+                      "change_type_id",
+                      "security_relevant",
+                      "change_request_info",
+                      "change_time",
+                      "unique_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -424,7 +480,25 @@
                 {
                   "role": "importer",
                   "permission": {
-                    "columns": [],
+                    "columns": [
+                      "log_usr_id",
+                      "new_user_id",
+                      "old_user_id",
+                      "import_admin",
+                      "doku_admin",
+                      "control_id",
+                      "abs_change_id",
+                      "change_action",
+                      "changelog_user_comment",
+                      "documented",
+                      "docu_time",
+                      "mgm_id",
+                      "change_type_id",
+                      "security_relevant",
+                      "change_request_info",
+                      "change_time",
+                      "unique_name"
+                    ],
                     "filter": {},
                     "allow_aggregations": true
                   }
@@ -1002,6 +1076,24 @@
                     "check": {},
                     "columns": ["config", "import_id", "mgm_id"],
                     "backend_only": false
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": ["import_id", "mgm_id", "config"],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
                   }
                 }
               ]
@@ -1776,6 +1868,24 @@
                     "check": {},
                     "columns": ["config", "import_id", "mgm_id"],
                     "backend_only": false
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": ["import_id", "mgm_id", "config"],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
                   }
                 }
               ]

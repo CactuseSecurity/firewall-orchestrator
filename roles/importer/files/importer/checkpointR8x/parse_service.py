@@ -33,7 +33,10 @@ def csv_dump_svc_obj(svc_obj, import_id):
         result_line += common.csv_add_field(svc_obj['svc_timeout_std'])     # svc_timeout_std
     else:
         result_line += common.csv_delimiter                                 # svc_timeout_std
-    result_line += str(svc_obj['svc_timeout']) + common.csv_delimiter       # svc_timeout
+    if 'svc_timeout' in svc_obj and svc_obj['svc_timeout']!="":
+        result_line += common.csv_add_field(str(svc_obj['svc_timeout']))    # svc_timeout
+    else:
+        result_line += common.csv_delimiter                                 # svc_timeout null
     result_line += common.csv_add_field(svc_obj['svc_uid'])                 # svc_uid
     result_line += common.csv_delimiter                                     # last_change_admin
     result_line += common.line_delimiter                                    # last_change_time
@@ -82,6 +85,8 @@ def collect_svc_objects(object_table, svc_objects):
                     member_refs = member_refs[:-1]
                 if 'session-timeout' in obj:
                     session_timeout = str(obj['session-timeout'])
+                else:
+                    session_timeout = None
                 if 'interface-uuid' in obj:
                     rpc_nr = obj['interface-uuid']
                 if 'program-number' in obj:
@@ -141,10 +146,12 @@ def add_member_names_for_svc_group(idx, svc_objects):
     svc_objects.insert(idx, group)
 
 
-def parse_service_objects(full_config, config2import):
+def parse_service_objects(full_config, config2import, import_id):
     svc_objects = []
     for svc_table in full_config['object_tables']:
         collect_svc_objects(svc_table, svc_objects)
+    for obj in svc_objects:
+        obj.update({'control_id': import_id})
     for idx in range(0, len(svc_objects)-1):
         if svc_objects[idx]['svc_typ'] == 'group':
             add_member_names_for_svc_group(idx, svc_objects)

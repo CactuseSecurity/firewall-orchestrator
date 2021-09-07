@@ -182,12 +182,12 @@ def count_changes_per_import (fwo_api_base_url, jwt, import_id):
     return changes_in_import
 
 
-def unlock_import (fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_count, change_count):
-    query_variables={ "stopTime": stop_time, "importId": current_import_id, "success": not error_count, "changeCount": change_count }
+def unlock_import (fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_count, changes_found):
+    query_variables={ "stopTime": stop_time, "importId": current_import_id, "success": not error_count, "changesFound": changes_found }
 
     unlock_mutation = """
-        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, changeCount: int!) {
-            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changeCount}) {
+        mutation unlockImport($importId: bigint!, $stopTime: timestamp!, $success: Boolean, $changesFound: Boolean!) {
+            update_import_control(where: {control_id: {_eq: $importId}}, _set: {stop_time: $stopTime, successful_import: $success, changes_found: $changesFound}) {
                 affected_rows
             }
         }"""
@@ -211,7 +211,9 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     """
 
     try:
-        import_result = call(fwo_api_base_url, jwt, import_mutation, query_variables=query_variables, role='importer'); 
+        import_result = call(fwo_api_base_url, jwt, import_mutation, query_variables=query_variables, role='importer');
+        if 'errors' in import_result:
+            logging.exception("fwo_api:import_json_config - error while writing importable config for mgm id " + str(mgm_id) + ": " + str(import_result['errors']))
         changes_in_import_control = import_result['data']['insert_import_config']['affected_rows']
     except: 
         logging.exception("fwo_api: failed to write importable config for mgm id " + str(mgm_id))

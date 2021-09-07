@@ -81,14 +81,17 @@ if args.service_objects:
         result += parse_service.csv_dump_svc_obj(svc_obj, args.import_id)
 
 if args.users:
-    users = {}
+    # users = {}
+    users = []
     result = ''
     for rulebase in config['rulebases']:
         parse_user.collect_users_from_rulebase(rulebase, users)
 
-    for user_name in users.keys():
-        user_dict = users[user_name]
-        result += parse_user.csv_dump_user(user_name, user_dict, args.import_id)
+    # for user_name in users.keys():
+    #     user_dict = users[user_name]
+    #     result += parse_user.csv_dump_user(user_name, user_dict, args.import_id)
+    for user in users:
+        result += parse_user.csv_dump_user(user, args.import_id)
 
 if args.rulebase != '' and not found_rulebase:
     logging.exception("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")

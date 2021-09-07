@@ -6,9 +6,11 @@ import logging
 import common
 
 
-def csv_dump_user(user_name, user, import_id):
+#def csv_dump_user(user_name, user, import_id):
+def csv_dump_user(user, import_id):
     user_line =  common.csv_add_field(import_id)
-    user_line += common.csv_add_field(user_name)
+    # user_line += common.csv_add_field(user_name)
+    user_line += common.csv_add_field(user['name'])
     user_line += common.csv_add_field(user['user_type'])  # user_typ
     if 'user_member_names' in user:
         user_line += common.csv_add_field(user['user_member_names'])    # user_member_names
@@ -37,15 +39,18 @@ def collect_users_from_rule(rule, users):
         if 'type' in rule and rule['type'] != 'place-holder':
             for src in rule["source"]:
                 if src['type'] == 'access-role':
-                    users.update({src['name']: {'uid': src['uid'], 'user_type': 'group', 'comment': src['comments'], 'color': src['color']} })
+                    # users.update({src['name']: {'uid': src['uid'], 'user_type': 'group', 'comment': src['comments'], 'color': src['color']} })
+                    users.append({'name': src['name'], 'uid': src['uid'], 'user_type': 'group', 'comment': src['comments'], 'color': src['color']})
                     if 'users' in src:
-                        users.update({src["name"]: {'uid': src["uid"], 'user_type': 'simple'} })
+                        # users.update({src["name"]: {'uid': src["uid"], 'user_type': 'simple'} })
+                        users.append({'name': src["name"], 'uid': src["uid"], 'user_type': 'simple'})
                 elif src['type'] == 'LegacyUserAtLocation':
                     user_str = src["name"]
                     user_ar = user_str.split('@')
                     user_name = user_ar[0]
                     user_uid = src["userGroup"]
-                    users.update({user_name: {'uid': user_uid, 'user_type': 'group'} })
+                    # users.update({user_name: {'uid': user_uid, 'user_type': 'group'} })
+                    users.append({'name': user_name, 'uid': user_uid, 'user_type': 'group'})
     else:  # section
         collect_users_from_rulebase(rule["rulebase"], users)
 
@@ -60,3 +65,12 @@ def collect_users_from_rulebase(rulebase, users):
     else:
         for rule in rulebase:
             collect_users_from_rule(rule, users)
+
+
+def parse_user_objects(full_config, config2import, import_id):
+    users = []
+    collect_users_from_rulebase(full_config['rulebases'], users)
+
+    for user in users:
+        user.update({'control_id': import_id})
+    config2import.update({'users': users})

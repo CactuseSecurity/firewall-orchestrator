@@ -43,7 +43,6 @@ ALTER TABLE "import_full_config"
 DROP INDEX IF EXISTS import_control_only_one_null_stop_time_per_mgm_when_null;
 CREATE UNIQUE INDEX import_control_only_one_null_stop_time_per_mgm_when_null ON import_control (mgm_id) WHERE stop_time IS NULL;
 
-
 -------------------
 -- the following triggers creates the bigserial obj_id as it does not seem to be set automatically, 
 -- when insert via jsonb function and specifying no obj_id
@@ -95,6 +94,7 @@ CREATE OR REPLACE FUNCTION import_config_from_jsonb ()
     AS $BODY$
 DECLARE
     import_id BIGINT;
+    r_import_result RECORD;
 BEGIN
     INSERT INTO import_object
     SELECT
@@ -102,27 +102,30 @@ BEGIN
     FROM
         jsonb_populate_recordset(NULL::import_object, NEW.config -> 'network_objects');
 
-    -- INSERT INTO import_service
-    -- SELECT
-    --     *
-    -- FROM
-    --     jsonb_populate_recordset(NULL::import_service, NEW.config -> 'service_objects');
+    INSERT INTO import_service
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_service, NEW.config -> 'service_objects');
 
--- todo: usrs need to be converted from dict to array
-    -- INSERT INTO import_user
-    -- SELECT
-    --     *
-    -- FROM
-    --     jsonb_populate_recordset(NULL::import_user, NEW.config -> 'user_objects');
+    INSERT INTO import_user
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_user, NEW.config -> 'user_objects');
 
-    -- INSERT INTO import_rule
-    -- SELECT
-    --     *
-    -- FROM
-    --     jsonb_populate_recordset(NULL::import_rule, NEW.config -> 'rulebases');
+    INSERT INTO import_rule
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_rule, NEW.config -> 'rules');
+
+    -- adding zone data, more?
 
     -- finally start the stored procedure import
-    -- SELECT * FROM import_all_main(NEW.import_id);
+    PERFORM import_all_main(NEW.import_id);
+
+--    RAISE EXCEPTION 'import_result: %', CAST(r_import_result AS VARCHAR);
 
     RETURN NEW;
 END;

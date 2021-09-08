@@ -37,7 +37,7 @@ def csv_dump_nw_obj(nw_obj, import_id):
     return result_line
 
 
-def parse_network_objects(full_config, config2import, import_id):
+def parse_network_objects_to_json(full_config, config2import, import_id):
     nw_objects = []
 
     for obj_table in full_config['object_tables']:

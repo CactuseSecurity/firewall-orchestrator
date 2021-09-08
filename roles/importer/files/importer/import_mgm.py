@@ -135,19 +135,26 @@ if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceTyp
     os.system(get_config_cmd)
     with open(config_filename, "r") as json_data:
         full_config_json = json.load(json_data)
-    checkpointR8x.parse_network.parse_network_objects(
+    checkpointR8x.parse_network.parse_network_objects_to_json(
         full_config_json, config2import, current_import_id)
-    checkpointR8x.parse_service.parse_service_objects(
+    checkpointR8x.parse_service.parse_service_objects_to_json(
         full_config_json, config2import, current_import_id)
     if 'users' not in full_config_json:
         full_config_json.update({'users': {}})
     rb_range = range(len(rulebase_string.split(',')))
+    target_rulebase = []
+    rule_num = 0
+    parent_uid=""
+    section_header_uids=[]
     for rb_id in rb_range:
         checkpointR8x.parse_user.parse_user_objects_from_rulebase(
             full_config_json['rulebases'][rb_id], full_config_json['users'], current_import_id)
-        # checkpointR8x.parse_rule.parse_rulebase(full_config_json['rulebases'][rb_id], config2import)
-    
-    # copy users from full_config to config2import 
+        # if current_layer_name == args.rulebase:
+        logging.debug("parsing layer " + full_config_json['rulebases'][rb_id]['layername'])
+        rule_num = checkpointR8x.parse_rule.parse_rulebase_json(
+            full_config_json['rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+
+    # copy users from full_config to config2import
     # also converting users from dict to array:
     config2import.update({'user_objects': []})
     for user_name in full_config_json['users'].keys():
@@ -155,7 +162,8 @@ if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceTyp
         user.update({'user_name': user_name})
         config2import['user_objects'].append(user)
 
-    # config2import['rulebases'][rulebase].update)
+    config2import.update({'rules': target_rulebase})
+
 
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
     "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
@@ -181,13 +189,14 @@ stop_time_string = datetime.datetime.now().isoformat()
 if change_count == 0 and error_count == 0:
     error_count += fwo_api.delete_json_config(
         fwo_api_base_url, jwt, {"importId": current_import_id})
-    error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+    error_count += fwo_api.delete_import(fwo_api_base_url,
+                                         jwt, current_import_id)
 else:
     error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
         args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
 
 
-print( "import_mgm.py: import no. " + str(current_import_id) + " for management " + str(args.mgm_id) + " ran " + \
-    str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " + \
-    str(int(time.time()) - start_time) + "s" )
+print("import_mgm.py: import no. " + str(current_import_id) + " for management " + str(args.mgm_id) + " ran " +
+      str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " +
+      str(int(time.time()) - start_time) + "s")
 sys.exit(0)

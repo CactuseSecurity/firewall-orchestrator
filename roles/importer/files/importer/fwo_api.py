@@ -33,7 +33,6 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
         r = requests.post(url, data=json.dumps(
             full_query), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
         r.raise_for_status()
-        content = r.content
     except requests.exceptions.RequestException as e:
         logging.exception("\nerror while sending api_call to url " + str(url) + " with payload \n" +
                           json.dumps(full_query, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
@@ -128,7 +127,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
 
     mgm_query = """
         query getManagementDetails($mgmId: Int!) {
-            management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
+            management(where:{mgm_id:{_eq:$mgmId}, do_not_import:{_eq:false}} order_by: {mgm_name: asc}) {
                 id: mgm_id
                 name: mgm_name
                 hostname: ssh_hostname
@@ -151,7 +150,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
                 creationDate: mgm_create
                 updateDate: mgm_update
                 lastConfigHash: last_import_md5_complete_config
-                devices {
+                devices(where:{do_not_import:{_eq:false}}) {
                     id: dev_id
                     name: dev_name
                     rulebase:dev_rulebase

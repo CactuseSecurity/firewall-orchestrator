@@ -33,3 +33,11 @@ def csv_add_field(content, no_csv_delimiter=False):
             field_result += csv_delimiter
     return field_result
  
+
+def sanitize(content):
+    result = str(content)
+    result = result.replace(apostrophe,"")  # remove possibly contained apostrophe
+    #if result != '':  # do not add apostrophes for empty fields
+    #    result = apostrophe + escaped_field + apostrophe
+    return result
+ 

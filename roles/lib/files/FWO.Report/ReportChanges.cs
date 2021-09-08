@@ -36,6 +36,10 @@ namespace FWO.Report
             bool gotNewObjects = true;
             Managements = Array.Empty<Management>();
 
+            // save selected device state
+            Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
+
             Managements = await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables);
             while (gotNewObjects)
             {
@@ -43,6 +47,7 @@ namespace FWO.Report
                 gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
                 await callback(Managements);
             }
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToCsv()

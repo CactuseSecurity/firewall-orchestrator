@@ -41,6 +41,11 @@ namespace FWO.Report
             // get relevant import ids for report time
             ImpIdQueryVariables["time"] = TimeFilter;
             Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+
+            // save selected device state
+            Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
+
             List<Management> resultList = new List<Management>();
             int i;
 
@@ -64,6 +69,7 @@ namespace FWO.Report
                 globalStatisticsManagament.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagament.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
             }
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToJson()

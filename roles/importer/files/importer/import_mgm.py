@@ -174,16 +174,19 @@ if change_count > 0 or error_count > 0:  # store full config in case of change o
     error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
         "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
 
+stop_time = int(time.time())
+stop_time_string = datetime.datetime.now().isoformat()
+
 # delete imports without changes (if no error occured)
 if change_count == 0 and error_count == 0:
     error_count += fwo_api.delete_json_config(
         fwo_api_base_url, jwt, {"importId": current_import_id})
+    error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+else:
+    error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
+        args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
 
-stop_time = int(time.time())
-stop_time_string = datetime.datetime.now().isoformat()
 
-error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
-    args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
 print( "import_mgm.py: import no. " + str(current_import_id) + " for management " + str(args.mgm_id) + " ran " + \
     str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " + \
     str(int(time.time()) - start_time) + "s" )

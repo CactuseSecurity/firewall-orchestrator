@@ -499,13 +499,15 @@ namespace FWO.Report.Filter.Ast
                     stop = startOfCurrentMonth.ToString("yyyy-MM-dd");
                     break;
                 default:
-                    string[] times = timeRange.Split('-');
+                    string[] times = timeRange.Split('/');
                     if (times.Length == 2)
                     {
-                        start = times[0];
-                        stop = times[1];
-                        if (start != Convert.ToDateTime(start).ToString() || stop != Convert.ToDateTime(stop).ToString())
-                            throw new SyntaxException($"Error: wrong time range format.", new System.Range(23, 26)); // Unexpected token
+                        start = Convert.ToDateTime(times[0]).ToString("yyyy-MM-dd HH:mm:ss");
+                        if (times[1].Trim().Length < 11)
+                        {
+                            times[1] += " 23:59:59";
+                        }
+                        stop = Convert.ToDateTime(times[1]).ToString("yyyy-MM-dd HH:mm:ss");
                     }
                     else
                         throw new SyntaxException($"Error: wrong time range format.", new System.Range(23, 26)); // Unexpected token

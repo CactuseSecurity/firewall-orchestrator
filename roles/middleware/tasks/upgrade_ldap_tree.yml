@@ -17,9 +17,9 @@
   set_fact:
     upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | splitext | first ] }}"
   when: |
-    installed_version < item | basename | splitext | first | splitext | first
+    item | basename | splitext | first | splitext | first  is version(installed_version, '>') 
     and
-    current_version >= item | basename | splitext | first | splitext | first
+    item | basename | splitext | first | splitext | first is version(current_version, '<=')
   with_fileglob:
     - "../templates/upgrade/*.ldif.j2"
 

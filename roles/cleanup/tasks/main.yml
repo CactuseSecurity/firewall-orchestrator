@@ -1,0 +1,29 @@
+- name: delete ldif files
+  file:
+    path: "{{  middleware_ldif_dir }}"
+    state: absent
+  become: yes
+  when: "'middlewareserver' in group_names"
+
+- name: restart importer service to make sure it works correctly with sample data
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-importer"
+    state: restarted
+  become: yes
+  when: "'importers' in group_names"
+
+- name: show listener status
+  import_tasks: scripts/show-fworch-listeners.yml
+  become: yes
+
+- name: display secrets for this installation
+  debug:
+    msg:
+      - "Your initial UI admin password is '{{ admin_password }}'"
+      - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
+  when: |
+    admin_password is defined 
+    and 
+    api_hasura_admin_secret is defined 
+    and 
+    'backendserver' in group_names

@@ -59,6 +59,7 @@
 
   - name: Generate the root password hash for the config
     command: "slappasswd -T {{ openldap_secrets_path }}/ldap_manager_pw.txt"
+    register: root_password
 
 ### TLS
   - name: Delete the directory for ldap certificates

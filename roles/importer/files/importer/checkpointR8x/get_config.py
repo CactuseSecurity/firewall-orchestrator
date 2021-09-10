@@ -18,6 +18,8 @@
 # mgmt_cli -r true --domain MDS set api-settings accepted-api-calls-from "All IP addresses"
 # api restart
 
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import common
 import getter
 import json, argparse, pdb

@@ -384,6 +384,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION found_changes_in_import(BIGINT) RETURNS VARCHAR AS $$
+BEGIN
+    RETURN (select show_change_summary($1)<>'');
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION clean_up_tables (BIGINT) RETURNS VOID AS $$
 DECLARE
 	i_current_import_id ALIAS FOR $1;

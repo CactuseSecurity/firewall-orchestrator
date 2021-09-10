@@ -11,9 +11,9 @@ Create unique index "stm_fw_typ_akey" on "stm_dev_typ" using btree ("dev_typ_nam
 Create index "stm_nattypes_akey" on "stm_nattyp" using btree ("nattyp_name");
 Create unique index "stm_obj_typ_akey" on "stm_obj_typ" using btree ("obj_typ_name");
 Create index "import_control_start_time_idx" on "import_control" using btree ("start_time");
--- Create index "rule_oder_idx" on "rule_order" using btree ("control_id","rule_id");
+-- make sure a maximum of one stop_time=null entry exists per mgm_id (only one running import per mgm):
+CREATE UNIQUE INDEX import_control_only_one_null_stop_time_per_mgm_when_null ON import_control (mgm_id) WHERE stop_time IS NULL;
 Create index "IX_relationship11" on "object" ("obj_nat_install");
--- Create index "IX_Relationship126" on "rule_order" ("dev_id");
 Create index "IX_Relationship128" on "changelog_rule" ("dev_id");
 Create index "IX_Relationship186" on "rule" ("dev_id");
 Create index "IX_relationship7" on "device" ("tenant_id");

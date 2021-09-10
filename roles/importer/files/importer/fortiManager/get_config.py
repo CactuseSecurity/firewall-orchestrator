@@ -1,11 +1,12 @@
 #!/usr/bin/python3
-# create api user
+# create api user:
 # config system admin user
 #    edit "apiuser"
 #        set password xxx
 #        set adom "all_adoms"             
 #        set rpc-permit read-write
-
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import common
 import getter
 import json, argparse, pdb
@@ -57,37 +58,73 @@ ssl_verification = getter.set_ssl_verification(args.ssl)
 
 starttime = int(time.time())
 # top level dict start
-sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string)
+sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string=proxy_string,debug=debug_level)
 v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
 
-config_json = { 'adoms': [] }
-get_adoms = {
-  "method": "get",
-  "params": [{}],
-}
+config_json = {}
 
-# read all rulebases:
-for layer in args.layer.split(','):
-    logging.debug ( "get_config - dealing with layer: " + layer )
+# get global objects
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/adom/root/obj/firewall/address", "ipv4_objects", debug=debug_level)
+# api_url = "/pm/config/adom/global/obj/firewall/address" # --> error
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/adom/root/obj/firewall/address6", "ipv6_objects", debug=debug_level)
 
-    adoms = getter.api_call(api_host, api_port, v_url, '/dvmdb/adom', get_adoms, sid, ssl_verification, proxy_string)
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/global/obj/application/list", "app_list_objects", debug=debug_level)
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/global/obj/application/group", "app_group_objects", debug=debug_level)
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/global/obj/application/categories", "app_categories", debug=debug_level)
 
-    config_json['adoms'].append(adoms)
+#    user: /pm/config/global/obj/user/local
+getter.update_config_with_fortinet_api_call(config_json, sid, v_url, "/pm/config/global/obj/user/local", "users_local", debug=debug_level)
 
-# leaving rules, moving on to objects
+# get all custom adoms:
+q_get_custom_adoms = { "params": [ { "fields": ["name", "oid", "uuid"], "filter": ["create_time", "<>", 0] } ] }
+adoms = getter.fortinet_api_call(sid, v_url, '/dvmdb/adom', payload=q_get_custom_adoms, debug=debug_level)
 
+# get root adom:
+q_get_root_adom = { "params": [ { "fields": ["name", "oid", "uuid"], "filter": ["name", "==", "root"] } ] }
+adom_root = getter.fortinet_api_call(sid, v_url, '/dvmdb/adom', payload=q_get_root_adom, debug=debug_level).pop()
+adoms.append(adom_root)
+config_json.update({ "adoms": adoms })
+
+# for each adom get devices
+for adom in config_json["adoms"]:
+  q_get_devices_per_adom = { "params": [ { "fields": ["name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status"] } ] }
+  devs = getter.fortinet_api_call(sid, v_url, "/dvmdb/adom/" + adom["name"] + "/device", payload=q_get_devices_per_adom, debug=debug_level)
+  adom.update({"devices": devs})
+
+# for each adom get packages
+for adom in config_json["adoms"]:
+  packages = getter.fortinet_api_call(sid, v_url, "/pm/pkg/adom/" + adom["name"], debug=debug_level)
+  adom.update({"packages": packages})
+
+# todo: find mapping device <--> package
+# todo: consolidate nat rules in a single rulebase
+# todo: consolidate global and pkg-local rules in a single rulebase
+
+# get rulebases per pkg per adom
+for adom in config_json["adoms"]:
+  for pkg in adom["packages"]:
+    rulebase = getter.fortinet_api_call(sid, v_url, "/pm/config/adom/" + adom['name'] + "/pkg/" + pkg['name'] + "/firewall/policy", debug=debug_level)
+    pkg.update({"rulebase": rulebase})
+
+# get global policies:
+global_header_policy = getter.fortinet_api_call(sid, v_url, "/pm/config/global/pkg/default/global/header/consolidated/policy", debug=debug_level)
+config_json.update({"global_header_policy": global_header_policy})
+global_footer_policy = getter.fortinet_api_call(sid, v_url, "/pm/config/global/pkg/default/global/footer/consolidated/policy", debug=debug_level)
+config_json.update({"global_footer_policy": global_footer_policy})
+
+# get nat rules per pkg per adom
+for adom in config_json["adoms"]:
+  for pkg in adom["packages"]:
+    central_snat_rulebase = getter.fortinet_api_call(sid, v_url, "/pm/config/adom/" + adom['name'] + "/pkg/" + pkg['name'] + "/firewall/central-snat-map", debug=debug_level)
+    central_dnat_rulebase = getter.fortinet_api_call(sid, v_url, "/pm/config/adom/" + adom['name'] + "/pkg/" + pkg['name'] + "/firewall/central/dnat", debug=debug_level)
+    pkg.update({"central_snat_rulebase": central_snat_rulebase})
+    pkg.update({"central_dnat_rulebase": central_dnat_rulebase})
+
+# now dumping results to file
 with open(config_filename, "w") as configfile_json:
     configfile_json.write(json.dumps(config_json))
 
-logout_payload = {
-  "id": 1,
-  "jsonrpc": "1.0", 
-  "method": "exec",
-  "params": [ {} ],
-}
-
-logout_result = getter.api_call(api_host, args.port, v_url, 'sys/logout', logout_payload, sid, ssl_verification, proxy_string)
+getter.logout(v_url, sid, ssl_verification, proxy_string=proxy_string,debug=debug_level)
 duration = int(time.time()) - starttime
 logging.debug ( "fortiManager/get_config - duration: " + str(duration) + "s" )
-
 sys.exit(0)

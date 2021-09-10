@@ -1,38 +1,45 @@
+base_dir = "/usr/local/fworch"
+
+import sys
+sys.path.append(base_dir + '/importer')
+sys.path.append(base_dir + '/importer/checkpointR8x')
 import re
 import logging
-import common
+import common, cpcommon
 
 
 def csv_dump_svc_obj(svc_obj, import_id):
-    #print("dumping svc: " + svc_obj['svc_name'] + ", svc_member_refs: " + svc_obj['svc_member_refs'])
-    result_line = '"' + import_id + '"' + common.csv_delimiter  # control_id
-    result_line += '"' + svc_obj['svc_name'] + '"' + common.csv_delimiter  # svc_name
-    result_line += '"' + svc_obj['svc_typ'] + '"' + common.csv_delimiter  # svc_typ
-    result_line += '"' + svc_obj['svc_typ'] + '"' + common.csv_delimiter  # svc_prod_specific
-    result_line += '"' + svc_obj['svc_member_names'] + '"' + common.csv_delimiter  # svc_member_names
-    result_line += '"' + svc_obj['svc_member_refs'] + '"' + common.csv_delimiter  # obj_member_refs
-    result_line += '"' + svc_obj['svc_color'] + '"' + common.csv_delimiter  # svc_color
-    result_line += '"' + svc_obj['ip_proto'] + '"' + common.csv_delimiter  # ip_proto
-    result_line += str(svc_obj['svc_port']) + common.csv_delimiter  # svc_port
-    result_line += str(svc_obj['svc_port_end']) + common.csv_delimiter  # svc_port_end
+    result_line =  common.csv_add_field(import_id)                          # control_id
+    result_line += common.csv_add_field(svc_obj['svc_name'])                # svc_name
+    result_line += common.csv_add_field(svc_obj['svc_typ'])                 # svc_typ
+    result_line += common.csv_add_field(svc_obj['svc_typ'])                 # svc_prod_specific
+    result_line += common.csv_add_field(svc_obj['svc_member_names'])        # svc_member_names
+    result_line += common.csv_add_field(svc_obj['svc_member_refs'])         # obj_member_refs
+    result_line += common.csv_add_field(svc_obj['svc_color'])               # svc_color
+    result_line += common.csv_add_field(svc_obj['ip_proto'])                # ip_proto
+    result_line += str(svc_obj['svc_port']) + common.csv_delimiter          # svc_port
+    result_line += str(svc_obj['svc_port_end']) + common.csv_delimiter      # svc_port_end
     if 'svc_source_port' in svc_obj:
-        result_line += '"' + svc_obj['svc_source_port'] + '"' + common.csv_delimiter       # svc_source_port
+        result_line += common.csv_add_field(svc_obj['svc_source_port'])     # svc_source_port
     else:
-        result_line += common.csv_delimiter  # svc_source_port
+        result_line += common.csv_delimiter                                 # svc_source_port
     if 'svc_source_port_end' in svc_obj:
-        result_line += '"' + svc_obj['svc_source_port_end'] + '"' + common.csv_delimiter   # svc_source_port_end
+        result_line += common.csv_add_field(svc_obj['svc_source_port_end']) # svc_source_port_end
     else:
-        result_line += common.csv_delimiter  # svc_source_port_end
-    result_line += '"' + svc_obj['svc_comment'] + '"' + common.csv_delimiter  # svc_comment
-    result_line += '"' + str(svc_obj['rpc_nr']) + '"' + common.csv_delimiter  # rpc_nr
+        result_line += common.csv_delimiter                                 # svc_source_port_end
+    result_line += common.csv_add_field(svc_obj['svc_comment'])             # svc_comment
+    result_line += common.csv_add_field(str(svc_obj['rpc_nr']))             # rpc_nr
     if 'svc_timeout_std' in svc_obj:
-        result_line += '"' + svc_obj['svc_timeout_std'] + '"' + common.csv_delimiter       # svc_timeout_std
+        result_line += common.csv_add_field(svc_obj['svc_timeout_std'])     # svc_timeout_std
     else:
-        result_line += common.csv_delimiter  # svc_timeout_std
-    result_line += str(svc_obj['svc_timeout']) + common.csv_delimiter  # svc_timeout
-    result_line += '"' + svc_obj['svc_uid'] + '"' + common.csv_delimiter  # svc_uid
-    result_line += common.csv_delimiter  # last_change_admin
-    result_line += common.line_delimiter    #  last_change_time
+        result_line += common.csv_delimiter                                 # svc_timeout_std
+    if 'svc_timeout' in svc_obj and svc_obj['svc_timeout']!="" and svc_obj['svc_timeout']!=None:
+        result_line += common.csv_add_field(str(svc_obj['svc_timeout']))    # svc_timeout
+    else:
+        result_line += common.csv_delimiter                                 # svc_timeout null
+    result_line += common.csv_add_field(svc_obj['svc_uid'])                 # svc_uid
+    result_line += common.csv_delimiter                                     # last_change_admin
+    result_line += common.line_delimiter                                    # last_change_time
     return result_line
 
 
@@ -40,7 +47,7 @@ def csv_dump_svc_obj(svc_obj, import_id):
 def collect_svc_objects(object_table, svc_objects):
     result = ''
 
-    if object_table['object_type'] in common.svc_obj_table_names:
+    if object_table['object_type'] in cpcommon.svc_obj_table_names:
         proto = ''
         session_timeout = ''
         typ = 'undef'
@@ -78,6 +85,8 @@ def collect_svc_objects(object_table, svc_objects):
                     member_refs = member_refs[:-1]
                 if 'session-timeout' in obj:
                     session_timeout = str(obj['session-timeout'])
+                else:
+                    session_timeout = None
                 if 'interface-uuid' in obj:
                     rpc_nr = obj['interface-uuid']
                 if 'program-number' in obj:
@@ -135,3 +144,16 @@ def add_member_names_for_svc_group(idx, svc_objects):
         member_names += member_name + common.list_delimiter
     group['svc_member_names'] = member_names[:-1]
     svc_objects.insert(idx, group)
+
+
+def parse_service_objects_to_json(full_config, config2import, import_id):
+    svc_objects = []
+    for svc_table in full_config['object_tables']:
+        collect_svc_objects(svc_table, svc_objects)
+    for obj in svc_objects:
+        obj.update({'control_id': import_id})
+    for idx in range(0, len(svc_objects)-1):
+        if svc_objects[idx]['svc_typ'] == 'group':
+            add_member_names_for_svc_group(idx, svc_objects)
+    config2import.update({'service_objects': svc_objects})
+    

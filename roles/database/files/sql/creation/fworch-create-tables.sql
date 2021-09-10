@@ -615,6 +615,22 @@ Create table "import_control"
  primary key ("control_id")
 );
 
+-- temporary table for storing the fw-relevant config during import
+CREATE TABLE IF NOT EXISTS "import_config" (
+    "import_id" bigint NOT NULL,
+    "mgm_id" integer NOT NULL,
+    "config" jsonb NOT NULL,
+    PRIMARY KEY ("import_id")
+);
+
+-- permanent table for storing the full config as an archive
+CREATE TABLE "import_full_config" (
+    "import_id" bigint NOT NULL,
+    "mgm_id" integer NOT NULL,
+    "config" jsonb NOT NULL,
+    PRIMARY KEY ("import_id")
+);
+
 -- temporary import tables -------------------------------------
 
 Create table "import_service"

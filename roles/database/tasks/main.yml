@@ -194,7 +194,17 @@
   when: installation_mode == "upgrade"
 
 - name: (re)define functions and views
-  import_tasks: recreate-functions-and-views.yml
+  include_tasks: recreate-functions-and-views-ansible-pre2.10.yml
+  when: ansible_version.string is version_compare('2.10', '<')
+
+- name: (re)define functions and views
+  include_tasks: recreate-functions-and-views-ansible-2.10.yml
+  when: ansible_version.string is version_compare('2.10', '>=')
+
+- name: run unit tests
+  import_tasks: run-unit-tests.yml
+  when: not installation_mode == "uninstall" 
+  tags: [ 'never', 'unittest' ]
 
 - name: run unit tests
   import_tasks: run-unit-tests.yml

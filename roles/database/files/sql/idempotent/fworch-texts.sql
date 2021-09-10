@@ -144,7 +144,7 @@ The following top-level menu items are available (depending on role memberships)
 INSERT INTO txt VALUES ('getting_support',	    'German', 	'Unterst&uuml;tzung ben&ouml;tigt? Ihre Kontaktm&ouml;glichkeiten');
 INSERT INTO txt VALUES ('getting_support',	    'English', 	'Do you need help? Our Contact options');
 INSERT INTO txt VALUES ('support_details',	    'German', 	'
-M&ouml; Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
+M&ouml;chten Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
 <ul>
 <li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
 <li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>

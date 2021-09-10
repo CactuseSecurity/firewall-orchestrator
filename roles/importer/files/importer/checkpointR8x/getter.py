@@ -1,10 +1,11 @@
-#!/usr/bin/python3
 # library for API get functions
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import json, argparse, pdb
 import time, logging, re, sys, logging
 import os
 import requests, requests.packages.urllib3
-import common
+import cpcommon
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -131,8 +132,8 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
             svc_uids_found.append(svc['uid'])
         #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
         #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
-    if common.debug_new_uid in nw_uids_found:
-        logging.debug("found " + common.debug_new_uid + " in getter::collect_uids_from_rule")
+    if cpcommon.debug_new_uid in nw_uids_found:
+        logging.debug("found " + cpcommon.debug_new_uid + " in getter::collect_uids_from_rule")
     return
 
 
@@ -159,8 +160,8 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
     if (debug_text == 'top_level'):
         # logging.debug ("getter::collect_uids_from_rulebase final nw_uids_found: " + str(nw_uids_found))
         # logging.debug ("getter::collect_uids_from_rulebase final svc_uids_found: " + str(svc_uids_found))
-        if common.debug_new_uid in nw_uids_found:
-            logging.debug("found " + common.debug_new_uid + " in getter::collect_uids_from_rulebase")
+        if cpcommon.debug_new_uid in nw_uids_found:
+            logging.debug("found " + cpcommon.debug_new_uid + " in getter::collect_uids_from_rulebase")
     return
 
 

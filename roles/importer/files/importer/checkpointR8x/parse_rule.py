@@ -243,6 +243,7 @@ def add_section_header_rule_in_json (rulebase, section_name, layer_name, import_
         "rule_track":       "Log",
         "rule_installon":   "Policy Targets",
         "rule_time":        "Any",
+        "rule_implied":      False,
         "rule_comment":     "",
          # rule_name
         "rule_uid":         common.sanitize(rule_uid),
@@ -360,6 +361,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 "rule_comment":     common.sanitize(src_rule['comments']),
                 "rule_name":        common.sanitize(rule_name),
                 "rule_uid":         common.sanitize(src_rule['uid']),
+                "rule_implied":     False,
                 # "rule_head_text": common.sanitize(section_name),
                 # rule_from_zone
                 # rule_to_zone

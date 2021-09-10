@@ -12,22 +12,23 @@
 #         release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #         no changes: remove import_control?
 
-import copy
 from symbol import except_clause
-import common
 import logging
 import argparse
 import time
+import common
 import checkpointR8x.parse_rule
 import checkpointR8x.parse_user
 import checkpointR8x.parse_service
 import checkpointR8x.parse_network
+import checkpointR8x.cpcommon
 import requests.packages
 import requests
 import os
 import json
 import datetime
 import fwo_api
+from pathlib import Path
 import sys
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
@@ -82,8 +83,7 @@ with open(importer_pwd_file, 'r') as file:
 jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
                     method, ssl_verification=ssl_mode, proxy_string=proxy_setting)
 
-# set import lock
-# todo: read url from config
+# set import lock, todo: read url from config
 fwo_api_base_url = 'https://localhost:9443/api/v1/graphql'
 query_variables = {"mgmId": int(args.mgm_id)}
 current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, query_variables)
@@ -102,8 +102,13 @@ mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, query_variables)[
 
 full_config_json = {}
 config2import = {}
-config_filename = base_dir + '/tmp/import/mgm_id_' + \
+
+import_tmp_path = base_dir + '/tmp/import'
+Path(import_tmp_path).mkdir(parents=True, exist_ok=True)
+
+config_filename = import_tmp_path + '/mgm_id_' + \
     str(args.mgm_id) + '_config.json'
+
 with open(config_filename, "w") as json_data:  # create empty config file
     json_data.write(json.dumps(full_config_json))
 secret_filename = base_dir + '/tmp/import/mgm_id_' + \
@@ -124,53 +129,14 @@ if mgm_details['deviceType']['name'] == 'FortiManager':
     logging.info("found fortiManager")
     os.system("fortiManager.parse_config -f " + config_filename)
 if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceType']['version'] == 'R8x':
-    logging.info("found Check Point R8x")
-    get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
-        mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
-        secret_filename + " -l \"" + rulebase_string + \
-        "\" -o " + config_filename + " -d " + str(debug_level)
-    get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
-        secret_filename + " -l \"" + rulebase_string + \
-        "\" -c " + config_filename + " -d " + str(debug_level)
-    os.system(get_config_cmd)
-    with open(config_filename, "r") as json_data:
-        full_config_json = json.load(json_data)
-    checkpointR8x.parse_network.parse_network_objects_to_json(
-        full_config_json, config2import, current_import_id)
-    checkpointR8x.parse_service.parse_service_objects_to_json(
-        full_config_json, config2import, current_import_id)
-    if 'users' not in full_config_json:
-        full_config_json.update({'users': {}})
-    rb_range = range(len(rulebase_string.split(',')))
-    target_rulebase = []
-    rule_num = 0
-    parent_uid=""
-    section_header_uids=[]
-    for rb_id in rb_range:
-        checkpointR8x.parse_user.parse_user_objects_from_rulebase(
-            full_config_json['rulebases'][rb_id], full_config_json['users'], current_import_id)
-        # if current_layer_name == args.rulebase:
-        logging.debug("parsing layer " + full_config_json['rulebases'][rb_id]['layername'])
-        rule_num = checkpointR8x.parse_rule.parse_rulebase_json(
-            full_config_json['rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+    checkpointR8x.cpcommon.parse_config_cp_main(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level)
 
-    # copy users from full_config to config2import
-    # also converting users from dict to array:
-    config2import.update({'user_objects': []})
-    for user_name in full_config_json['users'].keys():
-        user = copy.deepcopy(full_config_json['users'][user_name])
-        user.update({'user_name': user_name})
-        config2import['user_objects'].append(user)
-
-    config2import.update({'rules': target_rulebase})
-
-
+#### now we import the config via API:
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
     "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
 
 # if error_count>0:
-#    get error from import_control table and show it
-
+#    get error from import_control table? and show it
 
 change_count = fwo_api.count_changes_per_import(
     fwo_api_base_url, jwt, current_import_id)
@@ -185,12 +151,12 @@ if change_count > 0 or error_count > 0:  # store full config in case of change o
 stop_time = int(time.time())
 stop_time_string = datetime.datetime.now().isoformat()
 
-# delete imports without changes (if no error occured)
+# delete configs of imports without changes (if no error occured)
 if change_count == 0 and error_count == 0:
     error_count += fwo_api.delete_json_config(
         fwo_api_base_url, jwt, {"importId": current_import_id})
-    error_count += fwo_api.delete_import(fwo_api_base_url,
-                                         jwt, current_import_id)
+    # error_count += fwo_api.delete_import(fwo_api_base_url,
+    #                                    jwt, current_import_id)
 else:
     error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
         args.mgm_id), stop_time_string, current_import_id, error_count, change_count)

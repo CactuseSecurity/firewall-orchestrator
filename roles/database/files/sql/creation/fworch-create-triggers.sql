@@ -70,18 +70,21 @@ BEGIN
     FROM
         jsonb_populate_recordset(NULL::import_user, NEW.config -> 'user_objects');
 
+    INSERT INTO import_zone
+    SELECT
+        *
+    FROM
+        jsonb_populate_recordset(NULL::import_zone, NEW.config -> 'zone_objects');
+
     INSERT INTO import_rule
     SELECT
         *
     FROM
         jsonb_populate_recordset(NULL::import_rule, NEW.config -> 'rules');
 
-    -- adding zone data, more?
-
     -- finally start the stored procedure import
     PERFORM import_all_main(NEW.import_id);
 
---    RAISE EXCEPTION 'import_result: %', CAST(r_import_result AS VARCHAR);
 
     RETURN NEW;
 END;

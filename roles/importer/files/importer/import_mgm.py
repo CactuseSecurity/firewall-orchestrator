@@ -135,7 +135,7 @@ if mgm_details['deviceType']['name'] == 'Check Point' and mgm_details['deviceTyp
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
     "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
 
-# if error_count>0:
+# todo: if error_count>0:
 #    get error from import_control table? and show it
 
 change_count = fwo_api.count_changes_per_import(
@@ -155,11 +155,10 @@ stop_time_string = datetime.datetime.now().isoformat()
 if change_count == 0 and error_count == 0:
     error_count += fwo_api.delete_json_config(
         fwo_api_base_url, jwt, {"importId": current_import_id})
-    # error_count += fwo_api.delete_import(fwo_api_base_url,
-    #                                    jwt, current_import_id)
-else:
-    error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
-        args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
+    # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+# finalize remport by unlocking it
+error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
+    args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
 
 
 print("import_mgm.py: import no. " + str(current_import_id) + " for management " + str(args.mgm_id) + " ran " +

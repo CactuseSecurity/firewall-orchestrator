@@ -43,10 +43,6 @@ ALTER TABLE "import_full_config"
 DROP INDEX IF EXISTS import_control_only_one_null_stop_time_per_mgm_when_null;
 CREATE UNIQUE INDEX import_control_only_one_null_stop_time_per_mgm_when_null ON import_control (mgm_id) WHERE stop_time IS NULL;
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 028c3b72b3de5e0e2daef692442ea8b828af9a2d
 -------------------
 -- the following triggers creates the bigserial obj_id as it does not seem to be set automatically, 
 -- when insert via jsonb function and specifying no obj_id

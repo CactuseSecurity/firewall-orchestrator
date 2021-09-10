@@ -30,10 +30,7 @@ import datetime
 import fwo_api
 from pathlib import Path
 import sys
-<<<<<<< HEAD
 import socket
-=======
->>>>>>> 028c3b72b3de5e0e2daef692442ea8b828af9a2d
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/checkpointR8x')

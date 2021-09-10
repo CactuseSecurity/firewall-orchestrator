@@ -1,20 +1,9 @@
 # library for FWORCH API calls
 import re
 import logging
-<<<<<<< HEAD
 import requests.packages
 import requests
 import json
-=======
-import pdb
-import argparse
-import requests.packages
-import requests
-import time
-import json
-import common
-import os
->>>>>>> 028c3b72b3de5e0e2daef692442ea8b828af9a2d
 import sys
 base_dir = "/usr/local/fworch/"
 sys.path.append(base_dir + '/importer')

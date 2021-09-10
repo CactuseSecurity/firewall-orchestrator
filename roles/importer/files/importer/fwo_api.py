@@ -1,14 +1,9 @@
 # library for FWORCH API calls
 import re
 import logging
-import pdb
-import argparse
 import requests.packages
 import requests
-import time
 import json
-import common
-import os
 import sys
 base_dir = "/usr/local/fworch/"
 sys.path.append(base_dir + '/importer')
@@ -124,7 +119,6 @@ def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification=
 
 
 def get_mgm_details(fwo_api_base_url, jwt, query_variables):
-
     mgm_query = """
         query getManagementDetails($mgmId: Int!) {
             management(where:{mgm_id:{_eq:$mgmId}, do_not_import:{_eq:false}} order_by: {mgm_name: asc}) {
@@ -143,12 +137,8 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
                 configPath: config_path
                 importDisabled: do_not_import
                 forceInitialImport: force_initial_import
-                hideInUi: hide_in_gui
                 importerHostname: importer_hostname
-                comment: mgm_comment
                 debugLevel: debug_level
-                creationDate: mgm_create
-                updateDate: mgm_update
                 lastConfigHash: last_import_md5_complete_config
                 devices(where:{do_not_import:{_eq:false}}) {
                     id: dev_id
@@ -157,8 +147,8 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
                 }
             }  
         }
-    """
-    return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
+    """    
+    return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management'][0]
 
 
 def lock_import(fwo_api_base_url, jwt, query_variables):
@@ -219,7 +209,7 @@ def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, e
     return changes_in_import_control-1
 
 
-# only to be run if the import does not contain any changes or errors
+# this effectively clears the management!
 def delete_import(fwo_api_base_url, jwt, current_import_id):
     query_variables = {"importId": current_import_id}
 
@@ -230,13 +220,13 @@ def delete_import(fwo_api_base_url, jwt, current_import_id):
 
     try:
         result = call(fwo_api_base_url, jwt, delete_import_mutation,
-                             query_variables=query_variables, role='importer')
+                      query_variables=query_variables, role='importer')
         api_changes = result['data']['delete_import_control']['affected_rows']
     except:
         logging.exception(
             "fwo_api: failed to unlock import for import id " + str(current_import_id))
         return 1  # signalling an error
-    if api_changes==1:
+    if api_changes == 1:
         return 0        # return code 0 is ok
     else:
         return 1
@@ -319,15 +309,3 @@ def delete_full_json_config(fwo_api_base_url, jwt, query_variables):
         logging.exception("fwo_api: failed to delete full config ")
         return 2  # indicating 1 error
     return changes_in_delete_full_config-1
-
-
-# check_import_lock = """query runningImportForManagement($mgmId: Int!) {
-#   import_control(where: {mgm_id: {_eq: $mgmId}, stop_time: {_is_null: true}}) {
-#     control_id
-#   }
-# }"""
-# response = fwo_api.call(fwo_api_base_url, jwt, check_import_lock, query_variables=query_variables, role='importer', ssl_verification=ssl_mode, proxy_string=proxy_setting)
-# if 'data' in response and 'import_control' in response['data'] and len(response['data']['import_control'])==1:
-#     logging.exception("\nERROR: import for management already running.")
-#     sys.exit(1)
-# if 'data' in response and 'import_control' in response['data'] and len(response['data']['import_control'])==0:

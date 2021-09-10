@@ -30,6 +30,7 @@ import datetime
 import fwo_api
 from pathlib import Path
 import sys
+import socket
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/checkpointR8x')
@@ -83,26 +84,28 @@ with open(importer_pwd_file, 'r') as file:
 jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
                     method, ssl_verification=ssl_mode, proxy_string=proxy_setting)
 
-# set import lock, todo: read url from config
-fwo_api_base_url = 'https://localhost:9443/api/v1/graphql'
-query_variables = {"mgmId": int(args.mgm_id)}
-current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, query_variables)
+fwo_api_base_url = 'https://localhost:9443/api/v1/graphql' # todo: read url from config
+
+# get mgm_details (fw-type, port, ip, user credentials):
+mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
+
+# only run if this is the correct import module
+if mgm_details['importerHostname'] != socket.gethostname():
+    logging.info("we are not responsilble for importing this management - so resting")
+    sys.exit(0)
+
+# set import lock
+current_import_id = fwo_api.lock_import(fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
 if current_import_id == -1:
     logging.warning("error while setting import lock for management id " +
                     str(args.mgm_id) + ", import already running?")
     sys.exit(1)
 
 logging.info("start import of management " + str(args.mgm_id) +
-             ", import_id=" + str(current_import_id))
-# from here on we have an import lock and need to unlock it before exiting
-
-# get mgm_details (fw-type, port, ip, user credentials):
-mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, query_variables)[
-    'data']['management'][0]
+            ", import_id=" + str(current_import_id))
 
 full_config_json = {}
 config2import = {}
-
 import_tmp_path = base_dir + '/tmp/import'
 Path(import_tmp_path).mkdir(parents=True, exist_ok=True)
 
@@ -162,6 +165,7 @@ error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
 
 
 print("import_mgm.py: import no. " + str(current_import_id) + " for management " + str(args.mgm_id) + " ran " +
-      str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " +
-      str(int(time.time()) - start_time) + "s")
+    str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " +
+    str(int(time.time()) - start_time) + "s")
+
 sys.exit(0)

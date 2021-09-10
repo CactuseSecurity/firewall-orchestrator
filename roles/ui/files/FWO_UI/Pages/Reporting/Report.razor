@@ -148,7 +148,7 @@
                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                            NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                           NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).ToArray(), user => user != null)" />
+                                           NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
                 </CascadingValue>
             </Tab>
         </TabSet>

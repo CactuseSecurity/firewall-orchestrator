@@ -38,7 +38,7 @@ namespace FWO.Ui.Display
             return rule.SourceZone?.Name;
         }
 
-        public static string DisplaySource(this Rule rule)
+        public static string DisplaySource(this Rule rule, string style = "")
         {
             result = new StringBuilder();
 
@@ -58,8 +58,8 @@ namespace FWO.Ui.Display
                     symbol = "oi oi-monitor";
 
                 if (source.User != null)
-                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"report#user{source.User.Id}\" target=\"_top\">{source.User.Name}</a>@");
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#nwobj{source.Object.Id}\" target=\"_top\">{source.Object.Name}</a>");
+                    result.AppendLine($"<span class=\"oi oi-people\">&nbsp;</span><a href=\"report#user{source.User.Id}\" target=\"_top\" style=\"{style}\">{source.User.Name}</a>@");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#nwobj{source.Object.Id}\" target=\"_top\" style=\"{style}\">{source.Object.Name}</a>");
                 result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
                 result.AppendLine("<br>");
             }
@@ -74,7 +74,7 @@ namespace FWO.Ui.Display
             return rule.DestinationZone?.Name;
         }
 
-        public static string DisplayDestination(this Rule rule)
+        public static string DisplayDestination(this Rule rule, string style = "")
         {
             result = new StringBuilder();
 
@@ -95,7 +95,7 @@ namespace FWO.Ui.Display
                 else
                     symbol = "oi oi-monitor";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#nwobj{destination.Object.Id}\" target=\"_top\">{destination.Object.Name}</a>");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#nwobj{destination.Object.Id}\" target=\"_top\" style=\"{style}\">{destination.Object.Name}</a>");
                 result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
                 result.AppendLine("<br>");
             }
@@ -105,7 +105,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public static string DisplayService(this Rule rule)
+        public static string DisplayService(this Rule rule, string style = "")
         {
             result = new StringBuilder();
 
@@ -124,7 +124,7 @@ namespace FWO.Ui.Display
                 else
                     symbol = "oi oi-wrench";
 
-                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#svc{service.Content.Id}\" target=\"_top\">{service.Content.Name}</a>");
+                result.Append($"<span class=\"{symbol}\">&nbsp;</span><a href=\"report#svc{service.Content.Id}\" target=\"_top\" style=\"{style}\">{service.Content.Name}</a>");
 
                 if (service.Content.DestinationPort != null)
                     result.Append(service.Content.DestinationPort == service.Content.DestinationPortEnd ? $" ({service.Content.DestinationPort}/{service.Content.Protocol?.Name})"

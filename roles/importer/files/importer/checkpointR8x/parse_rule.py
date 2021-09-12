@@ -1,11 +1,9 @@
-import sys
-base_dir = "/usr/local/fworch/"
-sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/checkpointR8x')
-import re
 import logging
-import common, cpcommon
-import json
+import sys
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
+sys.path.append(importer_base_dir)
+import common, fwcommon
 
 
 def create_section_header(section_name, layer_name, import_id, rule_uid, rule_num, section_header_uids, parent_uid):
@@ -17,18 +15,18 @@ def create_section_header(section_name, layer_name, import_id, rule_uid, rule_nu
     header_rule_csv += common.csv_add_field('False')            # rule_disabled
     header_rule_csv += common.csv_add_field('False')            # rule_src_neg
     header_rule_csv += common.csv_add_field('Any')              # rule_src
-    header_rule_csv += common.csv_add_field(cpcommon.any_obj_uid) # rule_src_refs
+    header_rule_csv += common.csv_add_field(fwcommon.any_obj_uid) # rule_src_refs
     header_rule_csv += common.csv_add_field('False')            # rule_dst_neg
     header_rule_csv += common.csv_add_field('Any')              # rule_dst
-    header_rule_csv += common.csv_add_field(cpcommon.any_obj_uid) # rule_dst_refs
+    header_rule_csv += common.csv_add_field(fwcommon.any_obj_uid) # rule_dst_refs
     header_rule_csv += common.csv_add_field('False')            # rule_svc_neg
     header_rule_csv += common.csv_add_field('Any')              # rule_svc
-    header_rule_csv += common.csv_add_field(cpcommon.any_obj_uid) # rule_svc_refs
+    header_rule_csv += common.csv_add_field(fwcommon.any_obj_uid) # rule_svc_refs
     header_rule_csv += common.csv_add_field('Accept')           # rule_action
     header_rule_csv += common.csv_add_field('Log')              # rule_track
     header_rule_csv += common.csv_add_field('Policy Targets')   # rule_installon
     header_rule_csv += common.csv_add_field('Any')              # rule_time
-    header_rule_csv += common.csv_add_field('')                 # rule_comment
+    header_rule_csv += common.csv_delimiter                     # rule_comment
     header_rule_csv += common.csv_delimiter                     # rule_name
     header_rule_csv += common.csv_add_field(rule_uid)           # rule_uid
     header_rule_csv += common.csv_add_field(section_name)       # rule_head_text
@@ -88,7 +86,7 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
                 elif src['type'] == 'access-role':
                     if isinstance(src['networks'], str):  # just a single source
                         if src['networks'] == 'any':
-                            rule_src_ref += src['uid'] + '@' + cpcommon.any_obj_uid + common.list_delimiter
+                            rule_src_ref += src['uid'] + '@' + fwcommon.any_obj_uid + common.list_delimiter
                         else:
                             rule_src_ref += src['uid'] + '@' + src['networks'] + common.list_delimiter
                     else:  # more than one source
@@ -143,9 +141,10 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
             rule_time = rule['time']
             first_rule_time = rule_time[0]
             rule_csv += common.csv_add_field(first_rule_time['name'])  # time
-
-            rule_csv += common.csv_add_field(rule['comments'])  # comments
-
+            if (rule['comments']!=None and rule['comments']!=''):
+                rule_csv += common.csv_add_field(rule['comments'])  # comments
+            else:
+                rule_csv += common.csv_delimiter                    # no comments
             if 'name' in rule:
                 rule_name = rule['name']
             else:
@@ -232,19 +231,19 @@ def add_section_header_rule_in_json (rulebase, section_name, layer_name, import_
         "rule_disabled":    False,
         "rule_src_neg":     False,
         "rule_src":         "Any",
-        "rule_src_refs":    common.sanitize(cpcommon.any_obj_uid),
+        "rule_src_refs":    common.sanitize(fwcommon.any_obj_uid),
         "rule_dst_neg":     False,
         "rule_dst":         "Any",
-        "rule_dst_refs":    common.sanitize(cpcommon.any_obj_uid),
+        "rule_dst_refs":    common.sanitize(fwcommon.any_obj_uid),
         "rule_svc_neg":     False,
         "rule_svc":         "Any",
-        "rule_svc_refs":    common.sanitize(cpcommon.any_obj_uid),
+        "rule_svc_refs":    common.sanitize(fwcommon.any_obj_uid),
         "rule_action":      "Accept",
         "rule_track":       "Log",
         "rule_installon":   "Policy Targets",
         "rule_time":        "Any",
         "rule_implied":      False,
-        "rule_comment":     "",
+        #"rule_comment":     None,
          # rule_name
         "rule_uid":         common.sanitize(rule_uid),
         "rule_head_text":   common.sanitize(section_name),
@@ -295,7 +294,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 elif src['type'] == 'access-role':
                     if isinstance(src['networks'], str):  # just a single source
                         if src['networks'] == 'any':
-                            rule_src_ref += src['uid'] + '@' + cpcommon.any_obj_uid + common.list_delimiter
+                            rule_src_ref += src['uid'] + '@' + fwcommon.any_obj_uid + common.list_delimiter
                         else:
                             rule_src_ref += src['uid'] + '@' + src['networks'] + common.list_delimiter
                     else:  # more than one source
@@ -339,6 +338,11 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
             else:
                 parent_rule_uid = parent_uid
 
+            if 'comments' in src_rule and src_rule['comments']=='':
+                comments = None
+            else:
+                comments = src_rule['comments']
+
             rule = {
                 "control_id":       int(import_id),
                 "rule_num":         int(rule_num),
@@ -358,7 +362,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 "rule_track":       common.sanitize(src_rule['track']['type']['name']),
                 "rule_installon":   common.sanitize(src_rule['install-on'][0]['name']),
                 "rule_time":        common.sanitize(src_rule['time'][0]['name']),
-                "rule_comment":     common.sanitize(src_rule['comments']),
+                "rule_comment":     common.sanitize(comments),
                 "rule_name":        common.sanitize(rule_name),
                 "rule_uid":         common.sanitize(src_rule['uid']),
                 "rule_implied":     False,
@@ -366,7 +370,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 # rule_from_zone
                 # rule_to_zone
                 "rule_last_change_admin": common.sanitize(src_rule['meta-info']['last-modifier']),
-                "parent_rule_uid":  common.sanitize(parent_uid)
+                "parent_rule_uid":  common.sanitize(parent_rule_uid)
             }
             rulebase.append(rule)
 

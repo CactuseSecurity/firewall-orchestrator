@@ -1,18 +1,23 @@
-base_dir = "/usr/local/fworch"
-import sys
-sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/checkpointR8x')
 import logging
-from requests import NullHandler
-import common, cpcommon
+import sys
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
+sys.path.append(importer_base_dir)
+import common, fwcommon
 
 
 def csv_dump_nw_obj(nw_obj, import_id):
     result_line =  common.csv_add_field(import_id)                  # control_id
     result_line += common.csv_add_field(nw_obj['obj_name'])         # obj_name
     result_line += common.csv_add_field(nw_obj['obj_typ'])          # ob_typ
-    result_line += common.csv_add_field(nw_obj['obj_member_names']) # obj_member_names
-    result_line += common.csv_add_field(nw_obj['obj_member_refs'])  # obj_member_refs
+    if nw_obj['obj_member_names'] != None:
+        result_line += common.csv_add_field(nw_obj['obj_member_names']) # obj_member_names
+    else:
+        result_line += common.csv_delimiter                         # no obj_member_names
+    if nw_obj['obj_member_refs'] != None:
+        result_line += common.csv_add_field(nw_obj['obj_member_refs'])  # obj_member_refs
+    else:
+        result_line += common.csv_delimiter                         # no obj_member_refs
     result_line += common.csv_delimiter                             # obj_sw
     if nw_obj['obj_typ'] == 'group':
         result_line += common.csv_delimiter                         # obj_ip for groups = null
@@ -24,7 +29,10 @@ def csv_dump_nw_obj(nw_obj, import_id):
         else:
            result_line += common.csv_delimiter
     result_line += common.csv_add_field(nw_obj['obj_color'])        # obj_color
-    result_line += common.csv_add_field(nw_obj['obj_comment'])      # obj_comment
+    if nw_obj['obj_comment'] != None:
+        result_line += common.csv_add_field(nw_obj['obj_comment'])  # obj_comment
+    else:
+        result_line += common.csv_delimiter                         # no obj_comment
     result_line += common.csv_delimiter                             # obj_location
     if 'obj_zone' in nw_obj:
         result_line += common.csv_add_field(nw_obj['obj_zone'])     # obj_zone
@@ -57,19 +65,19 @@ def collect_nw_objects(object_table, nw_objects):
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
     ]
 
-    if object_table['object_type'] in cpcommon.nw_obj_table_names:
+    if object_table['object_type'] in fwcommon.nw_obj_table_names:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
-                members = ''
-                ip_addr = ''
-                member_refs = ''
-                member_names = ''
-                
+                ip_addr = ''                
+                member_refs = None
+                member_names = None
                 if 'members' in obj:
+                    member_refs = ''
+                    member_names = ''
                     for member in obj['members']:
                         member_refs += member + common.list_delimiter
                     member_refs = member_refs[:-1]
-                ip_addr = cpcommon.get_ip_of_obj(obj)
+                ip_addr = fwcommon.get_ip_of_obj(obj)
                 first_ip = ip_addr
                 last_ip = ip_addr
                 obj_type = obj['type']
@@ -89,6 +97,8 @@ def collect_nw_objects(object_table, nw_objects):
                     # logging.debug("obj_dump:" + json.dumps(obj, indent=3))
                     obj_type = 'host'
                 # adding the object:
+                if not 'comments' in obj or obj['comments']=='':
+                    obj['comments'] = None
                 nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
                                         'obj_comment': obj['comments'],
                                         'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,

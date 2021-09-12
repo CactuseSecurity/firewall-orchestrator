@@ -1,24 +1,35 @@
-base_dir = "/usr/local/fworch"
-
+import re, logging
 import sys
-sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/checkpointR8x')
-import re
-import logging
-import common, cpcommon
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
+sys.path.append(importer_base_dir)
+import common, fwcommon
 
 
 def csv_dump_svc_obj(svc_obj, import_id):
     result_line =  common.csv_add_field(import_id)                          # control_id
     result_line += common.csv_add_field(svc_obj['svc_name'])                # svc_name
     result_line += common.csv_add_field(svc_obj['svc_typ'])                 # svc_typ
-    result_line += common.csv_add_field(svc_obj['svc_typ'])                 # svc_prod_specific
-    result_line += common.csv_add_field(svc_obj['svc_member_names'])        # svc_member_names
-    result_line += common.csv_add_field(svc_obj['svc_member_refs'])         # obj_member_refs
+    result_line += common.csv_delimiter                                     # no svc_prod_specific    
+#    result_line += common.csv_add_field(svc_obj['svc_typ'])                # svc_prod_specific
+    if svc_obj['svc_member_names'] != None:
+        result_line += common.csv_add_field(svc_obj['svc_member_names'])    # svc_member_names
+    else:
+        result_line += common.csv_delimiter                                 # no svc_member_names
+    if svc_obj['svc_member_refs'] != None:
+        result_line += common.csv_add_field(svc_obj['svc_member_refs'])     # obj_member_refs
+    else:
+        result_line += common.csv_delimiter                                 # no svc_member_refs
     result_line += common.csv_add_field(svc_obj['svc_color'])               # svc_color
     result_line += common.csv_add_field(svc_obj['ip_proto'])                # ip_proto
-    result_line += str(svc_obj['svc_port']) + common.csv_delimiter          # svc_port
-    result_line += str(svc_obj['svc_port_end']) + common.csv_delimiter      # svc_port_end
+    if svc_obj['svc_port']!=None:
+        result_line += str(svc_obj['svc_port']) + common.csv_delimiter      # svc_port
+    else:
+        result_line += common.csv_delimiter                                 # no svc_port    
+    if svc_obj['svc_port_end']!=None:
+        result_line += str(svc_obj['svc_port_end']) + common.csv_delimiter  # svc_port_end
+    else:
+        result_line += common.csv_delimiter                                 # no svc_port_end    
     if 'svc_source_port' in svc_obj:
         result_line += common.csv_add_field(svc_obj['svc_source_port'])     # svc_source_port
     else:
@@ -27,8 +38,14 @@ def csv_dump_svc_obj(svc_obj, import_id):
         result_line += common.csv_add_field(svc_obj['svc_source_port_end']) # svc_source_port_end
     else:
         result_line += common.csv_delimiter                                 # svc_source_port_end
-    result_line += common.csv_add_field(svc_obj['svc_comment'])             # svc_comment
-    result_line += common.csv_add_field(str(svc_obj['rpc_nr']))             # rpc_nr
+    if 'svc_comment' in svc_obj and svc_obj['svc_comment'] != None:
+        result_line += common.csv_add_field(svc_obj['svc_comment'])         # svc_comment
+    else:
+        result_line += common.csv_delimiter                                 # no svc_comment
+    if 'rpc_nr' in svc_obj and svc_obj['rpc_nr'] != None:
+        result_line += common.csv_add_field(str(svc_obj['rpc_nr']))         # rpc_nr
+    else:
+        result_line += common.csv_delimiter                                 # no rpc_nr
     if 'svc_timeout_std' in svc_obj:
         result_line += common.csv_add_field(svc_obj['svc_timeout_std'])     # svc_timeout_std
     else:
@@ -45,9 +62,7 @@ def csv_dump_svc_obj(svc_obj, import_id):
 
 # collect_svcobjects writes svc info into global users dict
 def collect_svc_objects(object_table, svc_objects):
-    result = ''
-
-    if object_table['object_type'] in cpcommon.svc_obj_table_names:
+    if object_table['object_type'] in fwcommon.svc_obj_table_names:
         proto = ''
         session_timeout = ''
         typ = 'undef'
@@ -72,12 +87,11 @@ def collect_svc_objects(object_table, svc_objects):
             proto = '1'
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
-                ip_addr = ''
                 member_refs = ''
-                member_names = ''
                 port = ''
                 port_end = ''
-                rpc_nr = ''
+                rpc_nr = None
+                member_refs = None
                 if 'members' in obj:
                     member_refs = ''
                     for member in obj['members']:
@@ -110,19 +124,24 @@ def collect_svc_objects(object_table, svc_objects):
                         port, port_end = match.group().split('-')
                 else:
                     # rpc, group - setting ports to 0
-                    port = '0'
-                    port_end = '0'
+                    port = None
+                    port_end = None
                 if not 'color' in obj:
                     # print('warning: no color found for service ' + obj['name'])
                     obj['color'] = 'black'
+                if not 'comments' in obj or obj['comments']=='':
+                    obj['comments'] = None
                 svc_objects.extend([{'svc_uid': obj['uid'], 'svc_name': obj['name'], 'svc_color': obj['color'],
                                      'svc_comment': obj['comments'],
                                      'svc_typ': typ, 'svc_port': port, 'svc_port_end': port_end,
                                      'svc_member_refs': member_refs,
-                                     'svc_member_names': '',
+                                     'svc_member_names': None,
                                      'ip_proto': proto,
                                      'svc_timeout': session_timeout,
-                                     'rpc_nr': rpc_nr}])
+                                     'rpc_nr': rpc_nr
+#                                     ,
+#                                     'svc_prod_specific': svc_prod_specific
+                                     }])
 
 
 # return name of nw_objects element where obj_uid = uid

@@ -1,0 +1,10 @@
+- name: copy associated ldif files to system
+  template:
+    src: upgrade/5.4.1.ldif.j2
+    dest: "{{ middleware_ldif_dir }}/5.4.1.ldif"
+    force: yes
+  become: yes
+
+- name: upgrade olcAccess policy
+  command: "ldapmodify -H {{ openldap_url }} -D cn=config -y {{ openldap_secrets_path }}/ldap_manager_pw.txt -x -f {{ middleware_ldif_dir }}/5.4.1.ldif"
+  become: yes

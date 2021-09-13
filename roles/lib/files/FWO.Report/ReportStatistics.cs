@@ -19,9 +19,11 @@ namespace FWO.Report
 
         public ReportStatistics(DynGraphqlQuery query) : base(query) { }
 
-        public override Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
-            throw new NotImplementedException();
+            await callback(Managements);
+            // currently no further objects to be fetched
+            GotObjectsInReport = true;
         }
 
         public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
@@ -39,6 +41,11 @@ namespace FWO.Report
             // get relevant import ids for report time
             ImpIdQueryVariables["time"] = TimeFilter;
             Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+
+            // save selected device state
+            Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
+
             List<Management> resultList = new List<Management>();
             int i;
 
@@ -57,17 +64,29 @@ namespace FWO.Report
 
             foreach (Management mgm in Managements)
             {
-                globalStatisticsManagament.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                globalStatisticsManagament.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                globalStatisticsManagament.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                globalStatisticsManagament.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                if (!mgm.Ignore)
+                {
+                    globalStatisticsManagament.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                    globalStatisticsManagament.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                    globalStatisticsManagament.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                    globalStatisticsManagament.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
+                }
             }
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToJson()
         {
             globalStatisticsManagament.Name = "global statistics";
-            Management[] combinedManagements = (new Management[] { globalStatisticsManagament }).Concat(Managements).ToArray();
+            List<Management> selectedManagements = new List<Management>();
+            foreach (Management management in Managements)
+            {
+                if (!management.Ignore)
+                {
+                    selectedManagements.Add(management);
+                }
+            }
+            Management[] combinedManagements = (new Management[] { globalStatisticsManagament }).Concat(selectedManagements.ToArray()).ToArray();
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
 
@@ -109,38 +128,41 @@ namespace FWO.Report
 
             foreach (Management management in Managements)
             {
-                report.AppendLine($"<h4>Number of Objects - {management.Name}</h4>");
-                report.AppendLine("<table>");
-                report.AppendLine("<tr>");
-                report.AppendLine("<th>Network objects</th>");
-                report.AppendLine("<th>Service objects</th>");
-                report.AppendLine("<th>User objects</th>");
-                report.AppendLine("<th>Rules</th>");
-                report.AppendLine("</tr>");
-                report.AppendLine("<tr>");
-                report.AppendLine($"<td>{management.NetworkObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-                report.AppendLine($"<td>{management.ServiceObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-                report.AppendLine($"<td>{management.UserObjectStatistics.ObjectAggregate.ObjectCount}</td>");
-                report.AppendLine($"<td>{management.RuleStatistics.ObjectAggregate.ObjectCount }</td>");
-                report.AppendLine("</tr>");
-                report.AppendLine("</table>");
-                report.AppendLine("<br>");
-
-                report.AppendLine($"<h4>Number of Rules per Gateway</h4>");
-                report.AppendLine("<table>");
-                report.AppendLine("<tr>");
-                report.AppendLine("<th>Gateway</th>");
-                report.AppendLine("<th>Rules</th>");
-                report.AppendLine("</tr>");
-                foreach (Device device in management.Devices)
+                if (!management.Ignore)
                 {
+                    report.AppendLine($"<h4>Number of Objects - {management.Name}</h4>");
+                    report.AppendLine("<table>");
                     report.AppendLine("<tr>");
-                    report.AppendLine($"<td>{device.Name}</td>");
-                    report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
+                    report.AppendLine("<th>Network objects</th>");
+                    report.AppendLine("<th>Service objects</th>");
+                    report.AppendLine("<th>User objects</th>");
+                    report.AppendLine("<th>Rules</th>");
                     report.AppendLine("</tr>");
+                    report.AppendLine("<tr>");
+                    report.AppendLine($"<td>{management.NetworkObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+                    report.AppendLine($"<td>{management.ServiceObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+                    report.AppendLine($"<td>{management.UserObjectStatistics.ObjectAggregate.ObjectCount}</td>");
+                    report.AppendLine($"<td>{management.RuleStatistics.ObjectAggregate.ObjectCount }</td>");
+                    report.AppendLine("</tr>");
+                    report.AppendLine("</table>");
+                    report.AppendLine("<br>");
+
+                    report.AppendLine($"<h4>Number of Rules per Gateway</h4>");
+                    report.AppendLine("<table>");
+                    report.AppendLine("<tr>");
+                    report.AppendLine("<th>Gateway</th>");
+                    report.AppendLine("<th>Rules</th>");
+                    report.AppendLine("</tr>");
+                    foreach (Device device in management.Devices)
+                    {
+                        report.AppendLine("<tr>");
+                        report.AppendLine($"<td>{device.Name}</td>");
+                        report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
+                        report.AppendLine("</tr>");
+                    }
+                    report.AppendLine("</table>");
+                    report.AppendLine("<hr>");
                 }
-                report.AppendLine("</table>");
-                report.AppendLine("<hr>");
             }
 
             return GenerateHtmlFrame(title: "Statistic Report", Query.RawFilter, DateTime.Now, report);

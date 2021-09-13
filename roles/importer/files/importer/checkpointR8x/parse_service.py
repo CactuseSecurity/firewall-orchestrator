@@ -11,7 +11,6 @@ def csv_dump_svc_obj(svc_obj, import_id):
     result_line += common.csv_add_field(svc_obj['svc_name'])                # svc_name
     result_line += common.csv_add_field(svc_obj['svc_typ'])                 # svc_typ
     result_line += common.csv_delimiter                                     # no svc_prod_specific    
-#    result_line += common.csv_add_field(svc_obj['svc_typ'])                # svc_prod_specific
     if svc_obj['svc_member_names'] != None:
         result_line += common.csv_add_field(svc_obj['svc_member_names'])    # svc_member_names
     else:
@@ -139,8 +138,6 @@ def collect_svc_objects(object_table, svc_objects):
                                      'ip_proto': proto,
                                      'svc_timeout': session_timeout,
                                      'rpc_nr': rpc_nr
-#                                     ,
-#                                     'svc_prod_specific': svc_prod_specific
                                      }])
 
 

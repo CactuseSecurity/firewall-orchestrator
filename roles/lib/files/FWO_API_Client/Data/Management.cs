@@ -84,6 +84,7 @@ namespace FWO.Api.Data
         // [JsonPropertyName("pointInTime")]
         // public DateTime ReportTime { get; set; }
         public long? RelevantImportId { get; set; }
+        public bool Ignore { get; set; }
 
         //[JsonPropertyName("rule_id")]
         public List<long> ReportedRuleIds { get; set; }
@@ -122,6 +123,7 @@ namespace FWO.Api.Data
             DebugLevel = management.DebugLevel;
             TenantId = management.TenantId;
             Import = management.Import;
+            Ignore = management.Ignore;
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&
                 management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)

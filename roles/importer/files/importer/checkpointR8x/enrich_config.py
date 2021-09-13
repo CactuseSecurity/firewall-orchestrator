@@ -103,10 +103,8 @@ for rulebase in config['rulebases']:
     getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
     #nw_uids_from_rulebase.extend(nw_uids_from_rulebase)
     #svc_uids_from_rulebase.extend(svc_uids_from_rulebase)
-
     # if fwcommon.debug_new_uid in nw_uids_from_rulebase:
     #     logging.debug("found " + fwcommon.debug_new_uid + " in enrich_config")
-
 
 # remove duplicates from uid lists
 nw_uids_from_rulebase = list(set(nw_uids_from_rulebase))

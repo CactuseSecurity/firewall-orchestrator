@@ -4,14 +4,6 @@
     middleware_change_local_ldap: "no"
   when: ldap_conn_present.query_result.0.count >= 1
 
-- name: create ldif directory
-  file:
-    dest: "{{ middleware_server_base_dir }}/ldif"
-    state: directory
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
-  become: yes
-
 - name: set add mode for creating ldap tree
   set_fact:
     ldif_changetype: add
@@ -19,13 +11,14 @@
 - name: copy the ldif templates to system
   template:
     src: "{{ item }}"
-    dest: "{{ middleware_server_base_dir }}/ldif/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    dest: "{{  middleware_ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    force: yes
   with_fileglob:
     - ../templates/ldif_files/*.j2
   become: yes
 
 - name: add tree
-  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ middleware_server_base_dir }}/ldif/tree_{{ item }}.ldif"
+  command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{  middleware_ldif_dir }}/tree_{{ item }}.ldif"
   loop:
     - level_0
     - level_1
@@ -36,9 +29,3 @@
     - operators
   when: installation_mode == "new"
   # ignore errors only when re-installing on a system
-
-- name: delete ldif files
-  file:
-    path: "{{ middleware_server_base_dir }}/ldif"
-    state: absent
-  become: yes

@@ -54,7 +54,7 @@ namespace FWO.Report
         {
             StringBuilder csvBuilder = new StringBuilder();
 
-            foreach (Management management in Managements)
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
                 //foreach (var item in collection)
                 //{
@@ -71,7 +71,7 @@ namespace FWO.Report
         {
             StringBuilder report = new StringBuilder();
 
-            foreach (Management management in Managements)
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
                 report.AppendLine($"<h3>{management.Name}</h3>");
                 report.AppendLine("<hr>");

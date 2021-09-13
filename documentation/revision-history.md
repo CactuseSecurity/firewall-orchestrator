@@ -140,6 +140,7 @@ adding report template format fk and permissions
 ### 5.3.4 - 29.07.2021
 - moving to API hasura v2.0
 
-### 5.4.1 - xx.09.2021
+
+### 5.4.1 - 10.09.2021
 - moving towards full API-based importer modules
 - in preparation for coming import changes

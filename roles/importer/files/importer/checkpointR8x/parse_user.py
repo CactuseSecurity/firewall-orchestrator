@@ -1,9 +1,8 @@
 import sys
-base_dir = "/usr/local/fworch/"
-sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/checkpointR8x')
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
+sys.path.append(importer_base_dir)
 import common
-import logging
 
 def csv_dump_user(user_name, user, import_id):
     user_line =  common.csv_add_field(import_id)                        # control_id
@@ -21,7 +20,7 @@ def csv_dump_user(user_name, user, import_id):
         user_line += common.csv_add_field(user['user_color'])           # user_color
     else:
         user_line += common.csv_delimiter                               # no user_color
-    if 'user_comment' in user:
+    if 'user_comment' in user and user['user_comment']!=None and user['user_comment']!='':
         user_line += common.csv_add_field(user['user_comment'])         # user_comment
     else:
         user_line += common.csv_delimiter                               # no user_comment

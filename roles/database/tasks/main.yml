@@ -206,6 +206,11 @@
   when: not installation_mode == "uninstall" 
   tags: [ 'never', 'unittest' ]
 
+- name: run unit tests
+  import_tasks: run-unit-tests.yml
+  when: not installation_mode == "uninstall" 
+  tags: [ 'never', 'unittest' ]
+
 - name: finalize handler for datarecovery
   set_fact:
     database_handler_guard: stop

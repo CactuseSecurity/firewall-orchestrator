@@ -1,11 +1,12 @@
 # library for API get functions
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
-import json, argparse, pdb
-import time, logging, re, sys, logging
-import os
-import requests, requests.packages.urllib3
-import cpcommon
+sys.path.append(importer_base_dir)
+import json
+import logging, re
+import requests, requests.packages
+import fwcommon
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -46,7 +47,7 @@ def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
     if "sid" not in response:
         logging.exception("\ngetter ERROR: did not receive a sid during login, " +
-            "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
+            "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) +
             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
         sys.exit(1)
     return response["sid"]
@@ -132,15 +133,12 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
             svc_uids_found.append(svc['uid'])
         #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
         #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
-    if cpcommon.debug_new_uid in nw_uids_found:
-        logging.debug("found " + cpcommon.debug_new_uid + " in getter::collect_uids_from_rule")
+    if fwcommon.debug_new_uid in nw_uids_found:
+        logging.debug("found " + fwcommon.debug_new_uid + " in getter::collect_uids_from_rule")
     return
 
 
 def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_text):
-    lower_nw_uids_found = []
-    lower_svc_uids_found = []
-
     if 'layerchunks' in rulebase:
         # logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
         for layer_chunk in rulebase['layerchunks']:
@@ -160,8 +158,8 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
     if (debug_text == 'top_level'):
         # logging.debug ("getter::collect_uids_from_rulebase final nw_uids_found: " + str(nw_uids_found))
         # logging.debug ("getter::collect_uids_from_rulebase final svc_uids_found: " + str(svc_uids_found))
-        if cpcommon.debug_new_uid in nw_uids_found:
-            logging.debug("found " + cpcommon.debug_new_uid + " in getter::collect_uids_from_rulebase")
+        if fwcommon.debug_new_uid in nw_uids_found:
+            logging.debug("found " + fwcommon.debug_new_uid + " in getter::collect_uids_from_rulebase")
     return
 
 
@@ -177,11 +175,9 @@ def get_all_uids_of_a_type(object_table, obj_table_names):
 
 
 def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
-    # logger = logging.getLogger(__name__)
     logging.debug ("getter - entering get_broken_object_uids" )
     broken_uids = []
     for uid in all_uids_from_rules:
-        # logging.debug ("getter - uid from rules: " + uid )
         if not uid in all_uids_from_obj_tables:
             broken_uids.append(uid)
             logging.debug ("getter - found missing uid from obj_tables: " + uid )

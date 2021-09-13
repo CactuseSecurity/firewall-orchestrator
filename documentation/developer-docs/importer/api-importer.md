@@ -20,7 +20,7 @@ error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
 ```
 
 So the following rules apply:
-
+- first create  a new firewall type by adding it to table stm_dev_type
 - Create a sub-directory beneath /usr/local/fworch/importer/ called "device_type.name" + "device_type.version"
 - Within this directory there has be a module called 'fwcommon.py' containing a function get_config using the parameters above
 - The config needs to be returned in the config2import variable as a json dict using the following syntax:

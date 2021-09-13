@@ -1,68 +1,89 @@
-
 import logging
-import json
-import common
+import sys
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
+sys.path.append(importer_base_dir)
+import common, fwcommon
 
 
 def csv_dump_nw_obj(nw_obj, import_id):
-    result_line = '"' + import_id + '"' + common.csv_delimiter  # control_id
-    result_line += '"' + nw_obj['obj_name'] + '"' + common.csv_delimiter  # obj_name
-    result_line += '"' + nw_obj['obj_typ'] + '"' + common.csv_delimiter  # ob_typ
-    result_line += '"' + nw_obj['obj_member_names'] + '"' + common.csv_delimiter  # obj_member_names
-    result_line += '"' + nw_obj['obj_member_refs'] + '"' + common.csv_delimiter  # obj_member_refs
-    result_line += common.csv_delimiter  # obj_sw
+    result_line =  common.csv_add_field(import_id)                  # control_id
+    result_line += common.csv_add_field(nw_obj['obj_name'])         # obj_name
+    result_line += common.csv_add_field(nw_obj['obj_typ'])          # ob_typ
+    if nw_obj['obj_member_names'] != None:
+        result_line += common.csv_add_field(nw_obj['obj_member_names']) # obj_member_names
+    else:
+        result_line += common.csv_delimiter                         # no obj_member_names
+    if nw_obj['obj_member_refs'] != None:
+        result_line += common.csv_add_field(nw_obj['obj_member_refs'])  # obj_member_refs
+    else:
+        result_line += common.csv_delimiter                         # no obj_member_refs
+    result_line += common.csv_delimiter                             # obj_sw
     if nw_obj['obj_typ'] == 'group':
-        result_line += common.csv_delimiter  # obj_ip for groups = null
+        result_line += common.csv_delimiter                         # obj_ip for groups = null
+        result_line += common.csv_delimiter                         # obj_ip_end for groups = null
     else:
-        result_line += '"' + nw_obj['obj_ip'] + '"' + common.csv_delimiter  # obj_ip
-    if 'obj_ip_end' in nw_obj:
-        result_line += '"' + nw_obj['obj_ip_end'] + '"' + common.csv_delimiter         # obj_ip_end
+        result_line += common.csv_add_field(nw_obj['obj_ip'])       # obj_ip
+        if 'obj_ip_end' in nw_obj:
+           result_line += common.csv_add_field(nw_obj['obj_ip_end'])# obj_ip_end
+        else:
+           result_line += common.csv_delimiter
+    result_line += common.csv_add_field(nw_obj['obj_color'])        # obj_color
+    if nw_obj['obj_comment'] != None:
+        result_line += common.csv_add_field(nw_obj['obj_comment'])  # obj_comment
     else:
-        result_line += common.csv_delimiter
-    result_line += '"' + nw_obj['obj_color'] + '"' + common.csv_delimiter  # obj_color
-    result_line += '"' + nw_obj['obj_comment'] + '"' + common.csv_delimiter  # obj_comment
-    result_line += common.csv_delimiter  # result_line += '"' + nw_obj['obj_location'] + '"' + csv_delimiter       # obj_location
+        result_line += common.csv_delimiter                         # no obj_comment
+    result_line += common.csv_delimiter                             # obj_location
     if 'obj_zone' in nw_obj:
-        result_line += '"' + nw_obj['obj_zone'] + '"' + common.csv_delimiter           # obj_zone
+        result_line += common.csv_add_field(nw_obj['obj_zone'])     # obj_zone
     else:
         result_line += common.csv_delimiter
-    result_line += '"' + nw_obj['obj_uid'] + '"' + common.csv_delimiter  # obj_uid
-    result_line += common.csv_delimiter  # last_change_admin
+    result_line += common.csv_add_field(nw_obj['obj_uid'])          # obj_uid
+    result_line += common.csv_delimiter                             # last_change_admin
     # add last_change_time
     result_line += common.line_delimiter
     return result_line
 
 
+def parse_network_objects_to_json(full_config, config2import, import_id):
+    nw_objects = []
+
+    for obj_table in full_config['object_tables']:
+        collect_nw_objects(obj_table, nw_objects)
+    for nw_obj in nw_objects:
+        nw_obj.update({'control_id': import_id})
+    for idx in range(0, len(nw_objects)-1):
+        if nw_objects[idx]['obj_typ'] == 'group':
+            add_member_names_for_nw_group(idx, nw_objects)
+    config2import.update({'network_objects': nw_objects})
+    
+
 # collect_nw_objects from object tables and write them into global nw_objects dict
 def collect_nw_objects(object_table, nw_objects):
-    result = ''  # todo: delete this line
-    # nw_obj_tables = ['hosts', 'networks', 'address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']
-    # nw_obj_type_to_host_list = [
-    #     'address-range', 'multicast-address-range',
-    #     'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiAnyObject', 
-    #     'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
-    # ]
     nw_obj_type_to_host_list = [
         'simple-gateway', 'simple-cluster', 'CpmiVsClusterNetobj', 'CpmiVsxClusterNetobj', 'CpmiVsxClusterMember', 'CpmiAnyObject', 
         'CpmiClusterMember', 'CpmiGatewayPlain', 'CpmiHostCkp', 'CpmiGatewayCluster', 'checkpoint-host' 
     ]
 
-    if object_table['object_type'] in common.nw_obj_table_names:
+    if object_table['object_type'] in fwcommon.nw_obj_table_names:
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
-                members = ''
-                ip_addr = ''
-                member_refs = ''
-                member_names = ''
-                
+                ip_addr = ''                
+                member_refs = None
+                member_names = None
                 if 'members' in obj:
+                    member_refs = ''
+                    member_names = ''
                     for member in obj['members']:
                         member_refs += member + common.list_delimiter
                     member_refs = member_refs[:-1]
-                ip_addr = common.get_ip_of_obj(obj)
+                ip_addr = fwcommon.get_ip_of_obj(obj)
                 first_ip = ip_addr
                 last_ip = ip_addr
                 obj_type = obj['type']
+                if obj_type=='group':
+                    first_ip = None
+                    last_ip = None
 
                 if obj_type == 'address-range' or obj_type == 'multicast-address-range':
                     obj_type = 'ip_range'
@@ -75,12 +96,9 @@ def collect_nw_objects(object_table, nw_objects):
                     # logging.debug("parse_network::collect_nw_objects - rewriting non-standard cp-host-type '" + obj['name'] + "' with object type '" + obj_type + "' to host")
                     # logging.debug("obj_dump:" + json.dumps(obj, indent=3))
                     obj_type = 'host'
-                # else:
-                    # if not obj['type'] in ['host', 'network', 'group'] or obj['name']=='test-interop-device' or obj['name']=='test-ext-vpn-gw':
-                        # logging.debug("parse_network::collect_nw_objects - for '" + obj['name'] + "' we are using standard object type '" + obj['type'] + "'")
-                        # logging.debug("obj_dump:" + json.dumps(obj, indent=3))
-
                 # adding the object:
+                if not 'comments' in obj or obj['comments']=='':
+                    obj['comments'] = None
                 nw_objects.extend([{'obj_uid': obj['uid'], 'obj_name': obj['name'], 'obj_color': obj['color'],
                                         'obj_comment': obj['comments'],
                                         'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,

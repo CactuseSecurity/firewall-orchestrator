@@ -317,7 +317,7 @@ BEGIN
             ELSIF c_action = 'D' THEN
                 RAISE DEBUG 'import_rule_resolved_usr 2 delete - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                     i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;
-                UPDATE rule_user_resolved SET removed=i_current_import_id WHERE rule_id=i_rule_id AND userc_id=i_old_obj_id AND removed IS NULL;
+                UPDATE rule_user_resolved SET removed=i_current_import_id WHERE rule_id=i_rule_id AND user_id=i_old_obj_id AND removed IS NULL;
             ELSIF c_action = 'C' THEN
                 RAISE DEBUG 'import_rule_resolved_usr 3 change - i_mgm_id=%, i_rule_id=%, i_old_obj_id=%, i_new_obj_id=%, i_current_import_id=%, c_action=%, c_changelog_table=%', 
                     i_mgm_id, i_rule_id, i_old_obj_id, i_new_obj_id, i_current_import_id, c_action, c_changelog_table;

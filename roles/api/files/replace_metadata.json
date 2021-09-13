@@ -72,6 +72,34 @@
                     }
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "log_obj_id",
+                      "new_obj_id",
+                      "old_obj_id",
+                      "import_admin",
+                      "doku_admin",
+                      "control_id",
+                      "abs_change_id",
+                      "change_action",
+                      "changelog_obj_comment",
+                      "documented",
+                      "docu_time",
+                      "mgm_id",
+                      "change_type_id",
+                      "security_relevant",
+                      "change_request_info",
+                      "change_time",
+                      "unique_name"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
               ]
             },
             {
@@ -169,6 +197,34 @@
                       "unique_name"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "log_rule_id",
+                      "doku_admin",
+                      "control_id",
+                      "import_admin",
+                      "new_rule_id",
+                      "old_rule_id",
+                      "implicit_change",
+                      "abs_change_id",
+                      "change_action",
+                      "changelog_rule_comment",
+                      "documented",
+                      "docu_time",
+                      "mgm_id",
+                      "dev_id",
+                      "change_type_id",
+                      "security_relevant",
+                      "change_request_info",
+                      "change_time",
+                      "unique_name"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -327,6 +383,34 @@
                     }
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "log_svc_id",
+                      "doku_admin",
+                      "control_id",
+                      "import_admin",
+                      "new_svc_id",
+                      "old_svc_id",
+                      "abs_change_id",
+                      "change_action",
+                      "changelog_svc_comment",
+                      "documented",
+                      "docu_time",
+                      "mgm_id",
+                      "change_type_id",
+                      "security_relevant",
+                      "change_request_info",
+                      "change_time",
+                      "unique_name"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
               ]
             },
             {
@@ -389,6 +473,34 @@
                         "name": "request_user_change"
                       }
                     }
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "log_usr_id",
+                      "new_user_id",
+                      "old_user_id",
+                      "import_admin",
+                      "doku_admin",
+                      "control_id",
+                      "abs_change_id",
+                      "change_action",
+                      "changelog_user_comment",
+                      "documented",
+                      "docu_time",
+                      "mgm_id",
+                      "change_type_id",
+                      "security_relevant",
+                      "change_request_info",
+                      "change_time",
+                      "unique_name"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 }
               ]
@@ -722,6 +834,29 @@
                   }
                 },
                 {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "mgm_id",
+                      "dev_name",
+                      "dev_rulebase",
+                      "dev_typ_id",
+                      "tenant_id",
+                      "dev_active",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
+                      "hide_in_gui"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -918,9 +1053,81 @@
             {
               "table": {
                 "schema": "public",
+                "name": "import_config"
+              },
+              "object_relationships": [
+                {
+                  "name": "import_control",
+                  "using": {
+                    "foreign_key_constraint_on": "import_id"
+                  }
+                },
+                {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "mgm_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": ["config", "import_id", "mgm_id"],
+                    "backend_only": false
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": ["import_id", "mgm_id", "config"],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
                 "name": "import_control"
               },
               "object_relationships": [
+                {
+                  "name": "import_config",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "import_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "import_config"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "import_full_config",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "import_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "import_full_config"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "management",
                   "using": {
@@ -1458,6 +1665,30 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "control_id",
+                      "start_time",
+                      "stop_time",
+                      "is_initial_import",
+                      "delimiter_group",
+                      "delimiter_zone",
+                      "delimiter_user",
+                      "delimiter_list",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "successful_import",
+                      "changes_found",
+                      "import_errors"
+                    ],
+                    "backend_only": false
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -1476,6 +1707,28 @@
                       "successful_import",
                       "changes_found",
                       "import_errors"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "control_id",
+                      "changes_found",
+                      "is_initial_import",
+                      "successful_import",
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1555,6 +1808,86 @@
                     "allow_aggregations": true
                   }
                 }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "control_id",
+                      "changes_found",
+                      "is_initial_import",
+                      "successful_import",
+                      "delimiter_group",
+                      "delimiter_list",
+                      "delimiter_user",
+                      "delimiter_zone",
+                      "import_errors",
+                      "mgm_id",
+                      "last_change_in_config",
+                      "start_time",
+                      "stop_time"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "schema": "public",
+                "name": "import_full_config"
+              },
+              "object_relationships": [
+                {
+                  "name": "import_control",
+                  "using": {
+                    "foreign_key_constraint_on": "import_id"
+                  }
+                },
+                {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "mgm_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {},
+                    "columns": ["config", "import_id", "mgm_id"],
+                    "backend_only": false
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": ["import_id", "mgm_id", "config"],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "filter": {}
+                  }
+                }
               ]
             },
             {
@@ -1596,6 +1929,64 @@
                       "obj_scope"
                     ],
                     "backend_only": false
+                  }
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "obj_id",
+                      "obj_zone",
+                      "obj_name",
+                      "obj_typ",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_member_excludes",
+                      "obj_sw",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_color",
+                      "obj_comment",
+                      "obj_location",
+                      "control_id",
+                      "obj_uid",
+                      "last_change_admin",
+                      "last_change_time",
+                      "obj_scope"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "control_id",
+                      "obj_id",
+                      "last_change_admin",
+                      "obj_name",
+                      "obj_scope",
+                      "obj_sw",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_color",
+                      "obj_comment",
+                      "obj_location",
+                      "obj_member_excludes",
+                      "obj_member_names",
+                      "obj_member_refs",
+                      "obj_typ",
+                      "obj_uid",
+                      "obj_zone",
+                      "last_change_time"
+                    ],
+                    "filter": {},
+                    "check": null
                   }
                 }
               ]
@@ -1977,6 +2368,18 @@
                   }
                 },
                 {
+                  "name": "import_configs",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "mgm_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "import_config"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "import_controls",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -1984,6 +2387,18 @@
                       "table": {
                         "schema": "public",
                         "name": "import_control"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "import_full_configs",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "mgm_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "import_full_config"
                       }
                     }
                   }
@@ -2088,6 +2503,38 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "mgm_id",
+                      "dev_typ_id",
+                      "mgm_name",
+                      "mgm_comment",
+                      "tenant_id",
+                      "mgm_create",
+                      "mgm_update",
+                      "ssh_public_key",
+                      "ssh_private_key",
+                      "ssh_hostname",
+                      "ssh_port",
+                      "ssh_user",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_rules",
+                      "last_import_md5_objects",
+                      "last_import_md5_users",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
+                      "config_path",
+                      "hide_in_gui",
+                      "importer_hostname",
+                      "debug_level"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
+                  "role": "importer",
                   "permission": {
                     "columns": [
                       "mgm_id",
@@ -6090,6 +6537,14 @@
                   }
                 },
                 {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": ["action_id", "action_name"],
@@ -6259,6 +6714,14 @@
                   }
                 },
                 {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -6346,6 +6809,26 @@
                       "dev_typ_version"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "dev_typ_id",
+                      "dev_typ_manufacturer",
+                      "dev_typ_name",
+                      "dev_typ_version",
+                      "dev_typ_comment",
+                      "dev_typ_predef_svc",
+                      "dev_typ_predef_obj",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_users"
+                    ],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -6440,6 +6923,14 @@
                   }
                 },
                 {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -6493,6 +6984,16 @@
                     }
                   }
                 }
+              ],
+              "select_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                }
               ]
             },
             {
@@ -6524,6 +7025,14 @@
                       "obj_typ_comment"
                     ],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -6594,6 +7103,14 @@
                   }
                 },
                 {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -6659,6 +7176,14 @@
                   }
                 },
                 {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": ["track_id", "track_name"],
@@ -6707,6 +7232,14 @@
                   "permission": {
                     "columns": ["usr_typ_id", "usr_typ_name"],
                     "filter": {}
+                  }
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [],
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {

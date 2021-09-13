@@ -18,6 +18,7 @@
     template:
       src: "{{ item }}"
       dest: "{{ middleware_ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
+      force: yes
     with_fileglob:
       - ../templates/*.j2
 

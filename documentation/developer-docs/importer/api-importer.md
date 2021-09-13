@@ -112,7 +112,9 @@ So the following rules apply:
     }
   ]}
 ```
-If there are no (e.g. user or zone) objects in the config, the xxx_objects arrays can simply be ommited.
+
+- If there are no (e.g. user or zone) objects in the config, the xxx_objects arrays can simply be ommited.
+- Group delimiter is the pipe (|).
 
 ## testing
 

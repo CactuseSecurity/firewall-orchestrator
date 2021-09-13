@@ -21,7 +21,11 @@ Edit architecture diagram (internal only) at https://xfer.cactus.de/index.php/f/
 
 To manually rollback a hanging import of management with ID 1:
 
-`sudo -u postgres psql -d fworchdb -c "select * from rollback_import_of_mgm(1)"`
+`sudo -u postgres psql -d fworchdb -c "select * from rollback_import_of_mgm(<management id>)"`
+
+old, more invasive version:
+
+`select * from rollback_import_of_mgm_without_cascade(<management id>);`
 
 ## clean code
 
@@ -58,7 +62,7 @@ Code blocks must contain language in first line. Either use three ~ or ` chars, 
 
 - Only one top level header in the same document
 
-  ```
+  ```console
   # Title
 
   text
@@ -72,7 +76,7 @@ Code blocks must contain language in first line. Either use three ~ or ` chars, 
 
 - One or zero whitespaces after list marker
 
-  ```
+  ```console
   - List Item
     - List Item
   ```
@@ -81,13 +85,13 @@ Code blocks must contain language in first line. Either use three ~ or ` chars, 
 
 - Example without text
 
-  ```
+  ```console
   <https://www.apollographql.com/>
   ```
 
 - Example with text:
 
-  ```
+  ```console
   [Link to whatever](https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/whatever/whatever.md)
   ```
 

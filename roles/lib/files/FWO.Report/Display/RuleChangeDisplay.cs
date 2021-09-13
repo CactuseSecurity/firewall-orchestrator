@@ -1,8 +1,8 @@
 ﻿using FWO.Api.Data;
 using FWO.Logging;
 using System.Linq;
+using System.Collections.Generic;
 using System;
-using System.Text.Json.Serialization;
 
 namespace FWO.Ui.Display
 {
@@ -50,8 +50,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return ruleChange.OldRule.DisplaySource();
-                case 'I': return ruleChange.NewRule.DisplaySource();
+                case 'D': return ruleChange.OldRule.DisplaySource(style: DisplayStyle(ruleChange));
+                case 'I': return ruleChange.NewRule.DisplaySource(style: DisplayStyle(ruleChange));
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplaySource(), ruleChange.NewRule.DisplaySource());
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -72,8 +72,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return ruleChange.OldRule.DisplayDestination();
-                case 'I': return ruleChange.NewRule.DisplayDestination();
+                case 'D': return ruleChange.OldRule.DisplayDestination(style: DisplayStyle(ruleChange));
+                case 'I': return ruleChange.NewRule.DisplayDestination(style: DisplayStyle(ruleChange));
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayDestination(), ruleChange.NewRule.DisplayDestination());
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -82,8 +82,8 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return ruleChange.OldRule.DisplayService();
-                case 'I': return ruleChange.NewRule.DisplayService();
+                case 'D': return ruleChange.OldRule.DisplayService(style: DisplayStyle(ruleChange));
+                case 'I': return ruleChange.NewRule.DisplayService(style: DisplayStyle(ruleChange));
                 case 'C': return DisplayDiff(ruleChange.OldRule.DisplayService(), ruleChange.NewRule.DisplayService());
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
@@ -154,6 +154,17 @@ namespace FWO.Ui.Display
             }
         }
 
+        public static string DisplayStyle(this RuleChange ruleChange)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return "color: red";
+                case 'I': return "color: green";
+                case 'C': return "";
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
         /// <summary>
         /// displays differences between two string objects
         /// </summary>
@@ -169,40 +180,36 @@ namespace FWO.Ui.Display
                 string[] separatingStrings = { "<br>" };
                 string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
                 string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-                string[] longerAr;
-                string[] shorterAr;
-                string result = "";
+                List<string> unchanged = new List<string>();
+                List<string> added = new List<string>();
+                List<string> deleted = new List<string>();
 
-                Array.Sort(oldAr);
-                Array.Sort(newAr);
-                if (oldAr.Length > newAr.Length)
+                foreach (var item in oldAr)
                 {
-                    longerAr = oldAr;
-                    shorterAr = newAr;
+                    if (newAr.Contains(item))
+                    {
+                        unchanged.Add(item);
+                    }
+                    else
+                    {
+                        string deletedItem = item;
+                        deletedItem = deletedItem.Replace("<p>", "");
+                        deleted.Add(deletedItem.Replace("style=\"\"", "style=\"color: red\""));
+                    }
                 }
-                else
+                foreach (var item in newAr)
                 {
-                    longerAr = newAr;
-                    shorterAr = oldAr;
+                    if (!oldAr.Contains(item))
+                    {
+                        string newItem = item; 
+                        newItem = newItem.Replace("<p>", "");
+                        added.Add(newItem.Replace("style=\"\"", "style=\"color: green\""));
+                    }
                 }
-                string difference = string.Join("<br>", longerAr.Except(shorterAr));
-                if (oldAr.Length < newAr.Length)
-                    result = string.Join("<br>", shorterAr) + $" + <p style=\"text-decoration: bold;\">{difference}</p>";
-                else if (oldAr.Length > newAr.Length)
-                    result = string.Join("<br>", shorterAr) + $" - <p style=\"text-decoration: line-through;\">{difference}</p>";
-                else // same number of elements - one or more elements were replaced
-                {
-                    // for (int i=0; i<=oldAr.Length; i++) 
-                    // {
-                    //     if (oldAr[i]!=newAr[i])
-                    //         result += $"old:{oldAr[i]}, new: {newAr[i]}<br>";
-                    //     else 
-                    //         result += $"{oldAr[i]}<br>";
-                    // }
-                    if (difference != "")
-                        result = string.Join("<br>", shorterAr) + $"<br> diff: {difference}";
-                }
-                return result;
+
+                return string.Join("<br>", unchanged) 
+                       + (deleted.Count > 0 ? $" deleted: <p style=\"color: red; text-decoration: line-through red;\">{string.Join("<br>", deleted)}</p>" : "")
+                       + (added.Count > 0 ? $" added: <p style=\"color: green; text-decoration: bold;\">{string.Join("<br>", added)}</p>" : "");
             }
         }
         

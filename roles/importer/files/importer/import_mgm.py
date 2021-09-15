@@ -8,11 +8,9 @@
 #         release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #         no changes: remove import_control?
 
-import time, datetime
-import json
+import time, datetime, json
 import requests, requests.packages
-import importlib
-import argparse, logging, socket
+import importlib, argparse, logging, socket
 from pathlib import Path
 import sys, os
 base_dir = "/usr/local/fworch"
@@ -53,7 +51,8 @@ importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
 import_tmp_path = base_dir + '/tmp/import'
 
 start_time = int(time.time())
-requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+if args.ssl=='' or args.ssl=='off':
+    requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
 

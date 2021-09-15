@@ -168,8 +168,8 @@ def csv_dump_rule(rule, layer_name, import_id, rule_num, parent_uid):
                 parent_rule_uid = parent_uid
             if (parent_rule_uid!=''):
                 rule_csv += common.csv_add_field(parent_rule_uid,no_csv_delimiter=True)
-            else:
-                rule_csv += common.csv_delimiter
+            # else:
+            #     rule_csv += common.csv_delimiter
             rule_csv += common.line_delimiter
     return rule_csv
 
@@ -329,7 +329,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 rule_svc_ref += svc["uid"] + common.list_delimiter
             rule_svc_ref = rule_svc_ref[:-1]
 
-            if 'name' in src_rule:
+            if 'name' in src_rule and src_rule['name']!='':
                 rule_name = src_rule['name']
             else:
                 rule_name = None

@@ -24,14 +24,17 @@ def set_log_level(log_level, debug_level):
 
 
 def csv_add_field(content, no_csv_delimiter=False):
-    if content == '' and not no_csv_delimiter:  # do not add apostrophes for empty fields
+    if (content == None or content == '') and not no_csv_delimiter:  # do not add apostrophes for empty fields
         field_result = csv_delimiter
     else:
-        # add apostrophes at beginning and end and remove any ocurrence of them within the string 
-        escaped_field = content.replace(apostrophe,"")
-        field_result = apostrophe + escaped_field + apostrophe
-        if not no_csv_delimiter:
-            field_result += csv_delimiter
+        # add apostrophes at beginning and end and remove any ocurrence of them within the string
+        if (content == None): # no_csv_delimiter must be true
+            field_result = ''
+        else:
+            escaped_field = content.replace(apostrophe,"")
+            field_result = apostrophe + escaped_field + apostrophe
+            if not no_csv_delimiter:
+                field_result += csv_delimiter
     return field_result
  
 

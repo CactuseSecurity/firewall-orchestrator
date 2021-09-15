@@ -1,4 +1,12 @@
 ---
+- name: Create universal ldif directory
+  file:
+    path: "{{ middleware_ldif_dir }}"
+    state: directory
+    owner: "{{ fworch_user }}"
+    group: "{{ fworch_group }}"
+  become: yes
+
 - block:
 ### OS basics
   - name: Add the OS specific varibles
@@ -29,13 +37,6 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
 
-  # - name: make sure /var/run/slapd exists for pid file
-  #   file:
-  #     path: /var/run/slapd
-  #     state: directory
-  #     owner: openldap
-  #     group: openldap
-
 ### Root password
   - name: Check if manager password exist
     stat:
@@ -59,10 +60,6 @@
   - name: Generate the root password hash for the config
     command: "slappasswd -T {{ openldap_secrets_path }}/ldap_manager_pw.txt"
     register: root_password
-
-  - name: Debug slappasswd
-    debug:
-      var: root_password.stdout_lines
 
 ### TLS
   - name: Delete the directory for ldap certificates
@@ -137,10 +134,6 @@
       src: ldap.conf.j2
       dest: "{{ openldap_server_app_path }}/ldap.conf"
 
-  - name: Debug ansible_os_family
-    debug:
-      var: ansible_os_family
-
   - name: Copy slapd.d initial file to system if not present
     template:
       src: config.ldif.j2
@@ -155,11 +148,6 @@
 
   - name: Initialize ldap config
     command: slapadd -F {{ openldap_server_app_path }}/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
-    register: ldap_initialization
-
-  - name: Debug ldap initialization
-    debug:
-      var: ldap_initialization
 
   - name: Change slapd files permissions to openldap
     file:
@@ -186,13 +174,9 @@
       enabled: yes
       daemon_reload: yes
 
-  - name: include upgrade script
-    import_tasks: run-upgrades.yml
-    when: "installation_mode == 'upgrade'"
-
   become: yes
   when: installation_mode == "new"
 
-- name: Upgrade openldap
-  import_tasks: upgrade-openldap.yml
-  when: installation_mode == "upgrade"
+- name: include upgrade script
+  import_tasks: run-upgrades.yml
+  when: "installation_mode == 'upgrade'"

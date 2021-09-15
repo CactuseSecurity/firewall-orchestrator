@@ -1,7 +1,4 @@
 #!/usr/bin/python3
-
-# add main importer loop in pyhton (also able to run distributed)
-#   run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 #      import_mgm.py: import a single management (if no import for it is running)
 #         lock mgmt for import via FWORCH API call, generating new import_id y
 #         check if we need to import (no md5, api call if anything has changed since last import)
@@ -17,7 +14,7 @@ import requests, requests.packages
 import importlib
 import argparse, logging, socket
 from pathlib import Path
-import sys
+import sys, os
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
@@ -83,14 +80,14 @@ mgm_details = fwo_api.get_mgm_details(
 # only run if this is the correct import module
 if mgm_details['importerHostname'] != socket.gethostname():
     logging.info(
-        "we are not responsilble for importing this management - so resting")
+        "we are not responsible for importing this management - so resting")
     sys.exit(0)
 
 # set import lock
 current_import_id = fwo_api.lock_import(
     fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
 if current_import_id == -1:
-    logging.warning("error while setting import lock for management id " +
+    logging.error("error while setting import lock for management id " +
                     str(args.mgm_id) + ", import already running?")
     sys.exit(1)
 
@@ -99,7 +96,7 @@ logging.info("start import of management " + str(args.mgm_id) +
 
 full_config_json = {}
 config2import = {}
-Path(import_tmp_path).mkdir(parents=True, exist_ok=True)
+Path(import_tmp_path).mkdir(parents=True, exist_ok=True) # make sure tmp path exists
 
 config_filename = import_tmp_path + '/mgm_id_' + \
     str(args.mgm_id) + '_config.json'
@@ -149,7 +146,12 @@ stop_time_string = datetime.datetime.now().isoformat()
 if change_count == 0 and error_count == 0:
     error_count += fwo_api.delete_json_config(
         fwo_api_base_url, jwt, {"importId": current_import_id})
-    # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+    if os.path.exists(config_filename):
+        os.remove(config_filename)
+      # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+
+if os.path.exists(secret_filename):
+    os.remove(secret_filename)
 # finalize remport by unlocking it
 error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
     args.mgm_id), stop_time_string, current_import_id, error_count, change_count)

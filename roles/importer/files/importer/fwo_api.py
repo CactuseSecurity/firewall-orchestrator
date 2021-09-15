@@ -118,6 +118,14 @@ def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification=
     return result
 
 
+def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
+    mgm_query = """
+        query getManagementIds {
+            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) {
+                id: mgm_id } } """
+    return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management']
+
+
 def get_mgm_details(fwo_api_base_url, jwt, query_variables):
     mgm_query = """
         query getManagementDetails($mgmId: Int!) {

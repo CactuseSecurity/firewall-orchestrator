@@ -1,10 +1,6 @@
 ﻿@using BlazorTable
-@using FWO.ApiClient
-@using FWO.ApiClient.Queries
 @using FWO.ApiConfig
 @using FWO.Api.Data
-@using FWO.Report.Filter
-@using FWO.Ui.Pages.Reporting
 
 @inject UserConfig userConfig
 @typeparam InputDataType
@@ -233,6 +229,9 @@
 
 @code
 {
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+
     [Parameter]
     public Func<byte, Func<Management[], Task>, long, Task> FetchObjects { get; set; }
 
@@ -280,59 +279,66 @@
 
     private async Task FetchContent(byte objType)
     {
-        if (Type == 30 && objType != 0)
-            return;
-
-        if (objType == all && !ContentIsDetailed || objType == nobj && !nobjDetailed || objType == nsrv && !nsrvDetailed || objType == user && !userDetailed)
+        try
         {
-            switch (Content)
+            if (Type == 30 && objType != 0)
+                return;
+
+            if (objType == all && !ContentIsDetailed || objType == nobj && !nobjDetailed || objType == nsrv && !nsrvDetailed || objType == user && !userDetailed)
             {
-                case Management m:
-                    await FetchObjects((byte)(Type + objType),
-                        managementsUpdate =>
-                        {
-                            int id = m.Id;
-                            Management m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
-                            if (m_updated != null)
+                switch (Content)
+                {
+                    case Management m:
+                        await FetchObjects((byte)(Type + objType),
+                            managementsUpdate =>
                             {
-                                switch (objType)
+                                int id = m.Id;
+                                Management m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
+                                if (m_updated != null)
                                 {
-                                    case all:
-                                        m = m_updated; break;
-                                    case nobj:
-                                        m.Objects = m_updated.Objects; break;
-                                    case nsrv:
-                                        m.Services = m_updated.Services; break;
-                                    case user:
-                                        m.Users = m_updated.Users; break;
+                                    switch (objType)
+                                    {
+                                        case all:
+                                            m = m_updated; break;
+                                        case nobj:
+                                            m.Objects = m_updated.Objects; break;
+                                        case nsrv:
+                                            m.Services = m_updated.Services; break;
+                                        case user:
+                                            m.Users = m_updated.Users; break;
+                                    }
+
+                                    Content = (InputDataType)(Object)m;
                                 }
+                                return InvokeAsync(StateHasChanged);
+                            }, m.Id);
 
-                                Content = (InputDataType)(Object)m;
-                            }
-                            return InvokeAsync(StateHasChanged);
-                        }, m.Id);
+                        break;
 
-                    break;
+                    case Rule r:
+                        await FetchObjects((byte)(Type + objType),
+                            managementsUpdate =>
+                            {
+                                Rule r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
+                                r_updated.DeviceName = r.DeviceName;
+                                if (r_updated != null)
+                                    Content = (InputDataType)(Object)r_updated;
+                                return InvokeAsync(StateHasChanged);
+                            }, r.Id);
 
-                case Rule r:
-                    await FetchObjects((byte)(Type + objType),
-                        managementsUpdate =>
-                        {
-                            Rule r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
-                            r_updated.DeviceName = r.DeviceName;
-                            if (r_updated != null)
-                                Content = (InputDataType)(Object)r_updated;
-                            return InvokeAsync(StateHasChanged);
-                        }, r.Id);
+                        break;
+                }
 
-                    break;
+                nobjDetailed = nobjDetailed || objType == 0 || objType == 1;
+                nsrvDetailed = nsrvDetailed || objType == 0 || objType == 2;
+                userDetailed = userDetailed || objType == 0 || objType == 3;
+
+                await InvokeAsync(StateHasChanged);
             }
-
-            nobjDetailed = nobjDetailed || objType == 0 || objType == 1;
-            nsrvDetailed = nsrvDetailed || objType == 0 || objType == 2;
-            userDetailed = userDetailed || objType == 0 || objType == 3;
-
-            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
         }
     }
 }

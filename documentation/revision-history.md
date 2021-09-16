@@ -140,7 +140,10 @@ adding report template format fk and permissions
 ### 5.3.4 - 29.07.2021
 - moving to API hasura v2.0
 
-
 ### 5.4.1 - 10.09.2021
 - moving towards full API-based importer modules
 - in preparation for coming import changes
+
+### 5.4.2 - 16.09.2021
+- new version with start of FortiManager ()
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (11,'FortiManager','5-7','Fortinet','');

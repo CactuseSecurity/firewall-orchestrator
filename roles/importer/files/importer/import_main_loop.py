@@ -20,8 +20,8 @@ parser.add_argument('-x', '--proxy', metavar='proxy_string', default='',
                     help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
                     help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
-parser.add_argument('-l', '--limit', metavar='api_limit', default='500',
-                    help='The maximal number of returned results per HTTPS Connection; default=500')
+parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
+                    help='The maximal number of returned results per HTTPS Connection; default=150')
 
 args = parser.parse_args()
 

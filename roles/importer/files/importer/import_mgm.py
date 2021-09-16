@@ -32,8 +32,8 @@ parser.add_argument('-x', '--proxy', metavar='proxy_string', default='',
                     help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
                     help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
-parser.add_argument('-i', '--limit', metavar='api_limit', default='500',
-                    help='The maximal number of returned results per HTTPS Connection; default=500')
+parser.add_argument('-i', '--limit', metavar='api_limit', default='150',
+                    help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-t', '--testing', metavar='version_testing',
                     default='off', help='Version test, [off|<version number>]; default=off')
 parser.add_argument('-o', '--out', metavar='output_file',
@@ -119,7 +119,7 @@ fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
 fw_module.get_config(
-    config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level)
+    config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string=proxy_setting)
 
 # now we import the config via API:
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {

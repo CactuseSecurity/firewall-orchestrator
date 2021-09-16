@@ -1,16 +1,8 @@
 # library for API get functions
 import sys
 sys.path.append(r"/usr/local/fworch/importer")
-import json, argparse, pdb
-import time, logging, re, sys, logging
-import os
-import requests, requests.packages.urllib3
-import common
-
-requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
-
-details_level = "full"    # 'standard'
-use_object_dictionary = 'false'
+import json, logging, re
+import requests, requests.packages
 
 def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string='', show_progress=False, method='', debug=0):
     request_headers = {'Content-Type' : 'application/json'}
@@ -80,10 +72,6 @@ def set_ssl_verification(ssl_verification_mode):
         ssl_verification = ssl_verification_mode
         logger.debug ("ssl_verification: [ca]certfile="+ ssl_verification )
     return ssl_verification
-
-
-def get_api_url(sid, api_host, api_port, user, base_url, limit, test_version, ssl_verification, proxy_string):
-    return base_url + '/jsonrpc'
 
 
 def set_api_url(base_url,testmode,api_supported,hostname):

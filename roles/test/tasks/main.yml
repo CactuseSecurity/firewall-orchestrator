@@ -17,6 +17,7 @@
 
 - name: auth testing
   import_tasks: test-auth.yml
+  when: not without_sample_data | bool
 
 - name: api testing
   import_tasks: test-api.yml

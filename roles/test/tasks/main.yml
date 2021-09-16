@@ -21,6 +21,7 @@
 
 - name: api testing
   import_tasks: test-api.yml
+  when: not without_sample_data | bool
 
 - name: csharp testing
   import_tasks: test-csharp.yml

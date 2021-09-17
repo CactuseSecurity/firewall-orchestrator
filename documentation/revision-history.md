@@ -144,6 +144,7 @@ adding report template format fk and permissions
 - moving towards full API-based importer modules
 - in preparation for coming import changes
 
-### 5.4.2 - 16.09.2021
-- new version with start of FortiManager ()
-insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (11,'FortiManager','5-7','Fortinet','');
+### 5.4.2 - 17.09.2021
+- as a start of FortiManager importer only some network objects are imported (PoC)
+- renaming fortimanager version
+- adding importer loop for new API based imports 

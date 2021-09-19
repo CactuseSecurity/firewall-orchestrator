@@ -47,6 +47,14 @@ INSERT INTO txt VALUES ('api_access',           'German', 	'Zugang zur API');
 INSERT INTO txt VALUES ('api_access',           'English', 	'API access');
 INSERT INTO txt VALUES ('none',		            'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('none',		            'English', 	'None');
+INSERT INTO txt VALUES ('added',                'German', 	'hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('added',                'English', 	'added');
+INSERT INTO txt VALUES ('deleted',		        'German', 	'gel&ouml;scht');
+INSERT INTO txt VALUES ('deleted',		        'English', 	'deleted');
+INSERT INTO txt VALUES ('modified',		        'German', 	'ge&auml;ndert');
+INSERT INTO txt VALUES ('modified',		        'English', 	'modified');
+INSERT INTO txt VALUES ('id',		            'German', 	'Id');
+INSERT INTO txt VALUES ('id',		            'English', 	'Id');
 
 -- login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');

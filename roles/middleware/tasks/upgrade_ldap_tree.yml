@@ -1,12 +1,6 @@
 
   # install all upgrades between running version and version currently being installed
 
-- name: create upgrade dir
-  file:
-    path: "{{ fworch_home }}/middleware/upgrade"
-    state: directory
-  become: yes
- 
 - set_fact: 
     installed_version: "{{ old_version }}"
     current_version: "{{ product_version }}"
@@ -17,25 +11,19 @@
   set_fact:
     upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | splitext | first ] }}"
   when: |
-    installed_version < item | basename | splitext | first | splitext | first
+    item | basename | splitext | first | splitext | first  is version(installed_version, '>') 
     and
-    current_version >= item | basename | splitext | first | splitext | first
+    item | basename | splitext | first | splitext | first is version(current_version, '<=')
   with_fileglob:
     - "../templates/upgrade/*.ldif.j2"
 
 - name: copy the upgrade ldif templates to target
   template:
     src: "../templates/upgrade/{{ item }}.ldif.j2"
-    dest: "{{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
+    dest: "{{ middleware_ldif_dir }}/{{ item }}.ldif"
+    force: yes
   loop: "{{ upgrade_files }}"
   become: yes
-
-# - name: install ldap upgrades   
-#   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ fworch_home }}/middleware/upgrade/{{ item }}.ldif"
-#   when: upgrade_check < item
-#   register: upgrade_output
-#   loop: "{{ upgrade_files | sort }}"
-#   ignore_errors: yes
 
 - name: 
   include_tasks: upgrade_modify_routine.yml

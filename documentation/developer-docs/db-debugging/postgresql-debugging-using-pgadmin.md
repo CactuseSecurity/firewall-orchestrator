@@ -14,7 +14,7 @@ the following was tested with Ubuntu 20.04
 
       sudo apt-get install postgresql-12-pldebugger
 
-- edit postgresql to allow debugging and add the following line:
+- edit postgresql.conf to allow debugging and add the following line:
 
       shared_preload_libraries = 'plugin_debugger'
 

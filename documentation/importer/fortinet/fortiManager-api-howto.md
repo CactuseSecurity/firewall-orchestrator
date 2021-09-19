@@ -1,6 +1,15 @@
 # Integrating Fortinet FortiManager 7.x
 
-## crate api user profile
+## user setup
+### make existing admin api ready
+```console
+config system admin user
+  edit admin
+  set rpc-permit read-write
+end
+```
+
+### create api user profile
 
 ```console
 config system admin profile
@@ -13,7 +22,7 @@ end
 NB: the user will have full rw access via UI but can be restricted to read-only via API as shown below.
 Need to find out if there is a more secure way to create an all-read-only api user
 
-## Create read-only api user
+### Create read-only api user
 ```console
 config system admin user
    edit "apiuser"
@@ -23,7 +32,7 @@ config system admin user
        set rpc-permit read
 ```
 
-## Create full access api user
+### Create full access api user
 ```console
 config system admin user
    edit "apiuser"

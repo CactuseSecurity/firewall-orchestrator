@@ -99,23 +99,31 @@ def set_api_url(base_url, testmode, api_supported, hostname):
     return url
 
 
-def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
-    result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, ssl_verification=ssl_verification,
-                               proxy_string=proxy_string, show_progress=show_progress, debug=debug)
-    config_json.update({result_name: result})
+# def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
+#     result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, ssl_verification=ssl_verification,
+#                                proxy_string=proxy_string, show_progress=show_progress, debug=debug)
+#     config_json.update({result_name: result})
 
 
-def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
-    if payload == {}:
-        payload = {"params": [{}]}
-    result = call(api_base_url, api_path, payload, sid,
-                  ssl_verification, proxy_string, debug=debug)
-    plain_result = result["result"][0]
-    if "data" in plain_result:
-        result = plain_result["data"]
-    else:
-        result = {}
-    return result
+# def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
+#     if payload == {}:
+#         payload = {"params": [{}]}
+#     result = call(api_base_url, api_path, payload, sid,
+#                   ssl_verification, proxy_string, debug=debug)
+#     plain_result = result["result"][0]
+#     if "data" in plain_result:
+#         result = plain_result["data"]
+#     else:
+#         result = {}
+#     return result
+
+
+def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
+    mgm_query = """
+        query getManagementIds {
+            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) {
+                id: mgm_id } } """
+    return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management']
 
 
 def get_mgm_details(fwo_api_base_url, jwt, query_variables):
@@ -147,7 +155,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
                 }
             }  
         }
-    """    
+    """
     return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management'][0]
 
 
@@ -309,3 +317,8 @@ def delete_full_json_config(fwo_api_base_url, jwt, query_variables):
         logging.exception("fwo_api: failed to delete full config ")
         return 2  # indicating 1 error
     return changes_in_delete_full_config-1
+
+
+def get_error_string_from_imp_control(fwo_api_base_url, jwt, query_variables):
+    error_query = "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
+    return call(fwo_api_base_url, jwt, error_query, query_variables=query_variables, role='importer')['data']['import_control']

@@ -27,4 +27,4 @@
   set_fact:
     test_importer_handler_guard: stop
   changed_when: true
-  notify: "api handler"
+  notify: "test importer handler"

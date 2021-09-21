@@ -5,7 +5,7 @@
     state: absent
     remove: yes
   become: yes
-  listen: "api handler"
+  listen: "test importer handler"
 
 - name: delete test fortinet gateway
   postgresql_query:
@@ -16,7 +16,7 @@
       END $do$ 
   become: yes
   become_user: postgres
-  listen: "api handler"
+  listen: "test importer handler"
 
 - name: delete test fortinet management
   postgresql_query:
@@ -27,5 +27,5 @@
       END $do$ 
   become: yes
   become_user: postgres
-  listen: "api handler"
+  listen: "test importer handler"
 

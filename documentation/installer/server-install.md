@@ -1,10 +1,10 @@
 # Installation instructions server
 
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
-- currently recommended platform is Ubuntu Server 20.04 TLS
-- We will install various software components to your system. It is recommended to do so on a dedicated (test) system.
+- recommended platforms are Ubuntu Server 20.04 LTS and Debian 11
+- we will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
-1) prepare your test system (make sure your user has full sudo permissions)
+1) prepare your target system (make sure your user has full sudo permissions)
 
 ```console
 su -
@@ -21,9 +21,14 @@ usermod -a -G sudo `whoami`
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
-3) if ansible version < 2.8 (older systems like ubuntu 18.04, debian 10), install latest ansible 
+3) Adjustments for older systems ubuntu 18.04, debian 10
+  - install latest ansible 
 
-       cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
+        cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
+  - (only for debian 10) activate ansible pipelining by adding the followin lines to your ansible.cfg file:
+
+        [ssh_connection]
+        pipelining = True
 
 4) install (on localhost)
 

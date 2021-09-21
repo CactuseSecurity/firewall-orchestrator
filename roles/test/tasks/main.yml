@@ -25,6 +25,7 @@
 
 - name: csharp testing
   import_tasks: test-csharp.yml
+  when: not without_sample_data | bool
 
 - name: imorter testing
   import_tasks: test-importer.yml

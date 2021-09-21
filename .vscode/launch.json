@@ -77,9 +77,21 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m4",
-                "-d1"
+                "-m5",
+                "-d2",
+                "-l2"
             ]
+        },
+        {
+            "name": "py-import_main_loop",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": ["-d2", "-i2"]
         },
         {
             "name": "c#-FWO Test",

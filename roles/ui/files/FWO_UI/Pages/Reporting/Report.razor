@@ -85,26 +85,23 @@
                                 <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
                             </Table>
                         }
-                        @foreach (Management management in managementsReport)
+                        @foreach (Management management in managementsReport.Where(mgt => !mgt.Ignore))
                         {
-                            @if (!management.Ignore)
-                            {
-                                <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-                                    <h6>@(userConfig.GetText("total_no_obj_mgt"))</h6>
-                                    <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
-                                        <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                        <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                        <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
-                                        <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
-                                    </Table>
+                            <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+                                <h6>@(userConfig.GetText("total_no_obj_mgt"))</h6>
+                                <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Management" Items="new Management[] {management}">
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("network_objects"))" Field="@(Management => Management.NetworkObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("service_objects"))" Field="@(Management => Management.ServiceObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("user_objects"))" Field="@(Management => Management.UserObjectStatistics.ObjectAggregate.ObjectCount)" />
+                                    <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                </Table>
 
-                                    <h6>@(userConfig.GetText("no_rules_gtw"))</h6>
-                                    <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
-                                        <Column TableItem="Device" Title="@(userConfig.GetText("gateway"))" Field="@(Device => Device.Name)" />
-                                        <Column TableItem="Device" Title="@(userConfig.GetText("no_of_rules"))" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
-                                    </Table>
-                                </Collapse>
-                            }
+                                <h6>@(userConfig.GetText("no_rules_gtw"))</h6>
+                                <Table style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Device" Items="management.Devices">
+                                    <Column TableItem="Device" Title="@(userConfig.GetText("gateway"))" Field="@(Device => Device.Name)" />
+                                    <Column TableItem="Device" Title="@(userConfig.GetText("no_of_rules"))" Field="@(Device => Device.RuleStatistics.ObjectAggregate.ObjectCount)" />
+                                </Table>
+                            </Collapse>
                         }
                         break;
 
@@ -363,6 +360,7 @@
                 return;
             }
 
+            // save selected managements before resetting
             List<int> relevantManagements = DeviceFilter.getSelectedManagements(managementsReport);
 
             DateTime startTime = DateTime.Now;
@@ -374,6 +372,7 @@
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
+                            setRelevantManagements(relevantManagements);
                             return InvokeAsync(StateHasChanged);
                         });
                     break;
@@ -383,6 +382,7 @@
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
+                            setRelevantManagements(relevantManagements);
                             return InvokeAsync(StateHasChanged);
                         });
                     break;
@@ -393,21 +393,15 @@
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
-                            foreach (Management mgm in managementsReport)
-                            {
-                                mgm.Ignore = (relevantManagements.Contains(mgm.Id) ? false : true);
-                            }
+                            setRelevantManagements(relevantManagements);
                             return InvokeAsync(() =>
                             {
-                                foreach (Management mgm in managementsReport)
+                                foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
                                 {
-                                    if (!mgm.Ignore)
-                                    {
-                                        globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
-                                        globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
-                                    }
+                                    globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
+                                    globalStats.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
                                 }
                                 StateHasChanged();
                             });
@@ -421,6 +415,14 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+        }
+    }
+
+    private void setRelevantManagements(List<int> relevantManagements)
+    {
+        foreach (Management mgm in managementsReport)
+        {
+            mgm.Ignore = (relevantManagements.Contains(mgm.Id) ? false : true);
         }
     }
 

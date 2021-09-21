@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS "import_config" (
     PRIMARY KEY ("import_id")
 );
 
-CREATE TABLE "import_full_config" (
+CREATE TABLE IF NOT EXISTS "import_full_config" (
     "import_id" bigint NOT NULL,
     "mgm_id" integer NOT NULL,
     "config" jsonb NOT NULL,

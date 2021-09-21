@@ -77,6 +77,8 @@ def collect_nw_objects(object_table, nw_objects):
                     for member in obj['members']:
                         member_refs += member + common.list_delimiter
                     member_refs = member_refs[:-1]
+                    if obj['members'] == '':
+                        obj['members'] = None
                 ip_addr = fwcommon.get_ip_of_obj(obj)
                 first_ip = ip_addr
                 last_ip = ip_addr
@@ -111,16 +113,21 @@ def resolve_nw_uid_to_name(uid, nw_objects):
     for obj in nw_objects:
         if obj['obj_uid'] == uid:
             return obj['obj_name']
-    return 'ERROR: uid ' + uid + ' not found'
+    return 'ERROR: uid "' + uid + '" not found'
 
 
 def add_member_names_for_nw_group(idx, nw_objects):
-    member_names = ''
     group = nw_objects.pop(idx)
-    obj_member_refs = group['obj_member_refs'].split(common.list_delimiter)
-    for ref in obj_member_refs:
-        member_name = resolve_nw_uid_to_name(ref, nw_objects)
-        # print ("found member of group " + group['obj_name'] + ": " + member_name)
-        member_names += member_name + common.list_delimiter
-    group['obj_member_names'] = member_names[:-1]
+    if group['obj_member_refs'] == '' or group['obj_member_refs'] == None:
+        #member_names = None
+        #obj_member_refs = None
+        group['obj_member_names'] = None
+        group['obj_member_refs'] = None
+    else:
+        member_names = ''
+        obj_member_refs = group['obj_member_refs'].split(common.list_delimiter)
+        for ref in obj_member_refs:
+            member_name = resolve_nw_uid_to_name(ref, nw_objects)
+            member_names += member_name + common.list_delimiter
+        group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)

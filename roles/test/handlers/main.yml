@@ -1,0 +1,31 @@
+---
+- name: delete test user and dir
+  user:
+    name: test
+    state: absent
+    remove: yes
+  become: yes
+  listen: "api handler"
+
+- name: delete test fortinet gateway
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN 
+      DELETE FROM device WHERE dev_name='{{ test_fortigate_name }}'; 
+      END $do$ 
+  become: yes
+  become_user: postgres
+  listen: "api handler"
+
+- name: delete test fortinet management
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN 
+      DELETE FROM management WHERE mgm_name='{{ test_fortigate_name }}'; 
+      END $do$ 
+  become: yes
+  become_user: postgres
+  listen: "api handler"
+

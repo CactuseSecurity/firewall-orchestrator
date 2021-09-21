@@ -1,4 +1,11 @@
 ---
+- name: initialize handler for deleting test data
+  set_fact:
+    test_importer_handler_guard: start
+  changed_when: true
+  notify:
+  - test importer handler
+
 - name: include test data
   include_role:
     name: sample-data
@@ -16,29 +23,8 @@
   become_user: "{{ fworch_user }}"
   become: yes
 
-- name: delete test user and dir
-  user:
-    name: test
-    state: absent
-    remove: yes
-  become: yes
-
-- name: delete test fortinet gateway
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN 
-      DELETE FROM device WHERE dev_name='{{ test_fortigate_name }}'; 
-      END $do$ 
-  become: yes
-  become_user: postgres
-
-- name: delete test fortinet management
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN 
-      DELETE FROM management WHERE mgm_name='{{ test_fortigate_name }}'; 
-      END $do$ 
-  become: yes
-  become_user: postgres
+- name: finalize handler for deleting test data
+  set_fact:
+    test_importer_handler_guard: stop
+  changed_when: true
+  notify: "api handler"

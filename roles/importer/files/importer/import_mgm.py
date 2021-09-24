@@ -128,8 +128,12 @@ fw_module_name = mgm_details['deviceType']['name'].lower().replace(
 fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
-fw_module.get_config(
-    config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string=proxy_setting, limit=args.limit)
+if proxy_setting!='':
+    fw_module.get_config(
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string=proxy_setting, limit=args.limit)
+else:
+    fw_module.get_config(
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, limit=args.limit)
 
 # now we import the config via API:
 error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {

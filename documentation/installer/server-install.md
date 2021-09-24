@@ -21,11 +21,11 @@ usermod -a -G sudo `whoami`
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
-3) Adjustments for older systems ubuntu 18.04, debian 10
-  - install latest ansible 
+3) Ansible adjustments (only needed for older systems)
+  - ubuntu 18.04, debian 10: install latest ansible 
 
         cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
-  - (only for debian 10) activate ansible pipelining by adding the followin lines to your ansible.cfg file:
+  - debian 10: activate ansible pipelining by adding the followin lines to your ansible.cfg file:
 
         [ssh_connection]
         pipelining = True

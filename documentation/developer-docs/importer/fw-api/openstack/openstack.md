@@ -1,35 +1,81 @@
-# Integrating Cisco ACI
+# OpenStack API
 
-- Introduction on ACI reg. firewalling:
-<https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/5-x/security/cisco-apic-security-configuration-guide-50x/m-endpoint-security-groups.html>
+Start here: <https://docs.openstack.org/devstack/latest/>
 
-- API references: <https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/2-x/rest_cfg/2_1_x/b_Cisco_APIC_REST_API_Configuration_Guide/b_Cisco_APIC_REST_API_Configuration_Guide_chapter_01.html#reference_7105100D869A4B0A9160FA2013D46B7B>
+## online sandbox 
 
-- ACI Fabric Network Access Security Policy Model (Contracts): <https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/5-x/security/cisco-apic-security-configuration-guide-50x/m_security_policies.html>
+https://www.openstack.org/passport/
 
-## online sandbox APIC
 
-- base (UI) URL: https://sandboxapicdc.cisco.com
-- doc URL: https://sandboxapicdc.cisco.com/doc/html
-- API URL: https://sandboxapicdc.cisco.com/api/xxx.json
-- user: admin
-- password: !v3G@!4@Y https://sandboxapicdc.cisco.com
+## openstack test installation
 
-## user setup
+on Ubuntu 20.04 (4 GB RAM is not enough, 8 GB seems ok, better 10 GB).
 
-## login
+Make sure  simplejson ist not installed:
+
+    sudo apt purge python3-simplejson
+
+Prepare system:
+
+    sudo useradd -s /bin/bash -d /opt/stack -m stack
+    echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack
+    sudo -u stack -i
+    git clone https://opendev.org/openstack/devstack
+    cd devstack
+
+create local.conf file with the following content (choosing a suitable password for XXX):
+
+    [[local|localrc]]
+    ADMIN_PASSWORD=XXX
+    DATABASE_PASSWORD=$ADMIN_PASSWORD
+    RABBIT_PASSWORD=$ADMIN_PASSWORD
+    SERVICE_PASSWORD=$ADMIN_PASSWORD
+
+
+To avoid error
+
+    Found existing installation: simplejson 3.16.0
+    ERROR: Cannot uninstall 'simplejson'. It is a distutils installed project and thus we cannot accurately determine which files belong to it which would lead to only a partial uninstall.
+
+in inc/python CHANGE FROM
+    
+    $cmd_pip $upgrade \
+
+TO
+
+    $cmd_pip $upgrade --ignore-installed \
+
+Then run the installation
+
+    ./stack.sh
+
+
+## accessing the API
+
+see <https://docs.openstack.org/keystone/queens/api_curl_examples.html>
+
+
+### user setup
+
+### login
 ```console
-curl --request POST \
-  --url https://sandboxapicdc.cisco.com/api/aaaLogin.json \
-  --header 'Content-Type: application/json' \
-  --data '{
-  "aaaUser" : {
-    "attributes" : {
-      "name" : "admin",
-      "pwd" : "!v3G@!4@Y"
+curl -i \
+  -H "Content-Type: application/json" \
+  -d '
+{ "auth": {
+    "identity": {
+      "methods": ["password"],
+      "password": {
+        "user": {
+          "name": "admin",
+          "domain": { "id": "default" },
+          "password": "adminpwd"
+        }
+      }
     }
   }
-}'
+}' \
+  "http://localhost:5000/v3/auth/tokens" ;
 ```
 gives
 ```json

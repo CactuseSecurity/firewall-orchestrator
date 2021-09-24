@@ -38,7 +38,7 @@ user_management_api_base_url = fwo_config['middleware_uri']
 fwo_api_base_url = fwo_config['api_uri']
 
 if 'proxy' in args and args.proxy!='':
-    proxy_string = ' -p ' + str(args.proxy) + ' '
+    proxy_string = ' -x ' + str(args.proxy) + ' '
 else:
     proxy_string = ''
 if 'ssl' in args and args.ssl!='':

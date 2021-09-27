@@ -29,6 +29,7 @@
     - { role: common, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
+    - importer
 
 - hosts: backendserver
   roles:

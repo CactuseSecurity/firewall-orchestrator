@@ -156,7 +156,12 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
             }  
         }
     """
-    return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management'][0]
+    api_call_result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
+    if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
+        return api_call_result['data']['management'][0]
+    else:
+        logging.error('did not succeed in getting management details from API')
+        sys.exit(1)
 
 
 def lock_import(fwo_api_base_url, jwt, query_variables):

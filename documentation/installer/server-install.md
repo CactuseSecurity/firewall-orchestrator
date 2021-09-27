@@ -25,16 +25,15 @@ git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
   - ubuntu 18.04, debian 10: install latest ansible 
 
         cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
-  - debian 10: activate ansible pipelining by adding the followin lines to your ansible.cfg file:
-
-        [ssh_connection]
-        pipelining = True
 
 4) install (on localhost)
 
 ```console
-cd firewall-orchestrator; ansible-playbook site.yml -K
+cd firewall-orchestrator; sudo ansible-playbook site.yml -K
 ```
+Note: The installation (i.e. the connection to the target machine) is only done in root context (sudo) to secure the writing of temporary files when becoming a non-priviledged user (e.g. postgres).
+
+
 Enter sudo password when prompted "BECOME or SUDO password:"
 
 That's it. Firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:

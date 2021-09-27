@@ -359,19 +359,26 @@
 
     private void RequestDeleteTenant(Tenant tenant)
     {
-        actTenant = tenant;
-        if (uiUsers.Exists(user => (user.Tenant != null && user.Tenant.Name == actTenant.Name)))
+        try
         {
-            deleteTenantMessage = userConfig.GetText("E5283");
-            DeleteTenantAllowed = false;
-        }
-        else
-        {
-            deleteTenantMessage = userConfig.GetText("U5210") + actTenant.Name + "?";
-            DeleteTenantAllowed = true;
-        }
+            actTenant = tenant;
+            if (uiUsers.Exists(user => (user.Tenant != null && user.Tenant.Name == actTenant.Name)))
+            {
+                deleteTenantMessage = userConfig.GetText("E5283");
+                DeleteTenantAllowed = false;
+            }
+            else
+            {
+                deleteTenantMessage = userConfig.GetText("U5210") + actTenant.Name + "?";
+                DeleteTenantAllowed = true;
+            }
 
-        DeleteTenantMode = true;
+            DeleteTenantMode = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), null, true);
+        }
     }
 
     private async Task DeleteTenant(Tenant tenant)
@@ -415,17 +422,24 @@
 
     private void RequestRemoveSampleData()
     {
-        if (sampleTenants.Exists(tenant => (uiUsers.Exists(user => (user.Tenant != null && user.Tenant.Name == tenant.Name)))))
+        try
         {
-            sampleRemoveMessage = userConfig.GetText("E5283");
-            SampleRemoveAllowed = false;
+            if (sampleTenants.Exists(tenant => (uiUsers.Exists(user => (user.Tenant != null && user.Tenant.Name == tenant.Name)))))
+            {
+                sampleRemoveMessage = userConfig.GetText("E5283");
+                SampleRemoveAllowed = false;
+            }
+            else
+            {
+                sampleRemoveMessage = userConfig.GetText("U5209");
+                SampleRemoveAllowed = true;
+            }
+            SampleRemoveMode = true;
         }
-        else
+        catch (Exception exception)
         {
-            sampleRemoveMessage = userConfig.GetText("U5209");
-            SampleRemoveAllowed = true;
+            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), null, false);
         }
-        SampleRemoveMode = true;
     }
 
     private async Task RemoveSampleData()
@@ -447,30 +461,44 @@
 
     private void AddDeviceToTenant(Tenant tenant)
     {
-        actTenant = tenant;
-        remainingDevices = devices.FindAll(x => !Array.Exists(actTenant.TenantDevices, y => y.VisibleDevice.Id == x.Id));
-        if(remainingDevices.Count == 0)
+        try
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
+            actTenant = tenant;
+            remainingDevices = devices.FindAll(x => !Array.Exists(actTenant.TenantDevices, y => y.VisibleDevice.Id == x.Id));
+            if(remainingDevices.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
+            }
+            else
+            {
+                selectedDevice = remainingDevices.FirstOrDefault().Id;
+                AddDeviceMode = true;
+            }
         }
-        else
+        catch (System.Exception exception)
         {
-            selectedDevice = remainingDevices.FirstOrDefault().Id;
-            AddDeviceMode = true;
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), null, false);
         }
     }
 
     private void DeleteDeviceFromTenant(Tenant tenant)
     {
-        actTenant = tenant;
-        if(actTenant.TenantDevices.Length == 0)
+        try
         {
-            DisplayMessageInUi(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
+            actTenant = tenant;
+            if(actTenant.TenantDevices.Length == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
+            }
+            else
+            {
+                selectedDevice = actTenant.TenantDevices.FirstOrDefault().VisibleDevice.Id;
+                DeleteDeviceMode = true;
+            }
         }
-        else
+        catch (System.Exception exception)
         {
-            selectedDevice = actTenant.TenantDevices.FirstOrDefault().VisibleDevice.Id;
-            DeleteDeviceMode = true;
+            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), null, false);
         }
     }
 

@@ -40,36 +40,41 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
     get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
         "\" -c " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
-    os.system(get_config_cmd)
-    with open(config_filename, "r") as json_data:
-        full_config_json = json.load(json_data)
-    parse_network.parse_network_objects_to_json(
-        full_config_json, config2import, current_import_id)
-    parse_service.parse_service_objects_to_json(
-        full_config_json, config2import, current_import_id)
-    if 'users' not in full_config_json:
-        full_config_json.update({'users': {}})
-    rb_range = range(len(rulebase_string.split(',')))
-    target_rulebase = []
-    rule_num = 0
-    parent_uid=""
-    section_header_uids=[]
-    for rb_id in rb_range:
-        parse_user.parse_user_objects_from_rulebase(
-            full_config_json['rulebases'][rb_id], full_config_json['users'], current_import_id)
-        # if current_layer_name == args.rulebase:
-        logging.debug("parsing layer " + full_config_json['rulebases'][rb_id]['layername'])
-        rule_num = parse_rule.parse_rulebase_json(
-            full_config_json['rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
-    # copy users from full_config to config2import
-    # also converting users from dict to array:
-    config2import.update({'user_objects': []})
-    for user_name in full_config_json['users'].keys():
-        user = copy.deepcopy(full_config_json['users'][user_name])
-        user.update({'user_name': user_name})
-        config2import['user_objects'].append(user)
 
-    config2import.update({'rules': target_rulebase})
+    result = os.system(get_config_cmd)
+    if result != 0:
+        return result
+    else:
+        with open(config_filename, "r") as json_data:
+            full_config_json = json.load(json_data)
+        parse_network.parse_network_objects_to_json(
+            full_config_json, config2import, current_import_id)
+        parse_service.parse_service_objects_to_json(
+            full_config_json, config2import, current_import_id)
+        if 'users' not in full_config_json:
+            full_config_json.update({'users': {}})
+        rb_range = range(len(rulebase_string.split(',')))
+        target_rulebase = []
+        rule_num = 0
+        parent_uid=""
+        section_header_uids=[]
+        for rb_id in rb_range:
+            parse_user.parse_user_objects_from_rulebase(
+                full_config_json['rulebases'][rb_id], full_config_json['users'], current_import_id)
+            # if current_layer_name == args.rulebase:
+            logging.debug("parsing layer " + full_config_json['rulebases'][rb_id]['layername'])
+            rule_num = parse_rule.parse_rulebase_json(
+                full_config_json['rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+        # copy users from full_config to config2import
+        # also converting users from dict to array:
+        config2import.update({'user_objects': []})
+        for user_name in full_config_json['users'].keys():
+            user = copy.deepcopy(full_config_json['users'][user_name])
+            user.update({'user_name': user_name})
+            config2import['user_objects'].append(user)
+
+        config2import.update({'rules': target_rulebase})
+    return 0
 
 
 def get_ip_of_obj(obj):

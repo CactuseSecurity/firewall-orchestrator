@@ -1,11 +1,9 @@
 #!/usr/bin/python3
+import logging, logging.config
+import json, argparse
 import sys
 sys.path.append(r"/usr/local/fworch/importer")
-import logging
-import logging.config
 import getter
-import common
-import json, argparse, os, sys
 
 logging.config.fileConfig(fname='discovery_logging.conf', disable_existing_loggers=False)
 
@@ -24,7 +22,7 @@ parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='na
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-l', '--level', metavar='level_of_detail', default='standard', help='[standard|full]')
-parser.add_argument('-i', '--limit', metavar='api_limit', default='500', help='The maximal number of returned results per HTTPS Connection; default=500')
+parser.add_argument('-i', '--limit', metavar='api_limit', default='150', help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-n', '--nolimit', metavar='nolimit', default='off', help='[on|off] Set to on if (generic) command does not understand limit switch')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0')
 parser.add_argument('-V', '--version', metavar='api_version', default='off', help='alternate API version [off|<version number>]; default=off')

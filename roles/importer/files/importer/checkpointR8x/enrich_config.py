@@ -1,10 +1,11 @@
 #!/usr/bin/python3
+import json, argparse, time, logging
+import requests, requests.packages
+import os
 import sys
 sys.path.append(r"/usr/local/fworch/importer")
-import cpcommon, common, getter
-import json, argparse, pdb, sys, time, logging
-import requests, requests.packages.urllib3
-import os
+import fwcommon, common, getter
+
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
@@ -16,7 +17,7 @@ parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='na
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True, help='name of policy layer(s) to read (comma separated)')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
-parser.add_argument('-i', '--limit', metavar='api_limit', default='500', help='The maximal number of returned results per HTTPS Connection; default=500')
+parser.add_argument('-i', '--limit', metavar='api_limit', default='150', help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0') 
 parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
 parser.add_argument('-c', '--configfile', metavar='config_file', required=True, help='filename to read and write config in json format from/to')
@@ -103,22 +104,20 @@ for rulebase in config['rulebases']:
     getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
     #nw_uids_from_rulebase.extend(nw_uids_from_rulebase)
     #svc_uids_from_rulebase.extend(svc_uids_from_rulebase)
-
-    # if cpcommon.debug_new_uid in nw_uids_from_rulebase:
-    #     logging.debug("found " + cpcommon.debug_new_uid + " in enrich_config")
-
+    # if fwcommon.debug_new_uid in nw_uids_from_rulebase:
+    #     logging.debug("found " + fwcommon.debug_new_uid + " in enrich_config")
 
 # remove duplicates from uid lists
 nw_uids_from_rulebase = list(set(nw_uids_from_rulebase))
 svc_uids_from_rulebase = list(set(svc_uids_from_rulebase))
 # logging.debug ("enrich_config - found (unique) nw_objects in rulebase:\n" + str(nw_uids_from_rulebase))
 
-# if cpcommon.debug_new_uid in nw_uids_from_rulebase:
-#     logging.debug("enrich_config: found " + cpcommon.debug_new_uid + " in enrich_config after cleanup")
+# if fwcommon.debug_new_uid in nw_uids_from_rulebase:
+#     logging.debug("enrich_config: found " + fwcommon.debug_new_uid + " in enrich_config after cleanup")
 
 # get all uids in objects tables
 for obj_table in config['object_tables']:
-    nw_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, cpcommon.nw_obj_table_names))
+    nw_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, fwcommon.nw_obj_table_names))
     svc_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, getter.svc_obj_table_names))
 #logging.debug ("enrich_config - already parsed nw_objects in obj tables:\n" + str(nw_objs_from_obj_tables))
 
@@ -155,7 +154,7 @@ for missing_obj in missing_nw_object_uids:
             json_obj = {"object_type": "hosts", "object_chunks": [ {
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                'comments': obj['comments'], 'type': 'host', 'ipv4-address': cpcommon.get_ip_of_obj(obj),
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwcommon.get_ip_of_obj(obj),
                 } ] } ] }
             config['object_tables'].append(json_obj)
         elif obj['type'] == 'multicast-address-range':
@@ -163,14 +162,14 @@ for missing_obj in missing_nw_object_uids:
             json_obj = {"object_type": "hosts", "object_chunks": [ {
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                'comments': obj['comments'], 'type': 'host', 'ipv4-address': cpcommon.get_ip_of_obj(obj),
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwcommon.get_ip_of_obj(obj),
                 } ] } ] }
             config['object_tables'].append(json_obj)
         elif (obj['type'] == 'CpmiVsClusterMember' or obj['type'] == 'CpmiVsxClusterMember'):
             json_obj = {"object_type": "hosts", "object_chunks": [ {
                 "objects": [ {
                 'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
-                'comments': obj['comments'], 'type': 'host', 'ipv4-address': cpcommon.get_ip_of_obj(obj),
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': fwcommon.get_ip_of_obj(obj),
                 } ] } ] }
             config['object_tables'].append(json_obj)
             logging.debug ('missing obj: ' + obj['name'] + obj['type'])

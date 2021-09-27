@@ -1,9 +1,8 @@
 import sys
-base_dir = "/usr/local/fworch/"
-sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/checkpointR8x')
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
+sys.path.append(importer_base_dir)
 import common
-import logging
 
 def csv_dump_user(user_name, user, import_id):
     user_line =  common.csv_add_field(import_id)                        # control_id
@@ -21,7 +20,7 @@ def csv_dump_user(user_name, user, import_id):
         user_line += common.csv_add_field(user['user_color'])           # user_color
     else:
         user_line += common.csv_delimiter                               # no user_color
-    if 'user_comment' in user:
+    if 'user_comment' in user and user['user_comment']!=None and user['user_comment']!='':
         user_line += common.csv_add_field(user['user_comment'])         # user_comment
     else:
         user_line += common.csv_delimiter                               # no user_comment
@@ -35,17 +34,26 @@ def collect_users_from_rule(rule, users):
     if 'rule-number' in rule:  # standard rule
         if 'type' in rule and rule['type'] != 'place-holder':
             for src in rule["source"]:
-                if src['type'] == 'access-role':
-                    users.update({src['name']: {'user_uid': src['uid'], 'user_typ': 'group', 'user_comment': src['comments'], 'user_color': src['color']} })
-                    if 'users' in src:
-                        users.update({src["name"]: {'user_uid': src["uid"], 'user_typ': 'simple', 'user_comment': src['comments'], 'user_color': src['color']} })
-                elif src['type'] == 'LegacyUserAtLocation':
-                    user_str = src["name"]
-                    user_ar = user_str.split('@')
-                    user_name = user_ar[0]
-                    user_uid = src["userGroup"]
-                    # users.update({user_name: {'uid': user_uid, 'user_type': 'group'} })
-                    users.update({user_name: {'user_uid': user_uid, 'user_typ': 'group', 'user_comment': src['comments'], 'user_color': src['color']} })
+                if src['type'] == 'access-role' or src['type'] == 'LegacyUserAtLocation':
+                    if src['type'] == 'access-role':
+                        user_name = src['name']
+                        user_uid = src['uid']
+                        user_typ = 'group'
+                        user_comment = src['comments']
+                        user_color = src['color']
+                        if 'users' in src:
+                            user_typ = 'simple'
+                    elif src['type'] == 'LegacyUserAtLocation':
+                        user_str = src["name"]
+                        user_ar = user_str.split('@')
+                        user_name = user_ar[0]
+                        user_uid = src["userGroup"]
+                        user_typ = 'group'
+                        user_comment = src['comments']
+                        user_color = src['color']                    
+                    if user_comment == '':
+                        user_comment = None
+                    users.update({user_name: {'user_uid': user_uid, 'user_typ': user_typ, 'user_comment': user_comment, 'user_color': user_color} })
     else:  # section
         collect_users_from_rulebase(rule["rulebase"], users)
 

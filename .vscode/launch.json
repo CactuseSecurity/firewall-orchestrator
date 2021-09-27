@@ -5,7 +5,7 @@
             "name": "py-cpr8x-get-config",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/get_config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -22,7 +22,7 @@
             "name": "py-cpr8x-enrich-config",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/enrich_config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -39,7 +39,7 @@
             "name": "py-cpr8x-parse-config",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/parse_config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -50,10 +50,10 @@
             ]
         },
         {
-            "name": "py-fortimanager",
+            "name": "py-get-config-fm7",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/fortimanager5ff/get_config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -71,15 +71,27 @@
             "name": "py-import_mgm",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_mgm.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m4",
-                "-d1"
+                "-m6",
+                "-d2",
+                "-l20"
             ]
+        },
+        {
+            "name": "py-import_main_loop",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_main_loop.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": ["-d2", "-i2"]
         },
         {
             "name": "c#-FWO Test",

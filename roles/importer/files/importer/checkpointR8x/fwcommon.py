@@ -1,11 +1,17 @@
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
+base_dir = "/usr/local/fworch"
+sys.path.append(base_dir + '/importer')
+sys.path.append(base_dir + '/importer/checkpointR8x')
 import os 
 import parse_network, parse_rule, parse_service, parse_user
 import json
 import sys
 import logging
 import copy
+import parse_rule
+import parse_user
+import parse_service
+import parse_network
 
 nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']  
 # do not consider: CpmiAnyObject, CpmiGatewayPlain, external 
@@ -22,15 +28,18 @@ any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 
 
-def parse_config_cp_main(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level):
+def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=150):
     logging.info("found Check Point R8x management")
+    if proxy_string!='':
+        proxy_string = ' -x ' + proxy_string
     get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
         mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
-        "\" -o " + config_filename + " -d " + str(debug_level)
+        "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
+
     get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
-        "\" -c " + config_filename + " -d " + str(debug_level)
+        "\" -c " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
     os.system(get_config_cmd)
     with open(config_filename, "r") as json_data:
         full_config_json = json.load(json_data)

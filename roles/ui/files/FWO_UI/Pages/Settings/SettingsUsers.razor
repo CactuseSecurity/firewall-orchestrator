@@ -660,8 +660,6 @@
 
                 if (CheckValues())
                 {
-                    SynchronizeUserData(actUser); 
-
                     // insert new user to ldap
                     MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUser(actUser.LdapConnection.Host(), actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
                     if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("userAdded") == false)

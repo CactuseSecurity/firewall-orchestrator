@@ -11,9 +11,9 @@
   set_fact:
     upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.yml', '\\1') ] }}"
   when: |
-    installed_version < item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.yml', '\\1') 
+    item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.yml', '\\1') is version(installed_version, '>') 
     and 
-    current_version >= item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.yml', '\\1')
+    item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.yml', '\\1') is version(current_version, '<=')
   with_fileglob:
     - "upgrade/*.yml"
 

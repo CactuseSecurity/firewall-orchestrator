@@ -21,15 +21,17 @@ usermod -a -G sudo `whoami`
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
-3) Ansible adjustments (only needed for older systems)
-  - ubuntu 18.04, debian 10: install latest ansible 
+3) Operating specific ansible adjustments
+  - Ubuntu 18.04, Debian 10: install latest ansible before firewall orchestrator installation:
 
         cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
+
+  - Debian 11: install without pipelining: comment out "pipelining = True" in ansible.cfg
 
 4) install (on localhost)
 
 ```console
-cd firewall-orchestrator; sudo ansible-playbook site.yml -K
+cd firewall-orchestrator; ansible-playbook site.yml -K
 ```
 Note: The installation (i.e. the connection to the target machine) is only done in root context (sudo) to secure the writing of temporary files when becoming a non-priviledged user (e.g. postgres).
 

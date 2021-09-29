@@ -1,9 +1,19 @@
 # Integrating Cisco ACI
 
+## Acronyms
+- Cisco Identity Services Engine (ISE)
+- Scalable Group Tag (SGT)
+- Scalable Group Access Control Entries (SGACE's)
+
+## intro
+Cisco DNA Center uses SSH to establish a trust relationship with ISE. It also uses RestAPI to configure the contracts and policies into ISE. ISE pxGrid information bus is used by Cisco DNA Center to retrieve context information like the SGT's available.
+
+
 ## online sandbox APIC
 
 source: https://devnetsandbox.cisco.com/RM/Diagram/Index/c3c949dc-30af-498b-9d77-4f1c07d835f9?diagramType=Topology
 
+- SDA policy management: https://community.cisco.com/t5/security-documents/policy-provisioning-and-operation-in-sda/ta-p/3712744
 - base (UI) URL: https://sandboxdnac.cisco.com/
 - doc URL: https://developer.cisco.com/docs/dna-center/api/1-3-3-x/
 - API reference: https://developer.cisco.com/docs/dna-center/#!cisco-dna-2-2-2-api-api-sda-get-sda-fabric-info
@@ -23,7 +33,7 @@ base64 encode the credentials:
     ZGV2bmV0dXNlcjpDaXNjbzEyMyEK
     tim@acantha:~$
 
-For some reason the authentication only works when you replace the final K with "=".
+For some reason the authentication only works when you replace the final K with padding character "=".
 
 API call:
 

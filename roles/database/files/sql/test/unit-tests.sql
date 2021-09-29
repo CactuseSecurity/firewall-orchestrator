@@ -16,7 +16,8 @@ $$;
 CREATE OR REPLACE FUNCTION public.test_2_functions()
 RETURNS SETOF TEXT LANGUAGE plpgsql AS $$
 BEGIN
-    RETURN NEXT results_eq('SELECT * FROM are_equal(CAST(''1.2.3.4'' AS CIDR),CAST(''1.2.3.4/32'' AS CIDR))', 'SELECT TRUE', 'cidr are_equal should return true');
+    RETURN NEXT results_eq('SELECT * FROM are_equal(CAST(''1.2.3.4'' AS CIDR),CAST(''1.2.3.4/32'' AS CIDR))', 'SELECT TRUE', 'cidr 1.2.3.4==1.2.3.4/32 are_equal should return true');
+    RETURN NEXT results_eq('SELECT * FROM are_equal(''1.2.3.4'',''1.2.3.4/32'')', 'SELECT FALSE', 'string 1.2.3.4==1.2.3.4/32 are_equal should return false');
     RETURN NEXT results_eq('SELECT * FROM are_equal(7*0, 0)', 'SELECT TRUE', 'int are_equal should return true');
     RETURN NEXT results_eq('SELECT * FROM remove_spaces(''     abc '')', 'SELECT CAST(''abc'' AS VARCHAR)', 'remove_spaces should return abc');
 END;

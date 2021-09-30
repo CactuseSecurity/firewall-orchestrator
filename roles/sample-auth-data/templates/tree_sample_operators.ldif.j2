@@ -1,25 +1,25 @@
 
 # These are test users with plain text passwords
 
-dn: uid=user1_demo,ou=tenant1_demo,ou=operator,ou=user,{{ openldap_path }}
+dn: uid=user1_{{ sample_postfix }},ou=tenant1_{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
-cn: user1_demo
-givenName: user1_demo
+cn: user1_{{ sample_postfix }}
+givenName: user1_{{ sample_postfix }}
 sn: Gelb
 userPassword: cactus1
 {%- endif %}
 
 
-dn: uid=user2_demo,ou=tenant2_demo,ou=operator,ou=user,{{ openldap_path }}
+dn: uid=user2_{{ sample_postfix }},ou=tenant2_{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
 {% if ldif_changetype != 'delete' -%}
 objectClass: top
 objectclass: inetorgperson
-cn: user2_demo
-givenName: user2_demo
+cn: user2_{{ sample_postfix }}
+givenName: user2_{{ sample_postfix }}
 sn: Rot
 userPassword: cactus2
 {%- endif %}

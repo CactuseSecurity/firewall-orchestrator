@@ -201,10 +201,15 @@
   include_tasks: recreate-functions-and-views-ansible-2.10.yml
   when: ansible_version.string is version_compare('2.10', '>=')
 
-- name: run unit tests
-  import_tasks: run-unit-tests.yml
-  when: not installation_mode == "uninstall" 
+- name: install pg test packages
+  package:
+      name: "{{ item }}"
+  loop:
+    - "{{ postgresql_test_package }}"
+    # - make
+    # - "{{ postgresql_dev_package }}"
   tags: [ 'never', 'unittest' ]
+  become: yes
 
 - name: run unit tests
   import_tasks: run-unit-tests.yml

@@ -8,23 +8,14 @@
 #         release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
 #         no changes: remove import_control?
 
-import fwo_api
-import common
-import time
-import datetime
-import json
-import requests
-import requests.packages
-import importlib
-import argparse
-import logging
-import socket
+import sys, os, time, datetime
+import json, requests, requests.packages, argparse
+import importlib, logging, socket
 from pathlib import Path
-import sys
-import os
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
+import common, fwo_api
 
 parser = argparse.ArgumentParser(
     description='Read configuration from FW management via API calls')
@@ -36,8 +27,8 @@ parser.add_argument('-f', '--force', metavar='force_import', default=False,
                     help='If set the import will be attempted even if there seem to be no changes.')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
                     help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=keep temporary config files; default=0')
-parser.add_argument('-x', '--proxy', metavar='proxy_string', default='',
-                    help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
+parser.add_argument('-x', '--proxy', metavar='proxy_string',
+                    help='proxy server string to use, e.g. http://1.2.3.4:8080')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
                     help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
@@ -73,13 +64,16 @@ fwo_api_base_url = fwo_config['api_uri']
 
 method = 'AuthenticateUser'
 ssl_mode = args.ssl
-proxy_setting = args.proxy
 
 # authenticate to get JWT
 with open(importer_pwd_file, 'r') as file:
     importer_pwd = file.read().replace('\n', '')
-jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                    method, ssl_verification=ssl_mode, proxy_string=proxy_setting)
+if 'proxy' in args:
+    jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
+                        method, ssl_verification=ssl_mode, proxy_string=args.proxy)
+else:
+    jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
+                        method, ssl_verification=ssl_mode)
 
 # get mgm_details (fw-type, port, ip, user credentials):
 mgm_details = fwo_api.get_mgm_details(
@@ -128,32 +122,39 @@ fw_module_name = mgm_details['deviceType']['name'].lower().replace(
 fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
-fw_module.get_config(
-    config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string=proxy_setting, limit=args.limit)
+if 'proxy' in args and args.proxy != None:
+    get_config_error = fw_module.get_config(
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string=args.proxy, limit=args.limit)
+else:
+    get_config_error = fw_module.get_config(
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, limit=args.limit)
 
-# now we import the config via API:
-error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
-    "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
+if get_config_error > 0:
+    error_count += get_config_error
+else:
+    # now we import the config via API:
+    error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
+        "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
 
-# checking for errors during imort
-error_string_from_imp_control = fwo_api.get_error_string_from_imp_control(
-    fwo_api_base_url, jwt, {"importId": current_import_id})
+    # checking for errors during imort
+    error_string_from_imp_control = fwo_api.get_error_string_from_imp_control(
+        fwo_api_base_url, jwt, {"importId": current_import_id})
 
-if error_string_from_imp_control != None and error_string_from_imp_control != [{'import_errors': None}]:
-    error_count +=1
-    error_string += str(error_string_from_imp_control)
+    if error_string_from_imp_control != None and error_string_from_imp_control != [{'import_errors': None}]:
+        error_count += 1
+        error_string += str(error_string_from_imp_control)
 
-# todo: if no objects found at all: at least throw a warning
+    # todo: if no objects found at all: at least throw a warning
 
-change_count = fwo_api.count_changes_per_import(
-    fwo_api_base_url, jwt, current_import_id)
+    change_count = fwo_api.count_changes_per_import(
+        fwo_api_base_url, jwt, current_import_id)
 
-if change_count > 0 or error_count > 0:  # store full config in case of change or error
-    with open(config_filename, "r") as json_data:
-        full_config_json = json.load(json_data)
+    if change_count > 0 or error_count > 0:  # store full config in case of change or error
+        with open(config_filename, "r") as json_data:
+            full_config_json = json.load(json_data)
 
-    error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
-        "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
+        error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
+            "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
 
 stop_time = int(time.time())
 stop_time_string = datetime.datetime.now().isoformat()
@@ -176,7 +177,7 @@ error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
 print("import_mgm.py: import no. " + str(current_import_id) + " for management " + mgm_details['name'] + ' (id=' + str(args.mgm_id) + ") ran " +
       str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " +
       str(int(time.time()) - start_time) + "s")
-if len(error_string)>0:
+if len(error_string) > 0:
     print("ERRORS: " + error_string)
 
 sys.exit(0)

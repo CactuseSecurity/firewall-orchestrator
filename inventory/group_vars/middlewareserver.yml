@@ -18,6 +18,7 @@ middleware_path_rel: FWO.Middleware.Server
 middleware_server_base_dir: "{{ fworch_home }}/middleware/files"
 middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Server"
 middleware_change_local_ldap: "yes"
+middleware_ldif_dir: "{{ fworch_home }}/etc/ldif"
 
 # use static jwt generation test key if set to yes
 # only for testing, not for production environment

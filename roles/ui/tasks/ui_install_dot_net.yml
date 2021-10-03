@@ -65,3 +65,10 @@
     state: restarted
     daemon_reload: yes
   become: yes
+
+
+#### debian 11 workaround as long as ms does not provide packages:
+# sudo apt install snapd
+# sudo snap install core
+# sudo snap install dotnet-runtime-50
+# sudo snap install dotnet-sdk --classic

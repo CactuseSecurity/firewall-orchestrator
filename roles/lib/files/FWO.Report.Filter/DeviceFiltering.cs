@@ -27,6 +27,31 @@ namespace FWO.Report.Filter
             return selectedDevs;
         }
 
+        public static bool IsSelectedManagement(Management management)
+        {
+            foreach (Device dev in management.Devices)
+            {
+                if (dev.selected)
+                {
+                    return true;
+                }
+            }     
+            return false;
+        }
+
+        public static List<int> getSelectedManagements(Management[] managements)
+        {
+            List<int> selectedMgmts = new List<int>();
+            foreach (Management mgmt in managements)
+            {
+                if (IsSelectedManagement(mgmt))
+                {
+                    selectedMgmts.Add(mgmt.Id);
+                }
+            }
+            return selectedMgmts;
+        }
+
         public Management[] saveSelectedState(Management[] managements)
         {
             return managements;

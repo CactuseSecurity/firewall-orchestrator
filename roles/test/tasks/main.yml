@@ -17,12 +17,19 @@
 
 - name: auth testing
   import_tasks: test-auth.yml
+  when: not without_sample_data | bool
 
 - name: api testing
   import_tasks: test-api.yml
+  when: not without_sample_data | bool
 
 - name: csharp testing
   import_tasks: test-csharp.yml
+  when: not without_sample_data | bool
+
+- name: imorter testing
+  import_tasks: test-importer.yml
+  when: "'sampleserver' in group_names"
 
 # - name: remove all test data
 #   import_tasks: test-data-cleanup.yml

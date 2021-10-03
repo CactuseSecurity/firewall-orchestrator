@@ -47,6 +47,14 @@ INSERT INTO txt VALUES ('api_access',           'German', 	'Zugang zur API');
 INSERT INTO txt VALUES ('api_access',           'English', 	'API access');
 INSERT INTO txt VALUES ('none',		            'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('none',		            'English', 	'None');
+INSERT INTO txt VALUES ('added',                'German', 	'hinzugef&uuml;gt');
+INSERT INTO txt VALUES ('added',                'English', 	'added');
+INSERT INTO txt VALUES ('deleted',		        'German', 	'gel&ouml;scht');
+INSERT INTO txt VALUES ('deleted',		        'English', 	'deleted');
+INSERT INTO txt VALUES ('modified',		        'German', 	'ge&auml;ndert');
+INSERT INTO txt VALUES ('modified',		        'English', 	'modified');
+INSERT INTO txt VALUES ('id',		            'German', 	'Id');
+INSERT INTO txt VALUES ('id',		            'English', 	'Id');
 
 -- login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -144,7 +152,7 @@ The following top-level menu items are available (depending on role memberships)
 INSERT INTO txt VALUES ('getting_support',	    'German', 	'Unterst&uuml;tzung ben&ouml;tigt? Ihre Kontaktm&ouml;glichkeiten');
 INSERT INTO txt VALUES ('getting_support',	    'English', 	'Do you need help? Our Contact options');
 INSERT INTO txt VALUES ('support_details',	    'German', 	'
-M&ouml; Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
+M&ouml;chten Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
 <ul>
 <li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
 <li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>
@@ -376,8 +384,8 @@ INSERT INTO txt VALUES ('later',		        'German', 	'Sp&auml;ter');
 INSERT INTO txt VALUES ('later',		        'English', 	'None');
 INSERT INTO txt VALUES ('due_within',		    'German', 	'F&auml;llig in (Tagen)');
 INSERT INTO txt VALUES ('due_within',		    'English', 	'Due within (days)');
-INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln laden');
-INSERT INTO txt VALUES ('load_rules',		    'English', 	'Load Rules');
+INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln anzeigen');
+INSERT INTO txt VALUES ('load_rules',		    'English', 	'Show Rules');
 INSERT INTO txt VALUES ('execute_selected',		'German', 	'Ausgew&auml;hlte Aktionen ausf&uuml;hren');
 INSERT INTO txt VALUES ('execute_selected',		'English', 	'Execute Selected Actions');
 INSERT INTO txt VALUES ('next_recert',		    'German', 	'Datum n&auml;chste Rezertifizierung');
@@ -1140,7 +1148,16 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
         There is currently no option to only search at the rule top-level.</li>
 ');
 INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;gliche Werte: statistics, rules, changes</li>
-    <li>time: M&ouml;gliche Werte/Formate: now, last month, this month, last year, this year, YYYYMMDD, YYYYMMDD HHMMSS, ...</li>
+    <li>time: In Abh&auml;ngigkeit vom Reporttyp werden verschiedene Werte/Formate erwartet:
+        <ul>
+            <li>f&uuml;r "rules" oder "statistics" muss ein Datums- oder Zeitwert im Format YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... &uuml;bergeben werden.
+                Zur Vereinfachung kann auch "now" f&uuml;r das aktuelle Datum eingegeben werden.</li>
+            <li>f&uuml;r "changes" m&uuml;ssen zwei Datums-/Zeitwerte &uuml;bergeben werden, getrennt durch "/". Als Format wird YYYY-MM-DD oder YY-MM-DD HH:mm[:ss] erwartet.
+                Wenn ein Datum ohne Zeitangabe &uuml;bergeben wird, wird f&uuml;r die Startzeit 00:00:00, f&uuml;r die Endezeit 23:59:59 angenommen.
+                Zur Vereinfachung k&ouml;nnen auch "last month", "this month", "last year", "this year" &uuml;bergeben werden.</li>
+            <li>Bemerkung: Alle Werte m&uuml;ssen in Anf&uuml;hrungszeichen &uuml;bergeben werden, sobald ein Trennzeichen ben&ouml;tigt wird.</li>
+        </ul>
+    </li>
     <li>gateway (gw, firewall, fw, device, dev): kann in der linken Randleiste ausgew&auml;hlt oder manuell eingegeben werden</li>
     <li>management (mgmt, manager, mgm, mgr)</li>
     <li>source (src)</li>
@@ -1154,7 +1171,16 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;glich
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
 INSERT INTO txt VALUES ('H1111', 'English', '<li>reporttype (type): Possible Values: statistics, rules, changes</li>
-    <li>time: Possible Values/Formats: now, last month, this month, last year, this year, YYYYMMDD, YYYYMMDD HHMMSS, ...</li>
+    <li>time: Depending on report type there are different possible Values/Formats: 
+        <ul>
+            <li>for "rules" or "statistics" there has to be one date or date/time value YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... 
+                As a shortcut also "now" is possible.</li>
+            <li>for "changes" two dates have to be given separated by "/". The format of each date is expexted as YYYY-MM-DD or YY-MM-DD HH:mm[:ss].
+                If a date without time is given, for the start date 00:00:00 is assumed, for the end date 23:59:59.
+                There are also shortcuts "last month", "this month", "last year", "this year".</li>
+            <li>Note that the value has to be set into quotation marks, as soon as a separator is used.</li>
+        </ul>
+    </li>
     <li>gateway (gw, firewall, fw, device, dev): can be selected on left sidebar or typed manually</li>
     <li>management (mgmt, manager, mgm, mgr)</li>
     <li>source (src)</li>
@@ -1860,10 +1886,10 @@ INSERT INTO txt VALUES ('H6102', 'English', 'GraphQL provides you with an intera
 INSERT INTO txt VALUES ('H6103', 'German',  'Das Admin Kennwort kann auf dem API-Server in folgender Datei gefunden werden:');
 INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in the following file:');
 INSERT INTO txt VALUES ('H6201', 'German',  '<a href="https://hasura.io/" target="_blank">Hasura</a> stellt einen Link zur darunterliegenden PostgreSQL-Datenbank zur Verf&uuml;gung.<br>
-    Es implementiert eine Zugriffskontrollschicht und k&ouml;nnte auch einen REST API Zugang anbieten, falls Bedarf besteht.
+    Es implementiert eine Zugriffskontrollschicht und k&ouml;nnte bei Bedarf auch einen REST API Zugang zur Verf&uuml;gung stellen.
 ');
 INSERT INTO txt VALUES ('H6201', 'English', '<a href="https://hasura.io/" target="_blank">Hasura</a> provides the link to the underlying PostgreSQL database.<br>
-    It implements the access control layer and could also provide a REST API interface if need be.
+    It implements the access control layer and could also provide a REST API interface if needed.
 ');
 INSERT INTO txt VALUES ('H6301', 'German',  'Der Zugang zur API wird standardm&auml;ssig durch Nutzername/Passwort-Anmeldedaten kontrolliert, was zur Erzeugung eines JSON Web Token (JWT) f&uuml;hrt.
     Der JWT kann nur f&uuml;r eine begrenzte Zeit genutzt werden (Standard = 2 Stunden), um auf die dahinterliegende API zuzugreifen.
@@ -1893,5 +1919,5 @@ INSERT INTO txt VALUES ('H6701', 'German',  '(Bitte ihren aktuellen JWT in der Q
 INSERT INTO txt VALUES ('H6701', 'English', '(Note that the query will not work as the sample JWT is not valid anymore. Please use a current JWT.)');
 INSERT INTO txt VALUES ('H6702', 'German',  'Ergebnis auf einem System mit Beispieldaten:');
 INSERT INTO txt VALUES ('H6702', 'English', 'Result on a system with demo data:');
-INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation (funktioniert noch nicht) setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');
-INSERT INTO txt VALUES ('H6801', 'English', 'The following mutation (does not work yet) sets the language of user with id 1 to German:');
+INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');
+INSERT INTO txt VALUES ('H6801', 'English', 'The following mutation sets the language of user with id 1 to German:');

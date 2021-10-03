@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+import sys
+sys.path.append(r"/usr/local/fworch/importer")
 import common 
 import parse_network, parse_rule, parse_service, parse_user
 import argparse
@@ -17,9 +19,6 @@ parser.add_argument('-u', '--users', action="store_true", help='import users')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 1(DEBUG Console) 2(DEBUG File)i 2(DEBUG Console&File); default=0')
 args = parser.parse_args()
 
-csv_delimiter = '%'
-list_delimiter = '|'
-line_delimiter = "\n"
 found_rulebase = False
 number_of_section_headers_so_far = 0
 rule_num = 0

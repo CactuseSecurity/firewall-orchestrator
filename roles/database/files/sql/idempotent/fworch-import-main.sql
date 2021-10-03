@@ -73,7 +73,6 @@ BEGIN
 				IF (import_rules(r_dev.dev_id, i_current_import_id)) THEN  				-- returns true if rule order needs to be changed
 																						-- currently always returns true as each import needs a rule reordering
 					v_err_pos := 'import_rules_set_rule_num_numeric of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
-					-- PERFORM import_rules_save_order(i_current_import_id,r_dev.dev_id);  -- todo: to be removed
 					-- in case of any changes - adjust rule_num values in rulebase
 					PERFORM import_rules_set_rule_num_numeric (i_current_import_id,r_dev.dev_id);
 				END IF;
@@ -110,6 +109,7 @@ BEGIN
 				SELECT INTO v_err_str import_errors FROM import_control WHERE control_id=i_current_import_id;
 				UPDATE import_control SET import_errors = v_err_str || ';' || v_err_str_refs WHERE control_id=i_current_import_id;
 			END IF;
+			RAISE NOTICE 'ERROR:  import_all_main failed';
 			RETURN FALSE;
 	END;
 	RETURN TRUE;

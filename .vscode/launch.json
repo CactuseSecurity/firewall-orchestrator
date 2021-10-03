@@ -1,23 +1,113 @@
 {
-   // Use IntelliSense to find out which attributes exist for C# debugging
-   // Use hover for the description of the existing attributes
-   // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
-   "version": "0.2.0",
-   "configurations": [
+    "version": "0.2.0",
+    "configurations": [
         {
-            "name": ".NET FWO Test",
+            "name": "py-cpr8x-get-config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/get_config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-asting-mgmt",
+                "-uitsecorg",
+                "-w/home/tim/tmp/passwd",
+                "-lFirstLayer shared with inline layer",
+                "-o/home/tim/tmp/sting.cfg"
+            ]
+        },
+        {
+            "name": "py-cpr8x-enrich-config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/enrich_config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-asting-mgmt",
+                "-uitsecorg",
+                "-w/home/tim/tmp/passwd",
+                "-lFirstLayer shared with inline layer",
+                "-c/home/tim/tmp/sting.cfg"
+            ]
+        },
+        {
+            "name": "py-cpr8x-parse-config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/parse_config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-f/home/tim/tmp/sting.cfg",
+                "-rFirstLayer shared with inline layer"
+            ]
+        },
+        {
+            "name": "py-get-config-fm7",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/fortimanager5ff/get_config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-a10.5.1.55",
+                "-uapiuser",
+                "-w/home/tim/tmp/passwd",
+                "-llayer1",
+                "-d1",
+                "-o/tmp/outfile"
+            ]
+        },
+        {
+            "name": "py-import_mgm",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_mgm.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m6",
+                "-d2",
+                "-l20"
+            ]
+        },
+        {
+            "name": "py-import_main_loop",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_main_loop.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": ["-d2", "-i2"]
+        },
+        {
+            "name": "c#-FWO Test",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_test",
             "program": "/usr/bin/dotnet",
-            // "program": "${workspaceFolder}/roles/test/files/FWO_Test/bin/Debug/net5.0/FWO.Test.dll",
-            "args": ["test"],
+            "args": [
+                "test"
+            ],
             "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
         {
-            "name": "Blazor (web)",
+            "name": "c#-Blazor UI",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
@@ -37,24 +127,26 @@
             }
         },
         {
-            "name": ".NET Core Attach ",
+            "name": "c#-.NET Core Attach ",
             "type": "coreclr",
             "request": "attach",
             "processId": "${command:pickProcess}"
         },
         {
-            "name": "MiddlewareServer",
+            "name": "c#-MiddlewareServer",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_middleware",
             "enableStepFiltering": false,
-            // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net5.0/FWO.Middleware.Server.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
-            "stopAtEntry": false
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            }
         }
     ]
 }

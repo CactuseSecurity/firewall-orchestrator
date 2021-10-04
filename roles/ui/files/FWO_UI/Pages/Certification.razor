@@ -12,32 +12,50 @@
 
 @* ==== LEFT SIDEBAR ==== *@
 <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
-    <DeviceSelection Managements="managements" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
-</Sidebar>
-
-<div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
-    <h3>@(userConfig.GetText("recertification"))</h3>
+    
     <div class="d-flex flex-row flex-wrap mb-2">
         <div class="mr-3">
             <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
-                    <label class="input-group-text" for="inputGroupSelect01">@(userConfig.GetText("due_within")):</label>
-                </div>
-                <input id="inputGroupSelect01" type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
-                <div class="input-group-append">
-                    <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
-                </div>
+                <table style="margin-left: 10px; margin-top: 10px;">
+                    <tr>
+                        <td>
+                            <div class="input-group-prepend">
+                                <label for="inputGroupSelect01">@(userConfig.GetText("due_within")):</label>
+                            </div>
+                        </td>
+                        <td>
+                            <input id="inputGroupSelect01" type="text" class="form-control form-control-sm" @bind="recertificationDisplayPeriod" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="input-group-append">
+                                <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+                            </div>
+                        </td>
+                        <td>
+                            <AuthorizeView Roles="admin, recertifier">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-primary" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("execute_selected"))</button>
+                                </NotAuthorized>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </div>
-        <AuthorizeView Roles="admin, recertifier">
-            <Authorized>
-                <button class="btn btn-sm btn-dark" @onclick="() => RequestExecuteSelected()">@(userConfig.GetText("execute_selected"))</button>
-            </Authorized>
-            <NotAuthorized>
-                <button class="btn btn-sm btn-dark" disabled>@(userConfig.GetText("execute_selected"))</button>
-            </NotAuthorized>
-        </AuthorizeView>
     </div>
+
+    <DeviceSelection Managements="managements" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
+</Sidebar>
+
+@* ==== MAIN MIDDLE SECTION ==== *@
+
+<div style="margin-left: @($"{sidebarLeftWidth + 10}px"); margin-right: @($"{sidebarRightWidth + 10}px");">
+    <h3>@(userConfig.GetText("recertification"))</h3>
 
     <RulesReport Recertification="true" Managements="managements" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedRules"></RulesReport>
 </div>

@@ -14,6 +14,9 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
     sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'],
                        mgm_details['port'], api_domain, debug=debug_level, ssl_verification='', proxy_string='')
 
+    if sid is None:
+        logging.ERROR('did not succeed to login to FortiManager API, so sid returned')
+        return 1
     raw_config =  {}
     # get global objects
     getter.update_config_with_fortinet_api_call(
@@ -98,3 +101,5 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
 
     getter.logout(fm_api_url, sid, proxy_string=proxy_string,
                   debug=debug_level)
+    
+    return 0

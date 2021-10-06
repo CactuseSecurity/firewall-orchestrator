@@ -30,16 +30,23 @@ debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 
 def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=150):
     logging.info("found Check Point R8x management")
+    # logging.debug("mgm_details: " + json.dumps(mgm_details))
     if proxy_string!='':
         proxy_string = ' -x ' + proxy_string
+    starttime = ''
+    if 'import_controls' in mgm_details:
+        for importctl in mgm_details['import_controls']: 
+            if 'starttime' in importctl:
+                starttime = " -f " + importctl['starttime']
     get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
-        mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
+        mgm_details['hostname'] + " -u " + mgm_details['user'] + starttime + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
         "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
 
     get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
         "\" -c " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
+    logging.debug("get_config_cmd: " + get_config_cmd)
 
     result = os.system(get_config_cmd)
     if result != 0:
@@ -47,6 +54,8 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
     else:
         with open(config_filename, "r") as json_data:
             full_config_json = json.load(json_data)
+            if len(full_config_json) == 0:
+                return 0
         parse_network.parse_network_objects_to_json(
             full_config_json, config2import, current_import_id)
         parse_service.parse_service_objects_to_json(

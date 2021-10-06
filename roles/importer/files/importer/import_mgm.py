@@ -131,6 +131,7 @@ else:
 
 if get_config_error > 0:
     error_count += get_config_error
+    change_count = 0
 else:
     # now we import the config via API:
     error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {

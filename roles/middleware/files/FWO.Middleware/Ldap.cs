@@ -534,13 +534,15 @@ namespace FWO.Middleware.Server
                     connection.Bind(WriteUser, WriteUserPwd);
 
                     string userName = (new FWO.Api.Data.DistName(userDn)).UserName;
-                    LdapAttributeSet attributeSet = new LdapAttributeSet();
-                    attributeSet.Add( new LdapAttribute("objectclass", "inetOrgPerson"));
-                    attributeSet.Add( new LdapAttribute("sn", userName));
-                    attributeSet.Add( new LdapAttribute("cn", userName));
-                    attributeSet.Add( new LdapAttribute("uid", userName));
-                    attributeSet.Add( new LdapAttribute("userPassword", password));
-                    attributeSet.Add( new LdapAttribute("mail", email));
+                    LdapAttributeSet attributeSet = new LdapAttributeSet
+                    {
+                        new LdapAttribute("objectclass", "inetOrgPerson"),
+                        new LdapAttribute("sn", userName),
+                        new LdapAttribute("cn", userName),
+                        new LdapAttribute("uid", userName),
+                        new LdapAttribute("userPassword", password),
+                        new LdapAttribute("mail", email)
+                    };
 
                     LdapEntry newEntry = new LdapEntry( userDn, attributeSet );
 

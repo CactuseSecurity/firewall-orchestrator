@@ -78,12 +78,12 @@ namespace FWO.Api.Data
 
         public bool IsInternal()
         {
-            return (Root.Contains("fworch") && Root.Contains("internal"));
+            return Root.Contains("fworch") && Root.Contains("internal");
         }
 
         public string getTenant (int tenantLevel = 1)
         {
-            return ((tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[tenantLevel - 1] : "");
+            return (tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[tenantLevel - 1] : "";
         }
     }
 }

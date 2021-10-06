@@ -710,7 +710,7 @@
             DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
             return false;
         }
-        if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
+        if (!PasswordPolicy.CheckPolicy(actUser.Password, userConfig, out errorMsg))
         {
             DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
             return false;
@@ -846,7 +846,7 @@
             {
                 DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
             }
-            else if (!((new PasswordPolicy()).checkPolicy(actUser.Password, userConfig, out errorMsg)))
+            else if (!PasswordPolicy.CheckPolicy(actUser.Password, userConfig, out errorMsg))
             {
                 DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
             }

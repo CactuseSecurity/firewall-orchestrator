@@ -28,18 +28,22 @@ namespace FWO.Middleware.Server.Requests
 
             string groupAdded = "";
 
+            List<Task> workers = new List<Task>();
+
             foreach (Ldap currentLdap in Ldaps)
             {
                 // Try to add group to current Ldap
                 if (currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
                 {
-                    await Task.Run(() =>
+                    workers.Add(Task.Run(() =>
                     {
                         groupAdded = currentLdap.AddGroup(groupName);
                         if (groupAdded != "") Log.WriteAudit("AddGroup", $"group {groupAdded} successfully added to {currentLdap.Host()}");
-                    });
+                    }));
                 }
             }
+
+            await Task.WhenAll(workers);
 
             // Return status and result
             return WrapResult(HttpStatusCode.OK, ("groupAdded", groupAdded));

@@ -35,7 +35,7 @@ namespace FWO.Middleware.Server
 
             ClaimsIdentity subject;
             if (user != null)
-                subject = GetClaims(await (new UiUserHandler()).handleUiUserAtLogin(user, CreateJWTMiddlewareServer()));
+                subject = GetClaims(await new UiUserHandler().handleUiUserAtLogin(user, CreateJWTMiddlewareServer()));
             else
                 subject = GetClaims(new UiUser() { Name = "", Password = "", Dn = "anonymous", Roles = new List<string> { "anonymous" } });
             // adding uiuser.uiuser_id as x-hasura-user-id to JWT

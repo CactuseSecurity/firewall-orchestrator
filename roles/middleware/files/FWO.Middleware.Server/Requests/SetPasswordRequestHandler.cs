@@ -47,7 +47,7 @@ namespace FWO.Middleware.Server.Requests
                                 // the auditor can't be forced to change password as he is not allowed to do it
                                 passwordMustBeChanged = false;
                             }
-                            await (new UiUserHandler()).updateUserPasswordChanged(ApiConn, userDn, passwordMustBeChanged);
+                            await UiUserHandler.UpdateUserPasswordChanged(ApiConn, userDn, passwordMustBeChanged);
                         }
                     });
                 }

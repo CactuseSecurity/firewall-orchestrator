@@ -22,6 +22,7 @@ namespace FWO.Middleware.Server
             bool userSetInDb = false;
             try
             {
+                string test = AuthQueries.getUserByUuid;
                 UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn });
 
                 if (existingUserFound.Length == 1)
@@ -90,7 +91,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        public async Task updateUserPasswordChanged(APIConnection apiConn, string userDn, bool passwordMustBeChanged = false)
+        public static async Task UpdateUserPasswordChanged(APIConnection apiConn, string userDn, bool passwordMustBeChanged = false)
         {
             try
             {

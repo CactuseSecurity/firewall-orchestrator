@@ -78,6 +78,11 @@ namespace FWO.ApiConfig
                 await OnChange.Invoke(this);
         }
 
+        public string GetUserLanguage()
+        {
+            return User.Language;
+        }
+
         public void SetLanguage(string languageName)
         {
             User = new UiUser(){Language = globalConfig.defaultLanguage};

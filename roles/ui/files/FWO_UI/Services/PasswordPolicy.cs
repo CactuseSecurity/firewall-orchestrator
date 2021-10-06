@@ -8,13 +8,13 @@ namespace FWO.Ui.Services
 {
     public class PasswordPolicy
     {
-        int minLength = 10;
-        bool upperCaseRequired = false;
-        bool lowerCaseRequired = false;
-        bool numberRequired = false;
-        bool specialCharactersRequired = false;
+        private static int minLength = 10;
+        private static bool upperCaseRequired = false;
+        private static bool lowerCaseRequired = false;
+        private static bool numberRequired = false;
+        private static bool specialCharactersRequired = false;
 
-        public bool checkPolicy(string pw, UserConfig userConfig, out string errorMsg)
+        public static bool CheckPolicy(string pw, UserConfig userConfig, out string errorMsg)
         {
             GetSettings(userConfig);
             errorMsg = "";
@@ -50,14 +50,14 @@ namespace FWO.Ui.Services
             return true;
         }
 
-        private void GetSettings(UserConfig userConfig)
+        private static void GetSettings(UserConfig userConfig)
         {
             try
             {
                 string settingsValue = userConfig.GetConfigValue(GlobalConfig.kPwMinLength);
                 if (settingsValue != "")
                 {
-                    minLength = Int32.Parse(settingsValue);
+                    minLength = int.Parse(settingsValue);
                 }
 
                 settingsValue = userConfig.GetConfigValue(GlobalConfig.kPwUpperCaseRequired);

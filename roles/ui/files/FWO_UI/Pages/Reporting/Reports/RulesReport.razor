@@ -70,17 +70,17 @@
                             }
                             @if (EmptyColumns[2] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)context.DisplaySourceZone())
+                                        @((MarkupString)rule.DisplaySourceZone())
                                     </Template>
                                 </Column>
                             }
                             @if (EmptyColumns[3] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)context.DisplaySource())
+                                        @((MarkupString)rule.DisplaySource())
                                     </Template>
                                 </Column>
                             }

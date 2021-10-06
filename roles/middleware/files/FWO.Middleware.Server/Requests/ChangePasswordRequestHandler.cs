@@ -39,7 +39,7 @@ namespace FWO.Middleware.Server.Requests
                         errorMsg = currentLdap.ChangePassword(userDn, oldPassword, newPassword);
                         if (errorMsg == "")
                         {
-                            await (new UiUserHandler()).updateUserPasswordChanged(ApiConn, userDn);
+                            await UiUserHandler.UpdateUserPasswordChanged(ApiConn, userDn);
                         }
                     });
                 }

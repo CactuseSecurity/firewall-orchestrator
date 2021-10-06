@@ -459,7 +459,6 @@ namespace FWO.Middleware.Server
                             switch (requestName)
                             {
                                 case "ChangePassword":
-
                                     // Initialize Request Handler  
                                     ChangePasswordRequestHandler changePasswordRequestHandler = new ChangePasswordRequestHandler(ldapsCopy, apiConnectionCopy);
 

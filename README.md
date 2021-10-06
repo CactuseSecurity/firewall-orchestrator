@@ -8,7 +8,7 @@
 - Import firewall configurations (rules) of various brands (Check Point, Fortinet, Juniper, Barracuda, Netscreen)
 - Display reports on firewall configuration and changes
 - Regularly re-certify firewall rules to clean up your rulebase
-- Use the built-in GraphQL API to integrate with your existing infrastructure (ITSM, IPAM, ...)
+- Use the built-in GraphQL API to integrate with your existing infrastructure (Directory Service, ITSM, IPAM, ...)
 
 <b>Demo:</b> if you want to see what it looks like in advance, visit <https://fwodemo.cactus.de> (user: test, password: drive2).
 

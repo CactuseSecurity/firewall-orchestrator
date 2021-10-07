@@ -24,14 +24,15 @@ namespace FWO.Middleware.Controllers
             this.ldaps = ldaps;
         }
 
-        public class AddDeleteRoleParameters
+        public class RoleAddDeleteRoleParameters
         {
-            public string userDn { get; set; }
+            public string Role { get; set; }
+            public string UserDn { get; set; }
         }
 
         // GET: api/<ValuesController>
         [HttpGet]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin, auditor")]
         public async Task<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> GetAsync()
         {
             // No parameters
@@ -58,12 +59,14 @@ namespace FWO.Middleware.Controllers
             return allRoles.ToArray();
         }
 
-        [HttpPost("{role}")]
+        [HttpPost("User")]
         [Authorize(Roles = "admin")]
-        public async Task<bool> AddUser(string role, [FromBody] AddDeleteRoleParameters parameters)
+        public async Task<bool> AddUser([FromBody] RoleAddDeleteRoleParameters parameters)
         {
+            string userDn = parameters.UserDn;
+            string role = parameters.Role;
+
             bool userAdded = false;
-            string userDn = parameters.userDn;
             List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in ldaps)
@@ -88,12 +91,14 @@ namespace FWO.Middleware.Controllers
             return userAdded;
         }
 
-        [HttpDelete("{role}")]
+        [HttpDelete("User")]
         [Authorize(Roles = "admin")]
-        public async Task<bool> RemoveUser(string role, [FromBody] AddDeleteRoleParameters parameters)
+        public async Task<bool> RemoveUser([FromBody] RoleAddDeleteRoleParameters parameters)
         {
+            string userDn = parameters.UserDn;
+            string role = parameters.Role;
+
             bool userRemoved = false;
-            string userDn = parameters.userDn;
             List<Task> ldapRoleRequests = new List<Task>();
 
             foreach (Ldap currentLdap in ldaps)

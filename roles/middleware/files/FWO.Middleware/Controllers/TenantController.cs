@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
 using System.Net;
@@ -29,13 +30,14 @@ namespace FWO.Middleware.Controllers
 
         public class AddDeleteTenantParameters
         {
-            public string Dn { get; set; }
+            // [DefaultValue("HelloWorld")]
+            public string Dn { get; set; } // = "HelloWorld"
         }
 
         // POST api/<TenantController>
         [HttpPost]
         [Authorize(Roles = "admin")]
-        public async Task<bool> Post(AddDeleteTenantParameters tenant)
+        public async Task<bool> Post([FromBody] AddDeleteTenantParameters tenant)
         {
             bool tenantAdded = false;
             string tenantDn = tenant.Dn;
@@ -60,7 +62,7 @@ namespace FWO.Middleware.Controllers
         // DELETE api/<TenantController>/5
         [HttpDelete]
         [Authorize(Roles = "admin")]
-        public async Task<bool> Delete(AddDeleteTenantParameters tenant)
+        public async Task<bool> Delete([FromBody] AddDeleteTenantParameters tenant)
         {
             bool tenantDeleted = false;
             string tenantDn = tenant.Dn;

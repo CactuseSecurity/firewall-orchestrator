@@ -25,15 +25,24 @@ namespace FWO.Middleware.Controllers
             this.ldaps = ldaps;
         }
 
-        [HttpGet("{ldapDn}")]
-        [Authorize(Roles = "admin")]
-        public async Task<List<string>> GetAsync(string ldapDn, string searchPattern)
+        public class GroupGetParameters
         {
+            public string LdapHostname {  get; set; }
+            public string SearchPattern { get; set; }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "admin, auditor")]
+        public async Task<List<string>> GetAsync([FromBody] GroupGetParameters parameters)
+        {
+            string ldapHostname = parameters.LdapHostname;
+            string searchPattern = parameters.SearchPattern;
+
             List<string> allGroups = new List<string>();
 
             foreach (Ldap currentLdap in ldaps)
             {
-                if (currentLdap.Host() == ldapDn && currentLdap.HasGroupHandling())
+                if (currentLdap.Host() == ldapHostname && currentLdap.HasGroupHandling())
                 {
                     await Task.Run(() =>
                     {
@@ -47,8 +56,8 @@ namespace FWO.Middleware.Controllers
             return allGroups;
         }
 
-        [HttpGet]
-        [Authorize(Roles = "admin")]
+        [HttpGet("Internal")]
+        [Authorize(Roles = "admin, auditor")]
         public async Task<KeyValuePair<string, List<string>>[]> GetInternalAsync()
         {
             ConcurrentBag<KeyValuePair<string, List<string>>> allGroups = new ConcurrentBag<KeyValuePair<string, List<string>>>();
@@ -74,11 +83,18 @@ namespace FWO.Middleware.Controllers
             return allGroups.ToArray();
         }
 
-        // GET: GroupController/Create
-        [HttpPost("{groupDn}")]
-        [Authorize(Roles = "admin")]
-        public async Task<string> Create(string groupDn)
+        public class GroupAddDeleteParameters
         {
+            public string GroupDn { get; set; }
+        }
+
+        // GET: GroupController/Create
+        [HttpPost]
+        [Authorize(Roles = "admin")]
+        public async Task<string> Create([FromBody] GroupAddDeleteParameters parameters)
+        {
+            string groupDn = parameters.GroupDn;
+
             List<Task> workers = new List<Task>();
 
             foreach (Ldap currentLdap in ldaps)
@@ -101,10 +117,12 @@ namespace FWO.Middleware.Controllers
         }
 
         // POST: GroupController/Delete/5
-        [HttpDelete("{groupDn}")]
+        [HttpDelete]
         [Authorize(Roles = "admin")]
-        public async Task<bool> Delete(string groupDn)
+        public async Task<bool> Delete([FromBody] GroupAddDeleteParameters parameters)
         {
+            string groupDn = parameters.GroupDn;
+
             List<Task<bool>> workers = new List<Task<bool>>();
 
             foreach (Ldap currentLdap in ldaps)
@@ -130,12 +148,20 @@ namespace FWO.Middleware.Controllers
             return result;
         }
 
+        public class GroupEditParameters
+        {
+            public string OldGroupDn { get; set; }
+            public string NewGroupDn { get; set; }
+        }
 
         // POST: GroupController/Edit/5
-        [HttpPut("{oldDn}")]
+        [HttpPut]
         [Authorize(Roles = "admin")]
-        public async Task<string> Edit(string oldDn, string newDn)
+        public async Task<string> Edit([FromBody] GroupEditParameters parameters)
         {
+            string oldDn = parameters.OldGroupDn;
+            string newDn = parameters.NewGroupDn;
+
             string groupUpdated = "";
 
             foreach (Ldap currentLdap in ldaps)
@@ -155,17 +181,20 @@ namespace FWO.Middleware.Controllers
             return groupUpdated;
         }
 
-        public class Test
+        public class GroupAddDeleteUserParameters
         {
-            public string Dn { get; set; }
-            public string groupDn { get; set; }
+            public string UserDn { get; set; }
+            public string GroupDn { get; set; }
         }
 
         // GET: GroupController/
-        [HttpPost("{groupDn}/{userDn}")]
+        [HttpPost("User")]
         [Authorize(Roles = "admin")]
-        public async Task<bool> AddUser(string userDn, string groupDn)
+        public async Task<bool> AddUser([FromBody] GroupAddDeleteUserParameters parameters)
         {
+            string userDn = parameters.UserDn;
+            string groupDn = parameters.GroupDn;
+
             List<Task<bool>> workers = new List<Task<bool>>();
 
             foreach (Ldap currentLdap in ldaps)
@@ -192,13 +221,14 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: GroupController/Details/5
-        [HttpDelete("{groupDn}/{userDn}")]
+        [HttpDelete("User")]
         [Authorize(Roles = "admin")]
-        public async Task<bool> RemoveUser(Test user)
+        public async Task<bool> RemoveUser([FromBody] GroupAddDeleteUserParameters parameters)
         {
+            string userDn = parameters.UserDn;
+            string groupDn = parameters.GroupDn;
+
             List<Task<bool>> workers = new List<Task<bool>>();
-            string userDn = user.Dn;
-            string groupDn = user.groupDn;
 
             foreach (Ldap currentLdap in ldaps)
             {

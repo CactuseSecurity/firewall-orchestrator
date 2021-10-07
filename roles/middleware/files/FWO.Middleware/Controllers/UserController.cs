@@ -29,11 +29,20 @@ namespace FWO.Middleware.Controllers
             this.apiConnection = apiConnection;
         }
 
-        // GET api/<ValuesController>/5
-        [HttpGet("{ldapHostname}")]
-        //[Authorize(Roles = "admin")]
-        public async Task<List<KeyValuePair<string, string>>> Get(string ldapHostname, string searchPattern)
+        public class UserGetParameters
         {
+            public string LdapHostname { get; set; }
+            public string SearchPattern { get; set;  }
+        }
+
+        // GET api/<ValuesController>/5
+        [HttpGet]
+        [Authorize(Roles = "admin, auditor")]
+        public async Task<List<KeyValuePair<string, string>>> Get([FromBody] UserGetParameters parameters)
+        {
+            string ldapHostname = parameters.LdapHostname;
+            string searchPattern = parameters.SearchPattern;
+
             List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
 
             foreach (Ldap currentLdap in ldaps)
@@ -52,19 +61,24 @@ namespace FWO.Middleware.Controllers
             return allUsers;
         }
 
-        public class AddParameters
+        public class UserAddParameters
         {
-            public string password { get; set; }
-            public string email { get; set; }
+            public string LdapHostname { get; set; }
+            public string UserDn { get; set; }
+            public string Password { get; set; }
+            public string Email { get; set; }
         }
 
         // POST api/<ValuesController>
-        [HttpPost("{ldapHostname}/{userDn}")]
-        // [Authorize(Roles = "admin")]
-        public async Task<bool> Add(string ldapHostname, string userDn, [FromBody] AddParameters parameters)
+        [HttpPost]
+        [Authorize(Roles = "admin")]
+        public async Task<bool> Add([FromBody] UserAddParameters parameters)
         {
-            string password = parameters.password;
-            string email = parameters.email;
+            // Parameters
+            string password = parameters.Password;
+            string email = parameters.Email;
+            string ldapHostname = parameters.LdapHostname;
+            string userDn = parameters.UserDn;
 
             bool userAdded = false;
 
@@ -84,11 +98,23 @@ namespace FWO.Middleware.Controllers
             return userAdded;
         }
 
-        // PUT api/<ValuesController>/5
-        [HttpPut("{ldapHostname}/{userDn}")]
-        [Authorize(Roles = "admin")]
-        public async Task<bool> Change(string ldapHostname, string userDn, string email)
+        public class UserEditParameters
         {
+            public string LdapHostname { get; set; }
+            public string UserDn { get; set; }
+            public string Email { get; set; }
+        }
+
+        // PUT api/<ValuesController>/5
+        [HttpPut]
+        [Authorize(Roles = "admin")]
+        public async Task<bool> Change([FromBody] UserEditParameters parameters)
+        {
+            // Parameters
+            string ldapHostname = parameters.LdapHostname;
+            string userDn = parameters.UserDn;
+            string email = parameters.Email;
+
             bool userUpdated = false;
 
             foreach (Ldap currentLdap in ldaps)
@@ -107,15 +133,26 @@ namespace FWO.Middleware.Controllers
             return userUpdated;
         }
 
+        public class UserChangePasswordParameters
+        {
+            public string LdapHostname { get; set; }
+            public string UserDn { get; set; }
+            public string OldPassword { get; set; }
+            public string NewPassword { get; set; }
+        }
 
         // GET: api/<ValuesController>
-        [HttpPatch("{ldapHostname}/{userDn}/password")]
-        //[Authorize(Roles = "admin, reporter, reporter-viewall, recertifier")]
-        public async Task<ActionResult<string>> ChangePassword(string ldapHostname, string userDn, string oldPassword, string newPassword)
+        [HttpPatch("EditPassword")]
+        public async Task<ActionResult<string>> ChangePassword([FromBody] UserChangePasswordParameters parameters)
         {
             // the demo user (currently auditor) can't change his password
             if (User.IsInRole("auditor"))
                 return Unauthorized();
+
+            string ldapHostname = parameters.LdapHostname;
+            string userDn = parameters.UserDn;
+            string oldPassword = parameters.OldPassword;
+            string newPassword = parameters.NewPassword;
 
             string errorMsg = "";
 
@@ -141,11 +178,22 @@ namespace FWO.Middleware.Controllers
             return errorMsg;
         }
 
-        // GET: api/<ValuesController>
-        [HttpOptions("{ldapHostname}/{userDn}")]
-        [Authorize(Roles = "admin")]
-        public async Task<ActionResult<string>> ResetPassword(string ldapHostname, string userDn, string password)
+        public class UserResetPasswordParameters
         {
+            public string LdapHostname { get; set;  }
+            public string UserDn { get; set; }
+            public string NewPassword { get; set; }
+        }
+
+        // GET: api/<ValuesController>
+        [HttpPatch("ResetPassword")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<string>> ResetPassword([FromBody] UserResetPasswordParameters parameters)
+        {
+            string ldapHostname = parameters.LdapHostname;
+            string newPassword = parameters.NewPassword;
+            string userDn = parameters.UserDn;
+
             string errorMsg = "";
 
             foreach (Ldap currentLdap in ldaps)
@@ -155,7 +203,7 @@ namespace FWO.Middleware.Controllers
                 {
                     await Task.Run(async () =>
                     {
-                        errorMsg = currentLdap.SetPassword(userDn, password);
+                        errorMsg = currentLdap.SetPassword(userDn, newPassword);
                         if (errorMsg == "")
                         {
                             List<string> roles = currentLdap.GetRoles(new List<string>() { userDn }).ToList();
@@ -171,11 +219,57 @@ namespace FWO.Middleware.Controllers
             return errorMsg == "" ? Ok() : Problem(errorMsg);
         }
 
-        // DELETE api/<ValuesController>/5
-        [HttpDelete("{userDn}")]
-        [Authorize(Roles = "admin")]
-        public async Task<bool> Delete(string ldapHostname, string userDn)
+        public class UserDeleteAllEntriesParameters
         {
+            public string UserDn { get; set; }
+        }
+
+        // DELETE api/<ValuesController>/5
+        [HttpDelete("AllGroupsAndRoles")]
+        [Authorize(Roles = "admin")]
+        public async Task<bool> DeleteAllGroupsAndRoles([FromBody] UserDeleteAllEntriesParameters parameters)
+        {
+            // Parameters
+            string userDn = parameters.UserDn;
+
+            bool userRemoved = false;
+            List<Task> ldapRoleRequests = new List<Task>();
+
+            foreach (Ldap currentLdap in ldaps)
+            {
+                // Try to remove user from all roles and groups in current Ldap
+                if (currentLdap.IsWritable() && (currentLdap.HasRoleHandling() || currentLdap.HasGroupHandling()))
+                {
+                    ldapRoleRequests.Add(Task.Run(() =>
+                    {
+                        if (currentLdap.RemoveUserFromAllEntries(userDn))
+                        {
+                            userRemoved = true;
+                        }
+                    }));
+                }
+            }
+
+            await Task.WhenAll(ldapRoleRequests);
+
+            // Return status and result
+            return userRemoved;
+        }
+
+        public class UserDeleteParameters
+        {
+            public string LdapHostname { get; set; }
+            public string UserDn { get; set; }
+        }
+
+        // DELETE api/<ValuesController>/5
+        [HttpDelete]
+        [Authorize(Roles = "admin")]
+        public async Task<bool> Delete([FromBody] UserDeleteParameters parameters)
+        {
+            string ldapHostname = parameters.LdapHostname;
+            string userDn = parameters.UserDn;
+
             bool userDeleted = false;
 
             foreach (Ldap currentLdap in ldaps)

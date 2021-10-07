@@ -33,10 +33,19 @@ namespace FWO.Middleware.Controllers
             this.apiConnection = apiConnection;
         }
 
+        public class AuthenticationTokenGetParameters
+        {
+            public string Username { get; set; }
+            public string Password {  get; set; }
+        }
+
         // GET: api/<JwtController>
         [HttpGet]
-        public async Task<ActionResult<string>> GetAsync(string username, string password)
+        public async Task<ActionResult<string>> GetAsync([FromBody] AuthenticationTokenGetParameters parameters)
         {
+            string username = parameters.Username;
+            string password = parameters.Password;
+
             try
             {
                 // Create User from given parameters / If user no login data provided => anonymous login

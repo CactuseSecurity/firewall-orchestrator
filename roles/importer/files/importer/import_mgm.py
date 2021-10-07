@@ -48,7 +48,7 @@ importer_user_name = 'importer'  # todo: move to config file?
 fwo_config_filename = base_dir + '/etc/fworch.json'
 importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
 import_tmp_path = base_dir + '/tmp/import'
-
+change_count = 0
 error_string = ''
 start_time = int(time.time())
 if args.ssl == '' or args.ssl == 'off':
@@ -101,6 +101,7 @@ config2import = {}
 Path(import_tmp_path).mkdir(parents=True,
                             exist_ok=True)  # make sure tmp path exists
 
+# the config is expected as a file by checkpoint, for newer importers, everything is handled via config variable
 config_filename = import_tmp_path + '/mgm_id_' + \
     str(args.mgm_id) + '_config.json'
 

@@ -27,7 +27,6 @@
   loop: "{{ unit_test_scripts }}"
   tags:
     - unittest
-    - test
 
 - name: Print db test results
   debug: 

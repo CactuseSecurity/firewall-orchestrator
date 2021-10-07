@@ -19,6 +19,10 @@
   notify:
   - test importer handler
 
+- name: randomize test names to avoid interference with production data
+  set_fact:
+    test_postfix: "test_{{ random_generated_pw }}"
+
 - name: include test data
   include_role:
     name: sample-data

@@ -1,7 +1,11 @@
 # Integrating Fortinet FortiManager 7.x
 
 ## user setup
+
+connect to FM via ssh (admin/empty password) and add the following config
+
 ### make existing admin api ready
+
 ```console
 config system admin user
   edit admin
@@ -40,6 +44,7 @@ config system admin user
        set adom "all_adoms"             
        set profileid "apiuserprofile"
        set rpc-permit read-write
+end       
 ```
 
 ## login

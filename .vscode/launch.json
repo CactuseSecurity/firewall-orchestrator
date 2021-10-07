@@ -2,6 +2,28 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "py-change-comment",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/sample-data/files/config_changes/write_date_to_comment.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },        
+        {
+            "name": "py-change-rule",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/sample-data/files/config_changes/enlarge_rule.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },        
+        {
             "name": "py-cpr8x-get-config",
             "type": "python",
             "request": "launch",

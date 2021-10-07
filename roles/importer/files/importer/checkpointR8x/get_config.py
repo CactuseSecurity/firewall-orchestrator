@@ -22,7 +22,7 @@ parser.add_argument('-i', '--limit', metavar='api_limit', default='150', help='T
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0') 
 parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
-parser.add_argument('-f', '--fromdate', metavar='from_date', default='2000-01-01T00:00:00', help='date to start from, e.g. last successful import; default=2000-01-01T00:00:00')
+parser.add_argument('-f', '--fromdate', metavar='from_date', default='', help='date to start from, e.g. last successful import; default=2000-01-01T00:00:00')
 
 args = parser.parse_args()
 if len(sys.argv)==1:
@@ -54,7 +54,11 @@ starttime = int(time.time())
 sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string)
 v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
 
-changes = getter.get_changes(sid, api_host,args.port,args.fromdate,ssl_verification, proxy_string)
+if args.fromdate == "":
+    changes = 1
+else:
+    changes = getter.get_changes(sid, api_host,args.port,args.fromdate,ssl_verification, proxy_string)
+
 if changes < 0:
     logging.debug ( "get_changes: error getting changes")
     sys.exit(1)
@@ -139,4 +143,6 @@ logout_result = getter.api_call(api_host, args.port, v_url, 'logout', '', sid, s
 duration = int(time.time()) - starttime
 logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
 
+if changes == 0:
+    sys.exit(2)
 sys.exit(0)

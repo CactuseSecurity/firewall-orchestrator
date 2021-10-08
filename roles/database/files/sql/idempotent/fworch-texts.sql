@@ -678,6 +678,8 @@ INSERT INTO txt VALUES ('fetch_users_local',    'German', 	'Nutzer aus API holen
 INSERT INTO txt VALUES ('fetch_users_local',    'English', 	'Fetch Users from API');
 INSERT INTO txt VALUES ('fetch_tenants',        'German', 	'Mandanten abholen');
 INSERT INTO txt VALUES ('fetch_tenants',        'English', 	'Fetch Tenants');
+INSERT INTO txt VALUES ('sync_users',           'German', 	'Nutzer synchronisieren');
+INSERT INTO txt VALUES ('sync_users',           'English', 	'Synchronize Users');
 INSERT INTO txt VALUES ('save_group',           'German', 	'Gruppe in LDAP speichern');
 INSERT INTO txt VALUES ('save_group',           'English', 	'Save group in LDAP');
 INSERT INTO txt VALUES ('fetch_roles',          'German', 	'Rollen abholen');

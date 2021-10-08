@@ -102,21 +102,28 @@ namespace FWO.Middleware.Server.Requests
                     {
                         Log.WriteDebug("User Authentication", $"Trying to authenticate {user} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
 
-                        string currentDn = currentLdap.ValidateUser(user);
-
-                        if (currentDn != "")
+                        try
                         {
-                            // User was successfully authenticated via LDAP
-                            Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {currentDn}");
+                            string currentDn = currentLdap.ValidateUser(user);
 
-                            lock(dnLock)
+                            if (currentDn != "")
                             {
-                                tenantLevel = currentLdap.TenantLevel;
-                                userDn = currentDn;
-                                fixedTenantId = currentLdap.TenantId;
-                                internalLdap = currentLdap.IsWritable();
-                                ldapId = currentLdap.Id;
+                                // User was successfully authenticated via this LDAP
+                                Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {currentDn}");
+
+                                lock(dnLock)
+                                {
+                                    tenantLevel = currentLdap.TenantLevel;
+                                    userDn = currentDn;
+                                    fixedTenantId = currentLdap.TenantId;
+                                    internalLdap = currentLdap.IsWritable();
+                                    ldapId = currentLdap.Id;
+                                }
                             }
+                        }
+                        catch
+                        {
+                            // this Ldap can't validate user, but maybe another one can
                         }
                     }));
                 }

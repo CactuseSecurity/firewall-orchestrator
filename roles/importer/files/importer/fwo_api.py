@@ -153,6 +153,9 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
                     name: dev_name
                     rulebase:dev_rulebase
                 }
+                import_controls(where: { successful_import: {_eq: true} } order_by: {control_id: desc}, limit: 1) {
+                    starttime: start_time
+                }
             }  
         }
     """

@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
@@ -13,25 +9,10 @@ namespace FWO.Api.Data
         OpenLdap = 2
     }
 
-    public class UiLdapConnection
+    public class LdapConnectionBase
     {
         [JsonPropertyName("ldap_connection_id")]
         public int Id { get; set; }
-
-        private string name = "";
-        [JsonPropertyName("ldap_name")]
-        public string Name 
-        { 
-            get
-            {
-                // for compatibility: take hostname if not filled
-                return ((name != null && name != "") ? name : Host());
-            }
-            set
-            {
-                name = value;
-            } 
-        }
 
         [JsonPropertyName("ldap_server")]
         public string Address { get; set; }
@@ -74,35 +55,6 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("tenant_id")]
         public int? TenantId { get; set; }
-
-        public string TenantIdAsString
-        {
-            get => TenantId?.ToString()?? "null";
-            set => TenantId = value == "null" ? null :(int?)int.Parse(value);
-        }
-
-        public UiLdapConnection()
-        {}
-
-        public UiLdapConnection(UiLdapConnection ldapConnection)
-        {
-            Id = ldapConnection.Id;
-            Name = ldapConnection.Name;
-            Address = ldapConnection.Address;
-            Port = ldapConnection.Port;
-            Type = ldapConnection.Type;
-            PatternLength = ldapConnection.PatternLength;
-            SearchUser = ldapConnection.SearchUser;
-            Tls = ldapConnection.Tls;
-            TenantLevel = ldapConnection.TenantLevel;
-            SearchUserPwd = ldapConnection.SearchUserPwd;
-            UserSearchPath = ldapConnection.UserSearchPath;
-            RoleSearchPath = ldapConnection.RoleSearchPath;
-            GroupSearchPath = ldapConnection.GroupSearchPath;
-            WriteUser = ldapConnection.WriteUser;
-            WriteUserPwd = ldapConnection.WriteUserPwd;
-            TenantId = ldapConnection.TenantId;
-        }
 
         public string Host()
         {

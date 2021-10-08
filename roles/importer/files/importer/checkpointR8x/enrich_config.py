@@ -60,6 +60,10 @@ starttime = int(time.time())
 with open(config_filename, "r") as json_data:
     config = json.load(json_data)
 
+# do nothing for empty config
+if len(config) == 0:
+    sys.exit(0)
+
 #################################################################################
 # adding inline and domain layers 
 #################################################################################

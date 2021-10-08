@@ -44,6 +44,7 @@ if len(sys.argv) == 1:
     sys.exit(1)
 
 error_count = 0
+change_count = 0
 importer_user_name = 'importer'  # todo: move to config file?
 fwo_config_filename = base_dir + '/etc/fworch.json'
 importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
@@ -124,15 +125,15 @@ fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
 if 'proxy' in args and args.proxy != None:
-    get_config_error = fw_module.get_config(
+    get_config_response = fw_module.get_config(
         config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string=args.proxy, limit=args.limit)
 else:
-    get_config_error = fw_module.get_config(
+    get_config_response = fw_module.get_config(
         config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, limit=args.limit)
 
-if get_config_error > 0:
-    error_count += get_config_error
-else:
+if get_config_response == 1:
+    error_count += get_config_response
+elif get_config_response == 0:
     # now we import the config via API:
     error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
         "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
@@ -161,7 +162,7 @@ stop_time = int(time.time())
 stop_time_string = datetime.datetime.now().isoformat()
 
 # delete configs of imports without changes (if no error occured)
-if change_count == 0 and error_count == 0:
+if change_count == 0 and error_count == 0 and get_config_response < 2:
     error_count += fwo_api.delete_json_config(
         fwo_api_base_url, jwt, {"importId": current_import_id})
     if os.path.exists(config_filename):
@@ -170,7 +171,7 @@ if change_count == 0 and error_count == 0:
 
 if os.path.exists(secret_filename):
     os.remove(secret_filename)
-# finalize remport by unlocking it
+# finalize import by unlocking it
 error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
     args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
 

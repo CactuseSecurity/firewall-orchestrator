@@ -3,6 +3,7 @@
 # todo: consolidate global and pkg-local rules in a single rulebase
 # todo: dealing with consolidated rules?
 
+from curses import raw
 import logging, sys, os, json
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')

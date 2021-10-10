@@ -4,7 +4,9 @@
 @using FWO.ApiClient
 @using FWO.Middleware.Client
 @using FWO.ApiConfig
+@using FWO.Middleware.RequestParameters
 @using FWO.Ui.Services
+@using RestSharp
 
 @page "/settings/users"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -444,14 +446,15 @@
             }
 
             // get users from Ldap
-            MiddlewareServerResponse usersMiddlewareResponse = await middlewareClient.GetUsers(internalLdap.Host(), "", userConfig.User.Jwt);
-            if (usersMiddlewareResponse.Status != HttpStatusCode.OK)
+            UserGetParameters userGetParameters = new UserGetParameters { LdapHostname = internalLdap.Host(), SearchPattern = "" };
+            IRestResponse<List<KeyValuePair<string, string>>> middlewareServerResponse = await middlewareClient.GetUsers(userGetParameters);
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
             }
             else
             {
-                foreach (var user in usersMiddlewareResponse.GetResult<List<KeyValuePair<string, string>>>("allUsers"))
+                foreach (var user in middlewareServerResponse.Data)
                 {
                     UiUser newUser = new UiUser() 
                     { 

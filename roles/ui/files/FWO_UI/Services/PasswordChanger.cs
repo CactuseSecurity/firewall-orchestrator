@@ -63,7 +63,7 @@ namespace FWO.Ui.Services
                 errorMsg = userConfig.GetText("E5404");
                 return false;
             }
-            else if(!new PasswordPolicy().checkPolicy(newPassword1, userConfig, out errorMsg))
+            else if(!PasswordPolicy.CheckPolicy(newPassword1, userConfig, out errorMsg))
             {
                 return false;
             }

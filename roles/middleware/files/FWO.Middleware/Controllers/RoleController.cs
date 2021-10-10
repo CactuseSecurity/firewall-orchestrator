@@ -1,4 +1,5 @@
 ﻿using FWO.Logging;
+using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +23,6 @@ namespace FWO.Middleware.Controllers
         public RoleController(List<Ldap> ldaps)
         {
             this.ldaps = ldaps;
-        }
-
-        public class RoleAddDeleteRoleParameters
-        {
-            public string Role { get; set; }
-            public string UserDn { get; set; }
         }
 
         // GET: api/<ValuesController>
@@ -61,7 +56,7 @@ namespace FWO.Middleware.Controllers
 
         [HttpPost("User")]
         [Authorize(Roles = "admin")]
-        public async Task<bool> AddUser([FromBody] RoleAddDeleteRoleParameters parameters)
+        public async Task<bool> AddUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
             string userDn = parameters.UserDn;
             string role = parameters.Role;
@@ -93,7 +88,7 @@ namespace FWO.Middleware.Controllers
 
         [HttpDelete("User")]
         [Authorize(Roles = "admin")]
-        public async Task<bool> RemoveUser([FromBody] RoleAddDeleteRoleParameters parameters)
+        public async Task<bool> RemoveUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
             string userDn = parameters.UserDn;
             string role = parameters.Role;

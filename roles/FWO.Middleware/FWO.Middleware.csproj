@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
@@ -9,7 +9,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FWO_Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\lib\files\FWO.ApiConfig\FWO.Config.csproj" />
+    <ProjectReference Include="..\lib\files\FWO_Logging\FWO.Logging.csproj" />
   </ItemGroup>
 
 </Project>

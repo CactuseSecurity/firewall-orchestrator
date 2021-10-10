@@ -3,11 +3,11 @@ using System.Threading.Tasks;
 
 namespace FWO.Middleware.Client
 {
-    public class MiddlewareClient
+    public class Client
     {
         readonly RequestSender requestSender;
 
-        public MiddlewareClient(string middlewareServerUri)
+        public Client(string middlewareServerUri)
         {
             requestSender = new RequestSender(middlewareServerUri);
         }

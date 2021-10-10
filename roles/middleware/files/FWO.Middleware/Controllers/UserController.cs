@@ -2,6 +2,7 @@
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
+using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -29,12 +30,6 @@ namespace FWO.Middleware.Controllers
             this.apiConnection = apiConnection;
         }
 
-        public class UserGetParameters
-        {
-            public string LdapHostname { get; set; }
-            public string SearchPattern { get; set;  }
-        }
-
         // GET api/<ValuesController>/5
         [HttpGet]
         [Authorize(Roles = "admin, auditor")]
@@ -59,14 +54,6 @@ namespace FWO.Middleware.Controllers
 
             // Return status and result
             return allUsers;
-        }
-
-        public class UserAddParameters
-        {
-            public string LdapHostname { get; set; }
-            public string UserDn { get; set; }
-            public string Password { get; set; }
-            public string Email { get; set; }
         }
 
         // POST api/<ValuesController>
@@ -98,13 +85,6 @@ namespace FWO.Middleware.Controllers
             return userAdded;
         }
 
-        public class UserEditParameters
-        {
-            public string LdapHostname { get; set; }
-            public string UserDn { get; set; }
-            public string Email { get; set; }
-        }
-
         // PUT api/<ValuesController>/5
         [HttpPut]
         [Authorize(Roles = "admin")]
@@ -131,14 +111,6 @@ namespace FWO.Middleware.Controllers
             }
 
             return userUpdated;
-        }
-
-        public class UserChangePasswordParameters
-        {
-            public string LdapHostname { get; set; }
-            public string UserDn { get; set; }
-            public string OldPassword { get; set; }
-            public string NewPassword { get; set; }
         }
 
         // GET: api/<ValuesController>
@@ -178,13 +150,6 @@ namespace FWO.Middleware.Controllers
             return errorMsg;
         }
 
-        public class UserResetPasswordParameters
-        {
-            public string LdapHostname { get; set;  }
-            public string UserDn { get; set; }
-            public string NewPassword { get; set; }
-        }
-
         // GET: api/<ValuesController>
         [HttpPatch("ResetPassword")]
         [Authorize(Roles = "admin")]
@@ -219,11 +184,6 @@ namespace FWO.Middleware.Controllers
             return errorMsg == "" ? Ok() : Problem(errorMsg);
         }
 
-        public class UserDeleteAllEntriesParameters
-        {
-            public string UserDn { get; set; }
-        }
-
         // DELETE api/<ValuesController>/5
         [HttpDelete("AllGroupsAndRoles")]
         [Authorize(Roles = "admin")]
@@ -254,12 +214,6 @@ namespace FWO.Middleware.Controllers
 
             // Return status and result
             return userRemoved;
-        }
-
-        public class UserDeleteParameters
-        {
-            public string LdapHostname { get; set; }
-            public string UserDn { get; set; }
         }
 
         // DELETE api/<ValuesController>/5

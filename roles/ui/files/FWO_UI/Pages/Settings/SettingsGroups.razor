@@ -4,6 +4,8 @@
 @using FWO.ApiClient
 @using FWO.Middleware.Client
 @using FWO.ApiConfig
+@using FWO.Middleware.RequestParameters
+@using RestSharp
 
 @page "/settings/groups"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -253,15 +255,15 @@
     {
         // get groups from internal LDAP
         try
-        {
-            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetInternalGroups(userConfig.User.Jwt);
-            if (middlewareServerResponse.Status != HttpStatusCode.OK)
+        { 
+            IRestResponse<KeyValuePair<string, List<string>>[]> middlewareServerResponse = await middlewareClient.GetInternalGroups();
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
             else
             {
-                foreach (var ldapUserGroup in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allGroups"))
+                foreach (var ldapUserGroup in middlewareServerResponse.Data)
                 {
                     UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
                     foreach (var userDn in ldapUserGroup.Value)
@@ -314,14 +316,14 @@
     {
         try
         {
-            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetAllRoles(userConfig.User.Jwt);
-            if (middlewareServerResponse.Status != HttpStatusCode.OK)
+            IRestResponse<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> middlewareServerResponse = await middlewareClient.GetAllRoles();
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
             else
             {
-                foreach (var ldapRole in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
+                foreach (var ldapRole in middlewareServerResponse.Data)
                 {
                     Role role = new Role() { Dn = ldapRole.Key, Name = (new DistName(ldapRole.Key)).Role };
                     foreach (var roleAttr in ldapRole.Value)
@@ -398,14 +400,16 @@
                 else
                 {
                     // insert new group to ldap
-                    MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddGroup(newGroupName, userConfig.User.Jwt);
-                    actGroup.Dn = middlewareServerResponse.GetResult<string>("groupAdded");
-                    if (middlewareServerResponse.Status != HttpStatusCode.OK || actGroup.Dn == "")
+                    GroupAddDeleteParameters addGroupParameters = new GroupAddDeleteParameters { GroupDn = newGroupName };
+                    IRestResponse<string> middlewareServerResponse = await middlewareClient.AddGroup(addGroupParameters);
+                    
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || actGroup.Dn == "")
                     {
                         DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
                     }
                     else
                     {
+                        actGroup.Dn = middlewareServerResponse.Data;
                         actGroup.Name = newGroupName;
                         groups.Add(actGroup);
                         await AddGroupToRolesInLdap(actGroup);
@@ -417,14 +421,16 @@
             else
             {
                 // Update existing group in ldap --> currently only name
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.UpdateGroup(actGroup.Name, newGroupName, userConfig.User.Jwt);
-                string newDn = middlewareServerResponse.GetResult<string>("groupUpdated");
-                if (middlewareServerResponse.Status != HttpStatusCode.OK || newDn == "")
+                GroupEditParameters groupEditParameters = new GroupEditParameters { OldGroupDn = actGroup.Name, NewGroupDn = newGroupName };
+                IRestResponse<string> middlewareServerResponse = await middlewareClient.UpdateGroup(groupEditParameters);
+
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == "")
                 {
                     DisplayMessageInUi(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
                 }
                 else
                 {
+                    string newDn = middlewareServerResponse.Data;
                     int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
                     groups[changedGroup].Dn = newDn;
                     groups[changedGroup].Name = newGroupName;
@@ -444,8 +450,9 @@
         {
             foreach(string roleName in group.Roles)
             {
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUserToRole(group.Dn, roles.Find(x => x.Name == roleName).Dn, userConfig.User.Jwt);
-                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userAdded") == false))
+                RoleAddDeleteUserParameters addGroupToRoleParameters = new RoleAddDeleteUserParameters { Role = roles.Find(x => x.Name == roleName).Dn, UserDn = group.Dn };
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(addGroupToRoleParameters);
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5246"), true);
                 }
@@ -478,8 +485,9 @@
         try
         {
             // delete group from Ldap
-            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.DeleteGroup(actGroup.Name, userConfig.User.Jwt);
-            if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("groupDeleted") == false)
+            GroupAddDeleteParameters groupDeleteParameters = new GroupAddDeleteParameters { GroupDn = actGroup.Name };
+            IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteGroup(groupDeleteParameters);
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
                 DisplayMessageInUi(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
             }
@@ -525,8 +533,9 @@
             // add user to group in LDAP
             try
             {
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUserToGroup(user.Dn, actGroup.Dn, userConfig.User.Jwt);
-                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userAdded") == false))
+                GroupAddDeleteUserParameters groupAddParameters = new GroupAddDeleteUserParameters { UserDn = userDn, GroupDn = actGroup.Name };
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(groupAddParameters);
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5242"), true);
                 }
@@ -552,8 +561,9 @@
             // remove user from group in LDAP
             try
             {
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.RemoveUserFromGroup(userDn, actGroup.Dn, userConfig.User.Jwt);
-                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userRemoved") == false))
+                GroupAddDeleteUserParameters removeUserFromGroupParameters = new GroupAddDeleteUserParameters { GroupDn = actGroup.Dn, UserDn = userDn };
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromGroup(removeUserFromGroupParameters);
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5243"), true);
                 }

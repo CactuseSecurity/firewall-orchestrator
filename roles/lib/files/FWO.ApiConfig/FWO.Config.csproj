@@ -5,11 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.12.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.13.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
     <ProjectReference Include="..\FWO_API_Client\FWO.ApiClient.csproj" />
     <ProjectReference Include="..\FWO_Config\FWO.Config.File.csproj" />
     <ProjectReference Include="..\FWO_Logging\FWO.Logging.csproj" />

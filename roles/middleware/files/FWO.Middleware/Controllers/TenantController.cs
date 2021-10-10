@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Data;
 using FWO.ApiClient;
 using FWO.Logging;
+using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,16 +29,10 @@ namespace FWO.Middleware.Controllers
             this.ldaps = ldaps;
         }
 
-        public class AddDeleteTenantParameters
-        {
-            // [DefaultValue("HelloWorld")]
-            public string Dn { get; set; } // = "HelloWorld"
-        }
-
         // POST api/<TenantController>
         [HttpPost]
         [Authorize(Roles = "admin")]
-        public async Task<bool> Post([FromBody] AddDeleteTenantParameters tenant)
+        public async Task<bool> Post([FromBody] TenantAddDeleteParameters tenant)
         {
             bool tenantAdded = false;
             string tenantDn = tenant.Dn;
@@ -62,7 +57,7 @@ namespace FWO.Middleware.Controllers
         // DELETE api/<TenantController>/5
         [HttpDelete]
         [Authorize(Roles = "admin")]
-        public async Task<bool> Delete([FromBody] AddDeleteTenantParameters tenant)
+        public async Task<bool> Delete([FromBody] TenantAddDeleteParameters tenant)
         {
             bool tenantDeleted = false;
             string tenantDn = tenant.Dn;

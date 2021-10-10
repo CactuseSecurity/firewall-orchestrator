@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using FWO.Logging;
 using FWO.Config;
-using FWO.Middleware.Client;
 using FWO.ApiClient;
 using FWO.ApiConfig.Data;
 using FWO.ApiClient.Queries;
@@ -18,7 +17,7 @@ namespace FWO.ApiConfig
         /// <summary>
         /// Internal connection to auth server. Used to connect with api server.
         /// </summary>
-        private readonly MiddlewareClient authClient;
+        //private readonly MiddlewareClient authClient;
 
         /// <summary>
         /// Internal connection to api server. Used to get/edit config data.
@@ -62,7 +61,7 @@ namespace FWO.ApiConfig
             ConfigFile config = new ConfigFile();
             productVersion = config.ProductVersion;
 
-            authClient = new MiddlewareClient(config.MiddlewareServerUri);
+            //authClient = new MiddlewareClient(config.MiddlewareServerUri);
             apiConnection = new APIConnection(config.ApiServerUri);
             apiConnection.SetAuthHeader(jwt);
             

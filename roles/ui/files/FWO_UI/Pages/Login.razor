@@ -1,3 +1,4 @@
+@using FWO.Middleware.RequestParameters
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using System.Net
 @using FWO.Ui.Auth
@@ -5,6 +6,7 @@
 @using FWO.Middleware.Client
 @using FWO.ApiConfig
 @using FWO.Ui.Services
+@using RestSharp
 
 @inject MiddlewareClient middlewareClient
 @inject ProtectedSessionStorage sessionStorage
@@ -136,13 +138,15 @@
             try
             {
                 // There is no jwt in session storage. Get one from auth module.
-                MiddlewareServerResponse apiAuthResponse = await middlewareClient.AuthenticateUser(Username, Password);
+                AuthenticationTokenGetParameters authenticationParameters = new AuthenticationTokenGetParameters { Username = Username, Password = Password };
+                IRestResponse<string> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
 
-                if (apiAuthResponse.Status == HttpStatusCode.OK)
+                if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
                 {
                     Log.WriteAudit("AuthenticateUser", $"user {Username} successfully authenticated");
 
-                    string jwt = apiAuthResponse.GetResult<string>("jwt");
+                    string jwt = apiAuthResponse.Data;
+                    middlewareClient.SetAuthenticationToken(jwt);
 
                     // Save it in session storage.
                     await sessionStorage.SetAsync("jwt", jwt);
@@ -161,13 +165,13 @@
                 else
                 {
                     // There was an error trying to authenticate the user. Probably invalid credentials
-                    if (apiAuthResponse.Status == HttpStatusCode.PreconditionFailed)
+                    if (apiAuthResponse.StatusCode == HttpStatusCode.PreconditionFailed)
                     {
                         errorMessage = userConfig.GetText("E0011");
                     }
                     else
-                    {
-                        errorMessage = userConfig.GetApiText(apiAuthResponse.Error);
+                    {               
+                        errorMessage = userConfig.GetApiText(apiAuthResponse.ErrorException.Message);
                     }
 
                     // Visualisize there was an error by making border of inputboxes red

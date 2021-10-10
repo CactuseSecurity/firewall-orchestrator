@@ -5,6 +5,8 @@
 @using FWO.ApiClient
 @using FWO.ApiConfig
 @using FWO.Middleware.Client
+@using FWO.Middleware.RequestParameters
+@using RestSharp
 
 @page "/settings/tenants"
 @attribute [Authorize(Roles = "admin, auditor")]
@@ -316,8 +318,9 @@
             else
             {
                 // add tenant in local Ldap
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddTenant(actTenant.Name, userConfig.User.Jwt);
-                if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("tenantAdded") == false)
+                TenantAddDeleteParameters addTenantParameters = new TenantAddDeleteParameters { Dn = actTenant.Name };
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddTenant(addTenantParameters);
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_tenant_ldap"), userConfig.GetText("E5281"), true);
                 }
@@ -379,8 +382,9 @@
         try
         {
             // delete tenant from Ldap
-            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.DeleteTenant(tenant.Name, userConfig.User.Jwt);
-            if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("tenantDeleted") == false)
+            TenantAddDeleteParameters deleteTenantParameters = new TenantAddDeleteParameters { Dn = actTenant.Name };
+            IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
                 DisplayMessageInUi(null, userConfig.GetText("delete_tenant_ldap"), userConfig.GetText("E5282"), true);
             }

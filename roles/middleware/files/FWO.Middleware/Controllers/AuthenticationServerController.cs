@@ -10,6 +10,8 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Text.Json.Serialization;
+using FWO.Middleware.RequestParameters;
+using FWO.Api.Data;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -45,46 +47,10 @@ namespace FWO.Middleware.Controllers
             return "value";
         }
 
-        public class LdapAddParameters
-        {
-            [JsonPropertyName("address")]
-            public string Address {  get; set; }
-
-            [JsonPropertyName("port")]
-            public string Port { get; set; } = "636";
-
-            [JsonPropertyName("searchUser")]
-            public string SearchUser { get; set; }
-
-            [JsonPropertyName("tls")]
-            public string Tls { get; set; }
-
-            [JsonPropertyName("tenantLevel")]
-            public string TenantLevel { get; set; }
-
-            [JsonPropertyName("searchUserPwd")]
-            public string SearchUserPwd { get; set; }
-
-            [JsonPropertyName("searchpathForUsers")]
-            public string SearchpathForUsers { get; set; }
-
-            [JsonPropertyName("searchpathForRoles")]
-            public string SearchpathForRoles { get; set; }
-
-            [JsonPropertyName("writeUser")]
-            public string WriteUser { get; set; }
-
-            [JsonPropertyName("writeUserPwd")]
-            public string WriteUserPwd { get; set; }
-
-            [JsonPropertyName("tenantId")]
-            public string TenantId { get; set; }
-        }
-
         // PUT api/<LdapController>/5
         [HttpPost]
         [Authorize(Roles = "admin")]
-        public async Task<Ldap> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
+        public async Task<UiLdapConnection> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
         {
             // Create Api connection with given jwt
             APIConnection apiConnection = new APIConnection(apiUri, "bearer");

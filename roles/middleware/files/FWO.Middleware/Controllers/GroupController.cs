@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Data;
 using FWO.Logging;
+using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,12 +24,6 @@ namespace FWO.Middleware.Controllers
         public GroupController(List<Ldap> ldaps)
         {
             this.ldaps = ldaps;
-        }
-
-        public class GroupGetParameters
-        {
-            public string LdapHostname {  get; set; }
-            public string SearchPattern { get; set; }
         }
 
         [HttpGet]
@@ -81,11 +76,6 @@ namespace FWO.Middleware.Controllers
 
             // Return status and result
             return allGroups.ToArray();
-        }
-
-        public class GroupAddDeleteParameters
-        {
-            public string GroupDn { get; set; }
         }
 
         // GET: GroupController/Create
@@ -148,12 +138,6 @@ namespace FWO.Middleware.Controllers
             return result;
         }
 
-        public class GroupEditParameters
-        {
-            public string OldGroupDn { get; set; }
-            public string NewGroupDn { get; set; }
-        }
-
         // POST: GroupController/Edit/5
         [HttpPut]
         [Authorize(Roles = "admin")]
@@ -179,12 +163,6 @@ namespace FWO.Middleware.Controllers
 
             // Return status and result
             return groupUpdated;
-        }
-
-        public class GroupAddDeleteUserParameters
-        {
-            public string UserDn { get; set; }
-            public string GroupDn { get; set; }
         }
 
         // GET: GroupController/

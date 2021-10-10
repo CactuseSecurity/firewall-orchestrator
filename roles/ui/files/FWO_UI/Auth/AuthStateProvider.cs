@@ -1,11 +1,11 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Authorization;
 using FWO.ApiConfig;
 using FWO.ApiClient;
 using FWO.Ui.Services;
+using FWO.Middleware.Client;
 
 namespace FWO.Ui.Auth
 {

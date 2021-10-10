@@ -12,7 +12,6 @@ namespace FWO.Middleware.Client
     internal class RequestSender
     {
         readonly HttpClient httpClient;
-        readonly HttpClientHandler httpClientHandler;
         readonly string middlewareServerUri;
 
         public RequestSender(string middlewareServerUri)

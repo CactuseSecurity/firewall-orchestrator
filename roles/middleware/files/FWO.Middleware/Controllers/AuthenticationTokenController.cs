@@ -21,10 +21,6 @@ namespace FWO.Middleware.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
         private readonly APIConnection apiConnection;
-        private int tenantLevel = 1;
-        private int? fixedTenantId;
-        private bool internalLdap = false;
-        private int ldapId = 0;
 
         public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, APIConnection apiConnection)
         {
@@ -43,13 +39,19 @@ namespace FWO.Middleware.Controllers
         [HttpGet]
         public async Task<ActionResult<string>> GetAsync([FromBody] AuthenticationTokenGetParameters parameters)
         {
-            string username = parameters.Username;
-            string password = parameters.Password;
-
             try
             {
-                // Create User from given parameters / If user no login data provided => anonymous login
-                UiUser user = (username == null && password == null) ? null : new UiUser { Name = username, Password = password };
+                UiUser user = null;
+
+                if (parameters != null)
+                {
+                    string username = parameters.Username;
+                    string password = parameters.Password;
+
+                    // Create User from given parameters / If user no login data provided => anonymous login
+                    if (username != null && password != null)
+                        user = new UiUser { Name = username, Password = password };
+                }
 
                 AuthManager authManager = new AuthManager(jwtWriter, ldaps, apiConnection);
 
@@ -161,7 +163,7 @@ namespace FWO.Middleware.Controllers
             throw new Exception("A0002 Invalid credentials");
         }
 
-        private async Task<List<string>> GetRoles(UiUser user)
+        public async Task<List<string>> GetRoles(UiUser user)
         {
             List<string> dnList = new List<string>();
             dnList.Add(user.Dn);
@@ -206,7 +208,7 @@ namespace FWO.Middleware.Controllers
             return UserRoles;
         }
 
-        private async Task<Tenant> GetTenantAsync(UiUser user)
+        public async Task<Tenant> GetTenantAsync(UiUser user)
         {
             // TODO: All three api calls in this method can be shortened to to a single query / api call
 

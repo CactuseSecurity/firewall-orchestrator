@@ -478,14 +478,14 @@
     {
         try
         {
-            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetInternalGroups(userConfig.User.Jwt);
-            if (middlewareServerResponse.Status != HttpStatusCode.OK)
+            IRestResponse<KeyValuePair<string, List<string>>[]> middlewareServerResponse = await middlewareClient.GetInternalGroups();
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
             else
             {
-                foreach (var ldapUserGroup in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<string>>>>("allGroups"))
+                foreach (var ldapUserGroup in middlewareServerResponse.Data)
                 {
                     UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
                     foreach (var userDn in ldapUserGroup.Value)
@@ -507,14 +507,15 @@
     {
         try
         {
-            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.GetAllRoles(userConfig.User.Jwt);
-            if (middlewareServerResponse.Status != HttpStatusCode.OK)
+
+            IRestResponse<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> middlewareServerResponse = await middlewareClient.GetAllRoles();
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
             else
             {
-                foreach (var ldapRole in middlewareServerResponse.GetResult<List<KeyValuePair<string, List<KeyValuePair<string, string>>>>>("allRoles"))
+                foreach (var ldapRole in middlewareServerResponse.Data)
                 {
                     Role role = new Role() { Dn = ldapRole.Key, Name = (new DistName(ldapRole.Key)).Role };
                     foreach (var roleAttr in ldapRole.Value)
@@ -663,11 +664,12 @@
 
                 if (CheckValues())
                 {
-                    SynchronizeUserData(actUser); 
+                    SynchronizeUserData(actUser);
 
                     // insert new user to ldap
-                    MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUser(actUser.LdapConnection.Host(), actUser.Dn, actUser.Password, actUser.Email, userConfig.User.Jwt);
-                    if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("userAdded") == false)
+                    UserAddParameters parameters = new UserAddParameters {Email = actUser.Email, LdapHostname = actUser.LdapConnection.Host(), Password = actUser.Password, UserDn = actUser.Dn };
+                    IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUser(parameters);
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                     {
                         DisplayMessageInUi(null, userConfig.GetText("add_user_ldap"), userConfig.GetText("E5213"), true);
                     }
@@ -686,8 +688,9 @@
             else
             {
                 // Update existing user in ldap --> currently only email
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.UpdateUser(actUser.LdapConnection.Host(), actUser.Dn, actUser.Email, userConfig.User.Jwt);
-                if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("userUpdated") == false)
+                UserEditParameters parameters = new UserEditParameters {Email = actUser.Email, LdapHostname = actUser.LdapConnection.Host(), UserDn = actUser.Dn };
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("update_user_ldap"), userConfig.GetText("E5214"), true);
                 }
@@ -737,8 +740,9 @@
         {
             foreach(string groupName in user.Groups)
             {
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUserToGroup(user.Dn, groups.Find(x => x.Name == groupName).Dn, userConfig.User.Jwt);
-                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userAdded") == false))
+                GroupAddDeleteUserParameters addUserParameters = new GroupAddDeleteUserParameters { GroupDn = groups.Find(x => x.Name == groupName).Dn, UserDn = user.Dn };
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
+                if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5242"), true);
                 }
@@ -756,8 +760,9 @@
         {
             foreach(string roleName in user.Roles)
             {
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.AddUserToRole(user.Dn, roles.Find(x => x.Name == roleName).Dn, userConfig.User.Jwt);
-                if ((middlewareServerResponse.Status != HttpStatusCode.OK) || (middlewareServerResponse.GetResult<bool>("userAdded") == false))
+                RoleAddDeleteUserParameters parameters = new RoleAddDeleteUserParameters { Role = roles.Find(x => x.Name == roleName).Dn, UserDn = user.Dn };
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
+                if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5255"), true);
                 }
@@ -792,8 +797,9 @@
         try
         {
             // delete user from Ldap
-            MiddlewareServerResponse middlewareServerResponse = await middlewareClient.DeleteUser(actUser.LdapConnection.Host(), actUser.Dn, userConfig.User.Jwt);
-            if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("userDeleted") == false)
+            UserDeleteParameters parameters = new UserDeleteParameters { LdapHostname = actUser.LdapConnection.Host(), UserDn = actUser.Dn };
+            IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
                 DisplayMessageInUi(null, userConfig.GetText("delete_user_ldap"), userConfig.GetText("E5216"), true);
             }
@@ -855,14 +861,15 @@
             }
             else
             {
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.SetPassword(actUser.LdapConnection.Host(), actUser.Dn, actUser.Password, userConfig.User.Jwt);
-                if (middlewareServerResponse.Status != HttpStatusCode.OK)
+                UserResetPasswordParameters parameters = new UserResetPasswordParameters { LdapHostname = actUser.LdapConnection.Host(), NewPassword = actUser.Password, UserDn = actUser.Dn };
+                IRestResponse<string> middlewareServerResponse = await middlewareClient.SetPassword(parameters);
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
                 }
                 else
                 {
-                    errorMsg = middlewareServerResponse.GetResult<string>("errorMsg");
+                    errorMsg = middlewareServerResponse.Data;
                     if(errorMsg != "")
                     {
                         DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
@@ -899,8 +906,9 @@
         {
             try
             {
-                MiddlewareServerResponse middlewareServerResponse = await middlewareClient.RemoveUserFromAllEntries(user.Dn, userConfig.User.Jwt);
-                if (middlewareServerResponse.Status != HttpStatusCode.OK || middlewareServerResponse.GetResult<bool>("userRemoved") == false)
+                UserDeleteAllEntriesParameters parameters = new UserDeleteAllEntriesParameters { UserDn = user.Dn };
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromAllEntries(parameters);
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
                     showSampleRemoveButton = true;

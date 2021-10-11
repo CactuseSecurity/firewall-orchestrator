@@ -62,7 +62,7 @@ namespace FWO.Middleware.Controllers
             }
             catch (Exception e)
             {
-                return Problem(e.Message);
+                return BadRequest(e.Message);
             }
         }
     }

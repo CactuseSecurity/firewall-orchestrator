@@ -21,6 +21,7 @@ using FWO.Logging;
 using FWO.Ui.Services;
 using BlazorTable;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using RestSharp;
 
 namespace FWO.Ui
 {
@@ -56,13 +57,13 @@ namespace FWO.Ui
 
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             APIConnection apiConn = new APIConnection(ApiUri);
-            MiddlewareServerResponse createJWTResponse = middlewareClient.CreateInitialJWT().Result;
-            if (createJWTResponse.Status == HttpStatusCode.BadRequest) 
+            IRestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+            if (createJWTResponse.StatusCode != HttpStatusCode.OK) 
             {
                 Log.WriteError("Middleware Server Connection", $"Error while authenticating as anonymous user from UI.");
                 Environment.Exit(1);
             }
-            string jwt = createJWTResponse.GetResult<string>("jwt");
+            string jwt = createJWTResponse.Data;
             apiConn.SetAuthHeader(jwt);
             //((AuthStateProvider)AuthService).AuthenticateUser(jwt);
             

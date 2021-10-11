@@ -3,6 +3,8 @@ using System.Net;
 using System.Threading.Tasks;
 using FWO.ApiConfig;
 using FWO.Middleware.Client;
+using FWO.Middleware.RequestParameters;
+using RestSharp;
 
 namespace FWO.Ui.Services
 {
@@ -23,14 +25,15 @@ namespace FWO.Ui.Services
                 if(doChecks(oldPassword, newPassword1, newPassword2, userConfig))
                 {
                     // Ldap call
-                    MiddlewareServerResponse middlewareServerResponse = await middlewareClient.ChangePassword(userConfig.User.Dn, oldPassword, newPassword1, userConfig.User.Jwt);
-                    if (middlewareServerResponse.Status != HttpStatusCode.OK)
+                    UserChangePasswordParameters parameters = new UserChangePasswordParameters { LdapHostname = userConfig.User.LdapConnection.Host(), NewPassword = newPassword1, OldPassword = oldPassword, UserDn = userConfig.User.Dn };
+                    IRestResponse<string> middlewareServerResponse = await middlewareClient.ChangePassword(parameters);
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {
                         errorMsg = "internal error";
                     }
                     else
                     {
-                        errorMsg = middlewareServerResponse.GetResult<string>("errorMsg");
+                        errorMsg = middlewareServerResponse.Data;
                     }
                 }
             }

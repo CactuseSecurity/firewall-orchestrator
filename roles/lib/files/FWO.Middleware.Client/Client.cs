@@ -18,7 +18,8 @@ namespace FWO.Middleware.Client
         public MiddlewareClient(string middlewareServerUri)
         {
             restClient = new RestClient(middlewareServerUri);
-            requestSender = new RequestSender(middlewareServerUri);
+            //restClient.BaseUrl = new Uri("/api";
+            //requestSender = new RequestSender(middlewareServerUri);
         }
 
         public void SetAuthenticationToken(string jwt)
@@ -36,6 +37,7 @@ namespace FWO.Middleware.Client
         public async Task<IRestResponse<string>> CreateInitialJWT()
         {
             IRestRequest request = new RestRequest("AuthenticationToken", Method.GET, DataFormat.Json);
+            request.AddJsonBody(new object());
             return await restClient.ExecuteAsync<string>(request);
         }
 

@@ -5,20 +5,30 @@ Use a tool like insomnia for testing.
 Use the API to write the whole firewall config as JSON into import_config). The format is described here.
 Currently CPR8x can be importer both via PERL and python importer without changing source code.
 
+Python Import in roles/importer/files/importer/import_mgm.py:
+```python
+    error_count = fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, { "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import })
+```
+
 ## JSON structure overview
 
+### Config in table import_config
 ```json
 {
     "import_id": 1,
     "mgm_id": 12,
-    "config": {
-        "network_objects": [...],
-        "network_services": [...],
-        "users": [...],
-        "network_zones": [...],
-        "rules": [...],
-        "nat_rules": [...]
-    }
+    "config": config2import
+}
+```
+### config2import
+```json
+{
+    "network_objects": [...],
+    "network_services": [...],
+    "users": [...],
+    "network_zones": [...],
+    "rules": [...],
+    "nat_rules": [...]
 }
 ```
 
@@ -31,23 +41,6 @@ Currently CPR8x can be importer both via PERL and python importer without changi
 - the order of fields is arbitrary
 - _color can be any one listed in roles/database/files/csv/color.csv
 - action and track types can be found (and enhanced) in roles/database/files/sql/creation/fworch-fill-stm.sql
-
-## Future changes
-- network_services.ip_proto should be integer instead of string
-- network_objects.obj_ip_end can be null for single ip objects instead of repeating the same ip
-- The following fields might be dropped in later versions:
-  - network_objects.obj_sw
-  - network_objects.obj_location
-  - network_objects.obj_member_names - could be derived from obj_member_refs
-  - network_objects.last_change_admin
-  - network_objects.last_change_time
-  - network_services.svc_prod_specific - seems to be just a redundant copy of svc_typ
-  - network_services.last_change_admin
-  - network_services.last_change_time
-  - network_services.svc_port_end - range could be entered as string "112-123"
-  - network_services.svc_source_port_end - range could be entered as string "112-123"
-  - users.last_change_admin
-  - rules.rule_last_change_admin
 
 ## network_objects
 
@@ -173,7 +166,24 @@ Currently CPR8x can be importer both via PERL and python importer without changi
     "rule_comment": null,                                   // string: optional nat rule comment
     "rule_head_text": null,                                 // string: for section headers this is the field to use
     "rule_from_zone": null,                                 // string: source zone (if applicable) of the nat rule
-    "rule_to_zone": null                                     // string: destination zone (if applicable) of the nat rule
+    "rule_to_zone": null                                    // string: destination zone (if applicable) of the nat rule
 }
 ```
 - "original" is the keyword for no translation - a special object needs to be created
+
+## Envisioned Future Changes
+- network_services.ip_proto should be integer instead of string
+- network_objects.obj_ip_end can be null for single ip objects instead of repeating the same ip
+- The following fields might be dropped in later versions:
+  - network_objects.obj_sw
+  - network_objects.obj_location
+  - network_objects.obj_member_names - could be derived from obj_member_refs
+  - network_objects.last_change_admin
+  - network_objects.last_change_time
+  - network_services.svc_prod_specific - seems to be just a redundant copy of svc_typ
+  - network_services.last_change_admin
+  - network_services.last_change_time
+  - network_services.svc_port_end - range could be entered as string "112-123"
+  - network_services.svc_source_port_end - range could be entered as string "112-123"
+  - users.last_change_admin
+  - rules.rule_last_change_admin

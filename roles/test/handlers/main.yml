@@ -64,4 +64,3 @@
     sample_role_purpose: delete
     ldif_changetype: delete
   when: "'middlewareserver' in group_names"
-  listen: "test importer handler"

@@ -788,6 +788,10 @@ INSERT INTO txt VALUES ('get_single_dev_rules', 'German', 	'Alle aktuellen Regel
 INSERT INTO txt VALUES ('get_single_dev_rules', 'English', 	'Get all current rules of gateway with ID 1');
 INSERT INTO txt VALUES ('parameters',           'German', 	'Parameter');
 INSERT INTO txt VALUES ('parameters',           'English',  'Parameters');
+INSERT INTO txt VALUES ('introduction',         'German',   'Einführung');
+INSERT INTO txt VALUES ('introduction',         'English',  'Introduction');
+INSERT INTO txt VALUES ('architecture',         'German',   'Die Firewall Orchestrator Architektur');
+INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrator Architecture');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)

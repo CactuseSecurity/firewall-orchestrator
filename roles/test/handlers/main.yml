@@ -15,6 +15,7 @@
         DO $do$ BEGIN 
         DELETE FROM device WHERE dev_name='{{ test_fortigate_name }}'; 
         END $do$ 
+    listen: "test importer handler"
 
   - name: delete test fortinet management
     postgresql_query:
@@ -22,7 +23,8 @@
       query: >
         DO $do$ BEGIN 
         DELETE FROM management WHERE mgm_name='{{ test_fortigate_name }}'; 
-        END $do$ 
+        END $do$
+    listen: "test importer handler"
 
   - name: delete tenant tenant1_{{ sample_postfix }}
     postgresql_query:
@@ -31,6 +33,7 @@
         DO $do$ BEGIN 
         DELETE FROM tenant WHERE tenant_name='tenant1_{{ sample_postfix }}'; 
         END $do$
+    listen: "test importer handler"
 
   - name: delete devices for tenant tenant1_{{ sample_postfix }}
     postgresql_query:
@@ -39,6 +42,7 @@
         DO $do$ BEGIN 
         DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_{{ sample_postfix }}') 
         END $do$
+    listen: "test importer handler"
 
   - name: delete tenant tenant2_{{ sample_postfix }}
     postgresql_query:
@@ -47,10 +51,10 @@
         DO $do$ BEGIN 
         DELETE FROM tenant WHERE tenant_name='tenant2_{{ sample_postfix }}'; 
         END $do$
+    listen: "test importer handler"
 
   become: yes
   become_user: postgres
-  listen: "test importer handler"
 
 - name: delete ldap test data
   include_role:

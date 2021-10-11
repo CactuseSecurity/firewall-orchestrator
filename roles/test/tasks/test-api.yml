@@ -81,7 +81,7 @@
     headers:
       Content-Type: application/json
     body:
-      Username: user1_demo
+      Username: user1_{{ test_postfix }}
       Password: cactus1
     body_format: json
     validate_certs: false

@@ -31,7 +31,6 @@
     sample_fortigate_name: "{{ test_fortigate_name }}"
     sample_config_user: fworchtest
     sample_config_user_home: "/home/{{ sample_config_user }}"
-#    import_sample_server: localhost
   when: "'sampleserver' in group_names"
 
 - name: include test auth data
@@ -40,12 +39,6 @@
   vars:
     sample_postfix: "{{ test_postfix }}"
     sample_role_purpose: test
-#    middleware_ldif_dir: "{{ fworch_home }}/etc/ldif" #gebraucht
-#    openldap_url: "ldaps://{{ openldap_server }}" #gebraucht
-#    openldap_server: "127.0.0.1"
-#    openldap_superuser_dn: "cn=Manager,ou=systemuser,ou=user,{{ openldap_path }}" #gebraucht
-#    openldap_path: "dc=fworch,dc=internal"
-#    ldap_manager_pwd: "???" #kommt in Rolle middleware als setfact vor
   when: "'middlewareserver' in group_names"
 
 - name: database testing

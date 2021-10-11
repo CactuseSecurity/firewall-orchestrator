@@ -20,6 +20,8 @@ middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Se
 middleware_change_local_ldap: "yes"
 middleware_ldif_dir: "{{ fworch_home }}/etc/ldif"
 
+sample_role_purpose: demo
+
 # use static jwt generation test key if set to yes
 # only for testing, not for production environment
 testkeys: no

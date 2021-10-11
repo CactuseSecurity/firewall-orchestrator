@@ -10,10 +10,6 @@
     - ldap_conn_present
     - middleware_change_local_ldap
 
-- name: set add mode for creating ldap tree
-  set_fact:
-    ldif_changetype: add
-
 - name: copy the ldif templates to system once more (this time for adding entries)
   template:
     src: "{{ item }}"

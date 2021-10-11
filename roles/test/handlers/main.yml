@@ -7,25 +7,56 @@
   become: yes
   listen: "test importer handler"
 
-- name: delete test fortinet gateway
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN 
-      DELETE FROM device WHERE dev_name='{{ test_fortigate_name }}'; 
-      END $do$ 
+- block:
+  - name: delete test fortinet gateway
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM device WHERE dev_name='{{ test_fortigate_name }}'; 
+        END $do$ 
+
+  - name: delete test fortinet management
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM management WHERE mgm_name='{{ test_fortigate_name }}'; 
+        END $do$ 
+
+  - name: delete tenant tenant1_{{ sample_postfix }}
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM tenant WHERE tenant_name='tenant1_{{ sample_postfix }}'; 
+        END $do$
+
+  - name: delete devices for tenant tenant1_{{ sample_postfix }}
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_{{ sample_postfix }}') 
+        END $do$
+
+  - name: delete tenant tenant2_{{ sample_postfix }}
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        DO $do$ BEGIN 
+        DELETE FROM tenant WHERE tenant_name='tenant2_{{ sample_postfix }}'; 
+        END $do$
+
   become: yes
   become_user: postgres
   listen: "test importer handler"
 
-- name: delete test fortinet management
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN 
-      DELETE FROM management WHERE mgm_name='{{ test_fortigate_name }}'; 
-      END $do$ 
-  become: yes
-  become_user: postgres
-  listen: "test importer handler"
-
+- name: delete ldap test data
+  include_role:
+    name: sample-auth-data
+  vars:
+    sample_postfix: "{{ test_postfix }}"
+    sample_role_purpose: delete
+    ldif_changetype: delete
+  when: "'middlewareserver' in group_names"

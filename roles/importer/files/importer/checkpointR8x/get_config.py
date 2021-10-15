@@ -96,7 +96,6 @@ else:
             # changing layer name to individual combination of global and domain rule
             # this is necessary for multiple references to global layer
             current_layer_json['layername'] = layer
-            # current_layer['name'] = layer
             logging.debug ( "get_config - getting domain rule layer: " + show_params_rules['name'] )
             domain_rules = getter.get_layer_from_api_as_dict (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
             # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
@@ -109,11 +108,14 @@ else:
                             current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
                             # logging.debug ("substituted domain rules with chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
         # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
-        # config_json += current_layer_json + ",\n"
         config_json['rulebases'].append(current_layer_json)
+        # getting NAT rules
+        # package_name = 'nat_rules'
+        # show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': package_name }
+        # logging.debug ( "get_config - getting nat rules for package: " + package_name )
+        # config_json['nat_rules'] = getter.get_nat_rules_from_api_as_dict (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
 
     # leaving rules, moving on to objects
-
     config_json["object_tables"] = []
     show_params_objs = {'limit':limit,'details-level': details_level}
 

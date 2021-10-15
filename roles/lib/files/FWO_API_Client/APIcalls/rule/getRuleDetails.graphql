@@ -29,6 +29,7 @@ query listRulesDetails(
           active: { _eq: true }
           rule_src: { _in: $ruleSrcName }
           rule_froms: { object: { obj_ip: { _in: $ruleSrcIp } } }
+          access_rule: {_eq: true}
         }
         order_by: { rule_num_numeric: asc }
       ) {

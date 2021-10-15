@@ -139,14 +139,29 @@ Python Import in roles/importer/files/importer/import_mgm.py:
     "rule_comment": null,                                   // string: optional rule comment
     "rule_head_text": null,                                 // string: for section headers this is the field to use
     "rule_from_zone": null,                                 // string: source zone (if applicable) of the rule
-    "rule_to_zone": null                                    // string: destination zone (if applicable) of the rule
+    "rule_to_zone": null,                                   // string: destination zone (if applicable) of the rule
+    "rule_type": "access"                                   // string: type of the nat rule: "access|combined|original|xlate", default "access"
 }
 ```
 - rule_track can be any of log, none, alert, userdefined, mail, account, userdefined 1, userdefined 2, userdefined 3, snmptrap, log count, count, log alert, log alert count, log alert count alarm, log count alarm, count alarm, all, all start, utm, utm start, network log
 - rule_action can be any of accept, drop, deny, access, client encrypt, client auth, reject, encrypt, user auth, session auth, permit, permit webauth, redirect, map, permit auth, tunnel l2tp, tunnel vpn-group, tunnel vpn, actionlocalredirect, inner layer
 
 ## nat_rules
+- "original" is the keyword for no translation - a special object needs to be created for this
+- algorithm for importing NAT rules: 
+  - a NAT rule is stored as two rules, both of which have nat_rule = true set
+  - the first rule contains the packet match information (original packet) and a pointer (in xlate_rule) to the translation rule
+  - the translation rule has access_rule==false and xlate_rule==null set and defines how the packet is to be translated
+  - for check point the NAT rules are pure NAT rules, meaning that access_rule is false
+  - for other systems a rule can both be an access and an access rule
+- rule_action for the xlate_rule can be any of the following (new) values: hide, hide_pool, static_src, static_dst, static_src_and_dst
 
+- all existing reporting needs to be restricted to access rules (exception receritfication)
+- recertification should be possible for both NAT and access rules (should be configurable both per tenant and globally)
+
+The rest of this chapter describes old designs which are no longer valid.
+
+### variant 1 - simple csv-like 
 ```json
 {
     "control_id": 1,                                        // bigint: ID of the current import
@@ -169,7 +184,123 @@ Python Import in roles/importer/files/importer/import_mgm.py:
     "rule_to_zone": null                                    // string: destination zone (if applicable) of the nat rule
 }
 ```
-- "original" is the keyword for no translation - a special object needs to be created
+### variant 2 - readable jsonish close to original nat rules
+```json
+{
+    "control_id": 1,                                        // bigint: ID of the current import
+    "rulebase_name": "global nat rules",                    // string: specifies the nat rulebase name (all nat rules are contained in a single json struct)
+    "rule_num": 1,                                          // integer: nat rule number for ordering
+    "rule_uid": "bcc044f6-2a4f-459b-b78c-9e7afee92621",     // string: unique rule id
+    "xlate_action": "hide",
+    "original_packet_match":  {
+        "source": "ip_4.5.6.7|group_office_clients",
+        "source_refs": "97aeb369-9aea-11d5-bd16-0090272ccb35|97aeb369-9aea-11d5-bd16-0090272ccb38",
+        "destination": "ip_1.3.45.5",
+        "destination_refs": "97aeb369-9aea-11d5-bd16-0090272ccb35",
+        "service": "tcp_13343|tcp_3232",
+        "service_refs": "12aeb369-9aea-11d5-bd16-0090272ccb35|12aeb369-9aea-11d5-bd16-0090272ccb38"
+    },
+    "xlate_packet":  {
+        "source": "ip_123.1.0.1",
+        "source_refs": "76aeb369-9aea-11d5-bd16-0090272ccb33",
+        "destination": "original",
+        "destination_refs": "original",
+        "service": "original",
+        "service_refs": "original"
+    },
+    "rule_disabled": false,                                 // boolean: is nat rule disabled
+    "rule_installon": null,                                 // string: list of gateways this nat rule should be applied to
+    "rule_ruleid": null,                                    // string: id (unique within gateway, but not globally)
+    "rule_name": null,                                      // string: optional name of the nat rule
+    "rule_comment": null,                                   // string: optional nat rule comment
+    "rule_head_text": null,                                 // string: for section headers this is the field to use
+    "rule_from_zone": null,                                 // string: source zone (if applicable) of the nat rule
+    "rule_to_zone": null                                    // string: destination zone (if applicable) of the nat rule
+}
+```
+- xlate_action can be any of the following: hide, hide_pool, static_src, static_dst, static_src_and_dst
+
+#### final db rule tables
+```json
+
+```json
+{
+    "control_id": 1,                                        // bigint: ID of the current import
+    "rulebase_name": "FirstLayer shared with inline layer", // string: specifies the rulebase name (all rules are contained in a single json struct)
+    "rule_num": 1,                                          // integer: rule number for ordering
+    "rule_uid": "acc044f6-2a4f-459b-b78c-9e7afee92621",     // string: unique rule id
+    "rule_src": "user1@obj1|obj2",                          // string: list of source object names (if it contains user, use "@" as delimiter)
+    "rule_dst": "Any",                                      // string: list of destination network object names
+    "rule_svc": "Any",                                      // string: list of service names
+    "rule_track": "None",                                   // string: logging options, see below
+    "rule_action": "Inner Layer",                           // string: rule action options, see below
+    "rule_implied": false,                                  // boolean: is it an implied (check point) rule derived from settings
+    "rule_src_neg": false,                                  // boolean: is the source field negated
+    "rule_dst_neg": false,                                  // boolean: is the destination field negated
+    "rule_svc_neg": false,                                  // boolean: is the service field negated
+    "rule_disabled": false,                                 // boolean: is the whole rule disabled
+    "rule_src_refs": "9aa8e391-f811-4067-86f3-82646bd47d47@9aa8e391-f811-4067-86f3-82646bd47d40|2aa8e391-f811-4067-86f3-82646bd47d41", // string: source references
+    "rule_dst_refs": "97aeb369-9aea-11d5-bd16-0090272ccb30",// string: destination references
+    "rule_svc_refs": "97aeb369-9aea-11d5-bd16-0090272ccb30",// string: service references
+    "rule_time": null,                                      // string: any time restrictions of the rule
+    "rule_installon": null,                                 // string: list of gateways this rule should be applied to
+    "parent_rule_uid": null,                                // string: for layers, the uid of the rule of layer above
+    "rule_ruleid": null,                                    // string: rule id (unique within gateway, but not globally)
+    "rule_name": null,                                      // string: optional name of the rule
+    "rule_comment": null,                                   // string: optional rule comment
+    "rule_head_text": null,                                 // string: for section headers this is the field to use
+    "rule_from_zone": null,                                 // string: source zone (if applicable) of the rule
+    "rule_to_zone": null,                                   // string: destination zone (if applicable) of the rule
+    "access_rule": true,
+    "nat_rule": true,
+    "xlate_packet":  {
+        "source": "ip_123.1.0.1",
+        "source_refs": "76aeb369-9aea-11d5-bd16-0090272ccb33",
+        "destination": "original",
+        "destination_refs": "original",
+        "service": "original",
+        "service_refs": "original"
+    },
+}
+```
+
+#### final db rule tables with self ref to xlate rule
+```json
+
+```json
+{
+    "control_id": 1,                                        // bigint: ID of the current import
+    "rulebase_name": "FirstLayer shared with inline layer", // string: specifies the rulebase name (all rules are contained in a single json struct)
+    "rule_num": 1,                                          // integer: rule number for ordering
+    "rule_uid": "acc044f6-2a4f-459b-b78c-9e7afee92621",     // string: unique rule id
+    "rule_src": "user1@obj1|obj2",                          // string: list of source object names (if it contains user, use "@" as delimiter)
+    "rule_dst": "Any",                                      // string: list of destination network object names
+    "rule_svc": "Any",                                      // string: list of service names
+    "rule_track": "None",                                   // string: logging options, see below
+    "rule_action": "Inner Layer",                           // string: rule action options, see below
+    "rule_implied": false,                                  // boolean: is it an implied (check point) rule derived from settings
+    "rule_src_neg": false,                                  // boolean: is the source field negated
+    "rule_dst_neg": false,                                  // boolean: is the destination field negated
+    "rule_svc_neg": false,                                  // boolean: is the service field negated
+    "rule_disabled": false,                                 // boolean: is the whole rule disabled
+    "rule_src_refs": "9aa8e391-f811-4067-86f3-82646bd47d47@9aa8e391-f811-4067-86f3-82646bd47d40|2aa8e391-f811-4067-86f3-82646bd47d41", // string: source references
+    "rule_dst_refs": "97aeb369-9aea-11d5-bd16-0090272ccb30",// string: destination references
+    "rule_svc_refs": "97aeb369-9aea-11d5-bd16-0090272ccb30",// string: service references
+    "rule_time": null,                                      // string: any time restrictions of the rule
+    "rule_installon": null,                                 // string: list of gateways this rule should be applied to
+    "parent_rule_uid": null,                                // string: for layers, the uid of the rule of layer above
+    "rule_ruleid": null,                                    // string: rule id (unique within gateway, but not globally)
+    "rule_name": null,                                      // string: optional name of the rule
+    "rule_comment": null,                                   // string: optional rule comment
+    "rule_head_text": null,                                 // string: for section headers this is the field to use
+    "rule_from_zone": null,                                 // string: source zone (if applicable) of the rule
+    "rule_to_zone": null,                                   // string: destination zone (if applicable) of the rule
+    "access_rule": true,                                    // string: is this an access rule
+    "nat_rule": true,                                       // string: is this a NAT rule
+    "xlate_rule": 1234                                      // string: for NAT rules this is the link to the xlate rule which contains the translated fileds (src, dst, svc)
+}
+```
+- additional values for rule_action for xlate rules: hide, hide_pool, static_src, static_dst, static_src_and_dst
 
 ## Envisioned Future Changes
 - network_services.ip_proto should be integer instead of string

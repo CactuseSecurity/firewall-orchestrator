@@ -74,6 +74,10 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             logging.debug("parsing layer " + full_config_json['rulebases'][rb_id]['layername'])
             rule_num = parse_rule.parse_rulebase_json(
                 full_config_json['rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+            # now parse the nat rulebase
+            #rule_num = parse_rule.parse_nat_rulebase_json(
+            #    full_config_json['nat_rulebase'], target_rulebase, 'nat_rulebase', current_import_id, rule_num, section_header_uids, parent_uid)
+
         # copy users from full_config to config2import
         # also converting users from dict to array:
         config2import.update({'user_objects': []})

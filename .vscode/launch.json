@@ -99,9 +99,26 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m6",
-                "-d2",
-                "-l20"
+                "-m5",
+                "-d3",
+                "-l50"
+            ]
+        },
+        {
+            "name": "py-cpr8x-autodiscovery",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+              "-a192.168.100.110",
+              "-w/home/tim/secrets/cp_apiuser_pwd",
+              "-uitsecorg",
+              "-fjson"
             ]
         },
         {

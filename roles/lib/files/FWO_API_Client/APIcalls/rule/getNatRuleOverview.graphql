@@ -22,11 +22,12 @@ query listRulesOverview(
         limit: $limit
         offset: $offset
         where: {
+          nat_rule: {_eq: true}
+          xlate_rule: {_neq: null}
           active: { _eq: true }
           rule_src: { _in: $rule_src_name }
           rule_disabled: { _eq: false }
           rule_froms: { object: { obj_ip: { _in: $rule_src_ip } } }
-          access_rule: {_eq: true}
         }
         order_by: { rule_num_numeric: asc }
       ) {

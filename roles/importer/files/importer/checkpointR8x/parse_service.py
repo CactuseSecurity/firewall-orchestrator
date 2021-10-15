@@ -61,31 +61,40 @@ def csv_dump_svc_obj(svc_obj, import_id):
 
 # collect_svcobjects writes svc info into global users dict
 def collect_svc_objects(object_table, svc_objects):
+    proto_map = {
+        'service-tcp': 6,
+        'service-udp': 17,
+        'service-icmp': 1
+    }
+    simple_obj_types = ['services-tcp','services-udp', 'services-dce-rpc','services-rpc','services-other','services-icmp','services-icmp6']
+
     if object_table['object_type'] in fwcommon.svc_obj_table_names:
-        proto = ''
         session_timeout = ''
         typ = 'undef'
-        proto = '0'
         if object_table['object_type'] == 'service-groups':
             typ = 'group'
-            proto = '0'
-        if object_table['object_type'] == 'services-tcp':
+        if object_table['object_type'] in simple_obj_types:
             typ = 'simple'
-            proto = '6'
-        if object_table['object_type'] == 'services-udp':
-            typ = 'simple'
-            proto = '17'
-        if object_table['object_type'] == 'services-dce-rpc' or object_table['object_type'] == 'services-rpc':
-            typ = 'simple'
-            proto = ''
-        if object_table['object_type'] == 'services-other':
-            typ = 'simple'
-            proto = '0'
-        if object_table['object_type'] == 'services-icmp' or object_table['object_type'] == 'services-icmp6':
-            typ = 'simple'
-            proto = '1'
+        # if object_table['object_type'] == 'services-tcp':
+        #     typ = 'simple'
+        # if object_table['object_type'] == 'services-udp':
+        #     typ = 'simple'
+        # if object_table['object_type'] == 'services-dce-rpc' or object_table['object_type'] == 'services-rpc':
+        #     typ = 'simple'
+        # if object_table['object_type'] == 'services-other':
+        #     typ = 'simple'
+        # if object_table['object_type'] == 'services-icmp' or object_table['object_type'] == 'services-icmp6':
+        #     typ = 'simple'
         for chunk in object_table['object_chunks']:
             for obj in chunk['objects']:
+                if 'type' in obj and obj['type'] in proto_map:
+                    proto = proto_map[obj['type']]
+                elif 'ip-protocol' in obj:
+                    proto = obj['ip-protocol']
+                # elif 'proto_map' in obj:
+                #     proto = obj['proto_map'][0] # cheating: simply picking the first of a list of protocols
+                else:
+                    proto = 0
                 member_refs = ''
                 port = ''
                 port_end = ''
@@ -104,6 +113,8 @@ def collect_svc_objects(object_table, svc_objects):
                     rpc_nr = obj['interface-uuid']
                 if 'program-number' in obj:
                     rpc_nr = obj['program-number']
+                # if 'ip_proto' in obj:
+                #     proto = int(obj['ip_proto'])
                 if 'port' in obj:
                     port = str(obj['port'])
                     port_end = port

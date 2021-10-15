@@ -158,6 +158,9 @@ Create table "rule"
 	"rule_create" BIGINT NOT NULL,
 	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
+	"access_rule" BOOLEAN Default TRUE,
+	"nat_rule" BOOLEAN Default FALSE,
+	"xlate_rule" BIGINT,
  primary key ("rule_id")
 );
 
@@ -740,6 +743,7 @@ Create table "import_rule"
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
 	"parent_rule_uid" Text,
+	"rule_type" Varchar Default 'access',
  primary key ("control_id","rule_id")
 );
 

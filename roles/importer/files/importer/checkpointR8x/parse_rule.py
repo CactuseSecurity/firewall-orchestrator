@@ -1,5 +1,5 @@
 import logging
-import sys
+import sys, json
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
@@ -419,6 +419,34 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
                 section_name = src_rulebase['name']
             add_domain_rule_header_rule_in_json(target_rulebase, section_name, layer_name, import_id, src_rulebase['uid'], rule_num, section_header_uids, parent_uid)
             rule_num += 1
+        if 'rule-number' in src_rulebase:   # rulebase is just a single rule
+            parse_single_rule_to_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+            rule_num += 1
+    return rule_num
+
+
+def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid):
+    if 'layerchunks' in src_rulebase:
+        for chunk in src_rulebase['layerchunks']:
+            if 'rulebase' in chunk:
+                for rules_chunk in chunk['rulebase']:
+                    rule_num  = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid)
+            else:
+                logging.warning("parse_rule: found no rulebase in chunk:\n" + json.dumps(chunk, indent=2))
+    else:
+        if 'rulebase' in src_rulebase:
+            if src_rulebase['type'] == 'access-section' and not src_rulebase['uid'] in section_header_uids: # add section header, but only if it does not exist yet (can happen by chunking a section)
+                section_name = ""
+                if 'name' in src_rulebase:
+                    section_name = src_rulebase['name']
+                parent_uid = ""
+                add_section_header_rule_in_json(target_rulebase, section_name, layer_name, import_id, src_rulebase['uid'], rule_num, section_header_uids, parent_uid)
+                rule_num += 1
+                parent_uid = src_rulebase['uid']
+            for rule in src_rulebase['rulebase']:
+                parse_single_rule_to_json(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                rule_num += 1
+                   
         if 'rule-number' in src_rulebase:   # rulebase is just a single rule
             parse_single_rule_to_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, parent_uid)
             rule_num += 1

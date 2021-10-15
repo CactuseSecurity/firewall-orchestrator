@@ -131,6 +131,9 @@ else:
     get_config_response = fw_module.get_config(
         config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, limit=args.limit)
 
+# if no changes were found, we get get_config_response==512 and we skip everything else without errors
+# todo: re-structure this to make it more logical/readable
+
 if get_config_response == 1:
     error_count += get_config_response
 elif get_config_response == 0:

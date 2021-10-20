@@ -26,7 +26,7 @@ namespace FWO.Middleware.Controllers
             this.ldaps = ldaps;
         }
 
-        [HttpGet]
+        [HttpPost("Get")]
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<string>> GetAsync([FromBody] GroupGetParameters parameters)
         {
@@ -51,7 +51,7 @@ namespace FWO.Middleware.Controllers
             return allGroups;
         }
 
-        [HttpGet("Internal")]
+        [HttpPost("Internal/Get")]
         [Authorize(Roles = "admin, auditor")]
         public async Task<KeyValuePair<string, List<string>>[]> GetInternalAsync()
         {

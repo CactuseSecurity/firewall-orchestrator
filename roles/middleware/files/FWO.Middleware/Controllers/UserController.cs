@@ -31,7 +31,7 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET api/<ValuesController>/5
-        [HttpGet]
+        [HttpPost("Get")]
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<KeyValuePair<string, string>>> Get([FromBody] UserGetParameters parameters)
         {

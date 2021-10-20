@@ -36,7 +36,7 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: api/<JwtController>
-        [HttpGet]
+        [HttpPost("Get")]
         public async Task<ActionResult<string>> GetAsync([FromBody] AuthenticationTokenGetParameters parameters)
         {
             try
@@ -91,10 +91,12 @@ namespace FWO.Middleware.Controllers
         /// <returns>jwt if credentials are valid</returns>
         public async Task<string> AuthorizeUserAsync(UiUser user)
         {
+            // Case: anonymous user
+            if (user == null)
+                return await jwtWriter.CreateJWT();
+
             // Validate user credentials and get ldap distinguish name
             user.Dn = await GetLdapDistinguishedName(user);
-
-            // User has valid credentials / is anonymous user. Otherwise exception would have been thrown and handled in base class
 
             // Get roles of user
             user.Roles = await GetRoles(user);

@@ -29,14 +29,14 @@ namespace FWO.Middleware.Client
 
         public async Task<IRestResponse<string>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
         {
-            IRestRequest request = new RestRequest("AuthenticationToken", Method.GET, DataFormat.Json);
+            IRestRequest request = new RestRequest("AuthenticationToken/Get", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<string>(request);
         }
 
         public async Task<IRestResponse<string>> CreateInitialJWT()
         {
-            IRestRequest request = new RestRequest("AuthenticationToken", Method.GET, DataFormat.Json);
+            IRestRequest request = new RestRequest("AuthenticationToken/Get", Method.POST, DataFormat.Json);
             request.AddJsonBody(new object());
             return await restClient.ExecuteAsync<string>(request);
         }
@@ -50,26 +50,26 @@ namespace FWO.Middleware.Client
 
         public async Task<IRestResponse<KeyValuePair<string, List<KeyValuePair<string, string>>>[]>> GetAllRoles()
         {
-            IRestRequest request = new RestRequest("Role", Method.GET, DataFormat.Json);
+            IRestRequest request = new RestRequest("Role/Get", Method.POST, DataFormat.Json);
             return await restClient.ExecuteAsync<KeyValuePair<string, List<KeyValuePair<string, string>>>[]>(request);
         }
 
         public async Task<IRestResponse<List<string>>> GetGroups(GroupGetParameters parameters)
         {
-            IRestRequest request = new RestRequest("Group", Method.GET, DataFormat.Json);
+            IRestRequest request = new RestRequest("Group/Get", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<List<string>>(request);
         }
 
         public async Task<IRestResponse<KeyValuePair<string, List<string>>[]>> GetInternalGroups()
         {
-            IRestRequest request = new RestRequest("Group/Internal", Method.GET, DataFormat.Json);
+            IRestRequest request = new RestRequest("Group/Internal/Get", Method.POST, DataFormat.Json);
             return await restClient.ExecuteAsync<KeyValuePair<string, List<string>>[]>(request);
         }
 
         public async Task<IRestResponse<List<KeyValuePair<string, string>>>> GetUsers(UserGetParameters parameters)
         {
-            IRestRequest request = new RestRequest("User", Method.GET, DataFormat.Json);
+            IRestRequest request = new RestRequest("User/Get", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<List<KeyValuePair<string, string>>>(request);
         }

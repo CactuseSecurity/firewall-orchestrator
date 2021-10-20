@@ -818,7 +818,6 @@
                       "dev_id",
                       "mgm_id",
                       "dev_name",
-                      "dev_rulebase",
                       "dev_typ_id",
                       "tenant_id",
                       "dev_active",
@@ -828,9 +827,16 @@
                       "do_not_import",
                       "clearing_import_ran",
                       "force_initial_import",
-                      "hide_in_gui"
+                      "hide_in_gui",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "local_rulebase_uid",
+                      "local_rulebase_name"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {
@@ -840,7 +846,6 @@
                       "dev_id",
                       "mgm_id",
                       "dev_name",
-                      "dev_rulebase",
                       "dev_typ_id",
                       "tenant_id",
                       "dev_active",
@@ -850,7 +855,13 @@
                       "do_not_import",
                       "clearing_import_ran",
                       "force_initial_import",
-                      "hide_in_gui"
+                      "hide_in_gui",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "local_rulebase_uid",
+                      "local_rulebase_name"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -860,20 +871,25 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "dev_id",
-                      "mgm_id",
-                      "dev_name",
-                      "dev_rulebase",
-                      "dev_typ_id",
-                      "tenant_id",
+                      "clearing_import_ran",
                       "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
                       "dev_comment",
                       "dev_create",
-                      "dev_update",
-                      "do_not_import",
-                      "clearing_import_ran",
-                      "force_initial_import",
-                      "hide_in_gui"
+                      "dev_update"
                     ],
                     "filter": {
                       "_and": [
@@ -896,20 +912,25 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "dev_id",
-                      "mgm_id",
-                      "dev_name",
-                      "dev_rulebase",
-                      "dev_typ_id",
-                      "tenant_id",
+                      "clearing_import_ran",
                       "dev_active",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "dev_name",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_id",
+                      "dev_typ_id",
+                      "mgm_id",
+                      "tenant_id",
                       "dev_comment",
                       "dev_create",
-                      "dev_update",
-                      "do_not_import",
-                      "clearing_import_ran",
-                      "force_initial_import",
-                      "hide_in_gui"
+                      "dev_update"
                     ],
                     "filter": {
                       "_and": [
@@ -935,7 +956,6 @@
                       "dev_id",
                       "mgm_id",
                       "dev_name",
-                      "dev_rulebase",
                       "dev_typ_id",
                       "tenant_id",
                       "dev_active",
@@ -945,9 +965,16 @@
                       "do_not_import",
                       "clearing_import_ran",
                       "force_initial_import",
-                      "hide_in_gui"
+                      "hide_in_gui",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "local_rulebase_uid",
+                      "local_rulebase_name"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 }
               ]

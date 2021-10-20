@@ -287,7 +287,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 else:  # standard network objects as source
                     rule_src_name += src["name"] + common.list_delimiter
             rule_src_name = rule_src_name[:-1]  # removing last list_delimiter
-            common.csv_add_field(rule_src_name)  # src_names
+            #common.csv_add_field(rule_src_name)  # src_names
 
             # SOURCE refs
             rule_src_ref = ''
@@ -343,10 +343,13 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
             if parent_rule_uid == '':
                 parent_rule_uid = None
 
-            if 'comments' in src_rule and src_rule['comments']=='':
-                comments = None
+            if 'comments' in src_rule:
+                if src_rule['comments']=='':
+                    comments = None
+                else:
+                    comments = src_rule['comments']
             else:
-                comments = src_rule['comments']
+                comments = None
 
             rule = {
                 "control_id":       int(import_id),
@@ -426,8 +429,8 @@ def parse_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, ru
 
 
 def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid):
-    if 'layerchunks' in src_rulebase:
-        for chunk in src_rulebase['layerchunks']:
+    if 'nat_rule_chunks' in src_rulebase:
+        for chunk in src_rulebase['nat_rule_chunks']:
             if 'rulebase' in chunk:
                 for rules_chunk in chunk['rulebase']:
                     rule_num  = parse_nat_rulebase_json(rules_chunk, target_rulebase, layer_name, import_id, rule_num, section_header_uids, parent_uid)
@@ -444,10 +447,57 @@ def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id
                 rule_num += 1
                 parent_uid = src_rulebase['uid']
             for rule in src_rulebase['rulebase']:
-                parse_single_rule_to_json(rule, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                (rule_match, rule_xlate) = parse_nat_rule_transform(rule, rule_num)
+                parse_single_rule_to_json(rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                # parse_single_rule_to_json(rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
                 rule_num += 1
                    
         if 'rule-number' in src_rulebase:   # rulebase is just a single rule
-            parse_single_rule_to_json(src_rulebase, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+            (rule_match, rule_xlate) = parse_nat_rule_transform(src_rulebase, rule_num)
+            parse_single_rule_to_json(rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+            # parse_single_rule_to_json(rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
             rule_num += 1
     return rule_num
+
+
+def parse_nat_rule_transform(xlate_rule_in, rule_num):
+# todo: cleanup certain fields (intsall-on, ....)
+    rule_match = {
+        'uid': xlate_rule_in['uid'] + '_match',
+        'source': [xlate_rule_in['original-source']],
+        'destination': [xlate_rule_in['original-destination']],
+        'service': [xlate_rule_in['original-service']],
+#        'action': {'name': 'NAT'},
+        'action': {'name': 'Drop'},
+        'track': {'type': {'name': 'None' } },
+        'type': 'nat',
+        'rule-number': rule_num,
+        'enabled': True,
+        'source-negate': False,
+        'destination-negate': False,
+        'service-negate': False,
+        'install-on': [{'name': 'Policy Targets'}],
+        'time': [{'name': 'Any'}],
+        'meta-info': {'last-modifier': None },
+        #parent_rule_uid":  common.sanitize(parent_rule_uid),
+        'rule_type': 'xlate'
+    }
+    rule_xlate = {
+        'uid': xlate_rule_in['uid'] + '_xlate',
+        'source': [xlate_rule_in['translated-source']],
+        'destination': [xlate_rule_in['translated-destination']],
+        'service': [xlate_rule_in['translated-service']],
+        'action': {'name': 'Drop'},
+        'track': {'type': {'name': 'None' } },
+        'type': 'nat',
+        'rule-number': rule_num,
+        'enabled': True,        
+        'source-negate': False,
+        'destination-negate': False,
+        'service-negate': False,
+        'install-on': [{'name': 'Policy Targets'}],
+        'time': [{'name': 'Any'}],
+        'meta-info': {'last-modifier': None },
+        'rule_type': 'xlate'
+    }
+    return (rule_match, rule_xlate)

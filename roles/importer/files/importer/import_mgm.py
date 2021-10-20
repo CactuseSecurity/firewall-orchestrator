@@ -80,6 +80,10 @@ else:
 mgm_details = fwo_api.get_mgm_details(
     fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
 
+package_list = []
+for dev in mgm_details['devices']:
+    package_list.append(dev['package_name'])
+
 # only run if this is the correct import module
 if mgm_details['importerHostname'] != socket.gethostname():
     logging.info(
@@ -115,7 +119,7 @@ with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing
 
 rulebase_string = ''
 for device in mgm_details['devices']:
-    rulebase_string += device['rulebase'] + ','
+    rulebase_string += device['local_rulebase_name'] + ','
 rulebase_string = rulebase_string[:-1]  # remove final comma
 
 # pick product-specific importer:
@@ -126,10 +130,10 @@ fw_module = importlib.import_module(fw_module_name)
 # get config from FW API and write config to json file "config_filename"
 if 'proxy' in args and args.proxy != None:
     get_config_response = fw_module.get_config(
-        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string=args.proxy, limit=args.limit)
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, proxy_string=args.proxy, limit=args.limit)
 else:
     get_config_response = fw_module.get_config(
-        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, limit=args.limit)
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, limit=args.limit)
 
 # if no changes were found, we get get_config_response==512 and we skip everything else without errors
 # todo: re-structure this to make it more logical/readable

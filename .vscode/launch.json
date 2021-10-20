@@ -2,6 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "pl-single-import",
+            "type": "perl",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/fworch-importer-single.pl",
+            "console": "integratedTerminal",
+            "stopOnEntry": true,
+            "reloadModules": true,            
+            "env": {
+            },
+            "args": [
+                "mgm_id=5",
+                "-d3"
+            ]
+        },
+        {
             "name": "py-change-comment",
             "type": "python",
             "request": "launch",
@@ -103,7 +118,7 @@
                 "-d3",
                 "-l50"
             ]
-        },
+        },        
         {
             "name": "py-cpr8x-autodiscovery",
             "type": "python",

@@ -28,7 +28,7 @@ any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
 debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 
 
-def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=150):
+def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package, proxy_string='', limit=150):
     logging.info("found Check Point R8x management")
     # logging.debug("mgm_details: " + json.dumps(mgm_details))
     if proxy_string!='':
@@ -38,10 +38,13 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
         for importctl in mgm_details['import_controls']: 
             if 'starttime' in importctl:
                 starttime = " -f " + importctl['starttime']
+    if package == None:
+        package = ''
+    
     get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
         mgm_details['hostname'] + " -u " + mgm_details['user'] + starttime + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
-        "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
+        "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string + ' -k ' + '"' + ','.join(package) + '"'
 
     get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
@@ -75,8 +78,10 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             rule_num = parse_rule.parse_rulebase_json(
                 full_config_json['rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
             # now parse the nat rulebase
-            #rule_num = parse_rule.parse_nat_rulebase_json(
-            #    full_config_json['nat_rulebase'], target_rulebase, 'nat_rulebase', current_import_id, rule_num, section_header_uids, parent_uid)
+            # rule_num = parse_rule.parse_nat_rulebase_json(
+            #     full_config_json['nat_rulebases'][rb_id], target_rulebase, package[rb_id], current_import_id, rule_num, section_header_uids, parent_uid)
+            rule_num = parse_rule.parse_nat_rulebase_json(
+                full_config_json['nat_rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
 
         # copy users from full_config to config2import
         # also converting users from dict to array:

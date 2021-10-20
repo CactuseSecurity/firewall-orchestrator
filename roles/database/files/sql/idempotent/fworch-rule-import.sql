@@ -23,7 +23,7 @@ DECLARE
 BEGIN
 	b_rule_order_to_be_written := FALSE; 
 	SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
-	SELECT INTO v_rulebase_name dev_rulebase FROM device WHERE dev_id=i_dev_id;
+	SELECT INTO v_rulebase_name local_rulebase_name FROM device WHERE dev_id=i_dev_id;
 	SELECT INTO r_rule rule_id FROM rule WHERE dev_id=i_dev_id LIMIT 1;
 	IF FOUND THEN
 		b_is_initial_import := FALSE;

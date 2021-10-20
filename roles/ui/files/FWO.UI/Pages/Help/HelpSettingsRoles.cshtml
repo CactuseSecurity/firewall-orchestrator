@@ -1,0 +1,30 @@
+﻿@page "/help/settings/roles"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("roles")</h3>
+    @(Html.Raw(userConfig.GetText("H5331")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5341")))
+            <ul>
+                <li>@(Html.Raw(userConfig.GetText("H5351")))</li>
+                <li>@(Html.Raw(userConfig.GetText("H5352")))</li>
+                <li>@(Html.Raw(userConfig.GetText("H5353")))</li>
+            </ul>
+        </li>
+        <li>@(Html.Raw(userConfig.GetText("H5342")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5343")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5344")))</li>
+    </ul>
+</div>

@@ -1,0 +1,110 @@
+﻿@using FWO.Ui.Display
+@using FWO.Config.Api
+
+@inject UserConfig userConfig
+
+@foreach (Management management in Managements)
+{
+    @if (management.Devices.Where(device => device.RuleChanges != null && device.RuleChanges.Count() > 0).Count() > 0)
+    {
+        <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+
+            @foreach (Device device in management.Devices)
+            {
+                @if (device.RuleChanges.Length > 0)
+                {
+                    <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
+                        <Table SelectedItems="SelectedRuleChanges"
+                               RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRuleChanges.Remove(rule)) SelectedRuleChanges.Add(rule); await SelectedRuleChangesChanged.InvokeAsync(SelectedRuleChanges); }"
+                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="RuleChange" Items="device.RuleChanges" ShowSearchBar="true"
+                               PageSize="RulesPerPage" ColumnReorder="true">
+
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("change_time"))" Field="@(rChange => rChange.ChangeImport.Time)" Sortable="true" Filterable="true" Hideable="true" />
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("change_type"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayChangeAction())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("name"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayName())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("source_zone"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplaySourceZone())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("source"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplaySource())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("destination_zone"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayDestinationZone())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("destination"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayDestination())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("services"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayService())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("action"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayAction())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("track"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayTrack())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("enabled"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayEnabled())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("uid"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayUid())
+                                </Template>
+                            </Column>
+                            <Column TableItem="RuleChange" Title="@(userConfig.GetText("comment"))" Hideable="true">
+                                <Template>
+                                    @((MarkupString)context.DisplayComment())
+                                </Template>
+                            </Column>
+
+                            @*<DetailTemplate TableItem="RuleChange">
+                                <div>test</div>
+                            </DetailTemplate>*@
+
+                            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+                        </Table>
+                    </Collapse>
+                }
+            }
+        </Collapse>
+    }
+}
+
+@code
+{
+    [Parameter]
+    public EventCallback<List<RuleChange>> SelectedRuleChangesChanged { get; set; }
+
+    [Parameter]
+    public List<RuleChange> SelectedRuleChanges { get; set; }
+
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public Management[] Managements { get; set; }
+}

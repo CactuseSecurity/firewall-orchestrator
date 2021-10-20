@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using FWO.ApiClient;
 using NUnit.Framework;
 using FWO.Api.Data;
-using FWO.Config;
+using FWO.Config.File;
 using FWO.Middleware.Client;
 using Microsoft.IdentityModel.Tokens;
 using FWO.Middleware.RequestParameters;

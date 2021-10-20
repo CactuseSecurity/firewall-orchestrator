@@ -7,13 +7,14 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.23" />
     <PackageReference Include="RestSharp" Version="106.12.0" />
+    <PackageReference Include="RestSharp.Serializers.SystemTextJson" Version="106.12.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\FWO.Middleware\FWO.Middleware.csproj" />
-    <ProjectReference Include="..\FWO_API_Client\FWO.ApiClient.csproj" />
-    <ProjectReference Include="..\FWO_Config\FWO.Config.File.csproj" />
-    <ProjectReference Include="..\FWO_Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\FWO.Middleware\FWO.Middleware.csproj" />
+    <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
+    <ProjectReference Include="..\FWO.Config.File\FWO.Config.File.csproj" />
+    <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
   </ItemGroup>
 
 </Project>

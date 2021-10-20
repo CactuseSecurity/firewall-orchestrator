@@ -22,8 +22,9 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                LdapConnection connection = new LdapConnection { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
-                if (Tls) connection.UserDefinedServerCertValidationDelegate += (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation                
+                LdapConnectionOptions ldapOptions = new LdapConnectionOptions();
+                if (Tls) ldapOptions.ConfigureRemoteCertificateValidationCallback((object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true); // todo: allow real cert validation     
+                LdapConnection connection = new LdapConnection(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };           
                 connection.Connect(Address, Port);
 
                 return connection;

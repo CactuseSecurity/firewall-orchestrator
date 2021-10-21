@@ -22,7 +22,10 @@ svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'servic
 # cannot fetch the Any object via API (<=1.7) at the moment
 # therefore we have a workaround adding the object manually (as svc and nw)
 any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
-# todo: read this from config (vom API 1.6 on it is fetched)
+# todo: read this from config (from API 1.6 on it is fetched)
+
+original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
+# used for nat only (both svc and nw obj)
 
 # this is just a test UID for debugging a single rule
 debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
@@ -82,6 +85,7 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             #     full_config_json['nat_rulebases'][rb_id], target_rulebase, package[rb_id], current_import_id, rule_num, section_header_uids, parent_uid)
             rule_num = parse_rule.parse_nat_rulebase_json(
                 full_config_json['nat_rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+        config2import.update({'rules': target_rulebase})
 
         # copy users from full_config to config2import
         # also converting users from dict to array:
@@ -91,7 +95,6 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             user.update({'user_name': user_name})
             config2import['user_objects'].append(user)
 
-        config2import.update({'rules': target_rulebase})
     return 0
 
 

@@ -52,6 +52,7 @@
                 "-uitsecorg",
                 "-w/home/tim/tmp/passwd",
                 "-lFirstLayer shared with inline layer",
+                "-kTestPolicyWithLayers",
                 "-o/home/tim/tmp/sting.cfg"
             ]
         },

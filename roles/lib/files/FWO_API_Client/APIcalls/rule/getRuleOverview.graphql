@@ -23,10 +23,10 @@ query listRulesOverview(
         offset: $offset
         where: {
           active: { _eq: true }
+          access_rule: { _eq: true }
           rule_src: { _in: $rule_src_name }
           rule_disabled: { _eq: false }
           rule_froms: { object: { obj_ip: { _in: $rule_src_ip } } }
-          access_rule: {_eq: true}
         }
         order_by: { rule_num_numeric: asc }
       ) {

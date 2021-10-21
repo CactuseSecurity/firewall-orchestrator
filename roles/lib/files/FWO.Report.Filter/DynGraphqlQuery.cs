@@ -89,7 +89,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{ {query.ruleWhereStatement} }} 
+                                            where: {{  access_rule: {{_eq: true}} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 ...{(detailed ? "ruleDetails" : "ruleOverview")}
@@ -108,7 +108,11 @@ namespace FWO.Report.Filter
                         {{
                             id: mgm_id
                             name: mgm_name
-                            devices (where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{dev_name: asc}}) 
+                            devices (where: {{ hide_in_gui: {{_eq: false}}, _or: 
+                                [
+                                    {{changelog_rules: {{ruleByOldRuleId: {{access_rule: {{_eq: true}} }} }} }}, 
+                                    {{changelog_rules: {{rule: {{access_rule: {{_eq: true}} }} }} }} 
+                                ] }}, order_by: {{dev_name: asc}} )                           
                             {{
                                 id: dev_id
                                 name: dev_name

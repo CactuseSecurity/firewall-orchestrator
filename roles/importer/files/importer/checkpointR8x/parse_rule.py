@@ -343,6 +343,12 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
             if parent_rule_uid == '':
                 parent_rule_uid = None
 
+            # new in v5.5.1:
+            if 'rule_type' in src_rule:
+                rule_type = src_rule['rule_type']
+            else:
+                rule_type = 'access'
+
             if 'comments' in src_rule:
                 if src_rule['comments']=='':
                     comments = None
@@ -374,6 +380,7 @@ def parse_single_rule_to_json (src_rule, rulebase, layer_name, import_id, rule_n
                 "rule_name":        common.sanitize(rule_name),
                 "rule_uid":         common.sanitize(src_rule['uid']),
                 "rule_implied":     False,
+                "rule_type":        common.sanitize(rule_type),
                 # "rule_head_text": common.sanitize(section_name),
                 # rule_from_zone
                 # rule_to_zone
@@ -449,13 +456,13 @@ def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id
             for rule in src_rulebase['rulebase']:
                 (rule_match, rule_xlate) = parse_nat_rule_transform(rule, rule_num)
                 parse_single_rule_to_json(rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid)
-                # parse_single_rule_to_json(rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+                parse_single_rule_to_json(rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
                 rule_num += 1
                    
         if 'rule-number' in src_rulebase:   # rulebase is just a single rule
             (rule_match, rule_xlate) = parse_nat_rule_transform(src_rulebase, rule_num)
             parse_single_rule_to_json(rule_match, target_rulebase, layer_name, import_id, rule_num, parent_uid)
-            # parse_single_rule_to_json(rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
+            parse_single_rule_to_json(rule_xlate, target_rulebase, layer_name, import_id, rule_num, parent_uid)
             rule_num += 1
     return rule_num
 

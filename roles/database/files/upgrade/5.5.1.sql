@@ -35,6 +35,9 @@ UPDATE rule SET access_rule = TRUE, nat_rule = FALSE WHERE nat_rule IS NULL;
 -- dropping function insert_single_rule as we changed the return value from boolean to bigint
 -- DROP FUNCTION insert_single_rule(BIGINT,INTEGER,INTEGER,BIGINT,BOOLEAN);
 -- todo: need to re-create fworch-rule-import.sql functions
+-- a bit of an order issue here: we would need to drop first and then re-create functions afterwards
+-- but this upgrade script runs too late for this
+-- work-around applied by dropping function every time roles/database/files/sql/idempotent/fworch-rule-import.sql is executed 
 
 ALTER TABLE device
     ADD COLUMN IF NOT EXISTS 

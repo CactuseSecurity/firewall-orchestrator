@@ -33,7 +33,6 @@ Create table "device" -- contains an entry for each firewall gateway
 	"dev_id" SERIAL,
 	"mgm_id" Integer NOT NULL,
 	"dev_name" Varchar,
---	"dev_rulebase" Varchar,	 -- to be phased out
 	"local_rulebase_name" Varchar,
 	"local_rulebase_uid" Varchar,
 	"global_rulebase_name" Varchar,

@@ -1,11 +1,9 @@
-query listRulesOverview(
-  $management_id: [Int!]
-  $device_id: [Int!]
-  $rule_src_name: [String!]
-  $rule_src_ip: [cidr!]
-  $limit: Int
-  $offset: Int
-) {
+query getNatRulesOverview($management_id: [Int!], $device_id: [Int!]) {
+  rule_aggregate(where: { nat_rule: { _eq: true }, active: {_eq: true}}) {
+    aggregate {
+      count
+    }
+  }
   management(
     where: { mgm_id: { _in: $management_id } }
     order_by: { mgm_name: asc }
@@ -19,19 +17,32 @@ query listRulesOverview(
       dev_id
       dev_name
       rules(
-        limit: $limit
-        offset: $offset
         where: {
-          nat_rule: {_eq: true}
-          xlate_rule: {_neq: null}
+          # rule_uid: { _ilike: "%_match" }
+          nat_rule: { _eq: true }
           active: { _eq: true }
-          rule_src: { _in: $rule_src_name }
           rule_disabled: { _eq: false }
-          rule_froms: { object: { obj_ip: { _in: $rule_src_ip } } }
         }
         order_by: { rule_num_numeric: asc }
       ) {
-        ...ruleOverview
+        rule_id
+        rule_uid
+        rule_action
+        rule_num_numeric
+        rule_name
+        rule_src
+        rule_dst
+        rule_svc
+        access_rule
+        nat_rule
+        translate: ruleByXlateRule {
+          rule_src
+          rule_src_refs
+          rule_dst
+          rule_dst_refs
+          rule_svc
+          rule_svc_refs
+        }
       }
     }
   }

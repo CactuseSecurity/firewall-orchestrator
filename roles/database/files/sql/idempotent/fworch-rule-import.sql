@@ -73,7 +73,7 @@ BEGIN
 				b_rule_order_to_be_written := TRUE;
 				-- here we need to set references to the xlate type rule
 				SELECT INTO v_uid rule_uid FROM rule WHERE rule_id=i_added_rule_id;
-				SELECT INTO i_xlate_rule_id rule_id FROM rule WHERE rule_uid = v_uid AND NOT rule_id=i_added_rule_id;
+				SELECT INTO i_xlate_rule_id rule_id FROM rule WHERE rule_uid = v_uid AND NOT rule_id=i_added_rule_id and active;
 				IF NOT FOUND THEN
 					RAISE NOTICE 'import_rules - issue: did not find corresponding xlate rule %', v_uid;
 				END IF;

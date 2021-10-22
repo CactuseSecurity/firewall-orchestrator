@@ -13,6 +13,7 @@
   tags:
     - frontend
     - importer
+    - api
 
 - hosts: all
   tasks:
@@ -31,6 +32,7 @@
     - backend
     - importer
     - api
+    - ui
 
 - hosts: backendserver
   roles:
@@ -78,6 +80,7 @@
   tags:
     - frontend
     - csharp
+    - ui
 
 - hosts: sampleserver
   roles:
@@ -120,6 +123,7 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
+    - ui
 
 - hosts: testservers
   roles:

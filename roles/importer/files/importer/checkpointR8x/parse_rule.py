@@ -474,7 +474,6 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'source': [xlate_rule_in['original-source']],
         'destination': [xlate_rule_in['original-destination']],
         'service': [xlate_rule_in['original-service']],
-#        'action': {'name': 'NAT'},
         'action': {'name': 'Drop'},
         'track': {'type': {'name': 'None' } },
         'type': 'nat',

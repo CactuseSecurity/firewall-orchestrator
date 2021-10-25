@@ -27,6 +27,9 @@ fragment ruleOverview on rule {
   rule_svc_neg
   rule_num_numeric
   rule_name
+  access_rule
+  nat_rule
+  xlate_rule
   rule_froms(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
     usr {
       ...userOverview

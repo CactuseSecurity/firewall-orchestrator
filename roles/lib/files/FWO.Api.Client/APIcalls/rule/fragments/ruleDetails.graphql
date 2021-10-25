@@ -18,6 +18,9 @@ fragment ruleDetails on rule {
   rule_svc_neg
   rule_num_numeric
   rule_name
+  access_rule
+  nat_rule
+  xlate_rule
   rule_froms {
     usr {
       ...userDetails

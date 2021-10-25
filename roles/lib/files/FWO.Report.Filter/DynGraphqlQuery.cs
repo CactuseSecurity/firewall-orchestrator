@@ -89,7 +89,7 @@ namespace FWO.Report.Filter
                                         rules(
                                             limit: $limit 
                                             offset: $offset
-                                            where: {{ {query.ruleWhereStatement} }} 
+                                            where: {{  access_rule: {{_eq: true}} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
                                                 ...{(detailed ? "ruleDetails" : "ruleOverview")}
@@ -108,14 +108,21 @@ namespace FWO.Report.Filter
                         {{
                             id: mgm_id
                             name: mgm_name
-                            devices (where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{dev_name: asc}}) 
+                            devices (where: {{ hide_in_gui: {{_eq: false}} }}, order_by: {{dev_name: asc}} )                           
                             {{
                                 id: dev_id
                                 name: dev_name
                                 changelog_rules(
                                     offset: $offset 
                                     limit: $limit 
-                                    where: {{ {query.ruleWhereStatement} }}
+                                    where: {{ 
+                                        _or:[
+                                                {{_and: [{{change_action:{{_eq:""I""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}]}}, 
+                                                {{_and: [{{change_action:{{_eq:""D""}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}},
+                                                {{_and: [{{change_action:{{_eq:""C""}}}}, {{rule: {{access_rule:{{_eq:true}}}}}}, {{ruleByOldRuleId: {{access_rule:{{_eq:true}}}}}}]}}
+                                            ]                                        
+                                        {query.ruleWhereStatement} 
+                                    }}
                                     order_by: {{ control_id: asc }}
                                 ) 
                                     {{

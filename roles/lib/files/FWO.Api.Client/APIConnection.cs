@@ -103,7 +103,8 @@ namespace FWO.ApiClient
 
             catch (Exception exception)
             {
-                Log.WriteError("API Connection", "Error while sending query to GraphQL API.", exception);
+                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {query}, variables: {variables.ToString()}", exception);
+                // todo: #1220 add variables readable
                 throw;
             }
         }

@@ -225,7 +225,7 @@ sub ruleset_does_not_fit {
 	my $result = 1;
 
 	while ( (my $key, my $value) = each %{$href_rulesetname}) {
-		if ($rulebasename_to_find eq $value->{'dev_rulebase'}) {
+		if ($rulebasename_to_find eq $value->{'local_rulebase_name'}) {
 			$result=0;
 		}
 	}
@@ -1158,7 +1158,7 @@ sub fill_import_tables_from_csv {
 	$fields = "(" . join(',',@rule_import_fields) . ")";
 	my @rulebase_ar = ();
 	foreach my $d (keys %{$rulebases}) {
-		my $rb = $rulebases->{$d}->{'dev_rulebase'};
+		my $rb = $rulebases->{$d}->{'local_rulebase_name'};
 		my $rulebase_name_sanitized = join('__', split /\//, $rb);
 		if ( !grep( /^$rulebase_name_sanitized$/, @rulebase_ar ) ) {
 			@rulebase_ar = (@rulebase_ar, $rulebase_name_sanitized);
@@ -1285,7 +1285,7 @@ sub fill_import_tables_from_csv_with_sql {
 	}
 	$fields = join(',',@rule_import_fields);
 	foreach my $d (keys %{$rulebases}) {
-		my $rb = $rulebases->{$d}->{'dev_rulebase'};
+		my $rb = $rulebases->{$d}->{'local_rulebase_name'};
 		$csv_rule_file = $fworch_workdir . '/' . $rb . '_rulebase.csv';
 		$fehler = build_and_exec_sql_statements('import_rule',$fields, $csv_rule_file);
 		if ($fehler) { $fehler_count ++; }

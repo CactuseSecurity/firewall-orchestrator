@@ -12,7 +12,8 @@ fragment deviceDetails on device
       id: mgm_id
       name: mgm_name
     }
-    rulebase: dev_rulebase
+    local_rulebase_name
+    global_rulebase_name
     comment: dev_comment
     importDisabled: do_not_import
     forceInitialImport: force_initial_import

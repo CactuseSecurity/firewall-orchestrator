@@ -12,7 +12,7 @@ mutation newDevice(
       dev_name: $name
       dev_typ_id: $devTypeId
       mgm_id: $managementId
-      dev_rulebase: $rulebase
+      local_rulebase_name: $rulebase
       do_not_import: $importDisabled
       hide_in_gui: $hideInUi
       dev_comment: $comment

@@ -33,7 +33,7 @@
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}') THEN 
-          insert into device (mgm_id,dev_name,dev_rulebase,dev_typ_id) 
+          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id) 
           VALUES ((select mgm_id from management where mgm_name='{{ sample_fortigate_name }}'),'{{ sample_fortigate_name }}','{{ sample_fortigate_name }}',10);
           END IF; END $do$ 
 
@@ -54,7 +54,7 @@
         query: >
           DO $do$ BEGIN 
           IF NOT EXISTS (SELECT * FROM device WHERE dev_name='checkpoint_demo') THEN
-          insert into device (mgm_id,dev_name,dev_rulebase,dev_typ_id)
+          insert into device (mgm_id,dev_name,local_rulebase_name,dev_typ_id)
           VALUES ((select mgm_id from management where mgm_name='checkpoint_demo'),'checkpoint_demo','IsoAAAA',7); 
           END IF; END $do$ 
       when: sample_role_purpose is not match('test')

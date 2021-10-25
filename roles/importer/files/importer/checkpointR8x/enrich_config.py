@@ -106,29 +106,23 @@ svc_uids_from_rulebase = []
 for rulebase in config['rulebases']:
     logging.debug ( "enrich_config - searching for all uids in rulebase: " + rulebase['layername'] )
     getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
-    #nw_uids_from_rulebase.extend(nw_uids_from_rulebase)
-    #svc_uids_from_rulebase.extend(svc_uids_from_rulebase)
-    # if fwcommon.debug_new_uid in nw_uids_from_rulebase:
-    #     logging.debug("found " + fwcommon.debug_new_uid + " in enrich_config")
 
 # remove duplicates from uid lists
 nw_uids_from_rulebase = list(set(nw_uids_from_rulebase))
 svc_uids_from_rulebase = list(set(svc_uids_from_rulebase))
-# logging.debug ("enrich_config - found (unique) nw_objects in rulebase:\n" + str(nw_uids_from_rulebase))
-
-# if fwcommon.debug_new_uid in nw_uids_from_rulebase:
-#     logging.debug("enrich_config: found " + fwcommon.debug_new_uid + " in enrich_config after cleanup")
 
 # get all uids in objects tables
 for obj_table in config['object_tables']:
     nw_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, fwcommon.nw_obj_table_names))
     svc_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, getter.svc_obj_table_names))
-#logging.debug ("enrich_config - already parsed nw_objects in obj tables:\n" + str(nw_objs_from_obj_tables))
-
 
 # identify all objects (by type) that are missing in objects tables but present in rulebase
 missing_nw_object_uids  = getter.get_broken_object_uids(nw_objs_from_obj_tables, nw_uids_from_rulebase)
 missing_svc_object_uids = getter.get_broken_object_uids(svc_objs_from_obj_tables, svc_uids_from_rulebase)
+
+# adding the uid of the Original object for natting:
+missing_nw_object_uids.append(fwcommon.original_obj_uid)
+missing_svc_object_uids.append(fwcommon.original_obj_uid)
 
 logging.debug ( "enrich_config - found missing nw objects: '" + ",".join(missing_nw_object_uids) + "'" )
 logging.debug ( "enrich_config - found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
@@ -177,9 +171,17 @@ for missing_obj in missing_nw_object_uids:
                 } ] } ] }
             config['object_tables'].append(json_obj)
             logging.debug ('missing obj: ' + obj['name'] + obj['type'])
+        elif (obj['type'] == 'Global'):
+            json_obj = {"object_type": "hosts", "object_chunks": [ {
+                "objects": [ {
+                'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
+                } ] } ] }
+            config['object_tables'].append(json_obj)
+            logging.debug ('missing obj: ' + obj['name'] + obj['type'])
         else:
-            logging.debug ( "WARNING - checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
-            #print ("missing nw obj: " + missing_obj)
+            logging.warning ( "checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
+            print ("WARNING - enrich_config - missing nw obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
 
     logging.debug ( "enrich_config - missing nw obj: " + missing_obj )
     print ("INFO: adding nw  obj missing from standard api call results: " + missing_obj)
@@ -199,9 +201,17 @@ for missing_obj in missing_svc_object_uids:
                         'type': 'service-other', 'ip-protocol': '0'
                         } ] } ] }
             config['object_tables'].append(json_obj)
+        elif (obj['type'] == 'Global'):
+            json_obj = {"object_type": "services-other", "object_chunks": [ {
+                    "objects": [ {
+                        'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                        'comments': 'Original svc object checkpoint (hard coded)',
+                        'type': 'service-other', 'ip-protocol': '0'
+                        } ] } ] }
+            config['object_tables'].append(json_obj)
         else:
-            logging.debug ( "WARNING - enrich_config - missing svc obj of unexpected type: " + missing_obj )
-            print ("WARNING - enrich_config - missing svc obj of unexpected type: " + missing_obj)
+            logging.warning ( "checkpointR8x/enrich_config - missing svc obj of unexpected type: " + missing_obj )
+            print ("WARNING - enrich_config - missing svc obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
     logging.debug ( "enrich_config - missing svc obj: " + missing_obj )
     print ("INFO: adding svc obj missing from standard api call results: " + missing_obj)
 

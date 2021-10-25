@@ -271,6 +271,28 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
     return current_layer_json
 
 
+def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules):
+    nat_rules = { "nat_rule_chunks": [] }
+    current=0
+    total=current+1
+    while (current<total) :
+        show_params_rules['offset']=current
+        rulebase = api_call(api_host, api_port, api_v_url, 'show-nat-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+        nat_rules['nat_rule_chunks'].append(rulebase)
+        if 'total' in rulebase:
+            total=rulebase['total']
+        else:
+            logging.error ( "get_nat_rules_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
+                + str(nat_rules))
+        if 'to' in rulebase:
+            current=rulebase['to']
+        else:
+            sys.exit(1)
+        #logging.debug ( "get_nat_rules_from_api - rulebase current offset: "+ str(current) )
+    # logging.debug ("get_config::get_nat_rules - found nat rules:\n" + str(nat_rules) + "\n")
+    return nat_rules
+
+
 # insert domain rule layer after rule_idx within top_ruleset
 def insert_layer_after_place_holder (top_ruleset_json, domain_ruleset_json, placeholder_uid):
     # serialize domain rule chunks

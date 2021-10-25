@@ -151,7 +151,9 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
                 devices(where:{do_not_import:{_eq:false}}) {
                     id: dev_id
                     name: dev_name
-                    rulebase:dev_rulebase
+                    local_rulebase_name
+                    global_rulebase_name
+                    package_name
                 }
                 import_controls(where: { successful_import: {_eq: true} } order_by: {control_id: desc}, limit: 1) {
                     starttime: start_time

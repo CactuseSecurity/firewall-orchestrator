@@ -152,7 +152,7 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
         "dev_create",
         "dev_id",
         "dev_name",
-        "dev_rulebase",
+        "local_rulebase_name",
         "dev_typ_id",
         "dev_update",
         "hide_in_gui",

@@ -2,6 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "pl-single-import",
+            "type": "perl",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/fworch-importer-single.pl",
+            "console": "integratedTerminal",
+            "stopOnEntry": true,
+            "reloadModules": true,            
+            "env": {
+            },
+            "args": [
+                "mgm_id=5",
+                "-d3"
+            ]
+        },
+        {
             "name": "py-change-comment",
             "type": "python",
             "request": "launch",
@@ -37,6 +52,7 @@
                 "-uitsecorg",
                 "-w/home/tim/tmp/passwd",
                 "-lFirstLayer shared with inline layer",
+                "-kTestPolicyWithLayers",
                 "-o/home/tim/tmp/sting.cfg"
             ]
         },
@@ -99,9 +115,26 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m6",
-                "-d2",
-                "-l20"
+                "-m5",
+                "-d3",
+                "-l50"
+            ]
+        },        
+        {
+            "name": "py-cpr8x-autodiscovery",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+              "-a192.168.100.110",
+              "-w/home/tim/secrets/cp_apiuser_pwd",
+              "-uitsecorg",
+              "-fjson"
             ]
         },
         {

@@ -76,6 +76,15 @@ insert into stm_action (action_id,action_name) VALUES (17,'tunnel vpn-group'); -
 insert into stm_action (action_id,action_name) VALUES (18,'tunnel vpn'); -- netscreen vpn
 insert into stm_action (action_id,action_name) VALUES (19,'actionlocalredirect'); -- phion
 insert into stm_action (action_id,action_name) VALUES (20,'inner layer'); -- check point r8x
+-- adding new nat actions for nat rules (xlate_rule only)
+insert into stm_action (action_id,action_name) VALUES (21,'NAT src') ON CONFLICT DO NOTHING; -- source ip nat
+insert into stm_action (action_id,action_name) VALUES (22,'NAT src, dst') ON CONFLICT DO NOTHING; -- source and destination ip nat
+insert into stm_action (action_id,action_name) VALUES (23,'NAT src, dst, svc') ON CONFLICT DO NOTHING; -- source and destination ip nat plus port nat
+insert into stm_action (action_id,action_name) VALUES (24,'NAT dst') ON CONFLICT DO NOTHING; -- destination ip nat
+insert into stm_action (action_id,action_name) VALUES (25,'NAT dst, svc') ON CONFLICT DO NOTHING; -- destination ip nat plus port nat
+insert into stm_action (action_id,action_name) VALUES (26,'NAT svc') ON CONFLICT DO NOTHING; -- port nat
+insert into stm_action (action_id,action_name) VALUES (27,'NAT src, svc') ON CONFLICT DO NOTHING; -- source ip nat plus port nat
+insert into stm_action (action_id,action_name) VALUES (28,'NAT') ON CONFLICT DO NOTHING; -- generic NAT
 
 insert into stm_track (track_id,track_name) VALUES (1,'log');
 insert into stm_track (track_id,track_name) VALUES (2,'none');

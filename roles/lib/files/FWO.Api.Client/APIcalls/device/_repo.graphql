@@ -21,7 +21,7 @@ query showDevices {
   device {
     dev_id
     dev_name
-    dev_rulebase
+    local_rulebase_name
     management {
       mgm_id
       mgm_name

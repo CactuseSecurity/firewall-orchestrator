@@ -20,7 +20,7 @@ namespace FWO.Api.Data
         [JsonPropertyName("management")]
         public Management Management { get; set; }
 
-        [JsonPropertyName("rulebase")]
+        [JsonPropertyName("local_rulebase_name")]
         public string Rulebase { get; set; }
 
         [JsonPropertyName("importDisabled")]

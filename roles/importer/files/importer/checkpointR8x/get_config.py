@@ -16,6 +16,7 @@ parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Envireonment')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True, help='name of policy layer(s) to read (comma separated)')
+parser.add_argument('-k', '--package', metavar='policy package name', required=False, help='name of policy package (needed for nat rule retrieval)')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-i', '--limit', metavar='api_limit', default='150', help='The maximal number of returned results per HTTPS Connection; default=150')
@@ -67,7 +68,7 @@ elif changes == 0:
 else:
     logging.debug ( "get_changes: changes found -> go ahead with getting config")
 
-    config_json = { 'rulebases': [] }
+    config_json = { 'rulebases': [], 'nat_rulebases': [] }
     show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
 
     # read all rulebases:
@@ -96,7 +97,6 @@ else:
             # changing layer name to individual combination of global and domain rule
             # this is necessary for multiple references to global layer
             current_layer_json['layername'] = layer
-            # current_layer['name'] = layer
             logging.debug ( "get_config - getting domain rule layer: " + show_params_rules['name'] )
             domain_rules = getter.get_layer_from_api_as_dict (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
             # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
@@ -109,11 +109,14 @@ else:
                             current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
                             # logging.debug ("substituted domain rules with chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
         # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
-        # config_json += current_layer_json + ",\n"
         config_json['rulebases'].append(current_layer_json)
+        # getting NAT rules - need package name for nat rule retrieval
+        if args.package != None:
+            show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': args.package }
+            logging.debug ( "get_config - getting nat rules for package: " + args.package )
+            config_json['nat_rulebases'].append(getter.get_nat_rules_from_api_as_dict (api_host, args.port, v_url, sid, ssl_verification, proxy_string, show_params_rules))
 
     # leaving rules, moving on to objects
-
     config_json["object_tables"] = []
     show_params_objs = {'limit':limit,'details-level': details_level}
 

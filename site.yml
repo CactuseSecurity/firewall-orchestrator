@@ -13,6 +13,7 @@
   tags:
     - frontend
     - importer
+    - api
 
 - hosts: all
   tasks:
@@ -30,6 +31,8 @@
   tags:
     - backend
     - importer
+    - api
+    - ui
 
 - hosts: backendserver
   roles:
@@ -52,6 +55,7 @@
     - { role: api, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
+    - api
 
 # restart middlewareserver now that the API is ready.
 - hosts: middlewareserver
@@ -66,6 +70,7 @@
   tags:
     - backend
     - csharp
+    - api
 
 - hosts: frontends
   roles:
@@ -75,6 +80,7 @@
   tags:
     - frontend
     - csharp
+    - ui
 
 - hosts: sampleserver
   roles:
@@ -117,6 +123,7 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
+    - ui
 
 - hosts: testservers
   roles:

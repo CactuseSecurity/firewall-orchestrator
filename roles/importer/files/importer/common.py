@@ -28,13 +28,13 @@ def csv_add_field(content, no_csv_delimiter=False):
         field_result = csv_delimiter
     else:
         # add apostrophes at beginning and end and remove any ocurrence of them within the string
-        if (content == None): # no_csv_delimiter must be true
-            field_result = ''
-        else:
+        if (isinstance(content, str)):
             escaped_field = content.replace(apostrophe,"")
             field_result = apostrophe + escaped_field + apostrophe
-            if not no_csv_delimiter:
-                field_result += csv_delimiter
+        else:   # leave non-string values as is
+            field_result = str(content)
+        if not no_csv_delimiter:
+            field_result += csv_delimiter
     return field_result
  
 

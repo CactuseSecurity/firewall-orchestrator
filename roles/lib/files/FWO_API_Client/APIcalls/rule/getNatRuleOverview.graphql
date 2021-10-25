@@ -1,11 +1,11 @@
-query getNatRulesOverview($management_id: [Int!], $device_id: [Int!]) {
+query getNatRulesOverview($mgmId: [Int!], $device_id: [Int!]) {
   rule_aggregate(where: { nat_rule: { _eq: true }, active: {_eq: true}}) {
     aggregate {
       count
     }
   }
   management(
-    where: { mgm_id: { _in: $management_id } }
+    where: { mgm_id: { _in: $mgmId } }
     order_by: { mgm_name: asc }
   ) {
     id: mgm_id

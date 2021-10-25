@@ -260,8 +260,23 @@ BEGIN
 		b_nat_rule := FALSE;
 	END IF;
 
-	SELECT INTO r_existing * FROM rule WHERE
-		rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.access_rule=b_access_rule AND rule.nat_rule=b_nat_rule;
+	-- SELECT INTO r_existing * FROM rule WHERE
+	-- 	rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.access_rule=b_access_rule AND rule.nat_rule=b_nat_rule;
+
+	IF r_to_import.rule_type = 'original' THEN
+		SELECT INTO r_existing * FROM rule WHERE
+			rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.nat_rule AND NOT rule.xlate_rule IS NULL;
+	ELSE 
+		IF r_to_import.rule_type = 'xlate' THEN
+			SELECT INTO r_existing * FROM rule WHERE
+				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.nat_rule AND rule.xlate_rule IS NULL;
+		ELSE -- standard access rule
+			SELECT INTO r_existing * FROM rule WHERE
+				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND NOT rule.nat_rule AND rule.access_rule;
+		END IF;
+	END IF;
+
+	-- IF NOT SELECT COUNT(r_existing) == 1
 	RAISE DEBUG 'insert_single_rule 2, rule_id: %', id;
 	IF FOUND THEN  -- rule already exists
 		RAISE DEBUG 'insert_single_rule 3, rule_id: %', id;

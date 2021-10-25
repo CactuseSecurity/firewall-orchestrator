@@ -18,10 +18,10 @@ query getNatRulesOverview($mgmId: [Int!], $device_id: [Int!]) {
       dev_name
       rules(
         where: {
-          # rule_uid: { _ilike: "%_match" }
           nat_rule: { _eq: true }
           active: { _eq: true }
           rule_disabled: { _eq: false }
+          ruleByXlateRule: {}
         }
         order_by: { rule_num_numeric: asc }
       ) {

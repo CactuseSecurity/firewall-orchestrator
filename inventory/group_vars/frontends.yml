@@ -5,7 +5,7 @@ ui_port: 5000
 ui_web_port: 443
 ui_app_name: "{{ product_name }}"
 ui_dir: "{{ fworch_home }}/ui/files"
-ui_start_dir: "{{ ui_dir }}/FWO.UI"
+ui_start_dir: "{{ ui_dir }}/FWO_UI"
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 importer_password: not4production
 importer_password_file: "{{ fworch_secrets_dir }}/importer_pwd"

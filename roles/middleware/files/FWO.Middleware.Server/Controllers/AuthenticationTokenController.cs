@@ -140,13 +140,14 @@ namespace FWO.Middleware.Controllers
                                 // User was successfully authenticated via this LDAP
                                 Log.WriteInfo("User Authentication", $"User successfully validated as {user} with DN {currentDn}");
 
-                            lock (dnLock)
-                            {
-                                tenantLevel = currentLdap.TenantLevel;
-                                userDn = currentDn;
-                                fixedTenantId = currentLdap.TenantId;
-                                internalLdap = currentLdap.IsWritable();
-                                ldapId = currentLdap.Id;
+                                lock (dnLock)
+                                {
+                                    tenantLevel = currentLdap.TenantLevel;
+                                    userDn = currentDn;
+                                    fixedTenantId = currentLdap.TenantId;
+                                    internalLdap = currentLdap.IsWritable();
+                                    ldapId = currentLdap.Id;
+                                }
                             }
                         }
                         catch

@@ -209,6 +209,7 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
+            RuleDisplay ruleDisplay = new RuleDisplay(null); // TODO: Add real UserConfig       
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
@@ -243,18 +244,18 @@ namespace FWO.Report
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 report.AppendLine("<tr>");
-                                report.AppendLine($"<td>{rule.DisplayNumber(device.Rules)}</td>");
-                                report.AppendLine($"<td>{rule.DisplayName()}</td>");
-                                report.AppendLine($"<td>{rule.DisplaySourceZone()}</td>");
-                                report.AppendLine($"<td>{rule.DisplaySource()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayDestinationZone()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayDestination()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayService()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayAction()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayTrack()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayEnabled(export: true)}</td>");
-                                report.AppendLine($"<td>{rule.DisplayUid()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayComment()}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
                                 report.AppendLine("</tr>");
                             }
                             else

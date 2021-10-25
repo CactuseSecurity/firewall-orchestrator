@@ -50,7 +50,7 @@ namespace FWO.Middleware.Controllers
         // PUT api/<LdapController>/5
         [HttpPost]
         [Authorize(Roles = "admin")]
-        public async Task<UiLdapConnection> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
+        public async Task<LdapConnectionBase> PostAsync([FromBody] LdapAddParameters ldapData)//, [FromHeader] string bearer)
         {
             // Create Api connection with given jwt
             APIConnection apiConnection = new APIConnection(apiUri, "bearer");

@@ -22,19 +22,19 @@
 
                             @if (EmptyColumns[0] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(rChange => rChange.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)context.DisplayNumber(device.Rules))
+                                        @((MarkupString)ruleDisplay.DisplayNumber(rule, device.Rules))
                                     </Template>
                                 </Column>
                             }
 
                             @if(Recertification)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" >
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" >
                                     <Template>
-                                        <div style="@(context.Metadata.Style)">
-                                            @context.Metadata.NextRecert
+                                        <div style="@(rule.Metadata.Style)">
+                                            @rule.Metadata.NextRecert
                                         </div>
                                     </Template>
                                 </Column>
@@ -72,7 +72,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source_zone"))" Field="@(rChange => rChange.SourceZone)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)rule.DisplaySourceZone())
+                                        @((MarkupString)ruleDisplay.DisplaySourceZone(rule))
                                     </Template>
                                 </Column>
                             }
@@ -80,31 +80,31 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)rule.DisplaySource())
+                                        @((MarkupString)ruleDisplay.DisplaySource(rule))
                                     </Template>
                                 </Column>
                             }
                             @if (EmptyColumns[4] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination_zone"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)context.DisplayDestinationZone())
+                                        @((MarkupString)ruleDisplay.DisplayDestinationZone(rule))
                                     </Template>
                                 </Column>
                             }
                             @if (EmptyColumns[5] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)context.DisplayDestination())
+                                        @((MarkupString)ruleDisplay.DisplayDestination(rule))
                                     </Template>
                                 </Column>
                             }
                             @if (EmptyColumns[6] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)context.DisplayService())
+                                        @((MarkupString)ruleDisplay.DisplayService(rule))
                                     </Template>
                                 </Column>
                             }
@@ -118,9 +118,9 @@
                             }
                             @if (EmptyColumns[9] == false)
                             {
-                                <Column TableItem="Rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("enabled"))" Field="@(rChange => rChange.Disabled)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)context.DisplayEnabled())
+                                        @((MarkupString)ruleDisplay.DisplayEnabled(rule))
                                     </Template>
                                 </Column>
                             }
@@ -189,4 +189,6 @@
     private ITable<Rule> reportTable;
     private const int ColumnsCount = 12;
     private bool[] EmptyColumns = new bool[ColumnsCount];
+
+    private RuleDisplay ruleDisplay = new RuleDisplay(null);
 }

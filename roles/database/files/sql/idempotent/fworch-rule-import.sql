@@ -178,7 +178,7 @@ $$ LANGUAGE plpgsql;
 -- RETURNS:   b_rule_order_to_be_written (aka has anything been changed?)
 
 -- dropping first due to change of return type in v5.5.1:
-DROP FUNCTION insert_single_rule(bigint,integer,integer,bigint,boolean);
+DROP FUNCTION IF EXISTS insert_single_rule(bigint,integer,integer,bigint,boolean);
 
 CREATE OR REPLACE FUNCTION insert_single_rule(BIGINT,INTEGER,INTEGER,BIGINT,BOOLEAN) RETURNS BIGINT AS $$
 DECLARE

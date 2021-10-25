@@ -40,7 +40,7 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET api/<LdapController>/5
-        [HttpGet("{id}")]
+        [HttpPost("Get")]
         [Authorize(Roles = "admin")]
         public string Get(int id)
         {

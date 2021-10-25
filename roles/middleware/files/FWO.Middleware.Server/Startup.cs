@@ -25,8 +25,6 @@ namespace FWO.Middleware
     {
         private readonly ConfigFile config;
 
-        private readonly string middlewareServerNativeUri;
-
         private ApiSubscription<List<Ldap>> connectedLdapsSubscription;
         private List<Ldap> connectedLdaps;
 
@@ -39,13 +37,11 @@ namespace FWO.Middleware
 
         private ReportScheduler reportScheduler;
 
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, ConfigFile config)
         {
             Configuration = configuration;
-
-            config = new ConfigFile();
+            this.config = config;
             apiUri = config.ApiServerUri;
-            middlewareServerNativeUri = config.MiddlewareServerNativeUri;
             privateJWTKey = config.JwtPrivateKey;
         }
 

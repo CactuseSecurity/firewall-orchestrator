@@ -1,3 +1,4 @@
+using FWO.Config.File;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -16,12 +17,16 @@ namespace FWO.Middleware
             CreateHostBuilder(args).Build().Run();
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                    //webBuilder.UseUrls("http://localhost:8880/");
-                });
+        public static IHostBuilder CreateHostBuilder(string[] args)
+        {
+            ConfigFile configFile = new ConfigFile();
+
+            return Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseStartup<Startup>(builder => new Startup(builder.Configuration, configFile));
+                webBuilder.UseUrls(configFile.MiddlewareServerNativeUri);
+            });
+        }
+
     }
 }

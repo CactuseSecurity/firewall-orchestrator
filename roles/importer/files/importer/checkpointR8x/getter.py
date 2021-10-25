@@ -1,10 +1,13 @@
-#!/usr/bin/python3
 # library for API get functions
-import json, argparse, pdb
-import time, logging, re, sys, logging
-import os
-import requests, requests.packages.urllib3
-import common
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
+import sys
+sys.path.append(importer_base_dir)
+import json
+import logging, re
+import requests, requests.packages
+import fwcommon
+import time
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -38,14 +41,14 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
 
 def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string):
     if domain == '':
-       payload = {'user':user, 'password' : password}
+        payload = {'user':user, 'password' : password}
     else:
         payload = {'user':user, 'password' : password, 'domain' :  domain}
     base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
     if "sid" not in response:
         logging.exception("\ngetter ERROR: did not receive a sid during login, " +
-            "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
+            "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) +
             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
         sys.exit(1)
     return response["sid"]
@@ -110,6 +113,46 @@ def set_api_url(base_url,testmode,api_supported,hostname):
     return url
 
 
+def get_changes(sid,api_host,api_port,fromdate,ssl_verification, proxy_string):
+    payload = {'from-date' : fromdate, 'details-level' : 'uid'}
+    logging.debug ("get_changes: payload: " + json.dumps(payload))
+    base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
+    task_id = api_call(api_host, api_port, base_url, 'show-changes', payload, sid, ssl_verification, proxy_string)
+
+    logging.debug ("task_id: " + json.dumps(task_id))
+    sleeptime = 1
+    status = 'in progress'
+    while (status == 'in progress'):
+        time.sleep(sleeptime)
+        tasks = api_call(api_host, api_port, base_url, 'show-task', task_id, sid, ssl_verification, proxy_string)
+        for task in tasks['tasks']:
+            # logging.debug ("task: " + json.dumps(task))
+            if 'status' in task:
+                status = task['status']
+                if 'succeeded' in status:
+                    for detail in task['task-details']:
+                        if detail['changes']:
+                            logging.debug ("show-changes - status: " + status + " -> changes found")
+                            return 1
+                        else:
+                            logging.debug ("show-changes - status: " + status + " -> but no changes found")
+                elif status == 'failed':
+                    logging.debug ("show-changes - status: failed -> no changes found")
+                elif status == 'in progress':
+                    logging.debug ("show-changes - status: in progress")
+                else:
+                    logging.error ("show-changes - unknown status: " + status)
+                    return -1
+            else:
+                logging.error ("show-changes - no status in task")
+                return -1
+        sleeptime += 2
+        if sleeptime > 40:
+            logging.error ("show-changes - task took too long, aborting")
+            return -1
+    return 0
+
+
 def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
     # just a guard:
     if 'rule-number' in rule and 'type' in rule and rule['type'] != 'place-holder':
@@ -131,15 +174,12 @@ def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
             svc_uids_found.append(svc['uid'])
         #logging.debug ("getter::collect_uids_from_rule nw_uids_found: " + str(nw_uids_found))
         #logging.debug ("getter::collect_uids_from_rule svc_uids_found: " + str(svc_uids_found))
-    if common.debug_new_uid in nw_uids_found:
-        logging.debug("found " + common.debug_new_uid + " in getter::collect_uids_from_rule")
+    if fwcommon.debug_new_uid in nw_uids_found:
+        logging.debug("found " + fwcommon.debug_new_uid + " in getter::collect_uids_from_rule")
     return
 
 
 def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_text):
-    lower_nw_uids_found = []
-    lower_svc_uids_found = []
-
     if 'layerchunks' in rulebase:
         # logging.debug ("getter::collect_uids_from_rulebase found layerchunks " + debug_text )
         for layer_chunk in rulebase['layerchunks']:
@@ -159,8 +199,8 @@ def collect_uids_from_rulebase(rulebase, nw_uids_found, svc_uids_found, debug_te
     if (debug_text == 'top_level'):
         # logging.debug ("getter::collect_uids_from_rulebase final nw_uids_found: " + str(nw_uids_found))
         # logging.debug ("getter::collect_uids_from_rulebase final svc_uids_found: " + str(svc_uids_found))
-        if common.debug_new_uid in nw_uids_found:
-            logging.debug("found " + common.debug_new_uid + " in getter::collect_uids_from_rulebase")
+        if fwcommon.debug_new_uid in nw_uids_found:
+            logging.debug("found " + fwcommon.debug_new_uid + " in getter::collect_uids_from_rulebase")
     return
 
 
@@ -176,11 +216,9 @@ def get_all_uids_of_a_type(object_table, obj_table_names):
 
 
 def get_broken_object_uids(all_uids_from_obj_tables, all_uids_from_rules):
-    # logger = logging.getLogger(__name__)
     logging.debug ("getter - entering get_broken_object_uids" )
     broken_uids = []
     for uid in all_uids_from_rules:
-        # logging.debug ("getter - uid from rules: " + uid )
         if not uid in all_uids_from_obj_tables:
             broken_uids.append(uid)
             logging.debug ("getter - found missing uid from obj_tables: " + uid )

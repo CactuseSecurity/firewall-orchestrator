@@ -19,9 +19,11 @@ namespace FWO.Report
 
         public ReportStatistics(DynGraphqlQuery query) : base(query) { }
 
-        public override Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
-            return Task.CompletedTask;
+            await callback(Managements);
+            // currently no further objects to be fetched
+            GotObjectsInReport = true;
         }
 
         public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
@@ -39,6 +41,11 @@ namespace FWO.Report
             // get relevant import ids for report time
             ImpIdQueryVariables["time"] = TimeFilter;
             Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+
+            // save selected device state
+            Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
+
             List<Management> resultList = new List<Management>();
             int i;
 
@@ -55,19 +62,20 @@ namespace FWO.Report
             Managements = resultList.ToArray();
             await callback(Managements);
 
-            foreach (Management mgm in Managements)
+            foreach (Management mgm in Managements.Where(mgt => !mgt.Ignore))
             {
                 globalStatisticsManagament.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagament.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagament.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagament.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
             }
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToJson()
         {
             globalStatisticsManagament.Name = "global statistics";
-            Management[] combinedManagements = (new Management[] { globalStatisticsManagament }).Concat(Managements).ToArray();
+            Management[] combinedManagements = (new Management[] { globalStatisticsManagament }).Concat(Managements.Where(mgt => !mgt.Ignore)).ToArray();
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
 
@@ -75,7 +83,7 @@ namespace FWO.Report
         {
             StringBuilder csvBuilder = new StringBuilder();
 
-            foreach (Management management in Managements)
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
                 //foreach (var item in collection)
                 //{
@@ -107,7 +115,7 @@ namespace FWO.Report
             report.AppendLine("</table>");
             report.AppendLine("<hr>");
 
-            foreach (Management management in Managements)
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
                 report.AppendLine($"<h4>Number of Objects - {management.Name}</h4>");
                 report.AppendLine("<table>");

@@ -1,10 +1,6 @@
--- $Id: iso-import-main.sql,v 1.1.2.12 2011-09-16 15:05:04 tim Exp $
--- $Source: /home/cvs/iso/package/install/database/Attic/iso-import-main.sql,v $
-
--- Function: public.import_all_main(BIGINT)
 
 -- DROP FUNCTION public.import_all_main(BIGINT);
-
+-- Function: public.import_all_main(BIGINT)
 CREATE OR REPLACE FUNCTION public.import_all_main(BIGINT)
   RETURNS boolean AS
 $BODY$
@@ -31,39 +27,19 @@ BEGIN
 			IF b_force_initial_import THEN b_is_initial_import := TRUE; END IF;
 		END IF;
 	
-		-- Basiselemente importieren
+		-- import base objects
 		v_err_pos := 'import_zone_main';
 		PERFORM import_zone_main	(i_current_import_id, b_is_initial_import);
 		v_err_pos := 'import_nwobj_main';
 		PERFORM import_nwobj_main	(i_current_import_id, b_is_initial_import);	
-		RAISE DEBUG 'after nwobj_import';
-/*
-		RAISE NOTICE 'listing all objects so far';
-		FOR r_obj IN
-			SELECT * FROM object WHERE obj_last_seen=i_current_import_id
-		LOOP
-			RAISE NOTICE 'obj %', r_obj.obj_name;
-		END LOOP;
-*/
-		
 		v_err_pos := 'import_svc_main';
 		PERFORM import_svc_main		(i_current_import_id, b_is_initial_import);
-		RAISE  DEBUG 'after svc_import';
-/*
-		RAISE NOTICE 'listing all svc objects so far';
-		FOR r_obj IN
-			SELECT * FROM service WHERE svc_last_seen=i_current_import_id
-		LOOP
-			RAISE NOTICE 'svc %', r_obj.svc_name;
-			RAISE NOTICE 'uid %', r_obj.svc_uid;
-		END LOOP;
-*/
 		v_err_pos := 'import_usr_main';
 		PERFORM import_usr_main		(i_current_import_id, b_is_initial_import);
 		RAISE  DEBUG 'after usr_import';
 		v_err_pos := 'rulebase_import_start';
 	
-		-- Regelwerke importieren
+		-- import rulebases
 		FOR r_dev IN
 			SELECT * FROM device WHERE mgm_id=i_mgm_id AND NOT do_not_import
 		LOOP
@@ -73,7 +49,6 @@ BEGIN
 				IF (import_rules(r_dev.dev_id, i_current_import_id)) THEN  				-- returns true if rule order needs to be changed
 																						-- currently always returns true as each import needs a rule reordering
 					v_err_pos := 'import_rules_set_rule_num_numeric of device ' || r_dev.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
-					-- PERFORM import_rules_save_order(i_current_import_id,r_dev.dev_id);  -- todo: to be removed
 					-- in case of any changes - adjust rule_num values in rulebase
 					PERFORM import_rules_set_rule_num_numeric (i_current_import_id,r_dev.dev_id);
 				END IF;
@@ -110,6 +85,7 @@ BEGIN
 				SELECT INTO v_err_str import_errors FROM import_control WHERE control_id=i_current_import_id;
 				UPDATE import_control SET import_errors = v_err_str || ';' || v_err_str_refs WHERE control_id=i_current_import_id;
 			END IF;
+			RAISE NOTICE 'ERROR:  import_all_main failed';
 			RETURN FALSE;
 	END;
 	RETURN TRUE;
@@ -138,34 +114,26 @@ DECLARE
 	v_err_pos VARCHAR;
 	v_err_str VARCHAR;
 BEGIN
-	BEGIN -- exception
-		-- zunaechst fuer die Management-weiten Tabellen die Referenzen nachziehen
+	BEGIN -- exception block
+		-- adjust references for objects for current management
 		v_err_pos := 'import_nwobj_refhandler_main';
-		RAISE DEBUG 'import_global_refhandler_main - starting ...';
 		PERFORM import_nwobj_refhandler_main(i_current_import_id);
-		RAISE DEBUG 'import_global_refhandler_main - after nwobj-refhandler';
 		v_err_pos := 'import_svc_refhandler_main';
 		PERFORM import_svc_refhandler_main(i_current_import_id);
-		RAISE DEBUG 'import_global_refhandler_main - after svc-refhandler';
 		v_err_pos := 'import_usr_refhandler_main';
 		PERFORM import_usr_refhandler_main(i_current_import_id);
-		RAISE DEBUG 'import_global_refhandler_main - after usr-refhandler';
 		
-		-- jetzt fuer alle Devices, die vom aktuell importierten Management abhaengen, die Referenzen nachziehen
+		-- adjust rule references or all devices of the current management
 		SELECT INTO i_mgm_id mgm_id FROM import_control WHERE control_id=i_current_import_id;
 		FOR r_device IN
 			SELECT * FROM device WHERE mgm_id=i_mgm_id
 		LOOP 
 			SELECT INTO b_do_not_import do_not_import FROM device WHERE dev_id=r_device.dev_id;
 			IF NOT b_do_not_import THEN
-				RAISE DEBUG 'updating references for rule set of device %', r_device.dev_name;
 				v_err_pos := 'import_rule_refhandler_main of device ' || r_device.dev_name || ' (Management: ' || CAST (i_mgm_id AS VARCHAR) || ')';
 				PERFORM import_rule_refhandler_main(i_current_import_id, r_device.dev_id);
 			END IF;
 		END LOOP;
-		RAISE DEBUG 'import_global_refhandler_main - after rule ref handling: finished';
---		v_err_pos := 'import_verify_all_references';
---		PERFORM import_verify_all_references(i_current_import_id, i_mgm_id);
 	EXCEPTION
 		WHEN OTHERS THEN
 			v_err_pos := 'ERR-ImpGlobRef@' || v_err_pos;
@@ -210,8 +178,6 @@ fworchdb=# select * from view_changes;
            457 |               8 |                     | rule           | rule_element         |      7 |        | f                 |              3 | D           |                |             | 2007-09-25 11:42:45.101601 | fw1      |    444 | fw1      |    444 |              |                 |            |               | t                 | Standard__uid__8ED0AE3D-F6E5-485A-81D8-C22D21410491, Rulebase: Standard |              | 
            458 |              13 |                     | object         | basic_element        |      2 |        | f                 |              3 | D           |                |             | 2007-09-25 11:45:45.972244 | fw1      |    444 |          |        |              |                 |            |               | t                 | test1-inserted                                                          |              | 
 (9 Zeilen)
-
-
 */
 
 CREATE OR REPLACE FUNCTION import_changelog_sync (BIGINT, INTEGER) RETURNS VOID AS $$
@@ -270,18 +236,3 @@ BEGIN
 	RETURN;
 END;
 $$ LANGUAGE plpgsql;
-
--- CREATE OR REPLACE FUNCTION create_rule_dev_initial_entry_all () RETURNS VOID AS $$
--- DECLARE
---     r_rule RECORD;
---     r_dev RECORD;
--- BEGIN
--- 	FOR r_dev IN SELECT * FROM device
--- 	LOOP
--- 		RAISE DEBUG 'fixing rules of device %', r_dev.dev_name || ' (id=' || r_dev.dev_id ||')';
--- 		FOR r_rule IN SELECT rule_id,dev_id FROM rule_order WHERE dev_id=r_dev.dev_id GROUP BY rule_id,dev_id 
--- 		LOOP UPDATE rule SET dev_id = r_rule.dev_id WHERE rule_id=r_rule.rule_id; END LOOP;
--- 	END LOOP;
--- 	RETURN;
--- END; 
--- $$ LANGUAGE plpgsql;

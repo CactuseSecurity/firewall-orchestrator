@@ -147,7 +147,10 @@ if (!$error_count_global) {
 										$current_import_id, "$cfg_dir/$audit_log_file", $prev_imp_time, $fullauditlog, $debug_level);
 				if ($error_count_local) { 
 					$error_count_global = &error_handler_add(	$current_import_id, $error_level = 3, "parse-$error_count_local", $error_count_local=1, $error_count_global);
-					$error_count_local = &exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");
+					if (defined($current_import_id)) 
+					{
+						$error_count_local = &exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");
+					}
 					$error_count_global = &error_handler_add
 						($current_import_id, $error_level = 3, "remove-import-lock-failed: $error_count_local", $error_count_local, $error_count_global);
 				}
@@ -212,7 +215,6 @@ if (!$error_count_global) {
 						print("found no errors during import\n");
 					}
 					$error_count_global = &error_handler_add ($current_import_id, $error_level = 3, "",	$error_count_local, $error_count_global);
-#					&read_user_client_classification_from_ldap ($error_count_local=1, $current_import_id);
 					$changes = &exec_pgsql_cmd_return_value("SELECT show_change_summary($current_import_id)");
 					# updating md5sum
 					if (!$error_count_global) { &exec_pgsql_cmd_no_result("UPDATE management SET last_import_md5_complete_config='$new_md5sum' WHERE mgm_id=$mgm_id"); }
@@ -236,7 +238,10 @@ if (!$error_count_global) {
 		}
 	}
 	# Cleanup and statistics
-	&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()
+	if (defined($current_import_id)) 
+	{
+		&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()
+	}
 	&clean_up_fworch_db($current_import_id);
 	if (defined($save_import_results_to_file) && $save_import_results_to_file && ($error_count_global || $changes ne '')) { # if changes or errors occured: move config & csv to archive
 		system ("${bin_path}mkdir -p $archive_dir; cd $fworch_workdir; ${bin_path}tar cfz $archive_dir/${current_import_id}_`${bin_path}date +%F_%T`_mgm_id_$mgm_id.tgz .");
@@ -244,6 +249,9 @@ if (!$error_count_global) {
 	#`cp -f $fworch_workdir/cfg/*.cfg /var/itsecorg/fw-config/`; # special backup for several configs - dos-box
 	if (!$no_cleanup) { rmtree $fworch_workdir; }
 } else {
-	&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()
+	if (defined($current_import_id)) 
+	{
+		&exec_pgsql_cmd_no_result("SELECT remove_import_lock($current_import_id)");   # this sets import_control.stop_time to now()
+	}
 }
 exit ($error_count_global);

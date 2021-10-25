@@ -20,7 +20,7 @@
 <hr />
 
 <div class="form-group row">
-    <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_user"))</button>
+    <button class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
     <button class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button>
     @if (showSampleRemoveButton)
     {
@@ -367,70 +367,98 @@
 
     private async Task SynchronizeUsers()
     {
-        foreach (var ldapUser in ldapUsers)
+        try
         {
-            UiUser relatedUiUser = uiUsers.Find(x => x.Dn == ldapUser.Dn);
-            if (relatedUiUser != null)
+            foreach (var ldapUser in ldapUsers)
             {
-                // Update related user
-                if (relatedUiUser.Email != ldapUser.Email)
+                UiUser relatedUiUser = uiUsers.Find(x => x.Dn == ldapUser.Dn);
+                if (relatedUiUser != null)
                 {
-                    relatedUiUser.Email = ldapUser.Email;
-                    await updateUserInDb(relatedUiUser);
+                    // Update related user
+                    if (relatedUiUser.Email != ldapUser.Email)
+                    {
+                        relatedUiUser.Email = ldapUser.Email;
+                        await updateUserInDb(relatedUiUser);
+                    }
+                }
+                else
+                {
+                    // Add new user to UiUsers table
+                    ldapUser.setNamesFromDn();
+                    ldapUser.PasswordMustBeChanged = false;
+                    await addUserToDb(ldapUser);
+                    uiUsers.Add(ldapUser);
                 }
             }
-            else
-            {
-                // Add new user to UiUsers table
-                ldapUser.setNamesFromDn();
-                ldapUser.PasswordMustBeChanged = false;
-                await addUserToDb(ldapUser);
-                uiUsers.Add(ldapUser);
-            }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
         }
     }
 
     private void SynchronizeUsersToGroups()
     {
-        foreach (var user in uiUsers)
+        try
         {
-            user.Groups = new List<string>();
-            foreach (var group in groups)
+            foreach (var user in uiUsers)
             {
-                if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
+                user.Groups = new List<string>();
+                foreach (var group in groups)
                 {
-                    user.Groups.Add(group.Name);
+                    if (group.Users != null && group.Users.Exists(x => x.Dn == user.Dn))
+                    {
+                        user.Groups.Add(group.Name);
+                    }
                 }
             }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
         }
     }
 
     private void SynchronizeUsersToRoles()
     {
-        foreach (var user in uiUsers)
+        try
         {
-            user.Roles = new List<string>();
-            foreach (var role in roles)
+            foreach (var user in uiUsers)
             {
-                if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))
+                user.Roles = new List<string>();
+                foreach (var role in roles)
                 {
-                    user.Roles.Add(role.Name);
+                    if (role.Users != null && role.Users.Exists(x => x.Dn == user.Dn))
+                    {
+                        user.Roles.Add(role.Name);
+                    }
                 }
             }
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
         }
     }
 
     private void CollectSampleUsers()
     {
-        sampleUsers = new List<UiUser>();
-        foreach (var user in uiUsers)
+        try
         {
-            if (user.Name.EndsWith("_demo"))
+            sampleUsers = new List<UiUser>();
+            foreach (var user in uiUsers)
             {
-                sampleUsers.Add(user);
+                if (user.Name.EndsWith("_demo"))
+                {
+                    sampleUsers.Add(user);
+                }
             }
+            showSampleRemoveButton = (sampleUsers.Count > 0);
         }
-        showSampleRemoveButton = (sampleUsers.Count > 0);
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
+        }
     }
 
     private async Task GetUsersFromInternalLdap()
@@ -585,45 +613,66 @@
 
     private void SetAvailableTenants()
     {
-        UiLdapConnection selectedLdap = connectedLdaps.Find(x => x.Id == selectedLdapId);
-        availableTenants = new List<Tenant>();
-        if (selectedLdap.TenantId != null && selectedLdap.TenantId != 0)
+        try
         {
-            availableTenants.Add(tenants.Find(x => x.Id == selectedLdap.TenantId));
+            UiLdapConnection selectedLdap = connectedLdaps.Find(x => x.Id == selectedLdapId);
+            availableTenants = new List<Tenant>();
+            if (selectedLdap.TenantId != null && selectedLdap.TenantId != 0)
+            {
+                availableTenants.Add(tenants.Find(x => x.Id == selectedLdap.TenantId));
+            }
+            else if (selectedLdap.TenantLevel > 0)
+            {
+                availableTenants = tenants;
+            }
         }
-        else if (selectedLdap.TenantLevel > 0)
+        catch (Exception exception)
         {
-            availableTenants = tenants;
+            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), null, false);
         }
     }
 
-    private void Add()
+    private void AddUser()
     {
-        AddMode = true;
-        newUser = new UiUser(){ Email = "" };
-        selectedLdapId = writableLdaps.FirstOrDefault().Id;
-        SetAvailableTenants();
-        selectedTenantId = availableTenants.FirstOrDefault().Id;
-        selectedGroupName = null;
-        newUser.Groups = new List<string>();
-        selectedRoleName = null;
-        newUser.Roles = new List<string>();
-        Edit(newUser);
+        try
+        {
+            AddMode = true;
+            newUser = new UiUser(){ Email = "" };
+            selectedLdapId = writableLdaps.FirstOrDefault().Id;
+            SetAvailableTenants();
+            selectedTenantId = availableTenants.FirstOrDefault().Id;
+            selectedGroupName = null;
+            newUser.Groups = new List<string>();
+            selectedRoleName = null;
+            newUser.Roles = new List<string>();
+            Edit(newUser);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_user"), null, false);
+        }
     }
 
     private void Clone(UiUser user)
     {
-        AddMode = true;
-        newUser = new UiUser(user);
-        newUser.Password = "";
-        selectedLdapId = (newUser.LdapConnection != null ? newUser.LdapConnection.Id :  writableLdaps.FirstOrDefault().Id);
-        SetAvailableTenants();
-        selectedTenantId = newUser.Tenant.Id;
-        selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
-        newUser.Groups = new List<string>();
-        selectedRoleName = (newUser.Roles != null ? newUser.Roles.FirstOrDefault() : null);
-        newUser.Roles = new List<string>();
-        Edit(newUser);
+        try
+        {
+            AddMode = true;
+            newUser = new UiUser(user);
+            newUser.Password = "";
+            selectedLdapId = (newUser.LdapConnection != null ? newUser.LdapConnection.Id : writableLdaps.FirstOrDefault().Id);
+            SetAvailableTenants();
+            selectedTenantId = newUser.Tenant.Id;
+            selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
+            newUser.Groups = new List<string>();
+            selectedRoleName = (newUser.Roles != null ? newUser.Roles.FirstOrDefault() : null);
+            newUser.Roles = new List<string>();
+            Edit(newUser);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_user"), null, false);
+        }
     }
 
     private void Edit(UiUser user)
@@ -664,8 +713,6 @@
 
                 if (CheckValues())
                 {
-                    SynchronizeUserData(actUser);
-
                     // insert new user to ldap
                     UserAddParameters parameters = new UserAddParameters {Email = actUser.Email, LdapHostname = actUser.LdapConnection.Host(), Password = actUser.Password, UserDn = actUser.Dn };
                     IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUser(parameters);
@@ -776,19 +823,26 @@
 
     private void RequestDelete(UiUser user)
     {
-        actUser = user;
-        if (actUser.Dn == userConfig.User.Dn)
+        try
         {
-            DisplayMessageInUi(null, userConfig.GetText("delete_user_ldap"), userConfig.GetText("E5215"), true);
-        }
-        else
-        {
-            deleteMessage = userConfig.GetText("U5201") + actUser.Name + "?";
-            if (!actUser.isInternal())
+            actUser = user;
+            if (actUser.Dn == userConfig.User.Dn)
             {
-                deleteMessage += userConfig.GetText("U5202");
+                DisplayMessageInUi(null, userConfig.GetText("delete_user_ldap"), userConfig.GetText("E5215"), true);
             }
-            DeleteMode = true;
+            else
+            {
+                deleteMessage = userConfig.GetText("U5201") + actUser.Name + "?";
+                if (!actUser.isInternal())
+                {
+                    deleteMessage += userConfig.GetText("U5202");
+                }
+                DeleteMode = true;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user_ldap"), null, true);
         }
     }
 

@@ -29,6 +29,7 @@
     - { role: common, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
+    - importer
 
 - hosts: backendserver
   roles:
@@ -75,13 +76,6 @@
     - frontend
     - csharp
 
-- hosts: importers
-  roles:
-    - { role: importer, when: "not installation_mode == 'uninstall'" }
-  tags:
-    - frontend
-    - importer
-
 - hosts: sampleserver
   roles:
     - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
@@ -99,13 +93,8 @@
   # todo: add a meta dependency on role sample-data
 
 - hosts: importers
-  tasks:
-    - name: restart importer service to make sure it works correctly with sample data
-      ansible.builtin.systemd:
-        name: "{{ product_name }}-importer"
-        state: restarted
-      become: yes
-      when: "not installation_mode == 'uninstall'"
+  roles:
+    - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
     - frontend
     - importer
@@ -134,7 +123,7 @@
     - { role: webhook, when: install_webhook|bool and not installation_mode == 'uninstall' }
   tags:
     - test
-    
+
 - hosts: all
   roles:
     - { role: test, when: "not installation_mode == 'uninstall'" }
@@ -142,20 +131,7 @@
     - test
 
 - hosts: all
-  tasks:
-    - name: show listener status
-      import_tasks: scripts/show-fworch-listeners.yml
-      become: yes
+  roles:
+    - { role: cleanup, when: "not installation_mode == 'uninstall'" }
   tags:
-    - backend
-    - frontend
-
-- hosts: backendserver
-  tasks:
-    - name: display secrets for this installation
-      debug:
-        msg:
-          - "Your initial UI admin password is '{{ admin_password }}'"
-          - "Your api hasura admin secret is '{{ api_hasura_admin_secret }}'"
-      when: admin_password is defined and api_hasura_admin_secret is defined
- 
+    - cleanup

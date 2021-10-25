@@ -85,7 +85,7 @@
                                 <Column TableItem="Management" Title="@(userConfig.GetText("rules"))" Field="@(Management => Management.RuleStatistics.ObjectAggregate.ObjectCount)" />
                             </Table>
                         }
-                        @foreach (Management management in managementsReport)
+                        @foreach (Management management in managementsReport.Where(mgt => !mgt.Ignore))
                         {
                             <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
                                 <h6>@(userConfig.GetText("total_no_obj_mgt"))</h6>
@@ -148,7 +148,7 @@
                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                            NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                           NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).ToArray(), user => user != null)" />
+                                           NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
                 </CascadingValue>
             </Tab>
         </TabSet>
@@ -347,6 +347,9 @@
                 return;
             }
 
+            // save selected managements before resetting
+            List<int> relevantManagements = DeviceFilter.getSelectedManagements(managementsReport);
+
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
             switch (currentReport)
@@ -356,6 +359,7 @@
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
+                            setRelevantManagements(relevantManagements);
                             return InvokeAsync(StateHasChanged);
                         });
                     break;
@@ -365,6 +369,7 @@
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
+                            setRelevantManagements(relevantManagements);
                             return InvokeAsync(StateHasChanged);
                         });
                     break;
@@ -375,9 +380,10 @@
                         managementsReportIntermediate =>
                         {
                             managementsReport = managementsReportIntermediate;
+                            setRelevantManagements(relevantManagements);
                             return InvokeAsync(() =>
                             {
-                                foreach (Management mgm in managementsReport)
+                                foreach (Management mgm in managementsReport.Where(mgt => !mgt.Ignore))
                                 {
                                     globalStats.RuleStatistics.ObjectAggregate.ObjectCount += mgm.RuleStatistics.ObjectAggregate.ObjectCount;
                                     globalStats.NetworkObjectStatistics.ObjectAggregate.ObjectCount += mgm.NetworkObjectStatistics.ObjectAggregate.ObjectCount;
@@ -396,6 +402,14 @@
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+        }
+    }
+
+    private void setRelevantManagements(List<int> relevantManagements)
+    {
+        foreach (Management mgm in managementsReport)
+        {
+            mgm.Ignore = (relevantManagements.Contains(mgm.Id) ? false : true);
         }
     }
 

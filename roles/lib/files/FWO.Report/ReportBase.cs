@@ -78,7 +78,7 @@ namespace FWO.Report
 
         public virtual string ExportToJson()
         {
-            return JsonSerializer.Serialize(Managements, new JsonSerializerOptions { WriteIndented = true });
+            return JsonSerializer.Serialize(Managements.Where(mgt => !mgt.Ignore), new JsonSerializerOptions { WriteIndented = true });
         }
 
         public abstract string ExportToHtml();

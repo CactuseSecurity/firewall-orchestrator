@@ -131,7 +131,7 @@
 
     public ReportTemplate adaptText(ReportTemplate reportTemplate)
     {
-        if (reportTemplate.Comment.StartsWith("T01"))
+        if (reportTemplate.Comment != null && reportTemplate.Comment.StartsWith("T01"))
         {
             reportTemplate.Comment = userConfig.GetText(reportTemplate.Comment);
         }

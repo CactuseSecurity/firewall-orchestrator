@@ -1,0 +1,13 @@
+
+dn: uid=importer,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectclass: inetorgperson
+cn: importer
+sn: user
+
+
+dn: cn=importer,ou=role,{{ openldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=importer,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal

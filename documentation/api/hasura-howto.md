@@ -21,14 +21,6 @@
 ## debugging hasura using docker ps
     docker logs c37388157052
 
-## How to convert hasura metadata file from json to yaml (for re-import)
-
-    python -c 'import sys, yaml, json; yaml.safe_dump(json.load(sys.stdin), sys.stdout, default_flow_style=False)' < file.json > file.yaml
-
-## How to convert a yaml file to json
-
-    python -c 'import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' < meta.yaml >meta.json
-
 ## Sending graphql queries
 
     Method: POST

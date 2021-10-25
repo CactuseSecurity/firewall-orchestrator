@@ -16,9 +16,11 @@ namespace FWO.Report
     {
         public ReportChanges(DynGraphqlQuery query) : base(query) { }
 
-        public override Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
-            throw new NotImplementedException();
+            await callback(Managements);
+            // currently no further objects to be fetched
+            GotObjectsInReport = true;
         }
 
         public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
@@ -34,6 +36,10 @@ namespace FWO.Report
             bool gotNewObjects = true;
             Managements = Array.Empty<Management>();
 
+            // save selected device state
+            Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
+
             Managements = await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables);
             while (gotNewObjects)
             {
@@ -41,13 +47,14 @@ namespace FWO.Report
                 gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
                 await callback(Managements);
             }
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToCsv()
         {
             StringBuilder csvBuilder = new StringBuilder();
 
-            foreach (Management management in Managements)
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
                 //foreach (var item in collection)
                 //{
@@ -64,7 +71,7 @@ namespace FWO.Report
         {
             StringBuilder report = new StringBuilder();
 
-            foreach (Management management in Managements)
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
                 report.AppendLine($"<h3>{management.Name}</h3>");
                 report.AppendLine("<hr>");

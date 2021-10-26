@@ -20,15 +20,13 @@ namespace FWO.Middleware.Client
 
         public MiddlewareClient(string middlewareServerUri)
         {
-            restClient = new RestClient(middlewareServerUri);
+            restClient = new RestClient(middlewareServerUri + "api/");
             restClient.RemoteCertificateValidationCallback += (_, _, _, _) => true;
 
             JsonSerializerOptions options = new JsonSerializerOptions();
             options.PropertyNameCaseInsensitive = true;
             SystemTextJsonSerializer serializer = new SystemTextJsonSerializer(options);
             restClient.UseSerializer(() => serializer);
-
-            //restClient.BaseUrl = new Uri("/api");
         }
 
         public void SetAuthenticationToken(string jwt)

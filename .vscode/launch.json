@@ -157,7 +157,7 @@
             "args": [
                 "test"
             ],
-            "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
+          "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -166,9 +166,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/net5.0/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net5.0/FWO.Ui.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",

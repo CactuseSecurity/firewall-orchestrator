@@ -44,7 +44,7 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
     if package == None or package == '' or package == [None]:
         package_param_str = ''
     else:
-        package_param_str = "-k '" + ','.join(package) + '"'
+        package_param_str = ' -k "' + ','.join(package) + '"'
     
     get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
         mgm_details['hostname'] + " -u " + mgm_details['user'] + starttime + " -w " + \

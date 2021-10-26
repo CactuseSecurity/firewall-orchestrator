@@ -58,9 +58,10 @@ namespace FWO.Ui
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             APIConnection apiConn = new APIConnection(ApiUri);
             IRestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
-            if (createJWTResponse.StatusCode != HttpStatusCode.OK) 
+            // if (createJWTResponse.StatusCode != HttpStatusCode.OK) 
+            if (!createJWTResponse.IsSuccessful) 
             {
-                Log.WriteError("Middleware Server Connection", $"Error while authenticating as anonymous user from UI.");
+                Log.WriteError("Middleware Server Connection", $"Error while authenticating as anonymous user from UI: " + createJWTResponse.ErrorMessage);
                 Environment.Exit(1);
             }
             string jwt = createJWTResponse.Data;

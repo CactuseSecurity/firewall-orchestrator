@@ -142,7 +142,7 @@
             "args": [
                 "test"
             ],
-            "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
+          "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
             "stopAtEntry": false,
             "console": "internalConsole"
         },

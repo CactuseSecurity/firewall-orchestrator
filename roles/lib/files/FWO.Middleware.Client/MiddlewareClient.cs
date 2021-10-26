@@ -10,6 +10,7 @@ using RestSharp.Authenticators;
 using RestSharp.Serializers.SystemTextJson;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Net.Security;
 
 namespace FWO.Middleware.Client
 {
@@ -20,6 +21,7 @@ namespace FWO.Middleware.Client
         public MiddlewareClient(string middlewareServerUri)
         {
             restClient = new RestClient(middlewareServerUri);
+            restClient.RemoteCertificateValidationCallback += (_, _, _, _) => true;
 
             JsonSerializerOptions options = new JsonSerializerOptions();
             options.PropertyNameCaseInsensitive = true;

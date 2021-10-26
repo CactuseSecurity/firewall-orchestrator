@@ -41,7 +41,7 @@ namespace FWO.Config.Api
                 try
                 {
                     TypeConverter converter = TypeDescriptor.GetConverter(typeof(ConfigValueType));
-                    return (ConfigValueType)converter.ConvertTo(configItems[key], typeof(ConfigValueType));
+                    return (ConfigValueType)converter.ConvertFromString(configItems[key]);
                 }
                 catch (Exception exception)
                 {

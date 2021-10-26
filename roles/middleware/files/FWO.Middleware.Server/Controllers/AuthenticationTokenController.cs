@@ -100,7 +100,6 @@ namespace FWO.Middleware.Controllers
 
             // Get roles of user
             user.Roles = await GetRoles(user);
-            user.Roles.Add("admin");
 
             // Get tenant of user
             user.Tenant = await GetTenantAsync(user);

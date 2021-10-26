@@ -70,7 +70,8 @@ middleware_service_name: "{{ product_name }}-middleware"
 # middleware web server
 middleware_server_name: 127.0.0.1
 middleware_web_listener_port: 8888
-middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/"
+middleware_web_listener_base_path: "api"
+middleware_uri: "https://{{ middleware_server_name }}:{{ middleware_web_listener_port }}/{{ middleware_web_listener_base_path }}/"
 ##### application server data
 middleware_internal_port: 8880
 # currently not used: web_server_name: "{{ middleware_server_name }}"

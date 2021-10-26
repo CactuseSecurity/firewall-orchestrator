@@ -28,7 +28,7 @@ namespace FWO.Middleware.Client
             SystemTextJsonSerializer serializer = new SystemTextJsonSerializer(options);
             restClient.UseSerializer(() => serializer);
 
-            //restClient.BaseUrl = new Uri("/api";
+            //restClient.BaseUrl = new Uri("/api");
         }
 
         public void SetAuthenticationToken(string jwt)

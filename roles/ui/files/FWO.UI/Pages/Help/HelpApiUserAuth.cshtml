@@ -9,17 +9,18 @@
     }
 }
 @using FWO.Config.Api
+@using FWO.Config.File
+@using System.Threading.Tasks
+@using FWO.ApiClient
+@using FWO.Api.Data
+@using FWO.Middleware.Client
+@using Microsoft.IdentityModel.Tokens
+@using FWO.Middleware.RequestParameters
 @inject UserConfig userConfig
 
 <div class="p-2">
     <h3>@userConfig.GetText("api_umgmt_auth")</h3>
     
     @userConfig.GetText("umgmt_auth_expl"):
-
-    <pre>
-curl --request POST \
-    --url https://localhost:8888/AuthenticateUser \
-    --header 'content-type: application/json' \
-    --data '{"Username":"user1_demo", "Password": "cactus1"}'
-    </pre>
-</div>
+    @{ConfigFile configConnection = new ConfigFile(); string ApiUri = configConnection.ApiServerUri;}
+    <a href="@configConnection.MiddlewareServerUri/umgmt">@configConnection.MiddlewareServerUri/umgmt</a>

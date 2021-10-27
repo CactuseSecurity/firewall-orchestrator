@@ -61,7 +61,12 @@ namespace FWO.Ui
             // if (createJWTResponse.StatusCode != HttpStatusCode.OK) 
             if (!createJWTResponse.IsSuccessful) 
             {
-                Log.WriteError("Middleware Server Connection", $"Error while authenticating as anonymous user from UI: " + createJWTResponse.ErrorMessage);
+                Log.WriteError("Middleware Server Connection", 
+                    "Error while authenticating as anonymous user from UI, "
+                    + $"Uri: {createJWTResponse.ResponseUri.AbsoluteUri}, "
+                    + $"HttpStatus: {createJWTResponse.StatusDescription}, "
+                    + $"Error: {createJWTResponse.ErrorMessage}"
+                );
                 Environment.Exit(1);
             }
             string jwt = createJWTResponse.Data;

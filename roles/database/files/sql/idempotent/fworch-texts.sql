@@ -752,6 +752,8 @@ INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'English', 	'Authentication');
 INSERT INTO txt VALUES ('umgmt_api_explain',    'German', 	'F&uuml;r API-Abfragen rund um das Thema Benutzerauthentifizierung existiert eine eigenst&auml;ndige REST-API, deren Dokumentation sich hier findet:');
 INSERT INTO txt VALUES ('umgmt_api_explain',    'English', 	'For API calls regarding user management purposes there is a dedicated REST API which is documented here:');
+INSERT INTO txt VALUES ('umgmt_api_explain2',   'German', 	'Bitte beachten Sie, dass die Interaktion via "Try it out" aktuell nur f&uuml;r den initialen AuthenticationToken-Call zur Verf&uuml;gung steht. F&uuml;r alle darauffolgenden Aufrufe muss der Authentication Token (JWT) als Header wie folgt mitgeschickt werden: <br><pre>--header ''Authorization: Bearer JWT''</pre>''');
+INSERT INTO txt VALUES ('umgmt_api_explain2',   'English', 	'Please note that API interaction via "Try it out" is currently only possible for the AuthenticationToken call. All subsequent calls need to pass the authentication token (JWT) as header information as follows: <br><pre>--header ''Authorization: Bearer JWT''</pre>');
 INSERT INTO txt VALUES ('api_fwo',              'German', 	'FWO API');
 INSERT INTO txt VALUES ('api_fwo',              'English', 	'FWO API');
 INSERT INTO txt VALUES ('graphql',              'German', 	'GraphQL');

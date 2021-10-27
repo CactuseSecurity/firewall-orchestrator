@@ -114,7 +114,7 @@ namespace FWO.Middleware
 
             app.UseSwagger();
             // app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "FWO.Middleware v1"); });
-            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/umgmt/v1/swagger.json", "FWO.Middleware v1"); });
+            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "FWO.Middleware v1"); });
 
             //app.UseHttpsRedirection();
 

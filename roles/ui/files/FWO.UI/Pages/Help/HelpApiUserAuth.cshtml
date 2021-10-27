@@ -18,9 +18,10 @@
 @using FWO.Middleware.RequestParameters
 @inject UserConfig userConfig
 
+@{ConfigFile configConnection = new ConfigFile(); string ApiUri = configConnection.ApiServerUri;}
+
 <div class="p-2">
-    <h3>@userConfig.GetText("api_umgmt_auth")</h3>
+    <h3>@userConfig.GetText("api_user_mgmt_head")</h3>
     
-    @userConfig.GetText("umgmt_auth_expl"):
-    @{ConfigFile configConnection = new ConfigFile(); string ApiUri = configConnection.ApiServerUri;}
-    <a href="@configConnection.MiddlewareServerUri/umgmt">@configConnection.MiddlewareServerUri/umgmt</a>
+    @userConfig.GetText("umgmt_api_explain")
+    <a target="_blank" href="@configConnection.MiddlewareServerUri/swagger">@configConnection.MiddlewareServerUri/swagger</a>

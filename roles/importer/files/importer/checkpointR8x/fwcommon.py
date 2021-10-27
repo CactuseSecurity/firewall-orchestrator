@@ -41,13 +41,15 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
         for importctl in mgm_details['import_controls']: 
             if 'starttime' in importctl:
                 starttime = " -f " + importctl['starttime']
-    if package == None:
-        package = ''
+    if package == None or package == '' or package == [None]:
+        package_param_str = ''
+    else:
+        package_param_str = ' -k "' + ','.join(package) + '"'
     
     get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
         mgm_details['hostname'] + " -u " + mgm_details['user'] + starttime + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
-        "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string + ' -k ' + '"' + ','.join(package) + '"'
+        "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string + package_param_str
 
     get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
@@ -83,8 +85,9 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             # now parse the nat rulebase
             # rule_num = parse_rule.parse_nat_rulebase_json(
             #     full_config_json['nat_rulebases'][rb_id], target_rulebase, package[rb_id], current_import_id, rule_num, section_header_uids, parent_uid)
-            rule_num = parse_rule.parse_nat_rulebase_json(
-                full_config_json['nat_rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+            if len(full_config_json['nat_rulebases'])>0:
+                rule_num = parse_rule.parse_nat_rulebase_json(
+                    full_config_json['nat_rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
         config2import.update({'rules': target_rulebase})
 
         # copy users from full_config to config2import

@@ -1,0 +1,81 @@
+﻿@using BlazorTable
+@using FWO.ApiClient
+@using FWO.Config.Api
+@using FWO.Config.Api.Data;
+@using FWO.Api.Data
+@using FWO.Ui.Services
+
+@page "/settings/report"
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor")]
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("report_settings"))</h3>
+@(userConfig.GetText("U5413"))
+<hr />
+
+<form class="form-inline" onsubmit="return false">
+    <label for="elementsPerFetch" class="col-form-label mr-2">@(userConfig.GetText("elementsPerFetch")):</label>
+    <div class="col-sm-2">
+        <input id="elementsPerFetch" type="number" class="form-control form-control-sm" @bind="elementsPerFetch" />
+    </div>
+</form>
+<hr />
+<button class="btn btn-sm btn-primary" @onclick="SaveElementsPerFetch">@(userConfig.GetText("save"))</button>
+
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    ConfigDbAccess config;
+    int elementsPerFetch = 100;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState authState = await authenticationStateTask;
+        try
+        {
+            config = new ConfigDbAccess(apiConnection, userConfig);
+            string settingsValue = config.Get<string>(GlobalConfig.kElementsPerFetch);
+            if (settingsValue != "")
+            {
+                elementsPerFetch = Int32.Parse(settingsValue);
+            }
+            else
+            {
+                // get default value
+                ConfigDbAccess defaultConfig = new ConfigDbAccess(apiConnection);
+                settingsValue = defaultConfig.Get<string>(GlobalConfig.kElementsPerFetch);
+                if (settingsValue != "")
+                {
+                    elementsPerFetch = Int32.Parse(settingsValue);
+                }
+            }
+        }
+        catch (KeyNotFoundException) { }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5421")+elementsPerFetch.ToString(), false);
+        }
+    }
+
+    private async Task SaveElementsPerFetch()
+    {
+        string elementsPerFetchString = elementsPerFetch.ToString();
+        try
+        {
+            await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetchString, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), null, true);
+        }
+    }
+}

@@ -43,7 +43,7 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
       loop:
-        - FWO_UI
+        - FWO.UI
 
   become: yes
 

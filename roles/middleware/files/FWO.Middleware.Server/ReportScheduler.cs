@@ -2,8 +2,9 @@
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
-using FWO.Middleware.Server.Requests;
+using FWO.Middleware.Controllers;
 using FWO.Report;
+using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -130,7 +131,9 @@ namespace FWO.Middleware.Server
                     DateTime reportGenerationStartDate = DateTime.Now;
 
                     // get uiuser roles + tenant
-                    AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
+                    AuthManager authHandler = new AuthManager(jwtWriter, connectedLdaps, apiConnection);
+                    //AuthenticationRequestHandler authHandler = new AuthenticationRequestHandler(connectedLdaps, jwtWriter, apiConnection);
+                    
                     report.Owner.Roles = await authHandler.GetRoles(report.Owner);
                     report.Owner.Tenant = await authHandler.GetTenantAsync(report.Owner);
                     APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, await jwtWriter.CreateJWT(report.Owner));

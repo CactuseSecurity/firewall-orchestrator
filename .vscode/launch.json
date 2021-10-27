@@ -2,21 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "pl-single-import",
-            "type": "perl",
-            "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/fworch-importer-single.pl",
-            "console": "integratedTerminal",
-            "stopOnEntry": true,
-            "reloadModules": true,            
-            "env": {
-            },
-            "args": [
-                "mgm_id=5",
-                "-d3"
-            ]
-        },
-        {
             "name": "py-change-comment",
             "type": "python",
             "request": "launch",
@@ -157,7 +142,7 @@
             "args": [
                 "test"
             ],
-            "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
+          "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -166,9 +151,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/net5.0/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net5.0/FWO.Ui.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",

@@ -6,11 +6,14 @@ using System.Collections.Generic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using FWO.Api.Data;
+using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server
 {
     public class Ldap : LdapConnectionBase
     {
+        // The following properties are retrieved from the database api:
+        // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
         private const int timeOutInMs = 3000;
 
         /// <summary>
@@ -21,8 +24,9 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                LdapConnection connection = new LdapConnection { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
-                if (Tls) connection.UserDefinedServerCertValidationDelegate += (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation                
+                LdapConnectionOptions ldapOptions = new LdapConnectionOptions();
+                if (Tls) ldapOptions.ConfigureRemoteCertificateValidationCallback((object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true); // todo: allow real cert validation     
+                LdapConnection connection = new LdapConnection(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };           
                 connection.Connect(Address, Port);
 
                 return connection;
@@ -460,13 +464,15 @@ namespace FWO.Middleware.Server
                     connection.Bind(WriteUser, WriteUserPwd);
 
                     string userName = (new FWO.Api.Data.DistName(userDn)).UserName;
-                    LdapAttributeSet attributeSet = new LdapAttributeSet();
-                    attributeSet.Add( new LdapAttribute("objectclass", "inetOrgPerson"));
-                    attributeSet.Add( new LdapAttribute("sn", userName));
-                    attributeSet.Add( new LdapAttribute("cn", userName));
-                    attributeSet.Add( new LdapAttribute("uid", userName));
-                    attributeSet.Add( new LdapAttribute("userPassword", password));
-                    attributeSet.Add( new LdapAttribute("mail", email));
+                    LdapAttributeSet attributeSet = new LdapAttributeSet
+                    {
+                        new LdapAttribute("objectclass", "inetOrgPerson"),
+                        new LdapAttribute("sn", userName),
+                        new LdapAttribute("cn", userName),
+                        new LdapAttribute("uid", userName),
+                        new LdapAttribute("userPassword", password),
+                        new LdapAttribute("mail", email)
+                    };
 
                     LdapEntry newEntry = new LdapEntry( userDn, attributeSet );
 

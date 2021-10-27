@@ -1,0 +1,20 @@
+﻿@page "/help/reporting/output"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpReportingSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("report_data_output")</h3>
+    @(Html.Raw(userConfig.GetText("H1401")))
+    <ul>
+        @(Html.Raw(userConfig.GetText("H1402")))
+    </ul>
+</div>

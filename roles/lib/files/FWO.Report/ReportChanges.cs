@@ -70,6 +70,7 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
+            RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(null); // TODO: Add real UserConfig     
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
@@ -103,19 +104,19 @@ namespace FWO.Report
                         foreach (RuleChange ruleChange in device.RuleChanges)
                         {
                             report.AppendLine("<tr>");
-                            report.AppendLine($"<td>{ruleChange.DisplayChangeTime()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayChangeAction()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayName()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplaySourceZone()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplaySource()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayDestinationZone()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayDestination()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayService()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayAction()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayTrack()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayEnabled(export: true)}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayUid()}</td>");
-                            report.AppendLine($"<td>{ruleChange.DisplayComment()}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayChangeTime(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayChangeAction(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayName(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplaySourceZone(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplaySource(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayDestinationZone(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayDestination(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayService(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayAction(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayTrack(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayEnabled(ruleChange, export: true)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayUid(ruleChange)}</td>");
+                            report.AppendLine($"<td>{ruleChangeDisplay.DisplayComment(ruleChange)}</td>");
                             report.AppendLine("</tr>");
                         }
                     }

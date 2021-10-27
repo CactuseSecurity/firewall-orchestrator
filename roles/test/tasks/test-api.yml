@@ -76,7 +76,7 @@
 
 - name: get sample jwt
   uri:
-    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/
     method: POST
     headers:
       Content-Type: application/json
@@ -97,7 +97,7 @@
     headers:
       Content-Type: application/json
       # Remove leading and trailing text of jwt output
-      Authorization: Bearer {{ (sample_JWT.content.split(':')[1])[1:-2] }}
+      Authorization: Bearer {{ sample_JWT.content }}
     body:
       query: "query text { txt { id } }"
     body_format: json

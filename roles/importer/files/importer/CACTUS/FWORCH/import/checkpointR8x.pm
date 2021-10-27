@@ -44,15 +44,35 @@ sub parse_config {
 
 
 # parsing rulebases
-	my $rulebase_names = get_ruleset_name_list($rulebase_name);
-	my @rulebase_name_ar = split /,/, $rulebase_names;
-	foreach my $rulebase (@rulebase_name_ar) {
-		my $rulebase_name_sanitized = join('__', split /\//, $rulebase);
-		$cmd = "$parser_py -m $mgm_name -i $import_id -r \"$rulebase\" -f \"$object_file\" -d $debug_level > \"$output_dir/${rulebase_name_sanitized}_rulebase.csv\"";
+	my $local_rulebase_names = get_local_ruleset_name_list($rulebase_name);
+	my $global_rulebase_names = get_global_ruleset_name_list($rulebase_name);
+	my @local_rulebase_name_ar = split /,/, $local_rulebase_names;
+	my @global_rulebase_name_ar = split /,/, $global_rulebase_names;
+	my $rulebase_with_slash;
+	my $rulebase_name_sanitized;
+	for (my $i=0; $i<scalar(@local_rulebase_name_ar); $i++) {
+		if (defined($global_rulebase_name_ar[$i]) && $global_rulebase_name_ar[$i] ne "") {
+			$rulebase_with_slash = $global_rulebase_name_ar[$i].'/'.$local_rulebase_name_ar[$i];
+			$rulebase_name_sanitized = $global_rulebase_name_ar[$i].'__'.$local_rulebase_name_ar[$i];
+		}
+		else {
+			$rulebase_with_slash = $local_rulebase_name_ar[$i];
+			$rulebase_name_sanitized = $local_rulebase_name_ar[$i];
+		}
+
+		$cmd = "$parser_py -m $mgm_name -i $import_id -r \"$rulebase_with_slash\" -f \"$object_file\" -d $debug_level > \"$output_dir/${rulebase_name_sanitized}_rulebase.csv\"";
 #		print("DEBUG - cmd = $cmd\n");
 		$return_code = system($cmd); 
 		if ( $return_code != 0 ) { print("ERROR in parse_config found: $return_code\n") }
+
 	}
+# 	foreach my $rulebase (@local_rulebase_name_ar) {
+# 		my $rulebase_name_sanitized = join('__', split /\//, $rulebase);
+# 		$cmd = "$parser_py -m $mgm_name -i $import_id -r \"$rulebase\" -f \"$object_file\" -d $debug_level > \"$output_dir/${rulebase_name_sanitized}_rulebase.csv\"";
+# #		print("DEBUG - cmd = $cmd\n");
+# 		$return_code = system($cmd); 
+# 		if ( $return_code != 0 ) { print("ERROR in parse_config found: $return_code\n") }
+# 	}
 # parsing users
 	$cmd = "$parser_py -m $mgm_name -i $import_id -u -f \"$object_file\" -d $debug_level > \"$output_dir/${mgm_name}_users.csv\"";
 #	print("DEBUG - cmd = $cmd\n");
@@ -123,7 +143,7 @@ sub copy_config_from_mgm_to_iso {
 	my $get_cmd;
 	my $enrich_cmd;
 
-	my $rulebase_names = get_ruleset_name_list($rulebase_names_hash_ref);
+	my $rulebase_names = get_local_ruleset_name_list($rulebase_names_hash_ref);
 	if ( ${^CHILD_ERROR_NATIVE} ) { $fehler_count++; }
 
 	if ( -r "$workdir/${CACTUS::FWORCH::ssh_id_basename}.pub" ) {

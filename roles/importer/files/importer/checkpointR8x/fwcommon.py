@@ -22,24 +22,39 @@ svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'servic
 # cannot fetch the Any object via API (<=1.7) at the moment
 # therefore we have a workaround adding the object manually (as svc and nw)
 any_obj_uid = "97aeb369-9aea-11d5-bd16-0090272ccb30"
-# todo: read this from config (vom API 1.6 on it is fetched)
+# todo: read this from config (from API 1.6 on it is fetched)
+
+original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
+# used for nat only (both svc and nw obj)
 
 # this is just a test UID for debugging a single rule
 debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 
 
-def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=150):
+def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package, proxy_string='', limit=150):
     logging.info("found Check Point R8x management")
+    # logging.debug("mgm_details: " + json.dumps(mgm_details))
     if proxy_string!='':
         proxy_string = ' -x ' + proxy_string
+    starttime = ''
+    if 'import_controls' in mgm_details:
+        for importctl in mgm_details['import_controls']: 
+            if 'starttime' in importctl:
+                starttime = " -f " + importctl['starttime']
+    if package == None or package == '' or package == [None]:
+        package_param_str = ''
+    else:
+        package_param_str = ' -k "' + ','.join(package) + '"'
+    
     get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
-        mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
+        mgm_details['hostname'] + " -u " + mgm_details['user'] + starttime + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
-        "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
+        "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string + package_param_str
 
     get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
         secret_filename + " -l \"" + rulebase_string + \
         "\" -c " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
+    logging.debug("get_config_cmd: " + get_config_cmd)
 
     result = os.system(get_config_cmd)
     if result != 0:
@@ -47,6 +62,8 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
     else:
         with open(config_filename, "r") as json_data:
             full_config_json = json.load(json_data)
+            if len(full_config_json) == 0:
+                return 0
         parse_network.parse_network_objects_to_json(
             full_config_json, config2import, current_import_id)
         parse_service.parse_service_objects_to_json(
@@ -65,6 +82,14 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             logging.debug("parsing layer " + full_config_json['rulebases'][rb_id]['layername'])
             rule_num = parse_rule.parse_rulebase_json(
                 full_config_json['rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+            # now parse the nat rulebase
+            # rule_num = parse_rule.parse_nat_rulebase_json(
+            #     full_config_json['nat_rulebases'][rb_id], target_rulebase, package[rb_id], current_import_id, rule_num, section_header_uids, parent_uid)
+            if len(full_config_json['nat_rulebases'])>0:
+                rule_num = parse_rule.parse_nat_rulebase_json(
+                    full_config_json['nat_rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
+        config2import.update({'rules': target_rulebase})
+
         # copy users from full_config to config2import
         # also converting users from dict to array:
         config2import.update({'user_objects': []})
@@ -73,7 +98,6 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             user.update({'user_name': user_name})
             config2import['user_objects'].append(user)
 
-        config2import.update({'rules': target_rulebase})
     return 0
 
 

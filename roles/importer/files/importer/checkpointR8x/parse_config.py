@@ -2,7 +2,8 @@
 import sys
 sys.path.append(r"/usr/local/fworch/importer")
 import common 
-import parse_network, parse_rule, parse_service, parse_user
+import parse_network, parse_service, parse_user # parse_rule, 
+import parse_network_csv, parse_rule_csv, parse_service_csv, parse_user_csv
 import argparse
 import json
 import sys
@@ -50,7 +51,7 @@ if args.rulebase != '':
         if current_layer_name == args.rulebase:
             logging.debug("parse_config: found layer to parse: " + current_layer_name)
             found_rulebase = True
-            rule_num, result = parse_rule.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[], parent_uid="")
+            rule_num, result = parse_rule_csv.csv_dump_rules(rulebase, args.rulebase, args.import_id, rule_num=0, section_header_uids=[], parent_uid="")
 
 if args.network_objects:
     result = ''
@@ -64,7 +65,7 @@ if args.network_objects:
                 parse_network.add_member_names_for_nw_group(idx, nw_objects)
     
     for nw_obj in nw_objects:
-        result += parse_network.csv_dump_nw_obj(nw_obj, args.import_id)
+        result += parse_network_csv.csv_dump_nw_obj(nw_obj, args.import_id)
 
 if args.service_objects:
     result = ''
@@ -78,7 +79,7 @@ if args.service_objects:
                 parse_service.add_member_names_for_svc_group(idx, service_objects)
 
     for svc_obj in service_objects:
-        result += parse_service.csv_dump_svc_obj(svc_obj, args.import_id)
+        result += parse_service_csv.csv_dump_svc_obj(svc_obj, args.import_id)
 
 if args.users:
     users = {}
@@ -88,7 +89,7 @@ if args.users:
 
     for user_name in users.keys():
         user_dict = users[user_name]
-        result += parse_user.csv_dump_user(user_name, user_dict, args.import_id)
+        result += parse_user_csv.csv_dump_user(user_name, user_dict, args.import_id)
 
 if args.rulebase != '' and not found_rulebase:
     logging.exception("PARSE ERROR: rulebase '" + args.rulebase + "' not found.")

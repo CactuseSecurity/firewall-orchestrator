@@ -44,11 +44,12 @@ if len(sys.argv) == 1:
     sys.exit(1)
 
 error_count = 0
+change_count = 0
 importer_user_name = 'importer'  # todo: move to config file?
 fwo_config_filename = base_dir + '/etc/fworch.json'
 importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
 import_tmp_path = base_dir + '/tmp/import'
-
+change_count = 0
 error_string = ''
 start_time = int(time.time())
 if args.ssl == '' or args.ssl == 'off':
@@ -79,6 +80,10 @@ else:
 mgm_details = fwo_api.get_mgm_details(
     fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
 
+package_list = []
+for dev in mgm_details['devices']:
+    package_list.append(dev['package_name'])
+
 # only run if this is the correct import module
 if mgm_details['importerHostname'] != socket.gethostname():
     logging.info(
@@ -101,6 +106,7 @@ config2import = {}
 Path(import_tmp_path).mkdir(parents=True,
                             exist_ok=True)  # make sure tmp path exists
 
+# the config is expected as a file by checkpoint, for newer importers, everything is handled via config variable
 config_filename = import_tmp_path + '/mgm_id_' + \
     str(args.mgm_id) + '_config.json'
 
@@ -113,7 +119,7 @@ with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing
 
 rulebase_string = ''
 for device in mgm_details['devices']:
-    rulebase_string += device['rulebase'] + ','
+    rulebase_string += device['local_rulebase_name'] + ','
 rulebase_string = rulebase_string[:-1]  # remove final comma
 
 # pick product-specific importer:
@@ -123,15 +129,18 @@ fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
 if 'proxy' in args and args.proxy != None:
-    get_config_error = fw_module.get_config(
-        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string=args.proxy, limit=args.limit)
+    get_config_response = fw_module.get_config(
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, proxy_string=args.proxy, limit=args.limit)
 else:
-    get_config_error = fw_module.get_config(
-        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, limit=args.limit)
+    get_config_response = fw_module.get_config(
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, limit=args.limit)
 
-if get_config_error > 0:
-    error_count += get_config_error
-else:
+# if no changes were found, we get get_config_response==512 and we skip everything else without errors
+# todo: re-structure this to make it more logical/readable
+
+if get_config_response == 1:
+    error_count += get_config_response
+elif get_config_response == 0:
     # now we import the config via API:
     error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
         "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
@@ -160,7 +169,7 @@ stop_time = int(time.time())
 stop_time_string = datetime.datetime.now().isoformat()
 
 # delete configs of imports without changes (if no error occured)
-if change_count == 0 and error_count == 0:
+if change_count == 0 and error_count == 0 and get_config_response < 2:
     error_count += fwo_api.delete_json_config(
         fwo_api_base_url, jwt, {"importId": current_import_id})
     if os.path.exists(config_filename):
@@ -169,7 +178,7 @@ if change_count == 0 and error_count == 0:
 
 if os.path.exists(secret_filename):
     os.remove(secret_filename)
-# finalize remport by unlocking it
+# finalize import by unlocking it
 error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
     args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
 

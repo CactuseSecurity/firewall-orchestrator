@@ -10,7 +10,7 @@
       cron:
         name: change fw config with write_date_to_comment.py
         weekday: "*"
-        minute: "45"
+        minute: "0"
         hour: "*"
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/write_date_to_comment.py"
@@ -25,14 +25,14 @@
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py {{ item }}"
         cron_file: ansible_{{ product_name }}_enlarge_rule_{{ item }}
-      with_sequence: start=0 end=59 stride=1
+      with_sequence: start=3 end=59 stride=1
       when: "sample_data_rate == 'high'"
 
     - name: Executes enlarge_rule.py as cronjob in /etc/cron.d
       cron:
         name: change fw config with enlarge_rule.py
         weekday: "*"
-        minute: "15"
+        minute: "1"
         hour: "*"
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py"

@@ -2,6 +2,28 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "py-change-comment",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/sample-data/files/config_changes/write_date_to_comment.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },        
+        {
+            "name": "py-change-rule",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/sample-data/files/config_changes/enlarge_rule.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },        
+        {
             "name": "py-cpr8x-get-config",
             "type": "python",
             "request": "launch",
@@ -15,6 +37,7 @@
                 "-uitsecorg",
                 "-w/home/tim/tmp/passwd",
                 "-lFirstLayer shared with inline layer",
+                "-kTestPolicyWithLayers",
                 "-o/home/tim/tmp/sting.cfg"
             ]
         },
@@ -77,9 +100,26 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m6",
-                "-d2",
-                "-l20"
+                "-m5",
+                "-d3",
+                "-l50"
+            ]
+        },        
+        {
+            "name": "py-cpr8x-autodiscovery",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+              "-a192.168.100.110",
+              "-w/home/tim/secrets/cp_apiuser_pwd",
+              "-uitsecorg",
+              "-fjson"
             ]
         },
         {
@@ -102,7 +142,7 @@
             "args": [
                 "test"
             ],
-            "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
+          "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -111,9 +151,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/net5.0/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net5.0/FWO.Ui.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",

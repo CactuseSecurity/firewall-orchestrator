@@ -1,0 +1,17 @@
+﻿@page "/help/architecture"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpEmptySidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("architecture")</h3>
+    <img src="architecture.png" alt="FWORCH Architecture">
+</div>

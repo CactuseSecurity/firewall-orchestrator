@@ -212,7 +212,7 @@
   become: yes
 
 - name: run unit tests
-  import_tasks: run-unit-tests.yml
+  include_tasks: run-unit-tests.yml
   when: not installation_mode == "uninstall" 
   tags: [ 'never', 'unittest' ]
 

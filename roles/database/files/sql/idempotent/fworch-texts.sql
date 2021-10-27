@@ -678,6 +678,8 @@ INSERT INTO txt VALUES ('fetch_users_local',    'German', 	'Nutzer aus API holen
 INSERT INTO txt VALUES ('fetch_users_local',    'English', 	'Fetch Users from API');
 INSERT INTO txt VALUES ('fetch_tenants',        'German', 	'Mandanten abholen');
 INSERT INTO txt VALUES ('fetch_tenants',        'English', 	'Fetch Tenants');
+INSERT INTO txt VALUES ('sync_users',           'German', 	'Nutzer synchronisieren');
+INSERT INTO txt VALUES ('sync_users',           'English', 	'Synchronize Users');
 INSERT INTO txt VALUES ('save_group',           'German', 	'Gruppe in LDAP speichern');
 INSERT INTO txt VALUES ('save_group',           'English', 	'Save group in LDAP');
 INSERT INTO txt VALUES ('fetch_roles',          'German', 	'Rollen abholen');
@@ -744,10 +746,14 @@ INSERT INTO txt VALUES ('api_general',          'German', 	'API allgemein');
 INSERT INTO txt VALUES ('api_general',          'English', 	'API general');
 INSERT INTO txt VALUES ('api_user_mgmt',        'German', 	'User Management');
 INSERT INTO txt VALUES ('api_user_mgmt',        'English', 	'User Management');
+INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
+INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'English', 	'Authentication');
-INSERT INTO txt VALUES ('umgmt_auth_expl',      'German', 	'Zur Authentisierung verwenden Sie folgenden API-Call, der bei erfolgreicher Authentisierung einen JWT zur&uuml;ckliefert');
-INSERT INTO txt VALUES ('umgmt_auth_expl',      'English', 	'For authentication use the following API call, which will return a JWT for the user upon successful authentication');
+INSERT INTO txt VALUES ('umgmt_api_explain',    'German', 	'F&uuml;r API-Abfragen rund um das Thema Benutzerauthentifizierung existiert eine eigenst&auml;ndige REST-API, deren Dokumentation sich hier findet:');
+INSERT INTO txt VALUES ('umgmt_api_explain',    'English', 	'For API calls regarding user management purposes there is a dedicated REST API which is documented here:');
+INSERT INTO txt VALUES ('umgmt_api_explain2',   'German', 	'Bitte beachten Sie, dass die Interaktion via "Try it out" aktuell nur f&uuml;r den initialen AuthenticationToken-Call zur Verf&uuml;gung steht. F&uuml;r alle darauffolgenden Aufrufe muss der Authentication Token (JWT) als Header wie folgt mitgeschickt werden: <br><pre>--header ''Authorization: Bearer JWT''</pre>');
+INSERT INTO txt VALUES ('umgmt_api_explain2',   'English', 	'Please note that API interaction via "Try it out" is currently only possible for the AuthenticationToken call. All subsequent calls need to pass the authentication token (JWT) as header information as follows: <br><pre>--header ''Authorization: Bearer JWT''</pre>');
 INSERT INTO txt VALUES ('api_fwo',              'German', 	'FWO API');
 INSERT INTO txt VALUES ('api_fwo',              'English', 	'FWO API');
 INSERT INTO txt VALUES ('graphql',              'German', 	'GraphQL');
@@ -786,6 +792,10 @@ INSERT INTO txt VALUES ('get_single_dev_rules', 'German', 	'Alle aktuellen Regel
 INSERT INTO txt VALUES ('get_single_dev_rules', 'English', 	'Get all current rules of gateway with ID 1');
 INSERT INTO txt VALUES ('parameters',           'German', 	'Parameter');
 INSERT INTO txt VALUES ('parameters',           'English',  'Parameters');
+INSERT INTO txt VALUES ('introduction',         'German',   'Einführung');
+INSERT INTO txt VALUES ('introduction',         'English',  'Introduction');
+INSERT INTO txt VALUES ('architecture',         'German',   'Die Firewall Orchestrator Architektur');
+INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrator Architecture');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)

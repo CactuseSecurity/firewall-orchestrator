@@ -1,0 +1,25 @@
+
+fragment deviceDetails on device
+{
+    id: dev_id
+    name: dev_name
+    deviceType: stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+      version: dev_typ_version
+    }
+    management {
+      id: mgm_id
+      name: mgm_name
+    }
+    local_rulebase_name
+    global_rulebase_name
+    comment: dev_comment
+    importDisabled: do_not_import
+    forceInitialImport: force_initial_import
+    hideInUi: hide_in_gui
+    # createDate: (only display this)
+    creationDate: dev_create
+    # updateDate: (only display this)
+    updateDate: dev_update
+}

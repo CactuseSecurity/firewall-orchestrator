@@ -154,3 +154,4 @@ adding report template format fk and permissions
 - restricting all existing reports to access rules
 - intruducing swagger REST API for user management
 - adding swagger REST API interactive documentation for user management
+- moving to hasura 2.0.10 for slight performance boost (see https://github.com/hasura/graphql-engine/releases/tag/v2.0.10)

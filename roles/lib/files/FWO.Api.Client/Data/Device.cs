@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
@@ -21,7 +19,13 @@ namespace FWO.Api.Data
         public Management Management { get; set; }
 
         [JsonPropertyName("local_rulebase_name")]
-        public string Rulebase { get; set; }
+        public string LocalRulebase { get; set; }
+
+        [JsonPropertyName("global_rulebase_name")]
+        public string GlobalRulebase { get; set; }
+
+        [JsonPropertyName("package_name")]
+        public string Package { get; set; }
 
         [JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
@@ -58,7 +62,9 @@ namespace FWO.Api.Data
             {
                 Management = new Management(device.Management);
             }
-            Rulebase = device.Rulebase;
+            LocalRulebase = device.LocalRulebase;
+            GlobalRulebase = device.GlobalRulebase;
+            Package = device.Package;
             ImportDisabled = device.ImportDisabled;
             HideInUi = device.HideInUi;
             Comment = device.Comment;

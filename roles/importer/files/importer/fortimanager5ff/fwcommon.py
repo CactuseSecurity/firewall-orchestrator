@@ -79,9 +79,9 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
         getter.update_config_with_fortinet_api_call(
             raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/address6", "ipv6_objects", debug=debug_level, limit=limit)
         getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/addrgrp", "ipv4_group_objects", debug=debug_level, limit=limit)
+            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/addrgrp", "ipv4_objects", debug=debug_level, limit=limit)
         getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/addrgrp6", "ipv6_group_objects", debug=debug_level, limit=limit)
+            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/addrgrp6", "ipv6_objects", debug=debug_level, limit=limit)
         getter.update_config_with_fortinet_api_call(
             raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/application/list", "app_list_objects", debug=debug_level, limit=limit)
         getter.update_config_with_fortinet_api_call(

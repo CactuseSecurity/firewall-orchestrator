@@ -149,6 +149,9 @@ adding report template format fk and permissions
 - renaming fortimanager version
 - adding importer loop for new API based imports 
 
-### 5.5.1 - 17.10.2021
+### 5.5.1 - 27.10.2021
 - preparing DB for NAT rules (transforming all existing rules)
 - restricting all existing reports to access rules
+- intruducing swagger REST API for user management
+- adding swagger REST API interactive documentation for user management
+- moving to hasura 2.0.10 for slight performance boost (see https://github.com/hasura/graphql-engine/releases/tag/v2.0.10)

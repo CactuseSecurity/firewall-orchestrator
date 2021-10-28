@@ -100,8 +100,8 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m5",
-                "-d3",
+                "-m4",
+                "-d1",
                 "-l50"
             ]
         },        

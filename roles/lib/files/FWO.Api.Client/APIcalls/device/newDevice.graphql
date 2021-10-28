@@ -2,7 +2,9 @@ mutation newDevice(
   $name: String!
   $devTypeId: Int!
   $managementId: Int!
-  $rulebase: String!
+  $localRulebase: String!
+  $globalRulebase: String
+  $package: String
   $importDisabled: Boolean!
   $hideInUi: Boolean!
   $comment: String
@@ -12,7 +14,9 @@ mutation newDevice(
       dev_name: $name
       dev_typ_id: $devTypeId
       mgm_id: $managementId
-      local_rulebase_name: $rulebase
+      local_rulebase_name: $localRulebase
+      global_rulebase_name: $globalRulebase
+      package_name: $package
       do_not_import: $importDisabled
       hide_in_gui: $hideInUi
       dev_comment: $comment

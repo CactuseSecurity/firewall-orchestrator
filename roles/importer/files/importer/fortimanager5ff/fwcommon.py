@@ -74,21 +74,19 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
 def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
     # get those objects that exist globally and on adom level
     for scope in ['global', 'adom/'+adom_name]:
-        getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/address", "ipv4_objects", debug=debug_level, limit=limit)
-        getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/address6", "ipv6_objects", debug=debug_level, limit=limit)
-        getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/addrgrp", "ipv4_objects", debug=debug_level, limit=limit)
-        getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/addrgrp6", "ipv6_objects", debug=debug_level, limit=limit)
-        getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/application/list", "app_list_objects", debug=debug_level, limit=limit)
-        getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/application/group", "app_group_objects", debug=debug_level, limit=limit)
-        getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/application/categories", "app_categories", debug=debug_level, limit=limit)
 
+        # get network objects:
+        for object_type in ['address', 'address6', 'addrgrp', 'addrgrp6']:
+            getter.update_config_with_fortinet_api_call(
+                raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/" + object_type, "network_objects", debug=debug_level, limit=limit)
+
+        # get service objects:
+        # service/custom is an undocumented API call!
+        options = []    # options = ['get reserved']
+        for object_type in ['application/list', 'application/group', 'application/categories', 'application/custom', 'service/custom']:
+            getter.update_config_with_fortinet_api_call(
+                raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/" + object_type, "service_objects", debug=debug_level, limit=limit, options=options)
+    
     #    user: /pm/config/global/obj/user/local
     getter.update_config_with_fortinet_api_call(
         raw_config, sid, fm_api_url, "/pm/config/global/obj/user/local", "users_local", debug=debug_level, limit=limit)
@@ -124,11 +122,6 @@ def getDeviceDetails(sid, fm_api_url, raw_config, mgm_details, debug_level):
     device_names = []
     for device in mgm_details['devices']:
         device_names.append(device['name'])
-        # if '/' in device['rulebase']: # we have to separate global and local rulebase names
-        #     global_rulebase, local_rulebase = device['rulebase'].split('/')
-        # else: # no global rules exist
-        #     local_rulebase = device['rulebase']
-        #     global_rulebase = None
         devices.append(
             {
                 'id': device['id'],

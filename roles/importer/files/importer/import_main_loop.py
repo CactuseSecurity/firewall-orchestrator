@@ -47,7 +47,7 @@ while True:
     with open(importer_pwd_file, 'r') as file:
         importer_pwd = file.read().replace('\n', '')
     jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                        '/AuthenticationToken​/Get', ssl_verification=args.ssl, proxy_string=args.proxy)
+                        'api/AuthenticationToken​/Get', ssl_verification=args.ssl, proxy_string=args.proxy)
     mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
     for mgm_id in mgm_ids:
         id = str(mgm_id['id'])

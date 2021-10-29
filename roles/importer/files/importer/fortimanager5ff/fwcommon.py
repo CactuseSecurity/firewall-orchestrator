@@ -185,7 +185,7 @@ def getNatPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
 
         for scope in ['global', 'adom/'+adom_name]:
 
-            for nat_type in ['central/dnat', 'firewall/central-snat-map']:
+            for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
                 if scope == 'global':
                     pkg = device['global_rulebase']
                 else:

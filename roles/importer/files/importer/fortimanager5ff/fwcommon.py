@@ -83,9 +83,9 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
         # get service objects:
         # service/custom is an undocumented API call!
         options = []    # options = ['get reserved']
-        for object_type in ['application/list', 'application/group', 'application/categories', 'application/custom', 'service/custom', 'service/group']:
+        for object_type in ['application/list', 'application/group', 'application/categories', 'application/custom', 'firewall/service/custom', 'firewall/service/group']:
             getter.update_config_with_fortinet_api_call(
-                raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/" + object_type, "service_objects", debug=debug_level, limit=limit, options=options)
+                raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/" + object_type, "service_objects", debug=debug_level, limit=limit, options=options)
     
     #    user: /pm/config/global/obj/user/local
     getter.update_config_with_fortinet_api_call(
@@ -179,11 +179,16 @@ def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level
 
 
 def getNatPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
-    raw_config.update({"snat_by_dev_id": {}})
-    raw_config.update({"dnat_by_dev_id": {}})
-    # get nat rules for local ruleset - todo: are there any global nat rules?
+    raw_config.update({"nat_by_dev_id": {}})
+    
     for device in raw_config['devices']:
-        getter.update_config_with_fortinet_api_call(
-            raw_config['snat_by_dev_id'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + device['local_rulebase'] + "/firewall/central-snat-map", device['id'], debug=debug_level, limit=limit)
-        getter.update_config_with_fortinet_api_call(
-            raw_config['dnat_by_dev_id'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + device['local_rulebase'] + "/firewall/central/dnat", device['id'], debug=debug_level, limit=limit)
+
+        for scope in ['global', 'adom/'+adom_name]:
+
+            for nat_type in ['central/dnat', 'firewall/central-snat-map']:
+                if scope == 'global':
+                    pkg = device['global_rulebase']
+                else:
+                    pkg = device['local_rulebase']
+                getter.update_config_with_fortinet_api_call(
+                    raw_config['nat_by_dev_id'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['id'], debug=debug_level, limit=limit)

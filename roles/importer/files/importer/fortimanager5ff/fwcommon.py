@@ -83,7 +83,7 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
         # get service objects:
         # service/custom is an undocumented API call!
         options = []    # options = ['get reserved']
-        for object_type in ['application/list', 'application/group', 'application/categories', 'application/custom', 'service/custom']:
+        for object_type in ['application/list', 'application/group', 'application/categories', 'application/custom', 'service/custom', 'service/group']:
             getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/"+scope+"/obj/firewall/" + object_type, "service_objects", debug=debug_level, limit=limit, options=options)
     

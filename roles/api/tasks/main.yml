@@ -42,8 +42,8 @@
 
 - name: copy fworch config export and import scripts
   copy:
-    src: bin
-    dest: "{{ fworch_base_dir }}"
+    src: scripts
+    dest: "{{ fworch_home }}"
     mode: "0755"
     owner: "{{ fworch_user}}"
     group: "{{ fworch_user}}"

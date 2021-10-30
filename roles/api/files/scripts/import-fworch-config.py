@@ -60,7 +60,15 @@ with open(args.out, 'r') as file:
 
 dev_config = config_json['device_configuration']
 
-fwo_api.write_device_details(fwo_api_base_url, jwt, dev_config)
+
+device_adding_mutation = """
+    mutation addManagements {
+        insert_management( objects: { """ + config_json['device_configuration']['management'] + """ } ) 
+        insert_device( objects: { """ + config_json['device_configuration']['device'] + """ } ) 
+        { returning { mgm_id dev_id } }
+    }"""
+
+fwo_api.call(fwo_api_base_url, jwt, device_adding_mutation, query_variables={}, role='admin')
 
 # todo: get more config data
     # get user related data:

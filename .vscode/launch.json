@@ -109,7 +109,7 @@
             "name": "py-export-config",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/api/files/bin/export-fworch-config.py",
+            "program": "${workspaceFolder}/roles/api/files/scripts/export-fworch-config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"

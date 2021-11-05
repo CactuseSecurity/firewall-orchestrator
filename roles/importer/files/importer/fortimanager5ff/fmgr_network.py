@@ -11,21 +11,23 @@ def normalize_nwobjects(full_config, config2import, import_id):
     nw_objects = []
     # 'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
     # 'obj_member_refs': member_refs, 'obj_member_names': member_names}])
-    for obj_orig in full_config['ipv4_objects']:
+    for obj_orig in full_config['network_objects']:
         obj = {}
         obj.update({ 'obj_typ': 'group' })  # setting default network obj type first
         obj.update({'obj_name': obj_orig['name']})
-        if 'subnet' in obj_orig:
+        if 'subnet' in obj_orig: # ipv4 object
             ipa = ipaddress.ip_network(str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))
-            ip_array = str(ipa.with_prefixlen).split('/')
-            if len(ip_array)==2:
-                ip_netmask_length = int(ip_array[1])
-                if ip_netmask_length<32:
-                    obj.update({ 'obj_typ': 'network' })
-                else:
-                    obj.update({ 'obj_typ': 'host' })
+            if ipa.num_addresses > 1:
+                obj.update({ 'obj_typ': 'network' })
             else:
-                logging.warning('found an unexpected network subnet type: ' + str(ipa))
+                obj.update({ 'obj_typ': 'host' })
+            obj.update({ 'obj_ip': ipa.with_prefixlen })
+        elif 'ip6' in obj_orig: # ipv6 object
+            ipa = ipaddress.ip_network(str(obj_orig['ip6']).replace("\\", ""))
+            if ipa.num_addresses > 1:
+                obj.update({ 'obj_typ': 'network' })
+            else:
+                obj.update({ 'obj_typ': 'host' })
             obj.update({ 'obj_ip': ipa.with_prefixlen })
         if 'comment' in obj_orig:
             obj.update({'obj_comment': obj_orig['comment']})

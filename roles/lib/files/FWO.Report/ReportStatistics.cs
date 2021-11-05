@@ -28,7 +28,7 @@ namespace FWO.Report
 
         public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
 
         public override async Task Generate(int _, APIConnection apiConnection, Func<Management[], Task> callback)

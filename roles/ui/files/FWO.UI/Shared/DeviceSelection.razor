@@ -1,0 +1,76 @@
+﻿@using FWO.Config.Api
+@using FWO.Api.Data;
+@using FWO.Report.Filter
+
+@inject UserConfig userConfig
+
+<div class="p-3">
+    <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
+    <button class="btn btn-sm btn-secondary"
+            @onclick="@((async () => {
+                DeviceFilter.applyFullDeviceSelection(Managements, SelectAll);
+                FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
+                SelectAll = !SelectAll;
+                await FilterInputChanged.InvokeAsync(FilterInput);
+                await SelectAllChanged.InvokeAsync(SelectAll);
+            }))">
+        @(SelectAll ? selectAllText : clearAllText)
+    </button>
+    <br><br>
+
+    @foreach (Management management in Managements)
+    {
+        @if (management != null)
+        {
+            <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
+                @foreach (Device device in management.Devices)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="@device.Id"
+                               @bind="device.selected"
+                               @oninput="async () => {
+                                    device.selected = !device.selected;
+                                    if (DeviceFilter.areAllDevicesSelected(Managements))
+                                        SelectAll = false;
+                                    if (!DeviceFilter.isAnyLSBDeviceFilterSet(Managements))
+                                        SelectAll = true;
+                                    FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
+                                    await FilterInputChanged.InvokeAsync(FilterInput);
+                                    await SelectAllChanged.InvokeAsync(SelectAll);
+                                }" />
+                        <label class="form-check-label" for="@device.Id">
+                            @device.Name
+                        </label>
+                    </div>
+                }
+            </Collapse>
+        }
+    }
+</div>
+
+@code
+{
+    [Parameter]
+    public string FilterInput { get; set; }
+
+    [Parameter]
+    public EventCallback<string> FilterInputChanged { get; set; }
+
+    [Parameter]
+    public Management[] Managements { get; set; }
+
+    [Parameter]
+    public bool SelectAll { get; set; } // state of the device select/clear all button
+
+    [Parameter]
+    public EventCallback<bool> SelectAllChanged { get; set; }
+
+    private string selectAllText;
+    private string clearAllText;
+
+    protected override void OnInitialized()
+    {
+        selectAllText = userConfig.GetText("select_all");
+        clearAllText = userConfig.GetText("clear_all");
+    }
+}

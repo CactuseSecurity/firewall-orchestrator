@@ -3,5 +3,6 @@ version: 2
 updates:
   - package-ecosystem: "nuget"
     directory: "/roles/"
+    target-branch: "develop"
     schedule:
       interval: "daily"

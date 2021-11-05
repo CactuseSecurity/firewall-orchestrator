@@ -33,7 +33,12 @@ Create table "device" -- contains an entry for each firewall gateway
 	"dev_id" SERIAL,
 	"mgm_id" Integer NOT NULL,
 	"dev_name" Varchar,
-	"dev_rulebase" Varchar,
+	"local_rulebase_name" Varchar,
+	"local_rulebase_uid" Varchar,
+	"global_rulebase_name" Varchar,
+	"global_rulebase_uid" Varchar,
+	"package_name" Varchar,
+	"package_uid" Varchar,
 	"dev_typ_id" Integer NOT NULL,
 	"tenant_id" Integer,
 	"dev_active" Boolean NOT NULL Default true,
@@ -158,6 +163,9 @@ Create table "rule"
 	"rule_create" BIGINT NOT NULL,
 	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
+	"access_rule" BOOLEAN Default TRUE,
+	"nat_rule" BOOLEAN Default FALSE,
+	"xlate_rule" BIGINT,
  primary key ("rule_id")
 );
 
@@ -740,6 +748,7 @@ Create table "import_rule"
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
 	"parent_rule_uid" Text,
+	"rule_type" Varchar Default 'access',
  primary key ("control_id","rule_id")
 );
 

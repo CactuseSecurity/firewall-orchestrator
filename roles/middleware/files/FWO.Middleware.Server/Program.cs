@@ -1,24 +1,32 @@
-﻿using FWO.Logging;
+using FWO.Config.File;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace FWO.Middleware.Server
+namespace FWO.Middleware
 {
-    class Program
+    public class Program
     {
-        static void Main()
+        public static void Main(string[] args)
         {
-            try
-            {
-                MiddlewareServer Server = new MiddlewareServer();
-            }
-            catch (Exception exception)
-            {
-                // Log error
-                Log.WriteError("Unhandled unexpected exception", "Unhandled unexpected exception caught at Programm.cs", exception);
-                // Exit auth module with error
-                Environment.Exit(1);
-            }
+            CreateHostBuilder(args).Build().Run();
         }
+
+        public static IHostBuilder CreateHostBuilder(string[] args)
+        {
+            ConfigFile configFile = new ConfigFile();
+
+            return Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseStartup<Startup>(builder => new Startup(builder.Configuration, configFile));
+                webBuilder.UseUrls(configFile.MiddlewareServerNativeUri);
+            });
+        }
+
     }
 }
-

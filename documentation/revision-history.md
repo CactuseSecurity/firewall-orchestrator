@@ -148,3 +148,10 @@ adding report template format fk and permissions
 - as a start of FortiManager importer only some network objects are imported (PoC)
 - renaming fortimanager version
 - adding importer loop for new API based imports 
+
+### 5.5.1 - 27.10.2021
+- preparing DB for NAT rules (transforming all existing rules)
+- restricting all existing reports to access rules
+- introducing swagger REST API for user management
+- adding swagger REST API interactive documentation for user management
+- moving to hasura 2.0.10 for slight performance boost (see https://github.com/hasura/graphql-engine/releases/tag/v2.0.10)

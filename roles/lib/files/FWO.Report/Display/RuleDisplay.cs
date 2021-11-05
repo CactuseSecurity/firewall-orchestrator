@@ -1,4 +1,5 @@
 ﻿using FWO.Api.Data;
+using FWO.Config.Api;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,11 +8,17 @@ using System.Threading.Tasks;
 
 namespace FWO.Ui.Display
 {
-    public static class RuleDisplay
+    public class RuleDisplay
     {
-        private static StringBuilder result;
+        private StringBuilder result;
+        private UserConfig userConfig;
 
-        public static string DisplayNumber(this Rule rule, Rule[] rules)
+        public RuleDisplay(UserConfig userConfig)
+        {
+            this.userConfig = userConfig;
+        }
+
+        public string DisplayNumber(Rule rule, Rule[] rules)
         {
             result = new StringBuilder();
             if (rules != null)
@@ -28,17 +35,17 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public static string DisplayName(this Rule rule)
+        public string DisplayName(Rule rule)
         {
             return rule.Name;
         }
 
-        public static string DisplaySourceZone(this Rule rule)
+        public string DisplaySourceZone(Rule rule)
         {
             return rule.SourceZone?.Name;
         }
 
-        public static string DisplaySource(this Rule rule, string style = "")
+        public string DisplaySource(Rule rule, string style = "")
         {
             result = new StringBuilder();
 
@@ -69,12 +76,12 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public static string DisplayDestinationZone(this Rule rule)
+        public string DisplayDestinationZone(Rule rule)
         {
             return rule.DestinationZone?.Name;
         }
 
-        public static string DisplayDestination(this Rule rule, string style = "")
+        public string DisplayDestination(Rule rule, string style = "")
         {
             result = new StringBuilder();
 
@@ -105,7 +112,7 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public static string DisplayService(this Rule rule, string style = "")
+        public string DisplayService(Rule rule, string style = "")
         {
             result = new StringBuilder();
 
@@ -137,17 +144,17 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        public static string DisplayAction(this Rule rule)
+        public string DisplayAction(Rule rule)
         {
             return rule.Action;
         }
 
-        public static string DisplayTrack(this Rule rule)
+        public string DisplayTrack(Rule rule)
         {
             return rule.Track;
         }
 
-        public static string DisplayEnabled(this Rule rule, bool export = false)
+        public string DisplayEnabled(Rule rule, bool export = false)
         {
             if (export)
             {
@@ -159,12 +166,12 @@ namespace FWO.Ui.Display
             }
         }
 
-        public static string DisplayUid(this Rule rule)
+        public string DisplayUid(Rule rule)
         {
             return rule.Uid;
         }
 
-        public static string DisplayComment(this Rule rule)
+        public string DisplayComment(Rule rule)
         {
             return rule.Comment;
         }

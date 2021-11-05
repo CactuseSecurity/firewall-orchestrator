@@ -3,10 +3,13 @@
   translate: ruleByXlateRule {
     rule_src
     rule_src_refs
+    rule_src_neg
     rule_dst
     rule_dst_refs
+    rule_dst_neg
     rule_svc
     rule_svc_refs
+    rule_svc_neg
     rule_froms(where: {object:{obj_create:{_lte:$relevantImportId}, obj_last_seen:{_gte:$relevantImportId}}}) {
       usr {
         ...userDetails

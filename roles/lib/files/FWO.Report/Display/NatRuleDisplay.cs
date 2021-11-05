@@ -38,12 +38,13 @@ namespace FWO.Ui.Display
             }
             result.AppendLine("</p>");
 
-            string translSrc = result.ToString();
-            if(translSrc == DisplaySource(rule, style))
-            {
-                return "origin";
-            }
-            return translSrc;
+//            string translSrc = result.ToString();
+//            if(translSrc == DisplaySource(rule, style))
+//            {
+//                return "origin";
+//            }
+//            return translSrc;
+            return result.ToString();
         }
 
         public string DisplayTranslatedDestination(Rule rule, string style = "")
@@ -73,12 +74,13 @@ namespace FWO.Ui.Display
             }
             result.AppendLine("</p>");
 
-            string translDst = result.ToString();
-            if(translDst == DisplayDestination(rule, style))
-            {
-                return "origin";
-            }
-            return translDst;
+//            string translDst = result.ToString();
+//            if(translDst == DisplayDestination(rule, style))
+//            {
+//                return "origin";
+//            }
+//            return translDst;
+            return result.ToString();
         }
 
         public string DisplayTranslatedService(Rule rule, string style = "")
@@ -109,12 +111,13 @@ namespace FWO.Ui.Display
             }
             result.AppendLine("</p>");
 
-            string translSvc = result.ToString();
-            if(translSvc == DisplayService(rule, style))
-            {
-                return "origin";
-            }
-            return translSvc;
+//            string translSvc = result.ToString();
+//            if(translSvc == DisplayService(rule, style))
+//            {
+//                return "origin";
+//            }
+//            return translSvc;
+            return result.ToString();
         }
     }
 }

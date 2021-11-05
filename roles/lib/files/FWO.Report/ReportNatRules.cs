@@ -234,8 +234,6 @@ namespace FWO.Report
                         report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
-                        report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
@@ -256,8 +254,6 @@ namespace FWO.Report
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
-                                report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");

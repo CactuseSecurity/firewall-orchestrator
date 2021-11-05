@@ -126,11 +126,11 @@
                                     </Template>
                                 </Column>
                             }
-                            @if (EmptyColumns[7] == false)
+                            @if (EmptyColumns[7] == false && !NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
                             }
-                            @if (EmptyColumns[8] == false)
+                            @if (EmptyColumns[8] == false && !NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
                             }

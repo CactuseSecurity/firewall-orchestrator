@@ -271,8 +271,6 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'service-negate': False,
         'install-on': [{'name': 'Policy Targets'}],
         'time': [{'name': 'Any'}],
-        'meta-info': {'last-modifier': None },
-        #parent_rule_uid":  common.sanitize(parent_rule_uid),
         'rule_type': 'original'
     }
     rule_xlate = {
@@ -290,7 +288,6 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'service-negate': False,
         'install-on': [{'name': 'Policy Targets'}],
         'time': [{'name': 'Any'}],
-        'meta-info': {'last-modifier': None },
         'rule_type': 'xlate'
     }
     return (rule_match, rule_xlate)

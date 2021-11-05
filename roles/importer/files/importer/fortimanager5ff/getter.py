@@ -112,7 +112,12 @@ def set_api_url(base_url, testmode, api_supported, hostname):
     return url
 
 
-def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0, limit=150):
+    #   "option": [
+    #     "get reserved"
+    #   ]
+
+
+def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], ssl_verification='', proxy_string="", show_progress=False, debug=0, limit=150):
     offset = 0
     limit = int(limit)
     returned_new_objects = True
@@ -124,6 +129,12 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
         else:
             if 'params' in payload and len(payload['params'])>0:
                 payload['params'][0].update({'range': range})
+        
+        # adding options
+        if len(options)>0:
+            payload['params'][0].update({'option': options})
+            # payload['params'][0].update({'filter': options})
+
         result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, ssl_verification=ssl_verification,
                                    proxy_string=proxy_string, show_progress=show_progress, debug=debug)
         full_result.extend(result)

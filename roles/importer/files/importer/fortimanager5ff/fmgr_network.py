@@ -11,7 +11,7 @@ def normalize_nwobjects(full_config, config2import, import_id):
     nw_objects = []
     # 'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
     # 'obj_member_refs': member_refs, 'obj_member_names': member_names}])
-    for obj_orig in full_config['ipv4_objects'] + full_config['ipv6_objects']:
+    for obj_orig in full_config['network_objects']:
         obj = {}
         obj.update({ 'obj_typ': 'group' })  # setting default network obj type first
         obj.update({'obj_name': obj_orig['name']})

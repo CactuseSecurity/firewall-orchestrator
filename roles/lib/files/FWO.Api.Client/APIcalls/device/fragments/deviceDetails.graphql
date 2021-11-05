@@ -14,6 +14,7 @@ fragment deviceDetails on device
     }
     local_rulebase_name
     global_rulebase_name
+    package_name
     comment: dev_comment
     importDisabled: do_not_import
     forceInitialImport: force_initial_import

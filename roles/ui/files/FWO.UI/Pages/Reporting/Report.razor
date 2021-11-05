@@ -48,12 +48,10 @@
         template => {
             filterInput = template.Filter;
             DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
-                                             
             if (DeviceFilter.isAnyDeviceFilterSet(filterInput) || DeviceFilter.areAllDevicesSelected(managementsReport))
                 selectAll = false;
             else
                 selectAll = true;
-
             StateHasChanged();
         }"
     @ref="reportTemplateControl"></ReportTemplateComponent>

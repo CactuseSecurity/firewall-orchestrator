@@ -7,12 +7,10 @@
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
     <button class="btn btn-sm btn-secondary"
-
             @onclick="@((async () => {
                 DeviceFilter.applyFullDeviceSelection(Managements, SelectAll);
                 FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
                 SelectAll = !SelectAll;
-
                 await FilterInputChanged.InvokeAsync(FilterInput);
                 await SelectAllChanged.InvokeAsync(SelectAll);
             }))">

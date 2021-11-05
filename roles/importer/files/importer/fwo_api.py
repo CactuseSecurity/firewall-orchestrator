@@ -55,13 +55,13 @@ def login(user, password, user_management_api_base_url, method, ssl_verification
                           json.dumps(payload, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
         raise SystemExit(e) from None
 
-    jsonResponse = response.json()
-    if 'jwt' in jsonResponse:
-        return jsonResponse["jwt"]
-    logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
-                      ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
-                      ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
-    sys.exit(1)
+    if response.text is not None:
+        return response.text
+    else:
+        logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
+                        ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
+                        ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+        sys.exit(1)
 
 
 def set_ssl_verification(ssl_verification_mode):
@@ -151,7 +151,12 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
                 devices(where:{do_not_import:{_eq:false}}) {
                     id: dev_id
                     name: dev_name
-                    rulebase:dev_rulebase
+                    local_rulebase_name
+                    global_rulebase_name
+                    package_name
+                }
+                import_controls(where: { successful_import: {_eq: true} } order_by: {control_id: desc}, limit: 1) {
+                    starttime: start_time
                 }
             }  
         }

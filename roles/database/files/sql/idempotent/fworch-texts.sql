@@ -478,8 +478,12 @@ INSERT INTO txt VALUES ('edit_gateway',         'German', 	'Gateway bearbeiten')
 INSERT INTO txt VALUES ('edit_gateway',         'English', 	'Edit Gateway');
 INSERT INTO txt VALUES ('management',           'German', 	'Management');
 INSERT INTO txt VALUES ('management',           'English', 	'Management');
-INSERT INTO txt VALUES ('rulebase',             'German', 	'Rulebase');
-INSERT INTO txt VALUES ('rulebase',             'English', 	'Rulebase');
+INSERT INTO txt VALUES ('local_rulebase',       'German', 	'Lokale Rulebase');
+INSERT INTO txt VALUES ('local_rulebase',       'English', 	'Local Rulebase');
+INSERT INTO txt VALUES ('global_rulebase',      'German', 	'Globale Rulebase');
+INSERT INTO txt VALUES ('global_rulebase',      'English', 	'Global Rulebase');
+INSERT INTO txt VALUES ('package',              'German', 	'Package');
+INSERT INTO txt VALUES ('package',              'English', 	'Package');
 INSERT INTO txt VALUES ('details',              'German', 	'Details');
 INSERT INTO txt VALUES ('details',              'English', 	'Details');
 INSERT INTO txt VALUES ('import_status_details','German', 	'Importstatusdetails f&uuml;r ');
@@ -678,6 +682,8 @@ INSERT INTO txt VALUES ('fetch_users_local',    'German', 	'Nutzer aus API holen
 INSERT INTO txt VALUES ('fetch_users_local',    'English', 	'Fetch Users from API');
 INSERT INTO txt VALUES ('fetch_tenants',        'German', 	'Mandanten abholen');
 INSERT INTO txt VALUES ('fetch_tenants',        'English', 	'Fetch Tenants');
+INSERT INTO txt VALUES ('sync_users',           'German', 	'Nutzer synchronisieren');
+INSERT INTO txt VALUES ('sync_users',           'English', 	'Synchronize Users');
 INSERT INTO txt VALUES ('save_group',           'German', 	'Gruppe in LDAP speichern');
 INSERT INTO txt VALUES ('save_group',           'English', 	'Save group in LDAP');
 INSERT INTO txt VALUES ('fetch_roles',          'German', 	'Rollen abholen');
@@ -744,10 +750,14 @@ INSERT INTO txt VALUES ('api_general',          'German', 	'API allgemein');
 INSERT INTO txt VALUES ('api_general',          'English', 	'API general');
 INSERT INTO txt VALUES ('api_user_mgmt',        'German', 	'User Management');
 INSERT INTO txt VALUES ('api_user_mgmt',        'English', 	'User Management');
+INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
+INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'English', 	'Authentication');
-INSERT INTO txt VALUES ('umgmt_auth_expl',      'German', 	'Zur Authentisierung verwenden Sie folgenden API-Call, der bei erfolgreicher Authentisierung einen JWT zur&uuml;ckliefert');
-INSERT INTO txt VALUES ('umgmt_auth_expl',      'English', 	'For authentication use the following API call, which will return a JWT for the user upon successful authentication');
+INSERT INTO txt VALUES ('umgmt_api_explain',    'German', 	'F&uuml;r API-Abfragen rund um das Thema Benutzerauthentifizierung existiert eine eigenst&auml;ndige REST-API, deren Dokumentation sich hier findet:');
+INSERT INTO txt VALUES ('umgmt_api_explain',    'English', 	'For API calls regarding user management purposes there is a dedicated REST API which is documented here:');
+INSERT INTO txt VALUES ('umgmt_api_explain2',   'German', 	'Bitte beachten Sie, dass die Interaktion via "Try it out" aktuell nur f&uuml;r den initialen AuthenticationToken-Call zur Verf&uuml;gung steht. F&uuml;r alle darauffolgenden Aufrufe muss der Authentication Token (JWT) als Header wie folgt mitgeschickt werden: <br><pre>--header ''Authorization: Bearer JWT''</pre>');
+INSERT INTO txt VALUES ('umgmt_api_explain2',   'English', 	'Please note that API interaction via "Try it out" is currently only possible for the AuthenticationToken call. All subsequent calls need to pass the authentication token (JWT) as header information as follows: <br><pre>--header ''Authorization: Bearer JWT''</pre>');
 INSERT INTO txt VALUES ('api_fwo',              'German', 	'FWO API');
 INSERT INTO txt VALUES ('api_fwo',              'English', 	'FWO API');
 INSERT INTO txt VALUES ('graphql',              'German', 	'GraphQL');
@@ -786,6 +796,10 @@ INSERT INTO txt VALUES ('get_single_dev_rules', 'German', 	'Alle aktuellen Regel
 INSERT INTO txt VALUES ('get_single_dev_rules', 'English', 	'Get all current rules of gateway with ID 1');
 INSERT INTO txt VALUES ('parameters',           'German', 	'Parameter');
 INSERT INTO txt VALUES ('parameters',           'English',  'Parameters');
+INSERT INTO txt VALUES ('introduction',         'German',   'Einführung');
+INSERT INTO txt VALUES ('introduction',         'English',  'Introduction');
+INSERT INTO txt VALUES ('architecture',         'German',   'Die Firewall Orchestrator Architektur');
+INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrator Architecture');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -1542,7 +1556,7 @@ INSERT INTO txt VALUES ('H5153', 'English', 'Device Type*: Out of a list of avai
 ');
 INSERT INTO txt VALUES ('H5154', 'German',  'Management*: W&auml;hlen Sie das Management, welches dieses Gateway kontrolliert. Wenn zu einem Beispielmanagement zugeordnet, wird es mitgel&ouml;scht, wenn die "Beispieldaten l&ouml;schen"-Schaltfl&auml;che bei den Managementeinstellungen bet&auml;tigt wird.');
 INSERT INTO txt VALUES ('H5154', 'English', 'Management*: Select the management system that controls this gateway. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page.');
-INSERT INTO txt VALUES ('H5155', 'German',  'Rulebase*: Hier wird der Name der Rulebase hinterlegt.
+INSERT INTO txt VALUES ('H5155', 'German',  'Lokale Rulebase*: Hier wird der Name der Rulebase hinterlegt.
     <ul>
         <li>F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").</li>
         <li>F&uuml;r Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".</li>
@@ -1551,7 +1565,7 @@ INSERT INTO txt VALUES ('H5155', 'German',  'Rulebase*: Hier wird der Name der R
         </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H5155', 'English', 'Rulebase*: Enter the name of the rulebase here. 
+INSERT INTO txt VALUES ('H5155', 'English', 'Local Rulebase*: Enter the name of the rulebase here. 
     <ul>
         <li>For Check Point R8x the top level access layer name goes here (default is "Network").</li>
         <li>For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
@@ -1560,10 +1574,14 @@ INSERT INTO txt VALUES ('H5155', 'English', 'Rulebase*: Enter the name of the ru
             </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H5156', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
-INSERT INTO txt VALUES ('H5156', 'English', 'Import Disabled: Flag if the data import is disabled.');
-INSERT INTO txt VALUES ('H5157', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Gateway nicht mit Standard-Reporter-Rolle sichtbar.');
-INSERT INTO txt VALUES ('H5157', 'English', 'Hide in UI: If set, this gateway is not visible to the standard reporter role.');
+INSERT INTO txt VALUES ('H5156', 'German',  'Globale Rulebase: Hier wird der Name der Globalen Rulebase hinterlegt.');
+INSERT INTO txt VALUES ('H5156', 'English', 'Global Rulebase: Enter the name of the global rulebase here.');
+INSERT INTO txt VALUES ('H5157', 'German',  'Package: Hier wird ggf. der Name des Package hinterlegt.');
+INSERT INTO txt VALUES ('H5157', 'English', 'Package: Enter the name of the Package here.');
+INSERT INTO txt VALUES ('H5158', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
+INSERT INTO txt VALUES ('H5158', 'English', 'Import Disabled: Flag if the data import is disabled.');
+INSERT INTO txt VALUES ('H5159', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Gateway nicht mit Standard-Reporter-Rolle sichtbar.');
+INSERT INTO txt VALUES ('H5159', 'English', 'Hide in UI: If set, this gateway is not visible to the standard reporter role.');
 INSERT INTO txt VALUES ('H5171', 'German',  'Hier wird ein &Uuml;berblick &uuml;ber den Status der Importjobs der verschiedenen Managements gegeben.');
 INSERT INTO txt VALUES ('H5171', 'English', 'The status of the import jobs for the different managements is displayed here.');
 INSERT INTO txt VALUES ('H5181', 'German',  'Neu anzeigen: Aktualisiert die dargestellten Daten.');

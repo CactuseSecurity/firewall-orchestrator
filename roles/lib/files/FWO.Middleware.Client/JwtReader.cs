@@ -4,7 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
-using FWO.Config;
+using FWO.Config.File;
 using FWO.Logging;
 
 namespace FWO.Middleware.Client

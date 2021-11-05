@@ -31,7 +31,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/roles/test/files/FWO_Test/FWO.Test.csproj",
+                "${workspaceFolder}/roles/test/files/FWO.Test/FWO.Test.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -43,7 +43,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/roles/ui/files/FWO_UI/FWO.Ui.csproj",
+                "${workspaceFolder}/roles/ui/files/FWO.UI/FWO.Ui.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],

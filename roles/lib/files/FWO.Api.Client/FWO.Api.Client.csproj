@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GraphQL.Client" Version="3.2.4" />
+    <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="3.2.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FWO.Config.File\FWO.Config.File.csproj" />
+    <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+  </ItemGroup>
+
+</Project>

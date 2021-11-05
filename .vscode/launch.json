@@ -106,6 +106,20 @@
             ]
         },        
         {
+            "name": "py-export-config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/export-fworch-config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-o/tmp/fworch-config.json",
+                "-d1"
+            ]
+        },        
+        {
             "name": "py-cpr8x-autodiscovery",
             "type": "python",
             "request": "launch",

@@ -1,58 +1,27 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
-using System;
 using System.Text;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplay
+    public class NatRuleDisplay : RuleDisplay
     {
-        protected StringBuilder result;
-        protected UserConfig userConfig;
+        public NatRuleDisplay(UserConfig userConfig) : base(userConfig)
+        {}
 
-        public RuleDisplay(UserConfig userConfig)
-        {
-            this.userConfig = userConfig;
-        }
-
-        public string DisplayNumber(Rule rule, Rule[] rules)
-        {
-            result = new StringBuilder();
-            if (rules != null)
-            {
-                int ruleNumber = Array.IndexOf(rules, rule) + 1;
-
-                for (int i = 0; i < Array.IndexOf(rules, rule) + 1; i++)
-                    if (!string.IsNullOrEmpty(rules[i].SectionHeader))
-                        ruleNumber--;
-
-                result.AppendLine($"{ruleNumber}");
-            }
-            //result.AppendLine($"DEBUG: {rule.OrderNumber}");
-            return result.ToString();
-        }
-
-        public string DisplayName(Rule rule)
-        {
-            return rule.Name;
-        }
-
-        public string DisplaySourceZone(Rule rule)
-        {
-            return rule.SourceZone?.Name;
-        }
-
-        public string DisplaySource(Rule rule, string style = "")
+        public string DisplayTranslatedSource(Rule rule, string style = "")
         {
             result = new StringBuilder();
 
             result.AppendLine("<p>");
 
-            if (rule.SourceNegated)
+            if (rule.NatData.TranslatedSourceNegated)
+            {
                 result.AppendLine(userConfig.GetText("anything_but") + " <br>");
+            }
 
             string symbol = "";
-            foreach (NetworkLocation source in rule.Froms)
+            foreach (NetworkLocation source in rule.NatData.TranslatedFroms)
             {
                 if (source.Object.Type.Name == "group")
                     symbol = "oi oi-list-rich";
@@ -67,30 +36,29 @@ namespace FWO.Ui.Display
                 result.Append((source.Object.IP != null ? $" ({source.Object.IP})" : ""));
                 result.AppendLine("<br>");
             }
-
             result.AppendLine("</p>");
 
-            return result.ToString();
+            string translSrc = result.ToString();
+            if(translSrc == DisplaySource(rule, style))
+            {
+                return "origin";
+            }
+            return translSrc;
         }
 
-        public string DisplayDestinationZone(Rule rule)
-        {
-            return rule.DestinationZone?.Name;
-        }
-
-        public string DisplayDestination(Rule rule, string style = "")
+        public string DisplayTranslatedDestination(Rule rule, string style = "")
         {
             result = new StringBuilder();
 
             result.AppendLine("<p>");
 
-            if (rule.DestinationNegated)
+            if (rule.NatData.TranslatedDestinationNegated)
             {
                 result.AppendLine(userConfig.GetText("anything_but") + " <br>");
             }
 
             string symbol = "";
-            foreach (NetworkLocation destination in rule.Tos)
+            foreach (NetworkLocation destination in rule.NatData.TranslatedTos)
             {
                 if (destination.Object.Type.Name == "group")
                     symbol = "oi oi-list-rich";
@@ -103,25 +71,29 @@ namespace FWO.Ui.Display
                 result.Append(destination.Object.IP != null ? $" ({destination.Object.IP})" : "");
                 result.AppendLine("<br>");
             }
-
             result.AppendLine("</p>");
 
-            return result.ToString();
+            string translDst = result.ToString();
+            if(translDst == DisplayDestination(rule, style))
+            {
+                return "origin";
+            }
+            return translDst;
         }
 
-        public string DisplayService(Rule rule, string style = "")
+        public string DisplayTranslatedService(Rule rule, string style = "")
         {
             result = new StringBuilder();
 
             result.AppendLine("<p>");
 
-            if (rule.ServiceNegated)
+            if (rule.NatData.TranslatedServiceNegated)
             {
                 result.AppendLine(userConfig.GetText("anything_but") + " <br>");
             }
 
             string symbol = "";
-            foreach (ServiceWrapper service in rule.Services)
+            foreach (ServiceWrapper service in rule.NatData.TranslatedServices)
             {
                 if (service.Content.Type.Name == "group")
                     symbol = "oi oi-list-rich";
@@ -135,42 +107,14 @@ namespace FWO.Ui.Display
                         : $" ({service.Content.DestinationPort}-{service.Content.DestinationPortEnd}/{service.Content.Protocol?.Name})");
                 result.AppendLine("<br>");
             }
-
             result.AppendLine("</p>");
 
-            return result.ToString();
-        }
-
-        public string DisplayAction(Rule rule)
-        {
-            return rule.Action;
-        }
-
-        public string DisplayTrack(Rule rule)
-        {
-            return rule.Track;
-        }
-
-        public string DisplayEnabled(Rule rule, bool export = false)
-        {
-            if (export)
+            string translSvc = result.ToString();
+            if(translSvc == DisplayService(rule, style))
             {
-                return $"<b>{(rule.Disabled ? "N" : "Y")}</b>";
+                return "origin";
             }
-            else
-            {
-                return $"<div class=\"oi {(rule.Disabled ? "oi-x" : "oi-check")}\"></div>";
-            }
-        }
-
-        public string DisplayUid(Rule rule)
-        {
-            return rule.Uid;
-        }
-
-        public string DisplayComment(Rule rule)
-        {
-            return rule.Comment;
+            return translSvc;
         }
     }
 }

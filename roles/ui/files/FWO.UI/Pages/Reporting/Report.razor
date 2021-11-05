@@ -1,12 +1,8 @@
 @using FWO.Config.Api
 @using FWO.Report
-@using FWO.Ui.Display
 @using FWO.Report.Filter
 @using FWO.Report.Filter.Exceptions
-@using System.Text
 @using System
-@using System.Collections
-@using FWO.Ui.Services
 @using FWO.Ui.Data
 @using FWO.Ui.Pages.Reporting.Reports
 
@@ -68,6 +64,10 @@
                 {
                     case ReportRules rulesReport:
                         <RulesReport Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
+                        break;
+
+                    case ReportNatRules natRulesReport:
+                        <RulesReport NatRules="true" Managements="managementsReport" RulesPerPage="rulesPerPage" @bind-SelectedRules="selectedItemsRuleReportTable"></RulesReport>
                         break;
 
                     case ReportChanges changesReport:
@@ -340,7 +340,7 @@
             // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
             DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
 
-            currentReport = ReportBase.ConstructReport(filterInput);
+            currentReport = ReportBase.ConstructReport(filterInput, userConfig);
             if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display warning
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
@@ -355,16 +355,8 @@
             switch (currentReport)
             {
                 case ReportRules rulesReport:
-                    await currentReport.Generate(elementsPerFetch, Connection,
-                        managementsReportIntermediate =>
-                        {
-                            managementsReport = managementsReportIntermediate;
-                            setRelevantManagements(relevantManagements);
-                            return InvokeAsync(StateHasChanged);
-                        });
-                    break;
-
                 case ReportChanges changesReport:
+                case ReportNatRules natRulesReport:
                     await currentReport.Generate(elementsPerFetch, Connection,
                         managementsReportIntermediate =>
                         {

@@ -7,16 +7,15 @@ using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
-using System.Text.Json;
 using FWO.Ui.Display;
 using FWO.Logging;
 using FWO.Config.Api;
 
 namespace FWO.Report
 {
-    public class ReportRules : ReportBase
+    public class ReportNatRules : ReportBase
     {
-        public ReportRules(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
+        public ReportNatRules(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
 
         private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public bool GotReportedRuleIds { get; protected set; } = false;
@@ -209,7 +208,7 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
-            RuleDisplay ruleDisplay = new RuleDisplay(userConfig);
+            NatRuleDisplay ruleDisplay = new NatRuleDisplay(userConfig);
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
@@ -232,6 +231,9 @@ namespace FWO.Report
                         report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
                         report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
@@ -251,6 +253,9 @@ namespace FWO.Report
                                 report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayService(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
                                 report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
@@ -377,7 +382,7 @@ namespace FWO.Report
                 report.AppendLine("</table>");
             }
 
-            return GenerateHtmlFrame(title: userConfig.GetText("rules_report"), Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(title: userConfig.GetText("natrules_report"), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

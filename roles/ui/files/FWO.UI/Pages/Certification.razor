@@ -173,7 +173,7 @@
             DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements);
             SyncFilterToDisplay();
 
-            currentReport = ReportBase.ConstructReport(filterInput);
+            currentReport = ReportBase.ConstructReport(filterInput, userConfig);
             if (!DeviceFilter.isAnyDeviceFilterSet(managements, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);

@@ -1139,6 +1139,8 @@ INSERT INTO txt VALUES ('T0103', 'German',  'Anzahl der Objekte und Regeln pro D
 INSERT INTO txt VALUES ('T0103', 'English', 'Number of objects and rules per device');
 INSERT INTO txt VALUES ('T0104', 'German',  'Alle Regeln, die offene Quellen, Ziele oder Dienste haben');
 INSERT INTO txt VALUES ('T0104', 'English', 'All pass rules that contain any as source, destination or service');
+INSERT INTO txt VALUES ('T0105', 'German',  'Aktuell aktive NAT-Regeln aller Gateways');
+INSERT INTO txt VALUES ('T0105', 'English', 'Currently active NAT rules of all gateways');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using FWO.Logging;
 using FWO.Report.Filter.Exceptions;
 
@@ -50,7 +49,7 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
-            if (query.ReportType == "rules" || query.ReportType == "statistics")
+            if (query.ReportType == "rules" || query.ReportType == "natrules" || query.ReportType == "statistics")
             {
                 query.ruleWhereStatement +=
                     $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +

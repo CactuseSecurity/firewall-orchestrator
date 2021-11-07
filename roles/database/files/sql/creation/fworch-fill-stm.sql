@@ -21,6 +21,8 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
     VALUES ('type=rules and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny) ',
         'Compliance: Pass rules with ANY','T0104', 0);
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
+    VALUES ('type=natrules and time=now ','Current NAT Rules','T0105', 0);
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

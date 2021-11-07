@@ -132,5 +132,10 @@
     [Parameter]
     public Management[] Managements { get; set; }
 
-    public RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(null); // TODO: add real user config (injection)
+    public RuleChangeDisplay ruleChangeDisplay;
+
+    protected override void OnInitialized()
+    {
+        ruleChangeDisplay = new RuleChangeDisplay(userConfig);
+    }
 }

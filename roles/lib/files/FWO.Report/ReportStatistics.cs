@@ -1,7 +1,6 @@
 using FWO.Api.Data;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +8,7 @@ using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 using System.Text.Json;
+using FWO.Config.Api;
 
 namespace FWO.Report
 {
@@ -17,7 +17,7 @@ namespace FWO.Report
         // TODO: Currently generated in Report.razor as well as here, because of export. Remove dupliacte.
         private Management globalStatisticsManagament = new Management();
 
-        public ReportStatistics(DynGraphqlQuery query) : base(query) { }
+        public ReportStatistics(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
 
         public override async Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
         {
@@ -98,13 +98,13 @@ namespace FWO.Report
         {
             StringBuilder report = new StringBuilder();
 
-            report.AppendLine($"<h3>Global number of Objects</h3>");
+            report.AppendLine($"<h3>{userConfig.GetText("glob_no_obj")}</h3>");
             report.AppendLine("<table>");
             report.AppendLine("<tr>");
-            report.AppendLine("<th>Network objects</th>");
-            report.AppendLine("<th>Service objects</th>");
-            report.AppendLine("<th>User objects</th>");
-            report.AppendLine("<th>Rules</th>");
+            report.AppendLine($"<th>{userConfig.GetText("network_objects")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("service_objects")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("user_objects")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("rules")}</th>");
             report.AppendLine("</tr>");
             report.AppendLine("<tr>");
             report.AppendLine($"<td>{globalStatisticsManagament.NetworkObjectStatistics.ObjectAggregate.ObjectCount}</td>");
@@ -117,13 +117,13 @@ namespace FWO.Report
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"<h4>Number of Objects - {management.Name}</h4>");
+                report.AppendLine($"<h4>{userConfig.GetText("no_of_obj")} - {management.Name}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
-                report.AppendLine("<th>Network objects</th>");
-                report.AppendLine("<th>Service objects</th>");
-                report.AppendLine("<th>User objects</th>");
-                report.AppendLine("<th>Rules</th>");
+                report.AppendLine($"<th>{userConfig.GetText("network_objects")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("service_objects")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("user_objects")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("rules")}</th>");
                 report.AppendLine("</tr>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{management.NetworkObjectStatistics.ObjectAggregate.ObjectCount}</td>");
@@ -134,11 +134,11 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<br>");
 
-                report.AppendLine($"<h4>Number of Rules per Gateway</h4>");
+                report.AppendLine($"<h4>{userConfig.GetText("no_rules_gtw")}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
-                report.AppendLine("<th>Gateway</th>");
-                report.AppendLine("<th>Rules</th>");
+                report.AppendLine($"<th>{userConfig.GetText("gateway")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("rules")}</th>");
                 report.AppendLine("</tr>");
                 foreach (Device device in management.Devices)
                 {
@@ -151,7 +151,7 @@ namespace FWO.Report
                 report.AppendLine("<hr>");
             }
 
-            return GenerateHtmlFrame(title: "Statistic Report", Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(title: userConfig.GetText("statistics_report"), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

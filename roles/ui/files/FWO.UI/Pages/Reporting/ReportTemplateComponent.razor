@@ -7,7 +7,7 @@
 <div class="mr-1 ml-1 mb-1 shadow">
     <Collapse Title="@(userConfig.GetText("templates"))" Style="@("primary")" @ref="collapseControl">
         <div class="card-body">
-            <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates">
+            <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates" PageSize="0">
                 <Column Title="@(userConfig.GetText("action"))" TableItem="ReportTemplate">
                     <Template Context="template">
                         <div class="btn-group">
@@ -35,7 +35,7 @@
                 </Column>
                 <Column Title="@(userConfig.GetText("comment"))" TableItem="ReportTemplate" Field="x => x.Comment" >
                     <Template>
-                        @if (context.Comment.StartsWith("T01"))
+                        @if (context.Comment != null && context.Comment.StartsWith("T01"))
                         {
                             @(userConfig.GetText(context.Comment))
                         }

@@ -222,6 +222,12 @@ INSERT INTO txt VALUES ('destination', 			'German', 	'Ziel');
 INSERT INTO txt VALUES ('destination', 			'English', 	'Destination');
 INSERT INTO txt VALUES ('services', 			'German', 	'Dienste');
 INSERT INTO txt VALUES ('services', 			'English', 	'Services');
+INSERT INTO txt VALUES ('trans_source', 		'German', 	'Umgesetzte Quelle');
+INSERT INTO txt VALUES ('trans_source', 		'English', 	'Translated Source');
+INSERT INTO txt VALUES ('trans_destination', 	'German', 	'Umgesetztes Ziel');
+INSERT INTO txt VALUES ('trans_destination', 	'English', 	'Translated Destination');
+INSERT INTO txt VALUES ('trans_services', 		'German', 	'Umgesetzte Dienste');
+INSERT INTO txt VALUES ('trans_services', 		'English', 	'Translated Services');
 INSERT INTO txt VALUES ('action', 				'German', 	'Aktionen');
 INSERT INTO txt VALUES ('action', 				'English', 	'Actions');
 INSERT INTO txt VALUES ('track', 				'German', 	'Logging');
@@ -230,12 +236,18 @@ INSERT INTO txt VALUES ('disabled',				'German', 	'Deaktiviert');
 INSERT INTO txt VALUES ('disabled',				'English', 	'Disabled');
 INSERT INTO txt VALUES ('comment',				'German', 	'Kommentar');
 INSERT INTO txt VALUES ('comment',				'English', 	'Comment');
+INSERT INTO txt VALUES ('ip_address',		    'German', 	'IP-Adresse');
+INSERT INTO txt VALUES ('ip_address',		    'English', 	'IP Address');
+INSERT INTO txt VALUES ('members',		        'German', 	'Mitglieder');
+INSERT INTO txt VALUES ('members',		        'English', 	'Members');
 INSERT INTO txt VALUES ('templates',			'German', 	'Vorlagen');
 INSERT INTO txt VALUES ('templates',			'English', 	'Templates');
 INSERT INTO txt VALUES ('creation_date',		'German', 	'Erstelldatum');
 INSERT INTO txt VALUES ('creation_date',		'English', 	'Creation Date');
 INSERT INTO txt VALUES ('report_template',		'German', 	'Reportvorlage');
 INSERT INTO txt VALUES ('report_template',		'English', 	'Report Template');
+INSERT INTO txt VALUES ('no_of_obj',		    'German', 	'Anzahl der Objekte');
+INSERT INTO txt VALUES ('no_of_obj',		    'English', 	'Number of Objects');
 INSERT INTO txt VALUES ('glob_no_obj',		    'German', 	'Gesamtzahl der Objekte');
 INSERT INTO txt VALUES ('glob_no_obj',		    'English', 	'Global number of Objects');
 INSERT INTO txt VALUES ('total_no_obj_mgt',		'German', 	'Gesamtzahl der Objekte pro Management');
@@ -245,7 +257,9 @@ INSERT INTO txt VALUES ('no_rules_gtw',		    'English', 	'Number of Rules per Ga
 INSERT INTO txt VALUES ('negated',		        'German', 	'negated');
 INSERT INTO txt VALUES ('negated',		        'English', 	'negiert');
 INSERT INTO txt VALUES ('network_objects',		'German', 	'Netzwerkobjekte');
-INSERT INTO txt VALUES ('network_objects',		'English', 	'Network objects');
+INSERT INTO txt VALUES ('network_objects',		'English', 	'Network Objects');
+INSERT INTO txt VALUES ('network_services',		'German', 	'Netzwerkdienste');
+INSERT INTO txt VALUES ('network_services',		'English', 	'Network Services');
 INSERT INTO txt VALUES ('service_objects',		'German', 	'Serviceobjekte');
 INSERT INTO txt VALUES ('service_objects',		'English', 	'Service objects');
 INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
@@ -270,6 +284,8 @@ INSERT INTO txt VALUES ('source_zone',		    'German', 	'Quellzone');
 INSERT INTO txt VALUES ('source_zone',		    'English', 	'Source Zone');
 INSERT INTO txt VALUES ('destination_zone',		'German', 	'Zielzone');
 INSERT INTO txt VALUES ('destination_zone',		'English', 	'Destination Zone');
+INSERT INTO txt VALUES ('anything_but',		    'German', 	'alles ausser');
+INSERT INTO txt VALUES ('anything_but',		    'English', 	'anything but');
 INSERT INTO txt VALUES ('enabled',		        'German', 	'Aktiviert');
 INSERT INTO txt VALUES ('enabled',		        'English', 	'Enabled');
 INSERT INTO txt VALUES ('uid',		            'German', 	'UID');
@@ -314,6 +330,18 @@ INSERT INTO txt VALUES ('edit_template',        'German', 	'&Auml;ndern der Vorl
 INSERT INTO txt VALUES ('edit_template',        'English', 	'Edit Report Template');
 INSERT INTO txt VALUES ('delete_template',      'German', 	'L&ouml;schen der Vorlage');
 INSERT INTO txt VALUES ('delete_template',      'English', 	'Delete Report Template');
+INSERT INTO txt VALUES ('no_changes_found',	    'German', 	'Keine Changes gefunden!');
+INSERT INTO txt VALUES ('no_changes_found',	    'English', 	'No changes found!');
+INSERT INTO txt VALUES ('rules_report',	        'German', 	'Regel-Report');
+INSERT INTO txt VALUES ('rules_report',	        'English', 	'Rules Report');
+INSERT INTO txt VALUES ('natrules_report',	    'German', 	'NAT-Regel-Report');
+INSERT INTO txt VALUES ('natrules_report',	    'English', 	'NAT Rules Report');
+INSERT INTO txt VALUES ('changes_report',	    'German', 	'Changes-Report');
+INSERT INTO txt VALUES ('changes_report',	    'English', 	'Changes Report');
+INSERT INTO txt VALUES ('statistics_report',	'German', 	'Statistik-Report');
+INSERT INTO txt VALUES ('statistics_report',	'English', 	'Statistics Report');
+INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
+INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -934,6 +962,9 @@ INSERT INTO txt VALUES ('E1001', 'English', 'Please select at least one device i
 INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum Exportieren. Bitte zuerst Report generieren!');
 INSERT INTO txt VALUES ('E1002', 'English', 'No generated report to export. Please generate report first!');
 
+INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
+INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
+
 INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
 
@@ -1108,6 +1139,8 @@ INSERT INTO txt VALUES ('T0103', 'German',  'Anzahl der Objekte und Regeln pro D
 INSERT INTO txt VALUES ('T0103', 'English', 'Number of objects and rules per device');
 INSERT INTO txt VALUES ('T0104', 'German',  'Alle Regeln, die offene Quellen, Ziele oder Dienste haben');
 INSERT INTO txt VALUES ('T0104', 'English', 'All pass rules that contain any as source, destination or service');
+INSERT INTO txt VALUES ('T0105', 'German',  'Aktuell aktive NAT-Regeln aller Gateways');
+INSERT INTO txt VALUES ('T0105', 'English', 'Currently active NAT rules of all gateways');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -1161,10 +1194,10 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
 ');
-INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;gliche Werte: statistics, rules, changes</li>
+INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;gliche Werte: statistics, rules, changes, natrule</li>
     <li>time: In Abh&auml;ngigkeit vom Reporttyp werden verschiedene Werte/Formate erwartet:
         <ul>
-            <li>f&uuml;r "rules" oder "statistics" muss ein Datums- oder Zeitwert im Format YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... &uuml;bergeben werden.
+            <li>f&uuml;r "rules", "natrules" oder "statistics" muss ein Datums- oder Zeitwert im Format YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... &uuml;bergeben werden.
                 Zur Vereinfachung kann auch "now" f&uuml;r das aktuelle Datum eingegeben werden.</li>
             <li>f&uuml;r "changes" m&uuml;ssen zwei Datums-/Zeitwerte &uuml;bergeben werden, getrennt durch "/". Als Format wird YYYY-MM-DD oder YY-MM-DD HH:mm[:ss] erwartet.
                 Wenn ein Datum ohne Zeitangabe &uuml;bergeben wird, wird f&uuml;r die Startzeit 00:00:00, f&uuml;r die Endezeit 23:59:59 angenommen.
@@ -1184,10 +1217,10 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;glich
     <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
-INSERT INTO txt VALUES ('H1111', 'English', '<li>reporttype (type): Possible Values: statistics, rules, changes</li>
+INSERT INTO txt VALUES ('H1111', 'English', '<li>reporttype (type): Possible Values: statistics, rules, changes, natrules</li>
     <li>time: Depending on report type there are different possible Values/Formats: 
         <ul>
-            <li>for "rules" or "statistics" there has to be one date or date/time value YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... 
+            <li>for "rules", "natrules" or "statistics" there has to be one date or date/time value YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... 
                 As a shortcut also "now" is possible.</li>
             <li>for "changes" two dates have to be given separated by "/". The format of each date is expexted as YYYY-MM-DD or YY-MM-DD HH:mm[:ss].
                 If a date without time is given, for the start date 00:00:00 is assumed, for the end date 23:59:59.

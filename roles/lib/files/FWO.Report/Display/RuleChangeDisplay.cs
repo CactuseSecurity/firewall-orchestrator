@@ -218,8 +218,8 @@ namespace FWO.Ui.Display
                 }
 
                 return string.Join("<br>", unchanged) 
-                       + (deleted.Count > 0 ? $" deleted: <p style=\"color: red; text-decoration: line-through red;\">{string.Join("<br>", deleted)}</p>" : "")
-                       + (added.Count > 0 ? $" added: <p style=\"color: green; text-decoration: bold;\">{string.Join("<br>", added)}</p>" : "");
+                       + (deleted.Count > 0 ? $" {userConfig.GetText("deleted")}: <p style=\"color: red; text-decoration: line-through red;\">{string.Join("<br>", deleted)}</p>" : "")
+                       + (added.Count > 0 ? $" {userConfig.GetText("added")}: <p style=\"color: green; text-decoration: bold;\">{string.Join("<br>", added)}</p>" : "");
             }
         }
         

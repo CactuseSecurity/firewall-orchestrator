@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using FWO.Logging;
 using FWO.Report.Filter.Exceptions;
 

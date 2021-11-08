@@ -155,3 +155,6 @@ adding report template format fk and permissions
 - introducing swagger REST API for user management
 - adding swagger REST API interactive documentation for user management
 - moving to hasura 2.0.10 for slight performance boost (see https://github.com/hasura/graphql-engine/releases/tag/v2.0.10)
+
+### 5.5.2 - 06.11.2021
+- new default report template for NAT rules

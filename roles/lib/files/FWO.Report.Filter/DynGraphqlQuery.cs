@@ -141,6 +141,33 @@ namespace FWO.Report.Filter
                         }}
                     ";
                     break;
+
+                case "natrules":
+                    query.FullQuery = $@"
+                    {(detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+
+                    query natRulesReport ({paramString}) 
+                    {{ 
+                        management( where: {{ mgm_id: {{_in: $mgmId }}, hide_in_gui: {{_eq: false }} }} order_by: {{ mgm_name: asc }} ) 
+                            {{
+                                id: mgm_id
+                                name: mgm_name
+                                devices ( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} ) 
+                                    {{
+                                        id: dev_id
+                                        name: dev_name
+                                        rules(
+                                            limit: $limit 
+                                            offset: $offset
+                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.ruleWhereStatement} }} 
+                                            order_by: {{ rule_num_numeric: asc }} )
+                                            {{
+                                                ...{(detailed ? "natRuleDetails" : "natRuleOverview")}
+                                            }} 
+                                    }}
+                            }} 
+                    }}";
+                    break;
             }
 
             // remove line breaks and duplicate whitespaces

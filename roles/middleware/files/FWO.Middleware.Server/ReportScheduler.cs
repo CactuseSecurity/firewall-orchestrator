@@ -1,6 +1,7 @@
 ﻿using FWO.Api.Data;
 using FWO.ApiClient;
 using FWO.ApiClient.Queries;
+using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Middleware.Controllers;
 using FWO.Report;
@@ -136,9 +137,11 @@ namespace FWO.Middleware.Server
                     
                     report.Owner.Roles = await authHandler.GetRoles(report.Owner);
                     report.Owner.Tenant = await authHandler.GetTenantAsync(report.Owner);
-                    APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, await jwtWriter.CreateJWT(report.Owner));
+                    string jwt = await jwtWriter.CreateJWT(report.Owner);
+                    APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, jwt);
 
-                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter);
+                    UserConfig userConfig = new UserConfig(new GlobalConfig(jwt));
+                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, userConfig);
                     await reportRules.Generate
                     (
                         int.MaxValue,

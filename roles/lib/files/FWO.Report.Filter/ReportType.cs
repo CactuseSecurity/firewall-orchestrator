@@ -11,6 +11,7 @@ namespace FWO.Report.Filter
         None,
         Rules,
         Changes,
-        Statistics
+        Statistics,
+        NatRules
     }
 }

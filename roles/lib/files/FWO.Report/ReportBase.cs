@@ -91,7 +91,7 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
-                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToString());
+                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 htmlExport = HtmlTemplate.ToString();
             }

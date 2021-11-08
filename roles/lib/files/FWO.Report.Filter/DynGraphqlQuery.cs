@@ -142,7 +142,7 @@ namespace FWO.Report.Filter
                     ";
                     break;
 
-                case "natrules":
+                case ReportType.NatRules:
                     query.FullQuery = $@"
                     {(detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
 

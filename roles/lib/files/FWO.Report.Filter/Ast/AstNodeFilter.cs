@@ -85,6 +85,7 @@ namespace FWO.Report.Filter.Ast
             {
                 case ReportType.Rules:
                 case ReportType.Statistics:
+                case ReportType.NatRules:
                     switch (Operator.Kind)
                     {
                         case TokenKind.EQ:
@@ -146,6 +147,7 @@ namespace FWO.Report.Filter.Ast
                 "rules" or "rule" => ReportType.Rules,
                 "statistics" or "statistic" => ReportType.Statistics,
                 "changes" or "change" => ReportType.Changes,
+                "natrules" or "nat_rules" => ReportType.NatRules,
                 _ => ReportType.None
             };
 

@@ -112,6 +112,7 @@ else:
 # todo: encrypt config before writing to file
 
 with open(args.out, 'w') as file:
-    file.write(json.dumps(config_json, indent=3))
+    file.write(str(api_call_result['data']))
+#    file.write(json.dumps(config_json, indent=3))
 
 sys.exit(0)

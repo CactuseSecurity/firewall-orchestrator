@@ -271,6 +271,8 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'service-negate': False,
         'install-on': [{'name': 'Policy Targets'}],
         'time': [{'name': 'Any'}],
+        'enabled': xlate_rule_in['enabled'],
+        'comments': xlate_rule_in['comments'],
         'rule_type': 'original'
     }
     rule_xlate = {
@@ -288,6 +290,8 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'service-negate': False,
         'install-on': [{'name': 'Policy Targets'}],
         'time': [{'name': 'Any'}],
+        # 'disabled': not xlate_rule_in['enabled'],
+        # 'comment': xlate_rule_in['comments'],
         'rule_type': 'xlate'
     }
     return (rule_match, rule_xlate)

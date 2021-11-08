@@ -151,7 +151,7 @@ namespace FWO.Report
                 report.AppendLine("<hr>");
             }
 
-            return GenerateHtmlFrame(title: "Statistic Report", Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(title: "Statistics Report", Query.RawFilter, DateTime.Now, report);
         }
     }
 }

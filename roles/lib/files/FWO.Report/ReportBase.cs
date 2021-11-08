@@ -146,9 +146,9 @@ namespace FWO.Report
 
             return query.ReportType switch
             {
-                "statistics" => new ReportStatistics(query),
-                "rules" => new ReportRules(query),
-                "changes" => new ReportChanges(query),
+                ReportType.Statistics => new ReportStatistics(query),
+                ReportType.Rules => new ReportRules(query),
+                ReportType.Changes => new ReportChanges(query),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

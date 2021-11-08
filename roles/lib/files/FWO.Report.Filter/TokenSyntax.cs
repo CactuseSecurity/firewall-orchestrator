@@ -164,6 +164,18 @@ namespace FWO.Report.Filter
                     NoWhiteSpaceRequiered = new string[] { "!=", "!:" }
                 },
 
+                TokenKind.LSS => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "lss" },
+                    NoWhiteSpaceRequiered = new string[] { "<" }
+                },
+
+                TokenKind.GRT => new TokenSyntax
+                {
+                    WhiteSpaceRequiered = new string[] { "grt" },
+                    NoWhiteSpaceRequiered = new string[] { ">" }
+                },
+
                 _ => throw new NotSupportedException($"No syntax found for token kind: {tokenKind}"),
             };
         }

@@ -146,6 +146,8 @@ namespace FWO.Middleware.Server
                         _ => Task.CompletedTask
                     );
 
+                    reportFile.Json = reportRules.ExportToJson();
+
                     foreach (FileFormat format in report.OutputFormat)
                     {
                         switch (format.Name)
@@ -162,9 +164,9 @@ namespace FWO.Middleware.Server
                                 reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf());
                                 break;
 
-                            case "json":
-                                reportFile.Json = reportRules.ExportToJson();
-                                break;
+                            //case "json":
+                            //    reportFile.Json = reportRules.ExportToJson();
+                            //    break;
 
                             default:
                                 throw new NotSupportedException("Output format is not supported.");
@@ -186,7 +188,7 @@ namespace FWO.Middleware.Server
                         report_json = reportFile.Json,
                     };
 
-                    await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+                    // await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
                 }
                 catch (Exception exception)
                 {

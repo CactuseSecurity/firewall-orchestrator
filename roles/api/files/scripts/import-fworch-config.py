@@ -11,7 +11,7 @@ import common, fwo_api
 
 parser = argparse.ArgumentParser(
     description='Export fworch configuration into encrypted json file')
-parser.add_argument('-i', '--in', metavar='input_file', required=True, help='filename to read the config to import from')
+parser.add_argument('-i', '--input_file', metavar='input_file', required=True, help='filename to read the config to import from')
 parser.add_argument('-u', '--user', metavar='user_name', default='admin', help='username for writing fworch config (default=admin')
 parser.add_argument('-p', '--password', metavar='password_file', default=base_dir + '/etc/secrets/ui_admin_pwd', help='username for writing fworch config (default=$FWORCH_HOME/etc/secrets/ui_admin_pwd')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
@@ -53,22 +53,32 @@ else:
 
 # write device details to fworch
 
-with open(args.out, 'r') as file:
-    config_json = json.loads(file.read())
+with open(args.input_file, 'r') as file:
+    config_json = file.read()
+#    config_json = json.loads(file.read())
 
 # todo: decrypt config before writing to file
+# todo: escape "
 
+# https://analyticoolblog.com/graphql-in-python-how-to-query-graphql-api-for-beginners/
 dev_config = config_json['device_configuration']
 
+# todo: convert keys from string to graphql name (without "")
 
+# device_adding_mutation = """
+#     mutation addManagements {
+#         insert_management( objects: """ + json.dumps(config_json['device_configuration']['management']) + """ ) 
+#         insert_device( objects: """ + json.dumps(config_json['device_configuration']['device']) + """ ) 
+#         { returning { mgm_id dev_id } }
+#     }"""
 device_adding_mutation = """
     mutation addManagements {
-        insert_management( objects: { """ + config_json['device_configuration']['management'] + """ } ) 
-        insert_device( objects: { """ + config_json['device_configuration']['device'] + """ } ) 
+        insert_management( objects: """ + str(config_json['device_configuration']['management']) + """ ) 
+        insert_device( objects: """ + str(config_json['device_configuration']['device']) + """ ) 
         { returning { mgm_id dev_id } }
     }"""
 
-fwo_api.call(fwo_api_base_url, jwt, device_adding_mutation, query_variables={}, role='admin')
+result = fwo_api.call(fwo_api_base_url, jwt, device_adding_mutation, query_variables={}, role='admin')
 
 # todo: get more config data
     # get user related data:

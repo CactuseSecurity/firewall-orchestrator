@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Security;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
@@ -73,6 +66,9 @@ namespace FWO.Api.Data
 
         [JsonPropertyName("rule_metadatum")]
         public RuleMetadata Metadata {get; set;}
+
+        [JsonPropertyName("translate")]
+        public NatData NatData {get; set;}
 
         public bool Certified { get; set; }
         public string DeviceName { get; set; }

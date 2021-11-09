@@ -108,11 +108,29 @@
                                     </Template>
                                 </Column>
                             }
-                            @if (EmptyColumns[7] == false)
+                            @if(NatRules)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayTranslatedService(rule))
+                                    </Template>
+                                </Column>
+                            }
+                            @if (EmptyColumns[7] == false && !NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
                             }
-                            @if (EmptyColumns[8] == false)
+                            @if (EmptyColumns[8] == false && !NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
                             }
@@ -169,6 +187,9 @@
     public bool Recertification { get; set; }
 
     [Parameter]
+    public bool NatRules { get; set; }
+
+    [Parameter]
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
     [Parameter]
@@ -190,5 +211,11 @@
     private const int ColumnsCount = 12;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
-    private RuleDisplay ruleDisplay = new RuleDisplay(null);
+    private NatRuleDisplay ruleDisplay;
+    
+    protected override void OnInitialized()
+    {
+        ruleDisplay = new NatRuleDisplay(userConfig);
+    }
+
 }

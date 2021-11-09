@@ -1,0 +1,13 @@
+
+# - name: stop old middleware server
+#   systemd:
+#     name: "{{ middleware_service_name }}"
+#     enabled: no
+#     status: stopped
+#   become: yes
+
+# - name: remove debugging middleware server
+#   file:
+#     path: "/usr/local/fworch/middleware/files/FWO.Middleware.Server/bin/Debug"
+#     state: absent
+#   become: yes

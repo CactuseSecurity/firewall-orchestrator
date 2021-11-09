@@ -1,12 +1,11 @@
 ﻿using FWO.ApiClient;
 using FWO.Api.Data;
 using FWO.Report.Filter;
+using FWO.Config.Api;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using FWO.ApiClient.Queries;
 using System.Text.Json;
 using System.Text;
 using WkHtmlToPdfDotNet;
@@ -45,7 +44,7 @@ namespace FWO.Report
     </head>
     <body>
         <h2>##Title##</h2>
-        <p>Filter: ##Filter## - Generated on: ##Date##</p>
+        <p>Filter: ##Filter## - ##GeneratedOn##: ##Date##</p>
         <hr>
         ##Body##
     </body>
@@ -57,15 +56,17 @@ namespace FWO.Report
         
 
         public readonly DynGraphqlQuery Query;
+        protected UserConfig userConfig;
 
         private string htmlExport = "";
 
         // Pdf converter
         protected static readonly SynchronizedConverter converter = new SynchronizedConverter(new PdfTools());
 
-        public ReportBase(DynGraphqlQuery query)
+        public ReportBase(DynGraphqlQuery query, UserConfig UserConfig)
         {
             Query = query;
+            userConfig = UserConfig;
         }
 
         public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback);
@@ -91,6 +92,7 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToString());
+                HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 htmlExport = HtmlTemplate.ToString();
             }
             return htmlExport;
@@ -140,15 +142,16 @@ namespace FWO.Report
             //}
         }
 
-        public static ReportBase ConstructReport(string filterInput)
+        public static ReportBase ConstructReport(string filterInput, UserConfig userConfig)
         {
             DynGraphqlQuery query = Compiler.Compile(filterInput);
 
             return query.ReportType switch
             {
-                "statistics" => new ReportStatistics(query),
-                "rules" => new ReportRules(query),
-                "changes" => new ReportChanges(query),
+                "statistics" => new ReportStatistics(query, userConfig),
+                "rules" => new ReportRules(query, userConfig),
+                "changes" => new ReportChanges(query, userConfig),
+                "natrules" => new ReportNatRules(query, userConfig),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

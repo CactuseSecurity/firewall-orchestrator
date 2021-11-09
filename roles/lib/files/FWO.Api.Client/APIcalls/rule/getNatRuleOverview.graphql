@@ -33,15 +33,21 @@ query getNatRulesOverview($mgmId: [Int!], $device_id: [Int!]) {
         rule_src
         rule_dst
         rule_svc
+        rule_src_neg
+        rule_dst_neg
+        rule_svc_neg
         access_rule
         nat_rule
         translate: ruleByXlateRule {
           rule_src
           rule_src_refs
+          rule_src_neg
           rule_dst
           rule_dst_refs
+          rule_dst_neg
           rule_svc
           rule_svc_refs
+          rule_svc_neg
         }
       }
     }

@@ -46,4 +46,13 @@ def sanitize(content):
     #if result != '':  # do not add apostrophes for empty fields
     #    result = apostrophe + escaped_field + apostrophe
     return result
+
+
+def resolve_objects (obj_name_list, delimiter, obj_dict, name_key, uid_key):
+    ref_list = []
+    for el in obj_name_list:
+        for obj in obj_dict:
+            if obj[name_key] == el:
+                ref_list.append(obj[uid_key])
+    return delimiter.join(ref_list)
  

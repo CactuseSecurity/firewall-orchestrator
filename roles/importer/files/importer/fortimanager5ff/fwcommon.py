@@ -141,20 +141,8 @@ def getDeviceDetails(sid, fm_api_url, raw_config, mgm_details, debug_level):
 def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
     raw_config.update({"zones": {}})
 
-    # # get global zones:
-    # for device in raw_config['devices']:
-    #     if device['global_rulebase'] is None:
-    #         logging.error('no global rulebase name defined in fortimanager')
-    #         return 1
-    #     elif device['global_rulebase'] not in raw_config['global_package_names']:
-    #         logging.error('global rulebase/package ' + device['global_rulebase'] + ' not found in fortimanager')
-    #         return 1
-    #     else:
-    #         getter.update_config_with_fortinet_api_call(
-    #             raw_config['v4_rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/header" + consolidated + "/policy", device['id'], debug=debug_level, limit=limit)
-    #         getter.update_config_with_fortinet_api_call(
-    #             raw_config['v6_rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/header" + consolidated + "/policy6", device['id'], debug=debug_level, limit=limit)
-
+    # get global zones?
+ 
     # get local zones
     for device in raw_config['devices']:
         local_pkg_name = device['package']
@@ -163,7 +151,7 @@ def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
                 if local_pkg_name not in adom['package_names']:
                     logging.error('local rulebase/package ' + local_pkg_name + ' not found in management ' + adom_name)
                     return 1
-                else:  # "pm/config/adom/{{ _.adom }}/obj/dynamic/interface"
+                else:
                     getter.update_config_with_fortinet_api_call(
                         raw_config['zones'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/obj/dynamic/interface", device['id'], debug=debug_level, limit=limit)
 
@@ -181,8 +169,7 @@ def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
                     for dyn_mapping in mapping['platform_mapping']:
                         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in raw_config['zones']['zone_list']:
                             raw_config['zones']['zone_list'].append(dyn_mapping['intf-zone'])
-                        # if 'local-intf' in dyn_mapping and not dyn_mapping['local-intf'][0] in raw_config['zones']['zone_list']:
-                        #     raw_config['zones']['zone_list'].append(dyn_mapping['local-intf'][0])
+
 
 def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
     raw_config.update({"v4_rulebases_by_dev_id": {}})

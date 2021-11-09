@@ -6,8 +6,8 @@
 #     status: stopped
 #   become: yes
 
-- name: remove debugging middleware server
-  file:
-    path: "/usr/local/fworch/middleware/files/FWO.Middleware.Server/bin/Debug"
-    state: absent
-  become: yes
+# - name: remove debugging middleware server
+#   file:
+#     path: "/usr/local/fworch/middleware/files/FWO.Middleware.Server/bin/Debug"
+#     state: absent
+#   become: yes

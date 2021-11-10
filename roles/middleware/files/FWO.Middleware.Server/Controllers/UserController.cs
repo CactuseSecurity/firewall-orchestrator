@@ -72,7 +72,7 @@ namespace FWO.Middleware.Controllers
             foreach (Ldap currentLdap in ldaps)
             {
                 // Try to add user to current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
@@ -100,7 +100,7 @@ namespace FWO.Middleware.Controllers
             foreach (Ldap currentLdap in ldaps)
             {
                 // Try to update user in current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
@@ -164,7 +164,7 @@ namespace FWO.Middleware.Controllers
             foreach (Ldap currentLdap in ldaps)
             {
                 // if current Ldap is internal: Try to update user password in current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
                     await Task.Run(async () =>
                     {
@@ -229,7 +229,7 @@ namespace FWO.Middleware.Controllers
             foreach (Ldap currentLdap in ldaps)
             {
                 // Try to delete user in current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {

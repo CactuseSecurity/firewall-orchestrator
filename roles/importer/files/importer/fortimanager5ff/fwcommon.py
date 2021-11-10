@@ -64,7 +64,8 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             # now we normalize relevant parts of the raw config and write the results to config2import dict
             fmgr_network.normalize_nwobjects(raw_config, config2import, current_import_id)
             fmgr_zone.normalize_zones(raw_config, config2import, current_import_id)
-            fmgr_rule.normalize_rules(raw_config, config2import, current_import_id)
+            fmgr_rule.normalize_access_rules(raw_config, config2import, current_import_id)
+            fmgr_rule.normalize_nat_rules(raw_config, config2import, current_import_id)
 
     getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
     if (debug_level>=2):
@@ -223,14 +224,17 @@ def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level
 
 def getNatPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
     raw_config.update({"nat_by_dev_id": {}})
-    
+
     for device in raw_config['devices']:
+        scope = 'global'
+        pkg = device['global_rulebase']
+        for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
+            getter.update_config_with_fortinet_api_call(
+                raw_config['nat_by_dev_id'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['id'], debug=debug_level, limit=limit)
 
-        for scope in ['global', 'adom/'+adom_name]:
-
-            # todo: this throws warning exceptions for invalid combinations (global with local package names)
-            for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-                pkg = device['package']
-                getter.update_config_with_fortinet_api_call(
-                    raw_config['nat_by_dev_id'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['id'], debug=debug_level, limit=limit)
+        scope = 'adom/'+adom_name
+        pkg = device['package']
+        for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
+            getter.update_config_with_fortinet_api_call(
+                raw_config['nat_by_dev_id'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['id'], debug=debug_level, limit=limit)
 

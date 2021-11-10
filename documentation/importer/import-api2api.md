@@ -17,18 +17,17 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 {
     "import_id": 1,
     "mgm_id": 12,
-    "config": config2import
+    "config": "config2import"
 }
 ```
 ### config2import
 ```json
 {
     "network_objects": [...],
-    "network_services": [...],
-    "users": [...],
-    "network_zones": [...],
-    "rules": [...],
-    "nat_rules": [...]
+    "service_objects": [...],
+    "user_objects": [...],
+    "zone_objects": [...],
+    "rules": [...]
 }
 ```
 
@@ -158,67 +157,6 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 
 - all existing reporting needs to be restricted to access rules (exception receritfication)
 - recertification should be possible for both NAT and access rules (should be configurable both per tenant and globally)
-
-The rest of this chapter describes old designs which are no longer valid.
-
-### variant 1 - simple csv-like 
-```json
-{
-    "control_id": 1,                                        // bigint: ID of the current import
-    "rulebase_name": "global nat rules",                    // string: specifies the nat rulebase name (all nat rules are contained in a single json struct)
-    "rule_num": 1,                                          // integer: nat rule number for ordering
-    "rule_uid": "bcc044f6-2a4f-459b-b78c-9e7afee92621",     // string: unique rule id
-    "rule_src_xlate": "ip_4.5.6.7,ip_4.5.6.1|ip_2,ip2_xlate",// string: pairs (comma-separated) of source translations
-    "rule_src_xlate_refs": "97aeb369-9aea-11d5-bd16-0090272ccb35,97aeb369-9aea-11d5-bd16-0090272ccb34|97aeb369-9aea-11d5-bd16-0090272ccb33,97aeb369-9aea-11d5-bd16-0090272ccb32",// string: references of translation sources
-    "rule_dst_xlate": "ip1.3.45.5,original",                // string: pairs (comma-separated) of destination translations
-    "rule_dst_xlate_refs": "97aeb369-9aea-11d5-bd16-0090272ccb31,97aeb369-9aea-11d5-bd16-0090272ccb31",// string: pairs (comma-separated) of destination translation references
-    "rule_svc_xlate": "tcp_1234,tcp_4711",                  // string: pairs (comma-separated) of service (port) translations
-    "rule_svc_xlate_refs": "97aeb369-9aea-11d5-bd16-0090272ccb30,97aeb369-9aea-11d5-bd16-0090272ccb32", // string: pairs (comma-separated) of destination translation references
-    "rule_disabled": false,                                 // boolean: is nat rule disabled
-    "rule_installon": null,                                 // string: list of gateways this nat rule should be applied to
-    "rule_ruleid": null,                                    // string: id (unique within gateway, but not globally)
-    "rule_name": null,                                      // string: optional name of the nat rule
-    "rule_comment": null,                                   // string: optional nat rule comment
-    "rule_head_text": null,                                 // string: for section headers this is the field to use
-    "rule_from_zone": null,                                 // string: source zone (if applicable) of the nat rule
-    "rule_to_zone": null                                    // string: destination zone (if applicable) of the nat rule
-}
-```
-### variant 2 - readable jsonish close to original nat rules
-```json
-{
-    "control_id": 1,                                        // bigint: ID of the current import
-    "rulebase_name": "global nat rules",                    // string: specifies the nat rulebase name (all nat rules are contained in a single json struct)
-    "rule_num": 1,                                          // integer: nat rule number for ordering
-    "rule_uid": "bcc044f6-2a4f-459b-b78c-9e7afee92621",     // string: unique rule id
-    "xlate_action": "hide",
-    "original_packet_match":  {
-        "source": "ip_4.5.6.7|group_office_clients",
-        "source_refs": "97aeb369-9aea-11d5-bd16-0090272ccb35|97aeb369-9aea-11d5-bd16-0090272ccb38",
-        "destination": "ip_1.3.45.5",
-        "destination_refs": "97aeb369-9aea-11d5-bd16-0090272ccb35",
-        "service": "tcp_13343|tcp_3232",
-        "service_refs": "12aeb369-9aea-11d5-bd16-0090272ccb35|12aeb369-9aea-11d5-bd16-0090272ccb38"
-    },
-    "xlate_packet":  {
-        "source": "ip_123.1.0.1",
-        "source_refs": "76aeb369-9aea-11d5-bd16-0090272ccb33",
-        "destination": "original",
-        "destination_refs": "original",
-        "service": "original",
-        "service_refs": "original"
-    },
-    "rule_disabled": false,                                 // boolean: is nat rule disabled
-    "rule_installon": null,                                 // string: list of gateways this nat rule should be applied to
-    "rule_ruleid": null,                                    // string: id (unique within gateway, but not globally)
-    "rule_name": null,                                      // string: optional name of the nat rule
-    "rule_comment": null,                                   // string: optional nat rule comment
-    "rule_head_text": null,                                 // string: for section headers this is the field to use
-    "rule_from_zone": null,                                 // string: source zone (if applicable) of the nat rule
-    "rule_to_zone": null                                    // string: destination zone (if applicable) of the nat rule
-}
-```
-- xlate_action can be any of the following: hide, hide_pool, static_src, static_dst, static_src_and_dst
 
 #### final db rule tables
 ```json

@@ -15,5 +15,5 @@ def normalize_zones(full_config, config2import, import_id):
         zone.update({'control_id': import_id})
         zones.append(zone)
         
-    config2import.update({'zones': zones})
+    config2import.update({'zone_objects': zones})
 

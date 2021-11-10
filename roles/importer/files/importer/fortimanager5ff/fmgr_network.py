@@ -33,8 +33,9 @@ def normalize_nwobjects(full_config, config2import, import_id):
         if 'member' in obj_orig: # addrgrp4 / addrgrp6
             obj['obj_member_names'] = common.list_delimiter.join(obj_orig['member'])
             obj['obj_member_refs'] = common.resolve_objects(obj_orig['member'], common.list_delimiter, full_config['network_objects'], 'name', 'uuid')
-        if 'fqdn' in obj_orig: # todo: "fully qualified domain name address" -> neither group nor network/host
-            obj.update({ 'obj_typ': 'group' }) # todo: what to use here?
+        if 'fqdn' in obj_orig: # "fully qualified domain name address"
+            obj.update({ 'obj_typ': 'network' })
+            obj.update({ 'obj_ip': '0.0.0.0/0'})
         if 'comment' in obj_orig:
             obj.update({'obj_comment': obj_orig['comment']})
         if 'color' in obj_orig and obj_orig['color']==0:

@@ -32,7 +32,7 @@ def normalize_nwobjects(full_config, config2import, import_id):
             obj.update({ 'obj_ip': ipa.with_prefixlen })
         if 'member' in obj_orig: # addrgrp4 / addrgrp6
             obj['obj_member_names'] = common.list_delimiter.join(obj_orig['member'])
-            obj['obj_member_refs'] = common.resolve_objects(obj_orig['member'], common.list_delimiter, full_config['network_objects'], 'name', 'uuid')
+            obj['obj_member_refs'] = common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config['network_objects'], 'name', 'uuid')
         if 'fqdn' in obj_orig: # "fully qualified domain name address"
             obj.update({ 'obj_typ': 'network' })
             obj.update({ 'obj_ip': '0.0.0.0/0'})

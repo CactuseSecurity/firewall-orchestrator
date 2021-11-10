@@ -48,11 +48,28 @@ def sanitize(content):
     return result
 
 
-def resolve_objects (obj_name_list, delimiter, obj_dict, name_key, uid_key):
+def extend_string_list(list_string, src_dict, key, delimiter):
+    if list_string is None:
+        list_string = ''
+    if list_string == '':
+        if key in src_dict:
+            result = delimiter.join(src_dict[key])
+        else:
+            result = ''
+    else:
+        if key in src_dict:
+            old_list = list_string.split(delimiter)
+            combined_list = old_list + src_dict[key]
+            result = delimiter.join(combined_list)
+        else:
+            result = ''
+    return result
+
+
+def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key):
     ref_list = []
-    for el in obj_name_list:
+    for el in obj_name_string_list.split(delimiter):
         for obj in obj_dict:
             if obj[name_key] == el:
                 ref_list.append(obj[uid_key])
     return delimiter.join(ref_list)
- 

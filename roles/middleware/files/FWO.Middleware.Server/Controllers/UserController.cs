@@ -131,9 +131,9 @@ namespace FWO.Middleware.Controllers
             foreach (Ldap currentLdap in ldaps)
             {
                 // if current Ldap is writable: Try to change password in current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
-                    bool passwordMustBeChanged = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { userDn = userDn }))[0].PasswordMustBeChanged;
+                    bool passwordMustBeChanged = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }))[0].PasswordMustBeChanged;
 
                     await Task.Run(async () =>
                     {

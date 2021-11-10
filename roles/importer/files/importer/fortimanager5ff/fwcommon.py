@@ -65,6 +65,7 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             fmgr_network.normalize_nwobjects(raw_config, config2import, current_import_id)
             fmgr_zone.normalize_zones(raw_config, config2import, current_import_id)
             fmgr_rule.normalize_rules(raw_config, config2import, current_import_id)
+            fmgr_rule.normalize_nat_rules(raw_config, config2import, current_import_id)
 
     getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
     if (debug_level>=2):

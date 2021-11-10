@@ -149,7 +149,7 @@ namespace FWO.Middleware.Server
                         _ => Task.CompletedTask
                     );
 
-                    // reportFile.Json = reportRules.ExportToJson();
+                    reportFile.Json = reportRules.ExportToJson();
 
                     foreach (FileFormat format in report.OutputFormat)
                     {
@@ -165,10 +165,6 @@ namespace FWO.Middleware.Server
 
                             case "pdf":
                                 reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf());
-                                break;
-
-                            case "json":
-                                reportFile.Json = reportRules.ExportToJson();
                                 break;
 
                             default:

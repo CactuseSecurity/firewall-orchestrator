@@ -35,8 +35,8 @@ namespace FWO.Config.File
         //private readonly APIConnection apiConnection;
 
 
-        private RsaSecurityKey jwtPrivateKey = null;
-        public RsaSecurityKey JwtPrivateKey
+        private RsaSecurityKey? jwtPrivateKey = null;
+        public RsaSecurityKey? JwtPrivateKey
         {
             get
             {
@@ -45,8 +45,8 @@ namespace FWO.Config.File
             }
         }
 
-        private RsaSecurityKey jwtPublicKey = null;
-        public RsaSecurityKey JwtPublicKey
+        private RsaSecurityKey? jwtPublicKey = null;
+        public RsaSecurityKey? JwtPublicKey
         {
             get
             {
@@ -55,8 +55,8 @@ namespace FWO.Config.File
             }
         }
 
-        private string apiServerUri = null;
-        public string ApiServerUri
+        private string? apiServerUri = null;
+        public string? ApiServerUri
         {
             get
             {
@@ -65,8 +65,8 @@ namespace FWO.Config.File
             }
         }
 
-        private string middlewareServerNativeUri = null;
-        public string MiddlewareServerNativeUri
+        private string? middlewareServerNativeUri = null;
+        public string? MiddlewareServerNativeUri
         {
             get
             {
@@ -74,8 +74,8 @@ namespace FWO.Config.File
                 return middlewareServerNativeUri;
             }
         }
-        private string middlewareServerUri = null;
-        public string MiddlewareServerUri
+        private string? middlewareServerUri = null;
+        public string? MiddlewareServerUri
         {
             get
             {
@@ -84,8 +84,8 @@ namespace FWO.Config.File
             }
         }
 
-        private string productVersion = null;
-        public string ProductVersion
+        private string? productVersion = null;
+        public string? ProductVersion
         {
             get
             {
@@ -102,7 +102,7 @@ namespace FWO.Config.File
                 string configFile = System.IO.File.ReadAllText(configPath).TrimEnd();
 
                 // Deserialize config to dictionary
-                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFile);
+                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFile) ?? throw new Exception("Config file could not be parsed.");
 
                 // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See NotNullCriticalConfigValue()
 
@@ -132,7 +132,7 @@ namespace FWO.Config.File
             }
         }
 
-        private void CriticalConfigValueLoaded(object configValue)
+        private void CriticalConfigValueLoaded(object? configValue)
         {
             if (configValue == null)
             {

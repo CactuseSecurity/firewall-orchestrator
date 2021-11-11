@@ -1,12 +1,8 @@
 ﻿using FWO.Logging;
 using Novell.Directory.Ldap;
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using FWO.Api.Data;
-using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server
 {
@@ -25,7 +21,7 @@ namespace FWO.Middleware.Server
             try
             {
                 LdapConnectionOptions ldapOptions = new LdapConnectionOptions();
-                if (Tls) ldapOptions.ConfigureRemoteCertificateValidationCallback((object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true); // todo: allow real cert validation     
+                if (Tls) ldapOptions.ConfigureRemoteCertificateValidationCallback((object sen, X509Certificate? cer, X509Chain? cha, SslPolicyErrors err) => true); // todo: allow real cert validation     
                 LdapConnection connection = new LdapConnection(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };           
                 connection.Connect(Address, Port);
 

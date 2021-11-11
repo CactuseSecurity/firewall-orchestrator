@@ -5,12 +5,6 @@ using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Middleware.Controllers;
 using FWO.Report;
-using Novell.Directory.Ldap;
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Timers;
 
 namespace FWO.Middleware.Server
@@ -42,7 +36,7 @@ namespace FWO.Middleware.Server
             scheduledReportsSubscription = apiConnection.GetSubscription<ScheduledReport[]>(ApiExceptionHandler, ReportQueries.subscribeReportScheduleChanges);
             scheduledReportsSubscription.OnUpdate += OnScheduleUpdate;
 
-            Timer checkScheduleTimer = new Timer();
+            System.Timers.Timer checkScheduleTimer = new();
             checkScheduleTimer.Elapsed += CheckSchedule;
             checkScheduleTimer.Interval = CheckScheduleInterval.TotalMilliseconds;
             checkScheduleTimer.AutoReset = true;
@@ -71,7 +65,7 @@ namespace FWO.Middleware.Server
             // Subscription will be restored if no exception is thrown here
         }
 
-        private async void CheckSchedule(object _, ElapsedEventArgs __)
+        private async void CheckSchedule(object? _, ElapsedEventArgs __)
         {
             List<Task> reportGeneratorTasks = new List<Task>();
 

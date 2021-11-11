@@ -7,12 +7,19 @@ namespace FWO.Report.Filter.Ast
 {
     public class AstNodeConnector : AstNode
     {
-        public AstNode Right { get; set; }
-        public AstNode Left { get; set; }
-        public Token Connector { get; set; }
+        public AstNode? Right { get; set; }
+        public AstNode? Left { get; set; }
+        public Token? Connector { get; set; }
 
         public override void Extract(ref DynGraphqlQuery query)
         {
+            if (Connector == null)
+                throw new ArgumentNullException(nameof(Connector));
+            if (Left == null)
+                throw new ArgumentNullException(nameof(Left));
+            if (Right == null)
+                throw new ArgumentNullException(nameof(Right));
+
             switch (Connector.Kind)
             {
                 case TokenKind.And: // and terms should be enclosed in []

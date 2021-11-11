@@ -113,6 +113,20 @@ def extractPorts(port_ranges):
     return ports, port_ends
 
 
+
+def create_svc_object(import_id, name, proto, port, comment):
+    return {
+        'control_id': import_id,
+        'svc_name': name,
+        'svc_typ': 'simple',
+        'svc_port': port,
+        'ip_proto': proto,
+        'svc_uid': name,    # services have no uid in fortimanager
+        'svc_comment': comment
+    }
+
+
+
 def addObject(svc_objects, type, name, color, proto, port_ranges, member_names, session_timeout, import_id):
     if port_ranges is None:
         svc_objects.extend([{'svc_typ': type,

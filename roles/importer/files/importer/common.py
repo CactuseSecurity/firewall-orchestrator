@@ -43,6 +43,7 @@ def sanitize(content):
         return None
     result = str(content)
     result = result.replace(apostrophe,"")  # remove possibly contained apostrophe
+    result = result.replace(line_delimiter," ")  # replace possibly contained CR with space
     #if result != '':  # do not add apostrophes for empty fields
     #    result = apostrophe + escaped_field + apostrophe
     return result

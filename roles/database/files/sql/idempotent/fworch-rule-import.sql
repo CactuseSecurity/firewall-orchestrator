@@ -364,6 +364,7 @@ BEGIN
 					END IF;
 				END IF;
 			END IF;
+/*
 			RAISE DEBUG 'rule_change_change before insert 
 				mgm_id=%
 				rule_name=%
@@ -406,7 +407,7 @@ BEGIN
 				lower(r_to_import.rule_action),r_to_import.rule_track,r_to_import.rule_installon,r_to_import.rule_time,
 				i_fromzone,i_tozone, r_to_import.rule_comment,r_to_import.rule_implied,r_to_import.rule_head_text,i_admin_id,
 				i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type, b_access_rule, b_nat_rule;
-
+*/
 			INSERT INTO rule
 				(mgm_id,rule_name,rule_num,rule_ruleid,rule_uid,rule_disabled,rule_src_neg,rule_dst_neg,rule_svc_neg,
 				action_id,track_id,rule_src,rule_dst,rule_svc,rule_src_refs,rule_dst_refs,rule_svc_refs,rule_action,rule_track,rule_installon,rule_time,

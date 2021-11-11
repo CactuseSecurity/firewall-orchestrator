@@ -8,7 +8,7 @@ import logging, sys, os, json
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/fortimanager5ff')
-import getter, fmgr_network, fmgr_rule, fmgr_zone
+import getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service
 
 
 def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=100):
@@ -66,6 +66,7 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             fmgr_zone.normalize_zones(raw_config, config2import, current_import_id)
             fmgr_rule.normalize_access_rules(raw_config, config2import, current_import_id)
             fmgr_rule.normalize_nat_rules(raw_config, config2import, current_import_id)
+            fmgr_service.normalize_svcobjects(raw_config, config2import, current_import_id)
 
     getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
     if (debug_level>=2):

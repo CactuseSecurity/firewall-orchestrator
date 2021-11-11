@@ -19,7 +19,8 @@ def normalize_access_rules(full_config, config2import, import_id):
             rule.update({ 'rule_ruleid': rule_orig['policyid']})
             rule.update({ 'rule_uid': rule_orig['uuid']})
             rule.update({ 'rule_num': rule_orig['obj seq']})
-            rule.update({ 'rule_name': rule_orig['name']})
+            if 'name' in rule_orig:
+                rule.update({ 'rule_name': rule_orig['name']})
             rule.update({ 'rule_installon': None })
             rule.update({ 'rule_implied': False })
             rule.update({ 'rule_time': None })

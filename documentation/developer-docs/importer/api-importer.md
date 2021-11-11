@@ -51,8 +51,9 @@ So the following rules apply:
       "rule_dst_refs": "cbdd1e35-b6e9-4ead-b13f-fd6389e34987",
       "rule_svc_refs": "97aeb475-9aea-11d5-bd16-0090272ccb30",
       "rule_installon": "Policy Targets",
-      "parent_rule_uid": "",
+      "parent_rule_uid": null,
       "rule_ruleid": null,
+      "rule_type": "access",
       "rule_last_change_admin": null
     }
   ],

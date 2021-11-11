@@ -8,7 +8,7 @@ import logging, sys, os, json
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/fortimanager5ff')
-import getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service
+import getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 
 def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=100):
@@ -62,8 +62,10 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             getNatPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level)
 
             # now we normalize relevant parts of the raw config and write the results to config2import dict
-            fmgr_network.normalize_nwobjects(raw_config, config2import, current_import_id)
             fmgr_zone.normalize_zones(raw_config, config2import, current_import_id)
+            fmgr_user.normalize_users(raw_config, config2import, current_import_id)
+            fmgr_network.normalize_nwobjects(raw_config, config2import, current_import_id)
+            fmgr_service.normalize_svcobjects(raw_config, config2import, current_import_id)
             fmgr_rule.normalize_access_rules(raw_config, config2import, current_import_id)
             fmgr_rule.normalize_nat_rules(raw_config, config2import, current_import_id)
             fmgr_service.normalize_svcobjects(raw_config, config2import, current_import_id)
@@ -174,8 +176,9 @@ def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
 
 
 def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
-    raw_config.update({"v4_rulebases_by_dev_id": {}})
-    raw_config.update({"v6_rulebases_by_dev_id": {}})
+    raw_config.update({"rulebases_by_dev_id": {}})
+
+    # TODO: make sure we have the correct rule order!
 
     consolidated = ''
     # consolidated = '/consolidated'
@@ -190,9 +193,9 @@ def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level
             return 1
         else:
             getter.update_config_with_fortinet_api_call(
-                raw_config['v4_rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/header" + consolidated + "/policy", device['id'], debug=debug_level, limit=limit)
+                raw_config['rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/header" + consolidated + "/policy", device['id'], debug=debug_level, limit=limit)
             getter.update_config_with_fortinet_api_call(
-                raw_config['v6_rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/header" + consolidated + "/policy6", device['id'], debug=debug_level, limit=limit)
+                raw_config['rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/header" + consolidated + "/policy6", device['id'], debug=debug_level, limit=limit)
 
     # get local rulebase
     for device in raw_config['devices']:
@@ -204,9 +207,9 @@ def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level
                     return 1
                 else:
                     getter.update_config_with_fortinet_api_call(
-                        raw_config['v4_rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", device['id'], debug=debug_level, limit=limit)
+                        raw_config['rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", device['id'], debug=debug_level, limit=limit)
                     getter.update_config_with_fortinet_api_call(
-                        raw_config['v6_rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", device['id'], debug=debug_level, limit=limit)
+                        raw_config['rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", device['id'], debug=debug_level, limit=limit)
 
     # get global footer rulebase:
     for device in raw_config['devices']:
@@ -218,9 +221,9 @@ def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level
             return 1
         else:
             getter.update_config_with_fortinet_api_call(
-                raw_config['v4_rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/footer" + consolidated + "/policy", device['id'], debug=debug_level, limit=limit)
+                raw_config['rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/footer" + consolidated + "/policy", device['id'], debug=debug_level, limit=limit)
             getter.update_config_with_fortinet_api_call(
-                raw_config['v6_rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/footer" + consolidated + "/policy6", device['id'], debug=debug_level, limit=limit)
+                raw_config['rulebases_by_dev_id'], sid, fm_api_url, "/pm/config/global/pkg/" + device['global_rulebase'] + "/global/footer" + consolidated + "/policy6", device['id'], debug=debug_level, limit=limit)
 
 
 def getNatPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level):

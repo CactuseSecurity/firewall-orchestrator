@@ -77,3 +77,15 @@ def add_member_names_for_nw_group(idx, nw_objects):
             member_names += member_name + common.list_delimiter
         group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)
+
+
+def create_network_object(import_id, name, type, ip, uid, comment):
+    return {
+        'control_id': import_id,
+        'obj_name': name,
+        #'obj_type': type,
+        'obj_typ': type,
+        'obj_ip': ip,
+        'obj_uid': uid,
+        'obj_comment': comment
+    }

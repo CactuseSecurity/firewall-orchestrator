@@ -101,7 +101,7 @@
             },
             "args": [
                 "-m4",
-                "-d1",
+                "-d2",
                 "-l50"
             ]
         },        
@@ -115,8 +115,9 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-o/tmp/fworch-config.json",
-                "-d1"
+                "-o/tmp/fworch-config",
+                "-d1",
+                "-fgraphql"
             ]
         },        
         {
@@ -129,7 +130,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-i/tmp/fworch-config.json",
+                "-i/tmp/fworch-config.graphql",
                 "-d1"
             ]
         },        

@@ -2,7 +2,7 @@
 #  export-fworch-config.py: export the full config of the product itself for later import
 #  does not contain any firewall config data, just the device config plus fworch user config
 
-import sys, logging
+import sys, logging, re
 import json, requests, requests.packages, argparse
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
@@ -20,6 +20,29 @@ parser.add_argument('-x', '--proxy', metavar='proxy_string',
                     help='proxy server string to use, e.g. http://1.2.3.4:8080')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
                     help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
+parser.add_argument('-f', '--format', metavar='output_format', default='json',
+                    help='specify output format [json(default|graphql)]')
+
+
+def convert_json2graphql(json_in):
+    lines = json_in.split("\n")
+    result = []
+    for line in lines:
+        pos = line.find(':')
+        if pos>=0:
+            if pos>0:
+                left = line[:pos]
+                right = line[pos+1:]
+                left = left.translate(str.maketrans('', '', '"'))
+            else:  # first char is :
+                left = ''
+                right = line[1:]
+            result.append(left + ':' + right)
+        else:
+            result.append(line)
+
+    return "\n".join(result)
+
 
 args = parser.parse_args()
 if len(sys.argv) == 1:
@@ -111,8 +134,16 @@ else:
 
 # todo: encrypt config before writing to file
 
-with open(args.out, 'w') as file:
-    file.write(str(api_call_result['data']))
-#    file.write(json.dumps(config_json, indent=3))
+if not re.compile(args.format+"$").match(args.out ):
+    outfile = args.out + '.' + args.format
+else:
+    outfile = args.out
+
+with open(outfile, 'w') as file:
+    if args.format == 'json':
+        file.write(str(api_call_result['data']))
+    elif args.format == 'graphql':
+        config_graphql = convert_json2graphql(json.dumps(config_json, indent=3))
+        file.write(config_graphql)
 
 sys.exit(0)

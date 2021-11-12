@@ -3,7 +3,7 @@
 ## Code structure and entry point
 
 We use the FWO API to write the whole firewall config as JSON into the import_config table. The format is described below.
-The main import script is [/roles/importer/import_mgm.py](/importer/import_mgm.py).
+The main import script is [/roles/importer/import_mgm.py](/roles/importer/import_mgm.py).
 It does not need to be changed when adding new import modules.
 Within this file we have the following calls which deal with firewall product specific stuff:
 ```python

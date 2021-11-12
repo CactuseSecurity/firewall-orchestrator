@@ -1,41 +1,50 @@
 # all a developer needs to know ;-)
 
-##
-Edit architecture diagram (internal only) at https://xfer.cactus.de/index.php/f/18376
+## Contributing
 
-## tools & apps
+- create a fork of our (cactus) repo (https://github.com/CactuseSecurity/firewall-orchestrator)
+- make changes only within the "develop" branch
+- open pull request from your fork branch "develop" to the same branch in the cactus repo
+- for adding an import module for a new firewall type please see (https://github.com/CactuseSecurity/firewall-orchestrator/tree/develop/documentation/developer-docs/importer).
 
-- jiffy time tracking: android app, see play store
-- nextcloud talk app: android app, see play store, alerts via beeps!
 
-
-## git ettiquete
-- changes in documemtation dir can be done directly without pull-request
-- all other changes need to be reviewed via pull-request
-
-## UI 
+## Misc
+### UI 
 
 [Open Iconic Icons](https://useiconic.com/open)
 
-## database
+### importer
 
-To manually rollback a hanging import of management with ID 1:
+#### Manually rollback a hanging import 
 
+E.g. hanging import of management with ID 1:
+
+##### DB based
 `sudo -u postgres psql -d fworchdb -c "select * from rollback_import_of_mgm(<management id>)"`
 
 old, more invasive version:
 
 `select * from rollback_import_of_mgm_without_cascade(<management id>);`
 
-## clean code
+##### API based
+```graphql
+mutation delete_import($mgmId: Int!) {
+  delete_import_control(where: {mgm_id: {_eq: $mgmId}, successful_import: {_eq: false}, stop_time: {_is_null: true}}) {
+    affected_rows
+  }
+}
+```
+Query variables: {"mgmId": 1}
 
-### shell
+### clean code
+
+#### shell
 - <https://github.com/koalaman/shellcheck/wiki/SC2148> (Use Shebang)
 - <https://www.shellcheck.net/wiki/SC2086> (Double quote to prevent globbing and word splitting.)
 - <https://www.shellcheck.net/wiki/SC2006> (Use $(...) notation instead of legacy backticked '...'.)
 - <https://github.com/koalaman/shellcheck/wiki/SC2034> (Unused variables)
 
-### documentation in markdown
+#### documentation in markdown
 
 Clean Markdown (according to markdownlint)
 
@@ -47,7 +56,7 @@ Clean Markdown (according to markdownlint)
 - No hard tabs
 - Must have newline character at end of file
 
-####  MD040/fenced-code-language Fenced code blocks should have a language specified
+#####  MD040/fenced-code-language Fenced code blocks should have a language specified
 
 Code blocks must contain language in first line. Either use three ~ or ` chars, e.g.
 ```console
@@ -58,7 +67,7 @@ Code blocks must contain language in first line. Either use three ~ or ` chars, 
 ~~~
 ```
 
-#### Headers
+##### Headers
 
 - Only one top level header in the same document
 
@@ -72,7 +81,7 @@ Code blocks must contain language in first line. Either use three ~ or ` chars, 
   text
   ```
 
-#### Lists
+##### Lists
 
 - One or zero whitespaces after list marker
 
@@ -81,7 +90,7 @@ Code blocks must contain language in first line. Either use three ~ or ` chars, 
     - List Item
   ```
 
-#### URLs
+##### URLs
 
 - Example without text
 

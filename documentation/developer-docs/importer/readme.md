@@ -3,7 +3,7 @@
 ## Code structure and entry point
 
 We use the FWO API to write the whole firewall config as JSON into the import_config table. The format is described below.
-The main import script is /usr/local/fworch/importer/import_mgm.py. 
+The main import script is [importer/import_mgm.py](importer/import_mgm.py).
 It does not need to be changed when adding new import modules.
 Within this file we have the following calls which deal with firewall product specific stuff:
 ```python
@@ -21,7 +21,7 @@ error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, {
     "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import})
 ```
 The above describes the new 2021 import method. In addition we also have some legacy import modules. 
-Regarding legacy import modules see (documentation/developer-docs/importer/legacy-importer-csv-interface.md).
+Regarding legacy import modules see [documentation/developer-docs/importer](documentation/developer-docs/importer/legacy-importer-csv-interface.md).
 For an overview see next section.
 
 ### Import module status
@@ -39,7 +39,7 @@ For an overview see next section.
 ```bash
   sudo systemctl stop fworch-importer
 ```
-- create  a new firewall type by adding it to table stm_dev_type. To make this change permanent, this has to be added to roles/database/files/sql/creation/fworch-fill-stm.sql as follows:
+- create  a new firewall type by adding it to table stm_dev_type. To make this change permanent, this has to be added to [roles/database/files/sql/creation/fworch-fill-stm.sql](roles/database/files/sql/creation/fworch-fill-stm.sql) as follows:
 ```sql
 insert into stm_dev_typ (dev_typ_name,dev_typ_version,dev_typ_manufacturer) VALUES ('<new FW model>','<version>','<name of the new FW model''s manufacturer>');
 ```
@@ -47,7 +47,7 @@ insert into stm_dev_typ (dev_typ_name,dev_typ_version,dev_typ_manufacturer) VALU
 - For a smooth upgrade path for existing installations, a new FWO version needs to be created and sql statement above also needs to be added to the upgrade script. For upgrade information see (documentation/developer-docs/installer/upgrading.md).
 - Create a sub-directory beneath /usr/local/fworch/importer/ called "dev_typ_name" + "dev_typ_version"
 - Within this directory there has be a module called 'fwcommon.py' containing a function get_config using the parameters above
-- The config needs to be returned in the config2import variable as a json dict using the syntax described in (documentation/developer-docs/importer/FWO-import-api.md)
+- The config needs to be returned in the config2import variable as a json dict using the syntax described in [documentation/developer-docs/importer/FWO-import-api.md](documentation/developer-docs/importer/FWO-import-api.md)
 - For testing the new import module, you need to add a management and a device via the UI (see help section for details on this).
 
 ### Data handling rules

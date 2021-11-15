@@ -48,11 +48,10 @@ def normalize_access_rules(full_config, config2import, import_id):
             rule['rule_src'] = common.extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter)
             rule['rule_dst'] = common.extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter)
 
-            # TODO: temp disabling zones --> leads to access rules with zone info not being imported, needs to be fixed!
-            # if len(rule_orig['srcintf'])>0:
-            #     rule.update({ 'rule_from_zone': rule_orig['srcintf'][0] }) # todo: currently only using the first zone
-            # if len(rule_orig['dstintf'])>0:
-            #     rule.update({ 'rule_to_zone': rule_orig['dstintf'][0] }) # todo: currently only using the first zone
+            if len(rule_orig['srcintf'])>0:
+                rule.update({ 'rule_from_zone': rule_orig['srcintf'][0] }) # todo: currently only using the first zone
+            if len(rule_orig['dstintf'])>0:
+                rule.update({ 'rule_to_zone': rule_orig['dstintf'][0] }) # todo: currently only using the first zone
 
             rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
             rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})

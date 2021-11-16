@@ -154,11 +154,12 @@ INSERT INTO txt VALUES ('getting_support',	    'English', 	'Do you need help? Ou
 INSERT INTO txt VALUES ('support_details',	    'German', 	'
 M&ouml;chten Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
 <ul>
-<li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
-<li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>
+    <li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
+    <li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>
 </ul>
 Folgende Kontaktm&ouml;glichkeiten stehen Ihnen zur Verf&uuml;gung:
 <ul>
+    <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Feature request auf Github</a></li>
     <li>Telefon: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a></li>
     <li>Chat: <a href="https://fworch.cactus.de/chat">Support-Chat</a></li>
@@ -166,14 +167,15 @@ Folgende Kontaktm&ouml;glichkeiten stehen Ihnen zur Verf&uuml;gung:
 </ul>
 ');
 INSERT INTO txt VALUES ('support_details',	    'English', 	'
-Do you wish to sign a support contract for the following benefits?
-choose from the following contact options:
-Ihre Vorteile: <br>
+Do you wish to get a support contract for the following benefits?
+<br>
 <ul>
-<li>get a direct line to qualified support personnel</li>
-<li>Customizing: can we help your with individual changes or extensions of functionality?</li>
+    <li>get a direct line to qualified support personnel</li>
+    <li>Customizing: can we help your with individual changes or extensions of functionality?</li>
 </ul>
+Choose from the following contact options:
 <ul>
+    <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Open a feature request on Github</a></li>
     <li>Phone: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a> </li>
     <li>Chat: <a href="https://fworch.cactus.de/chat">Support chat</a></li>

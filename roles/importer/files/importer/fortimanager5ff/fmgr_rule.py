@@ -35,7 +35,10 @@ def normalize_access_rules(full_config, config2import, import_id):
                 rule.update({ 'rule_action': 'Drop' })
             else:
                 rule.update({ 'rule_action': 'Accept' })
-            rule.update({ 'rule_disabled': not rule_orig['status']=='enable'})
+            if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
+                rule.update({ 'rule_disabled': False })
+            else:
+                rule.update({ 'rule_disabled': True })
             if rule_orig['logtraffic'] == 'disable':
                 rule.update({ 'rule_track': 'None'})
             else:
@@ -122,7 +125,10 @@ def normalize_nat_rules(full_config, config2import, import_id):
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] })
                 rule.update({ 'rule_type': 'original' })
                 rule.update({ 'rule_installon': None })
-                rule.update({ 'rule_disabled': False })
+                if 'status' in rule_orig and (rule_orig['status']=='enable' or rule_orig['status']==1):
+                    rule.update({ 'rule_disabled': False })
+                else:
+                    rule.update({ 'rule_disabled': True })
                 rule.update({ 'rule_implied': False })
                 rule.update({ 'rule_time': None })
                 rule.update({ 'parent_rule_id': None })

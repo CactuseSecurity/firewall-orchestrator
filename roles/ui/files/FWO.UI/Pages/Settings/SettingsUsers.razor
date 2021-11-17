@@ -21,7 +21,14 @@
 
 <div class="form-group row">
     <button class="btn btn-success m-2" @onclick="AddUser">@(userConfig.GetText("add_new_user"))</button>
-    <button class="btn btn-info m-2" @onclick="Refresh">@(userConfig.GetText("refresh"))</button>
+    <AuthorizeView Roles="admin">
+        <Authorized>
+            <button class="btn btn-info m-2" @onclick="Resynchronize">@(userConfig.GetText("synchronize"))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button class="btn btn-info m-2" disabled>@(userConfig.GetText("synchronize"))</button>
+        </NotAuthorized> 
+    </AuthorizeView>
     @if (showSampleRemoveButton)
     {
         <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
@@ -310,10 +317,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await FetchAll();
+        await FetchFromDb();
+        await SynchronizeGroupsAndRoles();
     }
 
-    private async Task FetchAll()
+    private async Task FetchFromDb()
     {
         try
         {
@@ -335,9 +343,6 @@
             DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), null, true);
         }
 
-        // Get all users from internal ldap
-        await GetUsersFromInternalLdap();
-
         // Get users from uiusers table
         try
         {
@@ -349,9 +354,10 @@
             DisplayMessageInUi(exception, userConfig.GetText("fetch_users_local"), null, true);
         }
 
-        // Synchronize both
-        await SynchronizeUsers();
+    }
 
+    private async Task SynchronizeGroupsAndRoles()
+    {
         // get groups from internal ldap
         await GetGroupsFromInternalLdap();
         SynchronizeUsersToGroups();
@@ -363,38 +369,6 @@
         availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
 
         CollectSampleUsers();
-    }
-
-    private async Task SynchronizeUsers()
-    {
-        try
-        {
-            foreach (var ldapUser in ldapUsers)
-            {
-                UiUser relatedUiUser = uiUsers.Find(x => x.Dn == ldapUser.Dn);
-                if (relatedUiUser != null)
-                {
-                    // Update related user
-                    if (relatedUiUser.Email != ldapUser.Email)
-                    {
-                        relatedUiUser.Email = ldapUser.Email;
-                        await updateUserInDb(relatedUiUser);
-                    }
-                }
-                else
-                {
-                    // Add new user to UiUsers table
-                    ldapUser.setNamesFromDn();
-                    ldapUser.PasswordMustBeChanged = false;
-                    await addUserToDb(ldapUser);
-                    uiUsers.Add(ldapUser);
-                }
-            }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
-        }
     }
 
     private void SynchronizeUsersToGroups()
@@ -454,6 +428,51 @@
                 }
             }
             showSampleRemoveButton = (sampleUsers.Count > 0);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
+        }
+    }
+
+    private async Task Resynchronize()
+    {
+        await FetchFromDb();
+
+        // Get all users from internal ldap
+        await GetUsersFromInternalLdap();
+
+        // Synchronize both
+        await SynchronizeUsers();
+
+        await SynchronizeGroupsAndRoles();
+    }
+
+    private async Task SynchronizeUsers()
+    {
+        try
+        {
+            foreach (var ldapUser in ldapUsers)
+            {
+                UiUser relatedUiUser = uiUsers.Find(x => x.Dn == ldapUser.Dn);
+                if (relatedUiUser != null)
+                {
+                    // Update related user
+                    if (relatedUiUser.Email != ldapUser.Email)
+                    {
+                        relatedUiUser.Email = ldapUser.Email;
+                        await updateUserInDb(relatedUiUser);
+                    }
+                }
+                else
+                {
+                    // Add new user to UiUsers table
+                    ldapUser.setNamesFromDn();
+                    ldapUser.PasswordMustBeChanged = false;
+                    await addUserToDb(ldapUser);
+                    uiUsers.Add(ldapUser);
+                }
+            }
         }
         catch (System.Exception exception)
         {
@@ -696,10 +715,15 @@
         {
             user.Groups.Add(selectedGroupName);
         }
+        user.PasswordMustBeChanged = true;
         user.Roles = new List<string>();
         if(selectedRoleName != null)
         {
             user.Roles.Add(selectedRoleName);
+            if (selectedRoleName == "auditor")
+            {
+                user.PasswordMustBeChanged = false;
+            }
         }
     }
 
@@ -722,7 +746,6 @@
                     }
                     else
                     {
-                        actUser.PasswordMustBeChanged = true;
                         await addUserToDb(actUser);
                         uiUsers.Add(actUser);
                         await AddUserToGroupsInLdap(actUser);
@@ -988,10 +1011,5 @@
         DeleteMode = false;
         SampleRemoveMode = false;
         ResetPasswordMode = false;
-    }
-
-    private async Task Refresh()
-    {
-        await FetchAll();
     }
 }

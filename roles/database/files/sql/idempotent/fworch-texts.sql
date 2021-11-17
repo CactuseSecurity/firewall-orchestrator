@@ -562,6 +562,8 @@ INSERT INTO txt VALUES ('delete_user_from_role','German',	'Nutzer/Gruppe von Rol
 INSERT INTO txt VALUES ('delete_user_from_role','English',	'Delete user/group from role');
 INSERT INTO txt VALUES ('get_user_from_ldap',   'German',	'Nutzer von LDAP holen');
 INSERT INTO txt VALUES ('get_user_from_ldap',   'English',	'Get user from LDAP');
+INSERT INTO txt VALUES ('synchronize', 			'German',	'Mit LDAP Synchronisieren');
+INSERT INTO txt VALUES ('synchronize', 			'English',	'Synchronize to LDAP');
 INSERT INTO txt VALUES ('delete_user',          'German', 	'Nutzer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_user',          'English', 	'Delete user');
 INSERT INTO txt VALUES ('active_user',          'German', 	'Aktiver Nutzer');

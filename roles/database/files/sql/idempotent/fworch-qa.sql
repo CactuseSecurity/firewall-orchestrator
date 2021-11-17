@@ -115,10 +115,12 @@ BEGIN
 					SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND (zone_id=r_rule.rule_from_zone) 
 						AND mgm_id=i_mgm_id AND active;
 					IF NOT FOUND THEN -- last chance: global zone for juniper devices
-						SELECT INTO i_zone_id zone_id FROM zone WHERE zone_name='global' AND zone.mgm_id=i_mgm_id;
+						SELECT INTO i_zone_id zone_id FROM zone WHERE (zone_name='global') AND zone.mgm_id=i_mgm_id;
 						IF FOUND THEN
 							SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND zone_id=i_zone_id AND 
 								object.mgm_id=i_mgm_id AND object.active;
+						ELSE -- zone_id is null - pick any object with same name disregarding the zone
+							SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND object.mgm_id=i_mgm_id AND object.active;
 						END IF;
 					END IF;
 				END IF;
@@ -188,10 +190,12 @@ BEGIN
 					ELSE
 						SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND (zone_id=r_rule.rule_to_zone) AND mgm_id=i_mgm_id AND active;
 						IF NOT FOUND THEN -- last chance: global zone for juniper devices
-							SELECT INTO i_zone_id zone_id FROM zone WHERE zone_name='global' AND zone.mgm_id=i_mgm_id;
+							SELECT INTO i_zone_id zone_id FROM zone WHERE (zone_name='global') AND zone.mgm_id=i_mgm_id;
 							IF FOUND THEN
 								SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND zone_id=i_zone_id AND 
 									object.mgm_id=i_mgm_id AND object.active;
+							ELSE -- zone_id is null - pick any object with same name disregarding the zone
+								SELECT INTO r_obj obj_id FROM object WHERE obj_uid=v_current_obj AND object.mgm_id=i_mgm_id AND object.active;
 							END IF;
 						END IF;
 					END IF;

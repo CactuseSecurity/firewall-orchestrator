@@ -1479,11 +1479,12 @@ INSERT INTO txt VALUES ('H5101', 'English', 'Admins can create and administrate 
     The clone button helps defining new managements by copying the data from existing ones.
     Before saving at least one of the parameters Hostname, Port or Config Path has to be different from the existing managements if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallproducte k&ouml;nnen integriert werden:<ul>
+INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nnen integriert werden:<ul>
     <li>Check Point R5x/R6x/R7x - ssh-Zugang zum Management Server (SmartCenter)</li>
     <li>Check Point R8x - https-API-Zugang zum SmartCenter</li>
     <li>Check Point R8x - https-API-Zugang zum MDS (Multi Domain Server)</li>
-    <li>Fortinet 5.0 - 6.4</li>
+    <li>Fortinet 5.0 - 6.4 - ssh-Zugang zur FortiGate</li>
+    <li>FortiManager 5.0 - 7.x - https API Zugang auf FortiManager</li>
     <li>Barracuda Firewall Control Center Vx - ssh-Zugang direkt zum Firewallgateway</li>
     <li>phion netfence 3.x - ssh-Zugang direkt zum Firewallgateway</li>
     <li>JUNOS 10 - 17 - ssh-Zugang direkt zum Firewallgateway</li>
@@ -1493,7 +1494,8 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
     <li>Check Point R5x/R6x/R7x - ssh access to management server (SmartCenter)</li>
     <li>Check Point R8x - https API access to SmartCenter</li>
     <li>Check Point R8x - https API access to MDS (Multi Domain Server)</li>
-    <li>Fortinet 5.0 - 6.4</li>
+    <li>Fortinet 5.0 - 6.4 - ssh access to FortiGate</li>
+    <li>FortiManager 5.0 - 7.x - https API access to FortiManager</li>
     <li>Barracuda Firewall Control Center Vx - ssh access to firewall gateway directly</li>
     <li>phion netfence 3.x - ssh access to firewall gateway directly</li>
     <li>JUNOS 10 - 17 - ssh access to firewall gateway directly</li>
@@ -1976,3 +1978,9 @@ INSERT INTO txt VALUES ('H6702', 'German',  'Ergebnis auf einem System mit Beisp
 INSERT INTO txt VALUES ('H6702', 'English', 'Result on a system with demo data:');
 INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');
 INSERT INTO txt VALUES ('H6801', 'English', 'The following mutation sets the language of user with id 1 to German:');
+INSERT INTO txt VALUES ('H6901', 'German',  'Anlegen eines Reporting Nutzers &uml;ber die Web-Oberfl&auml;che (z.B. reportscheduler) mit der Rolle "reporter_viewall"');
+INSERT INTO txt VALUES ('H6901', 'English', 'Create reporting user (e.g. reportscheduler) with role "reporter_viewall"');
+INSERT INTO txt VALUES ('H6902', 'German',  'Mit diesem Nutzer kann im Scheduling-Menu eine zeitgesteuerte Report-Generierung erstellt werden.');
+INSERT INTO txt VALUES ('H6902', 'English', 'Use this user to create a (recurring) report via the "Scheduling" menu');
+INSERT INTO txt VALUES ('H6903', 'German',  'Mit diesem Nutzer kann im Scheduling-Menu eine zeitgesteuerte Report-Generierung erstellt werden.');
+INSERT INTO txt VALUES ('H6903', 'English', 'Create a (python) script to make an api call containing a query like the following:');

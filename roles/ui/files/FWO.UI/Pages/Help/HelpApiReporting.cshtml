@@ -13,6 +13,8 @@
 
 <div class="p-2">
     <h3>@userConfig.GetText("reporting")</h3>
+    
+    @userConfig.GetText("H6904")
     <br>
 
     <ol>
@@ -37,10 +39,10 @@ curl --request POST \
             {
             "variables": 
                 {
-                    "report_schedule_name": "test-report12",
+                    "report_schedule_name": "test-report-api-20",
                     "report_schedule_owner_id": 4,
                     "report_schedule_template_id": 1,
-                    "report_schedule_start_time": "2021-11-17 19:23",
+                    "report_schedule_start_time": "2021-11-17 20:37",
                     "report_schedule_repeat": 1,
                     "report_schedule_every": 2,
                     "report_schedule_active": true,
@@ -66,14 +68,5 @@ curl --request POST \
                 },
             "query": "{ query getReport($reportName: String!, $startDate: timestamp!, $endDate: timestamp!) { report(where: {report_name: {_eq: $reportName}, _and: [{report_end_time: {_gt: $startDate}}, {report_end_time: {_lt: $endDate}}]}) { report_json } } } "}'
         </pre>        
-        <pre>
-
-
-            Query variables: {"reportName": "NAT-Report", "startDate":"2021-11-15", "endDate":"2021-11-16"}
-        </pre>
-        <li>@userConfig.GetText("H6904")</li>
-        <pre>
-
-        </pre>
     </ol>
 </div>

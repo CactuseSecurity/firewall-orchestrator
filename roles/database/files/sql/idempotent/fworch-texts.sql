@@ -1978,9 +1978,11 @@ INSERT INTO txt VALUES ('H6702', 'German',  'Ergebnis auf einem System mit Beisp
 INSERT INTO txt VALUES ('H6702', 'English', 'Result on a system with demo data:');
 INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');
 INSERT INTO txt VALUES ('H6801', 'English', 'The following mutation sets the language of user with id 1 to German:');
-INSERT INTO txt VALUES ('H6901', 'German',  'Anlegen eines Reporting Nutzers &uml;ber die Web-Oberfl&auml;che (z.B. reportscheduler) mit der Rolle "reporter_viewall"');
+INSERT INTO txt VALUES ('H6901', 'German',  'Anlegen eines Reporting Nutzers &uuml;ber die Web-Oberfl&auml;che (z.B. reportscheduler) mit der Rolle "reporter_viewall"');
 INSERT INTO txt VALUES ('H6901', 'English', 'Create reporting user (e.g. reportscheduler) with role "reporter_viewall"');
 INSERT INTO txt VALUES ('H6902', 'German',  'Mit diesem Nutzer kann im Scheduling-Menu eine zeitgesteuerte Report-Generierung erstellt werden.');
 INSERT INTO txt VALUES ('H6902', 'English', 'Use this user to create a (recurring) report via the "Scheduling" menu');
-INSERT INTO txt VALUES ('H6903', 'German',  'Mit diesem Nutzer kann im Scheduling-Menu eine zeitgesteuerte Report-Generierung erstellt werden.');
-INSERT INTO txt VALUES ('H6903', 'English', 'Create a (python) script to make an api call containing a query like the following:');
+INSERT INTO txt VALUES ('H6903', 'German',  'Das Herunterladen des generierten Reports erfolgt mittels folgendem API Call:');
+INSERT INTO txt VALUES ('H6903', 'English', 'To download the generated report use the following API call:');
+INSERT INTO txt VALUES ('H6904', 'German',  'Die im folgenden beschriebenen Schritte k&ouml;nnen alle auch via Web-Oberfl&auml;che durchgef&uuml;hrt werden. Hier ist jeweils der Weg mittels API-Call angegeben.');
+INSERT INTO txt VALUES ('H6904', 'English', 'The following steps can both be executed via API as well as via web UI. Here we list the API-only way.');

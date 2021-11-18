@@ -125,27 +125,28 @@ def get_changes(sid,api_host,api_port,fromdate,ssl_verification, proxy_string):
     while (status == 'in progress'):
         time.sleep(sleeptime)
         tasks = api_call(api_host, api_port, base_url, 'show-task', task_id, sid, ssl_verification, proxy_string)
-        for task in tasks['tasks']:
-            # logging.debug ("task: " + json.dumps(task))
-            if 'status' in task:
-                status = task['status']
-                if 'succeeded' in status:
-                    for detail in task['task-details']:
-                        if detail['changes']:
-                            logging.debug ("show-changes - status: " + status + " -> changes found")
-                            return 1
-                        else:
-                            logging.debug ("show-changes - status: " + status + " -> but no changes found")
-                elif status == 'failed':
-                    logging.debug ("show-changes - status: failed -> no changes found")
-                elif status == 'in progress':
-                    logging.debug ("show-changes - status: in progress")
+        if 'tasks' in tasks:
+            for task in tasks['tasks']:
+                # logging.debug ("task: " + json.dumps(task))
+                if 'status' in task:
+                    status = task['status']
+                    if 'succeeded' in status:
+                        for detail in task['task-details']:
+                            if detail['changes']:
+                                logging.debug ("show-changes - status: " + status + " -> changes found")
+                                return 1
+                            else:
+                                logging.debug ("show-changes - status: " + status + " -> but no changes found")
+                    elif status == 'failed':
+                        logging.debug ("show-changes - status: failed -> no changes found")
+                    elif status == 'in progress':
+                        logging.debug ("show-changes - status: in progress")
+                    else:
+                        logging.error ("show-changes - unknown status: " + status)
+                        return -1
                 else:
-                    logging.error ("show-changes - unknown status: " + status)
+                    logging.error ("show-changes - no status in task")
                     return -1
-            else:
-                logging.error ("show-changes - no status in task")
-                return -1
         sleeptime += 2
         if sleeptime > 40:
             logging.error ("show-changes - task took too long, aborting")

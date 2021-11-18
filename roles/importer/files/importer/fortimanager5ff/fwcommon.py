@@ -11,7 +11,7 @@ sys.path.append(base_dir + '/importer/fortimanager5ff')
 import getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 
-def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=100):
+def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=100, force=False):
     logging.info("found FortiManager")
     fm_api_url = 'https://' + \
         mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/jsonrpc'

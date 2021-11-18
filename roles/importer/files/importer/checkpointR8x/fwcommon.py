@@ -31,29 +31,36 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 
 
-def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package, proxy_string='', limit=150):
+def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package, proxy_string='', limit=150, force=False):
     logging.info("found Check Point R8x management")
-    # logging.debug("mgm_details: " + json.dumps(mgm_details))
-    if proxy_string!='':
-        proxy_string = ' -x ' + proxy_string
+
+    apihost = ' -a ' + mgm_details['hostname']
+    apiuser = ' -u ' + mgm_details['user']
     starttime = ''
     if 'import_controls' in mgm_details:
         for importctl in mgm_details['import_controls']: 
             if 'starttime' in importctl:
-                starttime = " -f " + importctl['starttime']
+                starttime = ' -f "' + importctl['starttime'] + '"'
+    secret_file = ' -w "' + secret_filename + '"'
+    rulebase = ' -l "' + rulebase_string + '"'
+    output_file = ' -o "' + config_filename + '"'
+    debug = ' -d ' + str(debug_level)
+    api_limit = ' -i ' + str(limit)
+    if proxy_string != '':
+        proxy_string = ' -x ' + proxy_string
     if package == None or package == '' or package == [None]:
-        package_param_str = ''
+        package_string = ''
     else:
-        package_param_str = ' -k "' + ','.join(package) + '"'
-    
-    get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py -a " + \
-        mgm_details['hostname'] + " -u " + mgm_details['user'] + starttime + " -w " + \
-        secret_filename + " -l \"" + rulebase_string + \
-        "\" -o " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string + package_param_str
+        package_string = ' -k "' + ','.join(package) + '"'
+    force_string = ''
+    if force is True:
+        force_string = ' -F '
+    config_file = ' -c ' + config_filename
 
-    get_config_cmd += " && ./enrich_config.py -a " + mgm_details['hostname'] + " -u " + mgm_details['user'] + " -w " + \
-        secret_filename + " -l \"" + rulebase_string + \
-        "\" -c " + config_filename + " -d " + str(debug_level) + ' -i ' + str(limit) + proxy_string
+    get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py" + \
+        apihost + apiuser + starttime + secret_file + rulebase + output_file + debug + api_limit + proxy_string + package_string + force_string
+
+    get_config_cmd += " && ./enrich_config.py " + apihost + apiuser + secret_file + rulebase + config_file + debug + api_limit + proxy_string
     logging.debug("get_config_cmd: " + get_config_cmd)
 
     result = os.system(get_config_cmd)

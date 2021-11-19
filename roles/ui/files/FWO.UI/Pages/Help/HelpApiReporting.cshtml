@@ -19,7 +19,6 @@
 
     <ol>
         <li>@userConfig.GetText("H6901")</li>
-        <li>@userConfig.GetText("H6905")</li>
         <li>@userConfig.GetText("H6906")</li>
         <pre>
 curl --request POST \
@@ -28,6 +27,21 @@ curl --request POST \
     --data '{"Username": "reportingscheduler", "Password": "<pwd>"}'
         </pre>    
 
+        <li>@userConfig.GetText("H6905")</li>
+        <pre>
+curl --request POST \
+    --url https://localhost:9443/api/v1/graphql \
+    --header 'content-type: application/json' \
+    --header 'x-hasura-role: reporter-viewall' \
+    --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgNiwyLDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3MzM2MjY5LCJleHAiOjE2MzczNTA3MjksImlhdCI6MTYzNzMzNjI2OSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.asVkIHiw9MkzOPQtdoIEH5d63c9RTwqBb_cNOmjCO3lLqSFnfuvV_HNkoncSgLnrMnUljTOB4iSfbJOBZ5aOY7mS2FzK7TK4FBNwJwIRiOYJnwZ4vQgJzLrp9VYk7nPi5R84tKyOlPRRqkbvVHRjd-p8nVE72RIENITOSBL1l6v41vg0eqOY6650-y46k0nWGb3cUaSw8WIJkVHPuk2-8YYB4SdcPmHD2-KlVrDf0TDwfjqa09utr8SQdT8E5yGgQkoKgsJm9QpyFVuAPwA2lVLitPnv_F19mFhTBGrnEU3sA9YMUvS1iNvn2xJsDsQ-TqaLDNFFzjSjHBPpId0Ngw' \
+    --data '
+    {
+    "variables": { "userName": "repsched" },
+    "query": "query getIDs($userName:String!) { report_template { report_template_id report_template_name } uiuser(where:{uiuser_username:{_eq: $userName}}){ uiuser_id uiuser_username } }"}'
+
+
+{"data":{"report_template":[{"report_template_id":1,"report_template_name":"Current Rules"}, {"report_template_id":2,"report_template_name":"This year's Rule Changes"}, {"report_template_id":3,"report_template_name":"Basic Statistics"}, {"report_template_id":4,"report_template_name":"Compliance: Pass rules with ANY"}, {"report_template_id":5,"report_template_name":"Current NAT Rules"}, {"report_template_id":6,"report_template_name":"current rules cactus sting"}],"uiuser":[{"uiuser_id":7,"uiuser_username":"repsched"}]}}    
+        </pre>
         <li>@userConfig.GetText("H6902")</li>
         <pre>
 curl --request POST \
@@ -54,7 +68,7 @@ curl --request POST \
 {"data":{"insert_report_schedule":{"returning" : [{"report_schedule_id":40}]}}}
         </pre>        
 
-        <li>@userConfig.GetText("H6903")</li>
+        <li>@userConfig.GetText("H6907")</li>
         <pre>
 curl --request POST \
             --insecure \
@@ -65,10 +79,28 @@ curl --request POST \
             --data '
             {
             "variables":  {"reportScheduleId": 40 },
-            "query": "query getLatestReportPerScheduleId($reportScheduleId: bigint) { report_schedule(where: {report_schedule_id: {_eq: $reportScheduleId}}) { report_schedule_id report_template { report_schedules { report_schedule_formats { report_schedule_format_name } } reports_aggregate { aggregate { max { report_start_time report_id } } } } } }"}'
+            "query": "query getLatestReportPerScheduleId($reportScheduleId: bigint) { report_schedule(where: {report_schedule_id: {_eq: $reportScheduleId}}) { report_schedule_id report_template { reports_aggregate { aggregate { max { report_start_time report_id } } } } } }"}'
 
 
-{"data":{"report_schedule":[{"report_schedule_id":40,"report_template":{"report_schedules":[{"report_schedule_formats":[{"report_schedule_format_name":"json"}]}],"reports_aggregate":{"aggregate" : {"max" : {"report_start_time" : "2021-11-19T12:51:20.770298", "report_id" : 4}}}}}]}}
+{
+  "data": {
+    "report_schedule": [
+      {
+        "report_schedule_id": 40,
+        "report_template": {
+          "reports_aggregate": {
+            "aggregate": {
+              "max": {
+                "report_start_time": "2021-11-19T15:00:20.724957",
+                "report_id": 5
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
         </pre>        
 
         <li>@userConfig.GetText("H6903")</li>

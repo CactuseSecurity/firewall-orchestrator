@@ -1990,5 +1990,5 @@ INSERT INTO txt VALUES ('H6905', 'German',  'Beschaffung der notwendigen ID-Info
 INSERT INTO txt VALUES ('H6905', 'English', 'Information gathering (User-ID, Report Template ID)');
 INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uuml;ltigen JWT f&uuml;r die folgenden Schritte');
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
-INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv');
-INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive');
+INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
+INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');

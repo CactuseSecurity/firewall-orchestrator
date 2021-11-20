@@ -1479,11 +1479,12 @@ INSERT INTO txt VALUES ('H5101', 'English', 'Admins can create and administrate 
     The clone button helps defining new managements by copying the data from existing ones.
     Before saving at least one of the parameters Hostname, Port or Config Path has to be different from the existing managements if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallproducte k&ouml;nnen integriert werden:<ul>
+INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nnen integriert werden:<ul>
     <li>Check Point R5x/R6x/R7x - ssh-Zugang zum Management Server (SmartCenter)</li>
     <li>Check Point R8x - https-API-Zugang zum SmartCenter</li>
     <li>Check Point R8x - https-API-Zugang zum MDS (Multi Domain Server)</li>
-    <li>Fortinet 5.0 - 6.4</li>
+    <li>Fortinet 5.0 - 6.4 - ssh-Zugang zur FortiGate</li>
+    <li>FortiManager 5.0 - 7.x - https API Zugang auf FortiManager</li>
     <li>Barracuda Firewall Control Center Vx - ssh-Zugang direkt zum Firewallgateway</li>
     <li>phion netfence 3.x - ssh-Zugang direkt zum Firewallgateway</li>
     <li>JUNOS 10 - 17 - ssh-Zugang direkt zum Firewallgateway</li>
@@ -1493,7 +1494,8 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
     <li>Check Point R5x/R6x/R7x - ssh access to management server (SmartCenter)</li>
     <li>Check Point R8x - https API access to SmartCenter</li>
     <li>Check Point R8x - https API access to MDS (Multi Domain Server)</li>
-    <li>Fortinet 5.0 - 6.4</li>
+    <li>Fortinet 5.0 - 6.4 - ssh access to FortiGate</li>
+    <li>FortiManager 5.0 - 7.x - https API access to FortiManager</li>
     <li>Barracuda Firewall Control Center Vx - ssh access to firewall gateway directly</li>
     <li>phion netfence 3.x - ssh access to firewall gateway directly</li>
     <li>JUNOS 10 - 17 - ssh access to firewall gateway directly</li>
@@ -1976,3 +1978,17 @@ INSERT INTO txt VALUES ('H6702', 'German',  'Ergebnis auf einem System mit Beisp
 INSERT INTO txt VALUES ('H6702', 'English', 'Result on a system with demo data:');
 INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');
 INSERT INTO txt VALUES ('H6801', 'English', 'The following mutation sets the language of user with id 1 to German:');
+INSERT INTO txt VALUES ('H6901', 'German',  'Anlegen eines Reporting Nutzers (&uuml;ber die Web-Oberfl&auml;che (z.B. reportscheduler) mit der Rolle "reporter_viewall")');
+INSERT INTO txt VALUES ('H6901', 'English', 'Create reporting user via web interface (e.g. reportscheduler) assigning the rule "reporter_viewall"');
+INSERT INTO txt VALUES ('H6902', 'German',  'Erstellen der zeitgesteuerten Report-Generierung (report_schedule_id wird zur&uuml;ckgeliefert)');
+INSERT INTO txt VALUES ('H6902', 'English', 'Create a (recurring) report, noting the returned report_schedule_id');
+INSERT INTO txt VALUES ('H6903', 'German',  'Herunterladen des generierten Reports');
+INSERT INTO txt VALUES ('H6903', 'English', 'Download the generated report');
+INSERT INTO txt VALUES ('H6904', 'German',  'Die im folgenden beschriebenen Schritte k&ouml;nnen alle auch via Web-Oberfl&auml;che durchgef&uuml;hrt werden. Hier ist jeweils der Weg mittels API-Call angegeben.');
+INSERT INTO txt VALUES ('H6904', 'English', 'The following steps can both be executed via API as well as via web UI. Here we list the API-only way.');
+INSERT INTO txt VALUES ('H6905', 'German',  'Beschaffung der notwendigen ID-Informationen (User-ID, Report Template ID)');
+INSERT INTO txt VALUES ('H6905', 'English', 'Information gathering (User-ID, Report Template ID)');
+INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uuml;ltigen JWT f&uuml;r die folgenden Schritte');
+INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
+INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
+INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');

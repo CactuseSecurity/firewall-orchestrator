@@ -24,7 +24,10 @@
 curl --request POST \
     --url https://localhost:8888/api/AuthenticationToken/Get/ \
     --header 'content-type: application/json' \
-    --data '{"Username": "reportingscheduler", "Password": "<pwd>"}'
+    --data '{"Username": "reportingscheduler", "Password": "xxx"}'
+
+
+eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgNiwyLDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3NDE2NDg5LCJleHAiOjE2Mzc0MzA5NDksImlhdCI6MTYzNzQxNjQ4OSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.0CBKRMGETlN01eiA3lPWMGmYfAQWeN61fUn0gBOG7c-rQRcHCCUzLCVHPFSkN0C_Y5Ngv2xflcGsqr7l4oQlsrzadd5OcM3zDXMBQmdFBTn08iy63jJeTsGxNMyXEXZ56eiE7KPlNKj1fOpAuYb9dN335X4fyeXIeZJzHiZ2orp9AUomh4weXLvP2v3LIiCHOtBDk7Ueu0ZMAxxfKXjlpqEZ4tnNwp6m--aMPVky0xniqRjrS80JBbPOReVXmscQ8ryVvPEhTD2UcaB7AyIjz-RXn0jag9Lujl5CYxzmMrYuqrv9w6BYB9B5axbqb-2c7x3jKls571tEmO8f-rvW4g
         </pre>    
 
         <li>@userConfig.GetText("H6905")</li>
@@ -71,7 +74,6 @@ curl --request POST \
         <li>@userConfig.GetText("H6907")</li>
         <pre>
 curl --request POST \
-            --insecure \
             --url https://localhost:9443/api/v1/graphql \
             --header 'content-type: application/json' \
             --header 'x-hasura-role: reporter-viewall' \
@@ -106,14 +108,13 @@ curl --request POST \
         <li>@userConfig.GetText("H6903")</li>
         <pre>
 curl --request POST \
-            --insecure \
             --url https://localhost:9443/api/v1/graphql \
             --header 'content-type: application/json' \
             --header 'x-hasura-role: reporter-viewall' \
             --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InJlcHNjaGVkIiwieC1oYXN1cmEtdXNlci1pZCI6IjciLCJ4LWhhc3VyYS11dWlkIjoidWlkPXJlcHNjaGVkLG91PXRlbmFudDAsb3U9b3BlcmF0b3Isb3U9dXNlcixkYz1md29yY2gsZGM9aW50ZXJuYWwiLCJ4LWhhc3VyYS10ZW5hbnQtaWQiOiIxIiwieC1oYXN1cmEtdmlzaWJsZS1tYW5hZ2VtZW50cyI6InsgMiw2LDEsNSB9IiwieC1oYXN1cmEtdmlzaWJsZS1kZXZpY2VzIjoieyAxLDIsNSw2IH0iLCJyb2xlIjoicmVwb3J0ZXItdmlld2FsbCIsIngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsicmVwb3J0ZXItdmlld2FsbCJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJyZXBvcnRlci12aWV3YWxsIiwibmJmIjoxNjM3MzE5ODQ1LCJleHAiOjE2MzczMzQzMDUsImlhdCI6MTYzNzMxOTg0NSwiaXNzIjoiRldPIE1pZGRsZXdhcmUgTW9kdWxlIiwiYXVkIjoiRldPIn0.dff3-c5zdWdrgOBTcIkRX4XCzY7cwKnW1deYPBucIMhvzALs2tUi7y57k9HGz4wUYAUsIUA5J7n6MnK4-0UsDia7CmPD_nDKlOO00maBT_8qusB9WvLa2Adg_nGCdMl47kQXIbdHDKupqW_C9IDwendjEcOd0SJCR0FQl8SjgnzCjj-LQw_yZlcEn19wduD8TDTrbwae3DS_4foynH92KbiI-5BswT4CyyYQJTfZ4TU_qm1EiAHzj2DdW-B5_VnyS0nFTRc_0eG7L-TQp3sPML_5ymwfrg8cm5Dh3VAW0pQckTaG6SOpTU3oFiyiQ-K-XP63s317l_NiFPMdp_SQCQ' \
             --data '
             {
-            "variables": { "reportId": 4 },
+            "variables": { "reportId": 5 },
             "query": "query getReportJson($reportId: bigint!) { report(where: {report_id: {_eq: $reportId}}) { report_json } } "}'
         </pre>        
     </ol>

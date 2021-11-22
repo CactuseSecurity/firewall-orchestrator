@@ -23,8 +23,8 @@ parser.add_argument('-m', '--mgm_id', metavar='management_id',
                     required=True, help='FWORCH DB ID of the management server to import')
 parser.add_argument('-c', '--clear', metavar='clear_management', default=False,
                     help='If set the import will delete all data for the given management instead of importing')
-parser.add_argument('-f', '--force', metavar='force_import', default=False,
-                    help='If set the import will be attempted even if there seem to be no changes.')
+parser.add_argument('-f', '--force', action='store_true', default=False,
+                    help='If set the import will be attempted without checking for changes before')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
                     help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=keep temporary config files; default=0')
 parser.add_argument('-x', '--proxy', metavar='proxy_string',
@@ -130,10 +130,10 @@ fw_module = importlib.import_module(fw_module_name)
 # get config from FW API and write config to json file "config_filename"
 if 'proxy' in args and args.proxy != None:
     get_config_response = fw_module.get_config(
-        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, proxy_string=args.proxy, limit=args.limit)
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, proxy_string=args.proxy, limit=args.limit, force=args.force)
 else:
     get_config_response = fw_module.get_config(
-        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, limit=args.limit)
+        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, limit=args.limit, force=args.force)
 
 # if no changes were found, we get get_config_response==512 and we skip everything else without errors
 # todo: re-structure this to make it more logical/readable

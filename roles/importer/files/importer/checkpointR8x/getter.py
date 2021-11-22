@@ -32,7 +32,10 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
         request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
-        logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        if 'password' in json.dumps(json_payload):
+            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+        else:
+            logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
         sys.exit(1)
     if show_progress:
         print ('.', end='', flush=True)
@@ -125,27 +128,28 @@ def get_changes(sid,api_host,api_port,fromdate,ssl_verification, proxy_string):
     while (status == 'in progress'):
         time.sleep(sleeptime)
         tasks = api_call(api_host, api_port, base_url, 'show-task', task_id, sid, ssl_verification, proxy_string)
-        for task in tasks['tasks']:
-            # logging.debug ("task: " + json.dumps(task))
-            if 'status' in task:
-                status = task['status']
-                if 'succeeded' in status:
-                    for detail in task['task-details']:
-                        if detail['changes']:
-                            logging.debug ("show-changes - status: " + status + " -> changes found")
-                            return 1
-                        else:
-                            logging.debug ("show-changes - status: " + status + " -> but no changes found")
-                elif status == 'failed':
-                    logging.debug ("show-changes - status: failed -> no changes found")
-                elif status == 'in progress':
-                    logging.debug ("show-changes - status: in progress")
+        if 'tasks' in tasks:
+            for task in tasks['tasks']:
+                # logging.debug ("task: " + json.dumps(task))
+                if 'status' in task:
+                    status = task['status']
+                    if 'succeeded' in status:
+                        for detail in task['task-details']:
+                            if detail['changes']:
+                                logging.debug ("show-changes - status: " + status + " -> changes found")
+                                return 1
+                            else:
+                                logging.debug ("show-changes - status: " + status + " -> but no changes found")
+                    elif status == 'failed':
+                        logging.debug ("show-changes - status: failed -> no changes found")
+                    elif status == 'in progress':
+                        logging.debug ("show-changes - status: in progress")
+                    else:
+                        logging.error ("show-changes - unknown status: " + status)
+                        return -1
                 else:
-                    logging.error ("show-changes - unknown status: " + status)
+                    logging.error ("show-changes - no status in task")
                     return -1
-            else:
-                logging.error ("show-changes - no status in task")
-                return -1
         sleeptime += 2
         if sleeptime > 40:
             logging.error ("show-changes - task took too long, aborting")

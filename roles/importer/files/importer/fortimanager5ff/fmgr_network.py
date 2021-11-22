@@ -43,6 +43,11 @@ def normalize_nwobjects(full_config, config2import, import_id):
             # todo: deal with all other colors (will be currently ignored)
             # we would need a list of fortinet color codes
         obj.update({'obj_uid': obj_orig['uuid']})
+
+        # here only picking first associated interface as zone:
+        if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0 and obj_orig['associated-interface'][0] != 'any':
+            obj.update({'obj_zone': obj_orig['associated-interface'][0]})
+        
         obj.update({'control_id': import_id})
         nw_objects.append(obj)
         
@@ -77,3 +82,14 @@ def add_member_names_for_nw_group(idx, nw_objects):
             member_names += member_name + common.list_delimiter
         group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)
+
+
+def create_network_object(import_id, name, type, ip, uid, comment):
+    return {
+        'control_id': import_id,
+        'obj_name': name,
+        'obj_typ': type,
+        'obj_ip': ip,
+        'obj_uid': uid,
+        'obj_comment': comment
+    }

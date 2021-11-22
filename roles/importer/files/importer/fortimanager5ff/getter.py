@@ -22,8 +22,10 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
     r = requests.post(url, data=json.dumps(
         json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
-        logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" +
-                          json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        if 'password' in json.dumps(json_payload):
+            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+        else:
+            logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
         sys.exit(1)
     result_json = r.json()
     if 'result' not in result_json or \
@@ -31,12 +33,18 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
         'status' not in result_json['result'][0] \
         or 'code' not in result_json['result'][0]['status'] or \
         result_json['result'][0]['status']['code'] != 0:
-        logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" +
+        if 'password' in json.dumps(json_payload):
+            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+        else:
+            logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" +
                           json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0]['status'], indent=2))
  
     if logging.DEBUG:
-        logging.debug("\napi_call to url '" + str(url) + "' with payload '" + json.dumps(
-            json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        if 'password' in json.dumps(json_payload):
+            logging.debug("\napi_call containing credential information to url '" + str(url))
+        else:
+            logging.debug("\napi_call to url '" + str(url) + "' with payload '" + json.dumps(
+                json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
 
     if show_progress:
         print('.', end='', flush=True)

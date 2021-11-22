@@ -119,12 +119,12 @@
                 "-d1",
                 "-fgraphql"
             ]
-        },        
+        },
         {
-            "name": "py-import-config",
+            "name": "py-execute-graphql",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/api/files/scripts/import-fworch-config.py",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"

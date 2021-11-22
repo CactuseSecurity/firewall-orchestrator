@@ -101,7 +101,7 @@
             },
             "args": [
                 "-m4",
-                "-d1",
+                "-d2",
                 "-l50"
             ]
         },        
@@ -109,29 +109,23 @@
             "name": "py-export-config",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/api/files/scripts/export-fworch-config.py",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": [
-                "-o/tmp/fworch-config.json",
-                "-d1"
-            ]
-        },        
+            "args": ["-o/tmp/fworch-config"]
+        },
         {
-            "name": "py-import-config",
+            "name": "py-execute-graphql",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/api/files/scripts/import-fworch-config.py",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": [
-                "-i/tmp/fworch-config.json",
-                "-d1"
-            ]
+            "args": ["-i/tmp/fworch-config.graphql"]
         },        
         {
             "name": "py-cpr8x-autodiscovery",

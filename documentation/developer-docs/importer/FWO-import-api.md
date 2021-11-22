@@ -1,15 +1,5 @@
 # Importing firewall configs via API
 
-Use a tool like insomnia for testing.
-
-Use the API to write the whole firewall config as JSON into import_config). The format is described here.
-Currently CPR8x can be importer both via PERL and python importer without changing source code.
-
-Python Import in roles/importer/files/importer/import_mgm.py:
-```python
-    error_count = fwo_api.import_json_config(fwo_api_base_url, jwt, args.mgm_id, { "importId": current_import_id, "mgmId": args.mgm_id, "config": config2import })
-```
-
 ## JSON structure overview
 
 ### Config in table import_config
@@ -17,18 +7,17 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 {
     "import_id": 1,
     "mgm_id": 12,
-    "config": config2import
+    "config": "config2import"
 }
 ```
 ### config2import
 ```json
 {
     "network_objects": [...],
-    "network_services": [...],
-    "users": [...],
-    "network_zones": [...],
-    "rules": [...],
-    "nat_rules": [...]
+    "service_objects": [...],
+    "user_objects": [...],
+    "zone_objects": [...],
+    "rules": [...]
 }
 ```
 
@@ -44,6 +33,7 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 
 ## network_objects
 
+here we describe a single network object:
 ```json
 {
     "control_id": 1,                                        // bigint: ID of the current import
@@ -63,7 +53,9 @@ Python Import in roles/importer/files/importer/import_mgm.py:
   network, group, host, machines_range, dynamic_net_obj, sofaware_profiles_security_level, gateway, cluster_member, gateway_cluster, domain, group_with_exclusion, ip_range, uas_collection, sofaware_gateway, voip_gk, gsn_handover_group, voip_sip, simple-gateway
 
 
-## network_services
+## service_objects
+here we describe a single service object:
+
 ```json
 {
     "control_id": 1,                                        // bigint: ID of the current import
@@ -85,7 +77,9 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 ```
 - svc_type can be any of the following: simple, group, rpc (see roles/database/files/sql/creation/fworch-fill-stm.sql)
 
-## users
+## user_objects
+
+here we describe a single user object:
 
 ```json
 {
@@ -101,7 +95,9 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 }
 ```
 
-## zones
+## zone_objects
+
+here we describe a single zone object:
 
 ```json
 {
@@ -111,6 +107,8 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 ```
 
 ## rules
+
+here we describe a single rule:
 
 ```json
 {
@@ -146,7 +144,105 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 - rule_track can be any of log, none, alert, userdefined, mail, account, userdefined 1, userdefined 2, userdefined 3, snmptrap, log count, count, log alert, log alert count, log alert count alarm, log count alarm, count alarm, all, all start, utm, utm start, network log
 - rule_action can be any of accept, drop, deny, access, client encrypt, client auth, reject, encrypt, user auth, session auth, permit, permit webauth, redirect, map, permit auth, tunnel l2tp, tunnel vpn-group, tunnel vpn, actionlocalredirect, inner layer
 
-## nat_rules
+## Putting it all together
+
+This is a complete example of a config which may be imported:
+
+```json
+{
+  "rules": [
+    {
+      "rulebase_name": "FirstLayer shared with inline layer",
+      "control_id": 1074,
+      "rule_num": 0,
+      "rule_uid": "828b0f42-4b18-4352-8bdf-c9c864d692eb",
+      "rule_name": null,
+      "rule_comment": "test comment",
+      "rule_src": "test-ext-vpn-gw|test-interop-device|BeeW10|wsus",
+      "rule_dst": "sting-gw",
+      "rule_svc": "IPSEC",
+      "rule_time": "Any",
+      "rule_from_zone": null,
+      "rule_to_zone": null,
+      "rule_track": "Log",
+      "rule_action": "Drop",
+      "rule_implied": false,
+      "rule_src_neg": false,
+      "rule_dst_neg": false,
+      "rule_svc_neg": false,
+      "rule_disabled": true,
+      "rule_src_refs": "a580c5a3-379c-479b-b49d-487faba2442e|98bc04fc-b88b-4283-83ad-7b6899bc1876|2ad18398-e004-4324-af79-634be66941d6|2661ec9f-293f-4c82-8150-4bb6c883ca79",
+      "rule_dst_refs": "cbdd1e35-b6e9-4ead-b13f-fd6389e34987",
+      "rule_svc_refs": "97aeb475-9aea-11d5-bd16-0090272ccb30",
+      "rule_installon": "Policy Targets",
+      "parent_rule_uid": null,
+      "rule_ruleid": null,
+      "rule_type": "access",
+      "rule_last_change_admin": null
+    }
+  ],
+  "user_objects": [
+    {
+      "user_typ": "simple",
+      "user_uid": "aae47c39-f416-4b32-801d-af53adfa1939",
+      "user_name": "test-user1",
+      "control_id": 1074,
+      "user_color": "black",
+      "user_comment": ""
+    },
+    {
+      "user_typ": "group",
+      "user_uid": "227d1a80-cc1e-4cd4-9576-4d46f271402f",
+      "user_name": "test-group",
+      "control_id": 1074,
+      "user_color": "black",
+      "user_comment": ""
+    }
+  ],
+  "network_objects": [
+    {
+      "obj_ip": "22.55.200.192/26",
+      "obj_typ": "network",
+      "obj_uid": "5368caf0-d192-457b-9c86-5d5f9e5dc199",
+      "obj_name": "Net_22.55.200.192-2",
+      "obj_color": "black",
+      "control_id": 1074,
+      "obj_ip_end": "22.55.200.192/26",
+      "obj_comment": null,
+      "obj_member_refs": null,
+      "obj_member_names": null
+    }
+  ],
+  "service_objects": [
+    {
+      "rpc_nr": null,
+      "svc_typ": "simple",
+      "svc_uid": "97aeb44f-9aea-11d5-bd16-0090272ccb30",
+      "ip_proto": "6",
+      "svc_name": "AOL",
+      "svc_port": "5190",
+      "svc_color": "red",
+      "control_id": 1074,
+      "svc_comment": "AOL Instant Messenger. Also used by: ICQ & Apple iChat",
+      "svc_timeout": "3600",
+      "svc_port_end": "5190",
+      "svc_member_refs": null,
+      "svc_member_names": null
+    }
+  ],
+  "zone_objects": [
+    {
+      "zone_name": "test-zone",
+      "svc_typ": "simple",
+      "zone_uid": "98aeb44f-9aea-11d5-bd16-0090272ccb30",
+      "control_id": 1074,
+      "zone_comment": "just a test"
+    }
+  ]}
+```
+
+
+## NAT Rules
 - "original" is the keyword for no translation - a special object needs to be created for this
 - algorithm for importing NAT rules: 
   - a NAT rule is stored as two rules, both of which have nat_rule = true set
@@ -159,68 +255,10 @@ Python Import in roles/importer/files/importer/import_mgm.py:
 - all existing reporting needs to be restricted to access rules (exception receritfication)
 - recertification should be possible for both NAT and access rules (should be configurable both per tenant and globally)
 
-The rest of this chapter describes old designs which are no longer valid.
-
-### variant 1 - simple csv-like 
-```json
-{
-    "control_id": 1,                                        // bigint: ID of the current import
-    "rulebase_name": "global nat rules",                    // string: specifies the nat rulebase name (all nat rules are contained in a single json struct)
-    "rule_num": 1,                                          // integer: nat rule number for ordering
-    "rule_uid": "bcc044f6-2a4f-459b-b78c-9e7afee92621",     // string: unique rule id
-    "rule_src_xlate": "ip_4.5.6.7,ip_4.5.6.1|ip_2,ip2_xlate",// string: pairs (comma-separated) of source translations
-    "rule_src_xlate_refs": "97aeb369-9aea-11d5-bd16-0090272ccb35,97aeb369-9aea-11d5-bd16-0090272ccb34|97aeb369-9aea-11d5-bd16-0090272ccb33,97aeb369-9aea-11d5-bd16-0090272ccb32",// string: references of translation sources
-    "rule_dst_xlate": "ip1.3.45.5,original",                // string: pairs (comma-separated) of destination translations
-    "rule_dst_xlate_refs": "97aeb369-9aea-11d5-bd16-0090272ccb31,97aeb369-9aea-11d5-bd16-0090272ccb31",// string: pairs (comma-separated) of destination translation references
-    "rule_svc_xlate": "tcp_1234,tcp_4711",                  // string: pairs (comma-separated) of service (port) translations
-    "rule_svc_xlate_refs": "97aeb369-9aea-11d5-bd16-0090272ccb30,97aeb369-9aea-11d5-bd16-0090272ccb32", // string: pairs (comma-separated) of destination translation references
-    "rule_disabled": false,                                 // boolean: is nat rule disabled
-    "rule_installon": null,                                 // string: list of gateways this nat rule should be applied to
-    "rule_ruleid": null,                                    // string: id (unique within gateway, but not globally)
-    "rule_name": null,                                      // string: optional name of the nat rule
-    "rule_comment": null,                                   // string: optional nat rule comment
-    "rule_head_text": null,                                 // string: for section headers this is the field to use
-    "rule_from_zone": null,                                 // string: source zone (if applicable) of the nat rule
-    "rule_to_zone": null                                    // string: destination zone (if applicable) of the nat rule
-}
-```
-### variant 2 - readable jsonish close to original nat rules
-```json
-{
-    "control_id": 1,                                        // bigint: ID of the current import
-    "rulebase_name": "global nat rules",                    // string: specifies the nat rulebase name (all nat rules are contained in a single json struct)
-    "rule_num": 1,                                          // integer: nat rule number for ordering
-    "rule_uid": "bcc044f6-2a4f-459b-b78c-9e7afee92621",     // string: unique rule id
-    "xlate_action": "hide",
-    "original_packet_match":  {
-        "source": "ip_4.5.6.7|group_office_clients",
-        "source_refs": "97aeb369-9aea-11d5-bd16-0090272ccb35|97aeb369-9aea-11d5-bd16-0090272ccb38",
-        "destination": "ip_1.3.45.5",
-        "destination_refs": "97aeb369-9aea-11d5-bd16-0090272ccb35",
-        "service": "tcp_13343|tcp_3232",
-        "service_refs": "12aeb369-9aea-11d5-bd16-0090272ccb35|12aeb369-9aea-11d5-bd16-0090272ccb38"
-    },
-    "xlate_packet":  {
-        "source": "ip_123.1.0.1",
-        "source_refs": "76aeb369-9aea-11d5-bd16-0090272ccb33",
-        "destination": "original",
-        "destination_refs": "original",
-        "service": "original",
-        "service_refs": "original"
-    },
-    "rule_disabled": false,                                 // boolean: is nat rule disabled
-    "rule_installon": null,                                 // string: list of gateways this nat rule should be applied to
-    "rule_ruleid": null,                                    // string: id (unique within gateway, but not globally)
-    "rule_name": null,                                      // string: optional name of the nat rule
-    "rule_comment": null,                                   // string: optional nat rule comment
-    "rule_head_text": null,                                 // string: for section headers this is the field to use
-    "rule_from_zone": null,                                 // string: source zone (if applicable) of the nat rule
-    "rule_to_zone": null                                    // string: destination zone (if applicable) of the nat rule
-}
-```
-- xlate_action can be any of the following: hide, hide_pool, static_src, static_dst, static_src_and_dst
-
 #### final db rule tables
+
+The following gives an overview of the nat rule presentation as read via FWO API:
+
 ```json
 
 ```json

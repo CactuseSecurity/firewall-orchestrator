@@ -93,6 +93,7 @@ namespace FWO.Middleware.Controllers
         public async Task<string> Create([FromBody] GroupAddDeleteParameters parameters)
         {
             string groupDn = parameters.GroupDn;
+            string groupAdded = "";
 
             List<Task> workers = new List<Task>();
 
@@ -103,7 +104,7 @@ namespace FWO.Middleware.Controllers
                 {
                     workers.Add(Task.Run(() =>
                     {
-                        string groupAdded = currentLdap.AddGroup(groupDn);
+                        groupAdded = currentLdap.AddGroup(groupDn);
                         if (groupAdded != "") Log.WriteAudit("AddGroup", $"group {groupAdded} successfully added to {currentLdap.Host()}");
                     }));
                 }
@@ -112,7 +113,7 @@ namespace FWO.Middleware.Controllers
             await Task.WhenAll(workers);
 
             // Return status and result
-            return "Success";
+            return groupAdded;
         }
 
         // POST: GroupController/Delete/5

@@ -94,7 +94,8 @@ namespace FWO.Ui.Display
             {
                 case 'D': return ruleDisplay.DisplayService(ruleChange.OldRule, DisplayStyle(ruleChange));
                 case 'I': return ruleDisplay.DisplayService(ruleChange.NewRule, DisplayStyle(ruleChange));
-                case 'C': return ruleDisplay.DisplayService(ruleChange.OldRule, ruleDisplay.DisplayService(ruleChange.NewRule));
+                // case 'C': return ruleDisplay.DisplayService(ruleChange.OldRule, ruleDisplay.DisplayService(ruleChange.NewRule));
+                case 'C': return DisplayDiff(ruleDisplay.DisplayService(ruleChange.OldRule), ruleDisplay.DisplayService(ruleChange.NewRule));
                 default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
             }
         }

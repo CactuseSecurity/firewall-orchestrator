@@ -24,6 +24,7 @@ parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='D
 parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
 parser.add_argument('-f', '--fromdate', metavar='from_date', default='', help='date to start from, e.g. last successful import; default=2000-01-01T00:00:00')
+parser.add_argument('-F', '--force', action='store_true', default=False, help='if set the import will be attempted without checking for changes before')
 
 args = parser.parse_args()
 if len(sys.argv)==1:
@@ -55,7 +56,7 @@ starttime = int(time.time())
 sid = getter.login(args.user,api_password,api_host,args.port,api_domain,ssl_verification, proxy_string)
 v_url = getter.get_api_url (sid, api_host, args.port, args.user, base_url, limit, test_version,ssl_verification, proxy_string)
 
-if args.fromdate == "":
+if args.fromdate == "" or args.force:
     changes = 1
 else:
     changes = getter.get_changes(sid, api_host,args.port,args.fromdate,ssl_verification, proxy_string)
@@ -66,7 +67,7 @@ if changes < 0:
 elif changes == 0:
     logging.debug ( "get_changes: no new changes found")
 else:
-    logging.debug ( "get_changes: changes found -> go ahead with getting config")
+    logging.debug ( "get_changes: changes found or forced mode -> go ahead with getting config, Force = " + str(args.force))
 
     config_json = { 'rulebases': [], 'nat_rulebases': [] }
     show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}

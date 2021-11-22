@@ -36,60 +36,60 @@ namespace FWO.Config.File
 
 
         private RsaSecurityKey? jwtPrivateKey = null;
-        public RsaSecurityKey? JwtPrivateKey
+        public RsaSecurityKey JwtPrivateKey
         {
             get
             {
-                CriticalConfigValueLoaded(jwtPrivateKey);
+                jwtPrivateKey = CriticalConfigValueLoaded(jwtPrivateKey);
                 return jwtPrivateKey;
             }
         }
 
         private RsaSecurityKey? jwtPublicKey = null;
-        public RsaSecurityKey? JwtPublicKey
+        public RsaSecurityKey JwtPublicKey
         {
             get
             {
-                CriticalConfigValueLoaded(jwtPublicKey);
+                jwtPublicKey = CriticalConfigValueLoaded(jwtPublicKey);
                 return jwtPublicKey;
             }
         }
 
         private string? apiServerUri = null;
-        public string? ApiServerUri
+        public string ApiServerUri
         {
             get
             {
-                CriticalConfigValueLoaded(apiServerUri);
+                apiServerUri = CriticalConfigValueLoaded(apiServerUri);
                 return apiServerUri;
             }
         }
 
         private string? middlewareServerNativeUri = null;
-        public string? MiddlewareServerNativeUri
+        public string MiddlewareServerNativeUri
         {
             get
             {
-                CriticalConfigValueLoaded(middlewareServerNativeUri);
+                middlewareServerNativeUri = CriticalConfigValueLoaded(middlewareServerNativeUri);
                 return middlewareServerNativeUri;
             }
         }
         private string? middlewareServerUri = null;
-        public string? MiddlewareServerUri
+        public string MiddlewareServerUri
         {
             get
             {
-                CriticalConfigValueLoaded(middlewareServerUri);
+                middlewareServerUri = CriticalConfigValueLoaded(middlewareServerUri);
                 return middlewareServerUri;
             }
         }
 
         private string? productVersion = null;
-        public string? ProductVersion
+        public string ProductVersion
         {
             get
             {
-                CriticalConfigValueLoaded(productVersion);
+                productVersion = CriticalConfigValueLoaded(productVersion);
                 return productVersion;
             }
         }
@@ -132,12 +132,17 @@ namespace FWO.Config.File
             }
         }
 
-        private void CriticalConfigValueLoaded(object? configValue)
+        private ConfigValueType CriticalConfigValueLoaded<ConfigValueType>(ConfigValueType? configValue)
         {
             if (configValue == null)
             {
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
                 Environment.Exit(1); // Exit with error
+                throw new ApplicationException("unreachable");
+            }
+            else
+            {
+                return configValue;
             }
         }
         

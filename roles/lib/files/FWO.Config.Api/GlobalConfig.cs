@@ -46,7 +46,6 @@ namespace FWO.Config.Api
 
         public string productVersion { get; set; }
 
-        public UiText[] uiTexts { get; set; }
         public Language[] uiLanguages { get; set; }
 
         public Dictionary<string, Dictionary<string, string>> langDict { get; set; }
@@ -94,7 +93,7 @@ namespace FWO.Config.Api
                 {
                     var languageVariable = new { language = lang.Name };
                     Dictionary<string, string> dict = new Dictionary<string, string>();
-                    uiTexts = apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getTextsPerLanguage, languageVariable).Result;
+                    UiText[] uiTexts = apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getTextsPerLanguage, languageVariable).Result;
                     foreach (UiText text in uiTexts)
                         dict.Add(text.Id, text.Txt); // add "word" to dictionary
 

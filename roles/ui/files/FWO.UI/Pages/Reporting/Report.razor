@@ -407,7 +407,7 @@
     {
         try
         {
-            filterInput = changeArgs.Value.ToString();
+            filterInput = (changeArgs.Value ?? "").ToString() ?? "";
 
             DynGraphqlQuery query = Compiler.Compile(filterInput);
 

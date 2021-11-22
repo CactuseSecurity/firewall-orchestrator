@@ -33,8 +33,7 @@ namespace FWO.Middleware.Server
             connectedLdapsSubscription.OnUpdate += OnLdapUpdate;
 
             //scheduledReports = apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules).Result.ToList();
-            scheduledReportsSubscription = apiConnection.GetSubscription<ScheduledReport[]>(ApiExceptionHandler, ReportQueries.subscribeReportScheduleChanges);
-            scheduledReportsSubscription.OnUpdate += OnScheduleUpdate;
+            scheduledReportsSubscription = apiConnection.GetSubscription<ScheduledReport[]>(ApiExceptionHandler, OnScheduleUpdate, ReportQueries.subscribeReportScheduleChanges);
 
             System.Timers.Timer checkScheduleTimer = new();
             checkScheduleTimer.Elapsed += CheckSchedule;

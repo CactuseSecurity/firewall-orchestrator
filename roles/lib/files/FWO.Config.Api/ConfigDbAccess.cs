@@ -13,12 +13,10 @@ namespace FWO.Config.Api
     {
         private readonly Dictionary<string, string> configItems = new Dictionary<string, string>();
         private readonly APIConnection apiConnection;
-        private readonly UserConfig userConfig;
         private readonly int userId;
 
-        public ConfigDbAccess(APIConnection apiConnection, UserConfig userConfig = null)
+        public ConfigDbAccess(APIConnection apiConnection, UserConfig? userConfig = null)
         {
-            this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             userId = userConfig == null ? 0 : userConfig.User.DbId;
 
@@ -30,7 +28,16 @@ namespace FWO.Config.Api
             ConfigItem[] confItems = Task.Run(async () => await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, Variables)).Result;
             foreach (ConfigItem confItem in confItems)
             {
-                configItems.Add(confItem.Key, confItem.Value);
+                try
+                {
+                    string key = confItem.Key ?? throw new Exception($"Error importing config item (value: {confItem.Value}) for user (id: {confItem.User}): Key is null");
+                    string value = confItem.Value ?? throw new Exception($"Error importing config item (key: {confItem.Key}) for user (id: {confItem.User}): Value is null");
+                    configItems.Add(key, value);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteError("Reading Config", "Config item could not be read, skipping it.", ex);
+                }
             }
         }
 

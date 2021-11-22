@@ -2,6 +2,22 @@
 #  export-fworch-config.py: export the full config of the product itself for later import
 #  does not contain any firewall config data, just the device config plus fworch user config
 
+# todo: remove redundant code
+    # todo: use a single source for fwo_api between this script and importer
+    # todo: use a single source for graphql queries between importer, config im/exporter, C#
+
+# todo: get more config data
+    # get user related data:
+        # ldap servers
+        # tenants
+        # uiusers including roles & groups & tenants
+
+# todo: encrypt config before writing to file
+
+# todo: adapt device data:
+    # todo: replace importer_hostname with target machine
+    # todo: replace ssh_private_key with key of target machine
+
 import sys, logging, re
 import json, requests, requests.packages, argparse
 base_dir = "/usr/local/fworch"
@@ -26,9 +42,8 @@ parser.add_argument('-f', '--format', metavar='output_format', default='graphql'
 
 def convert_jsonString2graphql(json_in):
     json_transformed = ' '.join(json_in.split()) # replace multiple spaces with single space
-    #json_transformed = json_transformed.translate(str.maketrans('"', "'")) # replace " with '
     json_transformed = json_transformed.translate(str.maketrans("", "", "\n")) # remove all line breaks
-    lines = json_transformed.split(",")
+    lines = json_transformed.split(",")  # only one key/value pair per line
     result = []
     for line in lines:
         pos = line.find(':') # find first ":"
@@ -40,7 +55,6 @@ def convert_jsonString2graphql(json_in):
                 left = ''
                 right = line[1:]
             result.append(left + ':' + right)
-        
     return ','.join(result)
 
 
@@ -122,22 +136,6 @@ if 'data' in api_call_result:
 else:
     logging.error('did not succeed in getting device details from API')
     sys.exit(1)
-
-# todo: remove redundant code
-    # todo: use a single source for fwo_api between this script and importer
-    # todo: use a single source for graphql queries between importer, config im/exporter, C#
-
-# todo: get more config data
-    # get user related data:
-        # ldap servers
-        # tenants
-        # uiusers including roles & groups & tenants
-
-# todo: encrypt config before writing to file
-
-# todo: adapt device data:
-    # todo: replace importer_hostname with target machine
-    # todo: replace ssh_private_key with key of target machine
 
 if not re.compile(args.format+"$").match(args.out ):
     outfile = args.out + '.' + args.format

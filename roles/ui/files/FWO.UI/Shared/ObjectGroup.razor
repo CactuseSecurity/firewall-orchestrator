@@ -95,7 +95,7 @@
                             </Content2>
                         </ContentSwap>
                     }
-                    <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.Create.ToString() />
+                    <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
                     <Detail Title="@(userConfig.GetText("comment"))" Data=@context.Comment />
                 </DetailTemplate>
             </Table>
@@ -160,7 +160,7 @@
                             </Content2>
                         </ContentSwap>
                     }
-                    <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.Create.ToString() />
+                    <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
                     <Detail Title="@(userConfig.GetText("comment"))" Data=@context.Comment />
                 </DetailTemplate>
             </Table>
@@ -221,7 +221,7 @@
                             </Content2>
                         </ContentSwap>
                     }
-                    <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.Create.ToString() />
+                    <Detail Title="@(userConfig.GetText("last_changed"))" Data=@context.CreateTime.Time.ToString() />
                     <Detail Title="@(userConfig.GetText("comment"))" Data=@context.Comment />
                 </DetailTemplate>
             </Table>

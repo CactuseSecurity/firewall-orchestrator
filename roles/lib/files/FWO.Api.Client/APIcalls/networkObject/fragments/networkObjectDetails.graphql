@@ -1,40 +1,43 @@
 fragment networkObjectDetails on object {
-    obj_id
-    obj_name
-    obj_ip
-    obj_ip_end
-    obj_uid
-    zone {
-      zone_id
-      zone_name
-    }
-    active
-    obj_create
-    obj_last_seen
-    type: stm_obj_typ {
-      name: obj_typ_name
-    }
-    obj_comment
-    obj_member_names
-    obj_member_refs
-    objgrps(order_by: { objgrp_member_id: asc }) {
-      id: objgrp_member_id
-      byId: objectByObjgrpMemberId {
-        obj_id
-        obj_name
-        type: stm_obj_typ {
-          name: obj_typ_name
-        }
+  obj_id
+  obj_name
+  obj_ip
+  obj_ip_end
+  obj_uid
+  zone {
+    zone_id
+    zone_name
+  }
+  active
+  obj_create
+  obj_create_time: import_control {
+    time: start_time
+  }
+  obj_last_seen
+  type: stm_obj_typ {
+    name: obj_typ_name
+  }
+  obj_comment
+  obj_member_names
+  obj_member_refs
+  objgrps(order_by: { objgrp_member_id: asc }) {
+    id: objgrp_member_id
+    byId: objectByObjgrpMemberId {
+      obj_id
+      obj_name
+      type: stm_obj_typ {
+        name: obj_typ_name
       }
     }
-    objgrp_flats(order_by: { objgrp_flat_member_id: asc }) {
-      id_flat: objgrp_flat_id
-      byFlatId: objectByObjgrpFlatMemberId {
-        obj_id
-        obj_name
-        type: stm_obj_typ {
-          name: obj_typ_name
-        }
+  }
+  objgrp_flats(order_by: { objgrp_flat_member_id: asc }) {
+    id_flat: objgrp_flat_id
+    byFlatId: objectByObjgrpFlatMemberId {
+      obj_id
+      obj_name
+      type: stm_obj_typ {
+        name: obj_typ_name
       }
     }
+  }
 }

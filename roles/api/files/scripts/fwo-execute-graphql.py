@@ -1,6 +1,5 @@
 #!/usr/bin/python3
-#  import-fworch-config.py: export the full config of the product itself for later import
-#  does not contain any firewall config data, just the device config plus fworch user config
+# fwo-execute-graphql.py: run a graphql query/mutation against the FWO API
 
 import sys
 import json, requests, requests.packages, argparse
@@ -51,34 +50,12 @@ else:
     jwt = fwo_api.login(args.user, exporter_pwd, user_management_api_base_url,
                         method, ssl_verification=ssl_mode)
 
-# write device details to fworch
-
 with open(args.input_file, 'r') as file:
-    config_json = file.read()
-#    config_json = json.loads(file.read())
+   graphql_query = file.read()
 
-# todo: decrypt config before writing to file
-# todo: escape "
+# todo: optionally decrypt graphql code
 
-# https://analyticoolblog.com/graphql-in-python-how-to-query-graphql-api-for-beginners/
-dev_config = config_json['device_configuration']
-
-# todo: convert keys from string to graphql name (without "")
-
-# device_adding_mutation = """
-#     mutation addManagements {
-#         insert_management( objects: """ + json.dumps(config_json['device_configuration']['management']) + """ ) 
-#         insert_device( objects: """ + json.dumps(config_json['device_configuration']['device']) + """ ) 
-#         { returning { mgm_id dev_id } }
-#     }"""
-device_adding_mutation = """
-    mutation addManagements {
-        insert_management( objects: """ + str(config_json['device_configuration']['management']) + """ ) 
-        insert_device( objects: """ + str(config_json['device_configuration']['device']) + """ ) 
-        { returning { mgm_id dev_id } }
-    }"""
-
-result = fwo_api.call(fwo_api_base_url, jwt, device_adding_mutation, query_variables={}, role='admin')
+result = fwo_api.call(fwo_api_base_url, jwt, graphql_query, query_variables={}, role='admin')
 
 # todo: get more config data
     # get user related data:

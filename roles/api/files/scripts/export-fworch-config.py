@@ -24,24 +24,24 @@ parser.add_argument('-f', '--format', metavar='output_format', default='json',
                     help='specify output format [json(default|graphql)]')
 
 
-def convert_json2graphql(json_in):
-    lines = json_in.split("\n")
+def convert_jsonString2graphql(json_in):
+    json_transformed = ' '.join(json_in.split()) # replace multiple spaces with single space
+    #json_transformed = json_transformed.translate(str.maketrans('"', "'")) # replace " with '
+    json_transformed = json_transformed.translate(str.maketrans("", "", "\n")) # remove all line breaks
+    lines = json_transformed.split(",")
     result = []
     for line in lines:
-        pos = line.find(':')
+        pos = line.find(':') # find first ":"
         if pos>=0:
             if pos>0:
-                left = line[:pos]
+                left = line[:pos].translate(str.maketrans('', '', '"'))  # remove " around field name
                 right = line[pos+1:]
-                left = left.translate(str.maketrans('', '', '"'))
             else:  # first char is :
                 left = ''
                 right = line[1:]
             result.append(left + ':' + right)
-        else:
-            result.append(line)
-
-    return "\n".join(result)
+        
+    return ','.join(result)
 
 
 args = parser.parse_args()
@@ -123,8 +123,9 @@ else:
     logging.error('did not succeed in getting device details from API')
     sys.exit(1)
 
-# todo: use a single source for fwo_api between this script and importer
-# todo: use a single source for graphql queries between importer, config im/exporter, C#
+# todo: remove redundant code
+    # todo: use a single source for fwo_api between this script and importer
+    # todo: use a single source for graphql queries between importer, config im/exporter, C#
 
 # todo: get more config data
     # get user related data:
@@ -133,6 +134,10 @@ else:
         # uiusers including roles & groups & tenants
 
 # todo: encrypt config before writing to file
+
+# todo: adapt device data:
+    # todo: replace importer_hostname with target machine
+    # todo: replace ssh_private_key with key of target machine
 
 if not re.compile(args.format+"$").match(args.out ):
     outfile = args.out + '.' + args.format
@@ -143,7 +148,12 @@ with open(outfile, 'w') as file:
     if args.format == 'json':
         file.write(str(api_call_result['data']))
     elif args.format == 'graphql':
-        config_graphql = convert_json2graphql(json.dumps(config_json, indent=3))
-        file.write(config_graphql)
+        config_string = "mutation restoreDeviceData { insert_management ( objects: " + \
+            convert_jsonString2graphql(json.dumps(config_json['device_configuration']['management'], indent=3)) + \
+            ") { returning { mgm_id } } " + \
+            "insert_device ( objects: " + \
+            convert_jsonString2graphql(json.dumps(config_json['device_configuration']['device'], indent=3)) + \
+            ") { returning { dev_id } } }\n"
+        file.write(config_string)
 
 sys.exit(0)

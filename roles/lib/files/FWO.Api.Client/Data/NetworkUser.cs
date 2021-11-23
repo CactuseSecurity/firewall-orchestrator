@@ -12,25 +12,25 @@ namespace FWO.Api.Data
         public long Id { get; set; }
 
         [JsonPropertyName("user_uid")]
-        public string Uid { get; set; }
+        public string? Uid { get; set; }
 
         [JsonPropertyName("user_name")]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [JsonPropertyName("user_comment")]
-        public string Comment { get; set; }
+        public string? Comment { get; set; }
 
         [JsonPropertyName("user_lastname")]
-        public string LastName { get; set; }
+        public string? LastName { get; set; }
 
         [JsonPropertyName("user_firstname")]
-        public string FirstName { get; set; }
+        public string? FirstName { get; set; }
 
         [JsonPropertyName("usr_typ_id")]
         public int TypeId { get; set; }
 
         [JsonPropertyName("type")]
-        public NetworkUserType Type { get; set; }
+        public NetworkUserType? Type { get; set; }
 
         [JsonPropertyName("user_create")]
         public int Create { get; set; }
@@ -42,18 +42,18 @@ namespace FWO.Api.Data
         public int LastSeen { get; set; }
 
         [JsonPropertyName("user_member_names")]
-        public string MemberNames { get; set; }
+        public string? MemberNames { get; set; }
 
         [JsonPropertyName("user_member_refs")]
-        public string MemberRefs { get; set; }
+        public string? MemberRefs { get; set; }
 
         [JsonPropertyName("usergrps")]
-        public Group<NetworkUser>[] UserGroups { get; set; }
+        public Group<NetworkUser>[]? UserGroups { get; set; }
 
         [JsonPropertyName("usergrp_flats")]
-        public GroupFlat<NetworkUser>[] UserGroupFlats { get; set; }
+        public GroupFlat<NetworkUser>[]? UserGroupFlats { get; set; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             switch (obj)
             {

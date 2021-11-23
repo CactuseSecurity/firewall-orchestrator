@@ -8,7 +8,7 @@ namespace FWO.Ui.Data
     public delegate void NotifyCollapse(bool show);
     public class CollapseState
     {
-        public event NotifyCollapse OnCollapseAll;
+        public event NotifyCollapse? OnCollapseAll;
 
         public void CollapseAll()
         {

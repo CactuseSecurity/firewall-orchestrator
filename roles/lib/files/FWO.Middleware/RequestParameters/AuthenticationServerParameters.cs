@@ -10,36 +10,36 @@ namespace FWO.Middleware.RequestParameters
     public class LdapAddParameters
     {
         [JsonPropertyName("address")]
-        public string Address { get; set; }
+        public string? Address { get; set; }
 
         [JsonPropertyName("port")]
         public string Port { get; set; } = "636";
 
         [JsonPropertyName("searchUser")]
-        public string SearchUser { get; set; }
+        public string? SearchUser { get; set; }
 
         [JsonPropertyName("tls")]
-        public string Tls { get; set; }
+        public string? Tls { get; set; }
 
         [JsonPropertyName("tenantLevel")]
-        public string TenantLevel { get; set; }
+        public string? TenantLevel { get; set; }
 
         [JsonPropertyName("searchUserPwd")]
-        public string SearchUserPwd { get; set; }
+        public string? SearchUserPwd { get; set; }
 
         [JsonPropertyName("searchpathForUsers")]
-        public string SearchpathForUsers { get; set; }
+        public string? SearchpathForUsers { get; set; }
 
         [JsonPropertyName("searchpathForRoles")]
-        public string SearchpathForRoles { get; set; }
+        public string? SearchpathForRoles { get; set; }
 
         [JsonPropertyName("writeUser")]
-        public string WriteUser { get; set; }
+        public string? WriteUser { get; set; }
 
         [JsonPropertyName("writeUserPwd")]
-        public string WriteUserPwd { get; set; }
+        public string? WriteUserPwd { get; set; }
 
         [JsonPropertyName("tenantId")]
-        public string TenantId { get; set; }
+        public string? TenantId { get; set; }
     }
 }

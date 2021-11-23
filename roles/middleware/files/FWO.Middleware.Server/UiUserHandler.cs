@@ -2,9 +2,7 @@
 using FWO.ApiClient.Queries;
 using FWO.Logging;
 using FWO.Config.File;
-using System;
 using FWO.Api.Data;
-using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server
 {

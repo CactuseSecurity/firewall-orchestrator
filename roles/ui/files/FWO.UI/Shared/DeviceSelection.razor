@@ -7,12 +7,10 @@
 <div class="p-3">
     <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
     <button class="btn btn-sm btn-secondary"
-
             @onclick="@((async () => {
                 DeviceFilter.applyFullDeviceSelection(Managements, SelectAll);
                 FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
                 SelectAll = !SelectAll;
-
                 await FilterInputChanged.InvokeAsync(FilterInput);
                 await SelectAllChanged.InvokeAsync(SelectAll);
             }))">
@@ -29,9 +27,9 @@
                 {
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="@device.Id"
-                               @bind="device.selected"
+                               @bind="device.Selected"
                                @oninput="async () => {
-                                    device.selected = !device.selected;
+                                    device.Selected = !device.Selected;
                                     if (DeviceFilter.areAllDevicesSelected(Managements))
                                         SelectAll = false;
                                     if (!DeviceFilter.isAnyLSBDeviceFilterSet(Managements))

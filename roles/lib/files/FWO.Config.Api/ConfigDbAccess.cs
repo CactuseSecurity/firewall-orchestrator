@@ -48,7 +48,8 @@ namespace FWO.Config.Api
                 try
                 {
                     TypeConverter converter = TypeDescriptor.GetConverter(typeof(ConfigValueType));
-                    return (ConfigValueType)converter.ConvertFromString(configItems[key]);
+                    return (ConfigValueType?)converter.ConvertFromString(configItems[key]) 
+                    ?? throw new Exception($"Config value (with key: {key}) is null or not convertible to {nameof(ConfigValueType)}.");
                 }
                 catch (Exception exception)
                 {

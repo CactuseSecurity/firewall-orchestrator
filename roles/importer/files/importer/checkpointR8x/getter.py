@@ -32,7 +32,10 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
         request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
-        logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        if 'password' in json.dumps(json_payload):
+            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+        else:
+            logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
         sys.exit(1)
     if show_progress:
         print ('.', end='', flush=True)

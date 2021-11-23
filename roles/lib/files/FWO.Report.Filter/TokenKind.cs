@@ -28,6 +28,8 @@ namespace FWO.Report.Filter
         Or,
         Not,
         EQ, // ==
-        NEQ // !=
+        NEQ, // !=
+        LSS, // <
+        GRT, // >
     }
 }

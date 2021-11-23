@@ -21,9 +21,9 @@ namespace FWO.ApiClient
 
         private readonly GraphQLHttpClient graphQlClient;
 
-        private string jwt;
+        private string? jwt;
 
-        public APIConnection(string APIServerURI, string jwt = null)
+        public APIConnection(string APIServerURI, string? jwt = null)
         {
             // Save Server URI
             this.APIServerURI = APIServerURI;
@@ -66,7 +66,7 @@ namespace FWO.ApiClient
         /// <param name="operationName"></param>
         /// <returns><typeparamref name="QueryResponseType"/></returns>
 
-        public async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object variables = null, string operationName = null)
+        public async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
         {
             try
             {
@@ -96,7 +96,8 @@ namespace FWO.ApiClient
 
                     JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
                     responseObjectEnumerator.MoveNext();
-                    QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText());
+                    QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
+                    throw new Exception($"Could not convert result from Json to {nameof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
                     return returnValue;
                 }
             }
@@ -109,7 +110,7 @@ namespace FWO.ApiClient
             }
         }
 
-        public ApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, string subscription, object variables = null, string operationName = null)
+        public ApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, ApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
         {
             try
             {
@@ -119,7 +120,7 @@ namespace FWO.ApiClient
                 IObservable<GraphQLResponse<dynamic>> subscriptionStream = graphQlClient.CreateSubscriptionStream<dynamic>(request, exceptionHandler);
                 Log.WriteDebug("API", "API subscription created.");
 
-                return new ApiSubscription<SubscriptionResponseType>(subscriptionStream);
+                return new ApiSubscription<SubscriptionResponseType>(subscriptionStream, subscriptionUpdateHandler);
             }
 
             catch (Exception exception)

@@ -58,8 +58,8 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin")]
         public async Task<bool> AddUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
-            string userDn = parameters.UserDn;
-            string role = parameters.Role;
+            string userDn = parameters.UserDn ?? throw new NullReferenceException(nameof(parameters.UserDn));
+            string role = parameters.Role ?? throw new NullReferenceException(nameof(parameters.Role));
 
             bool userAdded = false;
             List<Task> ldapRoleRequests = new List<Task>();
@@ -90,8 +90,8 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin")]
         public async Task<bool> RemoveUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
-            string userDn = parameters.UserDn;
-            string role = parameters.Role;
+            string userDn = parameters.UserDn ?? throw new NullReferenceException(nameof(parameters.UserDn));
+            string role = parameters.Role ?? throw new NullReferenceException(nameof(parameters.Role));
 
             bool userRemoved = false;
             List<Task> ldapRoleRequests = new List<Task>();

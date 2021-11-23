@@ -9,83 +9,132 @@ namespace FWO.Report.Filter.Ast
 {
     class AstNodeFilter : AstNode
     {
-        public TokenKind Name { get; set; }
-        public TokenKind Operator { get; set; }
-        public string Value { get; set; }
+        public Token Name { get; set; }
+        public Token Operator { get; set; }
+        public Token Value { get; set; }
         private List<string> ruleFieldNames { get; set; }
         private int queryLevel { get; set; }
 
         public override void Extract(ref DynGraphqlQuery query)
         {
-            Dictionary<string, Func<DynGraphqlQuery, DynGraphqlQuery>> functions = new Dictionary<string, Func<DynGraphqlQuery, DynGraphqlQuery>>();
+            switch (Name.Kind)
+            {
+                case TokenKind.Disabled:
+                    //ExtractDisabledQuery(query);
+                    throw new NotSupportedException("Token of type \"Disabled\" is currently not supported.");
+                case TokenKind.SourceNegated:
+                    // ExtractSourceNegatedQuery(query);
+                    throw new NotSupportedException("Token of type \"SourceNegated\" is currently not supported.");
+                case TokenKind.DestinationNegated:
+                    // ExtractDestinationNegatedQuery(query);
+                    throw new NotSupportedException("Token of type \"DestinationNegated\" is currently not supported.");
+                case TokenKind.ServiceNegated:
+                    // ExtractServiceNegatedQuery(query);
+                    throw new NotSupportedException("Token of type \"ServiceNegated\" is currently not supported.");
 
-            functions["FullText"] = this.ExtractFullTextQuery;
-            functions["Value"] = this.ExtractFullTextQuery; // "xy" and "FullText=xy" are the same filter
 
-            functions["ReportType"] = this.ExtractReportTypeQuery;
-            functions["Time"] = this.ExtractTimeQuery;
-
-            // functions["Disabled"] = this.ExtractDisabled;
-            // functions["SourceNegated"] = this.ExtractSourceNegated;
-            // functions["DestinationNegated"] = this.ExtractDestinationNegated;
-            // functions["ServiceNegated"] = this.ExtractServiceNegated;
-
-            functions["Source"] = this.ExtractSourceQuery;
-            functions["Destination"] = this.ExtractDestinationQuery;
-            functions["Action"] = this.ExtractActionQuery;
-            functions["Service"] = this.ExtractServiceQuery;
-            functions["DestinationPort"] = this.ExtractDestinationPort;
-            functions["Protocol"] = this.ExtractProtocolQuery;
-            functions["Management"] = this.ExtractManagementQuery;
-            functions["Gateway"] = this.ExtractGatewayQuery;
-            functions["Remove"] = this.ExtractRemoveQuery;
-            functions["RecertDisplay"] = this.ExtractRecertDisplay;
-
-            // call the method matching the Name of the current node to build the graphQL query
-            query = functions[Name.ToString()](query);
-
-            return;
+                // "xy" and "FullText=xy" are the same filter
+                case TokenKind.FullText:
+                case TokenKind.Value:
+                    ExtractFullTextQuery(query);
+                    break;
+                case TokenKind.ReportType:
+                    ExtractReportTypeQuery(query);
+                    break;
+                case TokenKind.Source:
+                    ExtractSourceQuery(query);
+                    break;
+                case TokenKind.Destination:
+                    ExtractDestinationQuery(query);         
+                    break;
+                case TokenKind.Action:
+                    ExtractActionQuery(query);
+                    break;
+                case TokenKind.Service:
+                    ExtractServiceQuery(query);
+                    break;
+                case TokenKind.DestinationPort:
+                    ExtractDestinationPort(query);
+                    break;
+                case TokenKind.Protocol:
+                    ExtractProtocolQuery(query);
+                    break;
+                case TokenKind.Management:
+                    ExtractManagementQuery(query);
+                    break;
+                case TokenKind.Gateway:
+                    ExtractGatewayQuery(query);
+                    break;
+                case TokenKind.Remove:
+                    ExtractRemoveQuery(query);
+                    break;
+                case TokenKind.RecertDisplay:
+                    ExtractRecertDisplay(query);
+                    break;
+                case TokenKind.Time:
+                    ExtractTimeQuery(query);
+                    break;
+                default:
+                    throw new NotSupportedException($"### Compiler Error: Found unexpected and unsupported filter token: \"{Name}\" ###");
+            }
         }
 
         private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
         {
-            if (query.ReportType == "rules" || query.ReportType == "natrules" || query.ReportType == "statistics")
+            switch (query.ReportType)
             {
-                query.ruleWhereStatement +=
-                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                    $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                query.nwObjWhereStatement +=
-                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                    $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                query.svcObjWhereStatement +=
-                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                    $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                query.userObjWhereStatement +=
-                    $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
-                    $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                query.ReportTime = Value;
-            }
-            else if (query.ReportType == "changes")
-            {
-                string start = "";
-                string stop = "";
-                (start, stop) = resolveTimeRange(Value);
-                query.QueryVariables["start"] = start;
-                query.QueryVariables["stop"] = stop;
-                query.QueryParameters.Add("$start: timestamp! ");
-                query.QueryParameters.Add("$stop: timestamp! ");
+                case ReportType.Rules:
+                case ReportType.Statistics:
+                case ReportType.NatRules:
+                    switch (Operator.Kind)
+                    {
+                        case TokenKind.EQ:
+                            query.ruleWhereStatement +=
+                                $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                                $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            query.nwObjWhereStatement +=
+                                $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                                $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            query.svcObjWhereStatement +=
+                                $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                                $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            query.userObjWhereStatement +=
+                                $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                                $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                            query.ReportTime = Value.Text;
+                            break;
+                        default:
+                            throw new SemanticException($"Unexpected operator token. Expected equals token.", Operator.Position);
+                    }
+                    break;
+                case ReportType.Changes:
+                    switch (Operator.Kind)
+                    {
+                        case TokenKind.EQ:
+                        case TokenKind.GRT:
+                        case TokenKind.LSS:
+                            (string start, string stop) = ResolveTimeRange(Value.Text);
+                            query.QueryVariables["start"] = start;
+                            query.QueryVariables["stop"] = stop;
+                            query.QueryParameters.Add("$start: timestamp! ");
+                            query.QueryParameters.Add("$stop: timestamp! ");
 
-                query.ruleWhereStatement += $@"
-                    _and: [
-                        {{ import_control: {{ stop_time: {{ _gte: $start }} }} }}
-                        {{ import_control: {{ stop_time: {{ _lte: $stop }} }} }}
-                    ]
-                    change_type_id: {{ _eq: 3 }}
-                    security_relevant: {{ _eq: true }}";
-            }
-            else
-            {
-                Log.WriteError("Filter", $"Undefined Report Type found: {query.ReportType}");
+                            query.ruleWhereStatement += $@"
+                            _and: [
+                                {{ import_control: {{ stop_time: {{ _gte: $start }} }} }}
+                                {{ import_control: {{ stop_time: {{ _lte: $stop }} }} }}
+                            ]
+                            change_type_id: {{ _eq: 3 }}
+                            security_relevant: {{ _eq: true }}";
+                            break;
+                        default:
+                            throw new SemanticException($"Unexpected operator token. Expected equals token.", Operator.Position);
+                    }
+                    break;
+                case ReportType.None:
+                default:
+                    Log.WriteError("Filter", $"Unexpected report type found: {query.ReportType}");
+                    break;
             }
             // todo: deal with time ranges for changes report type
             return query;
@@ -93,14 +142,26 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
         {
-            query.ReportType = Value;
+            query.ReportType = Value.Text switch
+            {
+                "rules" or "rule" => ReportType.Rules,
+                "statistics" or "statistic" => ReportType.Statistics,
+                "changes" or "change" => ReportType.Changes,
+                "natrules" or "nat_rules" => ReportType.NatRules,
+                _ => ReportType.None
+            };
+
+            if (query.ReportType == ReportType.None)
+            {
+                throw new SemanticException($"Unexpected report type found", Value.Position);
+            }
             return query;
         }
 
         private DynGraphqlQuery ExtractIpFilter(DynGraphqlQuery query, string location, string locationTable)
         {
-            string filterIP = sanitizeIp(Value);
-            (string firstIp, string lastIp) = getFirstAndLastIp(filterIP);
+            string filterIP = SanitizeIp(Value.Text);
+            (string firstIp, string lastIp) = GetFirstAndLastIp(filterIP);
             string ipFilterString = "";
 
             if (firstIp == lastIp) // optimization, just need a single comparison if searching for single ip
@@ -206,13 +267,13 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractSourceQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value);
-            if (isCidr(Value))  // filtering for ip addresses
+            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            if (IsCidr(Value.Text))  // filtering for ip addresses
                 query = ExtractIpFilter(query, location: "src", locationTable: "rule_froms");
             else // string search against src obj name
             {
                 string QueryVarName = "src" + query.parameterCounter++;
-                query.QueryVariables[QueryVarName] = $"%{Value}%";
+                query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
                 query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
             }
@@ -220,13 +281,13 @@ namespace FWO.Report.Filter.Ast
         }
         private DynGraphqlQuery ExtractDestinationQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value);
-            if (isCidr(Value))  // filtering for ip addresses
+            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            if (IsCidr(Value.Text))  // filtering for ip addresses
                 query = ExtractIpFilter(query, location: "dst", locationTable: "rule_tos");
             else // string search against dst obj name
             {
                 string QueryVarName = "dst" + query.parameterCounter++;
-                query.QueryVariables[QueryVarName] = $"%{Value}%";
+                query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
                 query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
             }
@@ -235,40 +296,40 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractServiceQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "svc" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
-            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
             query.ruleWhereStatement += $"rule_services: {{service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
             return query;
         }
         private DynGraphqlQuery ExtractActionQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "action" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
-            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
             query.ruleWhereStatement += $"rule_action: {{ {QueryOperation}: ${QueryVarName} }}";
             return query;
         }
         private DynGraphqlQuery ExtractProtocolQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "proto" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
-            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
             query.ruleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }}";
             return query;
         }
         private DynGraphqlQuery ExtractManagementQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName;
 
-            if (int.TryParse(Value, out int _)) // dealing with mgm_id filter
+            if (int.TryParse(Value.Text, out int _)) // dealing with mgm_id filter
             {
                 QueryVarName = "mgmtId" + query.parameterCounter++;
                 query.QueryParameters.Add($"${QueryVarName}: Int! ");
@@ -282,7 +343,7 @@ namespace FWO.Report.Filter.Ast
             {
                 QueryVarName = "mgmtName" + query.parameterCounter++;
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
-                query.QueryVariables[QueryVarName] = $"%{Value}%";
+                query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
                 query.ruleWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
                 query.nwObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
                 query.svcObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
@@ -292,11 +353,11 @@ namespace FWO.Report.Filter.Ast
         }
         private DynGraphqlQuery ExtractGatewayQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "gwName" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
-            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
             query.ruleWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
             // query.nwObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
             // query.svcObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
@@ -306,11 +367,11 @@ namespace FWO.Report.Filter.Ast
         }
         private DynGraphqlQuery ExtractFullTextQuery(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value);
+            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "fullTextFilter" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
-            query.QueryVariables[QueryVarName] = $"%{Value}%";
+            query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
 
             ruleFieldNames = new List<string>() { "rule_src", "rule_dst", "rule_svc", "rule_action" };  // TODO: add comment later
             List<string> searchParts = new List<string>();
@@ -328,7 +389,7 @@ namespace FWO.Report.Filter.Ast
             string QueryVarName = "dport" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: Int! ");
-            query.QueryVariables[QueryVarName] = Value;
+            query.QueryVariables[QueryVarName] = Value.Text;
 
             query.ruleWhereStatement +=
                 " rule_services: { service: { svcgrp_flats: { service: { svc_port: {_lte" +
@@ -341,7 +402,7 @@ namespace FWO.Report.Filter.Ast
             string QueryVarName = "remove" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: Boolean ");
-            query.QueryVariables[QueryVarName] = $"{Value}";
+            query.QueryVariables[QueryVarName] = $"{Value.Text}";
             query.ruleWhereStatement += $"rule_metadatum: {{rule_to_be_removed: {{ _eq: ${QueryVarName} }}}}";
             return query;
         }
@@ -350,7 +411,7 @@ namespace FWO.Report.Filter.Ast
         {
             string QueryVarName = "refdate" + query.parameterCounter++;
             query.QueryParameters.Add($"${QueryVarName}: timestamp! ");
-            string refDate = DateTime.Now.AddDays(-Convert.ToInt16(Value)).ToString("yyyy-MM-dd HH:mm:ss");
+            string refDate = DateTime.Now.AddDays(-Convert.ToInt16(Value.Text)).ToString("yyyy-MM-dd HH:mm:ss");
             query.QueryVariables[QueryVarName] = refDate;
 
             query.ruleWhereStatement += $@"
@@ -365,17 +426,17 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-        private static string SetQueryOpString(TokenKind Operator, TokenKind Name, string Value)
+        private static string SetQueryOpString(Token @operator, Token filter, string value)
         {
-            string operation = "";
-            switch (Operator)
+            string operation;
+            switch (@operator.Kind)
             {
                 case TokenKind.EQ:
-                    if (Name == TokenKind.Time || Name == TokenKind.DestinationPort)
+                    if (filter.Kind == TokenKind.Time || filter.Kind == TokenKind.DestinationPort)
                         operation = "_eq";
-                    else if ((Name == TokenKind.Source && isCidr(Value)) || Name == TokenKind.DestinationPort)
+                    else if ((filter.Kind == TokenKind.Source && IsCidr(value)) || filter.Kind == TokenKind.DestinationPort)
                         operation = "_eq";
-                    else if (Name == TokenKind.Management && int.TryParse(Value, out int _))
+                    else if (filter.Kind == TokenKind.Management && int.TryParse(value, out int _))
                         operation = "_eq";
                     else
                         operation = "_ilike";
@@ -389,7 +450,7 @@ namespace FWO.Report.Filter.Ast
             return operation;
         }
 
-        private static string sanitizeIp(string cidr_str)
+        private static string SanitizeIp(string cidr_str)
         {
             IPAddress ip;
             if (IPAddress.TryParse(cidr_str, out ip))
@@ -407,13 +468,13 @@ namespace FWO.Report.Filter.Ast
             return cidr_str;
         }
 
-        private static bool isCidr(string cidr)
+        private static bool IsCidr(string cidr)
         {
             try
             {
                 // IPV4 only:
 
-                string[] IPA = sanitizeIp(cidr).Split('/');
+                string[] IPA = SanitizeIp(cidr).Split('/');
                 if (IPA.Length == 2)
                 {
                     if (IPAddress.TryParse(IPA[0], out _))
@@ -441,16 +502,16 @@ namespace FWO.Report.Filter.Ast
             }
         }
 
-        private static string toip(uint ip)
+        private static string ToIp(uint ip)
         {
             // TODO: IPv6 handling
             return String.Format("{0}.{1}.{2}.{3}", ip >> 24, (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff);
         }
 
-        private static (string, string) getFirstAndLastIp(string cidr)
+        private static (string, string) GetFirstAndLastIp(string cidr)
         {
             // TODO: IPv6 handling
-            string[] parts = sanitizeIp(cidr).Split('.', '/');
+            string[] parts = SanitizeIp(cidr).Split('.', '/');
 
             uint ipnum = (Convert.ToUInt32(parts[0]) << 24) |
                 (Convert.ToUInt32(parts[1]) << 16) |
@@ -463,14 +524,13 @@ namespace FWO.Report.Filter.Ast
 
             uint ipstart = ipnum & mask;
             uint ipend = ipnum | (mask ^ 0xffffffff);
-            return (toip(ipstart), toip(ipend));
+            return (ToIp(ipstart), ToIp(ipend));
         }
-        private (string, string) resolveTimeRange(string timeRange)
+        private (string, string) ResolveTimeRange(string timeRange)
         {
-            string start = "";
-            string stop = "";
-            DateTime now = DateTime.Now;
-            string currentTime = (string)DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            string start;
+            string stop;
+            //string currentTime = (string)DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             string currentYear = (string)DateTime.Now.ToString("yyyy");
             string currentMonth = (string)DateTime.Now.ToString("MM");
             string currentDay = (string)DateTime.Now.ToString("dd");
@@ -482,12 +542,12 @@ namespace FWO.Report.Filter.Ast
             {
                 // todo: add today, yesterday, this week, last week
                 case "last year":
-                    start = $"{(Convert.ToInt16(currentYear) - 1).ToString()}-01-01";
-                    stop = $"{Convert.ToInt16(currentYear).ToString()}-01-01";
+                    start = $"{(Convert.ToInt16(currentYear) - 1)}-01-01";
+                    stop = $"{Convert.ToInt16(currentYear)}-01-01";
                     break;
                 case "this year":
-                    start = $"{(Convert.ToInt16(currentYear)).ToString()}-01-01";
-                    stop = $"{(Convert.ToInt16(currentYear) + 1).ToString()}-01-01";
+                    start = $"{Convert.ToInt16(currentYear)}-01-01";
+                    stop = $"{Convert.ToInt16(currentYear) + 1}-01-01";
                     break;
                 case "this month":
                     start = startOfCurrentMonth.ToString("yyyy-MM-dd");
@@ -509,12 +569,12 @@ namespace FWO.Report.Filter.Ast
                         stop = Convert.ToDateTime(times[1]).ToString("yyyy-MM-dd HH:mm:ss");
                     }
                     else
-                        throw new SyntaxException($"Error: wrong time range format.", new System.Range(23, 26)); // Unexpected token
+                        throw new SyntaxException($"Error: wrong time range format.", Value.Position); // Unexpected token
                     // we have some hard coded string positions here which we should get rid off
                     // how can we access the tokens[position].Position information here?
                     break;
             }
-            return (start, stop);
+            return ("", stop);
         }
 
     }

@@ -16,15 +16,17 @@ namespace FWO.ApiClient
         private readonly IObservable<GraphQLResponse<dynamic>> subscriptionStream;
         private readonly IDisposable subscription;
 
-        public ApiSubscription(IObservable<GraphQLResponse<dynamic>> subscriptionStream)
+        public ApiSubscription(IObservable<GraphQLResponse<dynamic>> subscriptionStream, SubscriptionUpdate OnUpdate)
         {
             this.subscriptionStream = subscriptionStream;
+            this.OnUpdate = OnUpdate;
 
             subscription = subscriptionStream.Subscribe(response =>
             {
                 JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
                 responseObjectEnumerator.MoveNext();
-                SubscriptionResponseType returnValue = JsonSerializer.Deserialize<SubscriptionResponseType>(responseObjectEnumerator.Current.Value.GetRawText());
+                SubscriptionResponseType returnValue = JsonSerializer.Deserialize<SubscriptionResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
+                throw new Exception($"Could not convert result from Json to {nameof(SubscriptionResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}"); ;
                 OnUpdate(returnValue);
             });
         }

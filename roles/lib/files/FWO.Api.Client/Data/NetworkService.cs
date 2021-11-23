@@ -44,6 +44,9 @@ namespace FWO.Api.Data
         [JsonPropertyName("svc_create")]
         public int Create { get; set; }
 
+        [JsonPropertyName("svc_create_time")]
+        public TimeWrapper CreateTime { get; set; }
+
         [JsonPropertyName("svc_last_seen")]
         public int LastSeen { get; set; }
 

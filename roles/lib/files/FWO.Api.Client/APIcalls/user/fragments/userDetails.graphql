@@ -1,6 +1,11 @@
 fragment userDetails on usr {
   user_id
   user_uid
+  user_create
+  user_create_time: import_control {
+    time: start_time
+  }
+  user_last_seen
   user_name
   user_comment
   user_lastname

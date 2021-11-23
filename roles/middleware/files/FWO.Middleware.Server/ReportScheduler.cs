@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -117,6 +118,8 @@ namespace FWO.Middleware.Server
 
         private Task GenerateReport(ScheduledReport report, DateTime dateTimeNowRounded)
         {
+            var tokenSource = new CancellationTokenSource();
+            var token = tokenSource.Token;
             return Task.Run(async () =>
             {
                 try
@@ -146,7 +149,8 @@ namespace FWO.Middleware.Server
                     (
                         int.MaxValue,
                         apiConnectionUserContext, 
-                        _ => Task.CompletedTask
+                        _ => Task.CompletedTask,
+                        token
                     );
 
                     foreach (FileFormat format in report.OutputFormat)
@@ -195,7 +199,7 @@ namespace FWO.Middleware.Server
                 {
                     Log.WriteError("Report Scheduling", $"Generating scheduled report \"{report.Name}\" lead to exception.", exception);
                 }
-            });
+            }, token);
         }
 
         private static DateTime RoundDown(DateTime dateTime, TimeSpan roundInterval)

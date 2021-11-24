@@ -14,7 +14,6 @@ def normalize_nwobjects(full_config, config2import, import_id):
     # 'obj_member_refs': member_refs, 'obj_member_names': member_names}])
     for obj_orig in full_config['network_objects']:
         obj = {}
-        obj.update({ 'obj_typ': 'group' })  # setting default network obj type first
         obj.update({'obj_name': obj_orig['name']})
         if 'subnet' in obj_orig: # ipv4 object
             ipa = ipaddress.ip_network(str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))
@@ -30,10 +29,11 @@ def normalize_nwobjects(full_config, config2import, import_id):
             else:
                 obj.update({ 'obj_typ': 'host' })
             obj.update({ 'obj_ip': ipa.with_prefixlen })
-        if 'member' in obj_orig: # addrgrp4 / addrgrp6
-            obj['obj_member_names'] = common.list_delimiter.join(obj_orig['member'])
-            obj['obj_member_refs'] = common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config['network_objects'], 'name', 'uuid')
-        if 'fqdn' in obj_orig: # "fully qualified domain name address"
+        elif 'member' in obj_orig: # addrgrp4 / addrgrp6
+            obj.update({ 'obj_typ': 'group' })
+            obj.update({ 'obj_member_names' : common.list_delimiter.join(obj_orig['member']) })
+            obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config['network_objects'], 'name', 'uuid')})
+        else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
             obj.update({ 'obj_typ': 'network' })
             obj.update({ 'obj_ip': '0.0.0.0/0'})
         if 'comment' in obj_orig:

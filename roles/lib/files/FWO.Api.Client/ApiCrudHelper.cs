@@ -23,6 +23,6 @@ namespace FWO.ApiClient
     public class NewReturning
     {
         [JsonPropertyName("returning")]
-        public ReturnId[] ReturnIds { get; set; }
+        public ReturnId[]? ReturnIds { get; set; }
     }
 }

@@ -31,8 +31,8 @@ namespace FWO.Middleware.Controllers
 
         public class AuthenticationTokenGetParameters
         {
-            public string Username { get; set; }
-            public string Password {  get; set; }
+            public string? Username { get; set; }
+            public string? Password {  get; set; }
         }
 
         // GET: api/<JwtController>
@@ -41,12 +41,12 @@ namespace FWO.Middleware.Controllers
         {
             try
             {
-                UiUser user = null;
+                UiUser? user = null;
 
                 if (parameters != null)
                 {
-                    string username = parameters.Username;
-                    string password = parameters.Password;
+                    string? username = parameters.Username;
+                    string? password = parameters.Password;
 
                     // Create User from given parameters / If user no login data provided => anonymous login
                     if (username != null && password != null)
@@ -89,7 +89,7 @@ namespace FWO.Middleware.Controllers
         /// </summary>
         /// <param name="user"></param>
         /// <returns>jwt if credentials are valid</returns>
-        public async Task<string> AuthorizeUserAsync(UiUser user)
+        public async Task<string> AuthorizeUserAsync(UiUser? user)
         {
             // Case: anonymous user
             if (user == null)
@@ -121,7 +121,7 @@ namespace FWO.Middleware.Controllers
 
             else
             {
-                string userDn = null;
+                string userDn = "";
                 List<Task> ldapDnRequests = new List<Task>();
                 object dnLock = new object();
 
@@ -161,7 +161,7 @@ namespace FWO.Middleware.Controllers
                 {
                     Task finishedDnRequest = await Task.WhenAny(ldapDnRequests);
 
-                    if (userDn != null)
+                    if (!string.IsNullOrWhiteSpace(userDn))
                         return userDn;
 
                     ldapDnRequests.Remove(finishedDnRequest);

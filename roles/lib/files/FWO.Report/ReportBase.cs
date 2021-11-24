@@ -92,7 +92,7 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
                 HtmlTemplate = HtmlTemplate.Replace("##Filter##", filter);
-                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToString());
+                HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 htmlExport = HtmlTemplate.ToString();
             }
@@ -149,10 +149,11 @@ namespace FWO.Report
 
             return query.ReportType switch
             {
-                "statistics" => new ReportStatistics(query, userConfig),
-                "rules" => new ReportRules(query, userConfig),
-                "changes" => new ReportChanges(query, userConfig),
-                "natrules" => new ReportNatRules(query, userConfig),
+
+                ReportType.Statistics => new ReportStatistics(query, userConfig),
+                ReportType.Rules => new ReportRules(query, userConfig),
+                ReportType.Changes => new ReportChanges(query, userConfig),
+                ReportType.NatRules => new ReportNatRules(query, userConfig),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
         }

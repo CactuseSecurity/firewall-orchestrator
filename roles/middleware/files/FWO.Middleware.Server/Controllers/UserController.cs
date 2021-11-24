@@ -35,8 +35,8 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin, auditor")]
         public async Task<List<KeyValuePair<string, string>>> Get([FromBody] UserGetParameters parameters)
         {
-            string ldapHostname = parameters.LdapHostname;
-            string searchPattern = parameters.SearchPattern;
+            string ldapHostname = parameters.LdapHostname ?? throw new ArgumentNullException(nameof(parameters.LdapHostname));
+            string searchPattern = parameters.SearchPattern ?? throw new ArgumentNullException(nameof(parameters.SearchPattern));
 
             List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
 
@@ -62,17 +62,17 @@ namespace FWO.Middleware.Controllers
         public async Task<bool> Add([FromBody] UserAddParameters parameters)
         {
             // Parameters
-            string password = parameters.Password;
-            string email = parameters.Email;
-            string ldapHostname = parameters.LdapHostname;
-            string userDn = parameters.UserDn;
+            string password = parameters.Password ?? throw new ArgumentNullException(nameof(parameters.Password));
+            string email = parameters.Email ?? throw new ArgumentNullException(nameof(parameters.Email));
+            string ldapHostname = parameters.LdapHostname ?? throw new ArgumentNullException(nameof(parameters.LdapHostname));
+            string userDn = parameters.UserDn ?? throw new ArgumentNullException(nameof(parameters.UserDn));
 
             bool userAdded = false;
 
             foreach (Ldap currentLdap in ldaps)
             {
                 // Try to add user to current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
@@ -91,16 +91,16 @@ namespace FWO.Middleware.Controllers
         public async Task<bool> Change([FromBody] UserEditParameters parameters)
         {
             // Parameters
-            string ldapHostname = parameters.LdapHostname;
-            string userDn = parameters.UserDn;
-            string email = parameters.Email;
+            string ldapHostname = parameters.LdapHostname ?? throw new ArgumentNullException(nameof(parameters.UserDn));
+            string userDn = parameters.UserDn ?? throw new ArgumentNullException(nameof(parameters.UserDn));
+            string email = parameters.Email ?? throw new ArgumentNullException(nameof(parameters.UserDn));
 
             bool userUpdated = false;
 
             foreach (Ldap currentLdap in ldaps)
             {
                 // Try to update user in current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {
@@ -121,19 +121,19 @@ namespace FWO.Middleware.Controllers
             if (User.IsInRole("auditor"))
                 return Unauthorized();
 
-            string ldapHostname = parameters.LdapHostname;
-            string userDn = parameters.UserDn;
-            string oldPassword = parameters.OldPassword;
-            string newPassword = parameters.NewPassword;
+            string ldapHostname = parameters.LdapHostname ?? throw new ArgumentNullException(nameof(parameters.LdapHostname));
+            string userDn = parameters.UserDn ?? throw new ArgumentNullException(nameof(parameters.UserDn));
+            string oldPassword = parameters.OldPassword ?? throw new ArgumentNullException(nameof(parameters.OldPassword));
+            string newPassword = parameters.NewPassword ?? throw new ArgumentNullException(nameof(parameters.NewPassword));
 
             string errorMsg = "";
 
             foreach (Ldap currentLdap in ldaps)
             {
                 // if current Ldap is writable: Try to change password in current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
-                    bool passwordMustBeChanged = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { userDn = userDn }))[0].PasswordMustBeChanged;
+                    bool passwordMustBeChanged = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }))[0].PasswordMustBeChanged;
 
                     await Task.Run(async () =>
                     {
@@ -155,16 +155,16 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin")]
         public async Task<ActionResult<string>> ResetPassword([FromBody] UserResetPasswordParameters parameters)
         {
-            string ldapHostname = parameters.LdapHostname;
-            string newPassword = parameters.NewPassword;
-            string userDn = parameters.UserDn;
+            string ldapHostname = parameters.LdapHostname ?? throw new ArgumentNullException(nameof(parameters.LdapHostname));
+            string newPassword = parameters.NewPassword ?? throw new ArgumentNullException(nameof(parameters.NewPassword));
+            string userDn = parameters.UserDn ?? throw new ArgumentNullException(nameof(parameters.UserDn));
 
             string errorMsg = "";
 
             foreach (Ldap currentLdap in ldaps)
             {
                 // if current Ldap is internal: Try to update user password in current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
                     await Task.Run(async () =>
                     {
@@ -190,7 +190,7 @@ namespace FWO.Middleware.Controllers
         public async Task<bool> DeleteAllGroupsAndRoles([FromBody] UserDeleteAllEntriesParameters parameters)
         {
             // Parameters
-            string userDn = parameters.UserDn;
+            string userDn = parameters.UserDn ?? throw new ArgumentNullException(nameof(parameters.UserDn));
 
             bool userRemoved = false;
             List<Task> ldapRoleRequests = new List<Task>();
@@ -221,15 +221,15 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin")]
         public async Task<bool> Delete([FromBody] UserDeleteParameters parameters)
         {
-            string ldapHostname = parameters.LdapHostname;
-            string userDn = parameters.UserDn;
+            string ldapHostname = parameters.LdapHostname ?? throw new ArgumentNullException(nameof(parameters.LdapHostname));
+            string userDn = parameters.UserDn ?? throw new ArgumentNullException(nameof(parameters.UserDn));
 
             bool userDeleted = false;
 
             foreach (Ldap currentLdap in ldaps)
             {
                 // Try to delete user in current Ldap
-                if (currentLdap.Host() == ldapHostname && currentLdap.IsWritable())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.IsWritable())
                 {
                     await Task.Run(() =>
                     {

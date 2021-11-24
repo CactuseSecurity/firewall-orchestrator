@@ -17,14 +17,14 @@ namespace FWO.Middleware.Server
         private readonly RsaSecurityKey jwtPrivateKey;
         private readonly int JwtMinutesValid;
 
-        public JwtWriter(RsaSecurityKey jwtPrivateKey, int JwtMinutesValid)
+        public JwtWriter(RsaSecurityKey? jwtPrivateKey, int JwtMinutesValid)
         {
             this.JwtMinutesValid = JwtMinutesValid;
-            this.jwtPrivateKey = jwtPrivateKey;
+            this.jwtPrivateKey = jwtPrivateKey ?? throw new Exception("test");
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
         }
 
-        public async Task<string> CreateJWT(UiUser user = null)
+        public async Task<string> CreateJWT(UiUser? user = null)
         {
             if (user != null)
                 Log.WriteDebug("Jwt generation", $"Generating JWT for user {user.Name} ...");

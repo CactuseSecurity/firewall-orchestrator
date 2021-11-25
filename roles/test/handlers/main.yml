@@ -26,7 +26,7 @@
         END $do$
     listen: "test importer handler"
 
-  - name: delete tenant tenant1_{{ sample_postfix }}
+  - name: delete tenant tenant1
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
@@ -35,7 +35,7 @@
         END $do$
     listen: "test importer handler"
 
-  - name: delete devices for tenant tenant1_{{ sample_postfix }}
+  - name: delete devices for tenant tenant1
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
@@ -44,7 +44,7 @@
         END $do$
     listen: "test importer handler"
 
-  - name: delete tenant tenant2_{{ sample_postfix }}
+  - name: delete tenant tenant2
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >

@@ -16,16 +16,9 @@
   set_fact:
     test_postfix: "test_{{ random_generated_pw }}"
 
-
 - name: set postfix to brand all objects in this test run
   set_fact:
     sample_postfix: "{{ test_postfix }}"
-
-- name: debug random variables
-  debug:
-    var:
-      - test_postfix
-      - sample_postfix
 
 - name: initialize handler for deleting test data
   set_fact:

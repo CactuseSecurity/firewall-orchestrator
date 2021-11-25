@@ -63,11 +63,13 @@
   become: yes
 
 - name: debug deletelist
-  debug:
-    msg: "{{ item }}"
+  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item.split(: )[1] }}"
   listen: "test importer handler"
   when: "'dn' in item"
   loop: "{{ ldap_entries_to_delete.stdout_lines }}"
+
+- debug:
+    msg: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item.split(: )[1] }}"
 
 # - name: delete ldap test data
 #   include_tasks: roles/test/handlers/delete_test_ldap.yml

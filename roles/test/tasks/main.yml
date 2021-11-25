@@ -47,7 +47,7 @@
 
 - name: debug, delete me
   debug:
-    msg: "command: ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ item }}"
+    msg: "command: ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x -f {{ item }}"
 
 - name: database testing
   import_tasks: test-database.yml

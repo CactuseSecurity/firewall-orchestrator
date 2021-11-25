@@ -19,6 +19,6 @@
 #   become: yes
 
 # - name: add tree
-#   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -w {{ ldap_manager_pwd }} -x -f {{ item }}"
+#   command: "ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x -f {{ item }}"
 #   with_fileglob:
 #     - {{ middleware_ldif_dir }}/tree_*.ldif

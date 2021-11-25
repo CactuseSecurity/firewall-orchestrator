@@ -56,6 +56,14 @@
   become: yes
   become_user: postgres
 
-- name: delete ldap test data
-  include_tasks: roles/test/handlers/delete_test_ldap.yml
-  listen: "test importer handler"
+- name: find ldap entries with test_postfix
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x cn=*{{ sample_postfix }}*"
+  register: ldap_entries_to_delete
+
+- name: debug deletelist
+  debug:
+    var: ldap_entries_to_delete
+
+# - name: delete ldap test data
+#   include_tasks: roles/test/handlers/delete_test_ldap.yml
+#   listen: "test importer handler"

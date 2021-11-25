@@ -45,10 +45,6 @@
     sample_role_purpose: test
   when: "'middlewareserver' in group_names"
 
-- name: debug, delete me
-  debug:
-    msg: "command: ldapmodify -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x -f {{ item }}"
-
 - name: database testing
   import_tasks: test-database.yml
 

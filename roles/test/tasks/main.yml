@@ -12,16 +12,23 @@
   become: yes
   environment: "{{ proxy_env }}"
 
+- name: randomize test names to avoid interference with production data
+  set_fact:
+    test_postfix: "test_{{ random_generated_pw }}"
+    sample_postfix: "{{ test_postfix }}"
+
+- name: debug random variables
+  debug:
+    var:
+      - test_postfix
+      - sample_postfix
+
 - name: initialize handler for deleting test data
   set_fact:
     test_importer_handler_guard: start
   changed_when: true
   notify:
   - test importer handler
-
-- name: randomize test names to avoid interference with production data
-  set_fact:
-    test_postfix: "test_{{ random_generated_pw }}"
 
 - name: include test data
   include_role:

@@ -64,8 +64,10 @@
 
 - name: debug deletelist
   debug:
-    msg: "{{ ldap_entries_to_delete.result | map(attribute='stdout_lines') | list }}"
+    msg: "{{ item }}"
   listen: "test importer handler"
+  when: "'dn' in item"
+  loop: "{{ ldap_entries_to_delete.stdout_lines }}"
 
 # - name: delete ldap test data
 #   include_tasks: roles/test/handlers/delete_test_ldap.yml

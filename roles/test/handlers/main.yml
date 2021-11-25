@@ -40,7 +40,7 @@
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
-        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_{{ sample_postfix }}') 
+        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_{{ sample_postfix }}'); 
         END $do$
     listen: "test importer handler"
 

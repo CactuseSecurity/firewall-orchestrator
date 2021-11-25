@@ -57,5 +57,5 @@
   become_user: postgres
 
 - name: delete ldap test data
-  include_tasks: test/handler/delete_test_ldap.yml
+  include_tasks: roles/test/handlers/delete_test_ldap.yml
   listen: "test importer handler"

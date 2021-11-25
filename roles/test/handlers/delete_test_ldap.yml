@@ -1,0 +1,9 @@
+---
+- name: delete ldap test data
+  include_role:
+    name: sample-auth-data
+  vars:
+    sample_postfix: "{{ test_postfix }}"
+    sample_role_purpose: delete
+    ldif_changetype: delete
+  when: "'middlewareserver' in group_names"

@@ -55,19 +55,6 @@
 - name: create auth secrets (jwt key, ldap)
   include_tasks: create_auth_secrets.yml
 
-- name: check if there already is an ldap connection in DB
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: SELECT COUNT(*) FROM ldap_connection
-  become: yes
-  become_user: postgres
-  register: ldap_conn_present
-
-- name: change value for middleware_change_local_ldap if ldap conn already exists to prevent re-creation errors
-  set_fact:
-    middleware_change_local_ldap: "no"
-  when: ldap_conn_present.query_result.0.count >= 1
-
 - name: import ldif driven changes
   import_tasks: set_initial_ldap_tree.yml
 

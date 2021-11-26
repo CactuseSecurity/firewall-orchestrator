@@ -111,7 +111,7 @@ namespace FWO.Report
                 }
                 else
                 {
-                    newObjects = allFilteredObjects.Merge(filteredObjects);
+                    newObjects = allFilteredObjects.MergeReportObjects(filteredObjects);
                 }
 
                 if (objects == all || objects == nobj)

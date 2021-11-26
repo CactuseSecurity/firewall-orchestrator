@@ -79,7 +79,7 @@
   listen: "test importer handler"
 
 - set_fact:
-    delete_list2: "{{ delete_list.split('dn: ')[1:-0] }}"
+    delete_list2: "{{ delete_list.split('dn: ')[1:] }}"
   listen: "test importer handler"
 
 - name: debug
@@ -88,10 +88,9 @@
   listen: "test importer handler"
 
 - name: delete ldap test data
-  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item.split(': ')[1] }}"
+  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item }}"
   listen: "test importer handler"
-  when: "'dn' in item"
-  loop: "{{ delete_list2 | replace('dc=internal*', 'dc=internal' }}"
+  loop: "{{ delete_list2 | replace('dc=internal*', 'dc=internal') }}"
   become: yes
 
 # - name: delete ldap test data

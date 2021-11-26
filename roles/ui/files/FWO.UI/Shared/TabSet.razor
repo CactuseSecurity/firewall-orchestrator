@@ -26,15 +26,14 @@
 
 @code {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public bool KeepPanelsAlive { get; set; }
 
     public List<Tab> Tabs = new List<Tab>();
 
-    public Tab ActiveTab { get; private set; }
-    private int _activeTabIndex = 0;
+    public Tab? ActiveTab { get; private set; }
 
     private bool _isDisposed;
 

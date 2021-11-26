@@ -25,17 +25,17 @@ namespace FWO.Logging
             WriteLog("Warning", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
         }
 
-        public static void WriteError(string Title, string Text = null, Exception Error = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
+        public static void WriteError(string Title, string? Text = null, Exception? Error = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
             string DisplayText =
                 (Text != null ?
                 $"{Text}"
                 : "") +
-                (Error != null ?
+                (Error != null ? 
                 "\n ---\n" +
-                $"Exception thrown: \n {Error.GetType().Name} \n" +
-                $"Message: \n {Error.Message.TrimStart()} \n" +
-                $"Stack Trace: \n {Error.StackTrace.TrimStart()}"
+                $"Exception thrown: \n {Error?.GetType().Name} \n" +
+                $"Message: \n {Error?.Message.TrimStart()} \n" +
+                $"Stack Trace: \n {Error?.StackTrace?.TrimStart()}"
                 : "");
 
 

@@ -1,4 +1,5 @@
 ﻿using FWO.Report.Filter;
+using FWO.Report.Filter.Ast;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -30,7 +31,8 @@ namespace FWO.Test.Filter
         [Test]
         public void TextOnlySearch()
         {
-            Compiler.Compile("teststring");
+            AstNode ast = Compiler.CompileToAst("teststring");
+            DynGraphqlQuery query = Compiler.Compile("teststring");
         }
 
         [Test]

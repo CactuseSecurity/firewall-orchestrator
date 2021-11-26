@@ -22,7 +22,7 @@ namespace FWO.Report.Filter
             List<int> selectedDevs = new List<int>();
             foreach (Management mgmt in managements)
                 foreach (Device dev in mgmt.Devices)
-                    if (dev.selected)
+                    if (dev.Selected)
                         selectedDevs.Add(dev.Id);
             return selectedDevs;
         }
@@ -31,7 +31,7 @@ namespace FWO.Report.Filter
         {
             foreach (Device dev in management.Devices)
             {
-                if (dev.selected)
+                if (dev.Selected)
                 {
                     return true;
                 }
@@ -66,7 +66,7 @@ namespace FWO.Report.Filter
                     for (dIdx = 0; dIdx <= managements[mIdx].Devices.Length; ++dIdx)
                     {
                         if (managements[mIdx].Devices.Length > dIdx && managements[mIdx].Devices[dIdx] != null)
-                            managements[mIdx].Devices[dIdx].selected = selectedState[mIdx].Devices[dIdx].selected;
+                            managements[mIdx].Devices[dIdx].Selected = selectedState[mIdx].Devices[dIdx].Selected;
                     }
             return managements;
         }
@@ -77,7 +77,7 @@ namespace FWO.Report.Filter
                 if (management != null)
                     foreach (Device device in management.Devices)
                         if (device != null)
-                            if (!device.selected)
+                            if (!device.Selected)
                                 return false;
             return true;
         }
@@ -88,7 +88,7 @@ namespace FWO.Report.Filter
                 if (management != null)
                     foreach (Device device in management.Devices)
                         if (device != null)
-                            if (device.selected)
+                            if (device.Selected)
                                 return true;
             return false;
         }
@@ -99,7 +99,7 @@ namespace FWO.Report.Filter
                 if (management != null)
                     foreach (Device device in management.Devices)
                         if (device != null)
-                            if (device.selected)
+                            if (device.Selected)
                                 return true;
             return false;
         }
@@ -139,7 +139,7 @@ namespace FWO.Report.Filter
             foreach (Management management in managements)
                 if (management != null)
                     foreach (Device device in management.Devices)
-                        device.selected = selectAll;
+                        device.Selected = selectAll;
         }
 
         /// <summary>
@@ -198,7 +198,7 @@ namespace FWO.Report.Filter
 
             foreach (Management mgm in managements)
                 foreach (Device dev in mgm.Devices)
-                    if (dev.selected)
+                    if (dev.Selected)
                         devFilter += $"gateway=\"{dev.Name}\" or ";
 
             if (devFilter.Length > 0)
@@ -223,7 +223,7 @@ namespace FWO.Report.Filter
                     for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
                     {
                         gatewayList.Add(LSBFilter[midx].Devices[didx].Name);
-                        LSBFilter[midx].Devices[didx].selected = false;
+                        LSBFilter[midx].Devices[didx].Selected = false;
                     }
 
             // find gw filter in filter string and perform pattern matching against gw names 
@@ -246,7 +246,7 @@ namespace FWO.Report.Filter
             for (int midx = 0; midx < LSBFilter.Length; ++midx)
                 for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
                     if (filteredGatewayList.Contains(LSBFilter[midx].Devices[didx].Name))
-                        LSBFilter[midx].Devices[didx].selected = true;
+                        LSBFilter[midx].Devices[didx].Selected = true;
 
             // if (!DeviceFilter.isAnyLSBDeviceFilterSet(LSBFilter))
             //     return true;

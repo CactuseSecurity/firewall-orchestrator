@@ -38,7 +38,7 @@ namespace FWO.Middleware.Controllers
 
             foreach (Ldap currentLdap in ldaps)
             {
-                if (currentLdap.Host() == ldapHostname && currentLdap.HasGroupHandling())
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.HasGroupHandling())
                 {
                     await Task.Run(() =>
                     {

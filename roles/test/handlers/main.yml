@@ -88,9 +88,9 @@
   listen: "test importer handler"
 
 - name: delete ldap test data
-  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item }}"
+  command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item | replace('dc=internal*', 'dc=internal') }}"
   listen: "test importer handler"
-  loop: "{{ delete_list2 | replace('dc=internal*', 'dc=internal') }}"
+  loop: "{{ delete_list2 }}"
   become: yes
 
 # - name: delete ldap test data

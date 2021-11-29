@@ -123,6 +123,11 @@
         collapseControl.ForceCollapse(false);
     }
 
+    public void Uncollapse()
+    {
+        collapseControl.ToggleCollapse();
+    }
+
     public void NewTemplate(string filterInput)
     {
         reportTemplateInEdit = new ReportTemplate { Filter = filterInput };

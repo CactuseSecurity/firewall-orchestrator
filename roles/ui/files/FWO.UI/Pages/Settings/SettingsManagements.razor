@@ -215,7 +215,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
     private List<Management> managements = new List<Management>();
     private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
@@ -250,7 +250,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
         }
 
         try
@@ -259,7 +259,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
         }
     }
 
@@ -298,7 +298,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
     }
 
@@ -400,7 +400,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_management"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 

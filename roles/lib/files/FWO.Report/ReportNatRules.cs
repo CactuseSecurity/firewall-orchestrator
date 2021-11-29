@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
@@ -129,7 +130,7 @@ namespace FWO.Report
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
         }
 
-        public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
@@ -167,6 +168,12 @@ namespace FWO.Report
             }
             while (gotNewObjects)
             {
+                if (ct.IsCancellationRequested)
+                {
+                    Log.WriteDebug("Generate NAT Rule Report", "Task cancelled");
+                    DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
+                    ct.ThrowIfCancellationRequested();
+                }
                 gotNewObjects = false;
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
                 for (i = 0; i < managementsWithRelevantImportId.Length; i++)

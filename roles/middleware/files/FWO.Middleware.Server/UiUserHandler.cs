@@ -63,7 +63,11 @@ namespace FWO.Middleware.Server
                     passwordMustBeChanged = false,
                     ldapConnectionId = user.LdapConnection.Id
                 };
-                user.DbId = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
+                ReturnId[]? returnIds = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds;
+                if(returnIds != null)
+                {
+                    user.DbId = returnIds[0].NewId;
+                }
             }
             catch (Exception exeption)
             {

@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text;
@@ -69,7 +70,7 @@ namespace FWO.Report
             userConfig = UserConfig;
         }
 
-        public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback);
+        public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct);
 
         public bool GotObjectsInReport { get; protected set; } = false;
         public abstract Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting

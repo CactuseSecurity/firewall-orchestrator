@@ -193,7 +193,7 @@ namespace FWO.Middleware.Controllers
                     workers.Add(Task.Run(() =>
                     {
                         bool userAdded = currentLdap.AddUserToEntry(userDn, groupDn);
-                        if (userAdded) Log.WriteAudit("AddUserToGroup", $"user {userDn} successfully added to group {groupDn} in {currentLdap.Host()}");
+                        if (userAdded) Log.WriteAudit("AddUserToGroup", $"user \"{userDn}\" successfully added to group \"{groupDn}\" in \"{currentLdap.Host()}\"");
                         return userAdded;
                     }));
                 }

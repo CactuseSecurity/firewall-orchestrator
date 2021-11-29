@@ -1,5 +1,5 @@
 ---
-# installation options: see docs at https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
+# for installation options see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
 - hosts: importers
   tasks:

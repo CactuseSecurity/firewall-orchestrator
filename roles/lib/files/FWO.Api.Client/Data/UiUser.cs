@@ -21,10 +21,10 @@ namespace FWO.Api.Data
         public string Email { get; set; }
 
         [JsonPropertyName("tenant")]
-        public Tenant Tenant { get; set;}
+        public Tenant? Tenant { get; set;}
 
         [JsonPropertyName("uiuser_language")]
-        public string Language { get; set; }
+        public string? Language { get; set; }
 
         [JsonPropertyName("uiuser_last_login")]
         public DateTime? LastLogin { get; set; }

@@ -97,7 +97,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     [Parameter]
     public ReportBase ReportToExport { get; set; }
@@ -163,7 +163,7 @@
                 }
                 catch (Exception exception)
                 {
-                    DisplayMessageInUi(exception, userConfig.GetText("export_report"), null, true);
+                    DisplayMessageInUi(exception, userConfig.GetText("export_report"), "", true);
                 }
             });
         }

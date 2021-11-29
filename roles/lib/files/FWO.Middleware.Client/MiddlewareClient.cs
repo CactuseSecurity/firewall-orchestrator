@@ -1,16 +1,8 @@
-﻿using FWO.Api.Data;
-using RestSharp;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using RestSharp;
 using FWO.Middleware.RequestParameters;
 using RestSharp.Authenticators;
 using RestSharp.Serializers.SystemTextJson;
-using System.Text.Json.Serialization;
 using System.Text.Json;
-using System.Net.Security;
 
 namespace FWO.Middleware.Client
 {
@@ -46,6 +38,34 @@ namespace FWO.Middleware.Client
             IRestRequest request = new RestRequest("AuthenticationToken/Get", Method.POST, DataFormat.Json);
             request.AddJsonBody(new object());
             return await restClient.ExecuteAsync<string>(request);
+        }
+
+        public async Task<IRestResponse<List<LdapGetUpdateParameters>>> GetLdaps()
+        {
+            IRestRequest request = new RestRequest("AuthenticationServer", Method.GET, DataFormat.Json);
+            request.AddJsonBody(new object());
+            return await restClient.ExecuteAsync<List<LdapGetUpdateParameters>>(request);
+        }
+
+        public async Task<IRestResponse<int>> AddLdap(LdapAddParameters parameters)
+        {
+            IRestRequest request = new RestRequest("AuthenticationServer", Method.POST, DataFormat.Json);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<int>(request);
+        }
+
+        public async Task<IRestResponse<int>> UpdateLdap(LdapGetUpdateParameters parameters)
+        {
+            IRestRequest request = new RestRequest("AuthenticationServer", Method.PUT, DataFormat.Json);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<int>(request);
+        }
+
+        public async Task<IRestResponse<int>> DeleteLdap(LdapDeleteParameters parameters)
+        {
+            IRestRequest request = new RestRequest("AuthenticationServer", Method.DELETE, DataFormat.Json);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<int>(request);
         }
 
         public async Task<IRestResponse<string>> ChangePassword(UserChangePasswordParameters parameters)
@@ -165,14 +185,21 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<bool>> AddTenant(TenantAddDeleteParameters parameters)
+        public async Task<IRestResponse<List<TenantGetParameters>>> GetTenants()
+        {
+            IRestRequest request = new RestRequest("Tenant", Method.GET, DataFormat.Json);
+            request.AddJsonBody(new object());
+            return await restClient.ExecuteAsync<List<TenantGetParameters>>(request);
+        }
+
+        public async Task<IRestResponse<int>> AddTenant(TenantAddParameters parameters)
         {
             IRestRequest request = new RestRequest("Tenant", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<bool>(request);
+            return await restClient.ExecuteAsync<int>(request);
         }
 
-        public async Task<IRestResponse<bool>> DeleteTenant(TenantAddDeleteParameters parameters)
+        public async Task<IRestResponse<bool>> DeleteTenant(TenantDeleteParameters parameters)
         {
             IRestRequest request = new RestRequest("Tenant", Method.DELETE, DataFormat.Json);
             request.AddJsonBody(parameters);

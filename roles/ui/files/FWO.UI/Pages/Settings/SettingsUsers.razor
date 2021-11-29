@@ -55,7 +55,11 @@
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true" Filterable="true" >
+            <Template>
+                @(context.Tenant != null ? context.Tenant.Name : "" )
+            </Template>       
+        </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("email"))" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("language"))" Field="@(x => x.Language)" Sortable="true" Filterable="true" >
             <Template>
@@ -123,7 +127,7 @@
                     }
                     else
                     {
-                        <label class="m-2">@actUser.Tenant.Name</label>
+                        <label class="m-2">@(actUser.Tenant != null ? actUser.Tenant.Name : "")</label>
                     }
                 </div>
                 <div class="form-group row">
@@ -284,7 +288,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiLdapConnection> writableLdaps = new List<UiLdapConnection>();
@@ -305,12 +309,12 @@
     private bool showSampleRemoveButton = false;
     private bool ResetPasswordMode = false;
 
-    private UiUser newUser;
-    private UiUser actUser;
-    private int selectedLdapId {get; set;}
-    private int selectedTenantId;
-    private string selectedRoleName;
-    private string selectedGroupName;
+    private UiUser newUser = new UiUser();
+    private UiUser actUser = new UiUser();
+    private int? selectedLdapId {get; set;} = 0;
+    private int? selectedTenantId = 0;
+    private string? selectedRoleName = "";
+    private string? selectedGroupName = "";
 
     private string deleteMessage = "";
     private string sampleRemoveMessage = "";
@@ -330,7 +334,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), "", true);
         }
 
         // Get the tenants
@@ -340,7 +344,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), "", true);
         }
 
         // Get users from uiusers table
@@ -351,7 +355,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_local"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_local"), "", true);
         }
 
     }
@@ -389,7 +393,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -411,7 +415,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -431,7 +435,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -454,7 +458,7 @@
         {
             foreach (var ldapUser in ldapUsers)
             {
-                UiUser relatedUiUser = uiUsers.Find(x => x.Dn == ldapUser.Dn);
+                UiUser? relatedUiUser = uiUsers.FirstOrDefault(x => x.Dn == ldapUser.Dn);
                 if (relatedUiUser != null)
                 {
                     // Update related user
@@ -476,7 +480,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -485,7 +489,7 @@
         try
         {
             ldapUsers.Clear();
-            UiLdapConnection internalLdap = connectedLdaps.Find(x => x.IsInternal());
+            UiLdapConnection? internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal());
             if (internalLdap == null)
             {
                 DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5207"), true);
@@ -517,7 +521,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), "", true);
         }
     }
 
@@ -546,7 +550,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), "", true);
         }
     }
 
@@ -583,7 +587,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
         }
     }
 
@@ -600,7 +604,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("update_user_local"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("update_user_local"), "", false);
         }
     }
 
@@ -608,9 +612,10 @@
     {
         try
         {
-            if (user.Tenant != null)
+            Tenant? actTenant = tenants.FirstOrDefault(x => x.Name == user.Tenant?.Name);
+            if (user.Tenant != null && actTenant != null)
             {
-                user.Tenant.Id = tenants.Find(x => x.Name == user.Tenant.Name).Id;
+                user.Tenant.Id = actTenant.Id;
             }
 
             var Variables = new
@@ -622,11 +627,15 @@
                 passwordMustBeChanged = user.PasswordMustBeChanged,
                 ldapConnectionId = user.LdapConnection.Id
             };
-            user.DbId = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addUser, Variables)).ReturnIds;
+            if(returnIds != null)
+            {
+                user.DbId = returnIds[0].NewId;
+            }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user_local"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_local"), "", false);
         }
     }
 
@@ -634,20 +643,24 @@
     {
         try
         {
-            UiLdapConnection selectedLdap = connectedLdaps.Find(x => x.Id == selectedLdapId);
+            UiLdapConnection? selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == selectedLdapId);
             availableTenants = new List<Tenant>();
-            if (selectedLdap.TenantId != null && selectedLdap.TenantId != 0)
+            if(selectedLdap != null)
             {
-                availableTenants.Add(tenants.Find(x => x.Id == selectedLdap.TenantId));
-            }
-            else if (selectedLdap.TenantLevel > 0)
-            {
-                availableTenants = tenants;
+                if (selectedLdap.TenantId != null && selectedLdap.TenantId != 0)
+                {
+                    Tenant? ten = tenants.FirstOrDefault(x => x.Id == selectedLdap.TenantId);
+                    if (ten != null) availableTenants.Add(ten);
+                }
+                else if (selectedLdap.TenantLevel > 0)
+                {
+                    availableTenants = tenants;
+                }
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", false);
         }
     }
 
@@ -657,9 +670,9 @@
         {
             AddMode = true;
             newUser = new UiUser(){ Email = "" };
-            selectedLdapId = writableLdaps.FirstOrDefault().Id;
+            selectedLdapId = writableLdaps.FirstOrDefault()?.Id;
             SetAvailableTenants();
-            selectedTenantId = availableTenants.FirstOrDefault().Id;
+            selectedTenantId = availableTenants.FirstOrDefault()?.Id;
             selectedGroupName = null;
             newUser.Groups = new List<string>();
             selectedRoleName = null;
@@ -668,7 +681,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user"), "", false);
         }
     }
 
@@ -679,9 +692,9 @@
             AddMode = true;
             newUser = new UiUser(user);
             newUser.Password = "";
-            selectedLdapId = (newUser.LdapConnection != null ? newUser.LdapConnection.Id : writableLdaps.FirstOrDefault().Id);
+            selectedLdapId = (newUser.LdapConnection != null ? newUser.LdapConnection.Id : writableLdaps.FirstOrDefault()?.Id);
             SetAvailableTenants();
-            selectedTenantId = newUser.Tenant.Id;
+            selectedTenantId = newUser.Tenant?.Id;
             selectedGroupName = (newUser.Groups != null ? newUser.Groups.FirstOrDefault() : null);
             newUser.Groups = new List<string>();
             selectedRoleName = (newUser.Roles != null ? newUser.Roles.FirstOrDefault() : null);
@@ -690,7 +703,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user"), "", false);
         }
     }
 
@@ -703,9 +716,9 @@
 
     private void SynchronizeUserData(UiUser user)
     {
-        UiLdapConnection selectedLdap = connectedLdaps.Find(x => x.Id == selectedLdapId);
+        UiLdapConnection selectedLdap = connectedLdaps.FirstOrDefault(x => x.Id == selectedLdapId) ?? throw new Exception($"Ldap not found. Id: {selectedLdapId}");
         user.LdapConnection = selectedLdap;
-        Tenant selectedTenant = tenants.Find(x => x.Id == selectedTenantId);
+        Tenant selectedTenant = tenants.FirstOrDefault(x => x.Id == selectedTenantId) ?? throw new Exception($"Tenant not found. Id: {selectedTenantId}");
         user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
         // todo: further dn specification maybe in ldapconnection?
         user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
@@ -774,7 +787,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_user"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_user"), "", true);
         }
     }
 
@@ -810,7 +823,7 @@
         {
             foreach(string groupName in user.Groups)
             {
-                GroupAddDeleteUserParameters addUserParameters = new GroupAddDeleteUserParameters { GroupDn = groups.Find(x => x.Name == groupName).Dn, UserDn = user.Dn };
+                GroupAddDeleteUserParameters addUserParameters = new GroupAddDeleteUserParameters { GroupDn = groups.Find(x => x.Name == groupName)?.Dn, UserDn = user.Dn };
                 IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
                 if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                 {
@@ -820,7 +833,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_group"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_group"), "", true);
         }
     }
 
@@ -830,7 +843,7 @@
         {
             foreach(string roleName in user.Roles)
             {
-                RoleAddDeleteUserParameters parameters = new RoleAddDeleteUserParameters { Role = roles.Find(x => x.Name == roleName).Dn, UserDn = user.Dn };
+                RoleAddDeleteUserParameters parameters = new RoleAddDeleteUserParameters { Role = roles.Find(x => x.Name == roleName)?.Dn, UserDn = user.Dn };
                 IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
                 if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                 {
@@ -840,7 +853,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), "", true);
         }
     }
 
@@ -865,7 +878,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_user_ldap"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user_ldap"), "", true);
         }
     }
 
@@ -888,7 +901,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_user_ldap"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user_ldap"), "", true);
         }
     }
 
@@ -905,7 +918,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_user_local"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_user_local"), "", false);
         }
     }
 
@@ -957,7 +970,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("reset_password"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("reset_password"), "", true);
         }
     }
 
@@ -998,7 +1011,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), null, false);
+                DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
             }
         }
         SampleRemoveMode = false;

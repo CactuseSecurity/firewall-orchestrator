@@ -154,7 +154,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
     private List<Device> devices = new List<Device>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
     private List<Management> managements = new List<Management>();
@@ -163,8 +163,8 @@
     private bool DeleteMode = false;
     private bool AddMode = false;
 
-    private Device newDevice;
-    private Device actDevice;
+    private Device newDevice = new Device();
+    private Device actDevice = new Device();
 
     protected override async Task OnInitializedAsync()
     {
@@ -176,7 +176,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_gateways"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_gateways"), "", true);
         }
     }
 
@@ -207,7 +207,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), "", true);
         }
     }
 
@@ -285,7 +285,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_gateway"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_gateway"), "", true);
         }
     }
 
@@ -314,7 +314,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant0"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
         }
     }
 

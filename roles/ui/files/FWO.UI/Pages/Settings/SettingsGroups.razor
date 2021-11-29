@@ -222,16 +222,16 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
     private List<UserGroup> groups = new List<UserGroup>();
     private List<UserGroup> sampleGroups = new List<UserGroup>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<Role> roles = new List<Role>();
     private List<Role> availableRoles = new List<Role>();
 
-    private string selectedUiUser;
-    private string selectedUserToDelete;
-    private string selectedRoleName;
+    private string selectedUiUser = "";
+    private string selectedUserToDelete = "";
+    private string? selectedRoleName;
     private bool showSampleRemoveButton = false;
 
     private UserGroup actGroup = new UserGroup();
@@ -277,7 +277,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), "", true);
         }
         
         CollectSampleGroups();
@@ -289,7 +289,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), "", true);
         }
         
         // get roles from internal ldap
@@ -344,7 +344,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
         }
     }
     private void SynchronizeGroupsToRoles()
@@ -440,7 +440,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_group"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_group"), "", true);
         }
     }
 
@@ -460,7 +460,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), "", true);
         }
     }
 
@@ -499,7 +499,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_group"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_group"), "", true);
         }
     }
 
@@ -519,7 +519,7 @@
 
     private async Task AddUserFromUiUsers(string userDn)
     {
-        UiUser user = uiUsers.Find(x => x.Dn == userDn);
+        UiUser? user = uiUsers.FirstOrDefault(x => x.Dn == userDn);
         if (user == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5240"), true);
@@ -548,7 +548,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("add_user_to_group"), null, true);
+                DisplayMessageInUi(exception, userConfig.GetText("add_user_to_group"), "", true);
             }
         }
     }
@@ -576,7 +576,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("delete_user"), null, true);
+                DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
             }
         }
         else

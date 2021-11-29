@@ -99,7 +99,7 @@
       # Remove leading and trailing text of jwt output
       Authorization: Bearer {{ sample_JWT.content }}
     body:
-      query: "query text(limit:3) { txt { id } }"
+      query: "query text { txt(limit:3) { id } }"
     body_format: json
     validate_certs: false
     return_content: yes

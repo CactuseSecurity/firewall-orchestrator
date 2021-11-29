@@ -192,8 +192,14 @@ INSERT INTO txt VALUES ('clear_all',		    'German', 	'Auswahl leeren');
 INSERT INTO txt VALUES ('clear_all',		    'English', 	'Clear all');
 INSERT INTO txt VALUES ('generate_report',		'German', 	'Report erstellen');
 INSERT INTO txt VALUES ('generate_report',		'English', 	'Generate report');
+INSERT INTO txt VALUES ('stop_fetching',		'German', 	'Datenholen abbrechen');
+INSERT INTO txt VALUES ('stop_fetching',		'English', 	'Stop fetching');
+INSERT INTO txt VALUES ('report_data_fetch',    'German', 	'Abholen der Reportdaten');
+INSERT INTO txt VALUES ('report_data_fetch',    'English', 	'Report Data Fetch');
 INSERT INTO txt VALUES ('export_report',        'German', 	'Report exportieren');
 INSERT INTO txt VALUES ('export_report',        'English', 	'Export Report');
+INSERT INTO txt VALUES ('report_name',          'German', 	'Report-Name');
+INSERT INTO txt VALUES ('report_name',          'English', 	'Report Name');
 INSERT INTO txt VALUES ('export_as',            'German', 	'Exportieren als...');
 INSERT INTO txt VALUES ('export_as',            'English', 	'Export as...');
 INSERT INTO txt VALUES ('export',               'German', 	'Exportieren');
@@ -965,6 +971,8 @@ INSERT INTO txt VALUES ('E1001', 'German',  'Vor dem Generieren des Reports bitt
 INSERT INTO txt VALUES ('E1001', 'English', 'Please select at least one device in the left side-bar before generating a report');
 INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum Exportieren. Bitte zuerst Report generieren!');
 INSERT INTO txt VALUES ('E1002', 'English', 'No generated report to export. Please generate report first!');
+INSERT INTO txt VALUES ('E1003', 'German',  'Die Datenabholung wurde abgebrochen. M&ouml;glicherweise werden nicht alle verf&uuml;gbaren Daten dargestellt.');
+INSERT INTO txt VALUES ('E1003', 'English', 'Data fetch was cancelled. Possibly not all available data are displayed');
 
 INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');

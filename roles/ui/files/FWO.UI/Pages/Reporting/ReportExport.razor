@@ -13,7 +13,7 @@
         <div>
             <div class="input-group input-group-sm mb-2">
                 <div class="input-group-prepend">
-                    <div class="input-group-text">Report Name:</div>
+                    <div class="input-group-text">@(userConfig.GetText("report_name")):</div>
                 </div>
                 <input class="form-control" @bind:event="oninput" @bind="reportExportFile.Name" />
             </div>

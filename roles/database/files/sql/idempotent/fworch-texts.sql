@@ -993,6 +993,14 @@ INSERT INTO txt VALUES ('E5105', 'English', 'There is already a management in th
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 
+INSERT INTO txt VALUES ('E5201', 'German',  'LDAP-Verbindung konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E5201', 'English', 'LDAP connection could not be created');
+INSERT INTO txt VALUES ('E5202', 'German',  'LDAP-Verbindung konnte nicht ge&auml;ndert werden');
+INSERT INTO txt VALUES ('E5202', 'English', 'LDAP connection could not be updated');
+INSERT INTO txt VALUES ('E5203', 'German',  'LDAP-Verbindung konnte nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E5203', 'English', 'LDAP connection could not be deleted');
+INSERT INTO txt VALUES ('E5204', 'German',  'LDAP-Verbindungen konnten nicht geholt werden');
+INSERT INTO txt VALUES ('E5204', 'English', 'LDAP connections could not be fetched');
 INSERT INTO txt VALUES ('E5207', 'German',  'kein internes LDAP gefunden');
 INSERT INTO txt VALUES ('E5207', 'English', 'No internal LDAP found');
 INSERT INTO txt VALUES ('E5208', 'German',  'Keine Nutzer gefunden');
@@ -1083,6 +1091,8 @@ INSERT INTO txt VALUES ('E5282', 'German',  'Mandant konnte im LDAP nicht gel&ou
 INSERT INTO txt VALUES ('E5282', 'English', 'Tenant could not be deleted in LDAP');
 INSERT INTO txt VALUES ('E5283', 'German',  'Mindestens ein Nutzer zum Mandanten zugeordnet. Bitte zuerst l&ouml;schen!');
 INSERT INTO txt VALUES ('E5283', 'English', 'At least one user assigned to tenant. Delete first!');
+INSERT INTO txt VALUES ('E5284', 'German',  'Mandanten konnten nicht vom LDAP geholt werden');
+INSERT INTO txt VALUES ('E5284', 'English', 'Tenants could not be fetched from LDAP');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');

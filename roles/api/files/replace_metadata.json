@@ -920,6 +920,33 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "mgm_id",
+                      "dev_name",
+                      "local_rulebase_name",
+                      "local_rulebase_uid",
+                      "global_rulebase_name",
+                      "global_rulebase_uid",
+                      "package_name",
+                      "package_uid",
+                      "dev_typ_id",
+                      "tenant_id",
+                      "dev_active",
+                      "dev_comment",
+                      "dev_create",
+                      "dev_update",
+                      "do_not_import",
+                      "clearing_import_ran",
+                      "force_initial_import",
+                      "hide_in_gui"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
@@ -2365,6 +2392,33 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_server",
+                      "ldap_port",
+                      "ldap_tls",
+                      "ldap_searchpath_for_users",
+                      "ldap_searchpath_for_roles",
+                      "ldap_tenant_level",
+                      "ldap_search_user",
+                      "ldap_search_user_pwd",
+                      "ldap_write_user",
+                      "tenant_id",
+                      "ldap_write_user_pwd",
+                      "ldap_searchpath_for_groups",
+                      "ldap_type",
+                      "ldap_pattern_length",
+                      "ldap_name"
+                    ],
+                    "backend_only": false
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -2411,6 +2465,41 @@
                       "ldap_write_user_pwd",
                       "tenant_id"
                     ],
+                    "filter": {}
+                  }
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "ldap_connection_id",
+                      "ldap_tls",
+                      "ldap_name",
+                      "ldap_searchpath_for_groups",
+                      "ldap_searchpath_for_roles",
+                      "ldap_searchpath_for_users",
+                      "ldap_search_user",
+                      "ldap_search_user_pwd",
+                      "ldap_server",
+                      "ldap_write_user",
+                      "ldap_write_user_pwd",
+                      "ldap_pattern_length",
+                      "ldap_port",
+                      "ldap_tenant_level",
+                      "ldap_type",
+                      "tenant_id"
+                    ],
+                    "filter": {},
+                    "check": null
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
                     "filter": {}
                   }
                 }
@@ -7859,6 +7948,25 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "tenant_id",
+                      "tenant_name",
+                      "tenant_projekt",
+                      "tenant_comment",
+                      "tenant_report",
+                      "tenant_can_view_all_devices",
+                      "tenant_is_superadmin",
+                      "tenant_create"
+                    ],
+                    "backend_only": false
+                  }
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "auditor",
@@ -7891,6 +7999,14 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
                   }
                 }
               ]
@@ -7951,6 +8067,16 @@
               "select_permissions": [
                 {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "tenant_id",
+                      "device_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "middleware-server",
                   "permission": {
                     "columns": [
                       "tenant_id",

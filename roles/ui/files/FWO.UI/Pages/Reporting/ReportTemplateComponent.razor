@@ -91,7 +91,7 @@
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     [CascadingParameter]
-    private Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     [Parameter]
     public Action<ReportTemplate> OnTemplateLoad { get; set; }
@@ -114,7 +114,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), "", true);
         }
     }
 
@@ -162,7 +162,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_template"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_template"), "", true);
         }
     }
 
@@ -177,7 +177,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("edit_template"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("edit_template"), "", true);
         }
     }
 
@@ -197,7 +197,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_template"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_template"), "", true);
         }
     }
 }

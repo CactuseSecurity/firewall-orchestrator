@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FWO.Middleware.RequestParameters;
 
 namespace FWO.Api.Data
 {
@@ -29,6 +30,9 @@ namespace FWO.Api.Data
         public UiLdapConnection()
         {}
 
+        public UiLdapConnection(LdapGetUpdateParameters ldapGetUpdateParameters) : base(ldapGetUpdateParameters)
+        {}
+
         public UiLdapConnection(UiLdapConnection ldapConnection)
         {
             Id = ldapConnection.Id;
@@ -47,6 +51,28 @@ namespace FWO.Api.Data
             WriteUser = ldapConnection.WriteUser;
             WriteUserPwd = ldapConnection.WriteUserPwd;
             TenantId = ldapConnection.TenantId;
+        }
+
+        public LdapGetUpdateParameters ToApiParams()
+        {
+            return new LdapGetUpdateParameters
+            {
+                Id = this.Id,
+                Address = this.Address,
+                Port = this.Port,
+                Type = this.Type,
+                PatternLength = this.PatternLength,
+                SearchUser = this.SearchUser,
+                Tls = this.Tls,
+                TenantLevel = this.TenantLevel,
+                SearchUserPwd = this.SearchUserPwd,
+                SearchpathForUsers = this.UserSearchPath,
+                SearchpathForRoles = this.RoleSearchPath,
+                SearchpathForGroups = this.GroupSearchPath,
+                WriteUser = this.WriteUser,
+                WriteUserPwd = this.WriteUserPwd,
+                TenantId = this.TenantId
+            };
         }
     }
 }

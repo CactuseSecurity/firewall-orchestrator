@@ -164,7 +164,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
@@ -226,7 +226,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -328,7 +328,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
 
@@ -418,7 +418,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
     }
 
@@ -460,7 +460,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), null, false);
+            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
     }

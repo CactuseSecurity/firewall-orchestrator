@@ -169,7 +169,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
     private List<ImportStatus> importStati = new List<ImportStatus>();
     private bool DetailsMode = false;
     private bool RollbackMode = false;
@@ -188,7 +188,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_import_status"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_import_status"), "", true);
         }
     }
 
@@ -229,7 +229,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
         }
     }
 

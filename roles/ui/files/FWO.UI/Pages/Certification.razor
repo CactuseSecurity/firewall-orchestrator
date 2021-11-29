@@ -116,7 +116,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     private const int rulesPerPage = 0;
     private int elementsPerFetch = 100;
@@ -167,7 +167,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -218,7 +218,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
     }
 
@@ -373,7 +373,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
         }
     }
 
@@ -453,7 +453,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), "", true);
         }
     }
 

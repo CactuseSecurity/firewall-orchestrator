@@ -167,12 +167,12 @@ namespace FWO.Report
                 Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0];
                 Managements[i].Import = managementsWithRelevantImportId[i].Import;
             }
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
             while (gotNewObjects)
             {
                 if (ct.IsCancellationRequested)
                 {
                     Log.WriteDebug("Generate Rules Report", "Task cancelled");
-                    DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
                     ct.ThrowIfCancellationRequested();
                 }
                 gotNewObjects = false;
@@ -188,7 +188,6 @@ namespace FWO.Report
                 }
                 await callback(Managements);
             }
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToCsv()

@@ -43,19 +43,18 @@ namespace FWO.Report
             DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
 
             Managements = await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables);
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
             while (gotNewObjects)
             {
                 if (ct.IsCancellationRequested)
                 {
                     Log.WriteDebug("Generate Changes Report", "Task cancelled");
-                    DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
                     ct.ThrowIfCancellationRequested();
                 }
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
                 gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
                 await callback(Managements);
             }
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToCsv()

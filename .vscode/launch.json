@@ -138,7 +138,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": ["-i/tmp/fworch-config.graphql"]
-        },        
+        }, 
         {
             "name": "py-cpr8x-autodiscovery",
             "type": "python",

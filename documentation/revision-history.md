@@ -158,3 +158,6 @@ adding report template format fk and permissions
 
 ### 5.5.2 - 06.11.2021
 - new default report template for NAT rules
+
+### 5.5.3 - 01.12.2021
+- introducing multi device manager for auto discovery

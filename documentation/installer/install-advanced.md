@@ -37,6 +37,20 @@ use the following syntax for authenticated proxy access:
 
     http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
+Note that the following domains must be reachable through the proxy:
+
+    ubuntu.com
+    canonical.com
+    github.com
+    githubusercontent.com
+    docker.com
+    docker.io
+    hasura.io
+    ansible.com
+    postgresql.org
+    microsoft.com     
+    nuget.org
+
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch:

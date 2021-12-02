@@ -1,66 +1,23 @@
 ﻿using FWO.Logging;
 using Novell.Directory.Ldap;
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using System.Text.Json.Serialization;
 using FWO.Api.Data;
+using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Server
 {
-    public class Ldap
+    public class Ldap : LdapConnectionBase
     {
         // The following properties are retrieved from the database api:
         // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
-
-        [JsonPropertyName("ldap_connection_id")]
-        public int Id { get; set; }
-
-        [JsonPropertyName("ldap_server")]
-        public string Address { get; set; }
-
-        [JsonPropertyName("ldap_port")]
-        public int Port { get; set; }
-
-        [JsonPropertyName("ldap_type")]
-        public int Type { get; set; }
-
-        [JsonPropertyName("ldap_pattern_length")]
-        public int PatternLength { get; set; }
-
-        [JsonPropertyName("ldap_search_user")]
-        public string SearchUser { get; set; }
-
-        [JsonPropertyName("ldap_tls")]
-        public bool Tls { get; set; }
-
-        [JsonPropertyName("ldap_tenant_level")]
-        public int TenantLevel { get; set; }
-
-        [JsonPropertyName("ldap_search_user_pwd")]
-        public string SearchUserPwd { get; set; }
-
-        [JsonPropertyName("ldap_searchpath_for_users")]
-        public string UserSearchPath { get; set; }
-
-        [JsonPropertyName("ldap_searchpath_for_roles")]
-        public string RoleSearchPath { get; set; }
-
-        [JsonPropertyName("ldap_searchpath_for_groups")]
-        public string GroupSearchPath { get; set; }
-
-        [JsonPropertyName("ldap_write_user")]
-        public string WriteUser { get; set; }
-
-        [JsonPropertyName("ldap_write_user_pwd")]
-        public string WriteUserPwd { get; set; }
-
-        [JsonPropertyName("tenant_id")]
-        public int? TenantId { get; set; }
-
         private const int timeOutInMs = 3000;
+
+        public Ldap()
+        {}
+
+        public Ldap(LdapGetUpdateParameters ldapGetUpdateParameters) : base(ldapGetUpdateParameters)
+        {}
 
         /// <summary>
         /// Builds a connection to the specified Ldap server.
@@ -70,8 +27,9 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                LdapConnection connection = new LdapConnection { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
-                if (Tls) connection.UserDefinedServerCertValidationDelegate += (object sen, X509Certificate cer, X509Chain cha, SslPolicyErrors err) => true;  // todo: allow cert validation                
+                LdapConnectionOptions ldapOptions = new LdapConnectionOptions();
+                if (Tls) ldapOptions.ConfigureRemoteCertificateValidationCallback((object sen, X509Certificate? cer, X509Chain? cha, SslPolicyErrors err) => true); // todo: allow real cert validation     
+                LdapConnection connection = new LdapConnection(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };           
                 connection.Connect(Address, Port);
 
                 return connection;
@@ -81,31 +39,6 @@ namespace FWO.Middleware.Server
             {
                 throw new Exception($"Error while trying to reach LDAP server {Address}:{Port}", exception);
             }
-        }
-
-        public string Host()
-        {
-            return Address + ":" + Port;
-        }
-
-        public bool IsWritable()
-        {
-            return (WriteUser != null && WriteUser != "");
-        }
-
-        public bool HasGroupHandling()
-        {
-            return (GroupSearchPath != null && GroupSearchPath != "");
-        }
-
-        public bool HasRoleHandling()
-        {
-            return (RoleSearchPath != null && RoleSearchPath != "");
-        }
-
-        public bool IsInternal()
-        {
-            return ((new DistName(UserSearchPath)).IsInternal());
         }
 
         private string getUserSearchFilter(string searchPattern)
@@ -206,7 +139,7 @@ namespace FWO.Middleware.Server
                                     {
                                         foreach(string membership in attribute.StringValueArray)
                                         {
-                                            if(membership.EndsWith(GroupSearchPath))
+                                            if(GroupSearchPath != null && membership.EndsWith(GroupSearchPath))
                                             {
                                                 user.Groups.Add(membership);
                                             }
@@ -315,7 +248,7 @@ namespace FWO.Middleware.Server
             return GetMemberships(dnList, GroupSearchPath);
         }
 
-        public List<string> GetMemberships(List<string> dnList, string searchPath)
+        public List<string> GetMemberships(List<string> dnList, string? searchPath)
         {
             List<string> userMemberships = new List<string>();
 
@@ -534,13 +467,15 @@ namespace FWO.Middleware.Server
                     connection.Bind(WriteUser, WriteUserPwd);
 
                     string userName = (new FWO.Api.Data.DistName(userDn)).UserName;
-                    LdapAttributeSet attributeSet = new LdapAttributeSet();
-                    attributeSet.Add( new LdapAttribute("objectclass", "inetOrgPerson"));
-                    attributeSet.Add( new LdapAttribute("sn", userName));
-                    attributeSet.Add( new LdapAttribute("cn", userName));
-                    attributeSet.Add( new LdapAttribute("uid", userName));
-                    attributeSet.Add( new LdapAttribute("userPassword", password));
-                    attributeSet.Add( new LdapAttribute("mail", email));
+                    LdapAttributeSet attributeSet = new LdapAttributeSet
+                    {
+                        new LdapAttribute("objectclass", "inetOrgPerson"),
+                        new LdapAttribute("sn", userName),
+                        new LdapAttribute("cn", userName),
+                        new LdapAttribute("uid", userName),
+                        new LdapAttribute("userPassword", password),
+                        new LdapAttribute("mail", email)
+                    };
 
                     LdapEntry newEntry = new LdapEntry( userDn, attributeSet );
 

@@ -1,9 +1,9 @@
 ﻿using FWO.Api.Data;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
@@ -11,12 +11,13 @@ using FWO.ApiClient.Queries;
 using System.Text.Json;
 using FWO.Ui.Display;
 using FWO.Logging;
+using FWO.Config.Api;
 
 namespace FWO.Report
 {
     public class ReportRules : ReportBase
     {
-        public ReportRules(DynGraphqlQuery query) : base(query) { }
+        public ReportRules(DynGraphqlQuery query, UserConfig userConfig) : base(query, userConfig) { }
 
         private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public bool GotReportedRuleIds { get; protected set; } = false;
@@ -130,7 +131,7 @@ namespace FWO.Report
             Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
         }
 
-        public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = rulesPerFetch;
             Query.QueryVariables["offset"] = 0;
@@ -166,8 +167,14 @@ namespace FWO.Report
                 Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0];
                 Managements[i].Import = managementsWithRelevantImportId[i].Import;
             }
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
             while (gotNewObjects)
             {
+                if (ct.IsCancellationRequested)
+                {
+                    Log.WriteDebug("Generate Rules Report", "Task cancelled");
+                    ct.ThrowIfCancellationRequested();
+                }
                 gotNewObjects = false;
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
                 for (i = 0; i < managementsWithRelevantImportId.Length; i++)
@@ -181,7 +188,6 @@ namespace FWO.Report
                 }
                 await callback(Managements);
             }
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToCsv()
@@ -209,6 +215,7 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             StringBuilder report = new StringBuilder();
+            RuleDisplay ruleDisplay = new RuleDisplay(userConfig);
 
             foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
             {
@@ -224,18 +231,18 @@ namespace FWO.Report
 
                         report.AppendLine("<table>");
                         report.AppendLine("<tr>");
-                        report.AppendLine("<th>Number</th>");
-                        report.AppendLine("<th>Name</th>");
-                        report.AppendLine("<th>Source Zone</th>");
-                        report.AppendLine("<th>Source</th>");
-                        report.AppendLine("<th>Destination Zone</th>");
-                        report.AppendLine("<th>Destination</th>");
-                        report.AppendLine("<th>Services</th>");
-                        report.AppendLine("<th>Action</th>");
-                        report.AppendLine("<th>Track</th>");
-                        report.AppendLine("<th>Enabled</th>");
-                        report.AppendLine("<th>UID</th>");
-                        report.AppendLine("<th>Comment</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                        report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                         report.AppendLine("</tr>");
 
                         foreach (Rule rule in device.Rules)
@@ -243,18 +250,18 @@ namespace FWO.Report
                             if (string.IsNullOrEmpty(rule.SectionHeader))
                             {
                                 report.AppendLine("<tr>");
-                                report.AppendLine($"<td>{rule.DisplayNumber(device.Rules)}</td>");
-                                report.AppendLine($"<td>{rule.DisplayName()}</td>");
-                                report.AppendLine($"<td>{rule.DisplaySourceZone()}</td>");
-                                report.AppendLine($"<td>{rule.DisplaySource()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayDestinationZone()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayDestination()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayService()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayAction()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayTrack()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayEnabled(export: true)}</td>");
-                                report.AppendLine($"<td>{rule.DisplayUid()}</td>");
-                                report.AppendLine($"<td>{rule.DisplayComment()}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayNumber(rule, device.Rules)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayName(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySourceZone(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestinationZone(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayService(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayAction(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayTrack(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayEnabled(rule, export: true)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayUid(rule)}</td>");
+                                report.AppendLine($"<td>{ruleDisplay.DisplayComment(rule)}</td>");
                                 report.AppendLine("</tr>");
                             }
                             else
@@ -274,17 +281,17 @@ namespace FWO.Report
                 int objNumber = 1;
                 if (management.ReportObjects != null)
                 {
-                    report.AppendLine($"<h4>Network Objects</h4>");
+                    report.AppendLine($"<h4>{userConfig.GetText("network_objects")}</h4>");
                     report.AppendLine("<hr>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
-                    report.AppendLine("<th>Number</th>");
-                    report.AppendLine("<th>Name</th>");
-                    report.AppendLine("<th>Type</th>");
-                    report.AppendLine("<th>IP Address</th>");
-                    report.AppendLine("<th>Members</th>");
-                    report.AppendLine("<th>UID</th>");
-                    report.AppendLine("<th>Comment</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("ip_address")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     foreach (NetworkObjectWrapper nwobj in management.ReportObjects)
                     {
@@ -306,18 +313,18 @@ namespace FWO.Report
 
                 if (management.ReportServices != null)
                 {
-                    report.AppendLine($"<h4>Network Services</h4>");
+                    report.AppendLine($"<h4>{userConfig.GetText("network_services")}</h4>");
                     report.AppendLine("<hr>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
-                    report.AppendLine("<th>Number</th>");
-                    report.AppendLine("<th>Name</th>");
-                    report.AppendLine("<th>Type</th>");
-                    report.AppendLine("<th>Protocol</th>");
-                    report.AppendLine("<th>Port</th>");
-                    report.AppendLine("<th>Members</th>");
-                    report.AppendLine("<th>UID</th>");
-                    report.AppendLine("<th>Comment</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
                     foreach (ServiceWrapper svcobj in management.ReportServices)
@@ -344,16 +351,16 @@ namespace FWO.Report
 
                 if (management.ReportUsers != null)
                 {
-                    report.AppendLine($"<h4>Users</h4>");
+                    report.AppendLine($"<h4>{userConfig.GetText("users")}</h4>");
                     report.AppendLine("<hr>");
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
-                    report.AppendLine("<th>Number</th>");
-                    report.AppendLine("<th>Name</th>");
-                    report.AppendLine("<th>Type</th>");
-                    report.AppendLine("<th>Members</th>");
-                    report.AppendLine("<th>UID</th>");
-                    report.AppendLine("<th>Comment</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("number")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
                     objNumber = 1;
                     foreach (UserWrapper userobj in management.ReportUsers)
@@ -376,7 +383,7 @@ namespace FWO.Report
                 report.AppendLine("</table>");
             }
 
-            return GenerateHtmlFrame(title: "Rules Report", Query.RawFilter, DateTime.Now, report);
+            return GenerateHtmlFrame(title: userConfig.GetText("rules_report"), Query.RawFilter, DateTime.Now, report);
         }
     }
 }

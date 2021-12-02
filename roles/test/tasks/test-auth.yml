@@ -13,7 +13,7 @@
 # Todo: Produces error invalid credentials, api is inactive (with command above)
 - name: middleware test get jwt valid creds
   uri:
-    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/
     method: POST
     headers:
       Content-Type: application/json
@@ -29,7 +29,7 @@
 
 - debug: var=sample_jwt
 
-- set_fact: jwt_header="{{sample_jwt.content.split('.')[0].split(':')[1].split('\"')[1]}}"
+- set_fact: jwt_header="{{sample_jwt.content.split('.')[0]}}"
 
 - debug: var=jwt_header
 
@@ -86,7 +86,7 @@
 
 - name: middleware test get jwt wrong creds
   uri:
-    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/AuthenticateUser/
+    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/
     method: POST
     headers:
       Content-Type: application/json

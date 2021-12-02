@@ -4,29 +4,38 @@ base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
 # sys.path.append(importer_base_dir + '/fortimanager5ff')
-# import common, fwcommon
+sys.path.append(r"/usr/local/fworch/importer")
+import common #, fwcommon
 
 
 def normalize_nwobjects(full_config, config2import, import_id):
     nw_objects = []
     # 'obj_typ': obj_type, 'obj_ip': first_ip, 'obj_ip_end': last_ip,
     # 'obj_member_refs': member_refs, 'obj_member_names': member_names}])
-    for obj_orig in full_config['ipv4_objects']:
+    for obj_orig in full_config['network_objects']:
         obj = {}
-        obj.update({ 'obj_typ': 'group' })  # setting default network obj type first
         obj.update({'obj_name': obj_orig['name']})
-        if 'subnet' in obj_orig:
+        if 'subnet' in obj_orig: # ipv4 object
             ipa = ipaddress.ip_network(str(obj_orig['subnet'][0]) + '/' + str(obj_orig['subnet'][1]))
-            ip_array = str(ipa.with_prefixlen).split('/')
-            if len(ip_array)==2:
-                ip_netmask_length = int(ip_array[1])
-                if ip_netmask_length<32:
-                    obj.update({ 'obj_typ': 'network' })
-                else:
-                    obj.update({ 'obj_typ': 'host' })
+            if ipa.num_addresses > 1:
+                obj.update({ 'obj_typ': 'network' })
             else:
-                logging.warning('found an unexpected network subnet type: ' + str(ipa))
+                obj.update({ 'obj_typ': 'host' })
             obj.update({ 'obj_ip': ipa.with_prefixlen })
+        elif 'ip6' in obj_orig: # ipv6 object
+            ipa = ipaddress.ip_network(str(obj_orig['ip6']).replace("\\", ""))
+            if ipa.num_addresses > 1:
+                obj.update({ 'obj_typ': 'network' })
+            else:
+                obj.update({ 'obj_typ': 'host' })
+            obj.update({ 'obj_ip': ipa.with_prefixlen })
+        elif 'member' in obj_orig: # addrgrp4 / addrgrp6
+            obj.update({ 'obj_typ': 'group' })
+            obj.update({ 'obj_member_names' : common.list_delimiter.join(obj_orig['member']) })
+            obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config['network_objects'], 'name', 'uuid')})
+        else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
+            obj.update({ 'obj_typ': 'network' })
+            obj.update({ 'obj_ip': '0.0.0.0/0'})
         if 'comment' in obj_orig:
             obj.update({'obj_comment': obj_orig['comment']})
         if 'color' in obj_orig and obj_orig['color']==0:
@@ -34,6 +43,11 @@ def normalize_nwobjects(full_config, config2import, import_id):
             # todo: deal with all other colors (will be currently ignored)
             # we would need a list of fortinet color codes
         obj.update({'obj_uid': obj_orig['uuid']})
+
+        # here only picking first associated interface as zone:
+        if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0 and obj_orig['associated-interface'][0] != 'any':
+            obj.update({'obj_zone': obj_orig['associated-interface'][0]})
+        
         obj.update({'control_id': import_id})
         nw_objects.append(obj)
         
@@ -68,3 +82,14 @@ def add_member_names_for_nw_group(idx, nw_objects):
             member_names += member_name + common.list_delimiter
         group['obj_member_names'] = member_names[:-1]
     nw_objects.insert(idx, group)
+
+
+def create_network_object(import_id, name, type, ip, uid, comment):
+    return {
+        'control_id': import_id,
+        'obj_name': name,
+        'obj_typ': type,
+        'obj_ip': ip,
+        'obj_uid': uid,
+        'obj_comment': comment
+    }

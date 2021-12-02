@@ -1,0 +1,19 @@
+﻿@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<nav class="sidebar sidebar-expand-sm sidebar-dark bg-dark shadow w-100">
+    <div class="sidebar-main d-flex flex-row" style="left: 0px;">
+        <div class="sidebar-dark bg-dark" style="width: 250px overflow-x: scroll">
+            <ul class="sidebar-nav mr-auto">
+                <p></p>
+                <h5>@userConfig.GetText("reporting")</h5>
+                <a class="nav-link" href="/help/reporting/filter/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("filter_syntax")</a>
+                <a class="nav-link" href="/help/reporting/templates/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("templates")</a>
+                <a class="nav-link" href="/help/reporting/export/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("export")</a>
+                <a class="nav-link" href="/help/reporting/output/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("report_data_output")</a>
+                <a class="nav-link" href="/help/reporting/leftside/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("left_sidebar")</a>
+                <a class="nav-link" href="/help/reporting/rightside/?lang=@($"{userConfig.GetUserLanguage()}")"> @userConfig.GetText("right_sidebar")</a>
+            </ul>
+        </div>
+    </div>
+</nav>

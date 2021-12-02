@@ -1,10 +1,10 @@
 # Installation instructions server
 
 - use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
-- currently recommended platform is Ubuntu Server 20.04 TLS
-- We will install various software components to your system. It is recommended to do so on a dedicated (test) system.
+- recommended platforms are Ubuntu Server 20.04 LTS and Debian 11
+- we will install various software components to your system. It is recommended to do so on a dedicated (test) system.
 
-1) prepare your test system (make sure your user has full sudo permissions)
+1) prepare your target system (make sure your user has full sudo permissions)
 
 ```console
 su -
@@ -21,15 +21,21 @@ usermod -a -G sudo `whoami`
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
 ```
 
-3) if ansible version < 2.8 (older systems like ubuntu 18.04, debian 10), install latest ansible 
+3) Operating specific ansible adjustments
+  - Ubuntu 18.04, Debian 10: install latest ansible before firewall orchestrator installation:
 
-       cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
+        cd firewall-orchestrator; ansible-playbook scripts/install-latest-ansible.yml -K
+
+  - Debian 11: install without pipelining: comment out "pipelining = True" in ansible.cfg
 
 4) install (on localhost)
 
 ```console
 cd firewall-orchestrator; ansible-playbook site.yml -K
 ```
+Note: The installation (i.e. the connection to the target machine) is only done in root context (sudo) to secure the writing of temporary files when becoming a non-priviledged user (e.g. postgres).
+
+
 Enter sudo password when prompted "BECOME or SUDO password:"
 
 That's it. Firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:

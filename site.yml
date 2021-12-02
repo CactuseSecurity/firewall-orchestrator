@@ -1,5 +1,5 @@
 ---
-# installation options: see docs at https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
+# for installation options see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
 - hosts: importers
   tasks:
@@ -13,6 +13,7 @@
   tags:
     - frontend
     - importer
+    - api
 
 - hosts: all
   tasks:
@@ -29,6 +30,9 @@
     - { role: common, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
+    - importer
+    - api
+    - ui
 
 - hosts: backendserver
   roles:
@@ -51,6 +55,7 @@
     - { role: api, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
+    - api
 
 # restart middlewareserver now that the API is ready.
 - hosts: middlewareserver
@@ -65,6 +70,7 @@
   tags:
     - backend
     - csharp
+    - api
 
 - hosts: frontends
   roles:
@@ -74,6 +80,7 @@
   tags:
     - frontend
     - csharp
+    - ui
 
 - hosts: sampleserver
   roles:
@@ -116,6 +123,7 @@
       when: "not installation_mode == 'uninstall'"
   tags:
     - frontend
+    - ui
 
 - hosts: testservers
   roles:

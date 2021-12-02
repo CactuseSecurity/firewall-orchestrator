@@ -31,7 +31,7 @@
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
-        DELETE FROM tenant WHERE tenant_name='tenant1_{{ sample_postfix }}'; 
+        DELETE FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'; 
         END $do$
     listen: "test importer handler"
 
@@ -40,7 +40,7 @@
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
-        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1_{{ sample_postfix }}'); 
+        DELETE FROM tenant_to_device WHERE tenant_id=(SELECT tenant_id FROM tenant WHERE tenant_name='tenant1{{ sample_postfix }}'); 
         END $do$
     listen: "test importer handler"
 
@@ -49,7 +49,7 @@
       db: "{{ fworch_db_name }}"
       query: >
         DO $do$ BEGIN 
-        DELETE FROM tenant WHERE tenant_name='tenant2_{{ sample_postfix }}'; 
+        DELETE FROM tenant WHERE tenant_name='tenant2{{ sample_postfix }}'; 
         END $do$
     listen: "test importer handler"
 
@@ -57,7 +57,7 @@
   become_user: postgres
 
 - name: find ldap entries with test_postfix
-  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x cn=*{{ sample_postfix }}*"
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x *{{ sample_postfix }}*"
   register: ldap_entries_to_delete
   listen: "test importer handler"
   become: yes

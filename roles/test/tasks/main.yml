@@ -14,7 +14,7 @@
 
 - name: randomize test names to avoid interference with production data
   set_fact:
-    test_postfix: "test_{{ random_generated_pw }}"
+    test_postfix: "_test_{{ random_generated_pw }}"
 
 - name: set postfix to brand all objects in this test run
   set_fact:

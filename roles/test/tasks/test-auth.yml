@@ -16,7 +16,7 @@
     headers:
       Content-Type: application/json
     body:
-      Username: user1_{{ test_postfix }}
+      Username: user1{{ test_postfix }}
       Password: cactus1
     body_format: json
     validate_certs: false
@@ -79,8 +79,8 @@
 
 - name: middleware get jwt check valid creds output user user1_demo
   debug:
-    msg: "ERROR unexpected jwt test result (username does not match 'user1_{{ test_postfix }}'): {{ jwt_unique_user_name }}"
-  when: "jwt_unique_user_name is not match('user1_{{ test_postfix }}')"
+    msg: "ERROR unexpected jwt test result (username does not match 'user1{{ test_postfix }}'): {{ jwt_unique_user_name }}"
+  when: "jwt_unique_user_name is not match('user1{{ test_postfix }}')"
 
 - name: middleware test get jwt wrong creds
   uri:
@@ -89,7 +89,7 @@
     headers:
       Content-Type: application/json
     body:
-      Username: user1_{{ test_postfix }}
+      Username: user1{{ test_postfix }}
       Password: wrong-pwd
     body_format: json
     validate_certs: false

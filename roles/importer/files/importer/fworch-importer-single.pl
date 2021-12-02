@@ -178,7 +178,7 @@ if (!$error_count_global) {
 				# if $csvonly is set: replace import id in all csv files with $current_import_id
 				if ($csvonly) 
 				{
-					my @rulebase_basenames = split(/,/, get_ruleset_name_list($rulebases));
+					my @rulebase_basenames = split(/,/, get_local_ruleset_name_list($rulebases));
 					my @rulebase_fullnames = ();
 					for my $filename (@rulebase_basenames) {
 						@rulebase_fullnames = (@rulebase_fullnames, $fworch_workdir . '/' . $filename . '_rulebase.csv' );

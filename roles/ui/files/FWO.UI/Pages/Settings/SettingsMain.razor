@@ -1,0 +1,7 @@
+﻿@using FWO.Config.Api
+
+@page "/settings"
+
+@inject UserConfig userConfig
+
+<h3>@(userConfig.GetText("U5001"))</h3>

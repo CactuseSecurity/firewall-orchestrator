@@ -1,0 +1,53 @@
+﻿@using FWO.Config.Api;
+@using FWO.Config.Api.Data;
+@using FWO.ApiClient
+
+@page "/settings/language"
+@attribute [Authorize(Roles = "admin, reporter, reporter-viewall, recertifier, workflow-user, workflow-admin, auditor")]
+
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+@inject APIConnection apiConnection
+
+<h3>@(userConfig.GetText("language_settings"))</h3>
+@(userConfig.GetText("U5412"))
+<hr />
+
+<form class="form-inline">
+    <label for="languageSelect" class="col-form-label mr-2">@(userConfig.GetText("language"))</label>
+    <select id="languageSelect" class="form-control-sm mr-2" @bind="selectedLanguage">
+        @foreach (Language language in globalConfig.uiLanguages)
+        {
+            <option value="@(language.Name)">@(userConfig.GetText(language.Name))</option>
+        }
+    </select>
+</form>
+<hr />
+<button class="btn btn-sm btn-primary" @onclick="async () => { await ChangeLanguage(selectedLanguage); StateHasChanged(); }" @onclick:preventDefault>@(userConfig.GetText("apply_changes"))</button>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    string? selectedLanguage;
+
+    protected override void OnInitialized()
+    {
+        selectedLanguage = userConfig.User.Language;
+        StateHasChanged();
+    }
+
+    private async Task ChangeLanguage(string language)
+    {
+        try
+        {
+            Log.WriteDebug("Change language", $"new language: {language}");
+            await userConfig.ChangeLanguage(language, apiConnection);
+            userConfig.User.Language = language;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_language"), "", true);
+        }
+    }
+}

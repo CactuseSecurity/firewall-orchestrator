@@ -249,7 +249,7 @@ CREATE OR REPLACE VIEW view_rule_changes AS
 		CAST (t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS VARCHAR) AS doku_admin,
 		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
-		CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.dev_rulebase) AS VARCHAR) AS unique_name,
+		CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.local_rulebase_name) AS VARCHAR) AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
 		CAST (NULL AS VARCHAR) AS change_new_element
 	FROM
@@ -286,7 +286,7 @@ CREATE OR REPLACE VIEW view_rule_changes AS
 		CAST (t_doku_admin.uiuser_first_name || ' ' || t_doku_admin.uiuser_last_name AS VARCHAR) AS doku_admin,
 		t_doku_admin.uiuser_id AS doku_admin_id,
 		security_relevant,
-		CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.dev_rulebase) AS VARCHAR) AS unique_name,
+		CAST((COALESCE (rule.rule_ruleid, rule.rule_uid) || ', Rulebase: ' || device.local_rulebase_name) AS VARCHAR) AS unique_name,
 		CAST (NULL AS VARCHAR) AS change_diffs,
 		CAST (NULL AS VARCHAR) AS change_new_element
 	FROM

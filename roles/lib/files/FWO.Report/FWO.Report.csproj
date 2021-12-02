@@ -1,16 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.8" />
+    <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.66" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FWO.Config.Api\FWO.Config.Api.csproj" />
     <ProjectReference Include="..\FWO.Report.Filter\FWO.Report.Filter.csproj" />
-    <ProjectReference Include="..\FWO_API_Client\FWO.ApiClient.csproj" />
+    <ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
   </ItemGroup>
 
 </Project>

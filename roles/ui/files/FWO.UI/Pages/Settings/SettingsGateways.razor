@@ -1,0 +1,327 @@
+@using BlazorTable
+@using FWO.Api.Data
+@using FWO.ApiClient
+@using FWO.Config.Api
+
+@page "/settings/gateways"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+<h3 class="m-2">@(userConfig.GetText("gateways"))</h3>
+@(userConfig.GetText("U5112"))
+<hr />
+
+<button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_gateway"))</button>
+
+<div class="m-2">
+    <Table class="table table-bordered table-responsive" TableItem="Device" Items="devices" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Device" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="Device" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="Device" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
+            <Template>
+                @context.DeviceType.NameVersion()
+            </Template>
+        </Column>
+        <Column TableItem="Device" Title="@(userConfig.GetText("management"))" Field="@(x => x.Management.Id)" Sortable="true" Filterable="true">
+            <Template>
+                @context.Management.Name
+            </Template>
+        </Column>
+        <Column TableItem="Device" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" >
+            <Template>
+                @(GlobalConfig.ShowBool(!context.ImportDisabled))
+            </Template>
+        </Column>
+    </Table>
+</div>
+
+<PopUp Title="@(userConfig.GetText("edit_gateway"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+    <Body>
+        @if (EditMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="deviceName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <div class="col-sm-8">
+                        <input id="deviceName" type="text" class="form-control form-control-sm" @bind="actDevice.Name" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="deviceComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    <div class="col-sm-8">
+                        <input id="deviceComment" type="text" class="form-control form-control-sm" @bind="actDevice.Comment" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="deviceDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
+                    <div class="col-sm-8">
+                        <select id="deviceDevType" class="form-control form-control-sm" @bind="actDevice.DeviceType.Id">
+                            @foreach (DeviceType devType in deviceTypes)
+                            {
+                                <option value="@devType.Id">@(devType.NameVersion())</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="deviceManagement" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("management"))*:</label>
+                    <div class="col-sm-8">
+                        <select id="deviceManagement" class="form-control form-control-sm" @bind="actDevice.Management.Id">
+                            @foreach (Management management in managements)
+                            {
+                                <option value="@management.Id">@(management.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="deviceLocalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("local_rulebase"))*:</label>
+                    <div class="col-sm-8">
+                        <input id="deviceLocalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.LocalRulebase" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="deviceGlobalRulebase" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_rulebase")):</label>
+                    <div class="col-sm-8">
+                        <input id="deviceGlobalRulebase" type="text" class="form-control form-control-sm" @bind="actDevice.GlobalRulebase" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="devicePackage" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("package")):</label>
+                    <div class="col-sm-8">
+                        <input id="devicePackage" type="text" class="form-control form-control-sm" @bind="actDevice.Package" />
+                    </div>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="deviceImportDisabled" type="checkbox" @bind="actDevice.ImportDisabled">
+                    <label class="form-check-label" for="deviceImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="deviceHideInUi" type="checkbox" @bind="actDevice.HideInUi">
+                    <label class="form-check-label" for="deviceHideInUi"><small>@(userConfig.GetText("hide_in_ui"))</small></label>
+                </div>
+
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("delete_gateway"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+    <Body>
+        @if (DeleteMode)
+        {
+            <p>@(userConfig.GetText("U5103")) @(actDevice.Name)?</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actDevice)">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    private List<Device> devices = new List<Device>();
+    private List<DeviceType> deviceTypes = new List<DeviceType>();
+    private List<Management> managements = new List<Management>();
+
+    private bool EditMode = false;
+    private bool DeleteMode = false;
+    private bool AddMode = false;
+
+    private Device newDevice = new Device();
+    private Device actDevice = new Device();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
+            deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
+            managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_gateways"), "", true);
+        }
+    }
+
+    private void Edit(Device device)
+    {
+        actDevice = new Device(device);
+        EditMode = true;
+    }
+
+    private void RequestDelete(Device device)
+    {
+        actDevice = device;
+        DeleteMode = true;
+    }
+
+    private async Task Delete(Device device)
+    {
+        try
+        {
+            // Todo: checks if delete possible. Else set e.g. an archive flag?
+            var Variables = new { id = device.Id };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteDevice, Variables)).DeletedId;
+            if (delId == device.Id)
+            {
+                devices.Remove(device);
+                DeleteMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_gateway"), "", true);
+        }
+    }
+
+    private void Add()
+    {
+        AddMode = true;
+        newDevice = new Device()
+        {
+            DeviceType = new DeviceType { Id = deviceTypes.First().Id },
+            Management = new Management { Id = managements.First().Id, DeviceType = new DeviceType { Id = deviceTypes.First().Id } }
+        };
+        Edit(newDevice);
+    }
+
+    private void Clone(Device device)
+    {
+        AddMode = true;
+        newDevice = new Device(device);
+        newDevice.Id = 0;
+        Edit(newDevice);
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (CheckValues())
+            {    
+                if (AddMode)
+                {
+                    // insert new device
+                    var Variables = new
+                    {
+                        name = actDevice.Name,
+                        devTypeId = actDevice.DeviceType.Id,
+                        managementId = actDevice.Management.Id,
+                        localRulebase = actDevice.LocalRulebase,
+                        globalRulebase = actDevice.GlobalRulebase,
+                        package = actDevice.Package,
+                        importDisabled = actDevice.ImportDisabled,
+                        hideInUi = actDevice.HideInUi,
+                        comment = actDevice.Comment
+                    };
+                    actDevice.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds[0].NewId;
+                    devices.Add(actDevice);
+                    await addDeviceToTenant0(actDevice.Id);
+                    AddMode = false;
+                    EditMode = false;
+                }
+                else
+                {
+                    // Update existing device
+                    var Variables = new
+                    {
+                        id = actDevice.Id,
+                        name = actDevice.Name,
+                        devTypeId = actDevice.DeviceType.Id,
+                        managementId = actDevice.Management.Id,
+                        localRulebase = actDevice.LocalRulebase,
+                        globalRulebase = actDevice.GlobalRulebase,
+                        package = actDevice.Package,
+                        importDisabled = actDevice.ImportDisabled,
+                        hideInUi = actDevice.HideInUi,
+                        comment = actDevice.Comment
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateDevice, Variables)).UpdatedId;
+                    EditMode = (udId == actDevice.Id ? false : true);
+                    devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
+                }
+                // update actDevice for immediate display
+                actDevice.DeviceType.Name = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Name;
+                actDevice.DeviceType.Version = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Version;
+                actDevice.Management.Name = managements.Find(x => x.Id == actDevice.Management.Id).Name;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("save_gateway"), "", true);
+        }
+    }
+
+    private bool CheckValues()
+    {
+        if (actDevice.Name == null || actDevice.Name == "" || actDevice.LocalRulebase == null || actDevice.LocalRulebase == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if (!actDevice.ImportDisabled && devices.FirstOrDefault(dev => dev.DeviceType.Id == actDevice.DeviceType.Id && dev.Management.Id == actDevice.Management.Id 
+            && dev.LocalRulebase == actDevice.LocalRulebase && dev.Id != actDevice.Id && !dev.ImportDisabled) != null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task addDeviceToTenant0(int deviceId)
+    {
+        try
+        {
+            var Variables = new { tenantId = 1, deviceId = deviceId };
+            await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant0"), "", false);
+        }
+    }
+
+    private void Cancel()
+    {
+        AddMode = false;
+        EditMode = false;
+        DeleteMode = false;
+    }
+}

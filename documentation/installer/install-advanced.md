@@ -32,6 +32,11 @@ e.g. with IP 1.2.3.4, listening on port 3128<br>
 ```console
 ansible-playbook -e "http_proxy=http://1.2.3.4:3128 https_proxy=http://1.2.3.4:3128" site.yml -K
 ```
+
+use the following syntax for authenticated proxy access:
+
+    http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
+
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::

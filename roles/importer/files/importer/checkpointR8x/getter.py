@@ -7,6 +7,7 @@ import json
 import logging, re
 import requests, requests.packages
 import fwcommon
+import time
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
@@ -31,7 +32,10 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
         request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
     r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
-        logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+        if 'password' in json.dumps(json_payload):
+            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+        else:
+            logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
         sys.exit(1)
     if show_progress:
         print ('.', end='', flush=True)
@@ -40,7 +44,7 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
 
 def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string):
     if domain == '':
-       payload = {'user':user, 'password' : password}
+        payload = {'user':user, 'password' : password}
     else:
         payload = {'user':user, 'password' : password, 'domain' :  domain}
     base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
@@ -110,6 +114,47 @@ def set_api_url(base_url,testmode,api_supported,hostname):
             sys.exit("\"" + testmode +"\" - not a valid version")
     logger.debug ("testmode: " + testmode + " - url: "+ url)
     return url
+
+
+def get_changes(sid,api_host,api_port,fromdate,ssl_verification, proxy_string):
+    payload = {'from-date' : fromdate, 'details-level' : 'uid'}
+    logging.debug ("get_changes: payload: " + json.dumps(payload))
+    base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
+    task_id = api_call(api_host, api_port, base_url, 'show-changes', payload, sid, ssl_verification, proxy_string)
+
+    logging.debug ("task_id: " + json.dumps(task_id))
+    sleeptime = 1
+    status = 'in progress'
+    while (status == 'in progress'):
+        time.sleep(sleeptime)
+        tasks = api_call(api_host, api_port, base_url, 'show-task', task_id, sid, ssl_verification, proxy_string)
+        if 'tasks' in tasks:
+            for task in tasks['tasks']:
+                # logging.debug ("task: " + json.dumps(task))
+                if 'status' in task:
+                    status = task['status']
+                    if 'succeeded' in status:
+                        for detail in task['task-details']:
+                            if detail['changes']:
+                                logging.debug ("show-changes - status: " + status + " -> changes found")
+                                return 1
+                            else:
+                                logging.debug ("show-changes - status: " + status + " -> but no changes found")
+                    elif status == 'failed':
+                        logging.debug ("show-changes - status: failed -> no changes found")
+                    elif status == 'in progress':
+                        logging.debug ("show-changes - status: in progress")
+                    else:
+                        logging.error ("show-changes - unknown status: " + status)
+                        return -1
+                else:
+                    logging.error ("show-changes - no status in task")
+                    return -1
+        sleeptime += 2
+        if sleeptime > 40:
+            logging.error ("show-changes - task took too long, aborting")
+            return -1
+    return 0
 
 
 def collect_uids_from_rule(rule, nw_uids_found, svc_uids_found):
@@ -228,6 +273,28 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
         logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
     return current_layer_json
+
+
+def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verification, proxy_string, show_params_rules):
+    nat_rules = { "nat_rule_chunks": [] }
+    current=0
+    total=current+1
+    while (current<total) :
+        show_params_rules['offset']=current
+        rulebase = api_call(api_host, api_port, api_v_url, 'show-nat-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
+        nat_rules['nat_rule_chunks'].append(rulebase)
+        if 'total' in rulebase:
+            total=rulebase['total']
+        else:
+            logging.error ( "get_nat_rules_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
+                + str(nat_rules))
+        if 'to' in rulebase:
+            current=rulebase['to']
+        else:
+            sys.exit(1)
+        #logging.debug ( "get_nat_rules_from_api - rulebase current offset: "+ str(current) )
+    # logging.debug ("get_config::get_nat_rules - found nat rules:\n" + str(nat_rules) + "\n")
+    return nat_rules
 
 
 # insert domain rule layer after rule_idx within top_ruleset

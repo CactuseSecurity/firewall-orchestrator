@@ -49,19 +49,17 @@ def login(user, password, user_management_api_base_url, method, ssl_verification
         response = requests.post(user_management_api_base_url + method, data=json.dumps(
             payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
         response.raise_for_status()
-        #content = response.content
     except requests.exceptions.RequestException as e:
-        logging.exception("\nfwo_api: error while sending api_call to url " + str(user_management_api_base_url) + " with payload \n" +
-                          json.dumps(payload, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
+        logging.exception("\nfwo_api: error during login, url: " + str(user_management_api_base_url))
         raise SystemExit(e) from None
 
-    jsonResponse = response.json()
-    if 'jwt' in jsonResponse:
-        return jsonResponse["jwt"]
-    logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
-                      ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
-                      ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
-    sys.exit(1)
+    if response.text is not None:
+        return response.text
+    else:
+        logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
+                        ", api_url: " + str(user_management_api_base_url) +
+                        ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
+        sys.exit(1)
 
 
 def set_ssl_verification(ssl_verification_mode):
@@ -151,12 +149,22 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
                 devices(where:{do_not_import:{_eq:false}}) {
                     id: dev_id
                     name: dev_name
-                    rulebase:dev_rulebase
+                    local_rulebase_name
+                    global_rulebase_name
+                    package_name
+                }
+                import_controls(where: { successful_import: {_eq: true} } order_by: {control_id: desc}, limit: 1) {
+                    starttime: start_time
                 }
             }  
         }
     """
-    return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management'][0]
+    api_call_result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
+    if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
+        return api_call_result['data']['management'][0]
+    else:
+        logging.error('did not succeed in getting management details from API')
+        sys.exit(1)
 
 
 def lock_import(fwo_api_base_url, jwt, query_variables):

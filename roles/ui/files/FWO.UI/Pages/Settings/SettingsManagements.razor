@@ -1,0 +1,443 @@
+﻿@using BlazorTable
+@using FWO.Api.Data
+@using FWO.ApiClient
+@using FWO.Config.Api
+
+@page "/settings/managements"
+@attribute [Authorize(Roles = "admin, auditor")]
+
+@inject APIConnection apiConnection
+@inject UserConfig userConfig
+
+<h3 class="m-2">@(userConfig.GetText("managements"))</h3>
+@(userConfig.GetText("U5111"))
+<hr />
+
+<div class="form-group row">
+    <button class="btn btn-success m-2" @onclick="Add">@(userConfig.GetText("add_new_management"))</button>
+    @if (showCleanupButton)
+    {
+        <button class="btn btn-danger m-2" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+    }
+</div>
+
+<div class="d-flex flex-column m-2">
+    <Table class="table table-bordered table-responsive" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+        <Column TableItem="Management" Title="@(userConfig.GetText("action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
+            <Template>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
+                    <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
+                </div>
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("type"))" Field="@(x => x.DeviceType.Id)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.DeviceType.NameVersion())
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="@(userConfig.GetText("host"))" Field="@(x => x.Hostname)" Sortable="true" Filterable="true">
+            <Template>
+                @(context.Host())
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="@(userConfig.GetText("config_path"))" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" >
+            <Template>
+                @(GlobalConfig.ShowBool(!context.ImportDisabled))
+            </Template>
+        </Column>
+        <Column TableItem="Management" Title="@(userConfig.GetText("debug_level"))" Field="@(x => x.DebugLevel)" Sortable="true" Filterable="true" />
+    </Table>
+</div>
+
+<PopUp Title="@(userConfig.GetText("edit_management"))" Show="@EditMode" Large="true" OnClose="() => EditMode = false">
+    <Body>
+        @if (EditMode)
+        {
+            <form>
+                <div class="form-group row">
+                    <label for="managementId" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
+                    <label class="col-sm-8">@actManagement.Id</label>
+                </div>
+                <div class="form-group row">
+                    <label for="managementName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                    <div class="col-sm-8">
+                        <input id="managementName" type="text" class="form-control form-control-sm" @bind="actManagement.Name" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                    <div class="col-sm-8">
+                        <input id="managementComment" type="text" class="form-control form-control-sm" @bind="actManagement.Comment" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementDevType" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("device_type"))*:</label>
+                    <div class="col-sm-8">
+                        <select id="managementDevType" class="form-control form-control-sm" @bind="actManagement.DeviceType.Id">
+                            @foreach (DeviceType devType in deviceTypes)
+                            {
+                                <option value="@devType.Id">@(devType.NameVersion())</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("hostname"))*:</label>
+                    <div class="col-sm-8">
+                        <input id="managementHostname" type="text" class="form-control form-control-sm" @bind="actManagement.Hostname" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementPort" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("port"))*:</label>
+                    <div class="col-sm-2">
+                        <input id="managementPort" type="text" class="form-control form-control-sm" @bind="actManagement.Port" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementImportUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_user"))*:</label>
+                    <div class="col-sm-8">
+                        <input id="managementImportUser" type="text" class="form-control form-control-sm" @bind="actManagement.ImportUser" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementPrivateKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("login_secret"))*:</label>
+                    <div class="col-sm-8">
+                        <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("login_secret")) @bind="actManagement.PrivateKey"></textarea>                        
+                        @* <input id="managementPrivateKey" type="password" class="form-control form-control-sm" @bind="actManagement.PrivateKey" /> *@
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementPublicKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("public_key")):</label>
+                    <div class="col-sm-8">
+                        <textarea rows="2" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("public_key")) @bind="actManagement.PublicKey"></textarea>                        
+                        @* <input id="managementPublicKey" type="text" class="form-control form-control-sm" @bind="actManagement.PublicKey" /> *@
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
+                    <div class="col-sm-8">
+                        <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementImporterHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
+                    <div class="col-sm-8">
+                        <input id="managementImporterHostname" type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementDebugLevel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
+                    <div class="col-sm-8">
+                        <input id="managementDebugLevel" type="text" class="form-control form-control-sm" @bind="actManagement.DebugLevel" />
+                    </div>
+                </div>
+
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="managementImportDisabled" type="checkbox" @bind="actManagement.ImportDisabled">
+                    <label class="form-check-label" for="managementImportDisabled"><small>@(userConfig.GetText("import_disabled"))</small></label>
+                </div>
+                @* <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="managementForceInitImport" type="checkbox" @bind="actManagement.ForceInitialImport">
+                    <label class="form-check-label" for="managementForceInitImport"><small>@(userConfig.GetText("force_initial_import"))</small></label>
+                </div> *@
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="managementHideInUi" type="checkbox" @bind="actManagement.HideInUi">
+                    <label class="form-check-label" for="managementHideInUi"><small>@(userConfig.GetText("hide_in_ui"))</small></label>
+                </div>
+            </form>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("delete_management"))" Show="@DeleteMode" OnClose="() => DeleteMode = false">
+    <Body>
+        @if (DeleteMode)
+        {
+            <p>@(deleteMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="() => Delete(actManagement)">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText("remove_sample_data"))" Show="@CleanupMode" OnClose="() => CleanupMode = false">
+    <Body>
+        @if (CleanupMode)
+        {
+            <p>@(cleanupMessage)</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                </NotAuthorized> 
+            </AuthorizeView>
+            <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    private List<Management> managements = new List<Management>();
+    private List<Management> sampleManagements = new List<Management>();
+    private List<DeviceType> deviceTypes = new List<DeviceType>();
+
+    private ITable<Management> table;
+
+    private bool EditMode = false;
+    private bool DeleteMode = false;
+    private bool CleanupMode = false;
+    private bool AddMode = false;
+    private bool showCleanupButton = false;
+
+    private Management newManagement;
+    private Management actManagement;
+
+    private string deleteMessage = "";
+    private string cleanupMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
+            foreach (var management in managements)
+            {
+                if (management.Name.EndsWith("_demo"))
+                {
+                    sampleManagements.Add(management);
+                }
+            }
+            showCleanupButton = (sampleManagements.Count > 0);
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
+        }
+
+        try
+        {
+            deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
+        }
+        catch (System.Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
+        }
+    }
+
+    private void Edit(Management management)
+    {
+        actManagement = new Management(management);
+        EditMode = true;
+    }
+
+    private void RequestDelete(Management management)
+    {
+        actManagement = management;
+        // Checks if delete possible. Todo: further checks?
+        if (actManagement.Devices != null && actManagement.Devices.Length > 0)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+        }
+        else
+        {
+            deleteMessage = userConfig.GetText("U5101") + actManagement.Name + "?";
+            DeleteMode = true;
+        }
+    }
+
+    private async Task Delete(Management management)
+    {
+        try
+        {
+            var Variables = new { id = management.Id };
+            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.deleteManagement, Variables)).DeletedId;
+            if (delId == management.Id)
+            {
+                managements.Remove(management);
+                DeleteMode = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
+        }
+    }
+
+    private void RequestRemoveSampleData()
+    {
+        // Todo: Checks if delete possible?
+        cleanupMessage = userConfig.GetText("U5102");
+        CleanupMode = true;
+    }
+
+    private async Task RemoveSampleData()
+    {
+        foreach (var management in sampleManagements)
+        {
+            await Delete(management);
+        }
+        CleanupMode = false;
+        showCleanupButton = false;
+    }
+
+    private void Add()
+    {
+        AddMode = true;
+        newManagement = new Management() { DeviceType = new DeviceType { Id = deviceTypes.First().Id } };
+        Edit(newManagement);
+    }
+
+    private void Clone(Management management)
+    {
+        AddMode = true;
+        newManagement = new Management(management);
+        newManagement.Id = 0;
+        Edit(newManagement);
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (CheckValues())
+            {
+                if (AddMode)
+                {
+                    // insert new management
+                    var Variables = new
+                    {
+                        name = actManagement.Name,
+                        devTypeId = actManagement.DeviceType.Id,
+                        hostname = actManagement.Hostname,
+                        importUser = actManagement.ImportUser,
+                        importUserSecret = actManagement.PrivateKey,
+                        port = actManagement.Port,
+                        sshPublicKey = actManagement.PublicKey,
+                        importDisabled = actManagement.ImportDisabled,
+                        forceInitialImport = actManagement.ForceInitialImport,
+                        hideInUi = actManagement.HideInUi,
+                        configPath = actManagement.ConfigPath,
+                        importerHostname = actManagement.ImporterHostname,
+                        debugLevel = actManagement.DebugLevel,
+                        comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */
+                    };
+                    actManagement.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds[0].NewId;
+                    managements.Add(actManagement);
+                    AddMode = false;
+                    EditMode = false;
+                }
+                else
+                {
+                    // Update existing management
+                    // Todo: handle TenantId
+                    var Variables = new
+                    {
+                        id = actManagement.Id,
+                        name = actManagement.Name,
+                        devTypeId = actManagement.DeviceType.Id,
+                        hostname = actManagement.Hostname,
+                        importUser = actManagement.ImportUser,
+                        importUserSecret = actManagement.PrivateKey,
+                        port = actManagement.Port,
+                        sshPublicKey = actManagement.PublicKey,
+                        importDisabled = actManagement.ImportDisabled,
+                        forceInitialImport = actManagement.ForceInitialImport,
+                        hideInUi = actManagement.HideInUi,
+                        configPath = actManagement.ConfigPath,
+                        importerHostname = actManagement.ImporterHostname,
+                        debugLevel = actManagement.DebugLevel,
+                        comment = actManagement.Comment /*,
+                    tenantId = actManagement.TenantId */
+                    };
+                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
+                    EditMode = (udId == actManagement.Id ? false : true);
+                    managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
+                }
+                // update actManagement
+                actManagement.DeviceType.Name = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Name;
+                actManagement.DeviceType.Version = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Version;
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
+        }
+    }
+
+    private bool CheckValues()
+    {
+        if (actManagement.Name == null || actManagement.Name == "" || 
+            actManagement.Hostname == null || actManagement.Hostname == "" || 
+            actManagement.ImportUser == null || actManagement.ImportUser == "" || 
+            actManagement.PrivateKey == null || actManagement.PrivateKey == "")
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if (actManagement.Port < 1 || actManagement.Port > 65535)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5103"), true);
+            return false;
+        }
+        else if (actManagement.DebugLevel != null && (actManagement.DebugLevel < 0 || actManagement.DebugLevel > 9))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5104"), true);
+            return false;
+        }
+        if (!actManagement.ImportDisabled && managements.FirstOrDefault(mgt => mgt.Hostname == actManagement.Hostname && mgt.Port == actManagement.Port 
+            && mgt.ConfigPath == actManagement.ConfigPath && mgt.Id != actManagement.Id && !mgt.ImportDisabled) != null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private void Cancel()
+    {
+        AddMode = false;
+        EditMode = false;
+        DeleteMode = false;
+        CleanupMode = false;
+    }
+}

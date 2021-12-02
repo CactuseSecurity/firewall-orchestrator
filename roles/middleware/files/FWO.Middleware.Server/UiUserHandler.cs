@@ -1,10 +1,8 @@
 ﻿using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
-using FWO.Config;
-using System;
+using FWO.Config.File;
 using FWO.Api.Data;
-using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server
 {
@@ -16,18 +14,19 @@ namespace FWO.Middleware.Server
         /// the user id is needed for allowing access to report_templates
         /// </summary>
         /// <returns> user including its db id </returns>
-        public async Task<UiUser> handleUiUserAtLogin(UiUser user, string jwtToken)
+        public static async Task<UiUser> HandleUiUserAtLogin(UiUser user, string jwtToken)
         {
             APIConnection apiConn = new APIConnection(new ConfigFile().ApiServerUri, jwtToken);
             bool userSetInDb = false;
             try
             {
+                string test = AuthQueries.getUserByUuid;
                 UiUser[] existingUserFound = await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByUuid, new { uuid = user.Dn });
 
                 if (existingUserFound.Length == 1)
                 {
                     user.DbId = existingUserFound[0].DbId;
-                    user.PasswordMustBeChanged = await updateLastLogin(apiConn, user.DbId);
+                    user.PasswordMustBeChanged = await UpdateLastLogin(apiConn, user.DbId);
                     userSetInDb = true;
                 }
                 else
@@ -43,13 +42,13 @@ namespace FWO.Middleware.Server
             if(!userSetInDb)
             {
                 Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
-                await addUiUserToDb(apiConn, user);
+                await AddUiUserToDb(apiConn, user);
                 user.PasswordMustBeChanged = true;
             }
             return user;
         }
 
-        private async Task addUiUserToDb(APIConnection apiConn, UiUser user)
+        private static async Task AddUiUserToDb(APIConnection apiConn, UiUser user)
         {
             try
             {
@@ -64,7 +63,11 @@ namespace FWO.Middleware.Server
                     passwordMustBeChanged = false,
                     ldapConnectionId = user.LdapConnection.Id
                 };
-                user.DbId = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds[0].NewId;
+                ReturnId[]? returnIds = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds;
+                if(returnIds != null)
+                {
+                    user.DbId = returnIds[0].NewId;
+                }
             }
             catch (Exception exeption)
             {
@@ -72,7 +75,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task<bool> updateLastLogin(APIConnection apiConn, int id)
+        private static async Task<bool> UpdateLastLogin(APIConnection apiConn, int id)
         {
             try
             {
@@ -90,7 +93,7 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        public async Task updateUserPasswordChanged(APIConnection apiConn, string userDn, bool passwordMustBeChanged = false)
+        public static async Task UpdateUserPasswordChanged(APIConnection apiConn, string userDn, bool passwordMustBeChanged = false)
         {
             try
             {

@@ -21,6 +21,8 @@ INSERT INTO "report_template" ("report_filter","report_template_name","report_te
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
     VALUES ('type=rules and time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny) ',
         'Compliance: Pass rules with ANY','T0104', 0);
+INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner") 
+    VALUES ('type=natrules and time=now ','Current NAT Rules','T0105', 0);
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply
@@ -76,6 +78,15 @@ insert into stm_action (action_id,action_name) VALUES (17,'tunnel vpn-group'); -
 insert into stm_action (action_id,action_name) VALUES (18,'tunnel vpn'); -- netscreen vpn
 insert into stm_action (action_id,action_name) VALUES (19,'actionlocalredirect'); -- phion
 insert into stm_action (action_id,action_name) VALUES (20,'inner layer'); -- check point r8x
+-- adding new nat actions for nat rules (xlate_rule only)
+insert into stm_action (action_id,action_name) VALUES (21,'NAT src') ON CONFLICT DO NOTHING; -- source ip nat
+insert into stm_action (action_id,action_name) VALUES (22,'NAT src, dst') ON CONFLICT DO NOTHING; -- source and destination ip nat
+insert into stm_action (action_id,action_name) VALUES (23,'NAT src, dst, svc') ON CONFLICT DO NOTHING; -- source and destination ip nat plus port nat
+insert into stm_action (action_id,action_name) VALUES (24,'NAT dst') ON CONFLICT DO NOTHING; -- destination ip nat
+insert into stm_action (action_id,action_name) VALUES (25,'NAT dst, svc') ON CONFLICT DO NOTHING; -- destination ip nat plus port nat
+insert into stm_action (action_id,action_name) VALUES (26,'NAT svc') ON CONFLICT DO NOTHING; -- port nat
+insert into stm_action (action_id,action_name) VALUES (27,'NAT src, svc') ON CONFLICT DO NOTHING; -- source ip nat plus port nat
+insert into stm_action (action_id,action_name) VALUES (28,'NAT') ON CONFLICT DO NOTHING; -- generic NAT
 
 insert into stm_track (track_id,track_name) VALUES (1,'log');
 insert into stm_track (track_id,track_name) VALUES (2,'none');
@@ -114,7 +125,7 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (8,'JUNOS','10-21','Juniper','any;0;0;65535;;junos-predefined-service;simple;');
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (9,'Check Point','R8x','Check Point','');
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (10,'Fortinet','5.x-6.x','Fortinet','');
-insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (11,'FortiManager','5-7','Fortinet','');
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (11,'FortiManager','5ff','Fortinet','');
 
 update stm_dev_typ set dev_typ_predef_svc=
 'ANY;0;0;65535;1;other;simple

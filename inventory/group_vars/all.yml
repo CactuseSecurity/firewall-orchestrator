@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.4.2"
+product_version: "5.5.2"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -29,6 +29,8 @@ fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
 
 # set your proxy here:
 http_proxy: ""
+# use the following syntax for authenticated proxy access:
+# http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 https_proxy: "{{ http_proxy }}"
 proxy_exceptions: "127.0.0.1, localhost"
 proxy_env:
@@ -87,7 +89,7 @@ api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
 
 ### dotnet
 dotnet_deb_name: "packages-microsoft-prod.deb"
-dotnet_version: "5.0"
+dotnet_version: "6.0"
 dotnet_mode: "Release"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"

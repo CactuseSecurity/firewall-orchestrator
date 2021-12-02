@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
-import logging
-import logging.config
+base_dir = "/usr/local/fworch"
+importer_base_dir = base_dir + '/importer'
+sys.path.append(importer_base_dir)
+import logging, logging.config
 import getter
-import common
-import json, argparse, os, sys
+# import fwcommon
+import json, argparse, sys
 
 logging.config.fileConfig(fname='discovery_logging.conf', disable_existing_loggers=False)
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 logger.info("START")
 parser = argparse.ArgumentParser(description='Discover all devices, policies starting from a single server (MDS or stand-alone) from Check Point R8x management via API calls')
 parser.add_argument('-a', '--hostname', metavar='api_host', required=True, help='Check Point R8x management server')
-parser.add_argument('-w', '--password', metavar='api_password', required=True, help='password for management server')
+parser.add_argument('-w', '--password_file', metavar='api_password_file', required=True, help='name of file containing the password for API of the management server')
 parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='user for connecting to Check Point R8x management server, default=fworch')
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
@@ -34,7 +35,11 @@ offset = 0
 use_object_dictionary = 'false'
 base_url = 'https://' + args.hostname + ':' + args.port + '/web_api/'
 ssl_verification = getter.set_ssl_verification(args.ssl)
-xsid = getter.login(args.user, args.password, args.hostname, args.port, args.domain, ssl_verification, proxy_string)
+
+with open(args.password_file, 'r') as file:
+    apiuser_pwd = file.read().replace('\n', '')
+
+xsid = getter.login(args.user, apiuser_pwd, args.hostname, args.port, args.domain, ssl_verification, proxy_string)
 
 api_versions = getter.api_call(args.hostname, args.port, base_url, 'show-api-versions', {}, xsid, ssl_verification, proxy_string)
 api_version = api_versions["current-version"]
@@ -47,7 +52,7 @@ if args.version != "off":
 
 logger = logging.getLogger(__name__)
 
-xsid = getter.login(args.user, args.password, args.hostname, args.port, '', ssl_verification, proxy_string)
+xsid = getter.login(args.user, apiuser_pwd, args.hostname, args.port, '', ssl_verification, proxy_string)
 
 if args.debug == "1" or args.debug == "3":
     debug = True

@@ -2,10 +2,32 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "py-change-comment",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/sample-data/files/config_changes/write_date_to_comment.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },        
+        {
+            "name": "py-change-rule",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/sample-data/files/config_changes/enlarge_rule.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": []
+        },        
+        {
             "name": "py-cpr8x-get-config",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/get_config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -15,6 +37,7 @@
                 "-uitsecorg",
                 "-w/home/tim/tmp/passwd",
                 "-lFirstLayer shared with inline layer",
+                "-kTestPolicyWithLayers",
                 "-o/home/tim/tmp/sting.cfg"
             ]
         },
@@ -22,7 +45,7 @@
             "name": "py-cpr8x-enrich-config",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/enrich_config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -39,7 +62,7 @@
             "name": "py-cpr8x-parse-config",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/parse_config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -50,10 +73,10 @@
             ]
         },
         {
-            "name": "py-fortimanager",
+            "name": "py-get-config-fm7",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/fortimanager5ff/get_config.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -71,22 +94,73 @@
             "name": "py-import_mgm",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_mgm.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m5",
+                "-m6",
                 "-d2",
-                "-l2"
+                "-force",
+                "-l50"
+            ]
+        },        
+        {
+            "name": "py-export-config",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-config.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": ["-o/tmp/fworch-config"]
+        },
+        {
+            "name": "py-execute-graphql",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": ["-i/tmp/fworch-config.graphql"]
+        },        
+        {
+            "name": "py-execute-graphql-query",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql-query.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": ["-i/tmp/fworch-config.graphql"]
+        }, 
+        {
+            "name": "py-cpr8x-autodiscovery",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x/auto-discover.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/roles/importer/files/importer/checkpointR8x",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+              "-a192.168.100.110",
+              "-w/home/tim/secrets/cp_apiuser_pwd",
+              "-uitsecorg",
+              "-fjson"
             ]
         },
         {
             "name": "py-import_main_loop",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import_main_loop.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
@@ -102,7 +176,7 @@
             "args": [
                 "test"
             ],
-            "cwd": "${workspaceFolder}/roles/test/files/FWO_Test",
+          "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -111,9 +185,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO_UI/bin/Debug/net5.0/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net5.0/FWO.Ui.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/roles/ui/files/FWO_UI",
+            "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",
@@ -145,7 +219,8 @@
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/swagger"
             }
         }
     ]

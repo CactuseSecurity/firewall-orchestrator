@@ -3,9 +3,10 @@ using System.Threading.Tasks;
 using FWO.ApiClient;
 using NUnit.Framework;
 using FWO.Api.Data;
-using FWO.Config;
+using FWO.Config.File;
 using FWO.Middleware.Client;
 using Microsoft.IdentityModel.Tokens;
+using FWO.Middleware.RequestParameters;
 
 namespace FWO.Test.Api
 {
@@ -14,8 +15,7 @@ namespace FWO.Test.Api
     {
         APIConnection apiConnection;
 
-        [SetUp]
-        public void EtablishConnectionToServer()
+        public ApiTest()
         {
             ConfigFile configConnection = new ConfigFile();
             string ApiUri = configConnection.ApiServerUri;
@@ -25,11 +25,24 @@ namespace FWO.Test.Api
             string middlewareServerUri = configConnection.MiddlewareServerUri;
             string apiServerUri = configConnection.ApiServerUri;
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
-            MiddlewareServerResponse apiAuthResponse = middlewareClient.AuthenticateUser("user1_demo", "cactus1").Result;
-            string jwt = apiAuthResponse.GetResult<string>("jwt");
+            AuthenticationTokenGetParameters authenticationParameters = new AuthenticationTokenGetParameters
+            {
+                Username = "user1_demo",
+                Password = "cactus1"
+            };
+            string jwt = middlewareClient.AuthenticateUser(authenticationParameters).Result.Data;
             apiConnection = new APIConnection(apiServerUri);
             apiConnection.SetAuthHeader(jwt);
             return;
+        }
+
+        /// <summary>
+        /// Run before EACH test.
+        /// </summary>
+        [SetUp]
+        public void Setup()
+        {
+
         }
 
         [Test]
@@ -46,7 +59,7 @@ namespace FWO.Test.Api
                     }";
 
             NetworkProtocol networkProtocol = new NetworkProtocol();
-            networkProtocol = (await apiConnection.SendQueryAsync<NetworkProtocol[]>(query, new {}))[0];
+            networkProtocol = (await apiConnection.SendQueryAsync<NetworkProtocol[]>(query, new { }))[0];
             Assert.AreEqual(networkProtocol.Name, "TCP", "wrong result of protocol API query");
         }
     }

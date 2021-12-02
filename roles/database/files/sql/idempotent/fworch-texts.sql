@@ -127,7 +127,7 @@ Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
         das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme.</a>
-        N.B. Stellen Sie sicher, dass sie alle Demo-Daten (insbesondere die Demo-User) l&ouml;schen (mit Hilfe der "Beispieldaten l&ouml;schen" Option in den Einstellungen), 
+        N.B. Stellen Sie sicher, dass Sie alle Demo-Daten (insbesondere die Demo-User) l&ouml;schen (mit Hilfe der "Beispieldaten l&ouml;schen" Option in den Einstellungen), 
         bevor Sie in den produktiven Betrieb &uuml;bergehen, da andernfalls ggf. Ihre Daten mit Default-Logins angezeigt werden k&ouml;nnten.</li>
     <li><a href="/logout">Abmelden</a>: Firewall Orchestrator verlassen</li>
 </ul>
@@ -154,30 +154,32 @@ INSERT INTO txt VALUES ('getting_support',	    'English', 	'Do you need help? Ou
 INSERT INTO txt VALUES ('support_details',	    'German', 	'
 M&ouml;chten Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
 <ul>
-<li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
-<li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>
+    <li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
+    <li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>
 </ul>
 Folgende Kontaktm&ouml;glichkeiten stehen Ihnen zur Verf&uuml;gung:
 <ul>
+    <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Feature request auf Github</a></li>
     <li>Telefon: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a></li>
     <li>Chat: <a href="https://fworch.cactus.de/chat">Support-Chat</a></li>
-    <li>Video/Audio-Call (nach Vereinbarung): <a href="https://conf.cactus.de/fworch">Conf@cactus.de</a></li>
+    <li>Video/Audio-Call (nach Vereinbarung): <a href="https://conf.cactus.de/fworch">https://conf.cactus.de/fworch</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('support_details',	    'English', 	'
-Do you wish to sign a support contract for the following benefits?
-choose from the following contact options:
-Ihre Vorteile: <br>
+Do you wish to get a support contract for the following benefits?
+<br>
 <ul>
-<li>get a direct line to qualified support personnel</li>
-<li>Customizing: can we help your with individual changes or extensions of functionality?</li>
+    <li>get a direct line to qualified support personnel</li>
+    <li>Customizing: can we help your with individual changes or extensions of functionality?</li>
 </ul>
+Choose from the following contact options:
 <ul>
+    <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Open a feature request on Github</a></li>
     <li>Phone: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a> </li>
     <li>Chat: <a href="https://fworch.cactus.de/chat">Support chat</a></li>
-    <li>Video/Audio Call (contact us to arrange a time slot): <a href="https://conf.cactus.de/fworch">Conf@cactus.de</a></li>
+    <li>Video/Audio Call (contact us to arrange a time slot): <a href="https://conf.cactus.de/fworch">https://conf.cactus.de/fworch</a></li>
 </ul>
 ');
 
@@ -190,8 +192,14 @@ INSERT INTO txt VALUES ('clear_all',		    'German', 	'Auswahl leeren');
 INSERT INTO txt VALUES ('clear_all',		    'English', 	'Clear all');
 INSERT INTO txt VALUES ('generate_report',		'German', 	'Report erstellen');
 INSERT INTO txt VALUES ('generate_report',		'English', 	'Generate report');
+INSERT INTO txt VALUES ('stop_fetching',		'German', 	'Datenholen abbrechen');
+INSERT INTO txt VALUES ('stop_fetching',		'English', 	'Stop fetching');
+INSERT INTO txt VALUES ('report_data_fetch',    'German', 	'Abholen der Reportdaten');
+INSERT INTO txt VALUES ('report_data_fetch',    'English', 	'Report Data Fetch');
 INSERT INTO txt VALUES ('export_report',        'German', 	'Report exportieren');
 INSERT INTO txt VALUES ('export_report',        'English', 	'Export Report');
+INSERT INTO txt VALUES ('report_name',          'German', 	'Report-Name');
+INSERT INTO txt VALUES ('report_name',          'English', 	'Report Name');
 INSERT INTO txt VALUES ('export_as',            'German', 	'Exportieren als...');
 INSERT INTO txt VALUES ('export_as',            'English', 	'Export as...');
 INSERT INTO txt VALUES ('export',               'German', 	'Exportieren');
@@ -222,6 +230,12 @@ INSERT INTO txt VALUES ('destination', 			'German', 	'Ziel');
 INSERT INTO txt VALUES ('destination', 			'English', 	'Destination');
 INSERT INTO txt VALUES ('services', 			'German', 	'Dienste');
 INSERT INTO txt VALUES ('services', 			'English', 	'Services');
+INSERT INTO txt VALUES ('trans_source', 		'German', 	'Umgesetzte Quelle');
+INSERT INTO txt VALUES ('trans_source', 		'English', 	'Translated Source');
+INSERT INTO txt VALUES ('trans_destination', 	'German', 	'Umgesetztes Ziel');
+INSERT INTO txt VALUES ('trans_destination', 	'English', 	'Translated Destination');
+INSERT INTO txt VALUES ('trans_services', 		'German', 	'Umgesetzte Dienste');
+INSERT INTO txt VALUES ('trans_services', 		'English', 	'Translated Services');
 INSERT INTO txt VALUES ('action', 				'German', 	'Aktionen');
 INSERT INTO txt VALUES ('action', 				'English', 	'Actions');
 INSERT INTO txt VALUES ('track', 				'German', 	'Logging');
@@ -230,12 +244,18 @@ INSERT INTO txt VALUES ('disabled',				'German', 	'Deaktiviert');
 INSERT INTO txt VALUES ('disabled',				'English', 	'Disabled');
 INSERT INTO txt VALUES ('comment',				'German', 	'Kommentar');
 INSERT INTO txt VALUES ('comment',				'English', 	'Comment');
+INSERT INTO txt VALUES ('ip_address',		    'German', 	'IP-Adresse');
+INSERT INTO txt VALUES ('ip_address',		    'English', 	'IP Address');
+INSERT INTO txt VALUES ('members',		        'German', 	'Mitglieder');
+INSERT INTO txt VALUES ('members',		        'English', 	'Members');
 INSERT INTO txt VALUES ('templates',			'German', 	'Vorlagen');
 INSERT INTO txt VALUES ('templates',			'English', 	'Templates');
 INSERT INTO txt VALUES ('creation_date',		'German', 	'Erstelldatum');
 INSERT INTO txt VALUES ('creation_date',		'English', 	'Creation Date');
 INSERT INTO txt VALUES ('report_template',		'German', 	'Reportvorlage');
 INSERT INTO txt VALUES ('report_template',		'English', 	'Report Template');
+INSERT INTO txt VALUES ('no_of_obj',		    'German', 	'Anzahl der Objekte');
+INSERT INTO txt VALUES ('no_of_obj',		    'English', 	'Number of Objects');
 INSERT INTO txt VALUES ('glob_no_obj',		    'German', 	'Gesamtzahl der Objekte');
 INSERT INTO txt VALUES ('glob_no_obj',		    'English', 	'Global number of Objects');
 INSERT INTO txt VALUES ('total_no_obj_mgt',		'German', 	'Gesamtzahl der Objekte pro Management');
@@ -245,7 +265,9 @@ INSERT INTO txt VALUES ('no_rules_gtw',		    'English', 	'Number of Rules per Ga
 INSERT INTO txt VALUES ('negated',		        'German', 	'negated');
 INSERT INTO txt VALUES ('negated',		        'English', 	'negiert');
 INSERT INTO txt VALUES ('network_objects',		'German', 	'Netzwerkobjekte');
-INSERT INTO txt VALUES ('network_objects',		'English', 	'Network objects');
+INSERT INTO txt VALUES ('network_objects',		'English', 	'Network Objects');
+INSERT INTO txt VALUES ('network_services',		'German', 	'Netzwerkdienste');
+INSERT INTO txt VALUES ('network_services',		'English', 	'Network Services');
 INSERT INTO txt VALUES ('service_objects',		'German', 	'Serviceobjekte');
 INSERT INTO txt VALUES ('service_objects',		'English', 	'Service objects');
 INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
@@ -270,6 +292,8 @@ INSERT INTO txt VALUES ('source_zone',		    'German', 	'Quellzone');
 INSERT INTO txt VALUES ('source_zone',		    'English', 	'Source Zone');
 INSERT INTO txt VALUES ('destination_zone',		'German', 	'Zielzone');
 INSERT INTO txt VALUES ('destination_zone',		'English', 	'Destination Zone');
+INSERT INTO txt VALUES ('anything_but',		    'German', 	'alles ausser');
+INSERT INTO txt VALUES ('anything_but',		    'English', 	'anything but');
 INSERT INTO txt VALUES ('enabled',		        'German', 	'Aktiviert');
 INSERT INTO txt VALUES ('enabled',		        'English', 	'Enabled');
 INSERT INTO txt VALUES ('uid',		            'German', 	'UID');
@@ -314,6 +338,18 @@ INSERT INTO txt VALUES ('edit_template',        'German', 	'&Auml;ndern der Vorl
 INSERT INTO txt VALUES ('edit_template',        'English', 	'Edit Report Template');
 INSERT INTO txt VALUES ('delete_template',      'German', 	'L&ouml;schen der Vorlage');
 INSERT INTO txt VALUES ('delete_template',      'English', 	'Delete Report Template');
+INSERT INTO txt VALUES ('no_changes_found',	    'German', 	'Keine Changes gefunden!');
+INSERT INTO txt VALUES ('no_changes_found',	    'English', 	'No changes found!');
+INSERT INTO txt VALUES ('rules_report',	        'German', 	'Regel-Report');
+INSERT INTO txt VALUES ('rules_report',	        'English', 	'Rules Report');
+INSERT INTO txt VALUES ('natrules_report',	    'German', 	'NAT-Regel-Report');
+INSERT INTO txt VALUES ('natrules_report',	    'English', 	'NAT Rules Report');
+INSERT INTO txt VALUES ('changes_report',	    'German', 	'Changes-Report');
+INSERT INTO txt VALUES ('changes_report',	    'English', 	'Changes Report');
+INSERT INTO txt VALUES ('statistics_report',	'German', 	'Statistik-Report');
+INSERT INTO txt VALUES ('statistics_report',	'English', 	'Statistics Report');
+INSERT INTO txt VALUES ('generated_on',	        'German', 	'Erstellt am');
+INSERT INTO txt VALUES ('generated_on',	        'English', 	'Generated on');
 
 -- schedule
 INSERT INTO txt VALUES ('schedule', 			'German',	'Terminplan');
@@ -384,8 +420,8 @@ INSERT INTO txt VALUES ('later',		        'German', 	'Sp&auml;ter');
 INSERT INTO txt VALUES ('later',		        'English', 	'None');
 INSERT INTO txt VALUES ('due_within',		    'German', 	'F&auml;llig in (Tagen)');
 INSERT INTO txt VALUES ('due_within',		    'English', 	'Due within (days)');
-INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln laden');
-INSERT INTO txt VALUES ('load_rules',		    'English', 	'Load Rules');
+INSERT INTO txt VALUES ('load_rules',		    'German', 	'Regeln anzeigen');
+INSERT INTO txt VALUES ('load_rules',		    'English', 	'Show Rules');
 INSERT INTO txt VALUES ('execute_selected',		'German', 	'Ausgew&auml;hlte Aktionen ausf&uuml;hren');
 INSERT INTO txt VALUES ('execute_selected',		'English', 	'Execute Selected Actions');
 INSERT INTO txt VALUES ('next_recert',		    'German', 	'Datum n&auml;chste Rezertifizierung');
@@ -478,8 +514,12 @@ INSERT INTO txt VALUES ('edit_gateway',         'German', 	'Gateway bearbeiten')
 INSERT INTO txt VALUES ('edit_gateway',         'English', 	'Edit Gateway');
 INSERT INTO txt VALUES ('management',           'German', 	'Management');
 INSERT INTO txt VALUES ('management',           'English', 	'Management');
-INSERT INTO txt VALUES ('rulebase',             'German', 	'Rulebase');
-INSERT INTO txt VALUES ('rulebase',             'English', 	'Rulebase');
+INSERT INTO txt VALUES ('local_rulebase',       'German', 	'Lokale Rulebase');
+INSERT INTO txt VALUES ('local_rulebase',       'English', 	'Local Rulebase');
+INSERT INTO txt VALUES ('global_rulebase',      'German', 	'Globale Rulebase');
+INSERT INTO txt VALUES ('global_rulebase',      'English', 	'Global Rulebase');
+INSERT INTO txt VALUES ('package',              'German', 	'Package');
+INSERT INTO txt VALUES ('package',              'English', 	'Package');
 INSERT INTO txt VALUES ('details',              'German', 	'Details');
 INSERT INTO txt VALUES ('details',              'English', 	'Details');
 INSERT INTO txt VALUES ('import_status_details','German', 	'Importstatusdetails f&uuml;r ');
@@ -530,6 +570,8 @@ INSERT INTO txt VALUES ('delete_user_from_role','German',	'Nutzer/Gruppe von Rol
 INSERT INTO txt VALUES ('delete_user_from_role','English',	'Delete user/group from role');
 INSERT INTO txt VALUES ('get_user_from_ldap',   'German',	'Nutzer von LDAP holen');
 INSERT INTO txt VALUES ('get_user_from_ldap',   'English',	'Get user from LDAP');
+INSERT INTO txt VALUES ('synchronize', 			'German',	'Mit LDAP Synchronisieren');
+INSERT INTO txt VALUES ('synchronize', 			'English',	'Synchronize to LDAP');
 INSERT INTO txt VALUES ('delete_user',          'German', 	'Nutzer l&ouml;schen');
 INSERT INTO txt VALUES ('delete_user',          'English', 	'Delete user');
 INSERT INTO txt VALUES ('active_user',          'German', 	'Aktiver Nutzer');
@@ -678,6 +720,8 @@ INSERT INTO txt VALUES ('fetch_users_local',    'German', 	'Nutzer aus API holen
 INSERT INTO txt VALUES ('fetch_users_local',    'English', 	'Fetch Users from API');
 INSERT INTO txt VALUES ('fetch_tenants',        'German', 	'Mandanten abholen');
 INSERT INTO txt VALUES ('fetch_tenants',        'English', 	'Fetch Tenants');
+INSERT INTO txt VALUES ('sync_users',           'German', 	'Nutzer synchronisieren');
+INSERT INTO txt VALUES ('sync_users',           'English', 	'Synchronize Users');
 INSERT INTO txt VALUES ('save_group',           'German', 	'Gruppe in LDAP speichern');
 INSERT INTO txt VALUES ('save_group',           'English', 	'Save group in LDAP');
 INSERT INTO txt VALUES ('fetch_roles',          'German', 	'Rollen abholen');
@@ -744,10 +788,14 @@ INSERT INTO txt VALUES ('api_general',          'German', 	'API allgemein');
 INSERT INTO txt VALUES ('api_general',          'English', 	'API general');
 INSERT INTO txt VALUES ('api_user_mgmt',        'German', 	'User Management');
 INSERT INTO txt VALUES ('api_user_mgmt',        'English', 	'User Management');
+INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
+INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'English', 	'Authentication');
-INSERT INTO txt VALUES ('umgmt_auth_expl',      'German', 	'Zur Authentisierung verwenden Sie folgenden API-Call, der bei erfolgreicher Authentisierung einen JWT zur&uuml;ckliefert');
-INSERT INTO txt VALUES ('umgmt_auth_expl',      'English', 	'For authentication use the following API call, which will return a JWT for the user upon successful authentication');
+INSERT INTO txt VALUES ('umgmt_api_explain',    'German', 	'F&uuml;r API-Abfragen rund um das Thema Benutzerauthentifizierung existiert eine eigenst&auml;ndige REST-API, deren Dokumentation sich hier findet:');
+INSERT INTO txt VALUES ('umgmt_api_explain',    'English', 	'For API calls regarding user management purposes there is a dedicated REST API which is documented here:');
+INSERT INTO txt VALUES ('umgmt_api_explain2',   'German', 	'Bitte beachten Sie, dass die Interaktion via "Try it out" aktuell nur f&uuml;r den initialen AuthenticationToken-Call zur Verf&uuml;gung steht. F&uuml;r alle darauffolgenden Aufrufe muss der Authentication Token (JWT) als Header wie folgt mitgeschickt werden: <br><pre>--header ''Authorization: Bearer JWT''</pre>');
+INSERT INTO txt VALUES ('umgmt_api_explain2',   'English', 	'Please note that API interaction via "Try it out" is currently only possible for the AuthenticationToken call. All subsequent calls need to pass the authentication token (JWT) as header information as follows: <br><pre>--header ''Authorization: Bearer JWT''</pre>');
 INSERT INTO txt VALUES ('api_fwo',              'German', 	'FWO API');
 INSERT INTO txt VALUES ('api_fwo',              'English', 	'FWO API');
 INSERT INTO txt VALUES ('graphql',              'German', 	'GraphQL');
@@ -786,6 +834,10 @@ INSERT INTO txt VALUES ('get_single_dev_rules', 'German', 	'Alle aktuellen Regel
 INSERT INTO txt VALUES ('get_single_dev_rules', 'English', 	'Get all current rules of gateway with ID 1');
 INSERT INTO txt VALUES ('parameters',           'German', 	'Parameter');
 INSERT INTO txt VALUES ('parameters',           'English',  'Parameters');
+INSERT INTO txt VALUES ('introduction',         'German',   'Einführung');
+INSERT INTO txt VALUES ('introduction',         'English',  'Introduction');
+INSERT INTO txt VALUES ('architecture',         'German',   'Die Firewall Orchestrator Architektur');
+INSERT INTO txt VALUES ('architecture',         'English',  'Firewall Orchestrator Architecture');
 
 -- text codes (roughly) categorized: 
 -- U: user texts (explanation or confirmation texts)
@@ -919,6 +971,11 @@ INSERT INTO txt VALUES ('E1001', 'German',  'Vor dem Generieren des Reports bitt
 INSERT INTO txt VALUES ('E1001', 'English', 'Please select at least one device in the left side-bar before generating a report');
 INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum Exportieren. Bitte zuerst Report generieren!');
 INSERT INTO txt VALUES ('E1002', 'English', 'No generated report to export. Please generate report first!');
+INSERT INTO txt VALUES ('E1003', 'German',  'Die Datenabholung wurde abgebrochen. M&ouml;glicherweise werden nicht alle verf&uuml;gbaren Daten dargestellt.');
+INSERT INTO txt VALUES ('E1003', 'English', 'Data fetch was cancelled. Possibly not all available data are displayed');
+
+INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
+INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
 
 INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
@@ -936,6 +993,14 @@ INSERT INTO txt VALUES ('E5105', 'English', 'There is already a management in th
 INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit derselben Konfiguration und Import aktiviert');
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 
+INSERT INTO txt VALUES ('E5201', 'German',  'LDAP-Verbindung konnte nicht angelegt werden');
+INSERT INTO txt VALUES ('E5201', 'English', 'LDAP connection could not be created');
+INSERT INTO txt VALUES ('E5202', 'German',  'LDAP-Verbindung konnte nicht ge&auml;ndert werden');
+INSERT INTO txt VALUES ('E5202', 'English', 'LDAP connection could not be updated');
+INSERT INTO txt VALUES ('E5203', 'German',  'LDAP-Verbindung konnte nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E5203', 'English', 'LDAP connection could not be deleted');
+INSERT INTO txt VALUES ('E5204', 'German',  'LDAP-Verbindungen konnten nicht geholt werden');
+INSERT INTO txt VALUES ('E5204', 'English', 'LDAP connections could not be fetched');
 INSERT INTO txt VALUES ('E5207', 'German',  'kein internes LDAP gefunden');
 INSERT INTO txt VALUES ('E5207', 'English', 'No internal LDAP found');
 INSERT INTO txt VALUES ('E5208', 'German',  'Keine Nutzer gefunden');
@@ -1026,6 +1091,8 @@ INSERT INTO txt VALUES ('E5282', 'German',  'Mandant konnte im LDAP nicht gel&ou
 INSERT INTO txt VALUES ('E5282', 'English', 'Tenant could not be deleted in LDAP');
 INSERT INTO txt VALUES ('E5283', 'German',  'Mindestens ein Nutzer zum Mandanten zugeordnet. Bitte zuerst l&ouml;schen!');
 INSERT INTO txt VALUES ('E5283', 'English', 'At least one user assigned to tenant. Delete first!');
+INSERT INTO txt VALUES ('E5284', 'German',  'Mandanten konnten nicht vom LDAP geholt werden');
+INSERT INTO txt VALUES ('E5284', 'English', 'Tenants could not be fetched from LDAP');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration f&uuml;r Standardsprache konnte nicht gelesen werden: Wert auf Englisch gesetzt');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading Config for default language: taking default English');
@@ -1094,6 +1161,8 @@ INSERT INTO txt VALUES ('T0103', 'German',  'Anzahl der Objekte und Regeln pro D
 INSERT INTO txt VALUES ('T0103', 'English', 'Number of objects and rules per device');
 INSERT INTO txt VALUES ('T0104', 'German',  'Alle Regeln, die offene Quellen, Ziele oder Dienste haben');
 INSERT INTO txt VALUES ('T0104', 'English', 'All pass rules that contain any as source, destination or service');
+INSERT INTO txt VALUES ('T0105', 'German',  'Aktuell aktive NAT-Regeln aller Gateways');
+INSERT INTO txt VALUES ('T0105', 'English', 'Currently active NAT rules of all gateways');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -1147,10 +1216,10 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
 ');
-INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;gliche Werte: statistics, rules, changes</li>
+INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;gliche Werte: statistics, rules, changes, natrule</li>
     <li>time: In Abh&auml;ngigkeit vom Reporttyp werden verschiedene Werte/Formate erwartet:
         <ul>
-            <li>f&uuml;r "rules" oder "statistics" muss ein Datums- oder Zeitwert im Format YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... &uuml;bergeben werden.
+            <li>f&uuml;r "rules", "natrules" oder "statistics" muss ein Datums- oder Zeitwert im Format YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... &uuml;bergeben werden.
                 Zur Vereinfachung kann auch "now" f&uuml;r das aktuelle Datum eingegeben werden.</li>
             <li>f&uuml;r "changes" m&uuml;ssen zwei Datums-/Zeitwerte &uuml;bergeben werden, getrennt durch "/". Als Format wird YYYY-MM-DD oder YY-MM-DD HH:mm[:ss] erwartet.
                 Wenn ein Datum ohne Zeitangabe &uuml;bergeben wird, wird f&uuml;r die Startzeit 00:00:00, f&uuml;r die Endezeit 23:59:59 angenommen.
@@ -1170,10 +1239,10 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;glich
     <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
-INSERT INTO txt VALUES ('H1111', 'English', '<li>reporttype (type): Possible Values: statistics, rules, changes</li>
+INSERT INTO txt VALUES ('H1111', 'English', '<li>reporttype (type): Possible Values: statistics, rules, changes, natrules</li>
     <li>time: Depending on report type there are different possible Values/Formats: 
         <ul>
-            <li>for "rules" or "statistics" there has to be one date or date/time value YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... 
+            <li>for "rules", "natrules" or "statistics" there has to be one date or date/time value YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... 
                 As a shortcut also "now" is possible.</li>
             <li>for "changes" two dates have to be given separated by "/". The format of each date is expexted as YYYY-MM-DD or YY-MM-DD HH:mm[:ss].
                 If a date without time is given, for the start date 00:00:00 is assumed, for the end date 23:59:59.
@@ -1428,11 +1497,12 @@ INSERT INTO txt VALUES ('H5101', 'English', 'Admins can create and administrate 
     The clone button helps defining new managements by copying the data from existing ones.
     Before saving at least one of the parameters Hostname, Port or Config Path has to be different from the existing managements if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallproducte k&ouml;nnen integriert werden:<ul>
+INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nnen integriert werden:<ul>
     <li>Check Point R5x/R6x/R7x - ssh-Zugang zum Management Server (SmartCenter)</li>
     <li>Check Point R8x - https-API-Zugang zum SmartCenter</li>
     <li>Check Point R8x - https-API-Zugang zum MDS (Multi Domain Server)</li>
-    <li>Fortinet 5.0 - 6.4</li>
+    <li>Fortinet 5.0 - 6.4 - ssh-Zugang zur FortiGate</li>
+    <li>FortiManager 5.0 - 7.x - https API Zugang auf FortiManager</li>
     <li>Barracuda Firewall Control Center Vx - ssh-Zugang direkt zum Firewallgateway</li>
     <li>phion netfence 3.x - ssh-Zugang direkt zum Firewallgateway</li>
     <li>JUNOS 10 - 17 - ssh-Zugang direkt zum Firewallgateway</li>
@@ -1442,7 +1512,8 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
     <li>Check Point R5x/R6x/R7x - ssh access to management server (SmartCenter)</li>
     <li>Check Point R8x - https API access to SmartCenter</li>
     <li>Check Point R8x - https API access to MDS (Multi Domain Server)</li>
-    <li>Fortinet 5.0 - 6.4</li>
+    <li>Fortinet 5.0 - 6.4 - ssh access to FortiGate</li>
+    <li>FortiManager 5.0 - 7.x - https API access to FortiManager</li>
     <li>Barracuda Firewall Control Center Vx - ssh access to firewall gateway directly</li>
     <li>phion netfence 3.x - ssh access to firewall gateway directly</li>
     <li>JUNOS 10 - 17 - ssh access to firewall gateway directly</li>
@@ -1542,7 +1613,7 @@ INSERT INTO txt VALUES ('H5153', 'English', 'Device Type*: Out of a list of avai
 ');
 INSERT INTO txt VALUES ('H5154', 'German',  'Management*: W&auml;hlen Sie das Management, welches dieses Gateway kontrolliert. Wenn zu einem Beispielmanagement zugeordnet, wird es mitgel&ouml;scht, wenn die "Beispieldaten l&ouml;schen"-Schaltfl&auml;che bei den Managementeinstellungen bet&auml;tigt wird.');
 INSERT INTO txt VALUES ('H5154', 'English', 'Management*: Select the management system that controls this gateway. If related to a sample management this Gateway will also be deleted when using the "Remove Sample Data" button on the management settings page.');
-INSERT INTO txt VALUES ('H5155', 'German',  'Rulebase*: Hier wird der Name der Rulebase hinterlegt.
+INSERT INTO txt VALUES ('H5155', 'German',  'Lokale Rulebase*: Hier wird der Name der Rulebase hinterlegt.
     <ul>
         <li>F&uuml;r Check Point R8x kommt hierhin der Name der top level Zugriffsschicht (default ist "Network").</li>
         <li>F&uuml;r Check Point R8x MDS wird hier der Name der global policy Schicht eingetragen, gefolgt vom Namen der domain policy, gertrennt durch "/", z.B. "global-policy-layer-name/domain-policy-layer-name".</li>
@@ -1551,7 +1622,7 @@ INSERT INTO txt VALUES ('H5155', 'German',  'Rulebase*: Hier wird der Name der R
         </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H5155', 'English', 'Rulebase*: Enter the name of the rulebase here. 
+INSERT INTO txt VALUES ('H5155', 'English', 'Local Rulebase*: Enter the name of the rulebase here. 
     <ul>
         <li>For Check Point R8x the top level access layer name goes here (default is "Network").</li>
         <li>For Check Point R8x MDS enter the name of the global policy layer followed by the name of the domain policy separated by "/", e.g. "global-policy-layer-name/domain-policy-layer-name".</li>
@@ -1560,10 +1631,14 @@ INSERT INTO txt VALUES ('H5155', 'English', 'Rulebase*: Enter the name of the ru
             </li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H5156', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
-INSERT INTO txt VALUES ('H5156', 'English', 'Import Disabled: Flag if the data import is disabled.');
-INSERT INTO txt VALUES ('H5157', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Gateway nicht mit Standard-Reporter-Rolle sichtbar.');
-INSERT INTO txt VALUES ('H5157', 'English', 'Hide in UI: If set, this gateway is not visible to the standard reporter role.');
+INSERT INTO txt VALUES ('H5156', 'German',  'Globale Rulebase: Hier wird der Name der Globalen Rulebase hinterlegt.');
+INSERT INTO txt VALUES ('H5156', 'English', 'Global Rulebase: Enter the name of the global rulebase here.');
+INSERT INTO txt VALUES ('H5157', 'German',  'Package: Hier wird ggf. der Name des Package hinterlegt.');
+INSERT INTO txt VALUES ('H5157', 'English', 'Package: Enter the name of the Package here.');
+INSERT INTO txt VALUES ('H5158', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
+INSERT INTO txt VALUES ('H5158', 'English', 'Import Disabled: Flag if the data import is disabled.');
+INSERT INTO txt VALUES ('H5159', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Gateway nicht mit Standard-Reporter-Rolle sichtbar.');
+INSERT INTO txt VALUES ('H5159', 'English', 'Hide in UI: If set, this gateway is not visible to the standard reporter role.');
 INSERT INTO txt VALUES ('H5171', 'German',  'Hier wird ein &Uuml;berblick &uuml;ber den Status der Importjobs der verschiedenen Managements gegeben.');
 INSERT INTO txt VALUES ('H5171', 'English', 'The status of the import jobs for the different managements is displayed here.');
 INSERT INTO txt VALUES ('H5181', 'German',  'Neu anzeigen: Aktualisiert die dargestellten Daten.');
@@ -1886,10 +1961,10 @@ INSERT INTO txt VALUES ('H6102', 'English', 'GraphQL provides you with an intera
 INSERT INTO txt VALUES ('H6103', 'German',  'Das Admin Kennwort kann auf dem API-Server in folgender Datei gefunden werden:');
 INSERT INTO txt VALUES ('H6103', 'English', 'Note that the admin secret can be found on the API server in the following file:');
 INSERT INTO txt VALUES ('H6201', 'German',  '<a href="https://hasura.io/" target="_blank">Hasura</a> stellt einen Link zur darunterliegenden PostgreSQL-Datenbank zur Verf&uuml;gung.<br>
-    Es implementiert eine Zugriffskontrollschicht und k&ouml;nnte auch einen REST API Zugang anbieten, falls Bedarf besteht.
+    Es implementiert eine Zugriffskontrollschicht und k&ouml;nnte bei Bedarf auch einen REST API Zugang zur Verf&uuml;gung stellen.
 ');
 INSERT INTO txt VALUES ('H6201', 'English', '<a href="https://hasura.io/" target="_blank">Hasura</a> provides the link to the underlying PostgreSQL database.<br>
-    It implements the access control layer and could also provide a REST API interface if need be.
+    It implements the access control layer and could also provide a REST API interface if needed.
 ');
 INSERT INTO txt VALUES ('H6301', 'German',  'Der Zugang zur API wird standardm&auml;ssig durch Nutzername/Passwort-Anmeldedaten kontrolliert, was zur Erzeugung eines JSON Web Token (JWT) f&uuml;hrt.
     Der JWT kann nur f&uuml;r eine begrenzte Zeit genutzt werden (Standard = 2 Stunden), um auf die dahinterliegende API zuzugreifen.
@@ -1919,5 +1994,19 @@ INSERT INTO txt VALUES ('H6701', 'German',  '(Bitte ihren aktuellen JWT in der Q
 INSERT INTO txt VALUES ('H6701', 'English', '(Note that the query will not work as the sample JWT is not valid anymore. Please use a current JWT.)');
 INSERT INTO txt VALUES ('H6702', 'German',  'Ergebnis auf einem System mit Beispieldaten:');
 INSERT INTO txt VALUES ('H6702', 'English', 'Result on a system with demo data:');
-INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation (funktioniert noch nicht) setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');
-INSERT INTO txt VALUES ('H6801', 'English', 'The following mutation (does not work yet) sets the language of user with id 1 to German:');
+INSERT INTO txt VALUES ('H6801', 'German',  'Folgende Mutation setzt die Sprache vom Nutzer mit der Id 1 auf Deutsch:');
+INSERT INTO txt VALUES ('H6801', 'English', 'The following mutation sets the language of user with id 1 to German:');
+INSERT INTO txt VALUES ('H6901', 'German',  'Anlegen eines Reporting Nutzers (&uuml;ber die Web-Oberfl&auml;che (z.B. reportscheduler) mit der Rolle "reporter_viewall")');
+INSERT INTO txt VALUES ('H6901', 'English', 'Create reporting user via web interface (e.g. reportscheduler) assigning the rule "reporter_viewall"');
+INSERT INTO txt VALUES ('H6902', 'German',  'Erstellen der zeitgesteuerten Report-Generierung (report_schedule_id wird zur&uuml;ckgeliefert)');
+INSERT INTO txt VALUES ('H6902', 'English', 'Create a (recurring) report, noting the returned report_schedule_id');
+INSERT INTO txt VALUES ('H6903', 'German',  'Herunterladen des generierten Reports');
+INSERT INTO txt VALUES ('H6903', 'English', 'Download the generated report');
+INSERT INTO txt VALUES ('H6904', 'German',  'Die im folgenden beschriebenen Schritte k&ouml;nnen alle auch via Web-Oberfl&auml;che durchgef&uuml;hrt werden. Hier ist jeweils der Weg mittels API-Call angegeben.');
+INSERT INTO txt VALUES ('H6904', 'English', 'The following steps can both be executed via API as well as via web UI. Here we list the API-only way.');
+INSERT INTO txt VALUES ('H6905', 'German',  'Beschaffung der notwendigen ID-Informationen (User-ID, Report Template ID)');
+INSERT INTO txt VALUES ('H6905', 'English', 'Information gathering (User-ID, Report Template ID)');
+INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uuml;ltigen JWT f&uuml;r die folgenden Schritte');
+INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
+INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
+INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');

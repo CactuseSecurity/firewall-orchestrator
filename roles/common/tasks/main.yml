@@ -197,6 +197,20 @@
       group: "{{ fworch_group }}"
       mode: "0775"
 
+  - name: add proxy setting to fworch users .profile and .bashrc
+    blockinfile:
+      path: "{{ fworch_home }}/{{ item }}"
+      create: yes
+      mode: "0644"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      block: |
+        http_proxy={{ http_proxy }}
+        https_proxy={{ http_proxy }}
+    loop:
+      - .bashrc
+      - .profile
+
   - name: create etc dir
     file:
       path: "{{ fworch_home }}/etc"

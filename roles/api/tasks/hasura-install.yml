@@ -155,7 +155,7 @@
     msg: "The container status is: {{ result }}"
   when: result.exists and result.container['State']['Status'] == 'exited'
 
-- name: copy hasura docker systemd service script
+- name: copy hasura systemd service script
   template:
      src: "{{ api_service_name }}.service.j2"
      dest: "/lib/systemd/system/{{ api_service_name }}.service"
@@ -164,7 +164,7 @@
      owner: "root"
   become: yes
 
-- name: make hasura docker container runs at host startup
+- name: make hasura docker container run at host startup
   systemd:
     name: "{{ api_service_name }}"
     daemon_reload: yes
@@ -192,4 +192,3 @@
       x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
       x-hasura-role: "admin"
     body: "{{ lookup('file','replace_metadata.json') | from_json }}"
-    # body: "{{ lookup('file','replace_metadata.json') | to_json | from_json }}"

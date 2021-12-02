@@ -57,7 +57,7 @@
   become_user: postgres
 
 - name: find ldap entries with test_postfix
-  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x *{{ sample_postfix }}*"
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*))'"
   register: ldap_entries_to_delete
   listen: "test importer handler"
   become: yes
@@ -72,7 +72,7 @@
   listen: "test importer handler"
 
 - set_fact:
-    delete_list2: "{{ delete_list.split('dn: ')[1:] }}"
+    delete_list2: "{{ delete_list.split('dn: ')[1:] | sort }}"
   listen: "test importer handler"
 
 - name: debug final input for ldap delete

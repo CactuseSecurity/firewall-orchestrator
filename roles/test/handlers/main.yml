@@ -57,7 +57,7 @@
   become_user: postgres
 
 - name: find ldap entries with test_postfix
-  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*))'"
+  command: "ldapsearch -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
   register: ldap_entries_to_delete
   listen: "test importer handler"
   become: yes

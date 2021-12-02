@@ -14,7 +14,7 @@
       dest: "{{ fworch_home }}/backup_middleware"
     delegate_to: "{{ inventory_hostname }}"
     when: installation_mode == "upgrade"
-      
+
   - name: remove middleware dir
     file:
       state: absent
@@ -57,6 +57,7 @@
 
 - name: import ldif driven changes
   import_tasks: set_initial_ldap_tree.yml
+  when: installation_mode == "new"
 
 - name: install python modules for ansible ldap module via package
   package:
@@ -70,11 +71,6 @@
       - python3-pyldap
   become: yes
 
-# - name: install python modules for ansible ldap module via pip
-#   pip:
-#     name: pyldap
-#   become: yes
-
 - name: make sure {{ fworch_secrets_dir }} exists
   file:
     path: "{{ fworch_secrets_dir }}"
@@ -83,11 +79,6 @@
     group: "{{ fworch_group }}"
     mode: "0700"
   become: yes
-
-# - name: set UI admin password from parameter
-#   set_fact:
-#     admin_password: "{{ admin_initial_password }}"
-#   when: admin_initial_password is defined
 
 - name: set UI admin password for testing
   set_fact:
@@ -149,6 +140,7 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+  when: installation_mode == "new"
 
 - name: Set "{{ openldap_writer_name }}" password in ldap
   ldap_passwd:
@@ -157,6 +149,7 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
+  when: installation_mode == "new"
 
 - name: Set {{ audit_user }} password in ldap
   ldap_passwd:
@@ -178,18 +171,7 @@
       END IF; END $do$
   become: yes
   become_user: postgres
-
-# - name: insert admin tenant0 to device mapping - tenant0 can see all devices
-#   postgresql_query:
-#     db: "{{ fworch_db_name }}"
-#     query: >
-#       DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')
-#         THEN INSERT INTO tenant_to_device (tenant_id, device_id) 
-#           select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name='tenant0'; 
-#         END IF; 
-#       END $do$
-#   become: yes
-#   become_user: postgres
+  when: installation_mode == "new"
 
 - name: add connection for internal ldap
   postgresql_query:
@@ -207,6 +189,7 @@
       END IF; END $do$
   become: yes
   become_user: postgres
+  when: installation_mode == "new"
 
 - name: update password for local ldap connection  in case of upgrade
   postgresql_query:

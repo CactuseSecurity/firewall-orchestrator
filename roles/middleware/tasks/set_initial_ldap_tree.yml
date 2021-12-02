@@ -21,5 +21,4 @@
     - roles
     - tenant0
     - operators
-  when: installation_mode == "new"
   # ignore errors only when re-installing on a system

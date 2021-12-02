@@ -9,8 +9,6 @@
     timeout: 25
   when: "not run_on_github|bool"
 
-# curl --request POST --url http://127.0.0.1:8888/AuthenticateUser/ --header 'content-type: application/json' --data '{"Username":"user1_{{ test_postfix }}","Password":"cactus1"}'
-# Todo: Produces error invalid credentials, api is inactive (with command above)
 - name: middleware test get jwt valid creds
   uri:
     url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/

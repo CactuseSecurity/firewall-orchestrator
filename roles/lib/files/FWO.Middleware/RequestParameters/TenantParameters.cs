@@ -9,10 +9,10 @@
         public bool Superadmin { get; set; }
     }
 
-    public class TenantGetParameters : TenantAddParameters
+    public class TenantGetReturnParameters : TenantAddParameters
     {
         public int Id { get; set; }
-        public List<KeyValuePair<int,string>> Devices { get; set; }
+        public List<KeyValuePair<int,string>> Devices { get; set; } = new List<KeyValuePair<int,string>>();
     }
 
     public class TenantDeleteParameters

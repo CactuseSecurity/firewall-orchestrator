@@ -8687,6 +8687,14 @@
                     "check": null
                   }
                 }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  }
+                }
               ]
             },
             {

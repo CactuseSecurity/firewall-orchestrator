@@ -3,13 +3,7 @@ using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Novell.Directory.Ldap;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
 
 namespace FWO.Middleware.Controllers
 {
@@ -26,9 +20,9 @@ namespace FWO.Middleware.Controllers
         }
 
         // GET: api/<ValuesController>
-        [HttpPost("Get")]
+        [HttpGet]
         [Authorize(Roles = "admin, auditor")]
-        public async Task<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> GetAsync()
+        public async Task<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> Get()
         {
             // No parameters
             ConcurrentBag<KeyValuePair<string, List<KeyValuePair<string, string>>>> allRoles = new ConcurrentBag<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
@@ -58,9 +52,6 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin")]
         public async Task<bool> AddUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
-            string userDn = parameters.UserDn ?? throw new NullReferenceException(nameof(parameters.UserDn));
-            string role = parameters.Role ?? throw new NullReferenceException(nameof(parameters.Role));
-
             bool userAdded = false;
             List<Task> ldapRoleRequests = new List<Task>();
 
@@ -71,10 +62,10 @@ namespace FWO.Middleware.Controllers
                 {
                     ldapRoleRequests.Add(Task.Run(() =>
                     {
-                        if (currentLdap.AddUserToEntry(userDn, role))
+                        if (currentLdap.AddUserToEntry(parameters.UserDn, parameters.Role))
                         {
                             userAdded = true;
-                            Log.WriteAudit("AddUserToRole", $"user {userDn} successfully added to role {role} in {currentLdap.Host()}");
+                            Log.WriteAudit("AddUserToRole", $"user {parameters.UserDn} successfully added to role {parameters.Role} in {currentLdap.Host()}");
                         }
                     }));
                 }
@@ -90,9 +81,6 @@ namespace FWO.Middleware.Controllers
         [Authorize(Roles = "admin")]
         public async Task<bool> RemoveUser([FromBody] RoleAddDeleteUserParameters parameters)
         {
-            string userDn = parameters.UserDn ?? throw new NullReferenceException(nameof(parameters.UserDn));
-            string role = parameters.Role ?? throw new NullReferenceException(nameof(parameters.Role));
-
             bool userRemoved = false;
             List<Task> ldapRoleRequests = new List<Task>();
 
@@ -103,10 +91,10 @@ namespace FWO.Middleware.Controllers
                 {
                     ldapRoleRequests.Add(Task.Run(() =>
                     {
-                        if (currentLdap.RemoveUserFromEntry(userDn, role))
+                        if (currentLdap.RemoveUserFromEntry(parameters.UserDn, parameters.Role))
                         {
                             userRemoved = true;
-                            Log.WriteAudit("RemoveUserFromRole", $"Removed user {userDn} from {role} in {currentLdap.Host()}");
+                            Log.WriteAudit("RemoveUserFromRole", $"Removed user {parameters.UserDn} from {parameters.Role} in {currentLdap.Host()}");
                         }
                     }));
                 }

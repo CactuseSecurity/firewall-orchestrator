@@ -3,7 +3,7 @@
     public class LdapAddParameters
     {
         public string? Name { get; set; }
-        public string? Address { get; set; }
+        public string Address { get; set; } = "";
         public int Port { get; set; } = 636;
         public int Type { get; set; } = 0;
         public int PatternLength { get; set; } = 0;

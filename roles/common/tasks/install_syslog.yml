@@ -1,4 +1,38 @@
 
+- name: install package rsyslog
+  package:
+    name: "rsyslog"
+    state: present
+  become: yes
+
+- name: create log dir for {{ product_name }} on ubuntu - owner syslog
+  file:
+    path: "/var/log/{{ product_name }}/"
+    state: directory
+    owner: syslog
+    group: syslog
+    mode: "0775"
+  become: yes
+  when: ansible_facts['distribution'] == "Ubuntu"
+    
+- name: create log dir for {{ product_name }} on debian - owner root
+  file:
+    path: "/var/log/{{ product_name }}/"
+    state: directory
+    owner: root
+    group: root
+    mode: "0775"
+  become: yes
+  when: ansible_facts['distribution'] == "Debian"
+
+- name: change rsyslog config to receive logs
+  blockinfile:
+    path: /etc/rsyslog.conf
+    block: |
+      module(load="im{{ syslog_proto }}")
+      input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
+  become: yes
+
 - name: create log dir for {{ product_name }} on redhat - owner root
   file:
     path: "/var/log/{{ product_name }}/"

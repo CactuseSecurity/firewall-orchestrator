@@ -72,7 +72,7 @@
   listen: "test importer handler"
 
 - set_fact:
-    delete_list2: "{{ delete_list.split('dn: ')[1:] | sort }}"
+    delete_list2: "{{ delete_list.split('dn: ')[1:] | sort(reverse = True) }}"
   listen: "test importer handler"
 
 - name: debug final input for ldap delete

@@ -2,19 +2,19 @@
 {
     public class GroupGetParameters
     {
-        public string LdapHostname { get; set; } = "";
+        public int LdapId { get; set; }
         public string SearchPattern { get; set; } = "";
     }
 
     public class GroupAddDeleteParameters
     {
-        public string GroupDn { get; set; } = "";
+        public string GroupName { get; set; } = "";
     }
 
     public class GroupEditParameters
     {
-        public string OldGroupDn { get; set; } = "";
-        public string NewGroupDn { get; set; } = "";
+        public string OldGroupName { get; set; } = "";
+        public string NewGroupName { get; set; } = "";
     }
 
     public class GroupAddDeleteUserParameters

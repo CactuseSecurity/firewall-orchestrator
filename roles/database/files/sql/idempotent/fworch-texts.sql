@@ -580,6 +580,8 @@ INSERT INTO txt VALUES ('user',                 'German', 	'Nutzer');
 INSERT INTO txt VALUES ('user',                 'English', 	'User');
 INSERT INTO txt VALUES ('group',                'German', 	'Gruppe');
 INSERT INTO txt VALUES ('group',                'English', 	'Group');
+INSERT INTO txt VALUES ('into_ldap',            'German', 	'in LDAP');
+INSERT INTO txt VALUES ('into_ldap',            'English', 	'into LDAP');
 INSERT INTO txt VALUES ('from_ldap',            'German', 	'von LDAP');
 INSERT INTO txt VALUES ('from_ldap',            'English', 	'from LDAP');
 INSERT INTO txt VALUES ('search_pattern',       'German', 	'Suchmuster');

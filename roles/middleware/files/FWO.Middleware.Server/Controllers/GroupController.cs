@@ -164,31 +164,6 @@ namespace FWO.Middleware.Controllers
             return allGroups;
         }
 
-        [HttpPost("Get")]
-        [Authorize(Roles = "admin, auditor")]
-        public async Task<List<string>> Get([FromBody] GroupGetParameters parameters)
-        {
-            string ldapHostname = parameters.LdapHostname;
-            string searchPattern = parameters.SearchPattern;
-
-            List<string> allGroups = new List<string>();
-
-            foreach (Ldap currentLdap in ldaps)
-            {
-                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.HasGroupHandling())
-                {
-                    await Task.Run(() =>
-                    {
-                        // Get all groups from current Ldap
-                        allGroups = currentLdap.GetAllGroups(searchPattern);
-                    });
-                }
-            }
-
-            // Return status and result
-            return allGroups;
-        }
-
         // GET: GroupController/
         [HttpPost("User")]
         [Authorize(Roles = "admin")]

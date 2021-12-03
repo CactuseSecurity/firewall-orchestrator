@@ -16,7 +16,7 @@ namespace FWO.Api.Data
         public int Id { get; set; }
 
         [JsonPropertyName("ldap_server")]
-        public string? Address { get; set; }
+        public string Address { get; set; } = "";
 
         [JsonPropertyName("ldap_port")]
         public int Port { get; set; }
@@ -81,7 +81,7 @@ namespace FWO.Api.Data
 
         public string Host()
         {
-            return ((Address != null && Address != "") ? Address + ":" + Port : "");
+            return (Address != "" ? Address + ":" + Port : "");
         }
         
         public bool IsWritable()

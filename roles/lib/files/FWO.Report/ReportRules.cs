@@ -224,7 +224,7 @@ namespace FWO.Report
 
                 foreach (Device device in management.Devices)
                 {
-                    if (device.Rules.Length > 0)
+                    if (device.Rules != null && device.Rules.Length > 0)
                     {
                         report.AppendLine($"<h4>{device.Name}</h4>");
                         report.AppendLine("<hr>");

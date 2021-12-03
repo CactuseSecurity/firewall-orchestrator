@@ -450,11 +450,15 @@
         {
             foreach(string roleName in group.Roles)
             {
-                RoleAddDeleteUserParameters addGroupToRoleParameters = new RoleAddDeleteUserParameters { Role = roles.Find(x => x.Name == roleName).Dn, UserDn = group.Dn };
-                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(addGroupToRoleParameters);
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+                Role? role = roles.FirstOrDefault(x => x.Name == roleName);
+                if (role != null)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5246"), true);
+                    RoleAddDeleteUserParameters addGroupToRoleParameters = new RoleAddDeleteUserParameters { Role = role.Dn, UserDn = group.Dn };
+                    IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(addGroupToRoleParameters);
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5246"), true);
+                    }
                 }
             }
         }
@@ -507,14 +511,14 @@
     {
         AddUserMode = true;
         actGroup = group;
-        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.FirstOrDefault().Dn);
+        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.First().Dn);
     }
 
     private void RemoveUserFromGroup(UserGroup group)
     {
         RemoveUserMode = true;
         actGroup = group;
-        selectedUserToDelete = (actGroup.Users.Count == 0 ? "" : actGroup.Users.FirstOrDefault().Dn);
+        selectedUserToDelete = (actGroup.Users.Count == 0 ? "" : actGroup.Users.First().Dn);
     }
 
     private async Task AddUserFromUiUsers(string userDn)

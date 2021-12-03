@@ -178,6 +178,7 @@
         // clear selected rules
         selectedRules.Clear();
 
+        Management[] managementsOrig = managements;
         try
         {
             tokenSource = new CancellationTokenSource();
@@ -218,6 +219,9 @@
         }
         catch (Exception exception)
         {
+            processing = false;
+            managements = managementsOrig;
+            StateHasChanged();
             DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
     }

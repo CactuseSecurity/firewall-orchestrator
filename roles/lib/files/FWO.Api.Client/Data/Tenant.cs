@@ -49,7 +49,7 @@ namespace FWO.Api.Data
             VisibleManagements = tenant.VisibleManagements;
         }
 
-        public Tenant(TenantGetParameters tenantGetParameters)
+        public Tenant(TenantGetReturnParameters tenantGetParameters)
         {
             Id = tenantGetParameters.Id;
             Name = tenantGetParameters.Name;
@@ -76,14 +76,15 @@ namespace FWO.Api.Data
             List<string> deviceList = new List<string>();
             foreach (TenantDevice device in TenantDevices)
             {
-                deviceList.Add(device.VisibleDevice.Name);
+                if (device.VisibleDevice.Name != null)
+                    deviceList.Add(device.VisibleDevice.Name);
             }
             return string.Join(", ", deviceList);
         }
 
-        public TenantGetParameters ToApiParams()
+        public TenantGetReturnParameters ToApiParams()
         {
-            TenantGetParameters tenantGetParams = new TenantGetParameters
+            TenantGetReturnParameters tenantGetParams = new TenantGetReturnParameters
             {
                 Id = this.Id,
                 Name = this.Name,
@@ -95,7 +96,7 @@ namespace FWO.Api.Data
             };
             foreach (TenantDevice device in TenantDevices)
             {
-                tenantGetParams.Devices.Add(new KeyValuePair<int,string>(device.VisibleDevice.Id, device.VisibleDevice.Name));
+                tenantGetParams.Devices.Add(new KeyValuePair<int,string>(device.VisibleDevice.Id, (device.VisibleDevice.Name != null ? device.VisibleDevice.Name : "")));
             }
             return tenantGetParams;
         }
@@ -104,7 +105,7 @@ namespace FWO.Api.Data
     public class TenantDevice
     {
         [JsonPropertyName("device")]
-        public Device VisibleDevice { get; set; }
+        public Device VisibleDevice { get; set; } = new Device();
     }
 
     public class DeviceId

@@ -132,8 +132,7 @@ def get_ip_of_obj(obj):
 
 ##################### top level functions ###################################
 
-
-def simple_get_config (config_json, api_host, api_user, config_filename, api_password, layer, package='', api_domain='', fromdate='',
+def simple_get_config (config_json, api_host, api_user, config_filename, api_password, layer, package='', api_domain='', last_import_time=None,
     force=False, api_port=443, proxy_string='{ "http": "", "https": "" }', limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=''):
 
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
@@ -147,10 +146,12 @@ def simple_get_config (config_json, api_host, api_user, config_filename, api_pas
     sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy_string)
     v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy_string)
 
-    if fromdate == "" or force:
+    if last_import_time==None or last_import_time=='' or force:
+        # if no last import time found or given or if force flag is set, do full import
         changes = 1
     else:
-        changes = getter.get_changes(sid, api_host,api_port,fromdate,ssl_verification, proxy_string)
+        # otherwise search for any changes since last import
+        changes = getter.get_changes(sid, api_host,api_port,last_import_time,ssl_verification, proxy_string)
 
     if changes < 0: # changes = -1 is the error state
         logging.debug ( "get_changes: error getting changes")

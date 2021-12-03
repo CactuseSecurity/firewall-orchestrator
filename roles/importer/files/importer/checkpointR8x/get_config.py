@@ -21,7 +21,7 @@ parser.add_argument('-i', '--limit', metavar='api_limit', default='150', help='T
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0') 
 parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
 parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
-parser.add_argument('-f', '--fromdate', metavar='from_date', default='', help='date to start from, e.g. last successful import; default=2000-01-01T00:00:00')
+parser.add_argument('-f', '--fromdate', metavar='from_date', help='date to start from, e.g. last successful import')
 parser.add_argument('-F', '--force', action='store_true', default=False, help='if set the import will be attempted without checking for changes before')
 
 args = parser.parse_args()
@@ -37,8 +37,9 @@ use_object_dictionary = 'false'
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
 starttime = int(time.time())
+full_config_json = {}
 
-fwcommon.simple_get_config (args.apihost, args.user, args.out, api_password, args.layer, args.package, args.domain, args.fromdate,
+fwcommon.simple_get_config (full_config_json, args.apihost, args.user, args.out, api_password, args.layer, args.package, args.domain, args.fromdate,
     args.force, args.port, { "http" : args.proxy, "https" : args.proxy }, args.limit, details_level, args.testing, debug_level, getter.set_ssl_verification(args.ssl))
 
 duration = int(time.time()) - starttime

@@ -31,7 +31,9 @@ namespace FWO.Api.Data
         {}
 
         public UiLdapConnection(LdapGetUpdateParameters ldapGetUpdateParameters) : base(ldapGetUpdateParameters)
-        {}
+        {
+            Name = (ldapGetUpdateParameters.Name != null ? ldapGetUpdateParameters.Name : "");
+        }
 
         public UiLdapConnection(UiLdapConnection ldapConnection)
         {
@@ -58,6 +60,7 @@ namespace FWO.Api.Data
             return new LdapGetUpdateParameters
             {
                 Id = this.Id,
+                Name = this.Name,
                 Address = this.Address,
                 Port = this.Port,
                 Type = this.Type,

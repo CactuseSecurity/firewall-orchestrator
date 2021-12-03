@@ -42,12 +42,12 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
     return r.json()
 
 
-def login(user,password,api_host,api_port,domain, ssl_verification, proxy_string):
-    if domain == '':
+def login(user, password, api_host, api_port, domain, ssl_verification, proxy_string):
+    if domain is None or domain == '':
         payload = {'user':user, 'password' : password}
     else:
         payload = {'user':user, 'password' : password, 'domain' :  domain}
-    base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
+    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
     if "sid" not in response:
         logging.exception("\ngetter ERROR: did not receive a sid during login, " +

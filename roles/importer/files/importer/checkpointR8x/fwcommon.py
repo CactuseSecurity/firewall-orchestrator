@@ -3,15 +3,11 @@ base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/checkpointR8x')
 import os 
-import parse_network, parse_rule, parse_service, parse_user
 import json
-import sys
 import logging
-import copy
-import parse_rule
-import parse_user
-import parse_service
-import parse_network
+import copy, time
+import parse_network, parse_rule, parse_service, parse_user
+import common, getter
 
 nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways', 'CpmiGatewayPlain', 'CpmiAnyObject']  
 # now test to also get: CpmiAnyObject, external 
@@ -34,43 +30,48 @@ debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package, proxy_string='', limit=150, force=False):
     logging.info("found Check Point R8x management")
 
-    apihost = ' -a ' + mgm_details['hostname']
-    apiuser = ' -u ' + mgm_details['user']
-    starttime = ''
+    last_change_time = ''
     if 'import_controls' in mgm_details:
         for importctl in mgm_details['import_controls']: 
             if 'starttime' in importctl:
-                starttime = ' -f "' + importctl['starttime'] + '"'
-    secret_file = ' -w "' + secret_filename + '"'
-    rulebase = ' -l "' + rulebase_string + '"'
-    output_file = ' -o "' + config_filename + '"'
-    debug = ' -d ' + str(debug_level)
-    api_limit = ' -i ' + str(limit)
-    if proxy_string != '':
-        proxy_string = ' -x ' + proxy_string
+                last_change_time = '"' + importctl['starttime'] + '"'
+    # debug = ' -d ' + str(debug_level)
     if package == None or package == '' or package == [None]:
         package_string = ''
     else:
-        package_string = ' -k "' + ','.join(package) + '"'
-    force_string = ''
-    if force is True:
-        force_string = ' -F '
-    config_file = ' -c ' + config_filename
+        package_string = '"' + ','.join(package) + '"'
+    full_config_json = {}
 
-    get_config_cmd = "cd " + base_dir + "/importer/checkpointR8x && ./get_config.py" + \
-        apihost + apiuser + starttime + secret_file + rulebase + output_file + debug + api_limit + proxy_string + package_string + force_string
+    common.set_log_level(log_level=debug_level, debug_level=debug_level)
 
-    get_config_cmd += " && ./enrich_config.py " + apihost + apiuser + secret_file + rulebase + config_file + debug + api_limit + proxy_string
-    logging.debug("get_config_cmd: " + get_config_cmd)
+    with open(secret_filename, "r") as password_file:
+        api_password = password_file.read().rstrip()
 
-    result = os.system(get_config_cmd)
-    if result != 0:
-        return result
+    # todo: ssl verification mode needs to be gotten from somewhere
+
+    starttime = int(time.time())
+    
+    result_simple_get_config = simple_get_config (full_config_json, mgm_details['hostname'], mgm_details['user'], config_filename, api_password, rulebase_string, package_string, mgm_details['configPath'], last_change_time,
+        force, mgm_details['port'], { "http" : proxy_string, "https" : proxy_string }, str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
+
+    if result_simple_get_config>0:
+        return result_simple_get_config
+
+    result_enrich_config = enrich_config (full_config_json, mgm_details['hostname'], mgm_details['user'], config_filename, api_password, rulebase_string, package_string, mgm_details['configPath'],
+        mgm_details['port'], { "http" : proxy_string, "https" : proxy_string }, str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
+
+    if result_enrich_config>0:
+        return result_enrich_config
+
+    duration = int(time.time()) - starttime
+    logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
+
+
+    # result = os.system(get_config_cmd)
+
+    if full_config_json == {}: # no changes
+        return 0
     else:
-        with open(config_filename, "r") as json_data:
-            full_config_json = json.load(json_data)
-            if len(full_config_json) == 0:
-                return 0
         parse_network.parse_network_objects_to_json(
             full_config_json, config2import, current_import_id)
         parse_service.parse_service_objects_to_json(
@@ -126,3 +127,289 @@ def get_ip_of_obj(obj):
     else:
         ip_addr = '0.0.0.0/0'
     return ip_addr
+
+##################### top level functions ###################################
+
+
+def simple_get_config (config_json, api_host, api_user, config_filename, api_password, layer, package='', api_domain='', fromdate='',
+    force=False, api_port=443, proxy_string='{ "http": "", "https": "" }', limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=''):
+
+    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
+    use_object_dictionary = 'false'
+
+    # # logging config
+    # common.set_log_level(log_level=debug_level, debug_level=debug_level)
+    # ssl_verification = getter.set_ssl_verification(ssl)
+
+    # top level dict start
+    sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy_string)
+    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy_string)
+
+    if fromdate == "" or force:
+        changes = 1
+    else:
+        changes = getter.get_changes(sid, api_host,api_port,fromdate,ssl_verification, proxy_string)
+
+    if changes < 0:
+        logging.debug ( "get_changes: error getting changes")
+        sys.exit(1)
+    elif changes == 0:
+        logging.debug ( "get_changes: no new changes found")
+    else:
+        logging.debug ( "get_changes: changes found or forced mode -> go ahead with getting config, Force = " + str(force))
+
+        config_json.update({'rulebases': [], 'nat_rulebases': [] })
+        show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
+
+        # read all rulebases:
+        for layer in layer.split(','):
+            logging.debug ( "get_config - dealing with layer: " + layer )
+            domain_layer_name = ""
+            current_layer_json = ""
+            show_params_rules['name'] = layer
+
+            if '/' in layer:
+                logging.debug ( "get_config - layer contains global and domain part separated by slash, parsing individually: " + layer )
+                (global_layer_name, domain_layer_name) = layer.split('/')
+                show_params_rules['name'] = global_layer_name
+
+            # either get complete rulebase or global layer rulebase if domain rules are present
+            logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
+            current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
+
+            # now handling possible reference to domain rules within global rules
+            # if we find the reference, replace it with the domain rules
+            if domain_layer_name != "":
+                show_params_rules['name'] = domain_layer_name
+                # changing layer name to individual combination of global and domain rule
+                # this is necessary for multiple references to global layer
+                current_layer_json['layername'] = layer
+                logging.debug ( "get_config - getting domain rule layer: " + show_params_rules['name'] )
+                domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
+                # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
+
+                if 'layerchunks' in current_layer_json:
+                    for chunk in current_layer_json["layerchunks"]:
+                        for rule in chunk['rulebase']:
+                            if "type" in rule and rule["type"] == "place-holder":
+                                logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
+                                current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
+                                # logging.debug ("substituted domain rules with chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
+            # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
+            config_json['rulebases'].append(current_layer_json)
+            # getting NAT rules - need package name for nat rule retrieval
+            if package != None:
+                show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': package }
+                logging.debug ( "get_config - getting nat rules for package: " + package )
+                config_json['nat_rulebases'].append(getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules))
+
+        # leaving rules, moving on to objects
+        config_json["object_tables"] = []
+        show_params_objs = {'limit':limit,'details-level': details_level}
+
+        for obj_type in getter.api_obj_types:
+            object_table = { "object_type": obj_type, "object_chunks": [] }
+            current=0
+            total=current+1
+            show_cmd = 'show-' + obj_type
+            logging.debug ( "get_config - obj_type: "+ obj_type )
+            while (current<total) :
+                show_params_objs['offset']=current
+                objects = getter.api_call(api_host, api_port, v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy_string)
+                object_table["object_chunks"].append(objects)
+                if 'total' in objects  and 'to' in objects:
+                    total=objects['total']
+                    current=objects['to']
+                    logging.debug ( "get_config - "+ obj_type +" current:"+ str(current) )
+                    logging.debug ( "get_config - "+ obj_type +" total:"+ str(total) )
+                else :
+                    current = total
+                    logging.debug ( "get_config - "+ obj_type +" total:"+ str(total) )
+            config_json["object_tables"].append(object_table)
+    logout_result = getter.api_call(api_host, api_port, v_url, 'logout', '', sid, ssl_verification, proxy_string)
+
+    if changes == 0:
+        return 2
+    return 0
+
+
+################# enrich #######################
+
+def enrich_config (config, api_host, api_user, config_filename, api_password, layer, package='', api_domain='',
+    api_port=443, proxy_string='{ "http": "", "https": "" }', limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', noapi=False):
+
+    # requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+
+    if len(config_filename)>1:
+        time.sleep(1)
+        # if filename is passed, read config from file instead of config parameter
+    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
+    nw_objs_from_obj_tables = []
+    svc_objs_from_obj_tables = []
+
+    # logging config
+    common.set_log_level(log_level=debug_level, debug_level=debug_level)
+
+    starttime = int(time.time())
+
+    # do nothing for empty configs
+    if config == {}:
+        return 0
+
+    #################################################################################
+    # adding inline and domain layers 
+    #################################################################################
+
+    found_new_inline_layers = True
+    old_inline_layers = []
+    while found_new_inline_layers is True:
+        # sweep existing rules for inline layer links
+        inline_layers = []
+        for rulebase in config['rulebases']:
+            getter.get_inline_layer_names_from_rulebase(rulebase, inline_layers)
+
+        if len(inline_layers) == len(old_inline_layers):
+            found_new_inline_layers = False
+        else:
+            old_inline_layers = inline_layers
+            for layer in inline_layers:
+                logging.debug ( "enrich_config - found inline layer " + layer )
+                # enrich config --> get additional layers referenced in top level layers by name
+                # also handle possible recursion (inline layer containing inline layer(s))
+                # get layer rules from api
+                # add layer rules to config
+
+    # next phase: how to logically link layer guard with rules in layer? --> AND of src, dst & svc between layer guard and each rule in layer?
+
+    #################################################################################
+    # get object data which is only contained as uid in config by making addtional api calls
+    #################################################################################
+
+    # get all object uids (together with type) from all rules in fields src, dst, svc
+    nw_uids_from_rulebase = []
+    svc_uids_from_rulebase = []
+
+    for rulebase in config['rulebases']:
+        logging.debug ( "enrich_config - searching for all uids in rulebase: " + rulebase['layername'] )
+        getter.collect_uids_from_rulebase(rulebase, nw_uids_from_rulebase, svc_uids_from_rulebase, "top_level")
+
+    # remove duplicates from uid lists
+    nw_uids_from_rulebase = list(set(nw_uids_from_rulebase))
+    svc_uids_from_rulebase = list(set(svc_uids_from_rulebase))
+
+    # get all uids in objects tables
+    for obj_table in config['object_tables']:
+        nw_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, nw_obj_table_names))
+        svc_objs_from_obj_tables.extend(getter.get_all_uids_of_a_type(obj_table, getter.svc_obj_table_names))
+
+    # identify all objects (by type) that are missing in objects tables but present in rulebase
+    missing_nw_object_uids  = getter.get_broken_object_uids(nw_objs_from_obj_tables, nw_uids_from_rulebase)
+    missing_svc_object_uids = getter.get_broken_object_uids(svc_objs_from_obj_tables, svc_uids_from_rulebase)
+
+    # adding the uid of the Original object for natting:
+    missing_nw_object_uids.append(original_obj_uid)
+    missing_svc_object_uids.append(original_obj_uid)
+
+    logging.debug ( "enrich_config - found missing nw objects: '" + ",".join(missing_nw_object_uids) + "'" )
+    logging.debug ( "enrich_config - found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
+
+    if noapi == False:
+        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy_string)
+        v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version,ssl_verification, proxy_string)
+        logging.debug ( "enrich_config - logged into api" )
+
+    # if an object is not there:
+    #   make api call: show object details-level full uid "<uid>" and add object to respective json
+    for missing_obj in missing_nw_object_uids:
+        if noapi == False:
+            show_params_host = {'details-level':details_level,'uid':missing_obj}
+            logging.debug ( "checkpointR8x/enrich_config - fetching obj with uid: " + missing_obj)
+            obj = getter.api_call(api_host, api_port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
+            obj = obj['object']
+            if (obj['type'] == 'CpmiAnyObject'):
+                json_obj = {"object_type": "hosts", "object_chunks": [ {
+                        "objects": [ {
+                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'comments': 'any nw object checkpoint (hard coded)',
+                            'type': 'CpmiAnyObject', 'ipv4-address': '0.0.0.0/0',
+                            } ] } ] }
+                config['object_tables'].append(json_obj)
+            elif (obj['type'] == 'simple-gateway' or obj['type'] == 'CpmiGatewayPlain' or obj['type'] == 'interop'):
+                json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                    } ] } ] }
+                config['object_tables'].append(json_obj)
+            elif obj['type'] == 'multicast-address-range':
+                logging.debug("enrich_config - found multicast-address-range: " + obj['name'] + " (uid:" + obj['uid']+ ")")
+                json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                    } ] } ] }
+                config['object_tables'].append(json_obj)
+            elif (obj['type'] == 'CpmiVsClusterMember' or obj['type'] == 'CpmiVsxClusterMember'):
+                json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': get_ip_of_obj(obj),
+                    } ] } ] }
+                config['object_tables'].append(json_obj)
+                logging.debug ('missing obj: ' + obj['name'] + obj['type'])
+            elif (obj['type'] == 'Global'):
+                json_obj = {"object_type": "hosts", "object_chunks": [ {
+                    "objects": [ {
+                    'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                    'comments': obj['comments'], 'type': 'host', 'ipv4-address': '0.0.0.0/0',
+                    } ] } ] }
+                config['object_tables'].append(json_obj)
+                logging.debug ('missing obj: ' + obj['name'] + obj['type'])
+            else:
+                logging.warning ( "checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
+                print ("WARNING - enrich_config - missing nw obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
+
+        logging.debug ( "enrich_config - missing nw obj: " + missing_obj )
+        print ("INFO: adding nw  obj missing from standard api call results: " + missing_obj)
+
+    for missing_obj in missing_svc_object_uids:
+        if noapi == False:
+            show_params_host = {'details-level':details_level,'uid':missing_obj}
+            obj = getter.api_call(api_host, api_port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
+            obj = obj['object']
+            # print(json.dumps(obj))
+            # currently no svc objects are found missing, not even the any obj?
+            if (obj['type'] == 'CpmiAnyObject'):
+                json_obj = {"object_type": "services-other", "object_chunks": [ {
+                        "objects": [ {
+                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'comments': 'any svc object checkpoint (hard coded)',
+                            'type': 'service-other', 'ip-protocol': '0'
+                            } ] } ] }
+                config['object_tables'].append(json_obj)
+            elif (obj['type'] == 'Global'):
+                json_obj = {"object_type": "services-other", "object_chunks": [ {
+                        "objects": [ {
+                            'uid': obj['uid'], 'name': obj['name'], 'color': obj['color'],
+                            'comments': 'Original svc object checkpoint (hard coded)',
+                            'type': 'service-other', 'ip-protocol': '0'
+                            } ] } ] }
+                config['object_tables'].append(json_obj)
+            else:
+                logging.warning ( "checkpointR8x/enrich_config - missing svc obj of unexpected type: " + missing_obj )
+                print ("WARNING - enrich_config - missing svc obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
+        logging.debug ( "enrich_config - missing svc obj: " + missing_obj )
+        print ("INFO: adding svc obj missing from standard api call results: " + missing_obj)
+
+    # dump new json file if config_filename is set
+    if config_filename != None and len(config_filename)>1:
+        if os.path.exists(config_filename): # delete json file (to enabiling re-write)
+            os.remove(config_filename)
+        with open(config_filename, "w") as json_data:
+            json_data.write(json.dumps(config))
+
+    if noapi == False:
+        logout_result = getter.api_call(api_host, api_port, v_url, 'logout', '', sid, ssl_verification, proxy_string)
+    logging.debug ( "checkpointR8x/enrich_config - duration: " + str(int(time.time()) - starttime) + "s" )
+
+    return 0

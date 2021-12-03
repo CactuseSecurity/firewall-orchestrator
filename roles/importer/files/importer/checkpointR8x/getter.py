@@ -119,7 +119,7 @@ def set_api_url(base_url,testmode,api_supported,hostname):
 def get_changes(sid,api_host,api_port,fromdate,ssl_verification, proxy_string):
     payload = {'from-date' : fromdate, 'details-level' : 'uid'}
     logging.debug ("get_changes: payload: " + json.dumps(payload))
-    base_url = 'https://' + api_host + ':' + api_port + '/web_api/'
+    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     task_id = api_call(api_host, api_port, base_url, 'show-changes', payload, sid, ssl_verification, proxy_string)
 
     logging.debug ("task_id: " + json.dumps(task_id))

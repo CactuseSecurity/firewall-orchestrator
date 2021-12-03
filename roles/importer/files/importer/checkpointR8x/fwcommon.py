@@ -34,8 +34,7 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
     if 'import_controls' in mgm_details:
         for importctl in mgm_details['import_controls']: 
             if 'starttime' in importctl:
-                last_change_time = '"' + importctl['starttime'] + '"'
-    # debug = ' -d ' + str(debug_level)
+                last_change_time = importctl['starttime']
     if package == None or package == '' or package == [None]:
         package_string = ''
     else:
@@ -48,16 +47,19 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
         api_password = password_file.read().rstrip()
 
     # todo: ssl verification mode needs to be gotten from somewhere
+    # todo: test if proxy is handled properly
+    # todo: test if debug_level is handled properly
+    # todo: test get_config.py & enrich_config.py
 
     starttime = int(time.time())
     
-    result_simple_get_config = simple_get_config (full_config_json, mgm_details['hostname'], mgm_details['user'], config_filename, api_password, rulebase_string, package_string, mgm_details['configPath'], last_change_time,
+    result_simple_get_config = simple_get_config (full_config_json, mgm_details['hostname'], mgm_details['user'], None, api_password, rulebase_string, package_string, mgm_details['configPath'], last_change_time,
         force, mgm_details['port'], { "http" : proxy_string, "https" : proxy_string }, str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
 
     if result_simple_get_config>0:
         return result_simple_get_config
 
-    result_enrich_config = enrich_config (full_config_json, mgm_details['hostname'], mgm_details['user'], config_filename, api_password, rulebase_string, package_string, mgm_details['configPath'],
+    result_enrich_config = enrich_config (full_config_json, mgm_details['hostname'], mgm_details['user'], None, api_password, rulebase_string, package_string, mgm_details['configPath'],
         mgm_details['port'], { "http" : proxy_string, "https" : proxy_string }, str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
 
     if result_enrich_config>0:
@@ -150,9 +152,9 @@ def simple_get_config (config_json, api_host, api_user, config_filename, api_pas
     else:
         changes = getter.get_changes(sid, api_host,api_port,fromdate,ssl_verification, proxy_string)
 
-    if changes < 0:
+    if changes < 0: # changes = -1 is the error state
         logging.debug ( "get_changes: error getting changes")
-        sys.exit(1)
+        return 1
     elif changes == 0:
         logging.debug ( "get_changes: no new changes found")
     else:
@@ -228,6 +230,11 @@ def simple_get_config (config_json, api_host, api_user, config_filename, api_pas
             config_json["object_tables"].append(object_table)
     logout_result = getter.api_call(api_host, api_port, v_url, 'logout', '', sid, ssl_verification, proxy_string)
 
+    # only write config to file if config_filename is given
+    if config_filename != None and len(config_filename)>1:
+        with open(config_filename, "w") as configfile_json:
+            configfile_json.write(json.dumps(config_json))
+
     if changes == 0:
         return 2
     return 0
@@ -240,7 +247,7 @@ def enrich_config (config, api_host, api_user, config_filename, api_password, la
 
     # requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
-    if len(config_filename)>1:
+    if config_filename != None and len(config_filename)>1:
         time.sleep(1)
         # if filename is passed, read config from file instead of config parameter
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'

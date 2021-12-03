@@ -278,7 +278,7 @@
     {
         try
         {
-            IRestResponse<List<TenantGetParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
+            IRestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
@@ -286,7 +286,7 @@
             else
             {
                 tenants = new List<Tenant>();
-                foreach (TenantGetParameters apiTenant in middlewareServerResponse.Data)
+                foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
                 {
                     Tenant tenant = new Tenant(apiTenant);
                     tenants.Add(tenant);

@@ -1,17 +1,9 @@
-﻿using FWO.Api.Data;
-using FWO.Logging;
+﻿using FWO.Logging;
 using FWO.Middleware.RequestParameters;
 using FWO.Middleware.Server;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Novell.Directory.Ldap;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace FWO.Middleware.Controllers
 {
@@ -27,34 +19,9 @@ namespace FWO.Middleware.Controllers
             this.ldaps = ldaps;
         }
 
-        [HttpPost("Get")]
+        [HttpGet]
         [Authorize(Roles = "admin, auditor")]
-        public async Task<List<string>> GetAsync([FromBody] GroupGetParameters parameters)
-        {
-            string ldapHostname = parameters.LdapHostname;
-            string searchPattern = parameters.SearchPattern;
-
-            List<string> allGroups = new List<string>();
-
-            foreach (Ldap currentLdap in ldaps)
-            {
-                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.HasGroupHandling())
-                {
-                    await Task.Run(() =>
-                    {
-                        // Get all groups from current Ldap
-                        allGroups = currentLdap.GetAllGroups(searchPattern);
-                    });
-                }
-            }
-
-            // Return status and result
-            return allGroups;
-        }
-
-        [HttpPost("Internal/Get")]
-        [Authorize(Roles = "admin, auditor")]
-        public async Task<ActionResult<List<KeyValuePair<string, List<string>>>>> GetInternalAsync()
+        public async Task<ActionResult<List<KeyValuePair<string, List<string>>>>> Get()
         {
             bool admin = User.IsInRole("admin");
             try
@@ -173,6 +140,31 @@ namespace FWO.Middleware.Controllers
 
             // Return status and result
             return groupUpdated;
+        }
+
+        [HttpPost("Get")]
+        [Authorize(Roles = "admin, auditor")]
+        public async Task<List<string>> Get([FromBody] GroupGetParameters parameters)
+        {
+            string ldapHostname = parameters.LdapHostname;
+            string searchPattern = parameters.SearchPattern;
+
+            List<string> allGroups = new List<string>();
+
+            foreach (Ldap currentLdap in ldaps)
+            {
+                if ((currentLdap.Host() == ldapHostname || ldapHostname == "") && currentLdap.HasGroupHandling())
+                {
+                    await Task.Run(() =>
+                    {
+                        // Get all groups from current Ldap
+                        allGroups = currentLdap.GetAllGroups(searchPattern);
+                    });
+                }
+            }
+
+            // Return status and result
+            return allGroups;
         }
 
         // GET: GroupController/

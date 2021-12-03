@@ -61,7 +61,7 @@ namespace FWO.Middleware.Server
                     tenant = (user.Tenant != null ? user.Tenant.Id : (int?)null),
                     loginTime = DateTime.UtcNow,
                     passwordMustBeChanged = false,
-                    ldapConnectionId = user.LdapConnection.Id
+                    ldapConnectionId = user.LdapConnection?.Id
                 };
                 ReturnId[]? returnIds = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds;
                 if(returnIds != null)

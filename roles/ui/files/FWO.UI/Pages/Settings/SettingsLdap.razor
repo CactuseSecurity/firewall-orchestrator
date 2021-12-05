@@ -246,19 +246,12 @@
                     connectedLdaps.Add(new UiLdapConnection(conn));
                 }
             }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), "", true);
-        }
 
-        try
-        {
             tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 

@@ -331,25 +331,11 @@
         {
             connectedLdaps = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
             writableLdaps = connectedLdaps.FindAll(x => x.IsWritable());
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), "", true);
-        }
 
-        // Get the tenants
-        try
-        {
+            // Get the tenants
             tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), "", true);
-        }
 
-        // Get users from uiusers table
-        try
-        {
+            // Get users from uiusers table
             IRestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
@@ -378,7 +364,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_local"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 

@@ -274,29 +274,22 @@
                     groups.Add(group);
                 }
             }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), "", true);
-        }
         
-        CollectSampleGroups();
+            CollectSampleGroups();
 
-        try
-        {
             uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
+
+            // get roles from internal ldap
+            await GetRolesFromInternalLdap();
+            SynchronizeGroupsToRoles();
+
+            availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
-        
-        // get roles from internal ldap
-        await GetRolesFromInternalLdap();
-        SynchronizeGroupsToRoles();
-
-        availableRoles = roles.FindAll(x => (x.Name != "anonymous" && x.Name != "middleware-server"));
     }
 
     private void CollectSampleGroups()

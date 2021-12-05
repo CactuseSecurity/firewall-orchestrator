@@ -237,9 +237,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // get roles from LDAP
         try
         {
+            // get roles from LDAP
             IRestResponse<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> middlewareServerResponse = await middlewareClient.GetAllRoles();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
@@ -265,42 +265,23 @@
                     roles.Add(role);
                 }
             }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
-        }
 
-        try
-        {
+            // get users
             uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
             uiUsers = uiUsers.FindAll(x => x.DbId != 0);
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), "", true);
-        }
 
-        try
-        {
+            // get ldap connections
             connectedLdaps = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), "", true);
-        }
 
-        // get groups from internal LDAP
-        try
-        {
-            IRestResponse<List<KeyValuePair<string, List<string>>>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
-            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
+            // get groups from internal LDAP
+            IRestResponse<List<KeyValuePair<string, List<string>>>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();
+            if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
             else
             {
-                foreach (var ldapUserGroup in middlewareServerResponse.Data)
+                foreach (var ldapUserGroup in middlewareServerGroupsResponse.Data)
                 {
                     UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
                     foreach (var userDn in ldapUserGroup.Value)
@@ -314,7 +295,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 

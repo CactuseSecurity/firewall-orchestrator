@@ -716,14 +716,14 @@ INSERT INTO txt VALUES ('fetch_users_ldap',     'German', 	'Nutzer aus LDAP hole
 INSERT INTO txt VALUES ('fetch_users_ldap',     'English', 	'Fetch Users from LDAP');
 INSERT INTO txt VALUES ('fetch_users_local',    'German', 	'Nutzer aus API holen');
 INSERT INTO txt VALUES ('fetch_users_local',    'English', 	'Fetch Users from API');
-INSERT INTO txt VALUES ('fetch_tenants',        'German', 	'Mandanten abholen');
-INSERT INTO txt VALUES ('fetch_tenants',        'English', 	'Fetch Tenants');
 INSERT INTO txt VALUES ('sync_users',           'German', 	'Nutzer synchronisieren');
 INSERT INTO txt VALUES ('sync_users',           'English', 	'Synchronize Users');
 INSERT INTO txt VALUES ('save_group',           'German', 	'Gruppe in LDAP speichern');
 INSERT INTO txt VALUES ('save_group',           'English', 	'Save group in LDAP');
 INSERT INTO txt VALUES ('fetch_roles',          'German', 	'Rollen abholen');
 INSERT INTO txt VALUES ('fetch_roles',          'English', 	'Fetch Roles');
+INSERT INTO txt VALUES ('fetch_data',           'German', 	'Daten holen');
+INSERT INTO txt VALUES ('fetch_data',           'English', 	'Fetch data');
 INSERT INTO txt VALUES ('fetch_ldap_conn',      'German', 	'LDAP-Verbindungen holen');
 INSERT INTO txt VALUES ('fetch_ldap_conn',      'English', 	'Fetch LDAP connections');
 INSERT INTO txt VALUES ('search_users',         'German', 	'Nutzer suchen');

@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
     public class ServiceWrapper
     {
         [JsonPropertyName("service")]
-        public NetworkService Content { get; set; }
+        public NetworkService Content { get; set; } = new NetworkService();
     }
     // public class ServiceObjectRecursiveWrapper
     // {

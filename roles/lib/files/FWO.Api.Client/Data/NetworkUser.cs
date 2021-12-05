@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
@@ -36,7 +32,7 @@ namespace FWO.Api.Data
         public int Create { get; set; }
 
         [JsonPropertyName("user_create_time")]
-        public TimeWrapper CreateTime { get; set; }
+        public TimeWrapper CreateTime { get; set; } = new TimeWrapper(){};
 
         [JsonPropertyName("user_last_seen")]
         public int LastSeen { get; set; }

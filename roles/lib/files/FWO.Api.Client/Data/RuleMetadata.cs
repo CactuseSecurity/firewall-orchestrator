@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
@@ -24,7 +23,7 @@ namespace FWO.Api.Data
         public DateTime? LastCertified { get; set; }
 
         [JsonPropertyName("rule_last_certifier_dn")]
-        public string LastCertifierDn { get; set; }
+        public string LastCertifierDn { get; set; } = "";
 
         [JsonPropertyName("rule_to_be_removed")]
         public bool ToBeRemoved { get; set; }
@@ -33,15 +32,15 @@ namespace FWO.Api.Data
         public DateTime? DecertificationDate { get; set; }
 
         [JsonPropertyName("rule_recertification_comment")]
-        public string Comment { get; set; }
+        public string Comment { get; set; } = "";
 
 
         public DateTime NextRecert { get; set; }
 
-        public string LastCertifierName { get; set; }
+        public string LastCertifierName { get; set; } = "";
 
         public bool Recert { get; set; } 
 
-        public string Style { get; set; }
+        public string Style { get; set; } = "";
     }
 }

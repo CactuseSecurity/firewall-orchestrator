@@ -182,6 +182,8 @@ namespace FWO.Middleware.Server
                     };
 
                     await apiConnectionUserContext.SendQueryAsync<object>(ReportQueries.addGeneratedReport, queryVariables);
+
+                    Log.WriteInfo("Report Scheduling", $"Scheduled report \"{report.Name}\" for user \"{report.Owner.Name}\" with id \"{report.Owner.DbId}\" successfully generated.");
                 }
                 catch (Exception exception)
                 {

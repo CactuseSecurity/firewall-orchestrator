@@ -27,7 +27,8 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 
 
-def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package, proxy_string='', limit=150, force=False):
+#def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package, proxy_string='', limit=150, force=False):
+def get_config(config2import, current_import_id, mgm_details, config_filename=None, debug_level=0, proxy=None, limit=150, force=False):
     logging.info("found Check Point R8x management")
 
     last_change_time = ''
@@ -35,16 +36,10 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
         for importctl in mgm_details['import_controls']: 
             if 'starttime' in importctl:
                 last_change_time = importctl['starttime']
-    if package == None or package == '' or package == [None]:
-        package_string = ''
-    else:
-        package_string = '"' + ','.join(package) + '"'
+
     full_config_json = {}
 
     common.set_log_level(log_level=debug_level, debug_level=debug_level)
-
-    with open(secret_filename, "r") as password_file:
-        api_password = password_file.read().rstrip()
 
     # todo: ssl verification mode needs to be gotten from somewhere
     # todo: test if proxy is handled properly
@@ -53,14 +48,14 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
 
     starttime = int(time.time())
     
-    result_simple_get_config = simple_get_config (full_config_json, mgm_details, mgm_details['hostname'], mgm_details['user'], None, api_password, rulebase_string, package_string, mgm_details['configPath'], last_change_time,
-        force, mgm_details['port'], { "http" : proxy_string, "https" : proxy_string }, str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
+    result_simple_get_config = simple_get_config (full_config_json, mgm_details, last_change_time, force, proxy,
+        str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
 
     if result_simple_get_config>0:
         return result_simple_get_config
 
-    result_enrich_config = enrich_config (full_config_json, mgm_details['hostname'], mgm_details['user'], None, api_password, rulebase_string, package_string, mgm_details['configPath'],
-        mgm_details['port'], { "http" : proxy_string, "https" : proxy_string }, str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
+    result_enrich_config = enrich_config (full_config_json, mgm_details, proxy, 
+        str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
 
     if result_enrich_config>0:
         return result_enrich_config
@@ -68,33 +63,30 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
     duration = int(time.time()) - starttime
     logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
 
-
-    # result = os.system(get_config_cmd)
-
     if full_config_json == {}: # no changes
         return 0
     else:
-        parse_network.parse_network_objects_to_json(
-            full_config_json, config2import, current_import_id)
-        parse_service.parse_service_objects_to_json(
-            full_config_json, config2import, current_import_id)
+        parse_network.parse_network_objects_to_json(full_config_json, config2import, current_import_id)
+        parse_service.parse_service_objects_to_json(full_config_json, config2import, current_import_id)
         if 'users' not in full_config_json:
             full_config_json.update({'users': {}})
-        rb_range = range(len(rulebase_string.split(',')))
         target_rulebase = []
         rule_num = 0
         parent_uid=""
         section_header_uids=[]
+        rb_range = range(len(full_config_json['rulebases']))
         for rb_id in rb_range:
             parse_user.parse_user_objects_from_rulebase(
                 full_config_json['rulebases'][rb_id], full_config_json['users'], current_import_id)
             # if current_layer_name == args.rulebase:
             logging.debug("parsing layer " + full_config_json['rulebases'][rb_id]['layername'])
+
+            # parse access rules
             rule_num = parse_rule.parse_rulebase_json(
                 full_config_json['rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
             # now parse the nat rulebase
-            # rule_num = parse_rule.parse_nat_rulebase_json(
-            #     full_config_json['nat_rulebases'][rb_id], target_rulebase, package[rb_id], current_import_id, rule_num, section_header_uids, parent_uid)
+
+            # parse nat rules
             if len(full_config_json['nat_rulebases'])>0:
                 rule_num = parse_rule.parse_nat_rulebase_json(
                     full_config_json['nat_rulebases'][rb_id], target_rulebase, full_config_json['rulebases'][rb_id]['layername'], current_import_id, rule_num, section_header_uids, parent_uid)
@@ -132,33 +124,32 @@ def get_ip_of_obj(obj):
 
 ##################### 2nd-level functions ###################################
 
-def simple_get_config (config_json, mgm_details, api_host, api_user, config_filename, api_password, layers, package='', api_domain='', last_import_time=None,
-    force=False, api_port=443, proxy_string='{ "http": "", "https": "" }', limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=''):
+def simple_get_config (config_json, mgm_details, current_import_id, last_import_time=None, config_filename=None,
+    force=False, proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=''):
 
-    if mgm_details!=None:
-        api_host = mgm_details['hostname']
-        api_user =  mgm_details['user']
-        api_domain = mgm_details['configPath']
-        api_port = str(mgm_details['port'])
-        api_password = mgm_details['secret']
-        # proxy_string = mgm_details['proxy']
-        # fetch_limit = mgm_details['fetch_limit']
-        # ssl_verification = mgm_details['ssl_verification']
-        # debug_level = mgm_details['debug']
+    api_host = mgm_details['hostname']
+    api_user =  mgm_details['user']
+    api_domain = mgm_details['configPath']
+    api_port = str(mgm_details['port'])
+    api_password = mgm_details['secret']
+    # proxy_string = mgm_details['proxy']
+    # fetch_limit = mgm_details['fetch_limit']
+    # ssl_verification = mgm_details['ssl_verification']
+    # debug_level = mgm_details['debug']
 
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     use_object_dictionary = 'false'
 
     # top level dict start, sid contains the domain information, so only sending domain during login
-    sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy_string)
-    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy_string)
+    sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy)
+    v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy)
 
     if last_import_time==None or last_import_time=='' or force:
         # if no last import time found or given or if force flag is set, do full import
         changes = 1
     else:
         # otherwise search for any changes since last import
-        changes = getter.get_changes(sid, api_host,api_port,last_import_time,ssl_verification, proxy_string)
+        changes = getter.get_changes(sid, api_host,api_port,last_import_time,ssl_verification, proxy)
 
     if changes < 0: # changes = -1 is the error state
         logging.debug ( "get_changes: error getting changes")
@@ -179,12 +170,12 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
                 show_params_rules['name'] = device['global_rulebase_name']
                 # get global layer rulebase
                 logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
-                current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=global_layer_name)
+                current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['global_rulebase_name'])
                 # now also get domain rules 
                 show_params_rules['name'] = device['local_rulebase_name']
                 current_layer_json['layername'] = device['local_rulebase_name']
                 logging.debug ( "get_config - getting domain rule layer: " + show_params_rules['name'] )
-                domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=device['local_rulebase_name'])
+                domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['local_rulebase_name'])
                 # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
                 # now handling possible reference to domain rules within global rules
                 # if we find the reference, replace it with the domain rules
@@ -198,7 +189,7 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
             else:   # no global rules, just get local ones
                 show_params_rules['name'] = device['local_rulebase_name']
                 logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
-                current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=device['local_rulebase_name'])
+                current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules, layername=device['local_rulebase_name'])
 
             config_json['rulebases'].append(current_layer_json)
 
@@ -206,8 +197,8 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
             # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
             if device['package_name'] != None and device['package_name'] != '':
                 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
-                logging.debug ( "get_config - getting nat rules for package: " + package )
-                config_json['nat_rulebases'].append(getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules))
+                logging.debug ( "get_config - getting nat rules for package: " + device['package_name'] )
+                config_json['nat_rulebases'].append(getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules))
 
         # leaving rules, moving on to objects
         config_json["object_tables"] = []
@@ -221,7 +212,7 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
             logging.debug ( "get_config - obj_type: "+ obj_type )
             while (current<total) :
                 show_params_objs['offset']=current
-                objects = getter.api_call(api_host, api_port, v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy_string)
+                objects = getter.api_call(v_url, show_cmd, show_params_objs, sid, ssl_verification, proxy)
                 object_table["object_chunks"].append(objects)
                 if 'total' in objects  and 'to' in objects:
                     total=objects['total']
@@ -232,7 +223,7 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
                     current = total
                     logging.debug ( "get_config - "+ obj_type +" total:"+ str(total) )
             config_json["object_tables"].append(object_table)
-    logout_result = getter.api_call(api_host, api_port, v_url, 'logout', '', sid, ssl_verification, proxy_string)
+    logout_result = getter.api_call(v_url, 'logout', {}, sid, ssl_verification, proxy)
 
     # only write config to file if config_filename is given
     if config_filename != None and len(config_filename)>1:
@@ -246,15 +237,15 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
 
 ################# enrich #######################
 
-def enrich_config (config, api_host, api_user, config_filename, api_password, layer, package='', api_domain='',
-    api_port=443, proxy_string='{ "http": "", "https": "" }', limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', noapi=False):
+# enrich_config (full_config_json, mgm_details, proxy, 
+#         str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
+
+
+def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" }', limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', noapi=False):
 
     # requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
-    if config_filename != None and len(config_filename)>1:
-        time.sleep(1)
-        # if filename is passed, read config from file instead of config parameter
-    base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
+    base_url = 'https://' + mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/web_api/'
     nw_objs_from_obj_tables = []
     svc_objs_from_obj_tables = []
 
@@ -325,8 +316,8 @@ def enrich_config (config, api_host, api_user, config_filename, api_password, la
     logging.debug ( "enrich_config - found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
 
     if noapi == False:
-        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy_string)
-        v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version,ssl_verification, proxy_string)
+        sid = getter.login(mgm_details['user'],mgm_details['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'],ssl_verification, proxy_string)
+        v_url = getter.get_api_url (sid, mgm_details['hostname'], mgm_details['port'], mgm_details['user'], base_url, limit, test_version,ssl_verification, proxy_string)
         logging.debug ( "enrich_config - logged into api" )
 
     # if an object is not there:
@@ -335,7 +326,7 @@ def enrich_config (config, api_host, api_user, config_filename, api_password, la
         if noapi == False:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
             logging.debug ( "checkpointR8x/enrich_config - fetching obj with uid: " + missing_obj)
-            obj = getter.api_call(api_host, api_port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
+            obj = getter.api_call(v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
             obj = obj['object']
             if (obj['type'] == 'CpmiAnyObject'):
                 json_obj = {"object_type": "hosts", "object_chunks": [ {
@@ -386,7 +377,7 @@ def enrich_config (config, api_host, api_user, config_filename, api_password, la
     for missing_obj in missing_svc_object_uids:
         if noapi == False:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
-            obj = getter.api_call(api_host, api_port, v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
+            obj = getter.api_call(v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
             obj = obj['object']
             # print(json.dumps(obj))
             # currently no svc objects are found missing, not even the any obj?
@@ -412,15 +403,8 @@ def enrich_config (config, api_host, api_user, config_filename, api_password, la
         logging.debug ( "enrich_config - missing svc obj: " + missing_obj )
         print ("INFO: adding svc obj missing from standard api call results: " + missing_obj)
 
-    # dump new json file if config_filename is set
-    if config_filename != None and len(config_filename)>1:
-        if os.path.exists(config_filename): # delete json file (to enabiling re-write)
-            os.remove(config_filename)
-        with open(config_filename, "w") as json_data:
-            json_data.write(json.dumps(config))
-
     if noapi == False:
-        logout_result = getter.api_call(api_host, api_port, v_url, 'logout', '', sid, ssl_verification, proxy_string)
+        logout_result = getter.api_call(v_url, 'logout', {}, sid, ssl_verification, proxy_string)
     logging.debug ( "checkpointR8x/enrich_config - duration: " + str(int(time.time()) - starttime) + "s" )
 
     return 0

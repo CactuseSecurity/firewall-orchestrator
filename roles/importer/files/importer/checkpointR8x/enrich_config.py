@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import argparse, time, logging
-import requests, requests.packages
-import sys
+import json, requests, requests.packages
+import sys, os
 sys.path.append(r"/usr/local/fworch/importer")
 import fwcommon, common, getter
 
@@ -42,5 +42,12 @@ result = fwcommon.enrich_config (config, args.apihost, args.user, args.out, api_
 
 duration = int(time.time()) - starttime
 logging.debug ( "checkpointR8x/enrich_config - duration: " + str(duration) + "s" )
+
+# dump new json file if config_filename is set
+if args.config_filename != None and len(args.config_filename)>1:
+    if os.path.exists(args.config_filename): # delete json file (to enabiling re-write)
+        os.remove(args.config_filename)
+    with open(args.config_filename, "w") as json_data:
+        json_data.write(json.dumps(config))
 
 sys.exit(0)

@@ -69,16 +69,16 @@ ssl_mode = args.ssl
 # authenticate to get JWT
 with open(importer_pwd_file, 'r') as file:
     importer_pwd = file.read().replace('\n', '')
-if 'proxy' in args:
-    jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                        method, ssl_verification=ssl_mode, proxy_string=args.proxy)
+if args.proxy is not None:
+    proxy = { "http_proxy": args.proxy, "https_proxy": args.proxy }
 else:
-    jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                        method, ssl_verification=ssl_mode)
+    proxy = None
+
+jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
+                        method, ssl_verification=ssl_mode, proxy=proxy)
 
 # get mgm_details (fw-type, port, ip, user credentials):
-mgm_details = fwo_api.get_mgm_details(
-    fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
+mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
 
 package_list = []
 for dev in mgm_details['devices']:
@@ -128,12 +128,8 @@ fw_module_name = mgm_details['deviceType']['name'].lower().replace(
 fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
-if 'proxy' in args and args.proxy != None:
-    get_config_response = fw_module.get_config(
-        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, proxy_string=args.proxy, limit=args.limit, force=args.force)
-else:
-    get_config_response = fw_module.get_config(
-        config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package_list, limit=args.limit, force=args.force)
+get_config_response = fw_module.get_config(
+    config2import, current_import_id, mgm_details, debug_level, proxy=proxy, limit=args.limit, force=args.force)
 
 # if no changes were found, we get get_config_response==512 and we skip everything else without errors
 # todo: re-structure this to make it more logical/readable

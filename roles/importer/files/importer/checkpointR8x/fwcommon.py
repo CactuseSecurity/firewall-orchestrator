@@ -53,7 +53,7 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
 
     starttime = int(time.time())
     
-    result_simple_get_config = simple_get_config (full_config_json, mgm_details['hostname'], mgm_details['user'], None, api_password, rulebase_string, package_string, mgm_details['configPath'], last_change_time,
+    result_simple_get_config = simple_get_config (full_config_json, mgm_details, mgm_details['hostname'], mgm_details['user'], None, api_password, rulebase_string, package_string, mgm_details['configPath'], last_change_time,
         force, mgm_details['port'], { "http" : proxy_string, "https" : proxy_string }, str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
 
     if result_simple_get_config>0:
@@ -130,19 +130,26 @@ def get_ip_of_obj(obj):
         ip_addr = '0.0.0.0/0'
     return ip_addr
 
-##################### top level functions ###################################
+##################### 2nd-level functions ###################################
 
-def simple_get_config (config_json, api_host, api_user, config_filename, api_password, layer, package='', api_domain='', last_import_time=None,
+def simple_get_config (config_json, mgm_details, api_host, api_user, config_filename, api_password, layers, package='', api_domain='', last_import_time=None,
     force=False, api_port=443, proxy_string='{ "http": "", "https": "" }', limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=''):
+
+    if mgm_details!=None:
+        api_host = mgm_details['hostname']
+        api_user =  mgm_details['user']
+        api_domain = mgm_details['configPath']
+        api_port = str(mgm_details['port'])
+        api_password = mgm_details['secret']
+        # proxy_string = mgm_details['proxy']
+        # fetch_limit = mgm_details['fetch_limit']
+        # ssl_verification = mgm_details['ssl_verification']
+        debug_level = mgm_details['debug']
 
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     use_object_dictionary = 'false'
 
-    # # logging config
-    # common.set_log_level(log_level=debug_level, debug_level=debug_level)
-    # ssl_verification = getter.set_ssl_verification(ssl)
-
-    # top level dict start
+    # top level dict start, sid contains the domain information, so only sending domain during login
     sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy_string)
     v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy_string)
 
@@ -165,7 +172,10 @@ def simple_get_config (config_json, api_host, api_user, config_filename, api_pas
         show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level}
 
         # read all rulebases:
-        for layer in layer.split(','):
+        # handle per device details
+        for device in mgm_details['devices']:
+            layer = device['layername']
+            package = device['package']
             logging.debug ( "get_config - dealing with layer: " + layer )
             domain_layer_name = ""
             current_layer_json = ""
@@ -201,7 +211,8 @@ def simple_get_config (config_json, api_host, api_user, config_filename, api_pas
             # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
             config_json['rulebases'].append(current_layer_json)
             # getting NAT rules - need package name for nat rule retrieval
-            if package != None:
+            # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
+            if package != None and package != '':
                 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': package }
                 logging.debug ( "get_config - getting nat rules for package: " + package )
                 config_json['nat_rulebases'].append(getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules))

@@ -44,9 +44,9 @@ def api_call(ip_addr, port, url, command, json_payload, sid, ssl_verification, p
 
 def login(user, password, api_host, api_port, domain, ssl_verification, proxy_string):
     if domain is None or domain == '':
-        payload = {'user':user, 'password' : password}
+        payload = {'user': user, 'password': password}
     else:
-        payload = {'user':user, 'password' : password, 'domain' :  domain}
+        payload = {'user':user, 'password': password, 'domain': domain}
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     response = api_call(api_host, api_port, base_url, 'login', payload, '', ssl_verification, proxy_string)
     if "sid" not in response:
@@ -281,6 +281,7 @@ def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_veri
     total=current+1
     while (current<total) :
         show_params_rules['offset']=current
+        logging.debug ("get_nat_rules_from_api_as_dict params: " + str(show_params_rules))
         rulebase = api_call(api_host, api_port, api_v_url, 'show-nat-rulebase', show_params_rules, sid, ssl_verification, proxy_string)
         nat_rules['nat_rule_chunks'].append(rulebase)
         if 'total' in rulebase:
@@ -292,7 +293,6 @@ def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_veri
             current=rulebase['to']
         else:
             sys.exit(1)
-        #logging.debug ( "get_nat_rules_from_api - rulebase current offset: "+ str(current) )
     # logging.debug ("get_config::get_nat_rules - found nat rules:\n" + str(nat_rules) + "\n")
     return nat_rules
 

@@ -144,7 +144,7 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
         # proxy_string = mgm_details['proxy']
         # fetch_limit = mgm_details['fetch_limit']
         # ssl_verification = mgm_details['ssl_verification']
-        debug_level = mgm_details['debug']
+        # debug_level = mgm_details['debug']
 
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     use_object_dictionary = 'false'
@@ -174,33 +174,20 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
         # read all rulebases:
         # handle per device details
         for device in mgm_details['devices']:
-            layer = device['layername']
-            package = device['package']
-            logging.debug ( "get_config - dealing with layer: " + layer )
-            domain_layer_name = ""
-            current_layer_json = ""
-            show_params_rules['name'] = layer
-
-            if '/' in layer:
-                logging.debug ( "get_config - layer contains global and domain part separated by slash, parsing individually: " + layer )
-                (global_layer_name, domain_layer_name) = layer.split('/')
-                show_params_rules['name'] = global_layer_name
-
-            # either get complete rulebase or global layer rulebase if domain rules are present
-            logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
-            current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
-
-            # now handling possible reference to domain rules within global rules
-            # if we find the reference, replace it with the domain rules
-            if domain_layer_name != "":
-                show_params_rules['name'] = domain_layer_name
-                # changing layer name to individual combination of global and domain rule
-                # this is necessary for multiple references to global layer
-                current_layer_json['layername'] = layer
+            if device['global_rulebase_name'] != None and device['global_rulebase_name']!='':
+                # logging.debug ( "get_config - layer contains global and domain part separated by slash, parsing individually: " + layer )
+                show_params_rules['name'] = device['global_rulebase_name']
+                # get global layer rulebase
+                logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
+                current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=global_layer_name)
+                # now also get domain rules 
+                show_params_rules['name'] = device['local_rulebase_name']
+                current_layer_json['layername'] = device['local_rulebase_name']
                 logging.debug ( "get_config - getting domain rule layer: " + show_params_rules['name'] )
-                domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=layer)
+                domain_rules = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=device['local_rulebase_name'])
                 # logging.debug ("found domain rules: " + str(domain_rules) + "\n\n")
-
+                # now handling possible reference to domain rules within global rules
+                # if we find the reference, replace it with the domain rules
                 if 'layerchunks' in current_layer_json:
                     for chunk in current_layer_json["layerchunks"]:
                         for rule in chunk['rulebase']:
@@ -208,12 +195,17 @@ def simple_get_config (config_json, mgm_details, api_host, api_user, config_file
                                 logging.debug ("found domain rules place-holder: " + str(rule) + "\n\n")
                                 current_layer_json = getter.insert_layer_after_place_holder(current_layer_json, domain_rules, rule['uid'])
                                 # logging.debug ("substituted domain rules with chunks: " + json.dumps(current_layer_json, indent=2) + "\n\n")
-            # logging.debug ("get_config current_layer:\n" + json.dumps(json.loads(current_layer_json), indent=2) + "\n\n")
+            else:   # no global rules, just get local ones
+                show_params_rules['name'] = device['local_rulebase_name']
+                logging.debug ( "get_config - getting layer: " + show_params_rules['name'] )
+                current_layer_json = getter.get_layer_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules, layername=device['local_rulebase_name'])
+
             config_json['rulebases'].append(current_layer_json)
+
             # getting NAT rules - need package name for nat rule retrieval
             # todo: each gateway/layer should have its own package name (pass management details instead of single data?)
-            if package != None and package != '':
-                show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': package }
+            if device['package_name'] != None and device['package_name'] != '':
+                show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
                 logging.debug ( "get_config - getting nat rules for package: " + package )
                 config_json['nat_rulebases'].append(getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy_string, show_params_rules))
 

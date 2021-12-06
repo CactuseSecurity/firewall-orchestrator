@@ -252,7 +252,6 @@ namespace FWO.Report.Filter
             //     return true;
             // if (DeviceFilter.areAllDevicesSelected(LSBFilter))
             //     return false;
-            return;
         }
     }
 }

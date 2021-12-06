@@ -722,7 +722,7 @@ namespace FWO.Middleware.Server
                     try
                     {
                         //Modify the entry in the directory
-                        connection.Modify (entry, mods);
+                        connection.Modify(entry, mods);
                         userModified = true;
                         Log.WriteDebug("Modify Entry", $"Entry {entry} modified in {Address}:{Port}");
                     }

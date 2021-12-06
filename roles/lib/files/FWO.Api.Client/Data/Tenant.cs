@@ -1,5 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-using System.Collections.Generic;
+using FWO.Middleware.RequestParameters;
 
 namespace FWO.Api.Data
 {
@@ -9,13 +9,13 @@ namespace FWO.Api.Data
         public int Id { get; set; }
 
         [JsonPropertyName("tenant_name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         [JsonPropertyName("tenant_comment")]
-        public string Comment { get; set; }
+        public string? Comment { get; set; }
 
         [JsonPropertyName("tenant_projekt")]
-        public string Project { get; set; }
+        public string? Project { get; set; }
 
         [JsonPropertyName("tenant_can_view_all_devices")]
         public bool ViewAllDevices { get; set; }
@@ -32,6 +32,8 @@ namespace FWO.Api.Data
         public Tenant()
         {
             TenantDevices = new TenantDevice[]{};
+            VisibleDevices = new int[]{};
+            VisibleManagements = new int[]{};
         }
 
         public Tenant(Tenant tenant)
@@ -43,6 +45,30 @@ namespace FWO.Api.Data
             ViewAllDevices = tenant.ViewAllDevices;
             Superadmin = tenant.Superadmin;
             TenantDevices = tenant.TenantDevices;
+            VisibleDevices = tenant.VisibleDevices;
+            VisibleManagements = tenant.VisibleManagements;
+        }
+
+        public Tenant(TenantGetReturnParameters tenantGetParameters)
+        {
+            Id = tenantGetParameters.Id;
+            Name = tenantGetParameters.Name;
+            Comment = tenantGetParameters.Comment;
+            Project = tenantGetParameters.Project;
+            ViewAllDevices = tenantGetParameters.ViewAllDevices;
+            Superadmin = tenantGetParameters.Superadmin;
+            List<TenantDevice> deviceList = new List<TenantDevice>();
+            if (tenantGetParameters.Devices != null)
+            {
+                foreach(KeyValuePair<int,string> apiDevice in tenantGetParameters.Devices)
+                {
+                    Device visibleDevice = new Device(){Id = apiDevice.Key, Name = apiDevice.Value};
+                    deviceList.Add(new TenantDevice(){VisibleDevice = visibleDevice});
+                }
+            }
+            TenantDevices = deviceList.ToArray();
+            VisibleDevices = new int[]{};
+            VisibleManagements = new int[]{};
         }
 
         public string DeviceList()
@@ -50,16 +76,36 @@ namespace FWO.Api.Data
             List<string> deviceList = new List<string>();
             foreach (TenantDevice device in TenantDevices)
             {
-                deviceList.Add(device.VisibleDevice.Name);
+                if (device.VisibleDevice.Name != null)
+                    deviceList.Add(device.VisibleDevice.Name);
             }
             return string.Join(", ", deviceList);
+        }
+
+        public TenantGetReturnParameters ToApiParams()
+        {
+            TenantGetReturnParameters tenantGetParams = new TenantGetReturnParameters
+            {
+                Id = this.Id,
+                Name = this.Name,
+                Comment = this.Comment,
+                Project = this.Project,
+                ViewAllDevices = this.ViewAllDevices,
+                Superadmin = this.Superadmin,
+                Devices = new List<KeyValuePair<int,string>>()
+            };
+            foreach (TenantDevice device in TenantDevices)
+            {
+                tenantGetParams.Devices.Add(new KeyValuePair<int,string>(device.VisibleDevice.Id, (device.VisibleDevice.Name != null ? device.VisibleDevice.Name : "")));
+            }
+            return tenantGetParams;
         }
     }
 
     public class TenantDevice
     {
         [JsonPropertyName("device")]
-        public Device VisibleDevice { get; set; }
+        public Device VisibleDevice { get; set; } = new Device();
     }
 
     public class DeviceId

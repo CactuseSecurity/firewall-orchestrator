@@ -164,7 +164,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
@@ -226,7 +226,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -328,7 +328,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
 
@@ -347,23 +347,26 @@
         reportTemplateControl.Collapse();
         // deviceSelectionSidebar.ToggleCollapse(true); // disabling left side bar collapse for now
 
+        Management[] managementsReportOrig = managementsReport;
         try
         {
             processing = true;
 
             // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsReport);
+            managementsDevFilter = managementsReport;
+            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managementsDevFilter);
 
             currentReport = ReportBase.ConstructReport(filterInput, userConfig);
-            if (!DeviceFilter.isAnyDeviceFilterSet(managementsReport, currentReport.Query))  // display warning
+            if (!DeviceFilter.isAnyDeviceFilterSet(managementsDevFilter, currentReport.Query))  // display warning
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                reportTemplateControl.Uncollapse();
                 processing = false;
                 return;
             }
 
             // save selected managements before resetting
-            List<int> relevantManagements = DeviceFilter.getSelectedManagements(managementsReport);
+            List<int> relevantManagements = DeviceFilter.getSelectedManagements(managementsDevFilter);
 
             DateTime startTime = DateTime.Now;
             managementsReport = new Management[0]; // reset management data when switching between reports
@@ -418,7 +421,11 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+            processing = false;
+            managementsReport = managementsReportOrig;
+            reportTemplateControl.Uncollapse();
+            StateHasChanged();
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
     }
 
@@ -460,7 +467,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), null, false);
+            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
     }

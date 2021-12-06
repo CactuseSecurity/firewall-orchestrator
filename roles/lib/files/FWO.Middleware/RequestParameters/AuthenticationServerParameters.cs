@@ -1,45 +1,61 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-
-namespace FWO.Middleware.RequestParameters
+﻿namespace FWO.Middleware.RequestParameters
 {
     public class LdapAddParameters
     {
-        [JsonPropertyName("address")]
-        public string? Address { get; set; }
-
-        [JsonPropertyName("port")]
-        public string Port { get; set; } = "636";
-
-        [JsonPropertyName("searchUser")]
+        public string? Name { get; set; }
+        public string Address { get; set; } = "";
+        public int Port { get; set; } = 636;
+        public int Type { get; set; } = 0;
+        public int PatternLength { get; set; } = 0;
         public string? SearchUser { get; set; }
-
-        [JsonPropertyName("tls")]
-        public string? Tls { get; set; }
-
-        [JsonPropertyName("tenantLevel")]
-        public string? TenantLevel { get; set; }
-
-        [JsonPropertyName("searchUserPwd")]
+        public bool Tls { get; set; }
+        public int TenantLevel { get; set; }
         public string? SearchUserPwd { get; set; }
-
-        [JsonPropertyName("searchpathForUsers")]
         public string? SearchpathForUsers { get; set; }
-
-        [JsonPropertyName("searchpathForRoles")]
         public string? SearchpathForRoles { get; set; }
-
-        [JsonPropertyName("writeUser")]
+        public string? SearchpathForGroups { get; set; }
         public string? WriteUser { get; set; }
-
-        [JsonPropertyName("writeUserPwd")]
         public string? WriteUserPwd { get; set; }
+        public int? TenantId { get; set; }
 
-        [JsonPropertyName("tenantId")]
-        public string? TenantId { get; set; }
+        public LdapAddParameters()
+        {}
+
+        public LdapAddParameters(LdapAddParameters ldapAddParameters)
+        {
+            Name = ldapAddParameters.Name;
+            Address = ldapAddParameters.Address;
+            Port = ldapAddParameters.Port;
+            Type = ldapAddParameters.Type;
+            PatternLength = ldapAddParameters.PatternLength;
+            SearchUser = ldapAddParameters.SearchUser;
+            Tls = ldapAddParameters.Tls;
+            TenantLevel = ldapAddParameters.TenantLevel;
+            SearchUserPwd = ldapAddParameters.SearchUserPwd;
+            SearchpathForUsers = ldapAddParameters.SearchpathForUsers;
+            SearchpathForRoles = ldapAddParameters.SearchpathForRoles;
+            SearchpathForGroups = ldapAddParameters.SearchpathForGroups;
+            WriteUser = ldapAddParameters.WriteUser;
+            WriteUserPwd = ldapAddParameters.WriteUserPwd;
+            TenantId = ldapAddParameters.TenantId;
+        }
+    }
+
+    public class LdapGetUpdateParameters : LdapAddParameters
+    {
+        public int Id { get; set; }
+
+        public LdapGetUpdateParameters()
+        {}
+
+        public LdapGetUpdateParameters(LdapAddParameters ldapAddParameters, int id) : base (ldapAddParameters)
+        {
+            Id = id;
+        }
+    }
+
+    public class LdapDeleteParameters
+    {
+        public int Id { get; set; }
     }
 }

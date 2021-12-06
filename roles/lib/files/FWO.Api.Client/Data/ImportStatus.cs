@@ -18,7 +18,7 @@ namespace FWO.Api.Data
         public bool SuccessfulImport { get; set; }
 
         [JsonPropertyName("import_errors")]
-        public string ImportErrors { get; set; }
+        public string? ImportErrors { get; set; }
     }
 
     public class ImportStatus
@@ -27,18 +27,18 @@ namespace FWO.Api.Data
         public int MgmId { get; set; }
 
         [JsonPropertyName("mgm_name")]
-        public string MgmName { get; set; }
+        public string MgmName { get; set; } = "";
 
         [JsonPropertyName("last_import")]
-        public ImportControl[] LastImport { get; set; }
+        public ImportControl[]? LastImport { get; set; }
 
         [JsonPropertyName("last_successful_import")]
-        public ImportControl[] LastSuccessfulImport { get; set; }
+        public ImportControl[]? LastSuccessfulImport { get; set; }
 
         [JsonPropertyName("last_incomplete_import")]
-        public ImportControl[] LastIncompleteImport { get; set; }
+        public ImportControl[]? LastIncompleteImport { get; set; }
 
         [JsonPropertyName("first_import")]
-        public ImportControl[] FirstImport { get; set; }
+        public ImportControl[]? FirstImport { get; set; }
     }
 }

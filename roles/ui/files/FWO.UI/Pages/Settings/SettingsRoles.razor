@@ -214,7 +214,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
     private List<Role> roles = new List<Role>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
@@ -222,10 +222,10 @@
     private List<string> searchedGroupList = new List<string>();
     private List<string> internalGroupList = new List<string>();
     private UiLdapConnection selectedLdap = new UiLdapConnection();
-    private string selectedUiUser;
-    private string selectedLdapUser;
-    private string selectedUserToDelete;
-    private string selectedGroup;
+    private string selectedUiUser = "";
+    private string selectedLdapUser = "";
+    private string selectedUserToDelete = "";
+    private string selectedGroup = "";
     private int selectedLdapId;
     private string searchPattern = "";
     
@@ -268,7 +268,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
         }
 
         try
@@ -278,7 +278,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_users"), "", true);
         }
 
         try
@@ -287,7 +287,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), "", true);
         }
 
         // get groups from internal LDAP
@@ -314,7 +314,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), "", true);
         }
     }
 
@@ -322,21 +322,23 @@
     {
         AddMode = true;
         actRole = role;
-        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.FirstOrDefault().Dn);
-        selectedLdapId = connectedLdaps.FirstOrDefault().Id;
-        selectedGroup = (internalGroupList.Count == 0 ? "" : internalGroupList.FirstOrDefault());
+        selectedUiUser = (uiUsers.Count == 0 ? "" : uiUsers.First().Dn);
+        selectedLdapId = (connectedLdaps.Count == 0 ? 0 : connectedLdaps.First().Id);
+        selectedGroup = (internalGroupList.Count == 0 ? "" : internalGroupList.First());
     }
 
     private void RemoveFromRole(Role role)
     {
         DeleteMode = true;
         actRole = role;
-        selectedUserToDelete = (actRole.Users.Count == 0 ? "" : actRole.Users.FirstOrDefault().Dn);
+        selectedUserToDelete = (actRole.Users.Count == 0 ? "" : actRole.Users.First().Dn);
     }
 
     private async Task SearchUser(int ldapId)
     {
-        selectedLdap = connectedLdaps.Find(x => x.Id == ldapId);
+        UiLdapConnection? actLdap = connectedLdaps.FirstOrDefault(x => x.Id == ldapId);
+        if (actLdap != null)
+            selectedLdap = actLdap;
 
         if(searchPattern.Length < selectedLdap.PatternLength)
         {
@@ -349,8 +351,8 @@
             {
                 ldapUsers.Clear();
                 searchedGroupList.Clear();
-                UserGetParameters userGetParameters = new UserGetParameters { LdapHostname = selectedLdap.Host(), SearchPattern = searchPattern };
-                IRestResponse<List<KeyValuePair<string, string>>> middlewareServerResponse = await middlewareClient.GetUsers(userGetParameters);
+                UserGetParameters userGetParameters = new UserGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
+                IRestResponse<List<KeyValuePair<string, string>>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
@@ -366,7 +368,7 @@
 
                 if(selectedLdap.HasGroupHandling())
                 {
-                    GroupGetParameters groupGetParameters = new GroupGetParameters { LdapHostname = selectedLdap.Host(), SearchPattern = searchPattern };
+                    GroupGetParameters groupGetParameters = new GroupGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
                     IRestResponse<List<string>> groupMiddlewareServerResponse = await middlewareClient.GetGroups(groupGetParameters);
                     if (groupMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {
@@ -380,11 +382,11 @@
             }
             catch (System.Exception)
             {
-                DisplayMessageInUi(null, userConfig.GetText("fetch_users"), null, true);
+                DisplayMessageInUi(null, userConfig.GetText("fetch_users"), "", true);
             }
 
-            selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.FirstOrDefault().Dn);
-            selectedGroup = (searchedGroupList.Count == 0 ? "" : searchedGroupList.FirstOrDefault());
+            selectedLdapUser = (ldapUsers.Count == 0 ? "" : ldapUsers.First().Dn);
+            selectedGroup = (searchedGroupList.Count == 0 ? "" : searchedGroupList.First());
             SearchMode = true;
             AddMode = false;
         }
@@ -392,14 +394,16 @@
 
     private async Task AddUserFromUiUsers(string userDn)
     {
-        UiUser selectedUser = uiUsers.Find(x => x.Dn == userDn);
-        await AddUserToRole(selectedUser);
+        UiUser? selectedUser = uiUsers.Find(x => x.Dn == userDn);
+        if (selectedUser != null)
+            await AddUserToRole(selectedUser);
     }
 
     private async Task AddUserFromLdap(string userDn)
     {
-        UiUser selectedUser = ldapUsers.Find(x => x.Dn == userDn);
-        await AddUserToRole(selectedUser);
+        UiUser? selectedUser = ldapUsers.Find(x => x.Dn == userDn);
+        if (selectedUser != null)
+            await AddUserToRole(selectedUser);
     }
 
     private async Task AddGroupFromLdap(string groupDn)
@@ -438,7 +442,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), null, true);
+                DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), "", true);
             }
         }
     }
@@ -472,7 +476,7 @@
                 }
                 catch (System.Exception exception)
                 {
-                    DisplayMessageInUi(exception, userConfig.GetText("delete_user"), null, true);
+                    DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
                 }
             }
         }

@@ -110,8 +110,7 @@ namespace FWO.Middleware.Server
 
         private Task GenerateReport(ScheduledReport report, DateTime dateTimeNowRounded)
         {
-            var tokenSource = new CancellationTokenSource();
-            var token = tokenSource.Token;
+            CancellationToken token = new CancellationToken();
             return Task.Run(async () =>
             {
                 try
@@ -136,14 +135,10 @@ namespace FWO.Middleware.Server
                     APIConnection apiConnectionUserContext = new APIConnection(apiServerUri, jwt);
 
                     UserConfig userConfig = new UserConfig(new GlobalConfig(jwt));
-                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, userConfig);
-                    await reportRules.Generate
-                    (
-                        int.MaxValue,
-                        apiConnectionUserContext, 
-                        _ => Task.CompletedTask,
-                        token
-                    );
+
+                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, userConfig);                    
+                    await reportRules.Generate(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask, token);
+                    await reportRules.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
 
                     reportFile.Json = reportRules.ExportToJson();
 
@@ -161,6 +156,9 @@ namespace FWO.Middleware.Server
 
                             case "pdf":
                                 reportFile.Pdf = Convert.ToBase64String(reportRules.ToPdf());
+                                break;
+
+                            case "json":
                                 break;
 
                             default:

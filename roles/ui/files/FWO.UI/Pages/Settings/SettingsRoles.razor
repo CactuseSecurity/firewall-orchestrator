@@ -368,7 +368,7 @@
 
                 if(selectedLdap.HasGroupHandling())
                 {
-                    GroupGetParameters groupGetParameters = new GroupGetParameters { LdapHostname = selectedLdap.Host(), SearchPattern = searchPattern };
+                    GroupGetParameters groupGetParameters = new GroupGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
                     IRestResponse<List<string>> groupMiddlewareServerResponse = await middlewareClient.GetGroups(groupGetParameters);
                     if (groupMiddlewareServerResponse.StatusCode != HttpStatusCode.OK)
                     {

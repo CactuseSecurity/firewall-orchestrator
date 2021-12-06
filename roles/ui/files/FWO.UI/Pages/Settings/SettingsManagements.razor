@@ -215,12 +215,12 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
     private List<Management> managements = new List<Management>();
     private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
 
-    private ITable<Management> table;
+    private ITable<Management>? table;
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -228,8 +228,8 @@
     private bool AddMode = false;
     private bool showCleanupButton = false;
 
-    private Management newManagement;
-    private Management actManagement;
+    private Management newManagement = new Management();
+    private Management actManagement = new Management();
 
     private string deleteMessage = "";
     private string cleanupMessage = "";
@@ -250,7 +250,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
         }
 
         try
@@ -259,7 +259,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
         }
     }
 
@@ -298,7 +298,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
         }
     }
 
@@ -358,10 +358,13 @@
                         configPath = actManagement.ConfigPath,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment /*,
-                    tenantId = actManagement.TenantId */
+                        comment = actManagement.Comment
                     };
-                    actManagement.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds[0].NewId;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                    if (returnIds != null)
+                    {
+                        actManagement.Id = returnIds[0].NewId;
+                    }
                     managements.Add(actManagement);
                     AddMode = false;
                     EditMode = false;
@@ -386,21 +389,21 @@
                         configPath = actManagement.ConfigPath,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment /*,
-                    tenantId = actManagement.TenantId */
+                        comment = actManagement.Comment
                     };
                     int udId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.DeviceQueries.updateManagement, Variables)).UpdatedId;
                     EditMode = (udId == actManagement.Id ? false : true);
                     managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
                 }
                 // update actManagement
-                actManagement.DeviceType.Name = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Name;
-                actManagement.DeviceType.Version = deviceTypes.Find(x => x.Id == actManagement.DeviceType.Id).Version;
+                DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actManagement.DeviceType.Id) ?? throw new Exception("Unknown Device type");
+                actManagement.DeviceType.Name = devtype.Name;
+                actManagement.DeviceType.Version = devtype.Version;
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_management"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 

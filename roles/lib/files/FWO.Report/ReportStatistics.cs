@@ -69,6 +69,7 @@ namespace FWO.Report
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             Managements = resultList.ToArray();
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
             await callback(Managements);
 
             foreach (Management mgm in Managements.Where(mgt => !mgt.Ignore))
@@ -78,7 +79,6 @@ namespace FWO.Report
                 globalStatisticsManagament.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagament.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
             }
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToJson()

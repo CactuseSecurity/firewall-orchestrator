@@ -13,10 +13,10 @@ import parse_user
 import parse_service
 import parse_network
 
-nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways']  
-# do not consider: CpmiAnyObject, CpmiGatewayPlain, external 
+nw_obj_table_names = ['hosts', 'networks', 'address-ranges', 'multicast-address-ranges', 'groups', 'gateways-and-servers', 'simple-gateways', 'CpmiGatewayPlain', 'CpmiAnyObject']  
+# now test to also get: CpmiAnyObject, external 
 
-svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6']
+svc_obj_table_names = ['services-tcp', 'services-udp', 'service-groups', 'services-dce-rpc', 'services-rpc', 'services-other', 'services-icmp', 'services-icmp6', 'CpmiAnyObject']
 
 # the following is the static across all installations unique any obj uid 
 # cannot fetch the Any object via API (<=1.7) at the moment

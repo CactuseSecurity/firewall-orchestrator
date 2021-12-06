@@ -25,7 +25,7 @@ root_dir = '{{ fworchtest_home }}/'
 tmp_git_dir = root_dir + 'tmp_git'
 github_hostname = "github.com"
 project_path = '/CactuseSecurity/firewall-orchestrator.git'
-ssh_priv_key_file = root_dir + '.ssh/id_github_deploy'
+# ssh_priv_key_file = root_dir + '.ssh/id_github_deploy'
 webhook_log_file_basename = 'webhookPayloads.txt'
 webhook_logfile = root_dir + webhook_log_file_basename
 prox="http_proxy={{ http_proxy }}"
@@ -100,7 +100,8 @@ def post_handler():
                os.system('rm -rf ' + tmp_git_dir)
                os.system('mkdir -p ' + tmp_git_dir)
                target_path  =  tmp_git_dir
-               clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone -b {{ webhook_branch }} ssh://git@" + github_hostname + project_path + "'"
+               # clone_cmd = "cd " + tmp_git_dir + " && ssh-agent bash -c 'ssh-add " + ssh_priv_key_file + " && git clone -b {{ webhook_branch }} ssh://git@" + github_hostname + project_path + "'"
+               clone_cmd = "cd " + tmp_git_dir + " && git clone -b {{ webhook_branch }} https://" + github_hostname + project_path
                f.write('executing ' + clone_cmd + '\n')
                os.system(clone_cmd) # Cloning
                if (webhook_script_changed):

@@ -5,11 +5,14 @@
   tasks:
     - name: stop importer service before making any changes
       systemd:
-        name: "{{ product_name }}-importer"
+        name: "{{ item }}"
         state: stopped
       become: yes
       when: "not installation_mode == 'new'"
       ignore_errors: yes
+  loop:
+    - "{{ product_name }}-importer"
+    - "{{ product_name }}-importer-api"
   tags:
     - frontend
     - importer

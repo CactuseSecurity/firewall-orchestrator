@@ -48,14 +48,14 @@ def get_config(config2import, current_import_id, mgm_details, config_filename=No
 
     sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'], ssl_verification, proxy)
 
-    result_get_basic_config = get_basic_config (full_config_json, mgm_details, last_change_time, force, proxy=proxy, sid=sid,
+    result_get_basic_config = get_basic_config (full_config_json, mgm_details, last_change_time, force=force, proxy=proxy, sid=sid,
         limit=str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
 
     if result_get_basic_config>0:
         return result_get_basic_config
 
     result_enrich_config = enrich_config (full_config_json, mgm_details, proxy, 
-        str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''), sid=sid)
+        str(limit), details_level='full', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''), sid=sid)
 
     if result_enrich_config>0:
         return result_enrich_config
@@ -124,8 +124,8 @@ def get_ip_of_obj(obj):
 
 ##################### 2nd-level functions ###################################
 
-def get_basic_config (config_json, mgm_details, last_import_time=None, config_filename=None,
-    force=False, proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', sid=None):
+def get_basic_config (config_json, mgm_details, last_import_time=None, force=False, config_filename=None,
+    proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', sid=None):
 
     api_host = mgm_details['hostname']
     api_user =  mgm_details['user']

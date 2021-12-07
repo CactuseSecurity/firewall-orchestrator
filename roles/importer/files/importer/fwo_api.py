@@ -41,7 +41,7 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
     return r.json()
 
 
-def login(user, password, user_management_api_base_url, method, ssl_verification=False, proxy=None, debug=0):
+def login(user, password, user_management_api_base_url, method='api/AuthenticationToken/Get', ssl_verification=False, proxy=None, debug=0):
     payload = {"Username": user, "Password": password}
     request_headers = {'Content-Type': 'application/json'}
 

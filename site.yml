@@ -10,9 +10,9 @@
       become: yes
       when: "not installation_mode == 'new'"
       ignore_errors: yes
-  loop:
-    - "{{ product_name }}-importer"
-    - "{{ product_name }}-importer-api"
+      loop:
+        - "{{ product_name }}-importer"
+        - "{{ product_name }}-importer-api"
   tags:
     - frontend
     - importer

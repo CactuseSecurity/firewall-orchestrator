@@ -41,21 +41,21 @@ def get_config(config2import, current_import_id, mgm_details, config_filename=No
 
     common.set_log_level(log_level=debug_level, debug_level=debug_level)
 
-    # todo: ssl verification mode needs to be gotten from somewhere
-    # todo: test if proxy is handled properly
     # todo: test if debug_level is handled properly
-    # todo: test get_config.py & enrich_config.py
 
+    ssl_verification = ''     # todo: ssl verification mode needs to be gotten from somewhere
     starttime = int(time.time())
-    
-    result_simple_get_config = simple_get_config (full_config_json, mgm_details, last_change_time, force, proxy,
-        str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
 
-    if result_simple_get_config>0:
-        return result_simple_get_config
+    sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'], str(mgm_details['port']), mgm_details['configPath'], ssl_verification, proxy)
+
+    result_get_basic_config = get_basic_config (full_config_json, mgm_details, last_change_time, force, proxy=proxy, sid=sid,
+        limit=str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
+
+    if result_get_basic_config>0:
+        return result_get_basic_config
 
     result_enrich_config = enrich_config (full_config_json, mgm_details, proxy, 
-        str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
+        str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''), sid=sid)
 
     if result_enrich_config>0:
         return result_enrich_config
@@ -124,24 +124,20 @@ def get_ip_of_obj(obj):
 
 ##################### 2nd-level functions ###################################
 
-def simple_get_config (config_json, mgm_details, current_import_id, last_import_time=None, config_filename=None,
-    force=False, proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification=''):
+def get_basic_config (config_json, mgm_details, last_import_time=None, config_filename=None,
+    force=False, proxy=None, limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', sid=None):
 
     api_host = mgm_details['hostname']
     api_user =  mgm_details['user']
     api_domain = mgm_details['configPath']
     api_port = str(mgm_details['port'])
     api_password = mgm_details['secret']
-    # proxy_string = mgm_details['proxy']
-    # fetch_limit = mgm_details['fetch_limit']
-    # ssl_verification = mgm_details['ssl_verification']
-    # debug_level = mgm_details['debug']
-
     base_url = 'https://' + api_host + ':' + str(api_port) + '/web_api/'
     use_object_dictionary = 'false'
 
     # top level dict start, sid contains the domain information, so only sending domain during login
-    sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy)
+    if sid is None:  # if sid was not passed, login and get it
+        sid = getter.login(api_user,api_password,api_host,api_port,api_domain,ssl_verification, proxy)
     v_url = getter.get_api_url (sid, api_host, api_port, api_user, base_url, limit, test_version, ssl_verification, proxy)
 
     if last_import_time==None or last_import_time=='' or force:
@@ -241,9 +237,7 @@ def simple_get_config (config_json, mgm_details, current_import_id, last_import_
 #         str(limit), details_level='full', test_version='off', debug_level=debug_level, ssl_verification=getter.set_ssl_verification(''))
 
 
-def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" }', limit=150, details_level='full', test_version='off', debug_level=0, ssl_verification='', noapi=False):
-
-    # requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+def enrich_config (config, mgm_details, proxy=None, limit=150, details_level='full', debug_level=0, ssl_verification='', noapi=False, sid=None):
 
     base_url = 'https://' + mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/web_api/'
     nw_objs_from_obj_tables = []
@@ -251,7 +245,6 @@ def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" 
 
     # logging config
     common.set_log_level(log_level=debug_level, debug_level=debug_level)
-
     starttime = int(time.time())
 
     # do nothing for empty configs
@@ -260,8 +253,6 @@ def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" 
 
     #################################################################################
     # adding inline and domain layers 
-    #################################################################################
-
     found_new_inline_layers = True
     old_inline_layers = []
     while found_new_inline_layers is True:
@@ -285,8 +276,6 @@ def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" 
 
     #################################################################################
     # get object data which is only contained as uid in config by making addtional api calls
-    #################################################################################
-
     # get all object uids (together with type) from all rules in fields src, dst, svc
     nw_uids_from_rulebase = []
     svc_uids_from_rulebase = []
@@ -316,8 +305,8 @@ def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" 
     logging.debug ( "enrich_config - found missing svc objects: '" + ",".join(missing_svc_object_uids) + "'" )
 
     if noapi == False:
-        sid = getter.login(mgm_details['user'],mgm_details['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'],ssl_verification, proxy_string)
-        v_url = getter.get_api_url (sid, mgm_details['hostname'], mgm_details['port'], mgm_details['user'], base_url, limit, test_version,ssl_verification, proxy_string)
+        sid = getter.login(mgm_details['user'],mgm_details['secret'],mgm_details['hostname'],mgm_details['port'],mgm_details['configPath'],ssl_verification, proxy)
+        #v_url = getter.get_api_url (sid, mgm_details['hostname'], mgm_details['port'], mgm_details['user'], base_url, limit, test_version,ssl_verification, proxy)
         logging.debug ( "enrich_config - logged into api" )
 
     # if an object is not there:
@@ -326,7 +315,7 @@ def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" 
         if noapi == False:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
             logging.debug ( "checkpointR8x/enrich_config - fetching obj with uid: " + missing_obj)
-            obj = getter.api_call(v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
+            obj = getter.api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
             obj = obj['object']
             if (obj['type'] == 'CpmiAnyObject'):
                 json_obj = {"object_type": "hosts", "object_chunks": [ {
@@ -371,16 +360,13 @@ def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" 
                 logging.warning ( "checkpointR8x/enrich_config - missing nw obj of unexpected type '" + obj['type'] + "': " + missing_obj )
                 print ("WARNING - enrich_config - missing nw obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
 
-        logging.debug ( "enrich_config - missing nw obj: " + missing_obj )
-        print ("INFO: adding nw  obj missing from standard api call results: " + missing_obj)
+        logging.debug ( "enrich_config - missing nw obj: " + missing_obj + " added" )
 
     for missing_obj in missing_svc_object_uids:
         if noapi == False:
             show_params_host = {'details-level':details_level,'uid':missing_obj}
-            obj = getter.api_call(v_url, 'show-object', show_params_host, sid, ssl_verification, proxy_string)
+            obj = getter.api_call(base_url, 'show-object', show_params_host, sid, ssl_verification, proxy)
             obj = obj['object']
-            # print(json.dumps(obj))
-            # currently no svc objects are found missing, not even the any obj?
             if (obj['type'] == 'CpmiAnyObject'):
                 json_obj = {"object_type": "services-other", "object_chunks": [ {
                         "objects": [ {
@@ -400,11 +386,10 @@ def enrich_config (config, mgm_details, proxy_string='{ "http": "", "https": "" 
             else:
                 logging.warning ( "checkpointR8x/enrich_config - missing svc obj of unexpected type: " + missing_obj )
                 print ("WARNING - enrich_config - missing svc obj of unexpected type: '" + obj['type'] + "': " + missing_obj)
-        logging.debug ( "enrich_config - missing svc obj: " + missing_obj )
-        print ("INFO: adding svc obj missing from standard api call results: " + missing_obj)
+        logging.debug ( "enrich_config - missing svc obj: " + missing_obj + " added")
 
     if noapi == False:
-        logout_result = getter.api_call(v_url, 'logout', {}, sid, ssl_verification, proxy_string)
+        logout_result = getter.api_call(base_url, 'logout', {}, sid, ssl_verification, proxy)
     logging.debug ( "checkpointR8x/enrich_config - duration: " + str(int(time.time()) - starttime) + "s" )
 
     return 0

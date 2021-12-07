@@ -51,7 +51,7 @@ while True:
     mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
     for mgm_id in mgm_ids:
         id = str(mgm_id['id'])
-        cmd = importer_base_dir + '/import_mgm.py -m ' + id + ssl_string + ' -d ' + str(debug_level)
+        cmd = importer_base_dir + '/import-mgm.py -m ' + id + ssl_string + ' -d ' + str(debug_level)
         if 'proxy' in args:
             cmd += ' -x ' + str(args.proxy)
         logging.info("import_main_loop.py: starting import cmd " + cmd) 

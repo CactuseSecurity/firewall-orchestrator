@@ -8,7 +8,7 @@ import sys
 base_dir = "/usr/local/fworch/"
 sys.path.append(base_dir + '/importer')
 
-requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+#requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'

@@ -18,7 +18,7 @@ parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='p
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-i', '--limit', metavar='api_limit', default='150', help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0') 
-parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
+parser.add_argument('-k', '--package', metavar='package_name', help='name of the package for a gateway - necessary for getting NAT rules')
 parser.add_argument('-c', '--configfile', metavar='config_file', required=True, help='filename to read and write config in json format from/to')
 parser.add_argument('-n', '--noapi', metavar='mode', default='false', help='if set to true (only in combination with mode=enrich), no api connections are made. Useful for testing only.')
 
@@ -37,8 +37,25 @@ common.set_log_level(log_level=debug_level, debug_level=debug_level)
 config = {}
 starttime = int(time.time())
 
-result = fwcommon.enrich_config (config, args.apihost, args.user, args.out, api_password, args.layer, args.package, args.domain, args.fromdate,
-    args.force, args.port, { "http" : args.proxy, "https" : args.proxy }, args.limit, details_level, args.testing, debug_level, getter.set_ssl_verification(args.ssl))
+# possible todo: get mgmt_details via API just from mgmt_name and dev_name?
+mgm_details = {
+    'hostname': args.apihost,
+    'port': args.port,
+    'user': args.user,
+    'secret': api_password,
+    'configPath': args.domain,
+    'devices': [
+        {
+            'local_rulebase_name': args.layer,
+            'global_rulebase_name': None,
+            'package_name': args.package
+        }
+    ]
+}
+
+result = fwcommon.enrich_config (config, mgm_details, noapi=False,
+    proxy=args.proxy, limit=args.limit, details_level=details_level,
+    debug_level=debug_level, ssl_verification=getter.set_ssl_verification(args.ssl))
 
 duration = int(time.time()) - starttime
 logging.debug ( "checkpointR8x/enrich_config - duration: " + str(duration) + "s" )

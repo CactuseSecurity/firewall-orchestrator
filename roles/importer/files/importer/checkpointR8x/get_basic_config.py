@@ -39,8 +39,25 @@ common.set_log_level(log_level=debug_level, debug_level=debug_level)
 starttime = int(time.time())
 full_config_json = {}
 
-fwcommon.simple_get_config (full_config_json, args.apihost, args.user, args.out, api_password, args.layer, args.package, args.domain, args.fromdate,
-    args.force, args.port, { "http" : args.proxy, "https" : args.proxy }, args.limit, details_level, args.testing, debug_level, getter.set_ssl_verification(args.ssl))
+# possible todo: get mgmt_details via API just from mgmt_name and dev_name?
+# todo: allow for multiple gateways
+mgm_details = {
+    'hostname': args.apihost,
+    'port': args.port,
+    'user': args.user,
+    'secret': api_password,
+    'configPath': args.domain,
+    'devices': [
+        {
+            'local_rulebase_name': args.layer,
+            'global_rulebase_name': None,
+            'package_name': args.package
+        }
+    ]
+}
+
+fwcommon.get_basic_config (full_config_json, mgm_details, last_import_time=args.fromdate, config_filename=args.out,
+    force=args.force, proxy=args.proxy, limit=args.limit, details_level=details_level, test_version=args.testing, debug_level=debug_level, ssl_verification=getter.set_ssl_verification(args.ssl))
 
 duration = int(time.time()) - starttime
 logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )

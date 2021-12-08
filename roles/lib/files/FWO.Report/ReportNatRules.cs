@@ -60,14 +60,14 @@ namespace FWO.Report
                         };
 
                         // get objects for this management in the current report
-                        await GetObjectsForManagementInReport(objQueryVariables, all, apiConnection, callback);
+                        await GetObjectsForManagementInReport(objQueryVariables, all, int.MaxValue, apiConnection, callback);
                     }
                 }
                 GotObjectsInReport = true;
             }
         }
 
-        public override async Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
@@ -100,10 +100,8 @@ namespace FWO.Report
             int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault("limit");
             Management filteredObjects;
             Management allFilteredObjects = new Management();
-            while (newObjects)
+            while (newObjects && ++fetchCount <= maxFetchCycles)
             {
-                fetchCount++;
-
                 filteredObjects = (await apiConnection.SendQueryAsync<Management[]>(query, objQueryVariables))[0];
 
                 if (fetchCount == 1)
@@ -127,7 +125,7 @@ namespace FWO.Report
                 await callback(Managements);
             }
 
-            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount} cycle(s) ({elementsPerFetch} at a time)");
+            Log.WriteDebug("Lazy Fetch", $"Fetched sidebar objects in {fetchCount - 1} cycle(s) ({elementsPerFetch} at a time)");
         }
 
         public override async Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)

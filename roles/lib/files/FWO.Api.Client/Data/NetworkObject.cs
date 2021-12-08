@@ -2,56 +2,57 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
     public class NetworkObject
     {
-        [JsonPropertyName("obj_id")]
+        [JsonProperty("obj_id"), JsonPropertyName("obj_id")]
         public long Id { get; set; }
 
-        [JsonPropertyName("obj_name")]
+        [JsonProperty("obj_name"), JsonPropertyName("obj_name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("obj_ip")]
+        [JsonProperty("obj_ip"), JsonPropertyName("obj_ip")]
         public string IP { get; set; }
 
-        [JsonPropertyName("obj_uid")]
+        [JsonProperty("obj_uid"), JsonPropertyName("obj_uid")]
         public string Uid { get; set; }
 
-        [JsonPropertyName("zone")]
+        [JsonProperty("zone"), JsonPropertyName("zone")]
         public NetworkZone Zone { get; set; }
 
-        [JsonPropertyName("active")]
+        [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
 
-        [JsonPropertyName("obj_create")]
+        [JsonProperty("obj_create"), JsonPropertyName("obj_create")]
         public int Create { get; set; }
 
-        [JsonPropertyName("obj_create_time")]
+        [JsonProperty("obj_create_time"), JsonPropertyName("obj_create_time")]
         public TimeWrapper CreateTime { get; set; }
 
-        [JsonPropertyName("obj_last_seen")]
+        [JsonProperty("obj_last_seen"), JsonPropertyName("obj_last_seen")]
         public int LastSeen { get; set; }
 
-        [JsonPropertyName("type")]
+        [JsonProperty("type"), JsonPropertyName("type")]
         public NetworkObjectType Type { get; set; }
 
-        [JsonPropertyName("obj_comment")]
+        [JsonProperty("obj_comment"), JsonPropertyName("obj_comment")]
         public string Comment { get; set; }
 
-        [JsonPropertyName("obj_member_names")]
+        [JsonProperty("obj_member_names"), JsonPropertyName("obj_member_names")]
         public string MemberNames { get; set; }
 
-        [JsonPropertyName("obj_member_refs")]
+        [JsonProperty("obj_member_refs"), JsonPropertyName("obj_member_refs")]
         public string MemberRefs { get; set; }
 
-        [JsonPropertyName("objgrps")]
+        [JsonProperty("objgrps"), JsonPropertyName("objgrps")]
         public Group<NetworkObject>[] ObjectGroups { get; set; }
 
-        [JsonPropertyName("objgrp_flats")]
+        [JsonProperty("objgrp_flats"), JsonPropertyName("objgrp_flats")]
         public GroupFlat<NetworkObject>[] ObjectGroupFlats { get; set; }
 
         public override bool Equals(object obj)

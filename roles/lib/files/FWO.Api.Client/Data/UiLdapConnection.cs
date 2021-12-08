@@ -1,4 +1,5 @@
-using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 using FWO.Middleware.RequestParameters;
 
 namespace FWO.Api.Data
@@ -7,7 +8,7 @@ namespace FWO.Api.Data
     {
         private string name = "";
         
-        [JsonPropertyName("ldap_name")]
+        [JsonProperty("ldap_name"), JsonPropertyName("ldap_name")]
         public string Name 
         { 
             get

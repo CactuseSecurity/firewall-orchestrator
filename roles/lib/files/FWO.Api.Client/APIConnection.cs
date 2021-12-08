@@ -6,11 +6,14 @@ using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
+using GraphQL.Client.Serializer.Newtonsoft;
 using GraphQL.Client.Abstractions;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
+using Newtonsoft.Json.Linq;
+using FWO.Api.Client;
 
 namespace FWO.ApiClient
 {
@@ -41,7 +44,7 @@ namespace FWO.ApiClient
                 HttpMessageHandler = Handler,
                 UseWebSocketForQueriesAndMutations = false,
                 ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true
-            }, new SystemTextJsonSerializer());
+            }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());
 
             if (jwt != null)
             {
@@ -94,11 +97,23 @@ namespace FWO.ApiClient
                     // string JsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
                     // Log.WriteDebug("API Response", $"API response: { JsonResponse }");
 
-                    JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
-                    responseObjectEnumerator.MoveNext();
-                    QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
-                    throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
-                    return returnValue;
+                    if (ApiConstants.UseSystemTextJsonSerializer)
+                    {
+                        JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
+                        responseObjectEnumerator.MoveNext();
+                        QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
+                        throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
+                        return returnValue;
+                    }
+                    else
+                    {
+                        JObject data = (JObject)response.Data;
+                        JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                        JToken result = prop.Value;
+                        QueryResponseType returnValue = result.ToObject<QueryResponseType>() ??
+                        throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {response.Data}");
+                        return returnValue;
+                    }
                 }
             }
 

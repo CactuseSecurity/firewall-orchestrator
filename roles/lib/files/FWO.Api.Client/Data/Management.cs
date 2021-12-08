@@ -1,100 +1,101 @@
-﻿using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
     public class Management
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("name")]
+        [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
-        [JsonPropertyName("hostname")]
+        [JsonProperty("hostname"), JsonPropertyName("hostname")]
         public string Hostname { get; set; } = "";
 
-        [JsonPropertyName("user")]
+        [JsonProperty("user"), JsonPropertyName("user")]
         public string? ImportUser { get; set; }
 
-        [JsonPropertyName("secret")]
+        [JsonProperty("secret"), JsonPropertyName("secret")]
         public string PrivateKey { get; set; } = "";
 
-        [JsonPropertyName("configPath")]
+        [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
 
-        [JsonPropertyName("importerHostname")]
+        [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
         public string ImporterHostname { get; set; } = "";
 
-        [JsonPropertyName("port")]
+        [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
 
-        [JsonPropertyName("sshPublicKey")]
+        [JsonProperty("sshPublicKey"), JsonPropertyName("sshPublicKey")]
         public string? PublicKey { get; set; }
 
-        [JsonPropertyName("importDisabled")]
+        [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
 
-        [JsonPropertyName("forceInitialImport")]
+        [JsonProperty("forceInitialImport"), JsonPropertyName("forceInitialImport")]
         public bool ForceInitialImport { get; set; }
 
-        [JsonPropertyName("hideInUi")]
+        [JsonProperty("hideInUi"), JsonPropertyName("hideInUi")]
         public bool HideInUi { get; set; }
 
-        [JsonPropertyName("comment")]
+        [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
-        [JsonPropertyName("debugLevel")]
+        [JsonProperty("debugLevel"), JsonPropertyName("debugLevel")]
         public int? DebugLevel { get; set; }
 
-        [JsonPropertyName("tenant_id")]
+        [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
         public int TenantId { get; set; }
 
-        [JsonPropertyName("devices")]
+        [JsonProperty("devices"), JsonPropertyName("devices")]
         public Device[] Devices { get; set; } = new Device[]{};
 
-        [JsonPropertyName("networkObjects")]
+        [JsonProperty("networkObjects"), JsonPropertyName("networkObjects")]
         public NetworkObject[] Objects { get; set; } = new NetworkObject[]{};
 
-        [JsonPropertyName("serviceObjects")]
+        [JsonProperty("serviceObjects"), JsonPropertyName("serviceObjects")]
         public NetworkService[] Services { get; set; } = new NetworkService[]{};
 
-        [JsonPropertyName("userObjects")]
+        [JsonProperty("userObjects"), JsonPropertyName("userObjects")]
         public NetworkUser[] Users { get; set; } = new NetworkUser[]{};
 
-        [JsonPropertyName("reportNetworkObjects")]
+        [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
         public NetworkObjectWrapper[] ReportObjects { get; set; } = new NetworkObjectWrapper[]{};
 
-        [JsonPropertyName("reportServiceObjects")]
+        [JsonProperty("reportServiceObjects"), JsonPropertyName("reportServiceObjects")]
         public ServiceWrapper[] ReportServices { get; set; } = new ServiceWrapper[]{};
 
-        [JsonPropertyName("reportUserObjects")]
+        [JsonProperty("reportUserObjects"), JsonPropertyName("reportUserObjects")]
         public UserWrapper[] ReportUsers { get; set; } = new UserWrapper[]{};
 
-        [JsonPropertyName("deviceType")]
+        [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new DeviceType();
 
-        [JsonPropertyName("import")]
+        [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new Import();
 
-        // [JsonPropertyName("pointInTime")]
+        // [JsonProperty("pointInTime"), JsonPropertyName("pointInTime")]
         // public DateTime ReportTime { get; set; }
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
 
-        //[JsonPropertyName("rule_id")]
+        //[JsonProperty("rule_id"), JsonPropertyName("rule_id")]
         public List<long> ReportedRuleIds { get; set; } = new List<long>();
         public List<long> ReportedNetworkServiceIds { get; set; } = new List<long>();
 
-        [JsonPropertyName("objects_aggregate")]
+        [JsonProperty("objects_aggregate"), JsonPropertyName("objects_aggregate")]
         public ObjectStatistics NetworkObjectStatistics { get; set; } = new ObjectStatistics();
 
-        [JsonPropertyName("services_aggregate")]
+        [JsonProperty("services_aggregate"), JsonPropertyName("services_aggregate")]
         public ObjectStatistics ServiceObjectStatistics { get; set; } = new ObjectStatistics();
 
-        [JsonPropertyName("usrs_aggregate")]
+        [JsonProperty("usrs_aggregate"), JsonPropertyName("usrs_aggregate")]
         public ObjectStatistics UserObjectStatistics { get; set; } = new ObjectStatistics();
         
-        [JsonPropertyName("rules_aggregate")]
+        [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()

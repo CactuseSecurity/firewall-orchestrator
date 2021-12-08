@@ -194,7 +194,9 @@ def get_basic_config (config_json, mgm_details, last_import_time=None, force=Fal
             if device['package_name'] != None and device['package_name'] != '':
                 show_params_rules = {'limit':limit,'use-object-dictionary':use_object_dictionary,'details-level':details_level, 'package': device['package_name'] }
                 logging.debug ( "get_config - getting nat rules for package: " + device['package_name'] )
-                config_json['nat_rulebases'].append(getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules))
+                nat_rules = getter.get_nat_rules_from_api_as_dict (api_host, api_port, v_url, sid, ssl_verification, proxy, show_params_rules)
+                if len(nat_rules)>0:
+                    config_json['nat_rulebases'].append(nat_rules)
 
         # leaving rules, moving on to objects
         config_json["object_tables"] = []

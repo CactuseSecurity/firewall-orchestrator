@@ -2,6 +2,8 @@
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 import sys
+
+from simplejson import JSONDecodeError
 sys.path.append(importer_base_dir)
 import json
 import logging, re
@@ -47,6 +49,12 @@ def api_call(url, command, json_payload, sid, ssl_verification, proxy, show_prog
         sys.exit(1)
     if show_progress:
         print ('.', end='', flush=True)
+
+    try:
+        r.json()
+    except:
+        logging.exception("\checkpointR8x:api_call: response is not in valid json format: " + r.text)
+        sys.exit(1)
     return r.json()
 
 
@@ -273,11 +281,16 @@ def get_layer_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_verifica
         else:
             logging.error ( "get_layer_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
                 + str(current_layer_json))
-        if 'to' in rulebase:
-            current=rulebase['to']
+        if total==0:
+            current=0
         else:
-            sys.exit(1)
-        logging.debug ( "get_layer_from_api - rulebase current offset: "+ str(current) )
+            if 'to' in rulebase:
+                current=rulebase['to']
+            else:
+                logging.error ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " 
+                    + str(rulebase))
+                sys.exit(1)
+        logging.debug ( "get_layer_from_api - get_layer_from_api_as_dict current offset: "+ str(current) )
     # logging.debug ("get_config::get_rulebase_chunk_from_api - found rules:\n" + str(current_layer_json) + "\n")
     return current_layer_json
 
@@ -296,11 +309,15 @@ def get_nat_rules_from_api_as_dict (api_host, api_port, api_v_url, sid, ssl_veri
         else:
             logging.error ( "get_nat_rules_from_api - rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json " 
                 + str(nat_rules))
-        if 'to' in rulebase:
-            current=rulebase['to']
+        if total==0:
+            current=0
         else:
-            sys.exit(1)
-    # logging.debug ("get_config::get_nat_rules - found nat rules:\n" + str(nat_rules) + "\n")
+            if 'to' in rulebase:
+                current=rulebase['to']
+            else:
+                logging.error ( "get_nat_rules_from_api - rulebase does not contain to field, get_rulebase_chunk_from_api found garbled json " 
+                    + str(nat_rules))
+                sys.exit(1)
     return nat_rules
 
 

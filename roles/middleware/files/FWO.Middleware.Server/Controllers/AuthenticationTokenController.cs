@@ -3,14 +3,7 @@ using FWO.ApiClient;
 using FWO.ApiClient.Queries;
 using FWO.Logging;
 using FWO.Middleware.Server;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Novell.Directory.Ldap;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
 
 namespace FWO.Middleware.Controllers
 {

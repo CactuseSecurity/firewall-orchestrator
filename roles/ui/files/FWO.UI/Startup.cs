@@ -63,7 +63,7 @@ namespace FWO.Ui
             {
                 Log.WriteError("Middleware Server Connection", 
                     "Error while authenticating as anonymous user from UI, "
-                    + $"Uri: {createJWTResponse.ResponseUri.AbsoluteUri}, "
+                    + $"Uri: {createJWTResponse.ResponseUri?.AbsoluteUri}, "
                     + $"HttpStatus: {createJWTResponse.StatusDescription}, "
                     + $"Error: {createJWTResponse.ErrorMessage}"
                 );

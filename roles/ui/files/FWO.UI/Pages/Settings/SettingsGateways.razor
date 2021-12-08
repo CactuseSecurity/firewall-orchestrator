@@ -251,11 +251,19 @@
                         hideInUi = actDevice.HideInUi,
                         comment = actDevice.Comment
                     };
-                    actDevice.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds[0].NewId;
-                    devices.Add(actDevice);
-                    await addDeviceToTenant0(actDevice.Id);
-                    AddMode = false;
-                    EditMode = false;
+                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
+                    if (returnIds == null)
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5112"), true);
+                    }
+                    else
+                    {
+                        actDevice.Id = returnIds[0].NewId;
+                        devices.Add(actDevice);
+                        await addDeviceToTenant0(actDevice.Id);
+                        AddMode = false;
+                        EditMode = false;
+                    }
                 }
                 else
                 {
@@ -278,9 +286,11 @@
                     devices[devices.FindIndex(x => x.Id == actDevice.Id)] = actDevice;
                 }
                 // update actDevice for immediate display
-                actDevice.DeviceType.Name = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Name;
-                actDevice.DeviceType.Version = deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Version;
-                actDevice.Management.Name = managements.Find(x => x.Id == actDevice.Management.Id).Name;
+                DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actDevice.DeviceType.Id) ?? throw new Exception("Unknown Device type");
+                actDevice.DeviceType.Name = devtype.Name;
+                actDevice.DeviceType.Version = devtype.Version;
+                Management? mgmt = managements.Find(x => x.Id == actDevice.Management.Id) ?? throw new Exception("Unknown Management");
+                actDevice.Management.Name = mgmt.Name;
             }
         }
         catch (Exception exception)

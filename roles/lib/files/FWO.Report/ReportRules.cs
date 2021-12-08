@@ -24,6 +24,9 @@ namespace FWO.Report
         public async Task GetReportedRuleIds(APIConnection apiConnection)
         {
             List<int> relevantDevIds = DeviceFilter.ExtractSelectedDevIds(Managements);
+            if (relevantDevIds.Count == 0)
+                relevantDevIds = DeviceFilter.ExtractAllDevIds(Managements);
+
             for (int i = 0; i < Managements.Length; i++)
             {
                 Dictionary<string, object> ruleQueryVariables = new Dictionary<string, object>();
@@ -32,7 +35,7 @@ namespace FWO.Report
                     ruleQueryVariables["importId"] = Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
                     ruleQueryVariables["devIds"] = relevantDevIds;
                     Rule[] rules = await apiConnection.SendQueryAsync<Rule[]>(RuleQueries.getRuleIdsOfImport, ruleQueryVariables);
-                    Managements[i].ReportedRuleIds = rules.Select(x => Convert.ToInt64(x.Id)).Distinct().ToList();
+                    Managements[i].ReportedRuleIds = rules.Select(x => x.Id).Distinct().ToList();
                 }
             }
             GotReportedRuleIds = true;
@@ -46,13 +49,12 @@ namespace FWO.Report
 
             if (!GotObjectsInReport)
             {
-
                 for (int i = 0; i < Managements.Length; i++)
                 {
-                    if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
+                    if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId is not null)
                     {
                         // set query variables for object query
-                        Dictionary<string, object> objQueryVariables = new Dictionary<string, object>
+                        var objQueryVariables = new Dictionary<string, object>
                         {
                             { "mgmIds", Managements[i].Id },
                             { "importId", Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId },
@@ -74,9 +76,7 @@ namespace FWO.Report
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
 
             int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds");
-            Management management = Managements.FirstOrDefault(m => m.Id == mid);
-            if (management == null)
-                throw new ArgumentException("Given management id does not exist for this report");
+            Management management = Managements.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
 
             if (!GotReportedRuleIds)
                 await GetReportedRuleIds(apiConnection);
@@ -160,10 +160,7 @@ namespace FWO.Report
             {
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-                else    // managment was not yet imported at that time
-                    Query.QueryVariables["relevantImportId"] = -1;
+                Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1 /* managment was not yet imported at that time */;
                 Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0];
                 Managements[i].Import = managementsWithRelevantImportId[i].Import;
             }
@@ -179,12 +176,9 @@ namespace FWO.Report
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + rulesPerFetch;
                 for (i = 0; i < managementsWithRelevantImportId.Length; i++)
                 {
-                    if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                        Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
-                    else
-                        Query.QueryVariables["relevantImportId"] = -1; // managment was not yet imported at that time
                     Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
-                    gotNewObjects = gotNewObjects | Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
+                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId ?? -1; /* managment was not yet imported at that time */;
+                    gotNewObjects |= Managements[i].Merge((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
                 }
                 await callback(Managements);
             }
@@ -224,7 +218,7 @@ namespace FWO.Report
 
                 foreach (Device device in management.Devices)
                 {
-                    if (device.Rules.Length > 0)
+                    if (device.Rules != null && device.Rules.Length > 0)
                     {
                         report.AppendLine($"<h4>{device.Name}</h4>");
                         report.AppendLine("<hr>");

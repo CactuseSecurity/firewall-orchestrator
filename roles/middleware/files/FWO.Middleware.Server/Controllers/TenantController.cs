@@ -26,10 +26,10 @@ namespace FWO.Middleware.Controllers
         // GET: api/<TenantController>
         [HttpGet]
         [Authorize(Roles = "admin")]
-        public async Task<List<TenantGetParameters>> Get()
+        public async Task<List<TenantGetReturnParameters>> Get()
         {
             Tenant[] tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants));
-            List<TenantGetParameters> tenantList = new List<TenantGetParameters>();
+            List<TenantGetReturnParameters> tenantList = new List<TenantGetReturnParameters>();
             foreach (Tenant tenant in tenants)
             {
                 tenantList.Add(tenant.ToApiParams());
@@ -53,7 +53,7 @@ namespace FWO.Middleware.Controllers
                 {
                     await Task.Run(() =>
                     {
-                        tenantAdded = currentLdap.AddTenant(tenantName);
+                        if (currentLdap.AddTenant(tenantName))
                         {
                             tenantAdded = true;
                             Log.WriteAudit("AddTenant", $"Tenant {tenantName} successfully added to {currentLdap.Host()}");

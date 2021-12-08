@@ -13,10 +13,10 @@ namespace FWO.Api.Data
         public string? Name { get; set; }
 
         [JsonPropertyName("deviceType")]
-        public DeviceType? DeviceType { get; set; }
+        public DeviceType DeviceType { get; set; } = new DeviceType();
 
         [JsonPropertyName("management")]
-        public Management? Management { get; set; }
+        public Management Management { get; set; } = new Management();
 
         [JsonPropertyName("local_rulebase_name")]
         public string? LocalRulebase { get; set; }
@@ -54,14 +54,8 @@ namespace FWO.Api.Data
         {
             Id = device.Id;
             Name = device.Name;
-            if (device.DeviceType != null)
-            {
-                DeviceType = new DeviceType(device.DeviceType);
-            }
-            if (device.Management != null)
-            {
-                Management = new Management(device.Management);
-            }
+            DeviceType = new DeviceType(device.DeviceType);
+            Management = new Management(device.Management);
             LocalRulebase = device.LocalRulebase;
             GlobalRulebase = device.GlobalRulebase;
             Package = device.Package;
@@ -79,26 +73,26 @@ namespace FWO.Api.Data
         {
             bool newObjects = false;
 
-            for (int i = 0; i < devices.Length; i++)
+            for (int i = 0; i < devices.Length && i < devicesToMerge.Length; i++)
             {
                 if (devices[i].Id == devicesToMerge[i].Id)
                 {
                     try
                     {
-                        if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules.Length > 0)
+                        if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules?.Length > 0)
                         {
-                            devices[i].Rules = devices[i].Rules.Concat(devicesToMerge[i].Rules).ToArray();
+                            devices[i].Rules = devices[i].Rules?.Concat(devicesToMerge[i].Rules).ToArray();
                             newObjects = true;
                         }
-                        if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges != null && devicesToMerge[i].RuleChanges.Length > 0)
+                        if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
                         {
-                            devices[i].RuleChanges = devices[i].RuleChanges.Concat(devicesToMerge[i].RuleChanges).ToArray();
+                            devices[i].RuleChanges = devices[i].RuleChanges?.Concat(devicesToMerge[i].RuleChanges).ToArray();
                             newObjects = true;
                         }
                         if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
                             devices[i].RuleStatistics = devicesToMerge[i].RuleStatistics;
                     }
-                    catch (NullReferenceException ex)
+                    catch (NullReferenceException)
                     {
                         throw new ArgumentNullException("Rules is null");
                     }

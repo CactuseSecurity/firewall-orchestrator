@@ -1,0 +1,25 @@
+[Unit]
+Description={{ product_name }} importer pure python
+
+{% if 'apiserver' in group_names and 'middlewareserver' in group_names -%}
+After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service {{ middleware_service_name }}.service
+{% elif 'apiserver' in group_names -%}
+After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service
+{% elif 'middlewareserver' in group_names -%}
+After=network.target remote-fs.target nss-lookup.target {{ middleware_service_name }}.service
+{% else -%}
+After=network.target remote-fs.target nss-lookup.target
+{%- endif %}
+
+[Service]
+WorkingDirectory={{ importer_home }}
+ExecStartPre=/bin/sleep 10
+ExecStart={{ importer_home }}/import-main-loop.py
+ExecStop={{ importer_home }}/import-stop-helper
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier={{ product_name }}-importer-api
+User={{ fworch_user }}
+
+[Install]
+WantedBy=multi-user.target

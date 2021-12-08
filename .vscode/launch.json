@@ -91,19 +91,19 @@
             ]
         },
         {
-            "name": "py-import_mgm",
+            "name": "py-import-mgm",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/import_mgm.py",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import-mgm.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
                 "-m6",
-                "-d2",
-                "-force",
-                "-l50"
+                "-d3",
+                "-f",
+                "-l250"
             ]
         },        
         {
@@ -157,15 +157,15 @@
             ]
         },
         {
-            "name": "py-import_main_loop",
+            "name": "py-import-main-loop",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/roles/importer/files/importer/import_main_loop.py",
+            "program": "${workspaceFolder}/roles/importer/files/importer/import-main-loop.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-d2", "-i2"]
+            "args": ["-d2", "-i30"]
         },
         {
             "name": "c#-FWO Test",

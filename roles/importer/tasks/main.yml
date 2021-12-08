@@ -80,6 +80,23 @@
     ansible.builtin.systemd:
       name: "{{ product_name }}-importer"
       state: started
+      daemon_reload: yes
+      enabled: yes
+
+  - name: copy api-importer systemd service script
+    template:
+      src: "{{ product_name }}-importer-api.service.j2"
+      dest: "/lib/systemd/system/{{ product_name }}-importer-api.service"
+      backup: yes
+      mode: "0644"
+      owner: "root"
+    become: yes
+
+  - name: make api-importer run at host startup
+    ansible.builtin.systemd:
+      name: "{{ product_name }}-importer-api"
+      state: started
+      daemon_reload: yes
       enabled: yes
 
   - name: include upgrade script

@@ -3,6 +3,7 @@ using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using FWO.Api.Data;
+using FWO.Middleware.RequestParameters;
 
 namespace FWO.Middleware.Server
 {
@@ -11,6 +12,12 @@ namespace FWO.Middleware.Server
         // The following properties are retrieved from the database api:
         // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
         private const int timeOutInMs = 3000;
+
+        public Ldap()
+        {}
+
+        public Ldap(LdapGetUpdateParameters ldapGetUpdateParameters) : base(ldapGetUpdateParameters)
+        {}
 
         /// <summary>
         /// Builds a connection to the specified Ldap server.
@@ -132,7 +139,7 @@ namespace FWO.Middleware.Server
                                     {
                                         foreach(string membership in attribute.StringValueArray)
                                         {
-                                            if(membership.EndsWith(GroupSearchPath))
+                                            if(GroupSearchPath != null && membership.EndsWith(GroupSearchPath))
                                             {
                                                 user.Groups.Add(membership);
                                             }
@@ -241,7 +248,7 @@ namespace FWO.Middleware.Server
             return GetMemberships(dnList, GroupSearchPath);
         }
 
-        public List<string> GetMemberships(List<string> dnList, string searchPath)
+        public List<string> GetMemberships(List<string> dnList, string? searchPath)
         {
             List<string> userMemberships = new List<string>();
 
@@ -715,7 +722,7 @@ namespace FWO.Middleware.Server
                     try
                     {
                         //Modify the entry in the directory
-                        connection.Modify (entry, mods);
+                        connection.Modify(entry, mods);
                         userModified = true;
                         Log.WriteDebug("Modify Entry", $"Entry {entry} modified in {Address}:{Port}");
                     }

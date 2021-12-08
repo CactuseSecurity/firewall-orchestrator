@@ -252,7 +252,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     private List<Tenant> tenants = new List<Tenant>();
     private List<Tenant> sampleTenants = new List<Tenant>();
@@ -278,22 +278,33 @@
     {
         try
         {
-            tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
-            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
-            uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
-                        
-            foreach (var tenant in tenants)
+            IRestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
+            if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                if (tenant.Name.EndsWith("_demo"))
+                DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+            }
+            else
+            {
+                tenants = new List<Tenant>();
+                foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
                 {
-                    sampleTenants.Add(tenant);
+                    Tenant tenant = new Tenant(apiTenant);
+                    tenants.Add(tenant);
+                    if (tenant.Name.EndsWith("_demo"))
+                    {
+                        sampleTenants.Add(tenant);
+                    }
                 }
             }
             showCleanupButton = (sampleTenants.Count > 0);
+
+            devices = (await apiConnection.SendQueryAsync<Device[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceDetails)).ToList();
+            uiUsers = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();
+                        
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", true);
         }
     }
 
@@ -318,15 +329,14 @@
             else
             {
                 // add tenant in local Ldap
-                TenantAddDeleteParameters addTenantParameters = new TenantAddDeleteParameters { Dn = actTenant.Name };
-                IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddTenant(addTenantParameters);
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+                IRestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("add_tenant_ldap"), userConfig.GetText("E5281"), true);
                 }
                 else
                 {
-                    await AddTenantLocal();
+                    actTenant.Id = middlewareServerResponse.Data;
                     tenants.Add(actTenant);
                 }
             }
@@ -335,28 +345,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_tenant"), null, true);
-        }
-    }
-
-    private async Task AddTenantLocal()
-    {
-        try
-        {
-            var Variables = new 
-            { 
-                name = actTenant.Name,
-                project = actTenant.Project,
-                comment = actTenant.Comment,
-                viewAllDevices = actTenant.ViewAllDevices,
-                superAdmin = actTenant.Superadmin,
-                create = DateTime.Now
-            };
-            actTenant.Id = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables)).ReturnIds[0].NewId;
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("add_tenant_local"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_tenant"), "", true);
         }
     }
 
@@ -380,7 +369,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
         }
     }
 
@@ -389,7 +378,7 @@
         try
         {
             // delete tenant from Ldap
-            TenantAddDeleteParameters deleteTenantParameters = new TenantAddDeleteParameters { Dn = actTenant.Name };
+            TenantDeleteParameters deleteTenantParameters = new TenantDeleteParameters { Name = actTenant.Name, Id = actTenant.Id};
             IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
@@ -397,30 +386,13 @@
             }
             else
             {
-                await DeleteTenantLocal(tenant);
+                tenants.Remove(tenant);
             }
             DeleteTenantMode = false;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant_ldap"), null, true);
-        }
-    }
-
-    private async Task DeleteTenantLocal(Tenant tenant)
-    {
-        try
-        {
-            var Variables = new { id = tenant.Id };
-            int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteTenant, Variables)).DeletedId;
-            if (delId == tenant.Id)
-            {
-                tenants.Remove(tenant);
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant_local"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant_ldap"), "", true);
         }
     }
 
@@ -442,7 +414,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }
 
@@ -459,7 +431,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }
 
@@ -475,13 +447,13 @@
             }
             else
             {
-                selectedDevice = remainingDevices.FirstOrDefault().Id;
+                selectedDevice = remainingDevices.FirstOrDefault()?.Id ?? 0;
                 AddDeviceMode = true;
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
         }
     }
 
@@ -496,13 +468,13 @@
             }
             else
             {
-                selectedDevice = actTenant.TenantDevices.FirstOrDefault().VisibleDevice.Id;
+                selectedDevice = actTenant.TenantDevices.FirstOrDefault()?.VisibleDevice.Id ?? 0;
                 DeleteDeviceMode = true;
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), null, false);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
         }
     }
 
@@ -511,17 +483,17 @@
         try
         {
             var Variables = new { tenantId = actTenant.Id, deviceId = deviceId };
-            int newId = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables)).ReturnIds[0].NewId;
-            if (newId == deviceId)
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addDeviceToTenant, Variables)).ReturnIds;
+            if (returnIds != null && returnIds[0].NewId == deviceId)
             {
-                Device newDevice = new Device() { Id = deviceId, Name = devices.Find(x => x.Id == deviceId).Name };
+                Device newDevice = new Device() { Id = deviceId, Name = devices.Find(x => x.Id == deviceId)?.Name };
                 actTenant.TenantDevices = actTenant.TenantDevices.Append(new TenantDevice() { VisibleDevice = newDevice }).ToArray();
                 AddDeviceMode = false;
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", true);
         }
     }
 
@@ -539,7 +511,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", true);
         }
     }
 

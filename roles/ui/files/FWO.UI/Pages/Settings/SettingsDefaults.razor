@@ -103,7 +103,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
     ConfigDbAccess config;
     int elementsPerFetch = 100;
     int maxInitFetch = 10;
@@ -193,7 +193,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("change_default"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
     }
 }

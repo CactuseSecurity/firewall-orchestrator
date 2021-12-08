@@ -97,7 +97,7 @@ namespace FWO.ApiClient
                     JsonElement.ObjectEnumerator responseObjectEnumerator = response.Data.EnumerateObject();
                     responseObjectEnumerator.MoveNext();
                     QueryResponseType returnValue = JsonSerializer.Deserialize<QueryResponseType>(responseObjectEnumerator.Current.Value.GetRawText()) ??
-                    throw new Exception($"Could not convert result from Json to {nameof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
+                    throw new Exception($"Could not convert result from Json to {typeof(QueryResponseType)}.\nJson: {responseObjectEnumerator.Current.Value.GetRawText()}");
                     return returnValue;
                 }
             }

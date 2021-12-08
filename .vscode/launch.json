@@ -100,8 +100,9 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m4",
+                "-m6",
                 "-d2",
+                "-force",
                 "-l50"
             ]
         },        
@@ -127,6 +128,17 @@
             },
             "args": ["-i/tmp/fworch-config.graphql"]
         },        
+        {
+            "name": "py-execute-graphql-query",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-execute-graphql-query.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": ["-i/tmp/fworch-config.graphql"]
+        }, 
         {
             "name": "py-cpr8x-autodiscovery",
             "type": "python",

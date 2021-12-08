@@ -3,12 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 using FWO.Ui.Display;
 using FWO.Config.Api;
+using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -29,7 +31,7 @@ namespace FWO.Report
         }
 
 
-        public override async Task Generate(int changesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task Generate(int changesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             Query.QueryVariables["limit"] = changesPerFetch;
             Query.QueryVariables["offset"] = 0;
@@ -41,13 +43,18 @@ namespace FWO.Report
             DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
 
             Managements = await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables);
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
             while (gotNewObjects)
             {
+                if (ct.IsCancellationRequested)
+                {
+                    Log.WriteDebug("Generate Changes Report", "Task cancelled");
+                    ct.ThrowIfCancellationRequested();
+                }
                 Query.QueryVariables["offset"] = (int)Query.QueryVariables["offset"] + changesPerFetch;
                 gotNewObjects = Managements.Merge(await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables));
                 await callback(Managements);
             }
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToCsv()

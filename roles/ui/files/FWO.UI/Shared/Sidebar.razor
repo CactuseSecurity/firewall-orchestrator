@@ -65,7 +65,7 @@
     private int WidthBeforeMinimize;
 
     private string minMaxButtonSymbol = "collapse-right";
-    private string overflowSidebar = "scroll";
+    private string overflowSidebar = "auto";
 
     private void ResizeStart(DragEventArgs dragArgs)
     {
@@ -124,6 +124,6 @@
 
     private void AdjustSidebarOverflow()
     {
-        overflowSidebar = Width < 5 ? "hidden" : "scroll";
+        overflowSidebar = Width < 5 ? "hidden" : "auto";
     }
 }

@@ -1,4 +1,5 @@
 ﻿@using System
+@using System.Threading
 @using System.Text.RegularExpressions
 @using FWO.Ui.Data
 @using FWO.Report.Filter
@@ -30,7 +31,14 @@
                     <tr>
                         <td>
                             <div class="input-group-append">
-                                <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+                                @if (processing == false)
+                                {
+                                    <button class="btn btn-sm btn-primary" @onclick="() => GenerateRecertificationReport()">@(userConfig.GetText("load_rules"))</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
+                                }
                             </div>
                         </td>
                         <td>
@@ -108,7 +116,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     private const int rulesPerPage = 0;
     private int elementsPerFetch = 100;
@@ -126,7 +134,9 @@
     private bool selectAll = true;
 
     private string filterInput = "remove=false and recertdisplay=0";
-
+    private bool processing = false;
+    private CancellationTokenSource tokenSource = new CancellationTokenSource();
+ 
     private Management[] managements = new Management[0];
 //    private Management[] managementsObjects = new Management[0];
 
@@ -157,18 +167,23 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
 
     private async Task GenerateRecertificationReport()
     {
+        processing = true;
         // clear selected rules
         selectedRules.Clear();
 
+        Management[] managementsOrig = managements;
         try
         {
+            tokenSource = new CancellationTokenSource();
+            var token = tokenSource.Token;
+
             // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
             DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements);
             SyncFilterToDisplay();
@@ -177,27 +192,44 @@
             if (!DeviceFilter.isAnyDeviceFilterSet(managements, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
             {
                 DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                processing = false;
                 return;
             }
 
             DateTime startTime = DateTime.Now;
             managements = new Management[0]; // reset management data when switching between reports
 
-            await currentReport.Generate(elementsPerFetch, apiConnection,
-            managementsReportIntermediate =>
+            try
             {
-                managements = managementsReportIntermediate;
-                return InvokeAsync(StateHasChanged);
-            });
+                await currentReport.Generate(elementsPerFetch, apiConnection,
+                managementsReportIntermediate =>
+                {
+                    managements = managementsReportIntermediate;
+                    return InvokeAsync(StateHasChanged);
+                }, token);
+            }
+            catch (OperationCanceledException e)
+            {
+                Log.WriteDebug("Generate Report", $"Cancelled: {e.Message}");
+            }
 
             PrepareMetadata();
-
+            processing = false;
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), null, true);
+            processing = false;
+            managements = managementsOrig;
+            StateHasChanged();
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
         }
+    }
+
+    private void CancelGeneration()
+    {
+        tokenSource.Cancel();
+        DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
     private void SyncFilterToDisplay()
@@ -345,7 +377,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
         }
     }
 
@@ -425,7 +457,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), null, true);
+            DisplayMessageInUi(exception, userConfig.GetText("execute_selected"), "", true);
         }
     }
 

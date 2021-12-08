@@ -3,12 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
 using System.Text.Json;
 using FWO.Config.Api;
+using FWO.Logging;
 
 namespace FWO.Report
 {
@@ -31,7 +33,7 @@ namespace FWO.Report
             return Task.CompletedTask;
         }
 
-        public override async Task Generate(int _, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override async Task Generate(int _, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct)
         {
             string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
@@ -51,6 +53,13 @@ namespace FWO.Report
 
             for (i = 0; i < managementsWithRelevantImportId.Length; i++)
             {
+                if (ct.IsCancellationRequested)
+                {
+                    Log.WriteDebug("Generate Statistics Report", "Task cancelled");
+                    DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
                 if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
@@ -60,6 +69,7 @@ namespace FWO.Report
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
             }
             Managements = resultList.ToArray();
+            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
             await callback(Managements);
 
             foreach (Management mgm in Managements.Where(mgt => !mgt.Ignore))
@@ -69,7 +79,6 @@ namespace FWO.Report
                 globalStatisticsManagament.ServiceObjectStatistics.ObjectAggregate.ObjectCount += mgm.ServiceObjectStatistics.ObjectAggregate.ObjectCount;
                 globalStatisticsManagament.UserObjectStatistics.ObjectAggregate.ObjectCount += mgm.UserObjectStatistics.ObjectAggregate.ObjectCount;
             }
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
         }
 
         public override string ExportToJson()

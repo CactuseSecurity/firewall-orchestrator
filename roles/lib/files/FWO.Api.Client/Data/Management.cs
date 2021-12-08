@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using FWO.Logging;
+﻿using System.Text.Json.Serialization;
 
 namespace FWO.Api.Data
 {
@@ -13,28 +8,28 @@ namespace FWO.Api.Data
         public int Id { get; set; }
 
         [JsonPropertyName("name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         [JsonPropertyName("hostname")]
-        public string Hostname { get; set; }
+        public string Hostname { get; set; } = "";
 
         [JsonPropertyName("user")]
-        public string ImportUser { get; set; }
+        public string? ImportUser { get; set; }
 
         [JsonPropertyName("secret")]
-        public string PrivateKey { get; set; }
+        public string PrivateKey { get; set; } = "";
 
         [JsonPropertyName("configPath")]
-        public string ConfigPath { get; set; }
+        public string ConfigPath { get; set; } = "";
 
         [JsonPropertyName("importerHostname")]
-        public string ImporterHostname { get; set; }
+        public string ImporterHostname { get; set; } = "";
 
         [JsonPropertyName("port")]
         public int Port { get; set; }
 
         [JsonPropertyName("sshPublicKey")]
-        public string PublicKey { get; set; }
+        public string? PublicKey { get; set; }
 
         [JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
@@ -46,7 +41,7 @@ namespace FWO.Api.Data
         public bool HideInUi { get; set; }
 
         [JsonPropertyName("comment")]
-        public string Comment { get; set; }
+        public string? Comment { get; set; }
 
         [JsonPropertyName("debugLevel")]
         public int? DebugLevel { get; set; }
@@ -55,31 +50,31 @@ namespace FWO.Api.Data
         public int TenantId { get; set; }
 
         [JsonPropertyName("devices")]
-        public Device[] Devices { get; set; }
+        public Device[] Devices { get; set; } = new Device[]{};
 
         [JsonPropertyName("networkObjects")]
-        public NetworkObject[] Objects { get; set; }
+        public NetworkObject[] Objects { get; set; } = new NetworkObject[]{};
 
         [JsonPropertyName("serviceObjects")]
-        public NetworkService[] Services { get; set; }
+        public NetworkService[] Services { get; set; } = new NetworkService[]{};
 
         [JsonPropertyName("userObjects")]
-        public NetworkUser[] Users { get; set; }
+        public NetworkUser[] Users { get; set; } = new NetworkUser[]{};
 
         [JsonPropertyName("reportNetworkObjects")]
-        public NetworkObjectWrapper[] ReportObjects { get; set; }
+        public NetworkObjectWrapper[] ReportObjects { get; set; } = new NetworkObjectWrapper[]{};
 
         [JsonPropertyName("reportServiceObjects")]
-        public ServiceWrapper[] ReportServices { get; set; }
+        public ServiceWrapper[] ReportServices { get; set; } = new ServiceWrapper[]{};
 
         [JsonPropertyName("reportUserObjects")]
-        public UserWrapper[] ReportUsers { get; set; }
+        public UserWrapper[] ReportUsers { get; set; } = new UserWrapper[]{};
 
         [JsonPropertyName("deviceType")]
-        public DeviceType DeviceType { get; set; }
+        public DeviceType DeviceType { get; set; } = new DeviceType();
 
         [JsonPropertyName("import")]
-        public Import Import { get; set; }
+        public Import Import { get; set; } = new Import();
 
         // [JsonPropertyName("pointInTime")]
         // public DateTime ReportTime { get; set; }
@@ -87,8 +82,8 @@ namespace FWO.Api.Data
         public bool Ignore { get; set; }
 
         //[JsonPropertyName("rule_id")]
-        public List<long> ReportedRuleIds { get; set; }
-        public List<long> ReportedNetworkServiceIds { get; set; }
+        public List<long> ReportedRuleIds { get; set; } = new List<long>();
+        public List<long> ReportedNetworkServiceIds { get; set; } = new List<long>();
 
         [JsonPropertyName("objects_aggregate")]
         public ObjectStatistics NetworkObjectStatistics { get; set; } = new ObjectStatistics();
@@ -103,7 +98,7 @@ namespace FWO.Api.Data
         public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public Management()
-        { }
+        {}
 
         public Management(Management management)
         {
@@ -122,8 +117,18 @@ namespace FWO.Api.Data
             Comment = management.Comment;
             DebugLevel = management.DebugLevel;
             TenantId = management.TenantId;
+            Devices = management.Devices;
+            Objects = management.Objects;
+            Services = management.Services;
+            Users = management.Users;
+            ReportObjects = management.ReportObjects;
+            ReportServices = management.ReportServices;
+            ReportUsers = management.ReportUsers;
+            DeviceType = management.DeviceType;
             Import = management.Import;
             Ignore = management.Ignore;
+            ReportedRuleIds = management.ReportedRuleIds;
+            ReportedNetworkServiceIds = management.ReportedNetworkServiceIds;
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&
                 management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)

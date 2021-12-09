@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-import argparse, time, logging
-import json, requests, requests.packages
-import sys, os
-sys.path.append(r"/usr/local/fworch/importer")
-import fwcommon, common, getter
 
-# requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
+import argparse, requests, requests.packages
+import time, sys, logging
+sys.path.append(r"/usr/local/fworch/importer")
+import common, getter, fwcommon
+
+requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 parser = argparse.ArgumentParser(description='Read configuration from Check Point R8x management via API calls')
 parser.add_argument('-a', '--apihost', metavar='api_host', required=True, help='Check Point R8x management server')
@@ -14,13 +14,15 @@ parser.add_argument('-u', '--user', metavar='api_user', default='fworch', help='
 parser.add_argument('-p', '--port', metavar='api_port', default='443', help='port for connecting to Check Point R8x management server, default=443')
 parser.add_argument('-D', '--domain', metavar='api_domain', default='', help='name of Domain in a Multi-Domain Envireonment')
 parser.add_argument('-l', '--layer', metavar='policy_layer_name(s)', required=True, help='name of policy layer(s) to read (comma separated)')
+parser.add_argument('-k', '--package', metavar='policy package name', required=False, help='name of policy package (needed for nat rule retrieval)')
 parser.add_argument('-x', '--proxy', metavar='proxy_string', default='', help='proxy server string to use, e.g. 1.2.3.4:8080; default=empty')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='', help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-i', '--limit', metavar='api_limit', default='150', help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0', help='Debug Level: 0(off) 4(DEBUG Console) 41(DEBUG File); default=0') 
-parser.add_argument('-k', '--package', metavar='package_name', help='name of the package for a gateway - necessary for getting NAT rules')
-parser.add_argument('-c', '--configfile', metavar='config_file', required=True, help='filename to read and write config in json format from/to')
-parser.add_argument('-n', '--noapi', metavar='mode', default='false', help='if set to true (only in combination with mode=enrich), no api connections are made. Useful for testing only.')
+parser.add_argument('-t', '--testing', metavar='version_testing', default='off', help='Version test, [off|<version number>]; default=off') 
+parser.add_argument('-o', '--out', metavar='output_file', required=True, help='filename to write output in json format to')
+parser.add_argument('-f', '--fromdate', metavar='from_date', help='date to start from, e.g. last successful import')
+parser.add_argument('-F', '--force', action='store_true', default=False, help='if set the import will be attempted without checking for changes before')
 
 args = parser.parse_args()
 if len(sys.argv)==1:
@@ -34,10 +36,11 @@ details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
 debug_level = int(args.debug)
 common.set_log_level(log_level=debug_level, debug_level=debug_level)
-config = {}
 starttime = int(time.time())
+full_config_json = {}
 
 # possible todo: get mgmt_details via API just from mgmt_name and dev_name?
+# todo: allow for multiple gateways
 mgm_details = {
     'hostname': args.apihost,
     'port': args.port,
@@ -53,18 +56,10 @@ mgm_details = {
     ]
 }
 
-result = fwcommon.enrich_config (config, mgm_details, noapi=False,
-    proxy=args.proxy, limit=args.limit, details_level=details_level,
-    debug_level=debug_level, ssl_verification=getter.set_ssl_verification(args.ssl))
+fwcommon.get_basic_config (full_config_json, mgm_details, last_import_time=args.fromdate, config_filename=args.out,
+    force=args.force, proxy=args.proxy, limit=args.limit, details_level=details_level, test_version=args.testing, debug_level=debug_level, ssl_verification=getter.set_ssl_verification(args.ssl))
 
 duration = int(time.time()) - starttime
-logging.debug ( "checkpointR8x/enrich_config - duration: " + str(duration) + "s" )
-
-# dump new json file if config_filename is set
-if args.config_filename != None and len(args.config_filename)>1:
-    if os.path.exists(args.config_filename): # delete json file (to enabiling re-write)
-        os.remove(args.config_filename)
-    with open(args.config_filename, "w") as json_data:
-        json_data.write(json.dumps(config))
+logging.debug ( "checkpointR8x/get_config - duration: " + str(duration) + "s" )
 
 sys.exit(0)

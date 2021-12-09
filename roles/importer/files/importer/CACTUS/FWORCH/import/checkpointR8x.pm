@@ -157,7 +157,7 @@ sub copy_config_from_mgm_to_iso {
 	}
 
 	$lib_path = "$base_path/checkpointR8x";
-	$get_config_bin = "$lib_path/get_config.py";
+	$get_config_bin = "$lib_path/get_basic_config.py";
 	$enrich_config_bin = "$lib_path/enrich_config.py";
 	$get_cmd = "$python_bin $get_config_bin -a $api_hostname -w '$workdir/$CACTUS::FWORCH::ssh_id_basename' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -o '$cfg_dir/$obj_file_base' -d $debug_level";
 	$enrich_cmd = "$python_bin $enrich_config_bin -a $api_hostname -w '$workdir/$CACTUS::FWORCH::ssh_id_basename' -l '$rulebase_names' -u $api_user $api_port_setting $ssl_verify $domain_setting -c '$cfg_dir/$obj_file_base' -d $debug_level";

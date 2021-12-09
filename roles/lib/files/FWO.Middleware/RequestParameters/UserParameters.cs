@@ -14,10 +14,16 @@
         public int LdapId { get; set; }
     }
 
-    public class UserGetParameters
+    public class LdapUserGetParameters
     {
         public int LdapId { get; set; }
         public string SearchPattern { get; set; } = "";
+    }
+
+    public class LdapUserGetReturnParameters
+    {
+        public string UserDn { get; set; } = "";
+        public string? Email { get; set; }
     }
 
     public class UserAddParameters

@@ -93,6 +93,36 @@ namespace FWO.Middleware.Controllers
             return tenantId;
         }
 
+        // PUT api/<TenantController>/5
+        [HttpPut]
+        [Authorize(Roles = "admin")]
+        public async Task<bool> Change([FromBody] TenantEditParameters parameters)
+        {
+            bool tenantUpdated = false;
+
+            // Try to update tenant in local db
+            try
+            {
+                var Variables = new
+                {
+                    id = parameters.Id,
+                    project = parameters.Project,
+                    comment = parameters.Comment,
+                    viewAllDevices = parameters.ViewAllDevices
+                };
+                ReturnId returnId = await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.updateTenant, Variables);
+                if (returnId.UpdatedId == parameters.Id)
+                {
+                    tenantUpdated = true;
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteAudit("UpdateTenant", $"Updating Tenant Id: {parameters.Id} locally failed: {exception.Message}");
+            }
+            return tenantUpdated;
+        }
+
         // DELETE api/<TenantController>/5
         [HttpDelete]
         [Authorize(Roles = "admin")]

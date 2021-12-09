@@ -65,10 +65,7 @@ namespace FWO.Middleware.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
         private readonly APIConnection apiConnection;
-        private int tenantLevel = 1;
-        private int? fixedTenantId;
-        private bool internalLdap = false;
-        private int ldapId = 0;
+        private Ldap loggedInLdap = new Ldap();
 
         public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, APIConnection apiConnection)
         {
@@ -97,7 +94,7 @@ namespace FWO.Middleware.Controllers
             // Get tenant of user
             user.Tenant = await GetTenantAsync(user);
 
-            user.LdapConnection.Id = ldapId;
+            user.LdapConnection.Id = loggedInLdap.Id;
 
             // Create JWT for validated user with roles and tenant
             return (await jwtWriter.CreateJWT(user));
@@ -135,11 +132,8 @@ namespace FWO.Middleware.Controllers
 
                                 lock (dnLock)
                                 {
-                                    tenantLevel = currentLdap.TenantLevel;
+                                    loggedInLdap = currentLdap;
                                     userDn = currentDn;
-                                    fixedTenantId = currentLdap.TenantId;
-                                    internalLdap = currentLdap.IsWritable();
-                                    ldapId = currentLdap.Id;
                                 }
                             }
                         }
@@ -210,30 +204,42 @@ namespace FWO.Middleware.Controllers
             return UserRoles;
         }
 
-        public async Task<Tenant> GetTenantAsync(UiUser user)
+        public async Task<Tenant?> GetTenantAsync(UiUser user)
         {
-            // TODO: All three api calls in this method can be shortened to to a single query / api call
-
             Tenant tenant = new Tenant();
-            if (fixedTenantId != null)
+            if (loggedInLdap.TenantId != null)
             {
-                Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {fixedTenantId.Value}");
-                tenant.Id = fixedTenantId.Value;
-                // TODO: do we also need the tenant name here?
+                Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {loggedInLdap.TenantId.Value}");
+                tenant.Id = loggedInLdap.TenantId.Value;
             }
             else
             {
-                tenant.Name = new DistName(user.Dn).getTenant(tenantLevel);
+                tenant.Name = new DistName(user.Dn).getTenant(loggedInLdap.TenantLevel);
                 if (tenant.Name == "")
                 {
                     return null;
                 }
                 Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenant.Name} from {user.Dn}");
-
-                var tenNameObj = new { tenant_name = tenant.Name };
-                tenant = (await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId"))[0];
+                if(loggedInLdap.GlobalTenantName != null && tenant.Name == loggedInLdap.GlobalTenantName)
+                {
+                    tenant.Id = 1;
+                }
+                else
+                {
+                    var tenNameObj = new { tenant_name = tenant.Name };
+                    Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId");
+                    if (tenants.Count() > 0)
+                    {
+                        tenant.Id = tenants[0].Id;
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
             }
 
+            // TODO: Both api calls in this method can be shortened to to a single query / api call
             var tenIdObj = new { tenantId = tenant.Id };
 
             DeviceId[] deviceIds = await apiConnection.SendQueryAsync<DeviceId[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");

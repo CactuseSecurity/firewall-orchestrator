@@ -57,7 +57,7 @@
         <Column TableItem="UiUser" Title="@(userConfig.GetText("from_ldap"))" Field="@(x => x.LdapConnection.Name)" Sortable="true" Filterable="true" />
         <Column TableItem="UiUser" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.Tenant)" Sortable="true" Filterable="true" >
             <Template>
-                @(context.Tenant != null ? context.Tenant.Name : "" )
+                @(context.Tenant != null ? (context.Tenant.Id == 1 && context.LdapConnection.GlobalTenantName != null && context.LdapConnection.GlobalTenantName != "" ? context.LdapConnection.GlobalTenantName : context.Tenant.Name) : "" )
             </Template>       
         </Column>
         <Column TableItem="UiUser" Title="@(userConfig.GetText("email"))" Field="@(x => x.Email)" Sortable="true" Filterable="true" />
@@ -292,6 +292,8 @@
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiLdapConnection> writableLdaps = new List<UiLdapConnection>();
+    UiLdapConnection internalLdap = new UiLdapConnection();
+
     private List<UiUser> ldapUsers = new List<UiUser>();
     private List<UiUser> uiUsers = new List<UiUser>();
     private List<UiUser> sampleUsers = new List<UiUser>();
@@ -331,6 +333,7 @@
         {
             connectedLdaps = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
             writableLdaps = connectedLdaps.FindAll(x => x.IsWritable());
+            internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new Exception(userConfig.GetText("E5207"));
 
             // Get the tenants
             tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
@@ -348,7 +351,7 @@
                 foreach (UserGetReturnParameters apiUser in middlewareServerResponse.Data)
                 {
                     UiUser user = new UiUser(apiUser);
-                    user.LdapConnection.Name = connectedLdaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id)?.Name ?? throw new ArgumentNullException(nameof(user.LdapConnection.Id));
+                    user.LdapConnection = connectedLdaps.FirstOrDefault(x => x.Id == user.LdapConnection.Id) ?? throw new ArgumentNullException(nameof(user.LdapConnection.Id));
                     if(user.Tenant != null)
                     {
                         user.Tenant.Name = tenants.FirstOrDefault(x => x.Id == user.Tenant.Id)?.Name ?? throw new ArgumentNullException(nameof(user.Tenant.Id));
@@ -457,8 +460,6 @@
                 else
                 {
                     // Add new user to UiUsers table
-                    ldapUser.setNamesFromDn();
-                    ldapUser.PasswordMustBeChanged = false;
                     await addUserToDb(ldapUser);
                     uiUsers.Add(ldapUser);
                 }
@@ -476,16 +477,10 @@
         try
         {
             ldapUsers.Clear();
-            UiLdapConnection? internalLdap = connectedLdaps.FirstOrDefault(x => x.IsInternal());
-            if (internalLdap == null)
-            {
-                DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5207"), true);
-                return;
-            }
 
             // get users from Ldap
-            UserGetParameters userGetParameters = new UserGetParameters { LdapId = internalLdap.Id, SearchPattern = "" };
-            IRestResponse<List<KeyValuePair<string, string>>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
+            LdapUserGetParameters userGetParameters = new LdapUserGetParameters { LdapId = internalLdap.Id, SearchPattern = "" };
+            IRestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
@@ -494,14 +489,20 @@
             {
                 foreach (var user in middlewareServerResponse.Data)
                 {
+                    DistName distname = new DistName(user.UserDn);
                     UiUser newUser = new UiUser() 
                     { 
-                        Dn = user.Key, 
-                        Name = (new DistName(user.Key)).UserName, 
-                        Email = user.Value, 
-                        PasswordMustBeChanged = true,
+                        Dn = user.UserDn, 
+                        Name = distname.UserName, 
+                        Email = user.Email, 
+                        PasswordMustBeChanged = false,
                         LdapConnection = internalLdap
                     };
+                    string tenantName = distname.getTenant(internalLdap.TenantLevel);
+                    if (tenantName != "")
+                    {
+                        newUser.Tenant = new Tenant(){ Name = tenantName };
+                    }
                     ldapUsers.Add(newUser);
                 }
             }
@@ -697,7 +698,14 @@
     private void Edit(UiUser user)
     {
         actUser = new UiUser(user);
-        if(actUser.LdapConnection == null) actUser.LdapConnection = new UiLdapConnection();
+        if(actUser.LdapConnection == null)
+        {
+            actUser.LdapConnection = new UiLdapConnection();
+        }
+        if (actUser.Tenant != null && actUser.Tenant.Id == 1 && actUser.LdapConnection.GlobalTenantName != null && actUser.LdapConnection.GlobalTenantName != "")
+        {
+            actUser.Tenant.Name = actUser.LdapConnection.GlobalTenantName;
+        }
         EditMode = true;
     }
 
@@ -709,7 +717,7 @@
         user.Tenant = (selectedLdap.TenantLevel > 0 ? selectedTenant : null);
         // todo: further dn specification maybe in ldapconnection?
         user.Dn = (selectedLdap.Type == (int)LdapType.ActiveDirectory ? "cn=": "uid=") + user.Name + 
-            (selectedLdap.TenantLevel > 0 ? ",ou=" + selectedTenant.Name : "") + "," + selectedLdap.UserSearchPath;
+            (selectedLdap.TenantLevel > 0 ? ",ou=" + (selectedTenant.Id == 1 && selectedLdap.GlobalTenantName != null && selectedLdap.GlobalTenantName != "" ? selectedLdap.GlobalTenantName : selectedTenant.Name) : "") + "," + selectedLdap.UserSearchPath;
         user.Groups = new List<string>();
         if(selectedGroupName != null)
         {

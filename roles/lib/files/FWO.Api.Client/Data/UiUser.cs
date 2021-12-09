@@ -94,14 +94,6 @@ namespace FWO.Api.Data
             LdapConnection = new UiLdapConnection(){Id = userGetReturnParameters.LdapId};
         }
 
-        public void setNamesFromDn()
-        {
-            DistName distname = new DistName(Dn);
-            Name = distname.UserName;
-            Tenant = new Tenant();
-            Tenant.Name = distname.getTenant();
-        }
-
         public bool isInternal()
         {
             return new DistName(Dn).IsInternal();

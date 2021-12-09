@@ -21,7 +21,7 @@ namespace FWO.Api.Data
         public bool ViewAllDevices { get; set; }
 
         [JsonPropertyName("tenant_is_superadmin")]
-        public bool Superadmin { get; set; }
+        public bool Superadmin { get; set; } // curently not in use
 
         [JsonPropertyName("tenant_to_devices")]
         public TenantDevice[] TenantDevices { get; set; } // TODO: Replace with Device[] (probably not possible)
@@ -99,6 +99,18 @@ namespace FWO.Api.Data
                 tenantGetParams.Devices.Add(new KeyValuePair<int,string>(device.VisibleDevice.Id, (device.VisibleDevice.Name != null ? device.VisibleDevice.Name : "")));
             }
             return tenantGetParams;
+        }
+
+        public TenantEditParameters ToApiUpdateParams()
+        {
+            TenantEditParameters tenantUpdateParams = new TenantEditParameters
+            {
+                Id = this.Id,
+                Comment = this.Comment,
+                Project = this.Project,
+                ViewAllDevices = this.ViewAllDevices
+            };
+            return tenantUpdateParams;
         }
     }
 

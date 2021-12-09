@@ -37,6 +37,7 @@ namespace FWO.Middleware.Server
 
             catch (Exception exception)
             {
+                Log.WriteDebug($"Could not connect to LDAP server {Address}:{Port}: ", exception.Message);
                 throw new Exception($"Error while trying to reach LDAP server {Address}:{Port}", exception);
             }
         }
@@ -420,9 +421,10 @@ namespace FWO.Middleware.Server
             return allGroups;
         }
 
-        public List<KeyValuePair<string, string>> GetAllUsers(string searchPattern)
+        public List<LdapUserGetReturnParameters> GetAllUsers(string searchPattern)
         {
-            List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
+            Log.WriteDebug("GetAllUsers", $"Looking for users with pattern {searchPattern} in {Address}:{Port}");
+            List<LdapUserGetReturnParameters> allUsers = new List<LdapUserGetReturnParameters>();
 
             try
             {
@@ -439,11 +441,15 @@ namespace FWO.Middleware.Server
                     cons.ReferralFollowing = true;
                     connection.Constraints = cons;
 
-                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath, searchScope, getUserSearchFilter(searchPattern), null, false);                
+                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath, searchScope, getUserSearchFilter(searchPattern), null, false);
 
                     foreach (LdapEntry entry in searchResults)
                     {
-                        allUsers.Add(new KeyValuePair<string, string> (entry.Dn, (entry.GetAttributeSet().ContainsKey("mail") ? entry.GetAttribute("mail").StringValue : "")));
+                        allUsers.Add(new LdapUserGetReturnParameters()
+                        {
+                            UserDn = entry.Dn,
+                            Email = (entry.GetAttributeSet().ContainsKey("mail") ? entry.GetAttribute("mail").StringValue : null)
+                        });
                     }
                 }
             }

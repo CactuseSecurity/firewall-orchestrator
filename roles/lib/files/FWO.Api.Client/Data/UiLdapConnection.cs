@@ -53,6 +53,7 @@ namespace FWO.Api.Data
             WriteUser = ldapConnection.WriteUser;
             WriteUserPwd = ldapConnection.WriteUserPwd;
             TenantId = ldapConnection.TenantId;
+            GlobalTenantName = ldapConnection.GlobalTenantName;
         }
 
         public LdapGetUpdateParameters ToApiParams()
@@ -74,7 +75,8 @@ namespace FWO.Api.Data
                 SearchpathForGroups = this.GroupSearchPath,
                 WriteUser = this.WriteUser,
                 WriteUserPwd = this.WriteUserPwd,
-                TenantId = this.TenantId
+                TenantId = this.TenantId,
+                GlobalTenantName = this.GlobalTenantName
             };
         }
     }

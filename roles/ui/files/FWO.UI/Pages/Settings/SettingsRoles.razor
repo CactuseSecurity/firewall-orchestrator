@@ -332,8 +332,8 @@
             {
                 ldapUsers.Clear();
                 searchedGroupList.Clear();
-                UserGetParameters userGetParameters = new UserGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
-                IRestResponse<List<KeyValuePair<string, string>>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
+                LdapUserGetParameters userGetParameters = new LdapUserGetParameters { LdapId = selectedLdap.Id, SearchPattern = searchPattern };
+                IRestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
                     DisplayMessageInUi(null, userConfig.GetText("fetch_users"), userConfig.GetText("E5208"), true);
@@ -342,7 +342,7 @@
                 {
                     foreach (var user in middlewareServerResponse.Data)
                     {
-                        UiUser newUser = new UiUser() { Dn = user.Key, Name = (new DistName(user.Key)).UserName };
+                        UiUser newUser = new UiUser() { Dn = user.UserDn, Name = (new DistName(user.UserDn)).UserName };
                         ldapUsers.Add(newUser);
                     }
                 }

@@ -101,11 +101,11 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<List<UserGetReturnParameters>>(request);
         }
 
-        public async Task<IRestResponse<List<KeyValuePair<string, string>>>> GetLdapUsers(UserGetParameters parameters)
+        public async Task<IRestResponse<List<LdapUserGetReturnParameters>>> GetLdapUsers(LdapUserGetParameters parameters)
         {
             IRestRequest request = new RestRequest("User/Get", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<List<KeyValuePair<string, string>>>(request);
+            return await restClient.ExecuteAsync<List<LdapUserGetReturnParameters>>(request);
         }
 
         public async Task<IRestResponse<int>> AddUser(UserAddParameters parameters)
@@ -204,6 +204,13 @@ namespace FWO.Middleware.Client
             IRestRequest request = new RestRequest("Tenant", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<int>(request);
+        }
+
+        public async Task<IRestResponse<bool>> UpdateTenant(TenantEditParameters parameters)
+        {
+            IRestRequest request = new RestRequest("Tenant", Method.PUT, DataFormat.Json);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
         }
 
         public async Task<IRestResponse<bool>> DeleteTenant(TenantDeleteParameters parameters)

@@ -308,9 +308,9 @@ namespace FWO.Middleware.Server
             return userMemberships;
         }
 
-        public List<KeyValuePair<string, List<KeyValuePair<string, string>>>> GetAllRoles()
+        public List<RoleGetReturnParameters> GetAllRoles()
         {
-            List<KeyValuePair<string, List<KeyValuePair<string, string>>>> roleUsers = new List<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
+            List<RoleGetReturnParameters> roleUsers = new List<RoleGetReturnParameters>();
 
             // If this Ldap is containing roles
             if (HasRoleHandling())
@@ -331,19 +331,19 @@ namespace FWO.Middleware.Server
                         // Foreach found role
                         foreach (LdapEntry entry in searchResults)
                         {
-                            List<KeyValuePair<string, string>> attributes = new List<KeyValuePair<string, string>>();
+                            List<RoleAttribute> attributes = new List<RoleAttribute>();
                             string roleDesc = entry.GetAttribute("description").StringValue;
-                            attributes.Add(new KeyValuePair<string, string>("description", roleDesc));
+                            attributes.Add(new RoleAttribute(){ Key = "description", Value = roleDesc });
 
                             string[] roleMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
                             foreach (string currentDn in roleMemberDn)
                             {
                                 if (currentDn != "")
                                 {
-                                    attributes.Add(new KeyValuePair<string, string>("user", currentDn));
+                                    attributes.Add(new RoleAttribute(){ Key = "user", Value = currentDn });
                                 }
                             }
-                            roleUsers.Add(new KeyValuePair<string, List<KeyValuePair<string, string>>>(entry.Dn, attributes));
+                            roleUsers.Add(new RoleGetReturnParameters(){ Role = entry.Dn, Attributes = attributes});
                         }
                     }
                 }
@@ -383,9 +383,9 @@ namespace FWO.Middleware.Server
             return allGroups;
         }
 
-        public List<KeyValuePair<string, List<string>>> GetAllInternalGroups()
+        public List<GroupGetReturnParameters> GetAllInternalGroups()
         {
-            List<KeyValuePair<string, List<string>>> allGroups = new List<KeyValuePair<string, List<string>>>();
+            List<GroupGetReturnParameters> allGroups = new List<GroupGetReturnParameters>();
 
             try
             {
@@ -410,7 +410,7 @@ namespace FWO.Middleware.Server
                                 members.Add(currentDn);
                             }
                         }
-                        allGroups.Add(new KeyValuePair<string, List<string>>(entry.Dn, members));
+                        allGroups.Add(new GroupGetReturnParameters(){GroupDn = entry.Dn, Members = members});
                     }
                 }
             }

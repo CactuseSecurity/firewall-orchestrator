@@ -240,7 +240,7 @@
         try
         {
             // get roles from LDAP
-            IRestResponse<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> middlewareServerResponse = await middlewareClient.GetAllRoles();
+            IRestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
@@ -249,8 +249,8 @@
             {
                 foreach (var ldapRole in middlewareServerResponse.Data)
                 {
-                    Role role = new Role() { Dn = ldapRole.Key, Name = (new DistName(ldapRole.Key)).Role };
-                    foreach (var roleAttr in ldapRole.Value)
+                    Role role = new Role() { Dn = ldapRole.Role, Name = (new DistName(ldapRole.Role)).Role };
+                    foreach (var roleAttr in ldapRole.Attributes)
                     {
                         if (roleAttr.Key == "description")
                         {
@@ -274,7 +274,7 @@
             connectedLdaps = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections)).ToList();
 
             // get groups from internal LDAP
-            IRestResponse<List<KeyValuePair<string, List<string>>>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();
+            IRestResponse<List<GroupGetReturnParameters>> middlewareServerGroupsResponse = await middlewareClient.GetInternalGroups();
             if (middlewareServerGroupsResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
@@ -283,8 +283,8 @@
             {
                 foreach (var ldapUserGroup in middlewareServerGroupsResponse.Data)
                 {
-                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.Key, Name = (new DistName(ldapUserGroup.Key)).Group };
-                    foreach (var userDn in ldapUserGroup.Value)
+                    UserGroup group = new UserGroup() { Dn = ldapUserGroup.GroupDn, Name = (new DistName(ldapUserGroup.GroupDn)).Group };
+                    foreach (var userDn in ldapUserGroup.Members)
                     {
                         UiUser newUser = new UiUser() { Dn = userDn, Name = (new DistName(userDn)).UserName };
                         group.Users.Add(newUser);

@@ -21,12 +21,12 @@ namespace FWO.Middleware.Controllers
 
         [HttpGet]
         [Authorize(Roles = "admin, auditor")]
-        public async Task<ActionResult<List<KeyValuePair<string, List<string>>>>> Get()
+        public async Task<ActionResult<List<GroupGetReturnParameters>>> Get()
         {
             bool admin = User.IsInRole("admin");
             try
             {
-                ConcurrentBag<KeyValuePair<string, List<string>>> allGroups = new ConcurrentBag<KeyValuePair<string, List<string>>>();
+                ConcurrentBag<GroupGetReturnParameters> allGroups = new ConcurrentBag<GroupGetReturnParameters>();
                 List<Task> ldapGroupRequests = new List<Task>();
 
                 foreach (Ldap currentLdap in ldaps)
@@ -36,8 +36,8 @@ namespace FWO.Middleware.Controllers
                         ldapGroupRequests.Add(Task.Run(() =>
                         {
                             // Get all groups from internal Ldap
-                            List<KeyValuePair<string, List<string>>> currentGroups = currentLdap.GetAllInternalGroups();
-                            foreach (KeyValuePair<string, List<string>> currentGroup in currentGroups)
+                            List<GroupGetReturnParameters> currentGroups = currentLdap.GetAllInternalGroups();
+                            foreach (GroupGetReturnParameters currentGroup in currentGroups)
                                 allGroups.Add(currentGroup);
                         }));
                     }

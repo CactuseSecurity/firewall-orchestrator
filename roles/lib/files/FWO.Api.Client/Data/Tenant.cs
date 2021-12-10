@@ -60,9 +60,9 @@ namespace FWO.Api.Data
             List<TenantDevice> deviceList = new List<TenantDevice>();
             if (tenantGetParameters.Devices != null)
             {
-                foreach(KeyValuePair<int,string> apiDevice in tenantGetParameters.Devices)
+                foreach(TenantViewDevice apiDevice in tenantGetParameters.Devices)
                 {
-                    Device visibleDevice = new Device(){Id = apiDevice.Key, Name = apiDevice.Value};
+                    Device visibleDevice = new Device(){Id = apiDevice.Id, Name = apiDevice.Name};
                     deviceList.Add(new TenantDevice(){VisibleDevice = visibleDevice});
                 }
             }
@@ -92,11 +92,11 @@ namespace FWO.Api.Data
                 Project = this.Project,
                 ViewAllDevices = this.ViewAllDevices,
                 // Superadmin = this.Superadmin,
-                Devices = new List<KeyValuePair<int,string>>()
+                Devices = new List<TenantViewDevice>()
             };
             foreach (TenantDevice device in TenantDevices)
             {
-                tenantGetParams.Devices.Add(new KeyValuePair<int,string>(device.VisibleDevice.Id, (device.VisibleDevice.Name != null ? device.VisibleDevice.Name : "")));
+                tenantGetParams.Devices.Add(new TenantViewDevice(){ Id = device.VisibleDevice.Id, Name = (device.VisibleDevice.Name != null ? device.VisibleDevice.Name : "")});
             }
             return tenantGetParams;
         }

@@ -75,10 +75,10 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<IRestResponse<KeyValuePair<string, List<KeyValuePair<string, string>>>[]>> GetAllRoles()
+        public async Task<IRestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
         {
             IRestRequest request = new RestRequest("Role", Method.GET, DataFormat.Json);
-            return await restClient.ExecuteAsync<KeyValuePair<string, List<KeyValuePair<string, string>>>[]>(request);
+            return await restClient.ExecuteAsync<List<RoleGetReturnParameters>>(request);
         }
 
         public async Task<IRestResponse<List<string>>> GetGroups(GroupGetParameters parameters)
@@ -88,10 +88,10 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<List<string>>(request);
         }
 
-        public async Task<IRestResponse<List<KeyValuePair<string, List<string>>>>> GetInternalGroups()
+        public async Task<IRestResponse<List<GroupGetReturnParameters>>> GetInternalGroups()
         {
             IRestRequest request = new RestRequest("Group", Method.GET, DataFormat.Json);
-            return await restClient.ExecuteAsync<List<KeyValuePair<string, List<string>>>>(request);
+            return await restClient.ExecuteAsync<List<GroupGetReturnParameters>>(request);
         }
 
         public async Task<IRestResponse<List<UserGetReturnParameters>>> GetUsers()

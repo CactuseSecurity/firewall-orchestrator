@@ -12,7 +12,13 @@
     public class TenantGetReturnParameters : TenantAddParameters
     {
         public int Id { get; set; }
-        public List<KeyValuePair<int,string>> Devices { get; set; } = new List<KeyValuePair<int,string>>();
+        public List<TenantViewDevice> Devices { get; set; } = new List<TenantViewDevice>();
+    }
+
+    public class TenantViewDevice
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
     }
 
     public class TenantEditParameters

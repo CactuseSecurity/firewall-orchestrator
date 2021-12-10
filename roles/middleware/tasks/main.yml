@@ -191,25 +191,6 @@
   become_user: postgres
   when: installation_mode == "new"
 
-- name: update password for local ldap connection  in case of upgrade
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN IF EXISTS
-      (SELECT * FROM ldap_connection)
-      THEN UPDATE ldap_connection
-      SET ldap_server='{{ openldap_server }}',
-      ldap_port={{ openldap_port }}, ldap_searchpath_for_users='{{ openldap_std_user_dn }}',
-      ldap_searchpath_for_roles='{{ openldap_std_role_dn }}', ldap_searchpath_for_groups='{{ openldap_std_group_dn }}',
-      ldap_tenant_level=1,
-      ldap_search_user='{{ openldap_readonly_user_dn }}',
-      ldap_search_user_pwd='{{ ldap_inspector_pw }}',
-      ldap_write_user= '{{ openldap_writer_dn }}', ldap_write_user_pwd='{{ ldap_writer_pw }}', ldap_type=2
-      WHERE ldap_server='{{ openldap_server }}';
-      END IF; END $do$
-  become: yes
-  become_user: postgres
-
 - name: install dot net
   import_tasks: middleware_install_dot_net.yml
 

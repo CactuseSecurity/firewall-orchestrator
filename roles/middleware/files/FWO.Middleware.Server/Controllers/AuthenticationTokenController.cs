@@ -234,7 +234,34 @@ namespace FWO.Middleware.Controllers
                     }
                     else
                     {
-                        return null;
+                        // tenant unknown: create in db. This should only happen for users from external Ldaps
+                        try
+                        {
+                            var Variables = new 
+                            { 
+                                name = tenant.Name,
+                                project = "",
+                                comment = "",
+                                viewAllDevices = false,
+                                create = DateTime.Now
+                            };
+                            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables)).ReturnIds;
+                            if (returnIds != null)
+                            {
+                                tenant.Id = returnIds[0].NewId;
+                                // no further search for devices etc necessary
+                                return tenant;
+                            }
+                            else
+                            {
+                                return null;
+                            }
+                        }
+                        catch (Exception exception)
+                        {
+                            Log.WriteAudit("AddTenant", $"Adding Tenant {tenant.Name} locally failed: {exception.Message}");
+                            return null;
+                        }
                     }
                 }
             }

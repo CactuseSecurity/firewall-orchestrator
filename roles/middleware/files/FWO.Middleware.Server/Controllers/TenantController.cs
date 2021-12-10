@@ -73,7 +73,7 @@ namespace FWO.Middleware.Controllers
                         project = tenant.Project,
                         comment = tenant.Comment,
                         viewAllDevices = tenant.ViewAllDevices,
-                        superAdmin = tenant.Superadmin,
+                        // superAdmin = tenant.Superadmin,
                         create = DateTime.Now
                     };
                     ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables)).ReturnIds;

@@ -43,7 +43,7 @@ namespace FWO.Api.Data
             Comment = tenant.Comment;
             Project = tenant.Project;
             ViewAllDevices = tenant.ViewAllDevices;
-            Superadmin = tenant.Superadmin;
+            // Superadmin = tenant.Superadmin;
             TenantDevices = tenant.TenantDevices;
             VisibleDevices = tenant.VisibleDevices;
             VisibleManagements = tenant.VisibleManagements;
@@ -56,7 +56,7 @@ namespace FWO.Api.Data
             Comment = tenantGetParameters.Comment;
             Project = tenantGetParameters.Project;
             ViewAllDevices = tenantGetParameters.ViewAllDevices;
-            Superadmin = tenantGetParameters.Superadmin;
+            // Superadmin = tenantGetParameters.Superadmin;
             List<TenantDevice> deviceList = new List<TenantDevice>();
             if (tenantGetParameters.Devices != null)
             {
@@ -91,7 +91,7 @@ namespace FWO.Api.Data
                 Comment = this.Comment,
                 Project = this.Project,
                 ViewAllDevices = this.ViewAllDevices,
-                Superadmin = this.Superadmin,
+                // Superadmin = this.Superadmin,
                 Devices = new List<KeyValuePair<int,string>>()
             };
             foreach (TenantDevice device in TenantDevices)

@@ -60,7 +60,7 @@
 
   - name: set proxy for docker daemon to get images via proxy
     import_tasks: set-docker-daemon-proxy.yml
-    notify: "docker"
+    notify: "docker restart"
 
   # - name: restart docker
   #   systemd:
@@ -86,5 +86,5 @@
     set_fact:
       docker_handler: stop
     changed_when: true
-    notify: "docker"
+    notify: "docker restart"
   become: yes

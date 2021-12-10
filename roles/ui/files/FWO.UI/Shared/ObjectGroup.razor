@@ -295,7 +295,7 @@
                             managementsUpdate =>
                             {
                                 int id = m.Id;
-                                Management m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
+                                Management? m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
                                 if (m_updated != null)
                                 {
                                     switch (objType)
@@ -321,11 +321,14 @@
                         await FetchObjects((byte)(Type + objType),
                             managementsUpdate =>
                             {
-                                Rule r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules).FirstOrDefault();
-                                r_updated.DeviceName = r.DeviceName;
+                                Rule? r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
                                 if (r_updated != null)
-                                    Content = (InputDataType)(Object)r_updated;
+                                {
+                                    r_updated.DeviceName = r.DeviceName;
+                                    Content = (InputDataType)(Object)r_updated;                                  
+                                }
                                 return InvokeAsync(StateHasChanged);
+                                
                             }, r.Id);
 
                         break;

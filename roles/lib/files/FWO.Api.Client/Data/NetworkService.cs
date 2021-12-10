@@ -1,80 +1,81 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
     public class NetworkService
     {
-        [JsonPropertyName("svc_id")]
+        [JsonProperty("svc_id"), JsonPropertyName("svc_id")]
         public long Id { get; set; }
 
-        [JsonPropertyName("svc_name")]
+        [JsonProperty("svc_name"), JsonPropertyName("svc_name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("svc_uid")]
+        [JsonProperty("svc_uid"), JsonPropertyName("svc_uid")]
         public string Uid { get; set; }
 
-        [JsonPropertyName("svc_port")]
+        [JsonProperty("svc_port"), JsonPropertyName("svc_port")]
         public int? DestinationPort { get; set; }
 
-        [JsonPropertyName("svc_port_end")]
+        [JsonProperty("svc_port_end"), JsonPropertyName("svc_port_end")]
         public int? DestinationPortEnd { get; set; }
 
-        [JsonPropertyName("svc_source_port")]
+        [JsonProperty("svc_source_port"), JsonPropertyName("svc_source_port")]
         public int? SourcePort { get; set; }
 
-        [JsonPropertyName("svc_source_port_end")]
+        [JsonProperty("svc_source_port_end"), JsonPropertyName("svc_source_port_end")]
         public int? SourcePortEnd { get; set; }
 
-        [JsonPropertyName("svc_code")]
+        [JsonProperty("svc_code"), JsonPropertyName("svc_code")]
         public string Code { get; set; }
 
-        [JsonPropertyName("svc_timeout")]
+        [JsonProperty("svc_timeout"), JsonPropertyName("svc_timeout")]
         public int? Timeout { get; set; }
 
-        [JsonPropertyName("svc_typ_id")]
+        [JsonProperty("svc_typ_id"), JsonPropertyName("svc_typ_id")]
         public int? TypeId { get; set; }
 
-        [JsonPropertyName("active")]
+        [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
 
-        [JsonPropertyName("svc_create")]
+        [JsonProperty("svc_create"), JsonPropertyName("svc_create")]
         public int Create { get; set; }
 
-        [JsonPropertyName("svc_create_time")]
+        [JsonProperty("svc_create_time"), JsonPropertyName("svc_create_time")]
         public TimeWrapper CreateTime { get; set; }
 
-        [JsonPropertyName("svc_last_seen")]
+        [JsonProperty("svc_last_seen"), JsonPropertyName("svc_last_seen")]
         public int LastSeen { get; set; }
 
-        [JsonPropertyName("service_type")]
+        [JsonProperty("service_type"), JsonPropertyName("service_type")]
         public NetworkServiceType Type { get; set; }
 
-        [JsonPropertyName("svc_comment")]
+        [JsonProperty("svc_comment"), JsonPropertyName("svc_comment")]
         public string Comment { get; set; }
 
-        [JsonPropertyName("svc_color_id")]
+        [JsonProperty("svc_color_id"), JsonPropertyName("svc_color_id")]
         public int? ColorId { get; set; }
 
-        [JsonPropertyName("id_proto_id")]
+        [JsonProperty("id_proto_id"), JsonPropertyName("id_proto_id")]
         public int? ProtoId { get; set; }
 
-        [JsonPropertyName("protocol_name")]
+        [JsonProperty("protocol_name"), JsonPropertyName("protocol_name")]
         public NetworkProtocol Protocol { get; set; }
 
-        [JsonPropertyName("svc_member_names")]
+        [JsonProperty("svc_member_names"), JsonPropertyName("svc_member_names")]
         public string MemberNames { get; set; }
 
-        [JsonPropertyName("svc_member_refs")]
+        [JsonProperty("svc_member_refs"), JsonPropertyName("svc_member_refs")]
         public string MemberRefs { get; set; }
 
-        [JsonPropertyName("svcgrps")]
+        [JsonProperty("svcgrps"), JsonPropertyName("svcgrps")]
         public Group<NetworkService>[] ServiceGroups { get; set; }
 
-        [JsonPropertyName("svcgrp_flats")]
+        [JsonProperty("svcgrp_flats"), JsonPropertyName("svcgrp_flats")]
         public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; }
 
         public override bool Equals(object obj)

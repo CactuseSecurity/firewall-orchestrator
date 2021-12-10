@@ -1,48 +1,49 @@
 ﻿using System;
 using System.Linq;
-using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class Device
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("name")]
+        [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("deviceType")]
+        [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
         public DeviceType DeviceType { get; set; } = new DeviceType();
 
-        [JsonPropertyName("management")]
+        [JsonProperty("management"), JsonPropertyName("management")]
         public Management Management { get; set; } = new Management();
 
-        [JsonPropertyName("local_rulebase_name")]
+        [JsonProperty("local_rulebase_name"), JsonPropertyName("local_rulebase_name")]
         public string? LocalRulebase { get; set; }
 
-        [JsonPropertyName("global_rulebase_name")]
+        [JsonProperty("global_rulebase_name"), JsonPropertyName("global_rulebase_name")]
         public string? GlobalRulebase { get; set; }
 
-        [JsonPropertyName("package_name")]
+        [JsonProperty("package_name"), JsonPropertyName("package_name")]
         public string? Package { get; set; }
 
-        [JsonPropertyName("importDisabled")]
+        [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
 
-        [JsonPropertyName("hideInUi")]
+        [JsonProperty("hideInUi"), JsonPropertyName("hideInUi")]
         public bool HideInUi { get; set; }
 
-        [JsonPropertyName("comment")]
+        [JsonProperty("comment"), JsonPropertyName("comment")]
         public string? Comment { get; set; }
 
-        [JsonPropertyName("rules")]
+        [JsonProperty("rules"), JsonPropertyName("rules")]
         public Rule[]? Rules { get; set; }
 
-        [JsonPropertyName("changelog_rules")]
+        [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
         public RuleChange[]? RuleChanges { get; set; }
 
-        [JsonPropertyName("rules_aggregate")]
+        [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
         public ObjectStatistics? RuleStatistics { get; set; }
 
         public bool Selected { get; set; } = false;

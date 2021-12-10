@@ -151,32 +151,7 @@ namespace FWO.Api.Data
             bool newObjects = false;
 
             for (int i = 0; i < managementsToMerge.Length; i++)
-            {
-                if (managements[i].Objects != null && managementsToMerge[i].Objects != null && managementsToMerge[i].Objects.Length > 0)
-                {
-                    managements[i].Objects = managements[i].Objects.Concat(managementsToMerge[i].Objects).ToArray();
-                    newObjects = true;
-                }
-
-                if (managements[i].Services != null && managementsToMerge[i].Services != null && managementsToMerge[i].Services.Length > 0)
-                {
-                    managements[i].Services = managements[i].Services.Concat(managementsToMerge[i].Services).ToArray();
-                    newObjects = true;
-                }
-
-                if (managements[i].Users != null && managementsToMerge[i].Users != null && managementsToMerge[i].Users.Length > 0)
-                {
-                    managements[i].Users = managements[i].Users.Concat(managementsToMerge[i].Users).ToArray();
-                    newObjects = true;
-                }
-
-                if (managements[i].Devices != null && managementsToMerge[i].Devices != null && managementsToMerge[i].Devices.Length > 0)
-                {
-                    // important: if any management still returns rules, newObjects is set to true
-                    if (managements[i].Devices.Merge(managementsToMerge[i].Devices) == true)
-                        newObjects = true;
-                }
-            }
+                newObjects |= managements[i].Merge(managementsToMerge[i]);
 
             return newObjects;
         }
@@ -200,6 +175,37 @@ namespace FWO.Api.Data
             if (management.Users != null && managementToMerge.Users != null && managementToMerge.Users.Length > 0)
             {
                 management.Users = management.Users.Concat(managementToMerge.Users).ToArray();
+                newObjects = true;
+            }
+
+            if (management.Devices != null && managementToMerge.Devices != null && managementToMerge.Devices.Length > 0)
+            {
+                // important: if any management still returns rules, newObjects is set to true
+                if (management.Devices.Merge(managementToMerge.Devices) == true)
+                    newObjects = true;
+            }
+            return newObjects;
+        }
+
+        public static bool MergeReportObjects(this Management management, Management managementToMerge)
+        {
+            bool newObjects = false;
+
+            if (management.ReportObjects != null && managementToMerge.ReportObjects != null && managementToMerge.ReportObjects.Length > 0)
+            {
+                management.ReportObjects = management.ReportObjects.Concat(managementToMerge.ReportObjects).ToArray();
+                newObjects = true;
+            }
+
+            if (management.ReportServices != null && managementToMerge.ReportServices != null && managementToMerge.ReportServices.Length > 0)
+            {
+                management.ReportServices = management.ReportServices.Concat(managementToMerge.ReportServices).ToArray();
+                newObjects = true;
+            }
+
+            if (management.ReportUsers != null && managementToMerge.ReportUsers != null && managementToMerge.ReportUsers.Length > 0)
+            {
+                management.ReportUsers = management.ReportUsers.Concat(managementToMerge.ReportUsers).ToArray();
                 newObjects = true;
             }
 

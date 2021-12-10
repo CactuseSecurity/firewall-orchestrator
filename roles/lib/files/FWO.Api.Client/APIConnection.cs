@@ -42,9 +42,12 @@ namespace FWO.ApiClient
             {
                 EndPoint = new Uri(APIServerURI),
                 HttpMessageHandler = Handler,
-                UseWebSocketForQueriesAndMutations = false,
+                UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons          
                 ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true
             }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());
+
+            // 1 hour timeout
+            graphQlClient.HttpClient.Timeout = new TimeSpan(1, 0, 0);
 
             if (jwt != null)
             {

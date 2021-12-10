@@ -33,29 +33,3 @@
       export no_proxy={{ proxy_exceptions }}
   become: yes
   notify: "docker restart"
-
-# these tasks make sure that the docker container can communicate via proxy
-# not necessary as we already set this in hasura config
-
-# - name: create local user docker config dir .docker
-#   file:
-#     dest: "{{ fworch_home }}/.docker"
-#     state: directory
-#     owner: "{{ fworch_user }}"
-#     group: "{{ fworch_group }}"
-#     mode: "0775"
-#   become: yes
-#   notify: "docker restart"
-
-# - name: create local user docker config file .docker/config.json
-#   template:
-#     src: docker_config.j2
-#     dest: "{{ fworch_home }}/.docker/config.json"
-#     owner: "{{ fworch_user }}"
-#     group: "{{ fworch_group }}"
-#     mode: "0644"
-#   become: yes
-#   notify: "docker restart"
-
-
-

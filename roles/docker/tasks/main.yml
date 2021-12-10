@@ -45,38 +45,9 @@
       -  "{{ ansible_user }}"
       -  "{{ fworch_user }}"
 
-  # - name: create systemd dir for docker
-  #   file:
-  #     state: directory
-  #     path: /etc/systemd/system/docker.service.d
-
-  # - name: http-proxy-config for docker
-  #   blockinfile:
-  #     create: yes
-  #     path:  /etc/systemd/system/docker.service.d/http-proxy.conf
-  #     block: |
-  #       [Service]
-  #       Environment="HTTP_PROXY={{ http_proxy }}"
-
   - name: set proxy for docker daemon to get images via proxy
     import_tasks: set-docker-daemon-proxy.yml
     notify: "docker restart"
-
-  # - name: restart docker
-  #   systemd:
-  #     name: docker
-  #     daemon_reload: yes
-  #     state: restarted
-  #   become: yes
-
-  # - name: restart service docker
-  #   service:
-  #     name: docker
-  #     state: restarted
-
-  # - name: Reload service systemctl
-  #   systemd:
-  #     daemon_reload: yes
 
   - name: include upgrade script
     import_tasks: run-upgrades.yml

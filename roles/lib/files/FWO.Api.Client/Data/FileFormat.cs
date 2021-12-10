@@ -1,19 +1,20 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class FileFormat
     {
-        [JsonPropertyName("report_schedule_format_name")]
+        [JsonProperty("report_schedule_format_name"), JsonPropertyName("report_schedule_format_name")]
         public string Name { get; set; } = "";
     }
 
     //public class FileFormatReportSchedule
     //{
-    //    [JsonPropertyName("file_format_name")]
+    //    [JsonProperty("file_format_name"), JsonPropertyName("file_format_name")]
     //    public string FileFormatName { get; set; }
 
-    //    [JsonPropertyName("report_schedule_id")]
+    //    [JsonProperty("report_schedule_id"), JsonPropertyName("report_schedule_id")]
     //    public string ReportScheduleId { get; set; }
     //}
 

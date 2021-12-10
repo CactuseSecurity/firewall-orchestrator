@@ -1,13 +1,14 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class NetworkLocation
     {
-        [JsonPropertyName("object")]
+        [JsonProperty("object"), JsonPropertyName("object")]
         public NetworkObject Object { get; set; } = new NetworkObject(){};
 
-        [JsonPropertyName("usr")]
+        [JsonProperty("usr"), JsonPropertyName("usr")]
         public NetworkUser User { get; set; } = new NetworkUser(){};
     }
 }

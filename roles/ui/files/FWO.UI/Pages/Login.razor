@@ -112,7 +112,7 @@
 
             if (jwtLoadRequest.Success) // reconnect
             {
-                await CreateUserContext(jwtLoadRequest.Value);
+                await CreateUserContext(jwtLoadRequest.Value ?? throw new AccessViolationException("Jwt from protected storage is null"));
             }
 
             else // no reconnect
@@ -165,14 +165,8 @@
                 else
                 {
                     // There was an error trying to authenticate the user. Probably invalid credentials
-                    //if (apiAuthResponse.StatusCode == HttpStatusCode.BadRequest)
-                    //{
-                    //    errorMessage = userConfig.GetText("E0011");
-                    //}
-                    //else
-                    //{
-                    errorMessage = apiAuthResponse.ErrorException != null ? apiAuthResponse.ErrorMessage : apiAuthResponse.Content; //userConfig.GetApiText(apiAuthResponse.ErrorException.Message);
-                    //}
+                    errorMessage = apiAuthResponse.ErrorException != null ? apiAuthResponse.ErrorMessage : apiAuthResponse.Content;
+                    //userConfig.GetApiText(apiAuthResponse.ErrorException.Message);
 
                     // Visualisize there was an error by making border of inputboxes red
                     InputClass = "is-invalid";
@@ -200,6 +194,9 @@
     {
         // Tell api connection to use jwt as authentication
         ApiConnection.SetAuthHeader(jwt);
+
+        // Tell middleware connection to use jwt as authentication
+        middlewareClient.SetAuthenticationToken(jwt);
 
         // Try to auth with jwt (validates it and creates user context on UI side).
         await ((AuthStateProvider)AuthService).AuthenticateUser(jwt, userConfig, ApiConnection, circuitHandler);

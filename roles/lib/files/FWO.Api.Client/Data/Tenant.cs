@@ -1,29 +1,30 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 using FWO.Middleware.RequestParameters;
 
 namespace FWO.Api.Data
 {
     public class Tenant
     {
-        [JsonPropertyName("tenant_id")]
+        [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("tenant_name")]
+        [JsonProperty("tenant_name"), JsonPropertyName("tenant_name")]
         public string Name { get; set; } = "";
 
-        [JsonPropertyName("tenant_comment")]
+        [JsonProperty("tenant_comment"), JsonPropertyName("tenant_comment")]
         public string? Comment { get; set; }
 
-        [JsonPropertyName("tenant_projekt")]
+        [JsonProperty("tenant_projekt"), JsonPropertyName("tenant_projekt")]
         public string? Project { get; set; }
 
-        [JsonPropertyName("tenant_can_view_all_devices")]
+        [JsonProperty("tenant_can_view_all_devices"), JsonPropertyName("tenant_can_view_all_devices")]
         public bool ViewAllDevices { get; set; }
 
-        [JsonPropertyName("tenant_is_superadmin")]
+        [JsonProperty("tenant_is_superadmin"), JsonPropertyName("tenant_is_superadmin")]
         public bool Superadmin { get; set; } // curently not in use
 
-        [JsonPropertyName("tenant_to_devices")]
+        [JsonProperty("tenant_to_devices"), JsonPropertyName("tenant_to_devices")]
         public TenantDevice[] TenantDevices { get; set; } // TODO: Replace with Device[] (probably not possible)
 
         public int[] VisibleDevices { get; set; } // TODO: Remove later (probably not possible)
@@ -116,19 +117,19 @@ namespace FWO.Api.Data
 
     public class TenantDevice
     {
-        [JsonPropertyName("device")]
+        [JsonProperty("device"), JsonPropertyName("device")]
         public Device VisibleDevice { get; set; } = new Device();
     }
 
     public class DeviceId
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
     }
 
     public class ManagementId
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
     }
 }

@@ -84,7 +84,7 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            if (htmlExport == "")
+            if (string.IsNullOrEmpty(htmlExport))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
@@ -99,7 +99,8 @@ namespace FWO.Report
         public virtual byte[] ToPdf()
         {
             // HTML
-            string html = ExportToHtml();
+            if (string.IsNullOrEmpty(htmlExport))
+                htmlExport = ExportToHtml();
 
             GlobalSettings globalSettings = new GlobalSettings
             {
@@ -116,7 +117,7 @@ namespace FWO.Report
                     new ObjectSettings()
                     {
                         PagesCount = true,
-                        HtmlContent = html,
+                        HtmlContent = htmlExport,
                         WebSettings = { DefaultEncoding = "utf-8" },
                         HeaderSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 }
                     }

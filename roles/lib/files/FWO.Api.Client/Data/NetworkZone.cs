@@ -1,13 +1,14 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class NetworkZone
     {
-        [JsonPropertyName("zone_id")]
+        [JsonProperty("zone_id"), JsonPropertyName("zone_id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("zone_name")]
+        [JsonProperty("zone_name"), JsonPropertyName("zone_name")]
         public string Name { get; set; } = "";
     }
 }

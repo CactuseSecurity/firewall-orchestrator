@@ -1,10 +1,11 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class NetworkServiceType
     {
-        [JsonPropertyName("name")]
+        [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
     }
 }

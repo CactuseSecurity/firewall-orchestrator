@@ -51,11 +51,11 @@ def api_call(url, command, json_payload, sid, ssl_verification, proxy, show_prog
         print ('.', end='', flush=True)
 
     try:
-        r.json()
+        json_response = r.json()
     except:
-        logging.exception("\checkpointR8x:api_call: response is not in valid json format: " + r.text)
+        logging.exception("checkpointR8x:api_call: response is not in valid json format: " + r.text)
         sys.exit(1)
-    return r.json()
+    return json_response
 
 
 def login(user, password, api_host, api_port, domain, ssl_verification, proxy):

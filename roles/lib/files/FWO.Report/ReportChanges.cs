@@ -1,10 +1,5 @@
 ﻿using FWO.Api.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
@@ -106,7 +101,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
 
-                    if (device.RuleChanges.Length > 0)
+                    if (device.RuleChanges != null)
                     {
                         foreach (RuleChange ruleChange in device.RuleChanges)
                         {

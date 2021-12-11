@@ -58,6 +58,9 @@ namespace FWO.Api.Data
         [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
         public int? TenantId { get; set; }
 
+        [JsonPropertyName("ldap_global_tenant_name")]
+        public string? GlobalTenantName { get; set; }
+
         public LdapConnectionBase()
         {}
 
@@ -78,6 +81,7 @@ namespace FWO.Api.Data
             WriteUser = ldapGetUpdateParameters.WriteUser;
             WriteUserPwd = ldapGetUpdateParameters.WriteUserPwd;
             TenantId = ldapGetUpdateParameters.TenantId;
+            GlobalTenantName = ldapGetUpdateParameters.GlobalTenantName;
         }
 
         public string Host()

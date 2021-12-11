@@ -43,7 +43,6 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
                 await AddUiUserToDb(apiConn, user);
-                user.PasswordMustBeChanged = true;
             }
             return user;
         }
@@ -61,7 +60,7 @@ namespace FWO.Middleware.Server
                     tenant = (user.Tenant != null ? user.Tenant.Id : (int?)null),
                     loginTime = DateTime.UtcNow,
                     passwordMustBeChanged = false,
-                    ldapConnectionId = user.LdapConnection?.Id
+                    ldapConnectionId = user.LdapConnection.Id
                 };
                 ReturnId[]? returnIds = (await apiConn.SendQueryAsync<NewReturning>(AuthQueries.addUser, Variables)).ReturnIds;
                 if(returnIds != null)

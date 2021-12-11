@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
@@ -14,10 +9,10 @@ namespace FWO.Api.Data
         public int Id { get; set; }
 
         [JsonProperty("report_schedule_name"), JsonPropertyName("report_schedule_name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         [JsonProperty("report_schedule_owner_user"), JsonPropertyName("report_schedule_owner_user")]
-        public UiUser Owner { get; set; }
+        public UiUser Owner { get; set; } = new UiUser();
 
         [JsonProperty("report_schedule_start_time"), JsonPropertyName("report_schedule_start_time")]
         public DateTime StartTime { get; set; } = DateTime.Now;

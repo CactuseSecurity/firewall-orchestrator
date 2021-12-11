@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace FWO.Config.Api.Data
@@ -11,10 +10,10 @@ namespace FWO.Config.Api.Data
     {
 
         [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         [JsonProperty("culture_info"), JsonPropertyName("culture_info")]
-        public string CultureInfo { get; set; }
+        public string CultureInfo { get; set; } = "";
 
         // might later also add the full culture name, if needed:
         // [JsonProperty("culture_name_english"), JsonPropertyName("culture_name_english")]

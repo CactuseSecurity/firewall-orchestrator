@@ -1,13 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using FWO.Logging;
 using FWO.Config.Api.Data;
-using System.Linq;
-using System;
 using FWO.ApiClient;
 using FWO.Api.Data;
 using FWO.ApiClient.Queries;
-using System.Threading.Tasks;
 
 namespace FWO.Config.Api
 {
@@ -25,7 +21,7 @@ namespace FWO.Config.Api
 
         public UiUser User { private set; get; }
 
-        public event Func<UserConfig, Task> OnChange;
+        public event Func<UserConfig, Task>? OnChange;
 
         /// <summary>
         /// create a config collection (used centrally once in a UI server for all users
@@ -35,12 +31,15 @@ namespace FWO.Config.Api
         {
             Translate = globalConfigIn.langDict[globalConfigIn.defaultLanguage];
             globalConfig = globalConfigIn;
+            User = new UiUser();
         }
 
         public async Task SetUserInformation(string userDn, APIConnection apiConnection)
         {
             Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
-            User = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn }))?[0];
+            UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
+            if (users.Count() > 0)
+                User = users[0];
 
             defaultConfigItems = await GetConfigItems(0, apiConnection);
             userConfigItems = await GetConfigItems(User.DbId, apiConnection);
@@ -63,7 +62,7 @@ namespace FWO.Config.Api
             Dictionary<string, string> result = new Dictionary<string, string>();
             foreach (ConfigItem confItem in apiConfItems)
             {
-                result.Add(confItem.Key, confItem.Value);
+                result.Add(confItem.Key, (confItem.Value != null ? confItem.Value : ""));
             }
 
             return result;
@@ -80,7 +79,7 @@ namespace FWO.Config.Api
 
         public string GetUserLanguage()
         {
-            return User.Language;
+            return (User.Language != null ? User.Language : "");
         }
 
         public void SetLanguage(string languageName)

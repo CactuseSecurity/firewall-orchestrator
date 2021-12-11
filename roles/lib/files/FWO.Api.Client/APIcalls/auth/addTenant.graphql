@@ -3,7 +3,7 @@ mutation addTenant(
   $project: String
   $comment: String
   $viewAllDevices: Boolean
-  $superAdmin: Boolean
+#  $superAdmin: Boolean
   $create: timestamp
 ) {
   insert_tenant(
@@ -12,7 +12,7 @@ mutation addTenant(
       tenant_projekt: $project
       tenant_comment: $comment
       tenant_can_view_all_devices: $viewAllDevices
-      tenant_is_superadmin: $superAdmin
+#      tenant_is_superadmin: $superAdmin
       tenant_create: $create
     }
   ) {

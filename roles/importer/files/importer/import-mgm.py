@@ -35,8 +35,8 @@ parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
                     help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-t', '--testing', metavar='version_testing',
                     default='off', help='Version test, [off|<version number>]; default=off')
-parser.add_argument('-o', '--out', metavar='output_file',
-                    default=False, help='filename to write output in json format to, "False" if not writing to file')
+parser.add_argument('-o', '--out', metavar='full_config_file',
+                    help='filename to write full native config to, default is "not set"')
 
 args = parser.parse_args()
 if len(sys.argv) == 1:
@@ -63,9 +63,6 @@ with open(fwo_config_filename, "r") as fwo_config:
 user_management_api_base_url = fwo_config['middleware_uri']
 fwo_api_base_url = fwo_config['api_uri']
 
-method = 'api/AuthenticationToken/Get'
-ssl_mode = args.ssl
-
 # authenticate to get JWT
 with open(importer_pwd_file, 'r') as file:
     importer_pwd = file.read().replace('\n', '')
@@ -75,7 +72,7 @@ else:
     proxy = None
 
 jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                        method, ssl_verification=ssl_mode, proxy=proxy)
+                        ssl_verification=args.ssl, proxy=proxy)
 
 # get mgm_details (fw-type, port, ip, user credentials):
 mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
@@ -106,12 +103,9 @@ config2import = {}
 Path(import_tmp_path).mkdir(parents=True,
                             exist_ok=True)  # make sure tmp path exists
 
-# the config is expected as a file by checkpoint, for newer importers, everything is handled via config variable
-config_filename = import_tmp_path + '/mgm_id_' + \
-    str(args.mgm_id) + '_config.json'
+normalized_config_filename = import_tmp_path + '/mgm_id_' + \
+    str(args.mgm_id) + '_config_normalized.json'
 
-with open(config_filename, "w") as json_data:  # create empty config file
-    json_data.write(json.dumps(full_config_json))
 secret_filename = base_dir + '/tmp/import/mgm_id_' + \
     str(args.mgm_id) + '_secret.txt'
 with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
@@ -129,7 +123,19 @@ fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
 get_config_response = fw_module.get_config(
-    config2import, current_import_id, mgm_details, debug_level, proxy=proxy, limit=args.limit, force=args.force)
+    config2import, current_import_id, mgm_details, debug_level, ssl_verification=args.ssl, proxy=proxy, 
+        limit=args.limit, force=args.force, full_config=full_config_json)
+
+# if set, write the full config to a file
+if args.out != None:
+    full_native_config_filename = args.out
+    if os.path.exists(full_native_config_filename): # delete json file (to enabiling re-write)
+        os.remove(full_native_config_filename)    
+    with open(full_native_config_filename, "w") as json_data:  # create empty config file
+        json_data.write(json.dumps(full_config_json))
+
+with open(normalized_config_filename, "w") as json_data:
+    json_data.write(json.dumps(config2import,indent=2))
 
 # if no changes were found, we get get_config_response==512 and we skip everything else without errors
 # todo: re-structure this to make it more logical/readable
@@ -148,40 +154,33 @@ elif get_config_response == 0:
     if error_string_from_imp_control != None and error_string_from_imp_control != [{'import_errors': None}]:
         error_count += 1
         error_string += str(error_string_from_imp_control)
-
     # todo: if no objects found at all: at least throw a warning
 
-    change_count = fwo_api.count_changes_per_import(
-        fwo_api_base_url, jwt, current_import_id)
+    change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
 
     if change_count > 0 or error_count > 0:  # store full config in case of change or error
-        with open(config_filename, "r") as json_data:
-            full_config_json = json.load(json_data)
-
         error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
             "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
 
-stop_time = int(time.time())
-stop_time_string = datetime.datetime.now().isoformat()
-
+# CLEANUP
 # delete configs of imports without changes (if no error occured)
 if change_count == 0 and error_count == 0 and get_config_response < 2:
-    error_count += fwo_api.delete_json_config(
-        fwo_api_base_url, jwt, {"importId": current_import_id})
-    if os.path.exists(config_filename):
-        os.remove(config_filename)
-      # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
-
+    error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
+        # if os.path.exists(config_filename):
+        #     os.remove(config_filename)
+        # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
 if os.path.exists(secret_filename):
     os.remove(secret_filename)
+
 # finalize import by unlocking it
 error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
-    args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
+    args.mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
 
-
-print("import_mgm.py: import no. " + str(current_import_id) + " for management " + mgm_details['name'] + ' (id=' + str(args.mgm_id) + ") ran " +
-      str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " +
-      str(int(time.time()) - start_time) + "s")
+print("import_mgm.py: import no. " + str(current_import_id) +
+    " for management " + mgm_details['name'] + ' (id=' + str(args.mgm_id) + ")" +
+    " ran " + str("with" if error_count else "without") + " errors," +
+    " change_count: " + str(change_count) +
+    ", duration: " + str(int(time.time()) - start_time) + "s")
 if len(error_string) > 0:
     print("ERRORS: " + error_string)
 

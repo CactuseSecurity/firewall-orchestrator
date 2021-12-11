@@ -11,7 +11,7 @@ sys.path.append(base_dir + '/importer/fortimanager5ff')
 import getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 
-def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, proxy_string='', limit=100, force=False):
+def get_config(config2import, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, full_config={}, ssl_verification=None):
     logging.info("found FortiManager")
     fm_api_url = 'https://' + \
         mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/jsonrpc'
@@ -27,7 +27,7 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
         logging.error('no ADOM name set for this management!')
         return 1
     else:
-        raw_config = {}
+        full_config = {}
         # get all custom adoms:
         q_get_custom_adoms = {"params": [
             {"fields": ["name", "oid", "uuid"], "filter": ["create_time", "<>", 0]}]}
@@ -40,7 +40,7 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
         adom_root = getter.fortinet_api_call(
             sid, fm_api_url, '/dvmdb/adom', payload=q_get_root_adom, debug=debug_level).pop()
         adoms.append(adom_root)
-        raw_config.update({"adoms": adoms})
+        full_config.update({"adoms": adoms})
 
         adom_found = False
         for adom in adoms:
@@ -51,30 +51,21 @@ def get_config(config2import, current_import_id, base_dir, mgm_details, secret_f
             return 1
         else: 
             # get details for each device/policy
-            getDeviceDetails(sid, fm_api_url, raw_config, mgm_details, debug_level)
-
-            getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level)
-
-            getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level)
-
-            getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level)
-            
-            getNatPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level)
+            getDeviceDetails(sid, fm_api_url, full_config, mgm_details, debug_level)
+            getObjects(sid, fm_api_url, full_config, adom_name, limit, debug_level)
+            getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
+            getAccessPolicies(sid, fm_api_url, full_config, adom_name, limit, debug_level)
+            getNatPolicies(sid, fm_api_url, full_config, adom_name, limit, debug_level)
 
             # now we normalize relevant parts of the raw config and write the results to config2import dict
-            fmgr_zone.normalize_zones(raw_config, config2import, current_import_id)
-            fmgr_user.normalize_users(raw_config, config2import, current_import_id)
-            fmgr_network.normalize_nwobjects(raw_config, config2import, current_import_id)
-            fmgr_service.normalize_svcobjects(raw_config, config2import, current_import_id)
-            fmgr_rule.normalize_access_rules(raw_config, config2import, current_import_id)
-            fmgr_rule.normalize_nat_rules(raw_config, config2import, current_import_id)
+            fmgr_zone.normalize_zones(full_config, config2import, current_import_id)
+            fmgr_user.normalize_users(full_config, config2import, current_import_id)
+            fmgr_network.normalize_nwobjects(full_config, config2import, current_import_id)
+            fmgr_service.normalize_svcobjects(full_config, config2import, current_import_id)
+            fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id)
+            fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id)
 
     getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
-    if (debug_level>=2):
-        if os.path.exists(config_filename): # delete json file (to enabiling re-write)
-            os.remove(config_filename)
-        with open(config_filename, "w") as json_data:
-            json_data.write(json.dumps(raw_config,indent=2))
     return 0
 
 

@@ -20,6 +20,7 @@ config system admin profile
     edit "apiuserprofile"
        set super-user-profile enable
     next
+    n
 end
 ```
 
@@ -34,6 +35,7 @@ config system admin user
        set adom "all_adoms"             
        set profileid "apiuserprofile"
        set rpc-permit read
+   end
 ```
 
 ### Create full access api user

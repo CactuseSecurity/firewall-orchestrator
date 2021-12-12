@@ -384,7 +384,10 @@
     {
         UiUser? selectedUser = ldapUsers.Find(x => x.Dn == userDn);
         if (selectedUser != null)
+        {
             await AddUserToRole(selectedUser);
+            await addTenantIfNew(selectedUser.Dn, selectedLdap);
+        }
     }
 
     private async Task AddGroupFromLdap(string groupDn)
@@ -425,6 +428,36 @@
             {
                 DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), "", true);
             }
+        }
+    }
+
+    private async Task addTenantIfNew(string Dn, UiLdapConnection selectedLdap)
+    {
+        try
+        {
+            if (selectedLdap.TenantLevel == 0 || selectedLdap.IsInternal())
+            {
+                return;
+            }
+            string tenantName = (new DistName(Dn)).getTenant(selectedLdap.TenantLevel);
+            Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, new { tenant_name = tenantName }, "getTenantId");
+            if (tenants.Count() == 0)
+            {
+                // tenant unknown: create in db
+                var Variables = new 
+                { 
+                    name = tenantName,
+                    project = "",
+                    comment = "",
+                    viewAllDevices = false,
+                    create = DateTime.Now
+                };
+                await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.AuthQueries.addTenant, Variables);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteAudit("AddTenant", $"Adding new Tenant locally failed: {exception.Message}");
         }
     }
 

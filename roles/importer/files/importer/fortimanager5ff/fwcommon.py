@@ -186,8 +186,7 @@ def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level
     # get global header rulebase:
     for device in raw_config['devices']:
         if device['global_rulebase'] is None:
-            logging.error('no global rulebase name defined in fortimanager')
-            return 1
+            logging.warning('no global rulebase name defined in fortimanager')
         elif device['global_rulebase'] not in raw_config['global_package_names']:
             logging.error('global rulebase/package ' + device['global_rulebase'] + ' not found in fortimanager')
             return 1
@@ -214,8 +213,7 @@ def getAccessPolicies(sid, fm_api_url, raw_config, adom_name, limit, debug_level
     # get global footer rulebase:
     for device in raw_config['devices']:
         if device['global_rulebase'] is None:
-            logging.error('no global rulebase name defined in fortimanager')
-            return 1
+            logging.warning('no global rulebase name defined in fortimanager')
         elif device['global_rulebase'] not in raw_config['global_package_names']:
             logging.error('global rulebase/package ' + device['global_rulebase'] + ' not found in fortimanager')
             return 1

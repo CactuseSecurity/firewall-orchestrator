@@ -44,13 +44,26 @@ def normalize_nwobjects(full_config, config2import, import_id):
             # we would need a list of fortinet color codes
         obj.update({'obj_uid': obj_orig['uuid']})
 
+        obj_zone = None
         # here only picking first associated interface as zone:
         if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0 and obj_orig['associated-interface'][0] != 'any':
-            obj.update({'obj_zone': obj_orig['associated-interface'][0]})
+            obj_zone = obj_orig['associated-interface'][0]
+            obj.update({'obj_zone': obj_zone })
         
         obj.update({'control_id': import_id})
         nw_objects.append(obj)
         
+        # adding zone if it not yet exists
+        if obj_zone is not None:
+            if 'zone_objects' not in config2import: # no zones yet? add empty zone_objects array
+                config2import.update({'zone_objects': []})
+            zone_exists = False
+            for zone in config2import['zone_objects']:
+                if obj_zone == zone['zone_name']:
+                    zone_exists = True
+            if not zone_exists:
+                config2import['zone_objects'].append({'zone_name': obj_zone, 'control_id': import_id})
+
         # todo: handle groups
         # if 'list' in obj_orig:
         # obj['obj_typ'] = 'group' })
@@ -84,12 +97,13 @@ def add_member_names_for_nw_group(idx, nw_objects):
     nw_objects.insert(idx, group)
 
 
-def create_network_object(import_id, name, type, ip, uid, comment):
+def create_network_object(import_id, name, type, ip, uid, color, comment):
     return {
         'control_id': import_id,
         'obj_name': name,
         'obj_typ': type,
         'obj_ip': ip,
         'obj_uid': uid,
+        'obj_color': color,
         'obj_comment': comment
     }

@@ -20,9 +20,8 @@ config system admin profile
     edit "apiuserprofile"
        set super-user-profile enable
     next
-    n
-end
 ```
+enter yes here!
 
 NB: the user will have full rw access via UI but can be restricted to read-only via API as shown below.
 Need to find out if there is a more secure way to create an all-read-only api user

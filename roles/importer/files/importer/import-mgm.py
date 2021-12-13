@@ -134,8 +134,9 @@ if args.out != None:
     with open(full_native_config_filename, "w") as json_data:  # create empty config file
         json_data.write(json.dumps(full_config_json))
 
-with open(normalized_config_filename, "w") as json_data:
-    json_data.write(json.dumps(config2import,indent=2))
+if debug_level>2:
+    with open(normalized_config_filename, "w") as json_data:
+        json_data.write(json.dumps(config2import,indent=2))
 
 # if no changes were found, we get get_config_response==512 and we skip everything else without errors
 # todo: re-structure this to make it more logical/readable

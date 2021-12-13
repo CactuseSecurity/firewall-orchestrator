@@ -75,7 +75,7 @@ def normalize_nat_rules(full_config, config2import, import_id):
     original_obj_name = 'Original'
     original_obj_uid = '01234-12345-23456-34567'
     config2import['network_objects'].append(fmgr_network.create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
-        uid=original_obj_uid, comment='"original" network object created by FWO importer for NAT purposes'))
+        uid=original_obj_uid, color='black', comment='"original" network object created by FWO importer for NAT purposes'))
 
     for dev_id in full_config['nat_by_dev_id']:
         for rule_orig in full_config['nat_by_dev_id'][dev_id]:

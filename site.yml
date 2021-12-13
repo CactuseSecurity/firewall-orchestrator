@@ -55,6 +55,12 @@
 - hosts: apiserver
   roles:
     - { role: docker, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - backend
+    - api
+
+- hosts: apiserver
+  roles:
     - { role: api, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
@@ -119,7 +125,7 @@
 - hosts: frontends
   tasks:
     - name: restart ui service to display new version
-      service: 
+      service:
         name: "{{ ui_service_name }}"
         state: restarted
       become: yes

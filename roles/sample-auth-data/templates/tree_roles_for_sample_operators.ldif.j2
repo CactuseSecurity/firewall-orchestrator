@@ -2,14 +2,14 @@
 dn: cn=reporter,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=user2_demo,ou=tenant2_demo,ou=operator,ou=user,dc=fworch,dc=internal
+uniquemember: uid=user2{{ sample_postfix }},ou=tenant2{{ sample_postfix }},ou=operator,ou=user,dc=fworch,dc=internal
 
 dn: cn=workflow-user,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=user2_demo,ou=tenant2_demo,ou=operator,ou=user,{{ openldap_path }}
+uniquemember: uid=user2{{ sample_postfix }},ou=tenant2{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}
 
 dn: cn=reporter,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
-uniquemember: uid=user1_demo,ou=tenant1_demo,ou=operator,ou=user,{{ openldap_path }}
+uniquemember: uid=user1{{ sample_postfix }},ou=tenant1{{ sample_postfix }},ou=operator,ou=user,{{ openldap_path }}

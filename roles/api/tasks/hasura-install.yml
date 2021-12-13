@@ -108,8 +108,6 @@
       http_proxy:                      "{{ http_proxy }}"
       https_proxy:                     "{{ https_proxy }}"
 
-#                                          "claims_namespace_path": "https://hasura.io/jwt/claims"
-
 - name: show hasura env for debugging
   debug:
     var:
@@ -131,7 +129,6 @@
     recreate: yes
     exposed_ports:
       - "{{ api_port }}:{{ api_port }}"
-      #- "{{ api_ip_address }}:{{ api_port }}:{{ api_port }}"
     env:
       "{{ hasura_env }}"
   register: docker_return

@@ -50,7 +50,7 @@ while True:
         importer_pwd = file.read().replace('\n', '')
     jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url, ssl_verification=args.ssl, proxy=args.proxy)
     mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
-    api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='elementsPerFetch')
+    api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
         
     for mgm_id in mgm_ids:
         id = str(mgm_id['id'])

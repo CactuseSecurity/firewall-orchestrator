@@ -43,7 +43,7 @@ namespace FWO.Api.Data
 
         [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
         public NetworkLocation[] Froms { get; set; } = new NetworkLocation[]{};
-
+      
         [JsonProperty("rule_dst_neg"), JsonPropertyName("rule_dst_neg")]
         public bool DestinationNegated { get; set; }
 

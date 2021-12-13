@@ -161,3 +161,6 @@ adding report template format fk and permissions
 
 ### 5.5.3 - 08.12.2021
 - add column global_tenant_name to ldap_connection
+
+### 5.5.4 - 13.12.2021
+- insert default config values

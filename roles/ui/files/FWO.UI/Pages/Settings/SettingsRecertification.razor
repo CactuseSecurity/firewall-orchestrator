@@ -30,7 +30,7 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-    ConfigDbAccess config;
+    ConfigDbAccess? config;
     int recertificationDisplayPeriod = 30;
 
     protected override async Task OnInitializedAsync()

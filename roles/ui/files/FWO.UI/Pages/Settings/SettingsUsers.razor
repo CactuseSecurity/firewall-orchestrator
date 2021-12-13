@@ -273,10 +273,10 @@
             {
                 <AuthorizeView Roles="admin">
                     <Authorized>
-                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("delete"))</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveSampleData()">@(userConfig.GetText("remove"))</button>
                     </Authorized>
                     <NotAuthorized>
-                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("delete"))</button>
+                        <button class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("remove"))</button>
                     </NotAuthorized> 
                 </AuthorizeView>
             }
@@ -835,7 +835,7 @@
                         IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
                         if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                         {
-                            DisplayMessageInUi(null, userConfig.GetText("add_user_to_group"), userConfig.GetText("E5242"), true);
+                            DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                         }
                     }
                 }
@@ -843,7 +843,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_group"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("assign_user_to_group"), "", true);
         }
     }
 
@@ -862,7 +862,7 @@
                         IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
                         if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                         {
-                            DisplayMessageInUi(null, userConfig.GetText("add_user_to_role"), userConfig.GetText("E5255"), true);
+                            DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
                         }
                     }
                 }
@@ -870,7 +870,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user_to_role"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
         }
     }
 

@@ -30,15 +30,15 @@ namespace FWO.Api.Data
         public int OwnerId { get; set; }
 
         [JsonProperty("report_json"), JsonPropertyName("report_json")]
-        public string Json { get; set; } = "";
+        public string? Json { get; set; }
 
         [JsonProperty("report_pdf"), JsonPropertyName("report_pdf")]
-        public string Pdf { get; set; } = "";
+        public string? Pdf { get; set; }
 
         [JsonProperty("report_html"), JsonPropertyName("report_html")]
-        public string Html { get; set; } = "";
+        public string? Html { get; set; }
 
         [JsonProperty("report_csv"), JsonPropertyName("report_csv")]
-        public string Csv { get; set; } = "";
+        public string? Csv { get; set; }
     }
 }

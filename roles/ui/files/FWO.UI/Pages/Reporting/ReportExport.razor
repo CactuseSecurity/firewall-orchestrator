@@ -100,14 +100,14 @@
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
 
     [Parameter]
-    public ReportBase ReportToExport { get; set; }
+    public ReportBase? ReportToExport { get; set; }
 
     private bool ExportPdf = false;
     private bool ExportJson = false;
     private bool ExportHtml = false;
     private bool ExportCsv = false;
     private bool ExportArchive = false;
-    private ReportFile reportExportFile;
+    private ReportFile reportExportFile = new ReportFile();
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;

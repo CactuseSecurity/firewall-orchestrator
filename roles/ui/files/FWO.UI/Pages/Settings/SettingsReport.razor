@@ -33,7 +33,7 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-    ConfigDbAccess config;
+    ConfigDbAccess? config;
     int elementsPerFetch = 100;
 
     protected override async Task OnInitializedAsync()

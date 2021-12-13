@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace FWO.Api.Data
 {
@@ -12,6 +13,13 @@ namespace FWO.Api.Data
 
         public DistName(string? dn)
         {
+            //Regex r = new Regex("(?:^|,\\s?)(?:(?<name>[A-Z]+)=(?<val>\"(?:[^\"]| \"\")+\"|(?:\\,|[^,])+))+");
+            //GroupCollection groups = r.Match(dn ?? "").Groups;
+            //foreach (string group in r.GetGroupNames())
+            //{
+            //    groups[group];
+            //}
+
             UserName = "";
             Role = "";
             Group = "";
@@ -20,7 +28,7 @@ namespace FWO.Api.Data
             bool lastValue = false;
             if (dn != null)
             {
-                while(lastValue == false)
+                while (lastValue == false)
                 {
                     int IndexPrefixDelim = dn.IndexOf("=");
                     if(IndexPrefixDelim > 0)

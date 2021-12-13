@@ -53,16 +53,4 @@
     import_tasks: run-upgrades.yml
     when: "installation_mode == 'upgrade'"
 
-  - name: test handler
-    set_fact:
-      docker_handler: stop
-    changed_when: true
-    notify: "docker restart"
-
-  - name: restart docker
-    systemd:
-      name: docker
-      daemon_reload: yes
-      state: restarted
-    
   become: yes

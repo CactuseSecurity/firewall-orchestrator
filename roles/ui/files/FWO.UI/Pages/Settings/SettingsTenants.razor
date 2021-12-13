@@ -32,6 +32,7 @@
         <Column TableItem="Tenant" Title="@(userConfig.GetText("tenant_action"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
+                    <button class="btn btn-sm btn-warning" @onclick="() => EditTenant(context)">@(userConfig.GetText("edit_tenant"))</button>
                     @if (context.Id != 1)
                     {
                         <button class="btn btn-sm btn-danger" @onclick="() => RequestDeleteTenant(context)">@(userConfig.GetText("delete_tenant"))</button>
@@ -66,30 +67,31 @@
                 @(GlobalConfig.ShowBool(context.ViewAllDevices))
             </Template>
         </Column>
-        <Column TableItem="Tenant" Title="@(userConfig.GetText("superadmin"))" Field="@(x => x.Superadmin)" Sortable="true" Filterable="true" >
-            <Template>
-                @(GlobalConfig.ShowBool(context.Superadmin))
-            </Template>
-        </Column>
         <Column TableItem="Tenant" Title="@(userConfig.GetText("gateways"))" Field="@(x => x.TenantDevices)" Sortable="false" Filterable="false">
             <Template>
                 @(context.DeviceList())
             </Template>
         </Column>
-
     </Table>
 </div>
 
-<PopUp Title="@(userConfig.GetText("add_tenant"))" Show="@AddTenantMode" Large="true" OnClose="() => AddTenantMode = false">
+<PopUp Title="@(AddTenantMode ? userConfig.GetText("add_tenant"): userConfig.GetText("edit_tenant"))" Show="@EditTenantMode" Large="true" OnClose="() => EditTenantMode = false">
     <Body>
-        @if (AddTenantMode)
+        @if (EditTenantMode)
         {
             <form>
                 <div class="form-group row">
                     <label for="tenantName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                    <div class="col-sm-8">
-                        <input id="tenantName" type="text" class="form-control form-control-sm" @bind="actTenant.Name" />
-                    </div>
+                    @if (AddTenantMode)
+                    {                
+                        <div class="col-sm-8">
+                            <input id="tenantName" type="text" class="form-control form-control-sm" @bind="actTenant.Name" />
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="col-sm-8">@actTenant.Name</label>
+                    }
                 </div>
                 <div class="form-group row">
                     <label for="tenantComment" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
@@ -103,15 +105,13 @@
                         <input id="tenantProject" type="text" class="form-control form-control-sm" @bind="actTenant.Project" />
                     </div>
                 </div>
-
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" id="tenantViewAllDevices" type="checkbox" @bind="actTenant.ViewAllDevices">
-                    <label class="form-check-label" for="tenantViewAllDevices"><small>@(userConfig.GetText("view_all_devices"))</small></label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" id="tenantSuperadmin" type="checkbox" @bind="actTenant.Superadmin">
-                    <label class="form-check-label" for="tenantSuperadmin"><small>@(userConfig.GetText("superadmin"))</small></label>
-                </div>
+                @if (!isTenant0)
+                {
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" id="tenantViewAllDevices" type="checkbox" @bind="actTenant.ViewAllDevices">
+                        <label class="form-check-label" for="tenantViewAllDevices"><small>@(userConfig.GetText("view_all_devices"))</small></label>
+                    </div>
+                }
             </form>
         }
     </Body>
@@ -119,10 +119,10 @@
         <div class="btn-group">
             <AuthorizeView Roles="admin">
                 <Authorized>
-                    <button class="btn btn-sm btn-primary" @onclick="AddTenant">@(userConfig.GetText("add"))</button>
+                    <button class="btn btn-sm btn-primary" @onclick="SaveTenant">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
-                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("add"))</button>
+                    <button class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
             </AuthorizeView>
             <button class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
@@ -263,7 +263,9 @@
     private Tenant actTenant = new Tenant();
     private int selectedDevice;
 
+    private bool isTenant0 = false;
     private bool AddTenantMode = false;
+    private bool EditTenantMode = false;
     private bool DeleteTenantMode = false;
     private bool DeleteTenantAllowed= false;
     private string deleteTenantMessage = "";
@@ -308,44 +310,67 @@
         }
     }
 
-    private void NewTenant()
+    private void EditTenant(Tenant tenant)
     {
-        actTenant = new Tenant();
-        AddTenantMode = true;
+        actTenant = tenant;
+        isTenant0 = tenant.Id == 1;
+        EditTenantMode = true;
     }
 
-    private async Task AddTenant()
+    private void NewTenant()
+    {
+        EditTenant(new Tenant());
+        AddTenantMode = true;
+     }
+
+    private async Task SaveTenant()
     {
         try
-        {                
-            if (actTenant.Name == null || actTenant.Name == "")
+        {
+            if (actTenant.Name == "")
             {
-                DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5234"), true);
+                DisplayMessageInUi(null, userConfig.GetText("save_tenant"), userConfig.GetText("E5234"), true);
             }
-            else if(tenants.Exists(x => x.Name == actTenant.Name))
+            else if (AddTenantMode)
             {
-                DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
-            }
-            else
-            {
-                // add tenant in local Ldap
-                IRestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
-                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
+                if(tenants.Exists(x => x.Name == actTenant.Name))
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_tenant_ldap"), userConfig.GetText("E5281"), true);
+                    DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
                 }
                 else
                 {
-                    actTenant.Id = middlewareServerResponse.Data;
-                    tenants.Add(actTenant);
+                    // add tenant in local Ldap and db
+                    IRestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
+                    if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
+                    {
+                        DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
+                    }
+                    else
+                    {
+                        actTenant.Id = middlewareServerResponse.Data;
+                        tenants.Add(actTenant);
+                        AddTenantMode = false;
+                        EditTenantMode = false;
+                    }
                 }
             }
-            AddTenantMode = false;
-
+            else
+            {
+                // update tenant in local db
+                IRestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
+                if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
+                }
+                else
+                {
+                    EditTenantMode = false;
+                }
+            }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_tenant"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("save_tenant"), "", true);
         }
     }
 
@@ -382,7 +407,7 @@
             IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_tenant_ldap"), userConfig.GetText("E5282"), true);
+                DisplayMessageInUi(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
             }
             else
             {
@@ -392,7 +417,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant_ldap"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
         }
     }
 
@@ -518,6 +543,7 @@
     private void Cancel()
     {
         AddTenantMode = false;
+        EditTenantMode = false;
         DeleteTenantMode = false;
         AddDeviceMode = false;
         DeleteDeviceMode = false;

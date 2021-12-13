@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
     public class ServiceWrapper
     {
         [JsonProperty("service"), JsonPropertyName("service")]
-        public NetworkService Content { get; set; }
+        public NetworkService Content { get; set; } = new NetworkService();
     }
     // public class ServiceObjectRecursiveWrapper
     // {

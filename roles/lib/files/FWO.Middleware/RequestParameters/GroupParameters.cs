@@ -6,6 +6,12 @@
         public string SearchPattern { get; set; } = "";
     }
 
+    public class GroupGetReturnParameters
+    {
+        public string GroupDn { get; set; } = "";
+        public List<string> Members { get; set; } = new List<string>();
+    }
+
     public class GroupAddDeleteParameters
     {
         public string GroupName { get; set; } = "";

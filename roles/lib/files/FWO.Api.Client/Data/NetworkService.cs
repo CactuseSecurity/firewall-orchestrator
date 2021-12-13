@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
@@ -13,10 +9,10 @@ namespace FWO.Api.Data
         public long Id { get; set; }
 
         [JsonProperty("svc_name"), JsonPropertyName("svc_name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         [JsonProperty("svc_uid"), JsonPropertyName("svc_uid")]
-        public string Uid { get; set; }
+        public string Uid { get; set; } = "";
 
         [JsonProperty("svc_port"), JsonPropertyName("svc_port")]
         public int? DestinationPort { get; set; }
@@ -31,7 +27,7 @@ namespace FWO.Api.Data
         public int? SourcePortEnd { get; set; }
 
         [JsonProperty("svc_code"), JsonPropertyName("svc_code")]
-        public string Code { get; set; }
+        public string Code { get; set; } = "";
 
         [JsonProperty("svc_timeout"), JsonPropertyName("svc_timeout")]
         public int? Timeout { get; set; }
@@ -46,16 +42,16 @@ namespace FWO.Api.Data
         public int Create { get; set; }
 
         [JsonProperty("svc_create_time"), JsonPropertyName("svc_create_time")]
-        public TimeWrapper CreateTime { get; set; }
+        public TimeWrapper CreateTime { get; set; } = new TimeWrapper(){};
 
         [JsonProperty("svc_last_seen"), JsonPropertyName("svc_last_seen")]
         public int LastSeen { get; set; }
 
         [JsonProperty("service_type"), JsonPropertyName("service_type")]
-        public NetworkServiceType Type { get; set; }
+        public NetworkServiceType Type { get; set; } = new NetworkServiceType(){};
 
         [JsonProperty("svc_comment"), JsonPropertyName("svc_comment")]
-        public string Comment { get; set; }
+        public string Comment { get; set; } = "";
 
         [JsonProperty("svc_color_id"), JsonPropertyName("svc_color_id")]
         public int? ColorId { get; set; }
@@ -64,19 +60,19 @@ namespace FWO.Api.Data
         public int? ProtoId { get; set; }
 
         [JsonProperty("protocol_name"), JsonPropertyName("protocol_name")]
-        public NetworkProtocol Protocol { get; set; }
+        public NetworkProtocol Protocol { get; set; } = new NetworkProtocol(){};
 
         [JsonProperty("svc_member_names"), JsonPropertyName("svc_member_names")]
-        public string MemberNames { get; set; }
+        public string MemberNames { get; set; } = "";
 
         [JsonProperty("svc_member_refs"), JsonPropertyName("svc_member_refs")]
-        public string MemberRefs { get; set; }
+        public string MemberRefs { get; set; } = "";
 
         [JsonProperty("svcgrps"), JsonPropertyName("svcgrps")]
-        public Group<NetworkService>[] ServiceGroups { get; set; }
+        public Group<NetworkService>[] ServiceGroups { get; set; } = new Group<NetworkService>[]{};
 
         [JsonProperty("svcgrp_flats"), JsonPropertyName("svcgrp_flats")]
-        public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; }
+        public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = new GroupFlat<NetworkService>[]{};
 
         public override bool Equals(object obj)
         {

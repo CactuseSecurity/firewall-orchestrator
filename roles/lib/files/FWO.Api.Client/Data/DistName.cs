@@ -69,6 +69,7 @@
                             case "dc":
                             case "c":
                                 Root.Add(Value);
+                                Path.Add(Value);
                                 break;
                             default: 
                                 break;

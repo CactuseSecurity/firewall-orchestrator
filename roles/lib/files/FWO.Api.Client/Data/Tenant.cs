@@ -1,29 +1,30 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 using FWO.Middleware.RequestParameters;
 
 namespace FWO.Api.Data
 {
     public class Tenant
     {
-        [JsonPropertyName("tenant_id")]
+        [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("tenant_name")]
+        [JsonProperty("tenant_name"), JsonPropertyName("tenant_name")]
         public string Name { get; set; } = "";
 
-        [JsonPropertyName("tenant_comment")]
+        [JsonProperty("tenant_comment"), JsonPropertyName("tenant_comment")]
         public string? Comment { get; set; }
 
-        [JsonPropertyName("tenant_projekt")]
+        [JsonProperty("tenant_projekt"), JsonPropertyName("tenant_projekt")]
         public string? Project { get; set; }
 
-        [JsonPropertyName("tenant_can_view_all_devices")]
+        [JsonProperty("tenant_can_view_all_devices"), JsonPropertyName("tenant_can_view_all_devices")]
         public bool ViewAllDevices { get; set; }
 
-        [JsonPropertyName("tenant_is_superadmin")]
-        public bool Superadmin { get; set; }
+        [JsonProperty("tenant_is_superadmin"), JsonPropertyName("tenant_is_superadmin")]
+        public bool Superadmin { get; set; } // curently not in use
 
-        [JsonPropertyName("tenant_to_devices")]
+        [JsonProperty("tenant_to_devices"), JsonPropertyName("tenant_to_devices")]
         public TenantDevice[] TenantDevices { get; set; } // TODO: Replace with Device[] (probably not possible)
 
         public int[] VisibleDevices { get; set; } // TODO: Remove later (probably not possible)
@@ -43,7 +44,7 @@ namespace FWO.Api.Data
             Comment = tenant.Comment;
             Project = tenant.Project;
             ViewAllDevices = tenant.ViewAllDevices;
-            Superadmin = tenant.Superadmin;
+            // Superadmin = tenant.Superadmin;
             TenantDevices = tenant.TenantDevices;
             VisibleDevices = tenant.VisibleDevices;
             VisibleManagements = tenant.VisibleManagements;
@@ -56,13 +57,13 @@ namespace FWO.Api.Data
             Comment = tenantGetParameters.Comment;
             Project = tenantGetParameters.Project;
             ViewAllDevices = tenantGetParameters.ViewAllDevices;
-            Superadmin = tenantGetParameters.Superadmin;
+            // Superadmin = tenantGetParameters.Superadmin;
             List<TenantDevice> deviceList = new List<TenantDevice>();
             if (tenantGetParameters.Devices != null)
             {
-                foreach(KeyValuePair<int,string> apiDevice in tenantGetParameters.Devices)
+                foreach(TenantViewDevice apiDevice in tenantGetParameters.Devices)
                 {
-                    Device visibleDevice = new Device(){Id = apiDevice.Key, Name = apiDevice.Value};
+                    Device visibleDevice = new Device(){Id = apiDevice.Id, Name = apiDevice.Name};
                     deviceList.Add(new TenantDevice(){VisibleDevice = visibleDevice});
                 }
             }
@@ -91,32 +92,44 @@ namespace FWO.Api.Data
                 Comment = this.Comment,
                 Project = this.Project,
                 ViewAllDevices = this.ViewAllDevices,
-                Superadmin = this.Superadmin,
-                Devices = new List<KeyValuePair<int,string>>()
+                // Superadmin = this.Superadmin,
+                Devices = new List<TenantViewDevice>()
             };
             foreach (TenantDevice device in TenantDevices)
             {
-                tenantGetParams.Devices.Add(new KeyValuePair<int,string>(device.VisibleDevice.Id, (device.VisibleDevice.Name != null ? device.VisibleDevice.Name : "")));
+                tenantGetParams.Devices.Add(new TenantViewDevice(){ Id = device.VisibleDevice.Id, Name = (device.VisibleDevice.Name != null ? device.VisibleDevice.Name : "")});
             }
             return tenantGetParams;
+        }
+
+        public TenantEditParameters ToApiUpdateParams()
+        {
+            TenantEditParameters tenantUpdateParams = new TenantEditParameters
+            {
+                Id = this.Id,
+                Comment = this.Comment,
+                Project = this.Project,
+                ViewAllDevices = this.ViewAllDevices
+            };
+            return tenantUpdateParams;
         }
     }
 
     public class TenantDevice
     {
-        [JsonPropertyName("device")]
+        [JsonProperty("device"), JsonPropertyName("device")]
         public Device VisibleDevice { get; set; } = new Device();
     }
 
     public class DeviceId
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
     }
 
     public class ManagementId
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
     }
 }

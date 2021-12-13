@@ -68,6 +68,7 @@
                 @(context.TenantId != null ? tenants.FirstOrDefault(x => x.Id == context.TenantId)?.Name ?? "" : "" )
             </Template>
         </Column>
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("global_tenant_name"))" Field="@(x => x.GlobalTenantName)" Sortable="true" Filterable="true" />
     </Table>
 </div>
 
@@ -171,6 +172,12 @@
                         </select>
                     </div>
                 </div>
+                <div class="form-group row">
+                    <label for="ldapGlobTenName" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("global_tenant_name")):</label>
+                    <div class="col-sm-8">
+                        <input id="ldapGlobTenName" type="text" class="form-control form-control-sm" @bind="actLdapConnection.GlobalTenantName" />
+                    </div>
+                </div>
             </form>
         }
     </Body>
@@ -246,19 +253,12 @@
                     connectedLdaps.Add(new UiLdapConnection(conn));
                 }
             }
-        }
-        catch (System.Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_ldap_conn"), "", true);
-        }
 
-        try
-        {
             tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_tenants"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 

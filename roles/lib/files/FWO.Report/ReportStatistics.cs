@@ -153,7 +153,8 @@ namespace FWO.Report
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{device.Name}</td>");
-                    report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
+                    if (device.RuleStatistics != null) 
+                        report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
                     report.AppendLine("</tr>");
                 }
                 report.AppendLine("</table>");

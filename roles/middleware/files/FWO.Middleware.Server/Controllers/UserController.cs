@@ -43,9 +43,9 @@ namespace FWO.Middleware.Controllers
         // GET api/<ValuesController>/5
         [HttpPost("Get")]
         [Authorize(Roles = "admin, auditor")]
-        public async Task<List<KeyValuePair<string, string>>> Get([FromBody] UserGetParameters parameters)
+        public async Task<List<LdapUserGetReturnParameters>> Get([FromBody] LdapUserGetParameters parameters)
         {
-            List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
+            List<LdapUserGetReturnParameters> allUsers = new List<LdapUserGetReturnParameters>();
 
             foreach (Ldap currentLdap in ldaps)
             {

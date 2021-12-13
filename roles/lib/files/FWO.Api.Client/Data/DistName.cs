@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace FWO.Api.Data
+﻿namespace FWO.Api.Data
 {
     public class DistName
     {
@@ -62,9 +60,14 @@ namespace FWO.Api.Data
                                 }
                                 break;
                             case "ou":
+                            case "o":
+                            case "l":
+                            case "st":
+                            case "street":
                                 Path.Add(Value);
                                 break;
                             case "dc":
+                            case "c":
                                 Root.Add(Value);
                                 break;
                             default: 
@@ -86,7 +89,7 @@ namespace FWO.Api.Data
 
         public string getTenant (int tenantLevel = 1)
         {
-            return (tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[tenantLevel - 1] : "";
+            return (tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[Path.Count - tenantLevel] : "";
         }
     }
 }

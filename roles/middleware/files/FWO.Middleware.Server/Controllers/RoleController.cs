@@ -22,10 +22,10 @@ namespace FWO.Middleware.Controllers
         // GET: api/<ValuesController>
         [HttpGet]
         [Authorize(Roles = "admin, auditor")]
-        public async Task<KeyValuePair<string, List<KeyValuePair<string, string>>>[]> Get()
+        public async Task<List<RoleGetReturnParameters>> Get()
         {
             // No parameters
-            ConcurrentBag<KeyValuePair<string, List<KeyValuePair<string, string>>>> allRoles = new ConcurrentBag<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
+            ConcurrentBag<RoleGetReturnParameters> allRoles = new ConcurrentBag<RoleGetReturnParameters>();
             ConcurrentBag<Task> ldapRoleRequests = new ConcurrentBag<Task>();
 
             foreach (Ldap currentLdap in ldaps)
@@ -35,8 +35,8 @@ namespace FWO.Middleware.Controllers
                     ldapRoleRequests.Add(Task.Run(() =>
                     {
                         // if current Ldap has roles stored: Get all roles from current Ldap
-                        List<KeyValuePair<string, List<KeyValuePair<string, string>>>> currentRoles = currentLdap.GetAllRoles();
-                        foreach (KeyValuePair<string, List<KeyValuePair<string, string>>> role in currentRoles)
+                        List<RoleGetReturnParameters> currentRoles = currentLdap.GetAllRoles();
+                        foreach (RoleGetReturnParameters role in currentRoles)
                             allRoles.Add(role);
                     }));
                 }
@@ -45,7 +45,7 @@ namespace FWO.Middleware.Controllers
             await Task.WhenAll(ldapRoleRequests);
 
             // Return status and result
-            return allRoles.ToArray();
+            return allRoles.ToList();
         }
 
         [HttpPost("User")]

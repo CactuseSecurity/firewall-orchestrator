@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
+
 object changesLock = new object(); // LOCK
 int jwtMinutesValid = 240;  // TODO: MOVE TO API/Config    
 

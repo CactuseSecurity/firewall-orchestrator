@@ -269,19 +269,12 @@ namespace FWO.Middleware.Controllers
             // TODO: Both api calls in this method can be shortened to to a single query / api call
             var tenIdObj = new { tenantId = tenant.Id };
 
-            DeviceId[] deviceIds = await apiConnection.SendQueryAsync<DeviceId[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
-            tenant.VisibleDevices = new int[deviceIds.Length];
-            for (int i = 0; i < deviceIds.Length; ++i)
-            {
-                tenant.VisibleDevices[i] = deviceIds[i].Id;
-            }
+            Device[] deviceIds = await apiConnection.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
+            tenant.VisibleDevices = Array.ConvertAll(deviceIds, device => device.Id);
 
-            ManagementId[] managementIds = await apiConnection.SendQueryAsync<ManagementId[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
-            tenant.VisibleManagements = new int[managementIds.Length];
-            for (int i = 0; i < managementIds.Length; ++i)
-            {
-                tenant.VisibleManagements[i] = managementIds[i].Id;
-            }
+            Management[] managementIds = await apiConnection.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
+            tenant.VisibleManagements = Array.ConvertAll(managementIds, management => management.Id);
+
             return tenant;
         }
     }

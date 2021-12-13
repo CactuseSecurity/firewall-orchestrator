@@ -146,7 +146,6 @@
                     Log.WriteAudit("AuthenticateUser", $"user {Username} successfully authenticated");
 
                     string jwt = apiAuthResponse.Data;
-                    middlewareClient.SetAuthenticationToken(jwt);
 
                     // Save it in session storage.
                     await sessionStorage.SetAsync("jwt", jwt);
@@ -165,7 +164,7 @@
                 else
                 {
                     // There was an error trying to authenticate the user. Probably invalid credentials
-                    errorMessage = apiAuthResponse.ErrorException != null ? apiAuthResponse.ErrorMessage : apiAuthResponse.Content;
+                    errorMessage = "Middleware Api Error: " + (apiAuthResponse.ErrorException != null ? apiAuthResponse.ErrorMessage : apiAuthResponse.Content);
                     //userConfig.GetApiText(apiAuthResponse.ErrorException.Message);
 
                     // Visualisize there was an error by making border of inputboxes red

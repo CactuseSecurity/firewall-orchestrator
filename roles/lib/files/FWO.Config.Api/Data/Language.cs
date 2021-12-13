@@ -8,7 +8,6 @@ namespace FWO.Config.Api.Data
     /// </summary>
     public class Language
     {
-
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 

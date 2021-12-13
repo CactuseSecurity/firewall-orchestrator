@@ -17,6 +17,7 @@
         public string? WriteUser { get; set; }
         public string? WriteUserPwd { get; set; }
         public int? TenantId { get; set; }
+        public string? GlobalTenantName { get; set; }
 
         public LdapAddParameters()
         {}
@@ -38,6 +39,7 @@
             WriteUser = ldapAddParameters.WriteUser;
             WriteUserPwd = ldapAddParameters.WriteUserPwd;
             TenantId = ldapAddParameters.TenantId;
+            GlobalTenantName = ldapAddParameters.GlobalTenantName;
         }
     }
 

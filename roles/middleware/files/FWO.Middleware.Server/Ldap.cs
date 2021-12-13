@@ -37,6 +37,7 @@ namespace FWO.Middleware.Server
 
             catch (Exception exception)
             {
+                Log.WriteDebug($"Could not connect to LDAP server {Address}:{Port}: ", exception.Message);
                 throw new Exception($"Error while trying to reach LDAP server {Address}:{Port}", exception);
             }
         }
@@ -307,9 +308,9 @@ namespace FWO.Middleware.Server
             return userMemberships;
         }
 
-        public List<KeyValuePair<string, List<KeyValuePair<string, string>>>> GetAllRoles()
+        public List<RoleGetReturnParameters> GetAllRoles()
         {
-            List<KeyValuePair<string, List<KeyValuePair<string, string>>>> roleUsers = new List<KeyValuePair<string, List<KeyValuePair<string, string>>>>();
+            List<RoleGetReturnParameters> roleUsers = new List<RoleGetReturnParameters>();
 
             // If this Ldap is containing roles
             if (HasRoleHandling())
@@ -330,19 +331,19 @@ namespace FWO.Middleware.Server
                         // Foreach found role
                         foreach (LdapEntry entry in searchResults)
                         {
-                            List<KeyValuePair<string, string>> attributes = new List<KeyValuePair<string, string>>();
+                            List<RoleAttribute> attributes = new List<RoleAttribute>();
                             string roleDesc = entry.GetAttribute("description").StringValue;
-                            attributes.Add(new KeyValuePair<string, string>("description", roleDesc));
+                            attributes.Add(new RoleAttribute(){ Key = "description", Value = roleDesc });
 
                             string[] roleMemberDn = entry.GetAttribute("uniqueMember").StringValueArray;
                             foreach (string currentDn in roleMemberDn)
                             {
                                 if (currentDn != "")
                                 {
-                                    attributes.Add(new KeyValuePair<string, string>("user", currentDn));
+                                    attributes.Add(new RoleAttribute(){ Key = "user", Value = currentDn });
                                 }
                             }
-                            roleUsers.Add(new KeyValuePair<string, List<KeyValuePair<string, string>>>(entry.Dn, attributes));
+                            roleUsers.Add(new RoleGetReturnParameters(){ Role = entry.Dn, Attributes = attributes});
                         }
                     }
                 }
@@ -382,9 +383,9 @@ namespace FWO.Middleware.Server
             return allGroups;
         }
 
-        public List<KeyValuePair<string, List<string>>> GetAllInternalGroups()
+        public List<GroupGetReturnParameters> GetAllInternalGroups()
         {
-            List<KeyValuePair<string, List<string>>> allGroups = new List<KeyValuePair<string, List<string>>>();
+            List<GroupGetReturnParameters> allGroups = new List<GroupGetReturnParameters>();
 
             try
             {
@@ -409,7 +410,7 @@ namespace FWO.Middleware.Server
                                 members.Add(currentDn);
                             }
                         }
-                        allGroups.Add(new KeyValuePair<string, List<string>>(entry.Dn, members));
+                        allGroups.Add(new GroupGetReturnParameters(){GroupDn = entry.Dn, Members = members});
                     }
                 }
             }
@@ -420,9 +421,10 @@ namespace FWO.Middleware.Server
             return allGroups;
         }
 
-        public List<KeyValuePair<string, string>> GetAllUsers(string searchPattern)
+        public List<LdapUserGetReturnParameters> GetAllUsers(string searchPattern)
         {
-            List<KeyValuePair<string, string>> allUsers = new List<KeyValuePair<string, string>>();
+            Log.WriteDebug("GetAllUsers", $"Looking for users with pattern {searchPattern} in {Address}:{Port}");
+            List<LdapUserGetReturnParameters> allUsers = new List<LdapUserGetReturnParameters>();
 
             try
             {
@@ -439,11 +441,15 @@ namespace FWO.Middleware.Server
                     cons.ReferralFollowing = true;
                     connection.Constraints = cons;
 
-                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath, searchScope, getUserSearchFilter(searchPattern), null, false);                
+                    LdapSearchResults searchResults = (LdapSearchResults)connection.Search(UserSearchPath, searchScope, getUserSearchFilter(searchPattern), null, false);
 
                     foreach (LdapEntry entry in searchResults)
                     {
-                        allUsers.Add(new KeyValuePair<string, string> (entry.Dn, (entry.GetAttributeSet().ContainsKey("mail") ? entry.GetAttribute("mail").StringValue : "")));
+                        allUsers.Add(new LdapUserGetReturnParameters()
+                        {
+                            UserDn = entry.Dn,
+                            Email = (entry.GetAttributeSet().ContainsKey("mail") ? entry.GetAttribute("mail").StringValue : null)
+                        });
                     }
                 }
             }

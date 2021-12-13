@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
@@ -14,7 +9,7 @@ namespace FWO.Api.Data
         public int Id { get; set; }
 
         [JsonProperty("report_name"), JsonPropertyName("report_name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         [JsonProperty("report_start_time"), JsonPropertyName("report_start_time")]
         public DateTime GenerationDateStart { get; set; }
@@ -23,27 +18,27 @@ namespace FWO.Api.Data
         public DateTime GenerationDateEnd { get; set; }
 
         [JsonProperty("report_template"), JsonPropertyName("report_template")]
-        public ReportTemplate Template { get; set; }
+        public ReportTemplate Template { get; set; } = new ReportTemplate();
 
         [JsonProperty("report_template_id"), JsonPropertyName("report_template_id")]
         public int TemplateId { get; set; }
 
         [JsonProperty("uiuser"), JsonPropertyName("uiuser")]
-        public UiUser Owner { get; set; }
+        public UiUser Owner { get; set; } = new UiUser();
 
         [JsonProperty("report_owner_id"), JsonPropertyName("report_owner_id")]
         public int OwnerId { get; set; }
 
         [JsonProperty("report_json"), JsonPropertyName("report_json")]
-        public string Json { get; set; }
+        public string Json { get; set; } = "";
 
         [JsonProperty("report_pdf"), JsonPropertyName("report_pdf")]
-        public string Pdf { get; set; }
+        public string Pdf { get; set; } = "";
 
         [JsonProperty("report_html"), JsonPropertyName("report_html")]
-        public string Html { get; set; }
+        public string Html { get; set; } = "";
 
         [JsonProperty("report_csv"), JsonPropertyName("report_csv")]
-        public string Csv { get; set; }
+        public string Csv { get; set; } = "";
     }
 }

@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
-using System.Threading.Tasks;
 
 namespace FWO.Api.Data
 {
@@ -14,18 +9,18 @@ namespace FWO.Api.Data
         public int Id { get; set; }
 
         [JsonProperty("report_template_name"), JsonPropertyName("report_template_name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         [JsonProperty("report_template_create"), JsonPropertyName("report_template_create")]
         public DateTime CreationDate { get; set; }
 
         [JsonProperty("report_template_comment"), JsonPropertyName("report_template_comment")]
-        public string Comment { get; set; }
+        public string Comment { get; set; } = "";
 
         [JsonProperty("report_template_owner"), JsonPropertyName("report_template_owner")]
         public int Owner { get; set; }
 
         [JsonProperty("report_filter"), JsonPropertyName("report_filter")]
-        public string Filter { get; set; }
+        public string Filter { get; set; } = "";
     }
 }

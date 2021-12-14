@@ -114,14 +114,6 @@
     - frontend
     - importer
 
-- hosts: all
-  roles:
-    - { role: upgrade-completion, when: "installation_mode == 'upgrade'" }
-  tags:
-    - backend
-    - frontend
-    - importer
-
 - hosts: frontends
   tasks:
     - name: restart ui service to display new version
@@ -151,3 +143,6 @@
     - { role: cleanup, when: "not installation_mode == 'uninstall'" }
   tags:
     - cleanup
+    - backend
+    - frontend
+    - importer

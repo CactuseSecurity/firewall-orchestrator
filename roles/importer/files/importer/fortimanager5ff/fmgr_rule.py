@@ -4,7 +4,7 @@ base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
 sys.path.append(importer_base_dir + '/fortimanager5ff')
-import common, fmgr_service, fmgr_network
+import common, fmgr_service, fmgr_network, fmgr_zone
 
 
 def normalize_access_rules(full_config, config2import, import_id):
@@ -52,14 +52,10 @@ def normalize_access_rules(full_config, config2import, import_id):
             rule['rule_dst'] = common.extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter)
 
             if len(rule_orig['srcintf'])>0:
-                src_obj_zone = rule_orig['srcintf'][0]
-                if src_obj_zone == 'any':
-                    src_obj_zone = 'global'
-                rule.update({ 'rule_from_zone': rule_orig['srcintf'][0] }) # todo: currently only using the first zone
+                src_obj_zone = fmgr_zone.add_zone_if_missing (config2import, rule_orig['srcintf'][0], import_id)
+                rule.update({ 'rule_from_zone': src_obj_zone }) # todo: currently only using the first zone
             if len(rule_orig['dstintf'])>0:
-                dst_obj_zone = rule_orig['dstintf'][0]
-                if dst_obj_zone == 'any':
-                    dst_obj_zone = 'global'
+                dst_obj_zone = fmgr_zone.add_zone_if_missing (config2import, rule_orig['dstintf'][0], import_id)
                 rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
 
             rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})

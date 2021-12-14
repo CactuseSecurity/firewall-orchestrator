@@ -5,7 +5,7 @@ importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
 # sys.path.append(importer_base_dir + '/fortimanager5ff')
 sys.path.append(r"/usr/local/fworch/importer")
-import common #, fwcommon
+import common, fmgr_zone #, fwcommon
 
 
 def normalize_nwobjects(full_config, config2import, import_id):
@@ -48,24 +48,13 @@ def normalize_nwobjects(full_config, config2import, import_id):
         # here only picking first associated interface as zone:
         if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
             obj_zone = obj_orig['associated-interface'][0]
-            if obj_zone == 'any':
-                obj_zone = 'global'
+            # adding zone if it not yet exists
+            obj_zone = fmgr_zone.add_zone_if_missing (config2import, obj_zone, import_id)
             obj.update({'obj_zone': obj_zone })
         
         obj.update({'control_id': import_id})
         nw_objects.append(obj)
         
-        # adding zone if it not yet exists
-        if obj_zone is not None:
-            if 'zone_objects' not in config2import: # no zones yet? add empty zone_objects array
-                config2import.update({'zone_objects': []})
-            zone_exists = False
-            for zone in config2import['zone_objects']:
-                if obj_zone == zone['zone_name']:
-                    zone_exists = True
-            if not zone_exists:
-                config2import['zone_objects'].append({'zone_name': obj_zone, 'control_id': import_id})
-
         # todo: handle groups
         # if 'list' in obj_orig:
         # obj['obj_typ'] = 'group' })

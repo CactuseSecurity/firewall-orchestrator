@@ -63,7 +63,7 @@ def extend_string_list(list_string, src_dict, key, delimiter):
             combined_list = old_list + src_dict[key]
             result = delimiter.join(combined_list)
         else:
-            result = ''
+            result = list_string
     return result
 
 

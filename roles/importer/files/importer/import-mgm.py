@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser(
     description='Read configuration from FW management via API calls')
 parser.add_argument('-m', '--mgm_id', metavar='management_id',
                     required=True, help='FWORCH DB ID of the management server to import')
-parser.add_argument('-c', '--clear', metavar='clear_management', default=False,
+parser.add_argument('-c', '--clear', metavar='clear_management',
                     help='If set the import will delete all data for the given management instead of importing')
 parser.add_argument('-f', '--force', action='store_true', default=False,
                     help='If set the import will be attempted without checking for changes before')

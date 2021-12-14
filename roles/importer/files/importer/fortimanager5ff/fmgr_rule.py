@@ -102,15 +102,15 @@ def normalize_nat_rules(full_config, config2import, import_id):
                     svc_name = 'tcp_' + str(rule_orig['orig-port'])
                 else:
                     svc_name = 'svc_' + str(rule_orig['orig-port'])
-                # need to create a helper service object and add it to the nat rule, also needs to be added to service list!
+                # need to create a helper service object and add it to the nat rule, also needs to be added to service list
 
-                if not 'service_objects' in config2import: # is normally defined, just for testing
+                if not 'service_objects' in config2import: # is normally defined
                     config2import['service_objects'] = []
                 config2import['service_objects'].append(fmgr_service.create_svc_object(import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes'))
                 rule['rule_svc'] = svc_name
 
-                rule['rule_src'] = common.extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter)
-                rule['rule_dst'] = common.extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter)
+                #rule['rule_src'] = common.extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter)
+                #rule['rule_dst'] = common.extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter)
 
                 if len(rule_orig['srcintf'])>0:
                     rule.update({ 'rule_from_zone': rule_orig['srcintf'][0] }) # todo: currently only using the first zone

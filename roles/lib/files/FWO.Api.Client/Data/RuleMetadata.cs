@@ -35,7 +35,6 @@ namespace FWO.Api.Data
         [JsonProperty("rule_recertification_comment"), JsonPropertyName("rule_recertification_comment")]
         public string Comment { get; set; } = "";
 
-
         public DateTime NextRecert { get; set; }
 
         public string LastCertifierName { get; set; } = "";

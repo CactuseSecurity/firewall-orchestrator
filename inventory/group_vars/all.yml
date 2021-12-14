@@ -96,7 +96,7 @@ debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 
 ### password generation
-random_generated_pw: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+random_generated_pw: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
 
 ### logging
 syslog_proto: tcp
@@ -112,7 +112,6 @@ webserver_package_name: apache2
 http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 
 ################# testing #########################
-
 test_dir: "{{ fworch_home }}/test"
-test_fortigate_name: fortigate_test
+test_fortigate_name: "fortigate{{ test_postfix }}"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO_Test"

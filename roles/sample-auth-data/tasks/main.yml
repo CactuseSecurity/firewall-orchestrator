@@ -2,6 +2,7 @@
 
 - name: add auth test data to database
   include_tasks: auth_sample_data.yml
+  when: sample_role_purpose is not match('delete')
 
 - name: include ldif driven changes
   import_tasks: modify_ldap_tree.yml

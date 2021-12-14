@@ -77,7 +77,7 @@
 - set_fact: jwt_unique_user_name="{{ jwt_payload.name }}"
   when: "'name' in jwt_payload"
 
-- name: middleware get jwt check valid creds output user user1_demo
+- name: middleware get jwt check valid creds output user user1_test...
   debug:
     msg: "ERROR unexpected jwt test result (username does not match 'user1{{ test_postfix }}'): {{ jwt_unique_user_name }}"
   when: "jwt_unique_user_name is not match('user1{{ test_postfix }}')"

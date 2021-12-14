@@ -46,8 +46,10 @@ def normalize_nwobjects(full_config, config2import, import_id):
 
         obj_zone = None
         # here only picking first associated interface as zone:
-        if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0 and obj_orig['associated-interface'][0] != 'any':
+        if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
             obj_zone = obj_orig['associated-interface'][0]
+            if obj_zone == 'any':
+                obj_zone = 'global'
             obj.update({'obj_zone': obj_zone })
         
         obj.update({'control_id': import_id})

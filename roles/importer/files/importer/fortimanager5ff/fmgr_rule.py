@@ -52,9 +52,15 @@ def normalize_access_rules(full_config, config2import, import_id):
             rule['rule_dst'] = common.extend_string_list(rule['rule_dst'], rule_orig, 'dstaddr6', list_delimiter)
 
             if len(rule_orig['srcintf'])>0:
+                src_obj_zone = rule_orig['srcintf'][0]
+                if src_obj_zone == 'any':
+                    src_obj_zone = 'global'
                 rule.update({ 'rule_from_zone': rule_orig['srcintf'][0] }) # todo: currently only using the first zone
             if len(rule_orig['dstintf'])>0:
-                rule.update({ 'rule_to_zone': rule_orig['dstintf'][0] }) # todo: currently only using the first zone
+                dst_obj_zone = rule_orig['dstintf'][0]
+                if dst_obj_zone == 'any':
+                    dst_obj_zone = 'global'
+                rule.update({ 'rule_to_zone': dst_obj_zone }) # todo: currently only using the first zone
 
             rule.update({ 'rule_src_neg': rule_orig['srcaddr-negate']=='disable'})
             rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})

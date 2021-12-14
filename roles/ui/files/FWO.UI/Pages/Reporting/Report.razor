@@ -164,10 +164,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
-
-    [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
@@ -226,7 +223,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+                DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -328,7 +325,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
 
@@ -359,7 +356,7 @@
             currentReport = ReportBase.ConstructReport(filterInput, userConfig);
             if (!DeviceFilter.isAnyDeviceFilterSet(managementsDevFilter, currentReport.Query))  // display warning
             {
-                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 reportTemplateControl.Uncollapse();
                 processing = false;
                 return;
@@ -425,14 +422,14 @@
             managementsReport = managementsReportOrig;
             reportTemplateControl.Uncollapse();
             StateHasChanged();
-            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }
     }
 
     private void CancelGeneration()
     {
         tokenSource.Cancel();
-        DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+        DisplayMessageInUi!(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
     private void setRelevantManagements(List<int> relevantManagements)
@@ -467,7 +464,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
+            DisplayMessageInUi!(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
     }

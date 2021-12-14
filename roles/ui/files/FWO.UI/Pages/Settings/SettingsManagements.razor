@@ -215,7 +215,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     private List<Management> managements = new List<Management>();
     private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
@@ -252,7 +252,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_managements"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_managements"), "", true);
         }
     }
 
@@ -268,7 +268,7 @@
         // Checks if delete possible. Todo: further checks?
         if (actManagement.Devices != null && actManagement.Devices.Length > 0)
         {
-            DisplayMessageInUi(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("delete_management"), userConfig.GetText("E5101"), true);
         }
         else
         {
@@ -291,7 +291,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_management"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_management"), "", true);
         }
     }
 
@@ -396,7 +396,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_management"), "", true);
         }
     }
 
@@ -407,23 +407,23 @@
             actManagement.ImportUser == null || actManagement.ImportUser == "" || 
             actManagement.PrivateKey == null || actManagement.PrivateKey == "")
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5102"), true);
             return false;
         }
         if (actManagement.Port < 1 || actManagement.Port > 65535)
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5103"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5103"), true);
             return false;
         }
         else if (actManagement.DebugLevel != null && (actManagement.DebugLevel < 0 || actManagement.DebugLevel > 9))
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5104"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5104"), true);
             return false;
         }
         if (!actManagement.ImportDisabled && managements.FirstOrDefault(mgt => mgt.Hostname == actManagement.Hostname && mgt.Port == actManagement.Port 
             && mgt.ConfigPath == actManagement.ConfigPath && mgt.Id != actManagement.Id && !mgt.ImportDisabled) != null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
             return false;
         }
         return true;

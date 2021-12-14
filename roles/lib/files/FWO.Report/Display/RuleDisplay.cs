@@ -1,13 +1,12 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
-using System;
 using System.Text;
 
 namespace FWO.Ui.Display
 {
     public class RuleDisplay
     {
-        protected StringBuilder result;
+        protected StringBuilder? result;
         protected UserConfig userConfig;
 
         public RuleDisplay(UserConfig userConfig)

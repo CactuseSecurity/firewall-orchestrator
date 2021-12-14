@@ -13,7 +13,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(userConfig.GetText("load"))</button>
                             @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                            @if (template.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.IsInRole("admin"))
+                            @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
                             {
                                 <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = adaptText(template); ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
                                 <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
@@ -88,10 +88,10 @@
 @code
 {
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     [CascadingParameter]
-    private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [Parameter]
     public Action<ReportTemplate> OnTemplateLoad { get; set; }
@@ -114,7 +114,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("template_fetch"), "", true);
         }
     }
 
@@ -167,7 +167,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_template"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_template"), "", true);
         }
     }
 
@@ -182,7 +182,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("edit_template"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_template"), "", true);
         }
     }
 
@@ -202,7 +202,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_template"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_template"), "", true);
         }
     }
 }

@@ -288,7 +288,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     private List<UiLdapConnection> connectedLdaps = new List<UiLdapConnection>();
     private List<UiLdapConnection> writableLdaps = new List<UiLdapConnection>();
@@ -342,7 +342,7 @@
             IRestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("fetch_users_local"), userConfig.GetText("E5209"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_users_local"), userConfig.GetText("E5209"), true);
             }
             else
             {
@@ -368,7 +368,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
             return false;
         }
     }
@@ -404,7 +404,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -426,7 +426,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -470,7 +470,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("sync_users"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("sync_users"), "", true);
         }
     }
 
@@ -485,7 +485,7 @@
             IRestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
             }
             else
             {
@@ -511,7 +511,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_users_ldap"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_users_ldap"), "", true);
         }
     }
 
@@ -522,7 +522,7 @@
             IRestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
             else
             {
@@ -540,7 +540,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_groups"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_groups"), "", true);
         }
     }
 
@@ -551,7 +551,7 @@
             IRestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
             else
             {
@@ -576,7 +576,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_roles"), "", true);
         }
     }
 
@@ -593,7 +593,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("update_user_local"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("update_user_local"), "", false);
         }
     }
 
@@ -624,7 +624,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user_local"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("add_user_local"), "", false);
         }
     }
 
@@ -649,7 +649,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("get_tenant_data"), "", false);
         }
     }
 
@@ -670,7 +670,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("add_user"), "", false);
         }
     }
 
@@ -692,7 +692,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_user"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("add_user"), "", false);
         }
     }
 
@@ -759,7 +759,7 @@
                     IRestResponse<int> middlewareServerResponse = await middlewareClient.AddUser(parameters);
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
+                        DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
                     }
                     else
                     {
@@ -779,7 +779,7 @@
                 IRestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
                 }
                 else
                 {
@@ -790,7 +790,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_user"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_user"), "", true);
         }
     }
 
@@ -799,22 +799,22 @@
         string errorMsg;
         if (actUser.Name == null || actUser.Name == "" || actUser.Password == null || actUser.Password == "")
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5211"), true);
             return false;
         }
         if (!PasswordPolicy.CheckPolicy(actUser.Password, userConfig, out errorMsg))
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_user"), errorMsg, true);
+            DisplayMessageInUi!(null, userConfig.GetText("add_user"), errorMsg, true);
             return false;
         }
         if (actUser.LdapConnection.TenantLevel > 0 && (actUser.Tenant == null || !tenants.Exists(x => x.Name == actUser.Tenant.Name)))
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
             return false;
         }
         if (uiUsers.Exists(x => x.Dn == actUser.Dn))
         {
-            DisplayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
             return false;
         }
         return true;
@@ -835,7 +835,7 @@
                         IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
                         if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                         {
-                            DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
+                            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                         }
                     }
                 }
@@ -843,7 +843,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("assign_user_to_group"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_to_group"), "", true);
         }
     }
 
@@ -862,7 +862,7 @@
                         IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
                         if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                         {
-                            DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
+                            DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
                         }
                     }
                 }
@@ -870,7 +870,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
         }
     }
 
@@ -881,7 +881,7 @@
             actUser = user;
             if (actUser.Dn == userConfig.User.Dn)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5215"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5215"), true);
             }
             else
             {
@@ -895,7 +895,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
         }
     }
 
@@ -912,7 +912,7 @@
             IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
             }
             else
             {
@@ -922,7 +922,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_user"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_user"), "", true);
         }
     }
 
@@ -939,7 +939,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_user_local"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_user_local"), "", false);
         }
     }
 
@@ -947,7 +947,7 @@
     {
         if(!(new DistName(user.Dn)).IsInternal())
         {
-            DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5217"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5217"), true);
         }
         else
         {
@@ -964,11 +964,11 @@
             string errorMsg;
             if (actUser.Password == null || actUser.Password == "")
             {
-                DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5218"), true);
             }
             else if (!PasswordPolicy.CheckPolicy(actUser.Password, userConfig, out errorMsg))
             {
-                DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
+                DisplayMessageInUi!(null, userConfig.GetText("reset_password"), errorMsg, true);
             }
             else
             {
@@ -981,14 +981,14 @@
                 IRestResponse<string> middlewareServerResponse = await middlewareClient.SetPassword(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
                 }
                 else
                 {
                     errorMsg = middlewareServerResponse.Data;
                     if(errorMsg != "")
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("reset_password"), errorMsg, true);
+                        DisplayMessageInUi!(null, userConfig.GetText("reset_password"), errorMsg, true);
                     }
                 }
                 ResetPasswordMode = false;
@@ -996,7 +996,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("reset_password"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("reset_password"), "", true);
         }
     }
 
@@ -1026,7 +1026,7 @@
                 IRestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromAllEntries(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);
                     showSampleRemoveButton = true;
                 }
                 else
@@ -1037,7 +1037,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
+                DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
             }
         }
         SampleRemoveMode = false;

@@ -67,7 +67,7 @@ def extend_string_list(list_string, src_dict, key, delimiter):
     return result
 
 
-def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key):
+def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None):
     ref_list = []
     for el in obj_name_string_list.split(delimiter):
         for obj in obj_dict:

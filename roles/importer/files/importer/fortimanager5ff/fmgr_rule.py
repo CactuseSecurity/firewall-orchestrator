@@ -11,11 +11,11 @@ def normalize_access_rules(full_config, config2import, import_id):
     rules = []
     list_delimiter = '|'
 
-    for dev_id in full_config['rulebases_by_dev_id']:
-        for rule_orig in full_config['rulebases_by_dev_id'][dev_id]:
+    for pkg_name in full_config['rulebases_by_pkg_name']:
+        for rule_orig in full_config['rulebases_by_pkg_name'][pkg_name]:
             rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
             rule.update({ 'control_id': import_id})
-            rule.update({ 'rulebase_name': str(dev_id)})    # the rulebase_name just has to be a unique string among devices
+            rule.update({ 'rulebase_name': pkg_name})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
             rule.update({ 'rule_ruleid': rule_orig['policyid']})
             rule.update({ 'rule_uid': rule_orig['uuid']})
             rule.update({ 'rule_num': rule_orig['obj seq']})

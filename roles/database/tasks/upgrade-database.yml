@@ -52,7 +52,7 @@
   when: ansible_version.string is version_compare('2.10', '>=')
 
 - name: install upgrades normally
-  community.postgresql.postgresql_query:
+  postgresql_query:
     db: "{{ fworch_db_name }}"
     path_to_script: "{{ database_install_dir }}/upgrade/{{ item }}.sql"
   loop: "{{ upgrade_files | sort }}"

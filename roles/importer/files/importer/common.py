@@ -74,3 +74,27 @@ def resolve_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_ke
             if obj[name_key] == el:
                 ref_list.append(obj[uid_key])
     return delimiter.join(ref_list)
+
+
+def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, uid_key, rule_type=None, obj_type='network'):
+    ref_list = []
+    for el in obj_name_string_list.split(delimiter):
+        if rule_type is not None:
+            if obj_type == 'network':
+                if 'v4' in rule_type and 'global' in rule_type:
+                    object_tables = [obj_dict['nw_obj_global_address'], obj_dict['nw_obj_global_addrgrp']]
+                elif 'v6' in rule_type and 'global' in rule_type:
+                    object_tables = [obj_dict['nw_obj_global_address6'], obj_dict['nw_obj_global_addrgrp6']]
+                elif 'v4' in rule_type and 'adom' in rule_type:
+                    object_tables = [obj_dict['nw_obj_adom_address'], obj_dict['nw_obj_adom_addrgrp']]
+                elif 'v6' in rule_type and 'adom' in rule_type:
+                    object_tables = [obj_dict['nw_obj_adom_address6'], obj_dict['nw_obj_adom_addrgrp6']]
+                for tab in object_tables:
+                    for obj in tab:
+                        if obj[name_key] == el:
+                            ref_list.append(obj[uid_key])
+            elif obj_type == 'service':
+                print('later')        
+        else:
+            print('decide what to do')
+    return delimiter.join(ref_list)

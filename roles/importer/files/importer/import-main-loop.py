@@ -51,10 +51,11 @@ while True:
     jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url, ssl_verification=args.ssl, proxy=args.proxy)
     mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
     api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
+    if api_fetch_limit == None:
+        api_fetch_limit = 150
         
     for mgm_id in mgm_ids:
         id = str(mgm_id['id'])
-        
         # getting a new JWT in case the old one is not valid anymore after a long previous import
         jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url, ssl_verification=args.ssl, proxy=args.proxy)
         mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": id})

@@ -232,7 +232,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [Parameter]
     public Func<byte, Func<Management[], Task>, long, Task> FetchObjects { get; set; }
@@ -343,7 +343,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
         }
     }
 }

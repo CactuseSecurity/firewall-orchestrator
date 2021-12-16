@@ -252,7 +252,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     private List<Tenant> tenants = new List<Tenant>();
     private List<Tenant> sampleTenants = new List<Tenant>();
@@ -283,7 +283,7 @@
             IRestResponse<List<TenantGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetTenants();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("get_tenant_data"), userConfig.GetText("E5284"), true);
             }
             else
             {
@@ -306,7 +306,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("get_tenant_data"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("get_tenant_data"), "", true);
         }
     }
 
@@ -329,13 +329,13 @@
         {
             if (actTenant.Name == "")
             {
-                DisplayMessageInUi(null, userConfig.GetText("save_tenant"), userConfig.GetText("E5234"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("save_tenant"), userConfig.GetText("E5234"), true);
             }
             else if (AddTenantMode)
             {
                 if(tenants.Exists(x => x.Name == actTenant.Name))
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5235"), true);
                 }
                 else
                 {
@@ -343,7 +343,7 @@
                     IRestResponse<int> middlewareServerResponse = await middlewareClient.AddTenant(actTenant.ToApiParams());
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
+                        DisplayMessageInUi!(null, userConfig.GetText("add_tenant"), userConfig.GetText("E5281"), true);
                     }
                     else
                     {
@@ -360,7 +360,7 @@
                 IRestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateTenant(actTenant.ToApiUpdateParams());
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("edit_tenant"), userConfig.GetText("E5285"), true);
                 }
                 else
                 {
@@ -370,7 +370,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_tenant"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_tenant"), "", true);
         }
     }
 
@@ -394,7 +394,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_tenant"), "", true);
         }
     }
 
@@ -407,7 +407,7 @@
             IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteTenant(deleteTenantParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("delete_tenant"), userConfig.GetText("E5282"), true);
             }
             else
             {
@@ -417,7 +417,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_tenant"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_tenant"), "", true);
         }
     }
 
@@ -439,7 +439,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }
 
@@ -456,7 +456,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("remove_sample_data"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("remove_sample_data"), "", false);
         }
     }
 
@@ -468,7 +468,7 @@
             remainingDevices = devices.FindAll(x => !Array.Exists(actTenant.TenantDevices, y => y.VisibleDevice.Id == x.Id));
             if(remainingDevices.Count == 0)
             {
-                DisplayMessageInUi(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("add_device_to_tenant"), userConfig.GetText("E5271"), true);
             }
             else
             {
@@ -478,7 +478,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("add_device_to_tenant"), "", false);
         }
     }
 
@@ -489,7 +489,7 @@
             actTenant = tenant;
             if(actTenant.TenantDevices.Length == 0)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("delete_device_from_tenant"), userConfig.GetText("E5272"), true);
             }
             else
             {
@@ -499,7 +499,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_device_from_tenant"), "", false);
         }
     }
 
@@ -518,7 +518,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("add_device_to_tenant"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("add_device_to_tenant"), "", true);
         }
     }
 
@@ -536,7 +536,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_device_from_tenant"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_device_from_tenant"), "", true);
         }
     }
 

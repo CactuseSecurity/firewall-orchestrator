@@ -32,7 +32,7 @@ namespace FWO.Report
                 Dictionary<string, object> ruleQueryVariables = new Dictionary<string, object>();
                 if (Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
                 {
-                    ruleQueryVariables["importId"] = Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                    ruleQueryVariables["importId"] = Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId!;
                     ruleQueryVariables["devIds"] = relevantDevIds;
                     Rule[] rules = await apiConnection.SendQueryAsync<Rule[]>(RuleQueries.getRuleIdsOfImport, ruleQueryVariables);
                     Managements[i].ReportedRuleIds = rules.Select(x => x.Id).Distinct().ToList();
@@ -57,7 +57,7 @@ namespace FWO.Report
                         var objQueryVariables = new Dictionary<string, object>
                         {
                             { "mgmIds", Managements[i].Id },
-                            { "importId", Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId },
+                            { "importId", Managements[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId! },
                             { "limit", objectsPerFetch },
                             { "offset", 0 },
                         };
@@ -75,7 +75,7 @@ namespace FWO.Report
             if (!objQueryVariables.ContainsKey("mgmIds") || !objQueryVariables.ContainsKey("limit") || !objQueryVariables.ContainsKey("offset"))
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
 
-            int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds");
+            int mid = (int)objQueryVariables.GetValueOrDefault("mgmIds")!;
             Management management = Managements.FirstOrDefault(m => m.Id == mid) ?? throw new ArgumentException("Given management id does not exist for this report");
 
             if (!GotReportedRuleIds)
@@ -98,7 +98,7 @@ namespace FWO.Report
 
             bool newObjects = true;
             int fetchCount = 0;
-            int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault("limit");
+            int elementsPerFetch = (int)objQueryVariables.GetValueOrDefault("limit")!;
             Management filteredObjects;
             Management allFilteredObjects = new Management();
             while (newObjects && ++fetchCount <= maxFetchCycles)
@@ -115,11 +115,11 @@ namespace FWO.Report
                 }
 
                 if (objects == all || objects == nobj)
-                    management.ReportObjects = allFilteredObjects?.ReportObjects;
+                    management.ReportObjects = allFilteredObjects.ReportObjects;
                 if (objects == all || objects == nsrv)
-                    management.ReportServices = allFilteredObjects?.ReportServices;
+                    management.ReportServices = allFilteredObjects.ReportServices;
                 if (objects == all || objects == user)
-                    management.ReportUsers = allFilteredObjects?.ReportUsers;
+                    management.ReportUsers = allFilteredObjects.ReportUsers;
 
                 objQueryVariables["offset"] = (int)objQueryVariables["offset"] + elementsPerFetch;
 

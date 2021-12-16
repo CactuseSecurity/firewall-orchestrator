@@ -13,7 +13,7 @@
         <Template>
             <div class="btn-group">
                 <button class="btn btn-sm btn-info" @onclick="async () => { await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; }">@(userConfig.GetText("download"))</button>
-                @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask.Result.User.IsInRole("admin"))
+                @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
                 {
                     <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
                 }
@@ -70,10 +70,10 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<ReportFile> archivedReports = new List<ReportFile>();
 
@@ -89,7 +89,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("archive_fetch"), "", true);
         }
     }
 
@@ -107,7 +107,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Fetch downloads of generated report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_report"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_report"), "", false);
         }
     }
 
@@ -129,7 +129,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Delete generated report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("delete_report"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_report"), "", false);
         }
     }
 }

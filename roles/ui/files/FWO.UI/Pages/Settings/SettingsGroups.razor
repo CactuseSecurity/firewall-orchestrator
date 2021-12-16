@@ -222,7 +222,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     private List<UserGroup> groups = new List<UserGroup>();
     private List<UserGroup> sampleGroups = new List<UserGroup>();
     private List<UiUser> uiUsers = new List<UiUser>();
@@ -259,7 +259,7 @@
             IRestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
             }
             else
             {
@@ -288,7 +288,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_data"), "", true);
         }
     }
 
@@ -312,7 +312,7 @@
             IRestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
-                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
             else
             {
@@ -337,7 +337,7 @@
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_roles"), "", true);
         }
     }
     private void SynchronizeGroupsToRoles()
@@ -384,11 +384,11 @@
 
                 if (newGroupName == null || newGroupName == "")
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5234"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5234"), true);
                 }
                 else if(groups.Exists(x => x.Name == newGroupName))
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5235"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5235"), true);
                 }
                 else
                 {
@@ -398,7 +398,7 @@
                     
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == "")
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
+                        DisplayMessageInUi!(null, userConfig.GetText("add_new_group"), userConfig.GetText("E5236"), true);
                     }
                     else
                     {
@@ -419,7 +419,7 @@
 
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == "")
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("edit_group"), userConfig.GetText("E5237"), true);
                 }
                 else
                 {
@@ -433,7 +433,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_group"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_group"), "", true);
         }
     }
 
@@ -450,14 +450,14 @@
                     IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(addGroupToRoleParameters);
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                     {
-                        DisplayMessageInUi(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5246"), true);
+                        DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5246"), true);
                     }
                 }
             }
         }
         catch (System.Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("assign_user_group_to_role"), "", true);
         }
     }
 
@@ -486,7 +486,7 @@
             IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteGroup(groupDeleteParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
-                DisplayMessageInUi(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("delete_group"), userConfig.GetText("E5239"), true);
             }
             else
             {
@@ -496,7 +496,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_group"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_group"), "", true);
         }
     }
 
@@ -519,11 +519,11 @@
         UiUser? user = uiUsers.FirstOrDefault(x => x.Dn == userDn);
         if (user == null)
         {
-            DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5240"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5240"), true);
         }
         else if (actGroup.Users.Contains(user))
         {
-            DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5241"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5241"), true);
         }
         else
         {
@@ -534,7 +534,7 @@
                 IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(groupAddParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
                 }
                 else
                 {
@@ -545,7 +545,7 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("assign_user_to_group"), "", true);
+                DisplayMessageInUi!(exception, userConfig.GetText("assign_user_to_group"), "", true);
             }
         }
     }
@@ -562,7 +562,7 @@
                 IRestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromGroup(removeUserFromGroupParameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
-                    DisplayMessageInUi(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5243"), true);
+                    DisplayMessageInUi!(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5243"), true);
                 }
                 else
                 {
@@ -573,12 +573,12 @@
             }
             catch (System.Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("remove_user_from_group"), "", true);
+                DisplayMessageInUi!(exception, userConfig.GetText("remove_user_from_group"), "", true);
             }
         }
         else
         {
-            DisplayMessageInUi(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5244"), true);
+            DisplayMessageInUi!(null, userConfig.GetText("remove_user_from_group"), userConfig.GetText("E5244"), true);
         }
     }
 

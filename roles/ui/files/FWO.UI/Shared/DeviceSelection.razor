@@ -51,13 +51,13 @@
 @code
 {
     [Parameter]
-    public string FilterInput { get; set; }
+    public string FilterInput { get; set; } = "";
 
     [Parameter]
     public EventCallback<string> FilterInputChanged { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; }
+    public Management[] Managements { get; set; } = new Management[]{};
 
     [Parameter]
     public bool SelectAll { get; set; } // state of the device select/clear all button
@@ -65,8 +65,8 @@
     [Parameter]
     public EventCallback<bool> SelectAllChanged { get; set; }
 
-    private string selectAllText;
-    private string clearAllText;
+    private string selectAllText = "";
+    private string clearAllText = "";
 
     protected override void OnInitialized()
     {

@@ -13,7 +13,7 @@
 <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ScheduledReport" Items="scheduledReports" PageSize="0">
     <Column TableItem="ScheduledReport" Title="@(userConfig.GetText("action"))">
         <Template>
-            @if (context.Owner.DbId == uiUserDbId || authenticationState.User.IsInRole("admin"))
+            @if (context.Owner.DbId == uiUserDbId || authenticationState!.User.IsInRole("admin"))
             {
                 <div class="btn-group">
                     <button class="btn btn-sm btn-warning" @onclick="() => { scheduledReportInEdit = context; ShowEditScheduledReportDialog = true; }">@(userConfig.GetText("edit"))</button>
@@ -110,10 +110,10 @@
                             <label class="form-check-label" for="outputFormatJson">JSON</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
+                            <input disabled class="form-check-input" type="checkbox" id="outputFormatCsv" value="Csv"
                                    checked="@(scheduledReportInEdit.OutputFormat.Exists(format => format.Name == "csv"))"
                                    @onchange="@(_ => scheduledReportInEdit.OutputFormat.AddOrRemove("csv"))">
-                            <label class="form-check-label" for="outputFormatCsv">CSV</label>
+                            <label class="form-check-label" for="outputFormatCsv">CSV @(userConfig.GetText("coming_soon"))</label>
                         </div>
                     </div>
                 </div>
@@ -156,11 +156,11 @@
     ReportTemplate[] reportTemplates = new ReportTemplate[0];
 
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
-    private AuthenticationState authenticationState;
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+    private AuthenticationState? authenticationState;
 
     protected override async Task OnInitializedAsync()
     {
@@ -169,11 +169,11 @@
             scheduledReports = (await apiConnection.SendQueryAsync<ScheduledReport[]>(ReportQueries.getReportSchedules)).ToList();
             reportTemplates = await apiConnection.SendQueryAsync<ReportTemplate[]>(ReportQueries.getReportTemplates);
             uiUserDbId = userConfig.User.DbId;
-            authenticationState = await authenticationStateTask;
+            authenticationState = await authenticationStateTask!;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("schedule_fetch"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("schedule_fetch"), "", true);
         }
     }
 
@@ -227,7 +227,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Save scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("save_scheduled_report"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_scheduled_report"), "", false);
         }
     }
 
@@ -261,7 +261,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Edit scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("edit_scheduled_report"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_scheduled_report"), "", false);
         }
     }
 
@@ -282,7 +282,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Delete scheduled report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("delete_scheduled_report"), "", false);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_scheduled_report"), "", false);
         }
     }
 
@@ -290,7 +290,7 @@
         {
             if(scheduledReportInEdit.Template == null || scheduledReportInEdit.Template.Id == 0)
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
+                DisplayMessageInUi!(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
                 return false;
             }
             return true;

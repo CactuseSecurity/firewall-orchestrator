@@ -109,7 +109,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     ConfigDbAccess? config;
     int elementsPerFetch = 100;
     int maxInitFetch = 10;
@@ -146,7 +146,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
     }
 
@@ -160,7 +160,7 @@
         catch (KeyNotFoundException) {}
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
         }
         return value;
     }
@@ -175,7 +175,7 @@
         catch (KeyNotFoundException) { }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
         }
         return value;
     }
@@ -200,12 +200,12 @@
                 await config.Set(GlobalConfig.kCommentRequired, commentRequired.ToString());
 
                 await userConfig.ReloadDefaults(apiConnection);
-                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+                DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("change_default"), "", true);
         }
     }
 }

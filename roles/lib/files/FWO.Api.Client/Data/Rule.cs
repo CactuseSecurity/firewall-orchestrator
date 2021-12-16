@@ -9,16 +9,16 @@ namespace FWO.Api.Data
         public long Id { get; set; }
 
         [JsonProperty("rule_uid"), JsonPropertyName("rule_uid")]
-        public string Uid { get; set; } = "";
+        public string? Uid { get; set; } = "";
 
         [JsonProperty("rule_num_numeric"), JsonPropertyName("rule_num_numeric")]
         public double OrderNumber { get; set; }
 
         [JsonProperty("rule_name"), JsonPropertyName("rule_name")]
-        public string Name { get; set; } = "";
+        public string? Name { get; set; } = "";
 
         [JsonProperty("rule_comment"), JsonPropertyName("rule_comment")]
-        public string Comment { get; set; } = "";
+        public string? Comment { get; set; } = "";
 
         [JsonProperty("rule_disabled"), JsonPropertyName("rule_disabled")]
         public bool Disabled { get; set; }
@@ -39,7 +39,7 @@ namespace FWO.Api.Data
         public string Source { get; set; } = "";
 
         [JsonProperty("src_zone"), JsonPropertyName("src_zone")]
-        public NetworkZone SourceZone { get; set; } = new NetworkZone();
+        public NetworkZone? SourceZone { get; set; } = new NetworkZone();
 
         [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
         public NetworkLocation[] Froms { get; set; } = new NetworkLocation[]{};
@@ -51,7 +51,7 @@ namespace FWO.Api.Data
         public string Destination { get; set; } = "";
 
         [JsonProperty("dst_zone"), JsonPropertyName("dst_zone")]
-        public NetworkZone DestinationZone { get; set; } = new NetworkZone();
+        public NetworkZone? DestinationZone { get; set; } = new NetworkZone();
 
         [JsonProperty("rule_tos"), JsonPropertyName("rule_tos")]
         public NetworkLocation[] Tos { get; set; } = new NetworkLocation[]{};
@@ -63,7 +63,7 @@ namespace FWO.Api.Data
         public string Track { get; set; } = "";
 
         [JsonProperty("section_header"), JsonPropertyName("section_header")]
-        public string SectionHeader { get; set; } = "";
+        public string? SectionHeader { get; set; } = "";
 
         [JsonProperty("rule_metadatum"), JsonPropertyName("rule_metadatum")]
         public RuleMetadata Metadata {get; set;} = new RuleMetadata();

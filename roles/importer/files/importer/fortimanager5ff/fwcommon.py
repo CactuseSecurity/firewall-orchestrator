@@ -28,7 +28,7 @@ user_types = ['users_global', 'users_adom']
 user_scope = ['user_objects']
 
 def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, ssl_verification=None):
-    logging.info("found FortiManager")
+    #logging.info("found FortiManager")
     fm_api_url = 'https://' + \
         mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/jsonrpc'
     api_domain = ''

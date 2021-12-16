@@ -30,6 +30,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 obj.update({ 'obj_ip': ipa.with_prefixlen })
             elif 'member' in obj_orig: # addrgrp4 / addrgrp6
                 obj.update({ 'obj_typ': 'group' })
+                # obj.update({ 'obj_zone': 'global' })    # all groups will be treated as global objects
                 obj.update({ 'obj_member_names' : common.list_delimiter.join(obj_orig['member']) })
                 # obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config[obj_type], 'name', 'uuid')})
                 obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config, 'name', 'uuid')})
@@ -43,13 +44,13 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                                                     # we would need a list of fortinet color codes
             obj.update({'obj_uid': obj_orig['uuid']})
 
-            obj_zone = None
+            obj_zone = 'global'
             # here only picking first associated interface as zone:
             if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                 obj_zone = obj_orig['associated-interface'][0]
                 # adding zone if it not yet exists
                 obj_zone = fmgr_zone.add_zone_if_missing (config2import, obj_zone, import_id)
-                obj.update({'obj_zone': obj_zone })
+            obj.update({'obj_zone': obj_zone })
             
             obj.update({'control_id': import_id})
             nw_objects.append(obj)

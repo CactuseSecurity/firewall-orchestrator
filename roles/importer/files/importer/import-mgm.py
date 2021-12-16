@@ -173,7 +173,7 @@ if os.path.exists(secret_filename):
 error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
     args.mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
 
-print("import_mgm.py: import no. " + str(current_import_id) +
+logging.info("import_mgm.py: import no. " + str(current_import_id) +
     " for management " + mgm_details['name'] + ' (id=' + str(args.mgm_id) + ")" +
     " ran " + str("with" if error_count else "without") + " errors," +
     " change_count: " + str(change_count) +

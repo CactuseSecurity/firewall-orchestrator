@@ -39,12 +39,12 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
             logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" +
                           json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0]['status'], indent=2))
  
-    if logging.DEBUG:
-        if 'password' in json.dumps(json_payload):
-            logging.debug("\napi_call containing credential information to url '" + str(url))
-        else:
-            logging.debug("\napi_call to url '" + str(url) + "' with payload '" + json.dumps(
-                json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+#    if logging.DEBUG:
+    if 'password' in json.dumps(json_payload):
+        logging.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
+    else:
+        logging.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
+            json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
 
     if show_progress:
         print('.', end='', flush=True)
@@ -84,7 +84,7 @@ def logout(v_url, sid, ssl_verification='', proxy_string='', debug=0, method='ex
     if "result" in response and "status" in response["result"][0] and "code" in response["result"][0]["status"] and response["result"][0]["status"]["code"] == 0:
         logging.debug("\nsuccessfully logged out")
     else:
-        logging.exception("\ngetter ERROR: did not get status code 0 when logging out, " +
+        logging.warning("\ngetter ERROR: did not get status code 0 when logging out, " +
                           "api call: url: " + str(v_url) + ",  + payload: " + str(payload) + ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
         sys.exit(1)
 

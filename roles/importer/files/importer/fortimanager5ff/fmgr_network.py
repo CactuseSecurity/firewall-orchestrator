@@ -31,7 +31,8 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
             elif 'member' in obj_orig: # addrgrp4 / addrgrp6
                 obj.update({ 'obj_typ': 'group' })
                 obj.update({ 'obj_member_names' : common.list_delimiter.join(obj_orig['member']) })
-                obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config[obj_type], 'name', 'uuid')})
+                # obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config[obj_type], 'name', 'uuid')})
+                obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config, 'name', 'uuid')})
             else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
                 obj.update({ 'obj_typ': 'network' })
                 obj.update({ 'obj_ip': '0.0.0.0/0'})

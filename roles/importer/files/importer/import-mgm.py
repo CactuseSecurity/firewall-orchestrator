@@ -102,9 +102,6 @@ config2import = {}
 Path(import_tmp_path).mkdir(parents=True,
                             exist_ok=True)  # make sure tmp path exists
 
-normalized_config_filename = import_tmp_path + '/mgm_id_' + \
-    str(args.mgm_id) + '_config_normalized.json'
-
 secret_filename = base_dir + '/tmp/import/mgm_id_' + \
     str(args.mgm_id) + '_secret.txt'
 with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
@@ -126,14 +123,16 @@ get_config_response = fw_module.get_config(
         ssl_verification=args.ssl, proxy=proxy, limit=args.limit, force=args.force)
 
 if debug_level>2:
+    normalized_config_filename = import_tmp_path + '/mgm_id_' + \
+        str(args.mgm_id) + '_config_normalized.json'
     with open(normalized_config_filename, "w") as json_data:
-        json_data.write(json.dumps(config2import,indent=2))
+        json_data.write(json.dumps(config2import, indent=2))
 
     if debug_level>3:
         full_native_config_filename = import_tmp_path + '/mgm_id_' + \
             str(args.mgm_id) + '_config_native.json'
         with open(full_native_config_filename, "w") as json_data:  # create empty config file
-            json_data.write(json.dumps(full_config_json))
+            json_data.write(json.dumps(full_config_json, indent=2))
 
 # if no changes were found, we get get_config_response==512 and we skip everything else without errors
 # todo: re-structure this to make it more logical/readable

@@ -52,7 +52,7 @@ while True:
     mgm_ids = fwo_api.get_mgm_ids(fwo_api_base_url, jwt, {})
     api_fetch_limit = fwo_api.get_config_value(fwo_api_base_url, jwt, key='fwApiElementsPerFetch')
     if api_fetch_limit == None:
-        api_fetch_limit = 150
+        api_fetch_limit = '150'
         
     for mgm_id in mgm_ids:
         id = str(mgm_id['id'])
@@ -60,7 +60,7 @@ while True:
         jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url, ssl_verification=args.ssl, proxy=args.proxy)
         mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": id})
         if mgm_details["deviceType"]["id"] in (9,11):  # only handle CPR8x and fortiManager
-            cmd = importer_base_dir + '/import-mgm.py -m ' + id + ssl_string + ' -d ' + str(debug_level) + ' -l ' + api_fetch_limit
+            cmd = importer_base_dir + '/import-mgm.py -m ' + id + ssl_string + ' -d ' + str(debug_level) + ' -l ' + str(api_fetch_limit)
             if 'proxy' in args and args.proxy != None:
                 cmd += ' -x ' + str(args.proxy)
             logging.info("import_main_loop.py: starting import cmd " + cmd) 

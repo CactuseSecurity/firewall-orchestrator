@@ -59,6 +59,8 @@ INSERT INTO txt VALUES ('modified',		        'German', 	'ge&auml;ndert');
 INSERT INTO txt VALUES ('modified',		        'English', 	'modified');
 INSERT INTO txt VALUES ('id',		            'German', 	'Id');
 INSERT INTO txt VALUES ('id',		            'English', 	'Id');
+INSERT INTO txt VALUES ('coming_soon',		    'German', 	'(demn&auml;chst)');
+INSERT INTO txt VALUES ('coming_soon',		    'English', 	'(coming soon)');
 
 -- login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');

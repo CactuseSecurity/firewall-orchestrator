@@ -21,7 +21,7 @@ namespace FWO.Ui.Display
             {
                 int ruleNumber = Array.IndexOf(rules, rule) + 1;
 
-                for (int i = 0; i < Array.IndexOf(rules, rule) + 1; i++)
+                for (int i = 0; i < ruleNumber; i++)
                     if (!string.IsNullOrEmpty(rules[i].SectionHeader))
                         ruleNumber--;
 

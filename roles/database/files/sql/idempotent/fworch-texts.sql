@@ -492,8 +492,8 @@ INSERT INTO txt VALUES ('hostname',             'German', 	'Hostname');
 INSERT INTO txt VALUES ('hostname',             'English', 	'Hostname');
 INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
-INSERT INTO txt VALUES ('config_path',          'German', 	'Konfigurationspfad');
-INSERT INTO txt VALUES ('config_path',          'English', 	'Config Path');
+INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
+INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
 INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
 INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');
@@ -1597,13 +1597,11 @@ INSERT INTO txt VALUES ('H5117', 'English', 'Login Secret*: For ssh access enter
 ');
 INSERT INTO txt VALUES ('H5118', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
 INSERT INTO txt VALUES ('H5118', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
-INSERT INTO txt VALUES ('H5119', 'German',  'Konfigurationspfad: Pfad der Config-Datei.<br>
-    F&uuml;r Standard-Zugang (ohne die Konfiguration in einer Datei zu halten) leer lassen.
-    Ausnahme: F&uuml;r Check Point R8x MDS Installationen wird hier der Domainname eingetragen.
+INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
+    f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.
 ');
-INSERT INTO txt VALUES ('H5119', 'English', 'Config Path: Path of the config file.<br>
-    Leave empty in case of standard access (without buffering the config in a file).
-    Exception: For Check Point R8x MDS installations, the domain name is entered here.
+INSERT INTO txt VALUES ('H5119', 'English', 'Domain: Firewall Domain Name<br>
+    Empty except for Check Point R8x MDS / Fortimanager installations.
 ');
 INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: Der Name des Servers, auf dem der Importprozess laufen soll.
     Muss individuell konfiguriert werden, wenn mehrere verteilte Importmodule laufen sollen, so dass nicht jeder Importer alle Managements importiert.

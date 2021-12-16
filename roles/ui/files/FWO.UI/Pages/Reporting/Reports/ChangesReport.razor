@@ -11,7 +11,7 @@
 
             @foreach (Device device in management.Devices)
             {
-                @if (device.RuleChanges.Length > 0)
+                @if (device.RuleChanges != null && device.RuleChanges.Length > 0)
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRuleChanges"

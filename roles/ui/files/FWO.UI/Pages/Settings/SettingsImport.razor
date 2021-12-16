@@ -143,7 +143,7 @@
         {
             if(actStatus.LastIncompleteImport != null && actStatus.LastIncompleteImport.Length > 0)
             {
-                <p>@(userConfig.GetText("U5104") + (actStatus.LastIncompleteImport[0].StartTime != null ? Math.Round(((TimeSpan)(DateTime.Now - actStatus.LastIncompleteImport[0].StartTime)).TotalMinutes).ToString() : "?") + userConfig.GetText("U5105"))</p>
+                <p>@(userConfig.GetText("U5104") + (actStatus.LastIncompleteImport[0].StartTime != null ? Math.Round(((TimeSpan)(DateTime.Now - actStatus.LastIncompleteImport[0].StartTime!)).TotalMinutes).ToString() : "?") + userConfig.GetText("U5105"))</p>
             }
             else
             {

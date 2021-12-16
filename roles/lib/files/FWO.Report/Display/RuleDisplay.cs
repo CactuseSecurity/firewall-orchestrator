@@ -33,12 +33,12 @@ namespace FWO.Ui.Display
 
         public string DisplayName(Rule rule)
         {
-            return rule.Name;
+            return (rule.Name != null ? rule.Name : "");
         }
 
         public string DisplaySourceZone(Rule rule)
         {
-            return rule.SourceZone?.Name;
+            return (rule.SourceZone != null ? rule.SourceZone.Name : "");
         }
 
         public string DisplaySource(Rule rule, string style = "")
@@ -74,7 +74,7 @@ namespace FWO.Ui.Display
 
         public string DisplayDestinationZone(Rule rule)
         {
-            return rule.DestinationZone?.Name;
+            return (rule.DestinationZone != null ? rule.DestinationZone.Name : "");
         }
 
         public string DisplayDestination(Rule rule, string style = "")
@@ -164,12 +164,12 @@ namespace FWO.Ui.Display
 
         public string DisplayUid(Rule rule)
         {
-            return rule.Uid;
+            return (rule.Uid != null ? rule.Uid : "");
         }
 
         public string DisplayComment(Rule rule)
         {
-            return rule.Comment;
+            return (rule.Comment != null ? rule.Comment : "");
         }
     }
 }

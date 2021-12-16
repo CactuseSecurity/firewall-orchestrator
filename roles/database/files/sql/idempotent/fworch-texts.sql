@@ -985,6 +985,10 @@ INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum Exportier
 INSERT INTO txt VALUES ('E1002', 'English', 'No generated report to export. Please generate report first!');
 INSERT INTO txt VALUES ('E1003', 'German',  'Die Datenabholung wurde abgebrochen. M&ouml;glicherweise werden nicht alle verf&uuml;gbaren Daten dargestellt.');
 INSERT INTO txt VALUES ('E1003', 'English', 'Data fetch was cancelled. Possibly not all available data are displayed');
+INSERT INTO txt VALUES ('E1004', 'German',  'Vorlage konnte nicht gespeichert werden');
+INSERT INTO txt VALUES ('E1004', 'English', 'Template could not be saved');
+INSERT INTO txt VALUES ('E1005', 'German',  'Vorlage konnte nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E1005', 'English', 'Template could not be deleted');
 
 INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');

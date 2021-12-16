@@ -99,7 +99,7 @@
                     @if (AddMode)
                     {
                         <div class="col-sm-8">
-                            <select id="ldapUser" class="form-control-sm col-sm" @bind="selectedLdapId" @oninput="(EventArgs) => {selectedLdapId = Int32.Parse(EventArgs.Value.ToString()); SetAvailableTenants();}">
+                            <select id="ldapUser" class="form-control-sm col-sm" @bind="selectedLdapId" @oninput="(EventArgs) => {selectedLdapId = Convert.ToInt32(EventArgs.Value.ToString()); SetAvailableTenants();}">
                                 @foreach (UiLdapConnection ldap in writableLdaps)
                                 {
                                     <option value="@ldap.Id">@(ldap.Name)</option>

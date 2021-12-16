@@ -26,9 +26,9 @@ original_obj_uid = "85c0f50f-6d8a-4528-88ab-5fb11d8fe16c"
 # this is just a test UID for debugging a single rule
 debug_new_uid = "90f749ec-5331-477d-89e5-a58990f7271d"
 
+# def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, ssl_verification=None):
 
-#def get_config(config2import, current_import_id, base_dir, mgm_details, secret_filename, rulebase_string, config_filename, debug_level, package, proxy_string='', limit=150, force=False):
-def get_config(config2import, current_import_id, mgm_details, config_filename=None, debug_level=0, proxy=None, limit=150, force=False, full_config={}, ssl_verification=None):
+def get_config(config2import, full_config, current_import_id, mgm_details, config_filename=None, debug_level=0, proxy=None, limit=150, force=False, ssl_verification=None):
     logging.info("found Check Point R8x management")
 
     last_change_time = ''

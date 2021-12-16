@@ -64,8 +64,9 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
 
 #                rule.update({ 'rule_src_refs': common.resolve_objects(rule['rule_src'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid', rule_type=rule_table) })
+#                rule.update({ 'rule_dst_refs': common.resolve_objects(rule['rule_dst'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid', rule_type=rule_table) })
                 rule.update({ 'rule_src_refs': common.resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
-                rule.update({ 'rule_dst_refs': common.resolve_objects(rule['rule_dst'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid', rule_type=rule_table) })
+                rule.update({ 'rule_dst_refs': common.resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
                 rules.append(rule)

@@ -26,7 +26,7 @@ parser.add_argument('-c', '--clear', metavar='clear_management',
 parser.add_argument('-f', '--force', action='store_true', default=False,
                     help='If set the import will be attempted without checking for changes before')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
-                    help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=keep temporary config files; default=0')
+                    help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=save noramlized config file; 4=additionally save native config file; default=0')
 parser.add_argument('-x', '--proxy', metavar='proxy_string',
                     help='proxy server string to use, e.g. http://1.2.3.4:8080')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
@@ -35,8 +35,6 @@ parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
                     help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-t', '--testing', metavar='version_testing',
                     default='off', help='Version test, [off|<version number>]; default=off')
-parser.add_argument('-o', '--out', metavar='full_config_file',
-                    help='filename to write full native config to, default is "not set"')
 
 args = parser.parse_args()
 if len(sys.argv) == 1:
@@ -123,20 +121,18 @@ fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
 get_config_response = fw_module.get_config(
-    config2import, current_import_id, mgm_details, debug_level, ssl_verification=args.ssl, proxy=proxy, 
-        limit=args.limit, force=args.force, full_config=full_config_json)
-
-# if set, write the full config to a file
-if args.out != None:
-    full_native_config_filename = args.out
-    if os.path.exists(full_native_config_filename): # delete json file (to enabiling re-write)
-        os.remove(full_native_config_filename)    
-    with open(full_native_config_filename, "w") as json_data:  # create empty config file
-        json_data.write(json.dumps(full_config_json))
+    config2import, full_config_json,  current_import_id, mgm_details, debug_level, 
+        ssl_verification=args.ssl, proxy=proxy, limit=args.limit, force=args.force)
 
 if debug_level>2:
     with open(normalized_config_filename, "w") as json_data:
         json_data.write(json.dumps(config2import,indent=2))
+
+    if debug_level>3:
+        full_native_config_filename = import_tmp_path + '/mgm_id_' + \
+            str(args.mgm_id) + '_config_native.json'
+        with open(full_native_config_filename, "w") as json_data:  # create empty config file
+            json_data.write(json.dumps(full_config_json))
 
 # if no changes were found, we get get_config_response==512 and we skip everything else without errors
 # todo: re-structure this to make it more logical/readable

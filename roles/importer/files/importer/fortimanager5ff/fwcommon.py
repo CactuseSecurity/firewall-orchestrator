@@ -27,7 +27,7 @@ svc_obj_scope = ['svc_obj_' + s1 + '_' + s2 for s1 in scope for s2 in svc_obj_ty
 user_types = ['users_global', 'users_adom']
 user_scope = ['user_objects']
 
-def get_config(config2import, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, full_config={}, ssl_verification=None):
+def get_config(config2import, full_config, current_import_id, mgm_details, debug_level=0, proxy=None, limit=100, force=False, ssl_verification=None):
     logging.info("found FortiManager")
     fm_api_url = 'https://' + \
         mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/jsonrpc'
@@ -43,7 +43,7 @@ def get_config(config2import, current_import_id, mgm_details, debug_level=0, pro
         logging.error('no ADOM name set for this management!')
         return 1
     else:
-        full_config = {}
+        # full_config = {}
         # # get all custom adoms (only works for latest API versions):
         # q_get_custom_adoms = {"params": [
         #     {"fields": ["name", "oid", "uuid"], "filter": ["create_time", "<>", 0]}]}
@@ -93,6 +93,7 @@ def get_config(config2import, current_import_id, mgm_details, debug_level=0, pro
 
     getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)
     return 0
+
 
 def getDeviceDetails(sid, fm_api_url, raw_config, mgm_details, debug_level):
     # for each adom get devices

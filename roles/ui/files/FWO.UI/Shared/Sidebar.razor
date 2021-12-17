@@ -32,13 +32,13 @@
 @code
 {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public string SidebarContainerCssClass { get; set; }
+    public string SidebarContainerCssClass { get; set; } = "";
 
     [Parameter]
-    public string SidebarCssClass { get; set; }
+    public string SidebarCssClass { get; set; } = "";
 
     [Parameter]
     public bool PositionLeft { get; set; } = true;

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using FWO.Logging;
 using FWO.Report.Filter.Exceptions;
 
@@ -9,10 +7,10 @@ namespace FWO.Report.Filter.Ast
 {
     class AstNodeFilter : AstNode
     {
-        public Token Name { get; set; }
-        public Token Operator { get; set; }
-        public Token Value { get; set; }
-        private List<string> ruleFieldNames { get; set; }
+        public Token Name { get; set; } = new Token(new Range(), "", TokenKind.Value);
+        public Token Operator { get; set; } = new Token(new Range(), "", TokenKind.Value);
+        public Token Value { get; set; } = new Token(new Range(), "", TokenKind.Value);
+        private List<string>? ruleFieldNames { get; set; }
         private int queryLevel { get; set; }
 
         public override void Extract(ref DynGraphqlQuery query)
@@ -452,17 +450,20 @@ namespace FWO.Report.Filter.Ast
 
         private static string SanitizeIp(string cidr_str)
         {
-            IPAddress ip;
+            IPAddress? ip;
             if (IPAddress.TryParse(cidr_str, out ip))
             {
-                cidr_str = ip.ToString();
-                if (cidr_str.IndexOf("/") < 0) // a single ip without mask
+                if (ip != null)
                 {
-                    cidr_str += "/32";
-                }
-                if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
-                {
-                    cidr_str += "32";
+                    cidr_str = ip.ToString();
+                    if (cidr_str.IndexOf("/") < 0) // a single ip without mask
+                    {
+                        cidr_str += "/32";
+                    }
+                    if (cidr_str.IndexOf("/") == cidr_str.Length - 1) // wrong format (/ at the end, fixing this by adding 32 mask)
+                    {
+                        cidr_str += "32";
+                    }
                 }
             }
             return cidr_str;

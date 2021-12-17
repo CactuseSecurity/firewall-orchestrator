@@ -1,5 +1,4 @@
 ﻿@using FWO.Config.Api
-@using System.Text.Json
 
 @inject APIConnection apiConnection
 @inject UserConfig userConfig
@@ -145,7 +144,7 @@
 @code
 {
     List<ScheduledReport> scheduledReports = new List<ScheduledReport>();
-    ScheduledReport scheduledReportInEdit = null;
+    ScheduledReport scheduledReportInEdit = new ScheduledReport();
 
     private bool ShowSaveScheduledReportDialog = false;
     private bool ShowEditScheduledReportDialog = false;
@@ -275,7 +274,9 @@
             };
 
             await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportSchedule, queryVariables);
-            scheduledReports.Remove(scheduledReports.Find(scheduledReport => scheduledReport.Id == scheduledReportInEdit.Id));
+            ScheduledReport? reportToDelete = scheduledReports.Find(scheduledReport => scheduledReport.Id == scheduledReportInEdit.Id);
+            if (reportToDelete != null)
+                scheduledReports.Remove(reportToDelete);
 
             ShowDeleteScheduledReportDialog = false;
         }

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Text.Json.Serialization; 
+﻿using System.Text.Json.Serialization; 
 using Newtonsoft.Json;
 
 namespace FWO.Api.Data
@@ -44,7 +42,7 @@ namespace FWO.Api.Data
         public RuleChange[]? RuleChanges { get; set; }
 
         [JsonProperty("rules_aggregate"), JsonPropertyName("rules_aggregate")]
-        public ObjectStatistics? RuleStatistics { get; set; }
+        public ObjectStatistics RuleStatistics { get; set; } = new ObjectStatistics();
 
         public bool Selected { get; set; } = false;
 
@@ -91,7 +89,7 @@ namespace FWO.Api.Data
                             newObjects = true;
                         }
                         if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)
-                            devices[i].RuleStatistics = devicesToMerge[i].RuleStatistics;
+                            devices[i].RuleStatistics.ObjectAggregate.ObjectCount += devicesToMerge[i].RuleStatistics.ObjectAggregate.ObjectCount; // correct ??
                     }
                     catch (NullReferenceException)
                     {

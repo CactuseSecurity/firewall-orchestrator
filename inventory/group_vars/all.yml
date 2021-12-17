@@ -92,6 +92,7 @@ api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "6.0"
 dotnet_mode: "Release"
+# dotnet_mode: "Debug"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 

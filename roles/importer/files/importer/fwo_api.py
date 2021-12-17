@@ -119,9 +119,22 @@ def set_api_url(base_url, testmode, api_supported, hostname):
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
     mgm_query = """
         query getManagementIds {
-            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) {
-                id: mgm_id } } """
+            management(where:{do_not_import:{_eq:false}} order_by: {mgm_name: asc}) { id: mgm_id } } """
     return call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')['data']['management']
+
+
+def get_config_value(fwo_api_base_url, jwt, key='limit'):
+    query_variables = {'key': key}
+    mgm_query = "query getConf($key: String) {  config(where: {config_key: {_eq: $key}}) { config_value } }"
+    result = call(fwo_api_base_url, jwt, mgm_query, query_variables=query_variables, role='importer')
+    if 'data' in result and 'config' in result['data']:
+        first_result = result['data']['config'][0]
+        if 'config_value' in first_result:
+            return first_result['config_value']
+        else:
+            return None
+    else:
+        return None
 
 
 def get_mgm_details(fwo_api_base_url, jwt, query_variables):
@@ -260,6 +273,7 @@ def import_json_config(fwo_api_base_url, jwt, mgm_id, query_variables):
     try:
         import_result = call(fwo_api_base_url, jwt, import_mutation,
                              query_variables=query_variables, role='importer')
+        # note: this will not detect errors in triggered stored procedure run
         if 'errors' in import_result:
             logging.exception("fwo_api:import_json_config - error while writing importable config for mgm id " +
                               str(mgm_id) + ": " + str(import_result['errors']))

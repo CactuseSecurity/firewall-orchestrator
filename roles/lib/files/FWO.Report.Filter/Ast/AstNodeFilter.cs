@@ -153,6 +153,13 @@ namespace FWO.Report.Filter.Ast
             {
                 throw new SemanticException($"Unexpected report type found", Value.Position);
             }
+
+            if (query.ReportType == ReportType.Statistics)
+            {
+                query.ruleWhereStatement +=
+                    @$"rule_head_text: {{_is_null: true}}";
+            }
+
             return query;
         }
 

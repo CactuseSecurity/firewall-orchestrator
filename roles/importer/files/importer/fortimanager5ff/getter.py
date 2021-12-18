@@ -22,7 +22,7 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
     r = requests.post(url, data=json.dumps(
         json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
-        if 'password' in json.dumps(json_payload):
+        if 'pass' in json.dumps(json_payload):
             logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
         else:
             logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
@@ -33,14 +33,14 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
         'status' not in result_json['result'][0] \
         or 'code' not in result_json['result'][0]['status'] or \
         result_json['result'][0]['status']['code'] != 0:
-        if 'password' in json.dumps(json_payload):
+        if 'pass' in json.dumps(json_payload):
             logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
         else:
             logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" +
                           json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0]['status'], indent=2))
  
 #    if logging.DEBUG:
-    if 'password' in json.dumps(json_payload):
+    if 'pass' in json.dumps(json_payload):
         logging.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
     else:
         logging.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
@@ -68,9 +68,9 @@ def login(user, password, api_host, api_port, domain, ssl_verification, proxy_st
     base_url = 'https://' + api_host + ':' + str(api_port) + '/jsonrpc'
     response = api_call(base_url, 'sys/login/user', payload, '', ssl_verification=ssl_verification,
                         proxy_string=proxy_string, method="exec", debug=debug)
-    if "session" not in response:
+    if "session" not in response:   # leaving out payload as it contains pwd
         logging.exception("\ngetter ERROR: did not receive a session id during login, " +
-                          "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) + ", payload: " + str(payload) +
+                          "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) +
                           ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
         sys.exit(1)
     return response["session"]

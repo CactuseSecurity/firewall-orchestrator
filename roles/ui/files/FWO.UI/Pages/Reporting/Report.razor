@@ -58,7 +58,7 @@
                 selectAll = true;
             StateHasChanged();
         }"
-    @ref="reportTemplateControl"></ReportTemplateComponent>
+    @ref="reportTemplateControl" />
 
 @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
@@ -189,12 +189,12 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private ReportTemplateComponent reportTemplateControl;
+    private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
 
-    private ReportBase currentReport;
+    private ReportBase? currentReport;
 
-    private TabSet rsbTabset;
-    private Sidebar deviceSelectionSidebar;
+    private TabSet? rsbTabset;
+    private Sidebar? deviceSelectionSidebar;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";
@@ -287,7 +287,8 @@
                         { "mgmIds", (int) id }
                     };
 
-                    await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, Connection, callback);
+                    if (currentReport != null)
+                        await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, Connection, callback);
 
                     return;
 
@@ -357,7 +358,7 @@
             if (!DeviceFilter.isAnyDeviceFilterSet(managementsDevFilter, currentReport.Query))  // display warning
             {
                 DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
-                reportTemplateControl.Uncollapse();
+                await reportTemplateControl.Uncollapse();
                 processing = false;
                 return;
             }
@@ -414,14 +415,14 @@
             processing = false;
             reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
             Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
-            rsbTabset.SetActiveTab(1);
+            rsbTabset?.SetActiveTab(1);
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
             processing = false;
             managementsReport = managementsReportOrig;
-            reportTemplateControl.Uncollapse();
+            await reportTemplateControl.Uncollapse();
             StateHasChanged();
             DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }

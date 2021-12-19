@@ -78,9 +78,7 @@
 
     - name: sleep for 10 seconds before restarting mw server
       wait_for: timeout=10
-      delegate_to: localhost
-        - backend
-        - api
+      # delegate_to: localhost
 
     - name: restart middleware service
       systemd:

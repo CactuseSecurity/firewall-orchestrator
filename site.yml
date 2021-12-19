@@ -66,6 +66,7 @@
     - backend
     - api
 
+# restart mw server before ui installation to make sure it is started properly
 - hosts: middlewareserver
   tasks:
     - name: wait for api proxied web port to become available
@@ -78,7 +79,6 @@
 
     - name: sleep for 10 seconds before restarting mw server
       wait_for: timeout=10
-      # delegate_to: localhost
 
     - name: restart middleware service
       systemd:

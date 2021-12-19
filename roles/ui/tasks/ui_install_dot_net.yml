@@ -58,16 +58,32 @@
     enabled: yes
   become: yes
 
+
+- block:
+  - name: wait for api proxied web port to become available
+    wait_for:
+      port: "{{ api_web_port }}"
+      host: "{{ api_ip_address }}"
+      connect_timeout: 1
+      delay: 10
+      timeout: 25
+
+  - name: sleep for 10 seconds before restarting mw server
+    wait_for: timeout=10
+    # delegate_to: localhost
+
+  - name: restart middleware service
+    systemd:
+      name: "{{ middleware_service_name }}"
+      state: restarted
+      daemon_reload: yes
+    become: yes
+    when: "not installation_mode == 'uninstall'"
+  when: "'middlewareserver' in group_names"
+
 - name: start blazor ui
   systemd:
     name: "{{ ui_service_name }}"
     state: restarted
     daemon_reload: yes
   become: yes
-
-
-#### debian 11 workaround as long as ms does not provide packages:
-# sudo apt install snapd
-# sudo snap install core
-# sudo snap install dotnet-runtime-50
-# sudo snap install dotnet-sdk --classic

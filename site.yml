@@ -75,17 +75,13 @@
         connect_timeout: 1
         delay: 10
         timeout: 25
-      tags:
+
+    - name: sleep for 10 seconds before restarting mw server
+      wait_for: timeout=10
+      delegate_to: localhost
         - backend
         - api
 
-- name: sleep for 10 seconds before restarting mw server
-  wait_for: timeout=10
-  delegate_to: localhost
-
-# restart middlewareserver now that the API is ready.
-- hosts: middlewareserver
-  tasks:
     - name: restart middleware service
       systemd:
         name: "{{ middleware_service_name }}"

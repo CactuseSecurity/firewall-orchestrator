@@ -142,7 +142,15 @@ namespace FWO.Api.Data
         public string Host()
         {
             return Hostname + ":" + Port;
-        }      
+        }
+        
+        public void AssignRuleNumbers()
+        {
+            foreach (Device device in Devices)
+            {
+                device.AssignRuleNumbers();
+            }
+        }
     }
 
     public static class ManagementUtility

@@ -16,19 +16,20 @@ namespace FWO.Ui.Display
 
         public string DisplayNumber(Rule rule, Rule[] rules)
         {
-            result = new StringBuilder();
-            if (rules != null)
-            {
-                int ruleNumber = Array.IndexOf(rules, rule) + 1;
+            //result = new StringBuilder();
+            //if (rules != null)
+            //{
+            //    int ruleNumber = Array.IndexOf(rules, rule) + 1;
 
-                for (int i = 0; i < ruleNumber; i++)
-                    if (!string.IsNullOrEmpty(rules[i].SectionHeader))
-                        ruleNumber--;
+            //    for (int i = 0; i < ruleNumber; i++)
+            //        if (!string.IsNullOrEmpty(rules[i].SectionHeader))
+            //            ruleNumber--;
 
-                result.AppendLine($"{ruleNumber}");
-            }
-            //result.AppendLine($"DEBUG: {rule.OrderNumber}");
-            return result.ToString();
+            //    result.AppendLine($"{ruleNumber}");
+            //}
+            ////result.AppendLine($"DEBUG: {rule.OrderNumber}");
+            //return result.ToString();
+            return rule.DisplayOrderNumber.ToString();
         }
 
         public string DisplayName(Rule rule)

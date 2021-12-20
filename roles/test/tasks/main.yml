@@ -1,9 +1,6 @@
 # this playbook sets up some sample devices with configs to play around with
 # postgresql-client
 
-# - name: create import sample user and copy configs
-#   include_tasks: setup-sample-import.yml
-
 - name: install packages necessary for testing
   package:
     name: "{{ item }}"
@@ -63,17 +60,6 @@
 - name: imorter testing
   import_tasks: test-importer.yml
   when: "'sampleserver' in group_names"
-
-# - name: remove all test data
-#   import_tasks: test-data-cleanup.yml
-#   when: test == 'with_cleanup'
-
-# - name: remove packages only necessary for testing
-#   package:
-#     name: "{{ item }}"
-#     state: absent
-#   loop: "{{ test_packages }}"
-#   become: yes
 
 - name: finalize handler for deleting test data
   set_fact:

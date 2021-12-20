@@ -228,7 +228,7 @@ namespace FWO.Report.Filter
             }
 
             // find gw filter in filter string and perform pattern matching against gw names 
-            string pattern = @"(gateway|gw|device|firewall)\s*\=\=?\s*""?(\w+)""?";
+            string pattern = @"(gateway|gw|device|firewall)\s*\=\=?\s*""?([\w\-]+)""?";
             Regex gwFilterRgx = new Regex(pattern);
             string filterLine = currentFilterLine.ToLower();
 
@@ -237,9 +237,9 @@ namespace FWO.Report.Filter
                 Regex gwRgx = new Regex($@"{gwExpressionMatch.Groups[2].Value}");
                 foreach (string gw in gatewayList)
                 {
-                    Match m = gwRgx.Match(gw);
+                    Match m = gwRgx.Match(gw.ToLower());
                     if (m.Success)
-                        filteredGatewayList.Add(gw);
+                        filteredGatewayList.Add(gw.ToLower());
                 }
             }
 
@@ -250,7 +250,7 @@ namespace FWO.Report.Filter
                 {
                     foreach (Device device in mgmt.Devices)
                     {
-                        if (filteredGatewayList.Contains(device.Name != null ? device.Name : ""))
+                        if (filteredGatewayList.Contains(device.Name != null ? device.Name.ToLower() : ""))
                             device.Selected = true;
                     }
                 }

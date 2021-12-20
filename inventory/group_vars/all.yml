@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.5.3"
+product_version: "5.5.4"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -92,6 +92,7 @@ api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "6.0"
 dotnet_mode: "Release"
+# dotnet_mode: "Debug"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 

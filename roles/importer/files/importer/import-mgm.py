@@ -21,12 +21,13 @@ parser = argparse.ArgumentParser(
     description='Read configuration from FW management via API calls')
 parser.add_argument('-m', '--mgm_id', metavar='management_id',
                     required=True, help='FWORCH DB ID of the management server to import')
-parser.add_argument('-c', '--clear', metavar='clear_management', default=False,
+parser.add_argument('-c', '--clear', metavar='clear_management',
                     help='If set the import will delete all data for the given management instead of importing')
 parser.add_argument('-f', '--force', action='store_true', default=False,
                     help='If set the import will be attempted without checking for changes before')
 parser.add_argument('-d', '--debug', metavar='debug_level', default='0',
-                    help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=keep temporary config files; default=0')
+                    help='Debug Level: 0=off, 1=send debug to console, 2=send debug to file, 3=save noramlized config file; 4=additionally save native config file; default=0. \n' +\
+                        'config files are saved to $FWORCH/tmp/import dir')
 parser.add_argument('-x', '--proxy', metavar='proxy_string',
                     help='proxy server string to use, e.g. http://1.2.3.4:8080')
 parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
@@ -35,8 +36,6 @@ parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
                     help='The maximal number of returned results per HTTPS Connection; default=150')
 parser.add_argument('-t', '--testing', metavar='version_testing',
                     default='off', help='Version test, [off|<version number>]; default=off')
-parser.add_argument('-o', '--out', metavar='output_file',
-                    default=False, help='filename to write output in json format to, "False" if not writing to file')
 
 args = parser.parse_args()
 if len(sys.argv) == 1:
@@ -63,9 +62,6 @@ with open(fwo_config_filename, "r") as fwo_config:
 user_management_api_base_url = fwo_config['middleware_uri']
 fwo_api_base_url = fwo_config['api_uri']
 
-method = 'api/AuthenticationToken/Get'
-ssl_mode = args.ssl
-
 # authenticate to get JWT
 with open(importer_pwd_file, 'r') as file:
     importer_pwd = file.read().replace('\n', '')
@@ -75,7 +71,7 @@ else:
     proxy = None
 
 jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                        method, ssl_verification=ssl_mode, proxy=proxy)
+                        ssl_verification=args.ssl, proxy=proxy)
 
 # get mgm_details (fw-type, port, ip, user credentials):
 mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": int(args.mgm_id)})
@@ -106,12 +102,6 @@ config2import = {}
 Path(import_tmp_path).mkdir(parents=True,
                             exist_ok=True)  # make sure tmp path exists
 
-# the config is expected as a file by checkpoint, for newer importers, everything is handled via config variable
-config_filename = import_tmp_path + '/mgm_id_' + \
-    str(args.mgm_id) + '_config.json'
-
-with open(config_filename, "w") as json_data:  # create empty config file
-    json_data.write(json.dumps(full_config_json))
 secret_filename = base_dir + '/tmp/import/mgm_id_' + \
     str(args.mgm_id) + '_secret.txt'
 with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
@@ -129,7 +119,20 @@ fw_module = importlib.import_module(fw_module_name)
 
 # get config from FW API and write config to json file "config_filename"
 get_config_response = fw_module.get_config(
-    config2import, current_import_id, mgm_details, debug_level, proxy=proxy, limit=args.limit, force=args.force)
+    config2import, full_config_json,  current_import_id, mgm_details, debug_level, 
+        ssl_verification=args.ssl, proxy=proxy, limit=args.limit, force=args.force)
+
+if debug_level>2:
+    normalized_config_filename = import_tmp_path + '/mgm_id_' + \
+        str(args.mgm_id) + '_config_normalized.json'
+    with open(normalized_config_filename, "w") as json_data:
+        json_data.write(json.dumps(config2import, indent=2))
+
+    if debug_level>3:
+        full_native_config_filename = import_tmp_path + '/mgm_id_' + \
+            str(args.mgm_id) + '_config_native.json'
+        with open(full_native_config_filename, "w") as json_data:  # create empty config file
+            json_data.write(json.dumps(full_config_json, indent=2))
 
 # if no changes were found, we get get_config_response==512 and we skip everything else without errors
 # todo: re-structure this to make it more logical/readable
@@ -148,40 +151,33 @@ elif get_config_response == 0:
     if error_string_from_imp_control != None and error_string_from_imp_control != [{'import_errors': None}]:
         error_count += 1
         error_string += str(error_string_from_imp_control)
-
     # todo: if no objects found at all: at least throw a warning
 
-    change_count = fwo_api.count_changes_per_import(
-        fwo_api_base_url, jwt, current_import_id)
+    change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
 
     if change_count > 0 or error_count > 0:  # store full config in case of change or error
-        with open(config_filename, "r") as json_data:
-            full_config_json = json.load(json_data)
-
         error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
             "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
 
-stop_time = int(time.time())
-stop_time_string = datetime.datetime.now().isoformat()
-
+# CLEANUP
 # delete configs of imports without changes (if no error occured)
 if change_count == 0 and error_count == 0 and get_config_response < 2:
-    error_count += fwo_api.delete_json_config(
-        fwo_api_base_url, jwt, {"importId": current_import_id})
-    if os.path.exists(config_filename):
-        os.remove(config_filename)
-      # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
-
+    error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
+        # if os.path.exists(config_filename):
+        #     os.remove(config_filename)
+        # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
 if os.path.exists(secret_filename):
     os.remove(secret_filename)
+
 # finalize import by unlocking it
 error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
-    args.mgm_id), stop_time_string, current_import_id, error_count, change_count)
+    args.mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
 
-
-print("import_mgm.py: import no. " + str(current_import_id) + " for management " + mgm_details['name'] + ' (id=' + str(args.mgm_id) + ") ran " +
-      str("with" if error_count else "without") + " errors, change_count: " + str(change_count) + ", duration: " +
-      str(int(time.time()) - start_time) + "s")
+logging.info("import_mgm.py: import no. " + str(current_import_id) +
+    " for management " + mgm_details['name'] + ' (id=' + str(args.mgm_id) + ")" +
+    " ran " + str("with" if error_count else "without") + " errors," +
+    " change_count: " + str(change_count) +
+    ", duration: " + str(int(time.time()) - start_time) + "s")
 if len(error_string) > 0:
     print("ERRORS: " + error_string)
 

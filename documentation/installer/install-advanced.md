@@ -51,6 +51,10 @@ Note that the following domains must be reachable through the proxy:
     microsoft.com     
     nuget.org
 
+NB: for vscode-debugging, you also need access to
+
+    visualstudio.com
+
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch:

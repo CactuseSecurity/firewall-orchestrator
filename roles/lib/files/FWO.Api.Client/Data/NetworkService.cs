@@ -74,7 +74,7 @@ namespace FWO.Api.Data
         [JsonProperty("svcgrp_flats"), JsonPropertyName("svcgrp_flats")]
         public GroupFlat<NetworkService>[] ServiceGroupFlats { get; set; } = new GroupFlat<NetworkService>[]{};
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             switch (obj)
             {

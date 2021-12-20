@@ -66,21 +66,6 @@
     - backend
     - api
 
-# restart middlewareserver now that the API is ready.
-- hosts: middlewareserver
-  tasks:
-    - name: restart middleware service
-      systemd:
-        name: "{{ middleware_service_name }}"
-        state: restarted
-        daemon_reload: yes
-      become: yes
-      when: "not installation_mode == 'uninstall'"
-  tags:
-    - backend
-    - csharp
-    - api
-
 - hosts: frontends
   roles:
     # do not install lib role twice (for non distributed install, already installed for middlewareserver)

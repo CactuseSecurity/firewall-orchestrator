@@ -120,16 +120,4 @@ namespace FWO.Api.Data
         [JsonProperty("device"), JsonPropertyName("device")]
         public Device VisibleDevice { get; set; } = new Device();
     }
-
-    public class DeviceId
-    {
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
-    }
-
-    public class ManagementId
-    {
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
-    }
 }

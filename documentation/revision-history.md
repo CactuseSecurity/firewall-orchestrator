@@ -164,3 +164,6 @@ adding report template format fk and permissions
 
 ### 5.5.4 - 13.12.2021
 - insert default config values
+
+### 5.5.5 - 20.12.2021
+- set ldap_tenant_level to 5

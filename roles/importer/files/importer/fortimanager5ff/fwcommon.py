@@ -16,7 +16,7 @@ rule_access_scope = ['rules_global_header_v4', 'rules_global_header_v6', 'rules_
 rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
-nw_obj_types = ['address', 'address6', 'addrgrp', 'addrgrp6']
+nw_obj_types = ['address', 'address6', 'addrgrp', 'addrgrp6', 'ippool']
 svc_obj_types = ['application/list', 'application/group', 'application/categories', 'application/custom', 'firewall/service/custom', 'firewall/service/group']
 
 # build the product of all scope/type combinations

@@ -30,9 +30,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 obj.update({ 'obj_ip': ipa.with_prefixlen })
             elif 'member' in obj_orig: # addrgrp4 / addrgrp6
                 obj.update({ 'obj_typ': 'group' })
-                # obj.update({ 'obj_zone': 'global' })    # all groups will be treated as global objects
                 obj.update({ 'obj_member_names' : common.list_delimiter.join(obj_orig['member']) })
-                # obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config[obj_type], 'name', 'uuid')})
                 obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config, 'name', 'uuid')})
             else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
                 obj.update({ 'obj_typ': 'network' })
@@ -42,6 +40,10 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
             if 'color' in obj_orig and obj_orig['color']==0:
                 obj.update({'obj_color': 'black'})  # todo: deal with all other colors (will be currently ignored)
                                                     # we would need a list of fortinet color codes
+            if 'uuid' not in obj_orig:
+                # ippool objects do not have a uuid, using name
+                obj_orig.update({'uuid': 'ippool-uuid-' + obj_orig['name']})
+
             obj.update({'obj_uid': obj_orig['uuid']})
 
             obj_zone = 'global'

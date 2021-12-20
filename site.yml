@@ -66,21 +66,6 @@
     - backend
     - api
 
-# restart mw server before ui installation to make sure it is started properly
-- hosts: middlewareserver
-  tasks:
-    - name: wait for api proxied web port to become available
-      wait_for:
-        port: "{{ api_web_port }}"
-        host: "{{ api_ip_address }}"
-        connect_timeout: 1
-        delay: 10
-        timeout: 25
-  tags:
-    - backend
-    - csharp
-    - api
-
 - hosts: frontends
   roles:
     # do not install lib role twice (for non distributed install, already installed for middlewareserver)

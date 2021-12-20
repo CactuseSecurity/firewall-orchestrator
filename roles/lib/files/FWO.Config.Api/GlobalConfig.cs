@@ -33,6 +33,7 @@ namespace FWO.Config.Api
         public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
         public static readonly string kDataRetentionTime = "dataRetentionTime";
         public static readonly string kImportSleepTime = "importSleepTime";
+        public static readonly string kFwApiElementsPerFetch = "fwApiElementsPerFetch";
         public static readonly string kRecertificationPeriod = "recertificationPeriod";
         public static readonly string kRecertificationNoticePeriod = "recertificationNoticePeriod";
         public static readonly string kRecertificationDisplayPeriod = "recertificationDisplayPeriod";

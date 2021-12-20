@@ -27,6 +27,7 @@ APIConnection apiConnection = new APIConnection(configFile.ApiServerUri ?? throw
 
 // Fetch all connectedLdaps via API (blocking).
 List<Ldap> connectedLdaps = new List<Ldap>();
+int connectionAttemptsCount = 1;
 while (true)
 {
     // Repeat first api call in case graphql api is not started yet
@@ -38,6 +39,7 @@ while (true)
     catch (Exception ex)
     {
         Log.WriteError("Graphql api", "Graphql api unreachable.", ex);
+        Thread.Sleep(500 * connectionAttemptsCount++);
     }
 }
 

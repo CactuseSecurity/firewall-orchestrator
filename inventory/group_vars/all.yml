@@ -1,5 +1,5 @@
 ### general settings
-product_version: "5.5.3"
+product_version: "5.5.4"
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch
@@ -92,11 +92,12 @@ api_uri: "https://{{ api_ip_address }}:{{ api_web_port }}/api/v1/graphql"
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_version: "6.0"
 dotnet_mode: "Release"
+# dotnet_mode: "Debug"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 
 ### password generation
-random_generated_pw: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+random_generated_pw: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
 
 ### logging
 syslog_proto: tcp
@@ -112,7 +113,6 @@ webserver_package_name: apache2
 http_conf_dir: /etc/{{ webserver_package_name }}/sites-available/
 
 ################# testing #########################
-
 test_dir: "{{ fworch_home }}/test"
-test_fortigate_name: fortigate_test
+test_fortigate_name: "fortigate{{ test_postfix }}"
 csharp_test_start_dir: "{{ fworch_home }}/test/csharp/FWO_Test"

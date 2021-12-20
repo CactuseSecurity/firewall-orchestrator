@@ -46,7 +46,6 @@
       when: ansible_os_family == "Debian"
 
     - name: initdb as extra step for redhat
-      # can't test if shell can be replaced with command
       shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
       become: yes
       when: ansible_os_family == "RedHat"
@@ -206,8 +205,6 @@
       name: "{{ item }}"
   loop:
     - "{{ postgresql_test_package }}"
-    # - make
-    # - "{{ postgresql_dev_package }}"
   tags: [ 'never', 'unittest' ]
   become: yes
 

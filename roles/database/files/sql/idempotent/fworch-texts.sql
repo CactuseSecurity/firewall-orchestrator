@@ -19,6 +19,8 @@ INSERT INTO txt VALUES ('save', 				'German',	'Speichern');
 INSERT INTO txt VALUES ('save', 				'English',	'Save');
 INSERT INTO txt VALUES ('delete', 				'German',	'L&ouml;schen');
 INSERT INTO txt VALUES ('delete', 				'English',	'Delete');
+INSERT INTO txt VALUES ('remove', 				'German',	'Entfernen');
+INSERT INTO txt VALUES ('remove', 				'English',	'Remove');
 INSERT INTO txt VALUES ('clone', 				'German',	'Klonen');
 INSERT INTO txt VALUES ('clone', 				'English',	'Clone');
 INSERT INTO txt VALUES ('edit', 				'German',	'Bearbeiten');
@@ -27,6 +29,8 @@ INSERT INTO txt VALUES ('set', 				    'German',	'Setzen');
 INSERT INTO txt VALUES ('set', 				    'English',	'Set');
 INSERT INTO txt VALUES ('add', 				    'German',	'Hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add', 				    'English',	'Add');
+INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
+INSERT INTO txt VALUES ('assign', 				'English',	'Assign');
 INSERT INTO txt VALUES ('search', 				'German',	'Suchen');
 INSERT INTO txt VALUES ('search', 			    'English',	'Search');
 INSERT INTO txt VALUES ('load', 				'German',	'Laden');
@@ -55,6 +59,8 @@ INSERT INTO txt VALUES ('modified',		        'German', 	'ge&auml;ndert');
 INSERT INTO txt VALUES ('modified',		        'English', 	'modified');
 INSERT INTO txt VALUES ('id',		            'German', 	'Id');
 INSERT INTO txt VALUES ('id',		            'English', 	'Id');
+INSERT INTO txt VALUES ('coming_soon',		    'German', 	'(demn&auml;chst)');
+INSERT INTO txt VALUES ('coming_soon',		    'English', 	'(coming soon)');
 
 -- login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -462,8 +468,8 @@ INSERT INTO txt VALUES ('tenants',		        'German', 	'Mandanten');
 INSERT INTO txt VALUES ('tenants',		        'English', 	'Tenants');
 INSERT INTO txt VALUES ('users',		        'German', 	'Nutzer');
 INSERT INTO txt VALUES ('users',		        'English', 	'Users');
-INSERT INTO txt VALUES ('groups',		        'German', 	'Gruppen');
-INSERT INTO txt VALUES ('groups',		        'English', 	'Groups');
+INSERT INTO txt VALUES ('groups',		        'German', 	'Interne Gruppen');
+INSERT INTO txt VALUES ('groups',		        'English', 	'Internal Groups');
 INSERT INTO txt VALUES ('roles',		        'German', 	'Rollen');
 INSERT INTO txt VALUES ('roles',		        'English', 	'Roles');
 INSERT INTO txt VALUES ('defaults',		        'German', 	'Voreinstellungen');
@@ -486,8 +492,8 @@ INSERT INTO txt VALUES ('hostname',             'German', 	'Hostname');
 INSERT INTO txt VALUES ('hostname',             'English', 	'Hostname');
 INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
-INSERT INTO txt VALUES ('config_path',          'German', 	'Konfigurationspfad');
-INSERT INTO txt VALUES ('config_path',          'English', 	'Config Path');
+INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
+INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
 INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
 INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');
@@ -560,16 +566,26 @@ INSERT INTO txt VALUES ('edit_group',		    'German',	'Gruppe bearbeiten');
 INSERT INTO txt VALUES ('edit_group',		    'English',	'Edit Group');
 INSERT INTO txt VALUES ('delete_group',		    'German',	'Gruppe l&ouml;schen');
 INSERT INTO txt VALUES ('delete_group',		    'English',	'Delete Group');
-INSERT INTO txt VALUES ('add_user_to_group',	'German',	'Nutzer zu Gruppe hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('add_user_to_group',	'English',	'Add user to group');
-INSERT INTO txt VALUES ('delete_user_from_group','German',	'Nutzer von Gruppe l&ouml;schen');
-INSERT INTO txt VALUES ('delete_user_from_group','English',	'Delete user from group');
-INSERT INTO txt VALUES ('add_user_to_role',	    'German',	'Nutzer/Gruppe zu Rolle hinzuf&uuml;gen');
-INSERT INTO txt VALUES ('add_user_to_role',	    'English',	'Add user/group to role');
-INSERT INTO txt VALUES ('delete_user_from_role','German',	'Nutzer/Gruppe von Rolle l&ouml;schen');
-INSERT INTO txt VALUES ('delete_user_from_role','English',	'Delete user/group from role');
+INSERT INTO txt VALUES ('assign_user_to_group',	'German',	'Nutzer zu Gruppe zuordnen');
+INSERT INTO txt VALUES ('assign_user_to_group',	'English',	'Assign user to group');
+INSERT INTO txt VALUES ('remove_user_from_group','German',	'Nutzer von Gruppe entfernen');
+INSERT INTO txt VALUES ('remove_user_from_group','English',	'Remove user from group');
+INSERT INTO txt VALUES ('assign_user_group_to_role','German','Nutzer/Gruppe zu Rolle zuordnenen');
+INSERT INTO txt VALUES ('assign_user_group_to_role','English','Assign user/group to role');
+INSERT INTO txt VALUES ('remove_user_group_from_role','German','Nutzer/Gruppe von Rolle entfernen');
+INSERT INTO txt VALUES ('remove_user_group_from_role','English','Remove user/group from role');
+INSERT INTO txt VALUES ('assign_user_group',    'German', 	'Nutzer/Gruppe zuordnen');
+INSERT INTO txt VALUES ('assign_user_group',    'English', 	'Assign user/group');
+INSERT INTO txt VALUES ('remove_user_group',    'German', 	'Nutzer/Gruppe entfernen');
+INSERT INTO txt VALUES ('remove_user_group',    'English', 	'Remove user/group');
+INSERT INTO txt VALUES ('assign_user',          'German', 	'Nutzer zuordnen');
+INSERT INTO txt VALUES ('assign_user',          'English', 	'Assign user');
+INSERT INTO txt VALUES ('remove_user',          'German', 	'Nutzer entfernen');
+INSERT INTO txt VALUES ('remove_user',          'English', 	'Remove user');
 INSERT INTO txt VALUES ('get_user_from_ldap',   'German',	'Nutzer von LDAP holen');
 INSERT INTO txt VALUES ('get_user_from_ldap',   'English',	'Get user from LDAP');
+INSERT INTO txt VALUES ('select_from_ldap',     'German',	'von LDAP ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_from_ldap',     'English',	'Select from LDAP');
 INSERT INTO txt VALUES ('synchronize', 			'German',	'Mit LDAP Synchronisieren');
 INSERT INTO txt VALUES ('synchronize', 			'English',	'Synchronize to LDAP');
 INSERT INTO txt VALUES ('delete_user',          'German', 	'Nutzer l&ouml;schen');
@@ -638,8 +654,8 @@ INSERT INTO txt VALUES ('pwSpecialCharactersRequired','German','Sonderzeichen en
 INSERT INTO txt VALUES ('pwSpecialCharactersRequired','English','Special Characters Required (!?(){}=~$%&amp;#*-+.,_)');
 INSERT INTO txt VALUES ('default_language',     'German', 	'Standardsprache');
 INSERT INTO txt VALUES ('default_language',     'English', 	'Default Language');
-INSERT INTO txt VALUES ('elementsPerFetch',     'German', 	'Pro Abruf geholte Elemente');
-INSERT INTO txt VALUES ('elementsPerFetch',     'English', 	'Elements per fetch');
+INSERT INTO txt VALUES ('elementsPerFetch',     'German', 	'UI - Pro Abruf geholte Elemente');
+INSERT INTO txt VALUES ('elementsPerFetch',     'English', 	'UI - Elements per fetch');
 INSERT INTO txt VALUES ('maxInitialFetchesRightSidebar','German','Max initiale Abrufe rechte Randleiste');
 INSERT INTO txt VALUES ('maxInitialFetchesRightSidebar','English','Max initial fetches right sidebar');
 INSERT INTO txt VALUES ('autoFillRightSidebar', 'German', 	'Komplettes F&uuml;llen rechte Randleiste');
@@ -648,6 +664,8 @@ INSERT INTO txt VALUES ('dataRetentionTime',    'German', 	'Datenaufbewahrungsze
 INSERT INTO txt VALUES ('dataRetentionTime',    'English', 	'Data retention time (in days)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('importSleepTime',      'English', 	'Import sleep time (in seconds)');
+INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
+INSERT INTO txt VALUES ('fwApiElementsPerFetch','English', 	'FW API - Elements per fetch');
 INSERT INTO txt VALUES ('recertificationPeriod','German', 	'Rezertifizierungsintervall (in Tagen)');
 INSERT INTO txt VALUES ('recertificationPeriod','English',  'Recertification Period (in days)');
 INSERT INTO txt VALUES ('recertificationNoticePeriod','German','Rezertifizierungserinnerungsintervall (in Tagen)');
@@ -969,6 +987,10 @@ INSERT INTO txt VALUES ('E1002', 'German',  'Kein Report vorhanden zum Exportier
 INSERT INTO txt VALUES ('E1002', 'English', 'No generated report to export. Please generate report first!');
 INSERT INTO txt VALUES ('E1003', 'German',  'Die Datenabholung wurde abgebrochen. M&ouml;glicherweise werden nicht alle verf&uuml;gbaren Daten dargestellt.');
 INSERT INTO txt VALUES ('E1003', 'English', 'Data fetch was cancelled. Possibly not all available data are displayed');
+INSERT INTO txt VALUES ('E1004', 'German',  'Vorlage konnte nicht gespeichert werden');
+INSERT INTO txt VALUES ('E1004', 'English', 'Template could not be saved');
+INSERT INTO txt VALUES ('E1005', 'German',  'Vorlage konnte nicht gel&ouml;scht werden');
+INSERT INTO txt VALUES ('E1005', 'English', 'Template could not be deleted');
 
 INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
@@ -1575,13 +1597,11 @@ INSERT INTO txt VALUES ('H5117', 'English', 'Login Secret*: For ssh access enter
 ');
 INSERT INTO txt VALUES ('H5118', 'German',  '&Ouml;ffentlicher Schl&uuml;ssel: Dieses Feld muss nur f&uuml;r Netscreen-Firewalls gef&uuml;llt werden - dieses System ben&ouml;tigt auch den &ouml;ffentlichen Schl&uuml;ssel zum Anmelden.');
 INSERT INTO txt VALUES ('H5118', 'English', 'Public Key: This field only needs to be filled for netscreen firewalls - this system also needs the public key for successful login.');
-INSERT INTO txt VALUES ('H5119', 'German',  'Konfigurationspfad: Pfad der Config-Datei.<br>
-    F&uuml;r Standard-Zugang (ohne die Konfiguration in einer Datei zu halten) leer lassen.
-    Ausnahme: F&uuml;r Check Point R8x MDS Installationen wird hier der Domainname eingetragen.
+INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
+    f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.
 ');
-INSERT INTO txt VALUES ('H5119', 'English', 'Config Path: Path of the config file.<br>
-    Leave empty in case of standard access (without buffering the config in a file).
-    Exception: For Check Point R8x MDS installations, the domain name is entered here.
+INSERT INTO txt VALUES ('H5119', 'English', 'Domain: Firewall Domain Name<br>
+    Empty except for Check Point R8x MDS / Fortimanager installations.
 ');
 INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: Der Name des Servers, auf dem der Importprozess laufen soll.
     Muss individuell konfiguriert werden, wenn mehrere verteilte Importmodule laufen sollen, so dass nicht jeder Importer alle Managements importiert.
@@ -1685,10 +1705,10 @@ INSERT INTO txt VALUES ('H5212', 'English', 'Port*: Port number of the connected
 INSERT INTO txt VALUES ('H5213', 'German',  'Tls: Zeigt an, ob TLS in der Kommunikation verwendet wird.');
 INSERT INTO txt VALUES ('H5213', 'English', 'Tls: Flag if TLS is used for communication.');
 INSERT INTO txt VALUES ('H5214', 'German',  'Mandantenebene: Wenn Mandanten Teil des Distinguished Name (Dn) des Nutzers sind, definiert diese Zahl die Pfadtiefe, wo dieser zu finden ist. 
-    Das beginnt mit 1 f&uuml;r den ersten Eintrag vor den Wurzelelement(en) "c" oder "dc". Wenn keine Mandanten genutzt werden, auf 0 setzen.
+    Das beginnt mit 1 f&uuml;r das erste Element von rechts. Wenn keine Mandanten genutzt werden, auf 0 setzen.
 ');
 INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part of the distinguished names (Dn) of the user, this number defines the level in the path, where they are found.
-    Starting with 1 for the first Dn entry before the root element(s) "c" od "dc". Set to 0 if no tenants are used.
+    Starting with 1 for the first Dn element from the right. Set to 0 if no tenants are used.
 ');
 INSERT INTO txt VALUES ('H5215', 'German',  'Typ*: Implementierungstyp des Ldap, welcher die Syntax des Zugangs festlegt. Zur Zeit werden "OpenLdap" und "ActiveDirectory" unterst&uuml;tzt.
     "Default" ist eine &Uuml;bermenge von verschiedenen Syntax-Varianten, die m&ouml;glicherweise weiterhilft, wenn die anderen nicht anwendbar sind.

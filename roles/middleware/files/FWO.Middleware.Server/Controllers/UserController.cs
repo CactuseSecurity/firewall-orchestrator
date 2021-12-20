@@ -269,16 +269,24 @@ namespace FWO.Middleware.Controllers
             foreach (Ldap currentLdap in ldaps)
             {
                 // Try to delete user in current Ldap
-                if ((currentLdap.Id == parameters.LdapId || parameters.LdapId == 0) && currentLdap.IsWritable())
+                if (currentLdap.Id == parameters.LdapId || parameters.LdapId == 0)
                 {
-                    await Task.Run(() =>
+                    if (currentLdap.IsWritable())
                     {
-                        if(currentLdap.DeleteUser(user.Dn))
+                        await Task.Run(() =>
                         {
-                            userDeleted = true;
-                            Log.WriteAudit("DeleteUser", $"User {user.Dn} deleted from Ldap Id: {parameters.LdapId} Name: {currentLdap.Host()}");
-                        }
-                    });
+                            if(currentLdap.DeleteUser(user.Dn))
+                            {
+                                userDeleted = true;
+                                Log.WriteAudit("DeleteUser", $"User {user.Dn} deleted from Ldap Id: {parameters.LdapId} Name: {currentLdap.Host()}");
+                            }
+                        });
+                    }
+                    else
+                    {
+                        // not allowed to delete user in Ldap
+                        userDeleted = true;
+                    }
                 }
             }
             if (userDeleted)

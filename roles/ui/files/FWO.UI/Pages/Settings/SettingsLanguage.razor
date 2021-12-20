@@ -28,7 +28,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
     string? selectedLanguage;
 
     protected override void OnInitialized()
@@ -47,7 +47,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("change_language"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("change_language"), "", true);
         }
     }
 }

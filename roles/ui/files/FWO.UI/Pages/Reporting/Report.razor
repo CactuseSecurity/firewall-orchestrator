@@ -58,7 +58,7 @@
                 selectAll = true;
             StateHasChanged();
         }"
-    @ref="reportTemplateControl"></ReportTemplateComponent>
+    @ref="reportTemplateControl" />
 
 @* ==== Report main div ==== *@
     <div class="card mr-1 ml-1 mb-1 shadow">
@@ -164,10 +164,7 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; }
-
-    [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     private bool processing = false;
     private CancellationTokenSource tokenSource = new CancellationTokenSource();
@@ -178,7 +175,7 @@
     private Management[] managementsDevFilter = new Management[0];
     private Management[] managementsReport = new Management[0];
     private Management[] managementsAllObjects = new Management[0];
-    private Management globalStats = null;
+    private Management? globalStats = null;
 
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
@@ -192,12 +189,12 @@
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;
 
-    private ReportTemplateComponent reportTemplateControl;
+    private ReportTemplateComponent reportTemplateControl = new ReportTemplateComponent();
 
-    private ReportBase currentReport;
+    private ReportBase? currentReport;
 
-    private TabSet rsbTabset;
-    private Sidebar deviceSelectionSidebar;
+    private TabSet? rsbTabset;
+    private Sidebar? deviceSelectionSidebar;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";
@@ -226,7 +223,7 @@
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+                DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
     }
@@ -290,7 +287,8 @@
                         { "mgmIds", (int) id }
                     };
 
-                    await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, Connection, callback);
+                    if (currentReport != null)
+                        await currentReport.GetObjectsForManagementInReport(queryVars, (byte)(contentType - report), autoFillRightSidebar ? int.MaxValue : maxInitFetchRightSidebar, Connection, callback);
 
                     return;
 
@@ -328,7 +326,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
 
@@ -359,8 +357,8 @@
             currentReport = ReportBase.ConstructReport(filterInput, userConfig);
             if (!DeviceFilter.isAnyDeviceFilterSet(managementsDevFilter, currentReport.Query))  // display warning
             {
-                DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
-                reportTemplateControl.Uncollapse();
+                DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+                await reportTemplateControl.Uncollapse();
                 processing = false;
                 return;
             }
@@ -416,23 +414,24 @@
 
             processing = false;
             reportGenerationTimeLine = $"generation time: {DateTime.Now - startTime}.";
-            rsbTabset.SetActiveTab(1);
+            Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
+            rsbTabset?.SetActiveTab(1);
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception exception)
         {
             processing = false;
             managementsReport = managementsReportOrig;
-            reportTemplateControl.Uncollapse();
+            await reportTemplateControl.Uncollapse();
             StateHasChanged();
-            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }
     }
 
     private void CancelGeneration()
     {
         tokenSource.Cancel();
-        DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+        DisplayMessageInUi!(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
     }
 
     private void setRelevantManagements(List<int> relevantManagements)
@@ -467,7 +466,7 @@
         catch (Exception unexpectedError)
         {
 #if DEBUG
-            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
+            DisplayMessageInUi!(unexpectedError, userConfig.GetText("filter"), "", false);
 #endif
         }
     }

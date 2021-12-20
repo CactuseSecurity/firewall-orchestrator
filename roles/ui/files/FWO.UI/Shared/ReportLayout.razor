@@ -1,6 +1,4 @@
-﻿@using FWO.Ui.Data
-
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @layout MainLayout
 
 <!--<Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" InitialWidth="sidebarLeftWidth" @bind-Width="sidebarLeftWidth">
@@ -21,8 +19,8 @@
 
 @code
 {
-    private RenderFragment SidebarLeftContent { get; set; } @* maybe not needed *@
-    private RenderFragment SidebarRightContent { get; set; }
+    private RenderFragment? SidebarLeftContent { get; set; } @* maybe not needed *@
+    private RenderFragment? SidebarRightContent { get; set; }
 
     private int sidebarLeftWidth = 300;
     private int sidebarRightWidth = 300;

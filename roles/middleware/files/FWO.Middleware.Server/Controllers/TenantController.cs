@@ -80,6 +80,7 @@ namespace FWO.Middleware.Controllers
                     if (returnIds != null)
                     {
                         tenantId = returnIds[0].NewId;
+                        Log.WriteDebug("AddTenant", $"Tenant {tenant.Name} added in database");
                     }
                 }
                 catch (Exception exception)
@@ -114,6 +115,7 @@ namespace FWO.Middleware.Controllers
                 if (returnId.UpdatedId == parameters.Id)
                 {
                     tenantUpdated = true;
+                    Log.WriteDebug("UpdateTenant", $"Tenant {parameters.Id} updated in database");
                 }
             }
             catch (Exception exception)
@@ -139,26 +141,26 @@ namespace FWO.Middleware.Controllers
                     {
                         if(currentLdap.DeleteTenant(tenant.Name))
                         {
-                            tenantDeleted = true;
                             Log.WriteAudit("DeleteTenant", $"Tenant {tenant.Name} deleted from {currentLdap.Host()}");
                         }
                     });
                 }
             }
 
-            if (tenantDeleted) 
+            try
             {
-                try
+                // Delete also from local database table
+                var Variables = new { id = tenant.Id };
+                int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteTenant, Variables)).DeletedId;
+                if (delId == tenant.Id)
                 {
-                    // Delete also from local database table
-                    var Variables = new { id = tenant.Id };
-                    int delId = (await apiConnection.SendQueryAsync<ReturnId>(FWO.ApiClient.Queries.AuthQueries.deleteTenant, Variables)).DeletedId;
+                    tenantDeleted = true;
+                    Log.WriteDebug("DeleteTenant", $"Tenant {tenant.Name} deleted from database");
                 }
-                catch (Exception exception)
-                {
-                    Log.WriteAudit("AddTenant", $"Deleting Tenant {tenant.Id} locally failed: {exception.Message}");
-                    tenantDeleted = false;
-                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteAudit("DeleteTenant", $"Deleting Tenant {tenant.Id} locally failed: {exception.Message}");
             }
 
             // Return status and result

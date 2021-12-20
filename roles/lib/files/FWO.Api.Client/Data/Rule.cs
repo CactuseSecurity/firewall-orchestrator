@@ -14,6 +14,8 @@ namespace FWO.Api.Data
         [JsonProperty("rule_num_numeric"), JsonPropertyName("rule_num_numeric")]
         public double OrderNumber { get; set; }
 
+        public int DisplayOrderNumber { get; set; }
+
         [JsonProperty("rule_name"), JsonPropertyName("rule_name")]
         public string Name { get; set; } = "";
 

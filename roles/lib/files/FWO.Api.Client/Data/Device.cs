@@ -64,6 +64,22 @@ namespace FWO.Api.Data
             HideInUi = device.HideInUi;
             Comment = device.Comment;
         }
+
+        public void AssignRuleNumbers()
+        {
+            if (Rules != null)
+            {
+                int ruleNumber = 1;
+
+                foreach (Rule rule in Rules)
+                {
+                    if (string.IsNullOrEmpty(rule.SectionHeader))
+                    {
+                        rule.DisplayOrderNumber = ruleNumber++;
+                    }
+                }
+            }
+        }
     }
 
 
@@ -82,12 +98,12 @@ namespace FWO.Api.Data
                     {
                         if (devices[i].Rules != null && devicesToMerge[i].Rules != null && devicesToMerge[i].Rules?.Length > 0)
                         {
-                            devices[i].Rules = devices[i].Rules?.Concat(devicesToMerge[i].Rules).ToArray();
+                            devices[i].Rules = devices[i].Rules! .Concat(devicesToMerge[i].Rules!).ToArray();
                             newObjects = true;
                         }
                         if (devices[i].RuleChanges != null && devicesToMerge[i].RuleChanges != null && devicesToMerge[i].RuleChanges?.Length > 0)
                         {
-                            devices[i].RuleChanges = devices[i].RuleChanges?.Concat(devicesToMerge[i].RuleChanges).ToArray();
+                            devices[i].RuleChanges = devices[i].RuleChanges!.Concat(devicesToMerge[i].RuleChanges!).ToArray();
                             newObjects = true;
                         }
                         if (devices[i].RuleStatistics != null && devicesToMerge[i].RuleStatistics != null)

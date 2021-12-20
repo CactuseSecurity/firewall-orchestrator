@@ -74,7 +74,8 @@ namespace FWO.Report
             StringBuilder report = new StringBuilder();
             RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(userConfig);
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 report.AppendLine($"<h3>{management.Name}</h3>");
                 report.AppendLine("<hr>");

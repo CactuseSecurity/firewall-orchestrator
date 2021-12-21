@@ -417,13 +417,14 @@
             Log.WriteDebug("Report Generation", $"Generation Time: {DateTime.Now - startTime}.");
             rsbTabset?.SetActiveTab(1);
             await InvokeAsync(StateHasChanged);
+            //StateHasChanged();
         }
         catch (Exception exception)
         {
             processing = false;
             managementsReport = managementsReportOrig;
             await reportTemplateControl.Uncollapse();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
             DisplayMessageInUi!(exception, userConfig.GetText("generate_report"), "", true);
         }
     }

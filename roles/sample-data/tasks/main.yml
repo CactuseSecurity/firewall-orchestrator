@@ -1,5 +1,4 @@
 # this playbook sets up some sample devices with configs to play around with
-# postgresql-client
 
 - name: create import sample user and copy configs
   include_tasks: setup-sample-import.yml
@@ -19,8 +18,9 @@
 
 - name: create sample devices in database
   import_tasks: create-devices.yml
-  when: "installation_mode=='new'"
+  when: "installation_mode=='new' or sample_role_purpose is match('test')"
 
+# todo: tenant0 is not part of the test data, so this needs to be moved to middleware role
 - name: insert admin tenant0 to device mapping - tenant0 can see all devices
   postgresql_query:
     db: "{{ fworch_db_name }}"

@@ -34,8 +34,8 @@ parser.add_argument('-s', '--ssl', metavar='ssl_verification_mode', default='',
                     help='[ca]certfile, if value not set, ssl check is off"; default=empty/off')
 parser.add_argument('-l', '--limit', metavar='api_limit', default='150',
                     help='The maximal number of returned results per HTTPS Connection; default=150')
-parser.add_argument('-t', '--testing', metavar='version_testing',
-                    default='off', help='Version test, [off|<version number>]; default=off')
+parser.add_argument('-i', '--in_file', metavar='config_file_input',
+                    help='if set, the config will not be fetched from firewall but read from native json config file specified here')
 
 args = parser.parse_args()
 if len(sys.argv) == 1:
@@ -51,6 +51,7 @@ import_tmp_path = base_dir + '/tmp/import'
 change_count = 0
 error_string = ''
 start_time = int(time.time())
+
 if args.ssl == '' or args.ssl == 'off':
     requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 debug_level = int(args.debug)
@@ -97,20 +98,24 @@ if current_import_id == -1:
 logging.info("start import of management " + str(args.mgm_id) +
              ", import_id=" + str(current_import_id))
 
-full_config_json = {}
-config2import = {}
 Path(import_tmp_path).mkdir(parents=True,
                             exist_ok=True)  # make sure tmp path exists
+
+full_config_json = {}
+config2import = {}
+rulebase_string = ''
+for device in mgm_details['devices']:
+    rulebase_string += device['local_rulebase_name'] + ','
+rulebase_string = rulebase_string[:-1]  # remove final comma
+
+if args.in_file is not None:    # read native config from file
+    with open(args.in_file, 'r') as json_file:
+        full_config_json = json.load(json_file)
 
 secret_filename = base_dir + '/tmp/import/mgm_id_' + \
     str(args.mgm_id) + '_secret.txt'
 with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
     secret.write(mgm_details['secret'])
-
-rulebase_string = ''
-for device in mgm_details['devices']:
-    rulebase_string += device['local_rulebase_name'] + ','
-rulebase_string = rulebase_string[:-1]  # remove final comma
 
 # pick product-specific importer:
 fw_module_name = mgm_details['deviceType']['name'].lower().replace(

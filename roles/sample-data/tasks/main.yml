@@ -19,6 +19,7 @@
 
 - name: create sample devices in database
   import_tasks: create-devices.yml
+  when: "installation_mode='new'"
 
 - name: insert admin tenant0 to device mapping - tenant0 can see all devices
   postgresql_query:

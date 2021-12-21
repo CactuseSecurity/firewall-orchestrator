@@ -103,7 +103,7 @@
                 "-m7",
                 "-d4",
                 "-f",
-                "-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
+                //"-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
                 "-l250"
             ]
         },        

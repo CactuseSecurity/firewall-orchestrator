@@ -100,10 +100,11 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m7",
+                "-m12",
                 "-d4",
                 "-f",
                 //"-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
+                "-i/home/tim/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
                 "-l250"
             ]
         },        

@@ -59,7 +59,8 @@
     - backend
     - api
 
-- hosts: apiserver
+# do not put this into the same play as docker (handler needs to run inbetween!)
+- hosts: apiserver 
   roles:
     - { role: api, when: "not installation_mode == 'uninstall'" }
   tags:

@@ -122,10 +122,7 @@ insert into stm_track (track_id,track_name) VALUES (18,'all');
 insert into stm_track (track_id,track_name) VALUES (19,'all start');
 insert into stm_track (track_id,track_name) VALUES (20,'utm');
 insert into stm_track (track_id,track_name) VALUES (22,'utm start');
--- check point R8x:
-insert into stm_track (track_id,track_name) VALUES (21,'network log');
--- netscreen:
--- insert into stm_track (track_id,track_name) VALUES (13,'count traffic');  -- netscreen: traffic means traffic shaping not logging
+insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check point R8x:
 
 insert into request_type (request_type_id, request_type_name, request_type_comment) VALUES (1, 'ARS', 'Remedy ARS Ticket');
 
@@ -136,8 +133,9 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (8,'JUNOS','10-21','Juniper','any;0;0;65535;;junos-predefined-service;simple;');
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (9,'Check Point','R8x','Check Point','');
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (10,'Fortinet','5.x-6.x','Fortinet','');
-insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (11,'FortiManager','5ff','Fortinet','');
-insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (12,'Check Point','MDS R8x','Check Point','');
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (11,'FortiADOM','5ff','Fortinet','');
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (12,'FortiManager','5ff','Fortinet','');
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (13,'Check Point','MDS R8x','Check Point','');
 
 update stm_dev_typ set dev_typ_predef_svc=
 'ANY;0;0;65535;1;other;simple

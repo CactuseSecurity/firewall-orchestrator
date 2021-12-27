@@ -45,6 +45,7 @@
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("config_path"))" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
+        <Column TableItem="Management" Title="@(userConfig.GetText("super_manager"))" Field="@(x => x.SuperManager)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true" Filterable="true" >
             <Template>
@@ -123,6 +124,12 @@
                     <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
                     <div class="col-sm-8">
                         <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="managementSuperManager" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager")):</label>
+                    <div class="col-sm-8">
+                        <input id="managementSuperManager" type="text" class="form-control form-control-sm" @bind="actManagement.SuperManager" />
                     </div>
                 </div>
                 <div class="form-group row">
@@ -349,6 +356,7 @@
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
+                        superManager = actManagement.SuperManager,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
@@ -380,6 +388,7 @@
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
+                        superManager = actManagement.SuperManager,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
@@ -421,7 +430,7 @@
             return false;
         }
         if (!actManagement.ImportDisabled && managements.FirstOrDefault(mgt => mgt.Hostname == actManagement.Hostname && mgt.Port == actManagement.Port 
-            && mgt.ConfigPath == actManagement.ConfigPath && mgt.Id != actManagement.Id && !mgt.ImportDisabled) != null)
+            && mgt.ConfigPath == actManagement.ConfigPath && mgt.SuperManager == actManagement.SuperManager && mgt.Id != actManagement.Id && !mgt.ImportDisabled) != null)
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
             return false;

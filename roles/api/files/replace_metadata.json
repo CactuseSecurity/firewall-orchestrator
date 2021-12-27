@@ -2431,6 +2431,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "multi_device_manager_id"
+                  }
+                },
+                {
                   "name": "stm_dev_typ",
                   "using": {
                     "foreign_key_constraint_on": "dev_typ_id"
@@ -2536,6 +2542,18 @@
                       "table": {
                         "schema": "public",
                         "name": "import_full_config"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "managementByMultiDeviceManagerId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "multi_device_manager_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "management"
                       }
                     }
                   }

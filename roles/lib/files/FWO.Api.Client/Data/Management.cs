@@ -23,8 +23,9 @@ namespace FWO.Api.Data
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
 
-        [JsonProperty("multi_device_manager"), JsonPropertyName("multi_device_manager")]
-        public string SuperManager { get; set; } = "";
+        [JsonProperty("superManager"), JsonPropertyName("superManager")]
+        public SuperManager SuperManager { get; set; } = new SuperManager();
+        // public SuperManager? SuperManager { get; set; } = null;
 
         [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
         public string ImporterHostname { get; set; } = "";

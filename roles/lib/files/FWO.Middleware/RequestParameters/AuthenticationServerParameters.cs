@@ -3,7 +3,7 @@
     public class LdapAddParameters
     {
         public string? Name { get; set; }
-        public string? Address { get; set; }
+        public string Address { get; set; } = "";
         public int Port { get; set; } = 636;
         public int Type { get; set; } = 0;
         public int PatternLength { get; set; } = 0;
@@ -17,6 +17,7 @@
         public string? WriteUser { get; set; }
         public string? WriteUserPwd { get; set; }
         public int? TenantId { get; set; }
+        public string? GlobalTenantName { get; set; }
 
         public LdapAddParameters()
         {}
@@ -38,6 +39,7 @@
             WriteUser = ldapAddParameters.WriteUser;
             WriteUserPwd = ldapAddParameters.WriteUserPwd;
             TenantId = ldapAddParameters.TenantId;
+            GlobalTenantName = ldapAddParameters.GlobalTenantName;
         }
     }
 

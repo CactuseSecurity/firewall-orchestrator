@@ -1,13 +1,12 @@
 ﻿using FWO.Api.Data;
 using FWO.Config.Api;
-using System;
 using System.Text;
 
 namespace FWO.Ui.Display
 {
     public class RuleDisplay
     {
-        protected StringBuilder result;
+        protected StringBuilder? result;
         protected UserConfig userConfig;
 
         public RuleDisplay(UserConfig userConfig)
@@ -17,29 +16,30 @@ namespace FWO.Ui.Display
 
         public string DisplayNumber(Rule rule, Rule[] rules)
         {
-            result = new StringBuilder();
-            if (rules != null)
-            {
-                int ruleNumber = Array.IndexOf(rules, rule) + 1;
+            //result = new StringBuilder();
+            //if (rules != null)
+            //{
+            //    int ruleNumber = Array.IndexOf(rules, rule) + 1;
 
-                for (int i = 0; i < Array.IndexOf(rules, rule) + 1; i++)
-                    if (!string.IsNullOrEmpty(rules[i].SectionHeader))
-                        ruleNumber--;
+            //    for (int i = 0; i < ruleNumber; i++)
+            //        if (!string.IsNullOrEmpty(rules[i].SectionHeader))
+            //            ruleNumber--;
 
-                result.AppendLine($"{ruleNumber}");
-            }
-            //result.AppendLine($"DEBUG: {rule.OrderNumber}");
-            return result.ToString();
+            //    result.AppendLine($"{ruleNumber}");
+            //}
+            ////result.AppendLine($"DEBUG: {rule.OrderNumber}");
+            //return result.ToString();
+            return rule.DisplayOrderNumber.ToString();
         }
 
         public string DisplayName(Rule rule)
         {
-            return rule.Name;
+            return (rule.Name != null ? rule.Name : "");
         }
 
         public string DisplaySourceZone(Rule rule)
         {
-            return rule.SourceZone?.Name;
+            return (rule.SourceZone != null ? rule.SourceZone.Name : "");
         }
 
         public string DisplaySource(Rule rule, string style = "")
@@ -75,7 +75,7 @@ namespace FWO.Ui.Display
 
         public string DisplayDestinationZone(Rule rule)
         {
-            return rule.DestinationZone?.Name;
+            return (rule.DestinationZone != null ? rule.DestinationZone.Name : "");
         }
 
         public string DisplayDestination(Rule rule, string style = "")
@@ -165,12 +165,12 @@ namespace FWO.Ui.Display
 
         public string DisplayUid(Rule rule)
         {
-            return rule.Uid;
+            return (rule.Uid != null ? rule.Uid : "");
         }
 
         public string DisplayComment(Rule rule)
         {
-            return rule.Comment;
+            return (rule.Comment != null ? rule.Comment : "");
         }
     }
 }

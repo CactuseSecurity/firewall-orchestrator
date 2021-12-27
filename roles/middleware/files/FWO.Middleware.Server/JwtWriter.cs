@@ -1,12 +1,9 @@
 ﻿using FWO.Logging;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
 using FWO.Api.Data;
-using System.Threading.Tasks;
 
 namespace FWO.Middleware.Server
 {
@@ -105,15 +102,18 @@ namespace FWO.Middleware.Server
             }
 
             // adding roles
-            string[] roles = user.Roles.ToArray();
+            string[]? roles = user.Roles?.ToArray();
 
             // we need to create an extra list beacause hasura only accepts an array of roles even if there is only one
             List<string> hasuraRolesList = new List<string>();
 
-            foreach (string role in roles)
+            if (roles != null)
             {
-                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role)); // Frontend Roles
-                hasuraRolesList.Add(role); // Hasura Roles
+                foreach (string role in roles)
+                {
+                    claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role)); // Frontend Roles
+                    hasuraRolesList.Add(role); // Hasura Roles
+                }
             }
 
             // add hasura roles claim as array

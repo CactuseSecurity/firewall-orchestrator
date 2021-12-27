@@ -1,8 +1,5 @@
-using System;
 using System.Text.RegularExpressions;
 using FWO.Api.Data;
-using FWO.Report.Filter.Ast;
-using System.Collections.Generic;
 
 namespace FWO.Report.Filter
 {
@@ -218,16 +215,20 @@ namespace FWO.Report.Filter
             List<string> gatewayList = new List<string>();
 
             // clear device filter first:
-            for (int midx = 0; midx < LSBFilter.Length; ++midx)
-                if (LSBFilter[midx].Devices != null)
-                    for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
+            foreach (Management mgmt in LSBFilter)
+            {
+                if (mgmt.Devices != null)
+                {
+                    foreach (Device device in mgmt.Devices)
                     {
-                        gatewayList.Add(LSBFilter[midx].Devices[didx].Name);
-                        LSBFilter[midx].Devices[didx].Selected = false;
+                        gatewayList.Add(device.Name != null ? device.Name : "");
+                        device.Selected = false;
                     }
+                }
+            }
 
             // find gw filter in filter string and perform pattern matching against gw names 
-            string pattern = @"(gateway|gw|device|firewall)\s*\=\=?\s*""?(\w+)""?";
+            string pattern = @"(gateway|gw|device|firewall)\s*\=\=?\s*""?([\w\-]+)""?";
             Regex gwFilterRgx = new Regex(pattern);
             string filterLine = currentFilterLine.ToLower();
 
@@ -236,23 +237,29 @@ namespace FWO.Report.Filter
                 Regex gwRgx = new Regex($@"{gwExpressionMatch.Groups[2].Value}");
                 foreach (string gw in gatewayList)
                 {
-                    Match m = gwRgx.Match(gw);
+                    Match m = gwRgx.Match(gw.ToLower());
                     if (m.Success)
-                        filteredGatewayList.Add(gw);
+                        filteredGatewayList.Add(gw.ToLower());
                 }
             }
 
             // now set all gateways to selected that are mentioned in currentFilterLine
-            for (int midx = 0; midx < LSBFilter.Length; ++midx)
-                for (int didx = 0; didx < LSBFilter[midx].Devices.Length; ++didx)
-                    if (filteredGatewayList.Contains(LSBFilter[midx].Devices[didx].Name))
-                        LSBFilter[midx].Devices[didx].Selected = true;
+            foreach (Management mgmt in LSBFilter)
+            {
+                if (mgmt.Devices != null)
+                {
+                    foreach (Device device in mgmt.Devices)
+                    {
+                        if (filteredGatewayList.Contains(device.Name != null ? device.Name.ToLower() : ""))
+                            device.Selected = true;
+                    }
+                }
+            }
 
             // if (!DeviceFilter.isAnyLSBDeviceFilterSet(LSBFilter))
             //     return true;
             // if (DeviceFilter.areAllDevicesSelected(LSBFilter))
             //     return false;
-            return;
         }
     }
 }

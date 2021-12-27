@@ -28,7 +28,7 @@ namespace FWO.Report
             GotObjectsInReport = true;
         }
 
-        public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             return Task.CompletedTask;
         }
@@ -63,7 +63,7 @@ namespace FWO.Report
                 // setting mgmt and relevantImporId QueryVariables 
                 Query.QueryVariables["mgmId"] = managementsWithRelevantImportId[i].Id;
                 if (managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId != null)
-                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId;
+                    Query.QueryVariables["relevantImportId"] = managementsWithRelevantImportId[i].Import.ImportAggregate.ImportAggregateMax.RelevantImportId!;
                 else    // managment was not yet imported at that time
                     Query.QueryVariables["relevantImportId"] = -1;
                 resultList.Add((await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0]);
@@ -153,7 +153,8 @@ namespace FWO.Report
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{device.Name}</td>");
-                    report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
+                    if (device.RuleStatistics != null) 
+                        report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
                     report.AppendLine("</tr>");
                 }
                 report.AppendLine("</table>");

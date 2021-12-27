@@ -1,10 +1,5 @@
 ﻿using FWO.Api.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
@@ -25,7 +20,7 @@ namespace FWO.Report
             GotObjectsInReport = true;
         }
 
-        public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback)
+        public override Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback)
         {
             throw new NotImplementedException();
         }
@@ -79,7 +74,8 @@ namespace FWO.Report
             StringBuilder report = new StringBuilder();
             RuleChangeDisplay ruleChangeDisplay = new RuleChangeDisplay(userConfig);
 
-            foreach (Management management in Managements.Where(mgt => !mgt.Ignore))
+            foreach (Management management in Managements.Where(mgt => !mgt.Ignore && mgt.Devices != null &&
+            Array.Exists(mgt.Devices, device => device.RuleChanges != null && device.RuleChanges.Length > 0)))
             {
                 report.AppendLine($"<h3>{management.Name}</h3>");
                 report.AppendLine("<hr>");
@@ -106,7 +102,7 @@ namespace FWO.Report
                     report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                     report.AppendLine("</tr>");
 
-                    if (device.RuleChanges.Length > 0)
+                    if (device.RuleChanges != null)
                     {
                         foreach (RuleChange ruleChange in device.RuleChanges)
                         {

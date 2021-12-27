@@ -5,6 +5,17 @@ INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into config (config_key, config_value, config_user) VALUES ('DefaultLanguage', 'English', 0);
+insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
+insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0);
+insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
+insert into config (config_key, config_value, config_user) VALUES ('fwApiElementsPerFetch', '150', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recertificationPeriod', '365', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recertificationNoticePeriod', '30', 0);
+insert into config (config_key, config_value, config_user) VALUES ('recertificationDisplayPeriod', '30', 0);
+insert into config (config_key, config_value, config_user) VALUES ('ruleRemovalGracePeriod', '60', 0);
+insert into config (config_key, config_value, config_user) VALUES ('commentRequired', 'False', 0);
 
 INSERT INTO "report_format" ("report_format_name") VALUES ('json');
 INSERT INTO "report_format" ("report_format_name") VALUES ('pdf');

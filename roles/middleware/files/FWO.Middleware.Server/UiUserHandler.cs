@@ -43,7 +43,6 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to database.");
                 await AddUiUserToDb(apiConn, user);
-                user.PasswordMustBeChanged = true;
             }
             return user;
         }

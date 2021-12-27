@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
+
 object changesLock = new object(); // LOCK
 int jwtMinutesValid = 240;  // TODO: MOVE TO API/Config    
 
@@ -25,7 +26,23 @@ JwtWriter jwtWriter = new JwtWriter(configFile.JwtPrivateKey, jwtMinutesValid);
 APIConnection apiConnection = new APIConnection(configFile.ApiServerUri ?? throw new Exception("Missing api server url on startup."), jwtWriter.CreateJWTMiddlewareServer());
 
 // Fetch all connectedLdaps via API (blocking).
-List<Ldap> connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
+List<Ldap> connectedLdaps = new List<Ldap>();
+int connectionAttemptsCount = 1;
+while (true)
+{
+    // Repeat first api call in case graphql api is not started yet
+    try
+    {
+        connectedLdaps = apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
+        break;
+    }
+    catch (Exception ex)
+    {
+        Log.WriteError("Graphql api", "Graphql api unreachable.", ex);
+        Thread.Sleep(500 * connectionAttemptsCount++);
+    }
+}
+
 Action<Exception> handleSubscriptionException = (Exception exception) => Log.WriteError("Subscription", "Subscription lead to exception.", exception);
 ApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
 ApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(handleSubscriptionException, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);

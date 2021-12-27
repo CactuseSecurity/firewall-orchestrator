@@ -37,12 +37,94 @@ use the following syntax for authenticated proxy access:
 
     http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
+Note that the following domains must be reachable through the proxy:
+
+    ubuntu.com
+    canonical.com
+    github.com
+    githubusercontent.com
+    docker.com
+    docker.io
+    hasura.io
+    ansible.com
+    postgresql.org
+    microsoft.com     
+    nuget.org
+
+NB: for vscode-debugging, you also need access to
+
+    visualstudio.com
+
 ### Parameter "api_no_metadata" to prevent meta data import
 
-e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::
+e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch:
 
 ```console
 ansible-playbook -e "api_no_metadata=yes" site.yml -K
+```
+
+### Parameter "install_syslog" allows disabling of separate syslog installation
+
+Default value is install_syslog=yes but if you already have a syslog service running then you can skip syslog installation and configure your existing service manually.
+
+run installation without syslog installation:
+```console
+ansible-playbook -e "install_syslog=no" site.yml -K
+```
+
+Here is a sample config you can use for configuring your already running syslog:
+
+variables:
+```console
+product_name: fworch
+middleware_server_syslog_id: "{{ product_name }}.middleware-server"
+ui_syslog_id: "{{ product_name }}-ui"
+ldap_syslog_id: slapd
+```
+rsyslog config
+```console
+
+  - name: edit rsyslog
+    blockinfile:
+      path: "/etc/rsyslog.d/30-{{ product_name }}.conf"
+      create: yes
+      block: |
+        # syslog for {{ product_name }}
+        # Log {{ product_name }} log messages to file
+        local6.warning                 /var/log/{{ product_name }}/error.log
+        local6.=info                   /var/log/{{ product_name }}/login_info.log
+        local6.debug                   /var/log/{{ product_name }}/debug.log
+
+        if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
+        if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
+        if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
+        if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
+        if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
+        if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
+        if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
+        # only for devsrv:
+        if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
+
+  - name: edit logrotate
+    blockinfile:
+      path: "/etc/logrotate.d/{{ product_name }}.conf"
+      create: yes
+      block: |
+        /var/log/{{ product_name }}/*.log {
+            compress
+            maxage 7
+            rotate 99
+            size=+4096k
+            missingok
+            copytruncate
+            sharedscripts
+                prerotate
+                        systemctl stop {{ product_name }}-importer.service >/dev/null 2>&1
+                endscript
+                postrotate
+                        systemctl start {{ product_name }}-importer.service >/dev/null 2>&1
+                endscript
+        }
 ```
 
 ### Parameter "api_docu" to install API documentation

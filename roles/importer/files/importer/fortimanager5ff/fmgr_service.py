@@ -5,68 +5,69 @@ importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
 import common
 
-def normalize_svcobjects(full_config, config2import, import_id):
+def normalize_svcobjects(full_config, config2import, import_id, scope):
     svc_objects = []
-    for obj_orig in full_config['service_objects']:
-        member_names = ''
-        if 'member' in obj_orig:
-            type = 'group'
-            for member in obj_orig['member']:
-                member_names += member + common.list_delimiter
-            member_names = member_names[:-1]
-        else:
-            type = 'simple'
+    for s in scope:
+        for obj_orig in full_config[s]:
+            member_names = ''
+            if 'member' in obj_orig:
+                type = 'group'
+                for member in obj_orig['member']:
+                    member_names += member + common.list_delimiter
+                member_names = member_names[:-1]
+            else:
+                type = 'simple'
 
-        name = None
-        if 'name' in obj_orig:
-            name = str(obj_orig['name'])
+            name = None
+            if 'name' in obj_orig:
+                name = str(obj_orig['name'])
 
-        color = None
-        if 'color' in obj_orig and str(obj_orig['color']) != 0:
-            color = str(obj_orig['color'])
+            color = None
+            if 'color' in obj_orig and str(obj_orig['color']) != 0:
+                color = str(obj_orig['color'])
 
-        session_timeout = None   # todo: find the right timer
-#        if 'udp-idle-timer' in obj_orig and str(obj_orig['udp-idle-timer']) != 0:
-#            session_timeout = str(obj_orig['udp-idle-timer'])
+            session_timeout = None   # todo: find the right timer
+    #        if 'udp-idle-timer' in obj_orig and str(obj_orig['udp-idle-timer']) != 0:
+    #            session_timeout = str(obj_orig['udp-idle-timer'])
 
-        proto = 0
-        range_names = ''
-        if 'protocol' in obj_orig:
-            if obj_orig['protocol'] == 1:
-                addObject(svc_objects, type, name, color, 1, None, None, session_timeout, import_id)
-            elif obj_orig['protocol'] == 2:
-                if 'protocol-number' in obj_orig:
-                    proto = obj_orig['protocol-number']
-                addObject(svc_objects, type, name, color, proto, None, None, session_timeout, import_id)
-            elif  obj_orig['protocol'] == 5 or obj_orig['protocol'] == 11:
-                split = check_split(obj_orig)
-                if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
-                    tcpname = name
+            proto = 0
+            range_names = ''
+            if 'protocol' in obj_orig:
+                if obj_orig['protocol'] == 1:
+                    addObject(svc_objects, type, name, color, 1, None, None, session_timeout, import_id)
+                elif obj_orig['protocol'] == 2:
+                    if 'protocol-number' in obj_orig:
+                        proto = obj_orig['protocol-number']
+                    addObject(svc_objects, type, name, color, proto, None, None, session_timeout, import_id)
+                elif  obj_orig['protocol'] == 5 or obj_orig['protocol'] == 11:
+                    split = check_split(obj_orig)
+                    if "tcp-portrange" in obj_orig and len(obj_orig['tcp-portrange']) > 0:
+                        tcpname = name
+                        if split:
+                            tcpname += "_tcp"
+                            range_names += tcpname + common.list_delimiter
+                        addObject(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id)
+                    if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
+                        udpname = name
+                        if split:
+                            udpname += "_udp"
+                            range_names += udpname + common.list_delimiter
+                        addObject(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id)
+                    if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
+                        sctpname = name
+                        if split:
+                            sctpname += "_sctp"
+                            range_names += sctpname + common.list_delimiter
+                        addObject(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id)
                     if split:
-                        tcpname += "_tcp"
-                        range_names += tcpname + common.list_delimiter
-                    addObject(svc_objects, type, tcpname, color, 6, obj_orig['tcp-portrange'], None, session_timeout, import_id)
-                if "udp-portrange" in obj_orig and len(obj_orig['udp-portrange']) > 0:
-                    udpname = name
-                    if split:
-                        udpname += "_udp"
-                        range_names += udpname + common.list_delimiter
-                    addObject(svc_objects, type, udpname, color, 17, obj_orig['udp-portrange'], None, session_timeout, import_id)
-                if "sctp-portrange" in obj_orig and len(obj_orig['sctp-portrange']) > 0:
-                    sctpname = name
-                    if split:
-                        sctpname += "_sctp"
-                        range_names += sctpname + common.list_delimiter
-                    addObject(svc_objects, type, sctpname, color, 132, obj_orig['sctp-portrange'], None, session_timeout, import_id)
-                if split:
-                    range_names = range_names[:-1]
-                    addObject(svc_objects, 'group', name, color, 0, None, range_names, session_timeout, import_id)
-            elif  obj_orig['protocol'] == 6:
-                addObject(svc_objects, type, name, color, 58, None, None, session_timeout, import_id)
-        elif type == 'group':
-            addObject(svc_objects, type, name, color, 0, None, member_names, session_timeout, import_id)
-        else:
-            addObject(svc_objects, type, name, color, 0, None, None, session_timeout, import_id)
+                        range_names = range_names[:-1]
+                        addObject(svc_objects, 'group', name, color, 0, None, range_names, session_timeout, import_id)
+                elif  obj_orig['protocol'] == 6:
+                    addObject(svc_objects, type, name, color, 58, None, None, session_timeout, import_id)
+            elif type == 'group':
+                addObject(svc_objects, type, name, color, 0, None, member_names, session_timeout, import_id)
+            else:
+                addObject(svc_objects, type, name, color, 0, None, None, session_timeout, import_id)
 
     config2import.update({'service_objects': svc_objects})
 

@@ -75,10 +75,10 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<IRestResponse<KeyValuePair<string, List<KeyValuePair<string, string>>>[]>> GetAllRoles()
+        public async Task<IRestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
         {
-            IRestRequest request = new RestRequest("Role/Get", Method.POST, DataFormat.Json);
-            return await restClient.ExecuteAsync<KeyValuePair<string, List<KeyValuePair<string, string>>>[]>(request);
+            IRestRequest request = new RestRequest("Role", Method.GET, DataFormat.Json);
+            return await restClient.ExecuteAsync<List<RoleGetReturnParameters>>(request);
         }
 
         public async Task<IRestResponse<List<string>>> GetGroups(GroupGetParameters parameters)
@@ -88,24 +88,31 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<List<string>>(request);
         }
 
-        public async Task<IRestResponse<List<KeyValuePair<string, List<string>>>>> GetInternalGroups()
+        public async Task<IRestResponse<List<GroupGetReturnParameters>>> GetInternalGroups()
         {
-            IRestRequest request = new RestRequest("Group/Internal/Get", Method.POST, DataFormat.Json);
-            return await restClient.ExecuteAsync<List<KeyValuePair<string, List<string>>>>(request);
+            IRestRequest request = new RestRequest("Group", Method.GET, DataFormat.Json);
+            return await restClient.ExecuteAsync<List<GroupGetReturnParameters>>(request);
         }
 
-        public async Task<IRestResponse<List<KeyValuePair<string, string>>>> GetUsers(UserGetParameters parameters)
+        public async Task<IRestResponse<List<UserGetReturnParameters>>> GetUsers()
+        {
+            IRestRequest request = new RestRequest("User", Method.GET, DataFormat.Json);
+            request.AddJsonBody(new object());
+            return await restClient.ExecuteAsync<List<UserGetReturnParameters>>(request);
+        }
+
+        public async Task<IRestResponse<List<LdapUserGetReturnParameters>>> GetLdapUsers(LdapUserGetParameters parameters)
         {
             IRestRequest request = new RestRequest("User/Get", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<List<KeyValuePair<string, string>>>(request);
+            return await restClient.ExecuteAsync<List<LdapUserGetReturnParameters>>(request);
         }
 
-        public async Task<IRestResponse<bool>> AddUser(UserAddParameters parameters)
+        public async Task<IRestResponse<int>> AddUser(UserAddParameters parameters)
         {
             IRestRequest request = new RestRequest("User", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<bool>(request);
+            return await restClient.ExecuteAsync<int>(request);
         }
 
         public async Task<IRestResponse<bool>> UpdateUser(UserEditParameters parameters)
@@ -185,11 +192,11 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<bool>(request);
         }
 
-        public async Task<IRestResponse<List<TenantGetParameters>>> GetTenants()
+        public async Task<IRestResponse<List<TenantGetReturnParameters>>> GetTenants()
         {
             IRestRequest request = new RestRequest("Tenant", Method.GET, DataFormat.Json);
             request.AddJsonBody(new object());
-            return await restClient.ExecuteAsync<List<TenantGetParameters>>(request);
+            return await restClient.ExecuteAsync<List<TenantGetReturnParameters>>(request);
         }
 
         public async Task<IRestResponse<int>> AddTenant(TenantAddParameters parameters)
@@ -197,6 +204,13 @@ namespace FWO.Middleware.Client
             IRestRequest request = new RestRequest("Tenant", Method.POST, DataFormat.Json);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<int>(request);
+        }
+
+        public async Task<IRestResponse<bool>> UpdateTenant(TenantEditParameters parameters)
+        {
+            IRestRequest request = new RestRequest("Tenant", Method.PUT, DataFormat.Json);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
         }
 
         public async Task<IRestResponse<bool>> DeleteTenant(TenantDeleteParameters parameters)

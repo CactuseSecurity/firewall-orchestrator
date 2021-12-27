@@ -46,7 +46,6 @@
 
 - name: publish blazor ui
   command: "dotnet publish -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }} -p:PublishSingleFile=true -r linux-x64"
-  # command: "dotnet publish -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}"
   args:
     chdir: "{{ ui_start_dir }}"
   become: yes
@@ -65,10 +64,3 @@
     state: restarted
     daemon_reload: yes
   become: yes
-
-
-#### debian 11 workaround as long as ms does not provide packages:
-# sudo apt install snapd
-# sudo snap install core
-# sudo snap install dotnet-runtime-50
-# sudo snap install dotnet-sdk --classic

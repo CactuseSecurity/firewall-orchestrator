@@ -1,7 +1,4 @@
 ﻿using FWO.Logging;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Config.Api.Data;
 using FWO.ApiClient.Queries;
@@ -30,7 +27,7 @@ namespace FWO.Config.Api
             {
                 try
                 {
-                    string key = confItem.Key ?? throw new Exception($"Error importing config item (value: {confItem.Value}) for user (id: {confItem.User}): Key is null");
+                    string key = confItem.Key;
                     string value = confItem.Value ?? throw new Exception($"Error importing config item (key: {confItem.Key}) for user (id: {confItem.User}): Value is null");
                     configItems.Add(key, value);
                 }
@@ -72,17 +69,13 @@ namespace FWO.Config.Api
             };
             try
             {
-                // TODO: Use one upsert query instead of seperate update and insert queries
-                var updpk = await apiConnection.SendQueryAsync<object>(ConfigQueries.updateConfigItem, Variables);
-                if (updpk == null)
-                {
-                    // key not found: add new
-                    _ = await apiConnection.SendQueryAsync<object>(ConfigQueries.addConfigItem, Variables);
-                }
+                // Update or insert config item
+                var _ = await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, Variables);
             }
             catch(Exception exception)
             {
                 Log.WriteError("Write Config", $"Could not write key:{key}, user:{userId}, value:{value}: to config: ", exception);
+                throw;
             }
         }
     }

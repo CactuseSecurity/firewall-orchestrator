@@ -43,14 +43,14 @@
 
     private object errorLock = new object();
 
-    Action<Exception?, string, string, bool> DisplayMessageInUiFunction;
+    Action<Exception?, string, string, bool>? DisplayMessageInUiFunction;
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     protected override void OnInitialized()
     {
-        var user = authenticationStateTask.Result.User;
+        var user = authenticationStateTask!.Result.User;
         DisplayMessageInUiFunction = DisplayMessageInUi;
     }
 

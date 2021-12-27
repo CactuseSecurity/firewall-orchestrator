@@ -2,11 +2,6 @@
 using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text;
 using WkHtmlToPdfDotNet;
@@ -51,7 +46,7 @@ namespace FWO.Report
     </body>
 </html>");
 
-        public Management[] Managements = null;
+        public Management[] Managements = new Management[]{};
         
         // public Management[] ReportObjects = null;
         
@@ -73,8 +68,10 @@ namespace FWO.Report
         public abstract Task Generate(int rulesPerFetch, APIConnection apiConnection, Func<Management[], Task> callback, CancellationToken ct);
 
         public bool GotObjectsInReport { get; protected set; } = false;
+
         public abstract Task GetObjectsInReport(int objectsPerFetch, APIConnection apiConnection, Func<Management[], Task> callback); // to be called when exporting
-        public abstract Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, APIConnection apiConnection, Func<Management[], Task> callback);
+
+        public abstract Task GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, byte objects, int maxFetchCycles, APIConnection apiConnection, Func<Management[], Task> callback);
 
         public abstract string ExportToCsv();
 
@@ -87,7 +84,7 @@ namespace FWO.Report
 
         protected string GenerateHtmlFrame(string title, string filter, DateTime date, StringBuilder htmlReport)
         {
-            if (htmlExport == "")
+            if (string.IsNullOrEmpty(htmlExport))
             {
                 HtmlTemplate = HtmlTemplate.Replace("##Body##", htmlReport.ToString());
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
@@ -102,7 +99,8 @@ namespace FWO.Report
         public virtual byte[] ToPdf()
         {
             // HTML
-            string html = ExportToHtml();
+            if (string.IsNullOrEmpty(htmlExport))
+                htmlExport = ExportToHtml();
 
             GlobalSettings globalSettings = new GlobalSettings
             {
@@ -119,7 +117,7 @@ namespace FWO.Report
                     new ObjectSettings()
                     {
                         PagesCount = true,
-                        HtmlContent = html,
+                        HtmlContent = htmlExport,
                         WebSettings = { DefaultEncoding = "utf-8" },
                         HeaderSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 }
                     }

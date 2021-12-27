@@ -1,5 +1,3 @@
-﻿using System.Collections.Generic;
-
 namespace FWO.Api.Data
 {
     public class DistName
@@ -12,6 +10,13 @@ namespace FWO.Api.Data
 
         public DistName(string? dn)
         {
+            //Regex r = new Regex("(?:^|,\\s?)(?:(?<name>[A-Z]+)=(?<val>\"(?:[^\"]| \"\")+\"|(?:\\,|[^,])+))+");
+            //GroupCollection groups = r.Match(dn ?? "").Groups;
+            //foreach (string group in r.GetGroupNames())
+            //{
+            //    groups[group];
+            //}
+
             UserName = "";
             Role = "";
             Group = "";
@@ -20,7 +25,7 @@ namespace FWO.Api.Data
             bool lastValue = false;
             if (dn != null)
             {
-                while(lastValue == false)
+                while (lastValue == false)
                 {
                     int IndexPrefixDelim = dn.IndexOf("=");
                     if(IndexPrefixDelim > 0)
@@ -62,10 +67,16 @@ namespace FWO.Api.Data
                                 }
                                 break;
                             case "ou":
+                            case "o":
+                            case "l":
+                            case "st":
+                            case "street":
                                 Path.Add(Value);
                                 break;
                             case "dc":
+                            case "c":
                                 Root.Add(Value);
+                                Path.Add(Value);
                                 break;
                             default: 
                                 break;
@@ -86,7 +97,7 @@ namespace FWO.Api.Data
 
         public string getTenant (int tenantLevel = 1)
         {
-            return (tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[tenantLevel - 1] : "";
+            return (tenantLevel > 0 && Path.Count >= tenantLevel) ? Path[Path.Count - tenantLevel] : "";
         }
     }
 }

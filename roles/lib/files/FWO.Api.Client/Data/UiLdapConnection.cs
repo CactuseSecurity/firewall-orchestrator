@@ -1,4 +1,5 @@
-using System.Text.Json.Serialization;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 using FWO.Middleware.RequestParameters;
 
 namespace FWO.Api.Data
@@ -7,7 +8,7 @@ namespace FWO.Api.Data
     {
         private string name = "";
         
-        [JsonPropertyName("ldap_name")]
+        [JsonProperty("ldap_name"), JsonPropertyName("ldap_name")]
         public string Name 
         { 
             get
@@ -31,7 +32,9 @@ namespace FWO.Api.Data
         {}
 
         public UiLdapConnection(LdapGetUpdateParameters ldapGetUpdateParameters) : base(ldapGetUpdateParameters)
-        {}
+        {
+            Name = (ldapGetUpdateParameters.Name != null ? ldapGetUpdateParameters.Name : "");
+        }
 
         public UiLdapConnection(UiLdapConnection ldapConnection)
         {
@@ -51,6 +54,7 @@ namespace FWO.Api.Data
             WriteUser = ldapConnection.WriteUser;
             WriteUserPwd = ldapConnection.WriteUserPwd;
             TenantId = ldapConnection.TenantId;
+            GlobalTenantName = ldapConnection.GlobalTenantName;
         }
 
         public LdapGetUpdateParameters ToApiParams()
@@ -58,6 +62,7 @@ namespace FWO.Api.Data
             return new LdapGetUpdateParameters
             {
                 Id = this.Id,
+                Name = this.Name,
                 Address = this.Address,
                 Port = this.Port,
                 Type = this.Type,
@@ -71,7 +76,8 @@ namespace FWO.Api.Data
                 SearchpathForGroups = this.GroupSearchPath,
                 WriteUser = this.WriteUser,
                 WriteUserPwd = this.WriteUserPwd,
-                TenantId = this.TenantId
+                TenantId = this.TenantId,
+                GlobalTenantName = this.GlobalTenantName
             };
         }
     }

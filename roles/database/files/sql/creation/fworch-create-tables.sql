@@ -1,14 +1,15 @@
 /*
 Created			29.04.2005
-Last modified	20.11.2021
+Last modified	13.12.2020
 Project			Firewall Orchestrator
 Contact			https://cactus.de/fworch
-Database		PostgreSQL 9-14
+Database		PostgreSQL 9-13
 */
 
 /* Create Sequence 
+
 the abs_hange_id is needed as it is incremented across 4 different tables
-all other sequences were replaced by serials
+
 */
 
 Create sequence if not exists "public"."abs_change_id_seq"
@@ -76,7 +77,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"hide_in_gui" Boolean NOT NULL Default false,
 	"importer_hostname" Varchar,
 	"debug_level" Integer,
-	-- "multi_device_manager" Boolean NOT NULL Default false,
+	"multi_device_manager" Boolean NOT NULL Default false,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
  primary key ("mgm_id")
 );
@@ -550,7 +551,6 @@ Create table "stm_dev_typ"
 	"dev_typ_predef_svc" Text,
 	"dev_typ_predef_obj" Text,
 	"dev_typ_is_mgmt" Boolean,
-	"dev_typ_is_multi_mgmt" Boolean Default FALSE,
 	"dev_typ_config_file_rules" Varchar,
 	"dev_typ_config_file_basic_objects" Varchar,
 	"dev_typ_config_file_users" Varchar,
@@ -1017,6 +1017,7 @@ Create table "ldap_connection"
 	"ldap_type" Integer NOT NULL Default 0,
 	"ldap_pattern_length" Integer NOT NULL Default 0,
 	"ldap_name" Varchar,
+	"ldap_global_tenant_name" Varchar,
 	primary key ("ldap_connection_id")
 );
 

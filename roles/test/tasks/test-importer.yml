@@ -1,30 +1,7 @@
 ---
-- name: initialize handler for deleting test data
-  set_fact:
-    test_importer_handler_guard: start
-  changed_when: true
-  notify:
-  - test importer handler
-
-- name: include test data
-  include_role:
-    name: sample-data
-  vars:
-    sample_role_purpose: test
-    sample_fortigate_name: "{{ test_fortigate_name }}"
-    sample_config_user: fworchtest
-    sample_config_user_home: "/home/{{ sample_config_user }}"
-    import_sample_server: localhost
-
 - name: make test import
   command: "./fworch-importer-single.pl mgm_name={{ test_fortigate_name }}"
   args:
     chdir: "{{ fworch_home }}/importer"
   become_user: "{{ fworch_user }}"
   become: yes
-
-- name: finalize handler for deleting test data
-  set_fact:
-    test_importer_handler_guard: stop
-  changed_when: true
-  notify: "test importer handler"

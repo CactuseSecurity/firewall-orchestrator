@@ -1,6 +1,12 @@
 #!/usr/bin/python3
 
 """
+
+This script exports all devices from an existing itsecorg installation.
+It allows for migrating fortigate ssh devices into fortimanager installations
+
+first add new fortimanager (via UI) and use its management id as parameter -f X
+
 create csv from itsecorg postgresql (input files for this script):
 
 create .pgpass with content (chmod 600)
@@ -54,6 +60,7 @@ parser.add_argument('-m', '--mgm_file', metavar='management_csv_file', required=
 parser.add_argument('-d', '--dev_file', metavar='device_csv_file', required=True, help='filename to read device csv from')
 parser.add_argument('-o', '--outfile', metavar='output_file', required=True, help='filename to write output in json format to')
 parser.add_argument('-s', '--source', metavar='source_format', default='itsecorg', help='reading data from "itsecorg" (default) or "fworch" source')
+parser.add_argument('-f', '--fortimanager', metavar='fortimanager_id', help='fortimanager management id')
 
 
 def convert_csv2graphql(csv_in, keys, types):
@@ -92,6 +99,25 @@ def convert_csv2graphql(csv_in, keys, types):
     return "[" + result + "]"
 
 
+def migrateCsvDev(csv_in, input_type):
+    for line in csv_in:
+        if len(line)>0:
+            dev_typ_id = int(line[2])
+            if dev_typ_id==10: # fortigate
+                # delete line from csv_in (we will use autodiscovery for fortinet devs)
+                csv_in = csv_in.remove(line)
+            else:
+                if input_type=='itsecorg':
+                    dev_rulebase_name = line[4]
+                    dev_rulebase_name_ar = '/'.split(dev_rulebase_name)
+                    if len(dev_rulebase_name_ar)>1: # found global rulebase
+                        line[4] = dev_rulebase_name_ar[0] # local rulebase name
+                        line.insert(5, dev_rulebase_name_ar[1]) # global rulebase name
+                    else:
+                        line.insert(5, None) # global rulebase name
+                    line.insert(6, None) # package
+
+
 args = parser.parse_args()
 if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
@@ -115,14 +141,30 @@ elif args.source == 'itsecorg':
     dev_types = ('int', 'string', 'int', 'int', 'string',
         'string', 'bool', 'bool', 'bool', 'string', 'string')
 
+mgmList = list()
 with open(args.mgm_file) as mgmDataFile:
     mgmCSV = csv.reader(mgmDataFile)
-    mgmString = convert_csv2graphql(mgmCSV, mgm_keys, mgm_types)
+    for line in mgmCSV:
+        mgmList.append(line)
 
+for mgm in mgmList:
+    if len(mgm)>0:
+        dev_typ_id = int(mgm[7])
+        if dev_typ_id==10: # fortigate
+            mgmList.remove(mgm) # autodiscover fortinet devices
+
+devList = list()
 with open(args.dev_file) as devDataFile:
     devCSV = csv.reader(devDataFile)
-    devString = convert_csv2graphql(devCSV, dev_keys, dev_types)
+    for line in devCSV:
+        devList.append(line)    
+    # migrate itsecorg dev to fwo dev (dividing rulebase names)
 
+migrateCsvDev(devList,args.source)
+
+mgmString = convert_csv2graphql(mgmList, mgm_keys, mgm_types)
+devString = convert_csv2graphql(devList, dev_keys, dev_types)
+    
 mutation = "mutation restoreDeviceData { insert_management ( objects: " + \
     mgmString + ") { returning { mgm_id } } " + \
     "insert_device ( objects: " + devString + \

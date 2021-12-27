@@ -120,7 +120,9 @@
             "args": [
                 "-m/usr/local/fworch/tmp/mgm.csv",
                 "-d/usr/local/fworch/tmp/dev.csv",
-                "-o/usr/local/fworch/tmp/devices.graphql"
+                "-o/usr/local/fworch/tmp/devices.graphql",
+                "-sfworch",
+                "-f7"
             ]
         },
         {

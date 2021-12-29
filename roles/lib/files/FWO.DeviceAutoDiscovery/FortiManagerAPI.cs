@@ -5,6 +5,7 @@ using System.Text.Json;
 using FWO.Api.Data;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Text.Encodings.Web;
 using Newtonsoft.Json;
 
 namespace FWO.Rest.Client
@@ -17,31 +18,14 @@ namespace FWO.Rest.Client
         {
             restClient = new RestClient("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc");
             restClient.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-
+            restClient.Encoding = Encoding.Latin1;
+            restClient.AddDefaultHeader("Content-Type", "application/json");
             JsonSerializerOptions options = new JsonSerializerOptions();
             options.PropertyNameCaseInsensitive = true;
+            options.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping; // needed to be able to deal with "+" signs in session id
             SystemTextJsonSerializer serializer = new SystemTextJsonSerializer(options);
             restClient.UseSerializer(() => serializer);
         }
-
-        // public async Task<IRestResponse<string>> AuthenticateUser(string? user, string pwd)
-        // {
-        //     List<object> dataList = new List<object>();
-        //     dataList.Add(new { passwd = pwd, user = user });
-
-        //     List<object> paramList = new List<object>();
-        //     paramList.Add(new { data = dataList, url = "/sys/login/user" });
-
-        //     var body = new
-        //     {
-        //         method = "exec",
-        //         id = 1,
-        //         @params = paramList // because "params" is a c# keyword, we have to escape it here with @
-        //     };
-        //     IRestRequest request = new RestRequest("/jsonrpc", Method.POST, DataFormat.Json);
-        //     request.AddJsonBody(body);
-        //     return await restClient.ExecuteAsync<string>(request);
-        // }
 
         public async Task<IRestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd)
         {
@@ -59,16 +43,6 @@ namespace FWO.Rest.Client
             };
             IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
             request.AddJsonBody(body);
-            // request.OnBeforeDeserialization = response =>
-            // {
-            //     Encoding encoding = Encoding.GetEncoding("ISO-8859-1");
-            //     response.Content = encoding.GetString(response.RawBytes);
-            // };
-            // request.OnBeforeRequest = response =>
-            // {
-            //     response.Encoding = Encoding.GetEncoding("ISO-8859-1");
-            //     // response.Encoding = Encoding.ASCII;
-            // };
             return await restClient.ExecuteAsync<SessionAuthInfo>(request);
         }
 
@@ -85,16 +59,6 @@ namespace FWO.Rest.Client
             };
             IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
             request.AddJsonBody(body);
-            // request.OnBeforeDeserialization = response =>
-            // {
-            //     Encoding encoding = Encoding.GetEncoding("ISO-8859-1");
-            //     response.Content = encoding.GetString(response.RawBytes);
-            // };
-            // request.OnBeforeRequest = response =>
-            // {
-            //     response.Encoding = Encoding.GetEncoding("ISO-8859-1");
-            //     // response.Encoding = Encoding.ASCII;
-            // };
             return await restClient.ExecuteAsync<SessionAuthInfo>(request);
         }
 
@@ -112,25 +76,15 @@ namespace FWO.Rest.Client
                 session = session
             };
             IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
-            request.OnBeforeRequest = request =>
-            {
-                // request.Encoding = Encoding.GetEncoding("ISO-8859-1");
-                request.Encoding = Encoding.ASCII;
-            };
             request.AddJsonBody(body);
-            // request.OnBeforeDeserialization = response =>
-            // {
-            //     Encoding encoding = Encoding.GetEncoding("ISO-8859-1");
-            //     response.Content = encoding.GetString(response.RawBytes);
-            // };
             return await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
         }
 
-        public async Task<IRestResponse<FmApiTopLevelHelper>> GetDevices(string session)
+        public async Task<IRestResponse<FmApiTopLevelHelperDev>> GetDevices(string session)
         {
-            string[] fieldArray = { "name", "oid", "uuid" };
+            string[] fieldArray = { "name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status" };
             List<object> paramList = new List<object>();
-            paramList.Add(new { fields = fieldArray, url = "/dvmdb/adom" });
+            paramList.Add(new { fields = fieldArray, url = "/dvmdb/device" });
 
             var body = new
             {
@@ -139,20 +93,60 @@ namespace FWO.Rest.Client
                 id = 1,
                 session = session
             };
-            IRestRequest request = new RestRequest("/jsonrpc", Method.POST, DataFormat.Json);
+            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
             request.AddJsonBody(body);
-            // request.OnBeforeDeserialization = response =>
-            // {
-            //     Encoding encoding = Encoding.GetEncoding("ISO-8859-1");
-            //     response.Content = encoding.GetString(response.RawBytes);
-            // };
-            // request.OnBeforeRequest = response =>
-            // {
-            //     response.Encoding = Encoding.GetEncoding("ISO-8859-1");
-            //     // response.Encoding = Encoding.ASCII;
-            // };
-            return await restClient.ExecuteAsync<FmApiTopLevelHelper>(request);
+            return await restClient.ExecuteAsync<FmApiTopLevelHelperDev>(request);
         }
+
+        /*
+            global_pkg_names = []
+            global_packages = getter.fortinet_api_call(sid, fm_api_url, "/pm/pkg/global", debug=debug_level)
+            for pkg in global_packages:
+                global_pkg_names.append(pkg['name'])
+            raw_config.update({"global_packages": global_packages})
+            raw_config.update({"global_package_names": global_pkg_names})
+
+            devices = []
+            device_names = []
+            for device in mgm_details['devices']:
+                device_names.append(device['name'])
+                # vdoms = getter.fortinet_api_call(sid, fm_api_url, "/dvmdb/device/" + device['name'] + "/vdom", debug=debug_level)
+
+                devices.append(
+                    {
+                        'id': device['id'],
+                        'name': device['name'],
+                        'global_rulebase': device['global_rulebase_name'],
+                        'local_rulebase': device['local_rulebase_name'],
+                        'package': device['package_name']
+                    }
+                )
+            raw_config.update({"devices": devices})
+            raw_config.update({"device_names": device_names})
+        */
+
+        public async Task<IRestResponse<FmApiTopLevelHelperPac>> GetPackages(string session, string adomName)
+        {
+            List<object> paramList = new List<object>();
+            string urlString = "/pm/pkg/";
+            if (adomName=="global")
+                urlString += "global";
+            else
+                urlString += "adom/" + adomName;
+            paramList.Add(new { url = urlString });
+
+            var body = new
+            {
+                @params = paramList,
+                method = "get",
+                id = 1,
+                session = session
+            };
+            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
+            request.AddJsonBody(body);
+            return await restClient.ExecuteAsync<FmApiTopLevelHelperPac>(request);
+        }
+
     }
 
     public class SessionAuthInfo
@@ -161,6 +155,16 @@ namespace FWO.Rest.Client
         public string SessionId { get; set; } = "";
     }
 
+    public class FmApiStatus
+    {
+        [JsonProperty("code"), JsonPropertyName("code")]
+        public int Code { get; set; }
+
+        [JsonProperty("message"), JsonPropertyName("message")]
+        public string Message { get; set; } = "";
+    }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
     public class FmApiTopLevelHelper
     {
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -189,16 +193,29 @@ namespace FWO.Rest.Client
 
         [JsonProperty("uuid"), JsonPropertyName("uuid")]
         public string Uid { get; set; } = "";
+
+        public List<Package> Packages = new List<Package>();
     }
-    public class FmApiStatus
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public class FmApiTopLevelHelperDev
     {
-        [JsonProperty("code"), JsonPropertyName("code")]
-        public int Code { get; set; }
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
 
-        [JsonProperty("message"), JsonPropertyName("message")]
-        public string Message { get; set; } = "";
+        [JsonProperty("status"), JsonPropertyName("status")]
+        public FmApiStatus Status { get; set; } = new FmApiStatus();
+
+        [JsonProperty("result"), JsonPropertyName("result")]
+        public List<FmApiDataHelperDev> Result { get; set; } = new List<FmApiDataHelperDev>();
     }
 
+    public class FmApiDataHelperDev
+    {
+        [JsonProperty("data"), JsonPropertyName("data")]
+        public List<FortiGate> DeviceList { get; set; } = new List<FortiGate>();
+    }
     public class FortiGate
     {
         [JsonProperty("oid"), JsonPropertyName("oid")]
@@ -207,5 +224,60 @@ namespace FWO.Rest.Client
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        [JsonProperty("hostname"), JsonPropertyName("hostname")]
+        public string Hostname { get; set; } = "";
+
+        // [JsonProperty("ip"), JsonPropertyName("ip")]
+        // public string Ip { get; set; } = "";
+
+        [JsonProperty("mgt_vdom"), JsonPropertyName("mgt_vdom")]
+        public string MgtVdom { get; set; } = "";
+        
+        // [JsonProperty("os_ver"), JsonPropertyName("os_ver")]
+        // public string OsVer { get; set; } = "";
+        
+        // [JsonProperty("dev_status"), JsonPropertyName("dev_status")]
+        // public string DevStatus { get; set; } = "";
+        
+        // [JsonProperty("vdom"), JsonPropertyName("vdom")]
+        // public List<Vdom> VdomList { get; set; } = new List<Vdom>();
+
+        // "name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status" 
+    }
+   public class Vdom
+    {
+        [JsonProperty("oid"), JsonPropertyName("oid")]
+        public int Oid { get; set; }
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public int Name { get; set; }
+    }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public class FmApiTopLevelHelperPac
+    {
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("status"), JsonPropertyName("status")]
+        public FmApiStatus Status { get; set; } = new FmApiStatus();
+
+        [JsonProperty("result"), JsonPropertyName("result")]
+        public List<FmApiDataHelperPac> Result { get; set; } = new List<FmApiDataHelperPac>();
+    }
+
+    public class FmApiDataHelperPac
+    {
+        [JsonProperty("data"), JsonPropertyName("data")]
+        public List<Package> PackageList { get; set; } = new List<Package>();
+    }
+    public class Package
+    {
+        [JsonProperty("oid"), JsonPropertyName("oid")]
+        public int Oid { get; set; }
+
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
     }
 }

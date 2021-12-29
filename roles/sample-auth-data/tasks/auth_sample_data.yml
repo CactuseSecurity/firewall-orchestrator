@@ -1,5 +1,4 @@
 - block:
-# naechste Schritte: tenant1_demo wird hier erwartet. Wenn ich per hand vorher lösche gibt es fehler 
 
   - name: insert tenant tenant1{{ sample_postfix }}
     postgresql_query:

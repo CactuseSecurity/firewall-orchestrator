@@ -27,13 +27,10 @@ namespace FWO.DeviceAutoDiscovery
                 FortiManagerClient restClientFM = new FortiManagerClient(manager);
 
                 IRestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(manager.ImportUser, manager.PrivateKey);
-                string sessionId = "";
-                if (sessionResponse.StatusCode == HttpStatusCode.OK)
-                    sessionId = sessionResponse.Data.SessionId;
-                Log.WriteDebug("Autodiscovery", $"generated well-formed SessionID: {sessionId}");
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful)
                 {
-                    Log.WriteDebug("Autodiscovery", $"successful FortiManager login");
+                    string sessionId = sessionResponse.Data.SessionId;
+                    Log.WriteDebug("Autodiscovery", $"successful FortiManager login, got SessionID: {sessionId}");
                     // need to use @ verbatim identifier for special chars in sessionId
                     IRestResponse<FmApiTopLevelHelper> adomResponse = await restClientFM.GetAdoms(@sessionId);
                     if (adomResponse.StatusCode == HttpStatusCode.OK && adomResponse.IsSuccessful)
@@ -45,6 +42,7 @@ namespace FWO.DeviceAutoDiscovery
                                 Log.WriteDebug("Autodiscovery", $"found adom {adom.Name}");
                                 customAdoms.Add(adom);
                             }
+                        customAdoms.Add(new Adom {Name = "global"}); // adding global adom
                     }
                     else
                         Log.WriteWarning("AutoDiscovery", $"error while getting ADOM list: {adomResponse.ErrorMessage}");
@@ -54,9 +52,14 @@ namespace FWO.DeviceAutoDiscovery
                     {
                         List<FortiGate> fortigateList = deviceResponse.Data.Result[0].DeviceList;
                         foreach (FortiGate fg in fortigateList)
-                            Log.WriteDebug("Autodiscovery", $"found FortiGate {fg.Name} belonging to management VDOM {fg.MgtVdom}");
+                        {
+                            Log.WriteDebug("Autodiscovery", $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
+                            foreach (Vdom vdom in fg.VdomList)
+                            {
+                                Log.WriteDebug("Autodiscovery", $"found vdom {vdom.Name} belonging to device {fg.Name}");
+                            }
+                        }
 
-                        customAdoms.Add(new Adom {Name = "global"}); // adding global adom
                         foreach (Adom adom in customAdoms)
                         {
                             IRestResponse<FmApiTopLevelHelperPac> packageResponse = await restClientFM.GetPackages(@sessionId, adom.Name);
@@ -69,7 +72,18 @@ namespace FWO.DeviceAutoDiscovery
                                     adom.Packages.Add(pac);
                                 }
                             }
+                            IRestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
+                            if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful)
+                            {
+                                List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
+                                foreach (Assignment assign in assignmentList)
+                                {
+                                    Log.WriteDebug("Autodiscovery", $"found assignment in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName} ");
+                                    adom.Assignments.Add(assign);
+                                }
+                            }
                         }
+                        // get package assignment for each device: "pm/config/adom/my_adom/_package/status/test-dev1/root" 
                     }
                     else
                         Log.WriteWarning("AutoDiscovery", $"error while getting device/fortigate list: {deviceResponse.ErrorMessage}");

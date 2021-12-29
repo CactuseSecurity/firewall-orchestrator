@@ -99,17 +99,8 @@ namespace FWO.Rest.Client
         }
 
         /*
-            global_pkg_names = []
-            global_packages = getter.fortinet_api_call(sid, fm_api_url, "/pm/pkg/global", debug=debug_level)
-            for pkg in global_packages:
-                global_pkg_names.append(pkg['name'])
-            raw_config.update({"global_packages": global_packages})
-            raw_config.update({"global_package_names": global_pkg_names})
-
-            devices = []
-            device_names = []
             for device in mgm_details['devices']:
-                device_names.append(device['name'])
+
                 # vdoms = getter.fortinet_api_call(sid, fm_api_url, "/dvmdb/device/" + device['name'] + "/vdom", debug=debug_level)
 
                 devices.append(
@@ -122,7 +113,6 @@ namespace FWO.Rest.Client
                     }
                 )
             raw_config.update({"devices": devices})
-            raw_config.update({"device_names": device_names})
         */
 
         public async Task<IRestResponse<FmApiTopLevelHelperPac>> GetPackages(string session, string adomName)
@@ -147,6 +137,42 @@ namespace FWO.Rest.Client
             return await restClient.ExecuteAsync<FmApiTopLevelHelperPac>(request);
         }
 
+// single device: pm/config/adom/my_adom/_package/status/test-dev1/root"
+// all packages within adom: pm/config/adom/<adom>/_package/status
+
+/*
+    expecting:
+     			"data": 
+                    [
+                        {
+                            "dev": "test-dev1",
+                            "status": "unassigned",
+                            "vdom": "root"
+    			        }
+                    ],
+*/
+        public async Task<IRestResponse<FmApiTopLevelHelperAssign>> GetPackageAssignmentsPerAdom(string session, string adomName)
+        {
+            List<object> paramList = new List<object>();
+            string urlString = "/pm/config/";
+
+            if (adomName=="global")
+                urlString += "global/_package/status";
+            else
+                urlString += "adom/" + adomName + "/_package/status";
+            paramList.Add(new { url = urlString });
+
+            var body = new
+            {
+                @params = paramList,
+                method = "get",
+                id = 1,
+                session = session
+            };
+            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
+            request.AddJsonBody(body);
+            return await restClient.ExecuteAsync<FmApiTopLevelHelperAssign>(request);
+        }
     }
 
     public class SessionAuthInfo
@@ -195,6 +221,7 @@ namespace FWO.Rest.Client
         public string Uid { get; set; } = "";
 
         public List<Package> Packages = new List<Package>();
+        public List<Assignment> Assignments = new List<Assignment>();
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -239,8 +266,8 @@ namespace FWO.Rest.Client
         // [JsonProperty("dev_status"), JsonPropertyName("dev_status")]
         // public string DevStatus { get; set; } = "";
         
-        // [JsonProperty("vdom"), JsonPropertyName("vdom")]
-        // public List<Vdom> VdomList { get; set; } = new List<Vdom>();
+        [JsonProperty("vdom"), JsonPropertyName("vdom")]
+        public List<Vdom> VdomList { get; set; } = new List<Vdom>();
 
         // "name", "desc", "hostname", "vdom", "ip", "mgmt_id", "mgt_vdom", "os_type", "os_ver", "platform_str", "dev_status" 
     }
@@ -250,7 +277,7 @@ namespace FWO.Rest.Client
         public int Oid { get; set; }
 
         [JsonProperty("name"), JsonPropertyName("name")]
-        public int Name { get; set; }
+        public string Name { get; set; } = "";
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,5 +306,38 @@ namespace FWO.Rest.Client
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public class FmApiTopLevelHelperAssign
+    {
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("status"), JsonPropertyName("status")]
+        public FmApiStatus Status { get; set; } = new FmApiStatus();
+
+        [JsonProperty("result"), JsonPropertyName("result")]
+        public List<FmApiDataHelperAssign> Result { get; set; } = new List<FmApiDataHelperAssign>();
+    }
+
+    public class FmApiDataHelperAssign
+    {
+        [JsonProperty("data"), JsonPropertyName("data")]
+        public List<Assignment> AssignmentList { get; set; } = new List<Assignment>();
+    }
+    public class Assignment
+    {
+        [JsonProperty("oid"), JsonPropertyName("oid")]
+        public int Oid { get; set; }
+
+        [JsonProperty("dev"), JsonPropertyName("dev")]
+        public string DeviceName { get; set; } = "";
+
+        [JsonProperty("vdom"), JsonPropertyName("vdom")]
+        public string VdomName { get; set; } = "";
+
+        [JsonProperty("package"), JsonPropertyName("package")]
+        public string PackageName { get; set; } = "";
     }
 }

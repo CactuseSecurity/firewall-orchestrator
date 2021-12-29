@@ -138,6 +138,8 @@ def getDeviceDetails(sid, fm_api_url, raw_config, mgm_details, debug_level):
     device_names = []
     for device in mgm_details['devices']:
         device_names.append(device['name'])
+        # vdoms = getter.fortinet_api_call(sid, fm_api_url, "/dvmdb/device/" + device['name'] + "/vdom", debug=debug_level)
+
         devices.append(
             {
                 'id': device['id'],

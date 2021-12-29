@@ -105,9 +105,27 @@
                 "-d4",
                 "-f",
                 //"-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
+                //"-i/home/tim/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
                 "-l250"
             ]
         },        
+        {
+            "name": "py-export-itsecorg",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/api/files/scripts/fwo-export-itsecorg-devices.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m/usr/local/fworch/tmp/mgm.csv",
+                "-d/usr/local/fworch/tmp/dev.csv",
+                "-o/usr/local/fworch/tmp/devices.graphql",
+                "-sfworch",
+                "-f7"
+            ]
+        },
         {
             "name": "py-export-config",
             "type": "python",

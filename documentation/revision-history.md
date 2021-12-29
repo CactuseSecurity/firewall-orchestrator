@@ -165,5 +165,5 @@ adding report template format fk and permissions
 ### 5.5.4 - 13.12.2021
 - insert default config values
 
-### 5.5.5 - 27.12.2021
+### 5.5.5 - 29.12.2021
 - introducing multi device manager for auto discovery

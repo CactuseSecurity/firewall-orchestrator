@@ -133,6 +133,7 @@ namespace FWO.Api.Data
             Import = management.Import;
             Ignore = management.Ignore;
             ReportedRuleIds = management.ReportedRuleIds;
+            SuperManager = management.SuperManager;
             ReportedNetworkServiceIds = management.ReportedNetworkServiceIds;
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&

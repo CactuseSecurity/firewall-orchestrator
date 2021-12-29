@@ -19,5 +19,10 @@ namespace FWO.Api.Data
             Id = superManager.Id;
             Name = superManager.Name;
         }
+        public SuperManager(int? IdIn, string NameIn)
+        {
+            Id = IdIn;
+            Name = NameIn;
+        }
     }
 }

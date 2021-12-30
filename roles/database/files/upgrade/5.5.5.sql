@@ -12,7 +12,7 @@ ALTER TABLE "management"
 ALTER TABLE "management"
     ADD CONSTRAINT management_multi_device_manager_id_fkey FOREIGN KEY ("multi_device_manager_id") REFERENCES "management" ("mgm_id") ON UPDATE RESTRICT; -- ON DELETE CASCADE;
 
-update stm_dev_typ set dev_typ_is_multi_mgmt = FALSE;
+update stm_dev_typ set dev_typ_is_multi_mgmt = FALSE WHERE NOT(dev_typ_id=12 OR dev_typ_id=13);
 -- turning fortimanager into a single adom:
 update stm_dev_typ set dev_typ_is_multi_mgmt = FALSE, dev_typ_name = 'fortiADOM'  WHERE dev_typ_id=11;
 

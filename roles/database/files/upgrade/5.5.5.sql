@@ -21,3 +21,6 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
     VALUES (12,'FortiManager','5ff','Fortinet','',true) ON CONFLICT DO NOTHING;
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt) 
     VALUES (13,'Check Point','MDS R8x','Check Point','',true) ON CONFLICT DO NOTHING;
+
+-- only for incomplete upgrades up to 2021-12-30
+update stm_dev_typ set dev_typ_is_multi_mgmt = TRUE WHERE (dev_typ_id=12 OR dev_typ_id=13);

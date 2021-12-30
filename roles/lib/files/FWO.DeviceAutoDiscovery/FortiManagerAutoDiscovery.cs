@@ -78,7 +78,7 @@ namespace FWO.DeviceAutoDiscovery
                                 List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
                                 foreach (Assignment assign in assignmentList)
                                 {
-                                    Log.WriteDebug("Autodiscovery", $"found assignment in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName} ");
+                                    Log.WriteDebug("Autodiscovery", $"found assignment in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
                                     adom.Assignments.Add(assign);
                                 }
                             }

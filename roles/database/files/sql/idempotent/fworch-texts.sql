@@ -919,6 +919,8 @@ INSERT INTO txt VALUES ('U5112', 'German',  'Verwaltung aller verbundenen Gatewa
 INSERT INTO txt VALUES ('U5112', 'English', 'Administrate the connected gateways');
 INSERT INTO txt VALUES ('U5113', 'German',  'Statusanzeige aller Importjobs. M&ouml;glichkeit zum Rollback, wenn n&ouml;tig');
 INSERT INTO txt VALUES ('U5113', 'English', 'Show the status of all import jobs. Possibility to rollback if necessary');
+INSERT INTO txt VALUES ('U5114', 'German',  'Auto Discovery derzeit nicht implementiert');
+INSERT INTO txt VALUES ('U5114', 'English', 'Auto discovery currently not implemented');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');

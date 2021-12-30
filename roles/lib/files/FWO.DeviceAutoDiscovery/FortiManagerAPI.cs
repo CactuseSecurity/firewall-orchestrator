@@ -337,7 +337,7 @@ namespace FWO.Rest.Client
         [JsonProperty("vdom"), JsonPropertyName("vdom")]
         public string VdomName { get; set; } = "";
 
-        [JsonProperty("package"), JsonPropertyName("package")]
+        [JsonProperty("pkg"), JsonPropertyName("pkg")]
         public string PackageName { get; set; } = "";
     }
 }

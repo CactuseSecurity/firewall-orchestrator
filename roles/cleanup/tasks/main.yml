@@ -43,6 +43,31 @@
   become: yes
   when: "'middlewareserver' in group_names"
 
+- name: test whether demo data is present
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      SELECT * FROM device WHERE dev_name='{{ sample_fortigate_name }}'
+  register: demo_data_present
+  become: yes
+  become_user: postgres
+
+- name: find cron jobs in case of missing demo data
+  find:
+    paths: /etc/cron.d
+    patterns: "{{ product_name }}_sample_data_*"
+  register: files_to_delete
+  when: demo_data_present.query_result == []
+  become: yes
+
+- name: delete cron jobs in case of missing demo data
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ files_to_delete.files }}"
+  when: demo_data_present.query_result == []
+  become: yes
+
 - name: restart importer service to make sure it works correctly with sample data
   ansible.builtin.systemd:
     name: "{{ product_name }}-importer"

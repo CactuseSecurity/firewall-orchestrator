@@ -65,6 +65,7 @@
     path: "{{ item.path }}"
     state: absent
   with_items: "{{ files_to_delete.files }}"
+  when: demo_data_present.query_result == []
   become: yes
 
 - name: restart importer service to make sure it works correctly with sample data

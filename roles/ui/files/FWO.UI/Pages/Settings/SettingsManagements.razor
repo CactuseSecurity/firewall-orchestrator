@@ -473,8 +473,8 @@
             return false;
         }
         if (!mgm.ImportDisabled && managements.FirstOrDefault(existingManagement => existingManagement.Hostname == mgm.Hostname && existingManagement.Port == mgm.Port 
-            && existingManagement.ConfigPath == mgm.ConfigPath && existingManagement.SuperManager.Id == mgm.SuperManager.Id && existingManagement.Id != mgm.Id 
-            && !existingManagement.ImportDisabled) != null)
+            && existingManagement.ConfigPath == mgm.ConfigPath && (existingManagement.SuperManager == null || existingManagement.SuperManager.Id == mgm.SuperManager.Id)
+            && existingManagement.Id != mgm.Id && !existingManagement.ImportDisabled) != null)
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
             return false;
@@ -502,7 +502,7 @@
         }
         else if (superManager.DeviceType.Id == 13)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("no_auto_discovery"), "", true);
+            DisplayMessageInUi!(null, userConfig.GetText("U5114"), "", true);
             return;
         }
 
@@ -511,7 +511,7 @@
             List<Management> discoveredDevices = await AutoDiscovery.Run(superManager);
             List<int> adomIds = new List<int>();
             List<int> devIds = new List<int>();
-            int adomId;
+            int adomId = 0;
             foreach (Management adom in discoveredDevices)
             {
                 if (adom.ConfigPath != "global")
@@ -543,7 +543,8 @@
                         else
                         {
                             Log.WriteWarning("AutoDiscovery", $"error while adding adom {adom.Name} - ignoring as duplicate");
-                            break;
+                            // break; do not stop here as we need to check for new devices as well
+                            // TODO: we need to find out the adomId of the already existing adom
                         }
 
                         foreach (Device dev in adom.Devices)
@@ -587,7 +588,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi!(exception, userConfig.GetText("auto_discovery"), "", true);
+            DisplayMessageInUi!(exception, userConfig.GetText("autodiscover"), "", true);
         }
     }
 }

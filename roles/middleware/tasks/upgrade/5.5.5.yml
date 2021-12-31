@@ -1,0 +1,12 @@
+- name: set ldap tenant level to 5
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: >
+      DO $do$ BEGIN IF EXISTS
+      (SELECT * FROM ldap_connection
+      WHERE ldap_server='{{ openldap_server }}')
+      THEN UPDATE ldap_connection
+      SET ldap_tenant_level=5;
+      END IF; END $do$
+  become: yes
+  become_user: postgres

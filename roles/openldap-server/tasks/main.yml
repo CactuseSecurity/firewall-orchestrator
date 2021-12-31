@@ -17,8 +17,6 @@
       name: "{{ item }}"
       state: present
     loop: "{{ openldap_server_pkgs }}"
-      # environment: env
-      # when: ansible_os_family == 'Debian'
 
 ### Clean up slapd.d
 

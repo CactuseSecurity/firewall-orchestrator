@@ -15,5 +15,4 @@
     - sample_groups
     - roles_for_sample_operators
     - groups_for_sample_operators
-  when: installation_mode is not match('upgrade') or sample_role_purpose is match('test')
   become: yes

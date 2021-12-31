@@ -494,9 +494,11 @@
     private async Task AutoDiscover(Management superManager)
     {
         int domainDeviceId = 0;  // device ID for standard (domain) manager device
+        int gatewayDeviceId = 0;  // device ID for standard (domain) manager device
         if (superManager.DeviceType.Id == 12)
         {
             domainDeviceId = 11;
+            gatewayDeviceId = 10;
         }
         else if (superManager.DeviceType.Id == 13)
         {
@@ -508,6 +510,8 @@
         {
             List<Management> discoveredDevices = await AutoDiscovery.Run(superManager);
             List<int> adomIds = new List<int>();
+            List<int> devIds = new List<int>();
+            int adomId;
             foreach (Management adom in discoveredDevices)
             {
                 if (adom.ConfigPath != "global")
@@ -531,10 +535,51 @@
                             superManager = superManager.Id
                         };
                         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
-                        if (returnIds != null)
-                            adomIds.Add(returnIds[0].NewId);
+                        if (returnIds != null) 
+                        {
+                            adomId = returnIds[0].NewId;
+                            adomIds.Add(adomId);
+                        }
                         else
+                        {
                             Log.WriteWarning("AutoDiscovery", $"error while adding adom {adom.Name} - ignoring as duplicate");
+                            break;
+                        }
+
+                        foreach (Device dev in adom.Devices)
+                        {
+                            // check dev for plausibility and duplicity:
+                            if (dev.Name == null || dev.Name == "" || dev.LocalRulebase == null || dev.LocalRulebase == "")
+                            {
+                                DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
+                                break;
+                            }
+                            // we need the existing device list here!
+                            // if (!dev.ImportDisabled && devices.FirstOrDefault(existingDevice => existingDevice.DeviceType.Id == dev.DeviceType.Id && existingDevice.Management.Id == dev.Management.Id 
+                            //     && existingDevice.LocalRulebase == dev.LocalRulebase && existingDevice.Id != dev.Id && !existingDevice.ImportDisabled) != null)
+                            // {
+                            //    DisplayMessageInUi!(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5111"), true);
+                            //    break;
+                            // }
+                        
+                            var DevVariables = new
+                            {
+                                name = dev.Name,
+                                devTypeId = gatewayDeviceId,
+                                managementId = adomId,
+                                localRulebase = dev.LocalRulebase,
+                                globalRulebase = dev.GlobalRulebase,
+                                package = dev.Package,
+                                importDisabled = dev.ImportDisabled,
+                                hideInUi = dev.HideInUi,
+                                comment = dev.Comment
+                            };
+                            ReturnId[]? devReturnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
+                            if (devReturnIds != null)
+                                devIds.Add(devReturnIds[0].NewId);
+                            else
+                                Log.WriteWarning("AutoDiscovery", $"error while adding device {dev.Name} - ignoring as duplicate");
+                        }
                     }
                 }
             }

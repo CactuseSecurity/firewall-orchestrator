@@ -61,10 +61,10 @@ namespace FWO.DeviceAutoDiscovery
                                 Log.WriteDebug("Autodiscovery", $"found vdom {vdom.Name} belonging to device {fg.Name}");
                             }
                         }
-                        // add adom via FWO API
                         foreach (Adom adom in customAdoms)
                         {
-                            discoveredDevices.Add(new Management {
+                            // create object from discovered adom
+                            Management currentManagement = new Management {
                                 Name = superManager.Name + "__" + adom.Name,
                                 ImporterHostname = superManager.ImporterHostname,
                                 Hostname = superManager.Hostname,
@@ -78,18 +78,18 @@ namespace FWO.DeviceAutoDiscovery
                                 DebugLevel = superManager.DebugLevel,
                                 SuperManager = new SuperManager { Id = superManager.Id },
                                 DeviceType = new DeviceType { Id = 11 }
-                            });
+                            };
 
-                            IRestResponse<FmApiTopLevelHelperPac> packageResponse = await restClientFM.GetPackages(@sessionId, adom.Name);
-                            if (packageResponse.StatusCode == HttpStatusCode.OK && packageResponse.IsSuccessful)
-                            {
-                                List<Package> packageList = packageResponse.Data.Result[0].PackageList;
-                                foreach (Package pac in packageList)
-                                {
-                                    Log.WriteDebug("Autodiscovery", $"found Package {pac.Name} in ADOM {adom.Name}");
-                                    adom.Packages.Add(pac);
-                                }
-                            }
+                            // IRestResponse<FmApiTopLevelHelperPac> packageResponse = await restClientFM.GetPackages(@sessionId, adom.Name);
+                            // if (packageResponse.StatusCode == HttpStatusCode.OK && packageResponse.IsSuccessful)
+                            // {
+                            //     List<Package> packageList = packageResponse.Data.Result[0].PackageList;
+                            //     foreach (Package pac in packageList)
+                            //     {
+                            //         Log.WriteDebug("Autodiscovery", $"found Package {pac.Name} in ADOM {adom.Name}");
+                            //         adom.Packages.Add(pac);
+                            //     }
+                            // }
                             IRestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
                             if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful)
                             {
@@ -98,10 +98,21 @@ namespace FWO.DeviceAutoDiscovery
                                 {
                                     Log.WriteDebug("Autodiscovery", $"found assignment in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
                                     adom.Assignments.Add(assign);
+                                    if (assign.DeviceName != null && assign.DeviceName != "")
+                                    {
+                                        string devName = assign.DeviceName;
+                                        if (assign.VdomName != null && assign.VdomName != "")
+                                            devName += "_" + assign.VdomName;
+                                        currentManagement.Devices.Append( new Device {
+                                            Name = devName,
+                                            LocalRulebase = assign.PackageName,
+                                            DeviceType = new DeviceType { Id = 11 }
+                                        });
+                                    }
                                 }
                             }
+                            discoveredDevices.Add(currentManagement); // add discovered adom including devices
                         }
-                        // get package assignment for each device: "pm/config/adom/my_adom/_package/status/test-dev1/root" 
                     }
                     else
                         Log.WriteWarning("AutoDiscovery", $"error while getting device/fortigate list: {deviceResponse.ErrorMessage}");

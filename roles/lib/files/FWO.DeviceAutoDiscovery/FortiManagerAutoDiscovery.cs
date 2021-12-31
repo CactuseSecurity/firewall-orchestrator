@@ -7,16 +7,18 @@ using RestSharp.Serializers.SystemTextJson;
 using System.Text.Json;
 using FWO.Rest.Client;
 using System.Net;
+using FWO.Config.Api;
 
 namespace FWO.DeviceAutoDiscovery
 {
 
     public static class AutoDiscovery
     {
-        public static async void Run(Management manager)
+        public static async Task<List<Management>> Run(Management superManager)
         {
-            Log.WriteAudit("Autodiscovery", $"starting discovery for {manager.Name} (id={manager.Id})");
-            if (manager.DeviceType.Name == "FortiManager")
+            List<Management> discoveredDevices = new List<Management>();
+            Log.WriteAudit("Autodiscovery", $"starting discovery for {superManager.Name} (id={superManager.Id})");
+            if (superManager.DeviceType.Name == "FortiManager")
             {
                 List<Adom> customAdoms = new List<Adom>();
                 List<string> predefinedAdoms = // TODO: move this to config file
@@ -24,9 +26,9 @@ namespace FWO.DeviceAutoDiscovery
                         "FortiDDoS", "FortiDeceptor", "FortiFirewall", "FortiMail", "FortiManager", "FortiProxy",
                         "FortiSandbox", "FortiWeb", "Syslog", "Unmanaged_Devices", "others", "rootp"};
                 Log.WriteDebug("Autodiscovery", $"discovering FortiManager adoms, vdoms, devices");
-                FortiManagerClient restClientFM = new FortiManagerClient(manager);
+                FortiManagerClient restClientFM = new FortiManagerClient(superManager);
 
-                IRestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(manager.ImportUser, manager.PrivateKey);
+                IRestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(superManager.ImportUser, superManager.PrivateKey);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful)
                 {
                     string sessionId = sessionResponse.Data.SessionId;
@@ -42,7 +44,7 @@ namespace FWO.DeviceAutoDiscovery
                                 Log.WriteDebug("Autodiscovery", $"found adom {adom.Name}");
                                 customAdoms.Add(adom);
                             }
-                        customAdoms.Add(new Adom {Name = "global"}); // adding global adom
+                        customAdoms.Add(new Adom { Name = "global" }); // adding global adom
                     }
                     else
                         Log.WriteWarning("AutoDiscovery", $"error while getting ADOM list: {adomResponse.ErrorMessage}");
@@ -59,9 +61,25 @@ namespace FWO.DeviceAutoDiscovery
                                 Log.WriteDebug("Autodiscovery", $"found vdom {vdom.Name} belonging to device {fg.Name}");
                             }
                         }
-
+                        // add adom via FWO API
                         foreach (Adom adom in customAdoms)
                         {
+                            discoveredDevices.Add(new Management {
+                                Name = superManager.Name + "__" + adom.Name,
+                                ImporterHostname = superManager.ImporterHostname,
+                                Hostname = superManager.Hostname,
+                                ImportUser = superManager.ImportUser,
+                                PrivateKey = superManager.PrivateKey,
+                                Port = superManager.Port,
+                                ImportDisabled = false,
+                                ForceInitialImport = true,
+                                HideInUi = false,
+                                ConfigPath = adom.Name,
+                                DebugLevel = superManager.DebugLevel,
+                                SuperManager = new SuperManager { Id = superManager.Id },
+                                DeviceType = new DeviceType { Id = 11 }
+                            });
+
                             IRestResponse<FmApiTopLevelHelperPac> packageResponse = await restClientFM.GetPackages(@sessionId, adom.Name);
                             if (packageResponse.StatusCode == HttpStatusCode.OK && packageResponse.IsSuccessful)
                             {
@@ -97,8 +115,9 @@ namespace FWO.DeviceAutoDiscovery
                 else
                     Log.WriteWarning("AutoDiscovery", $"error while logging in to FortiManager: {sessionResponse.ErrorMessage}");
             }
-            else if (manager.DeviceType.Name == "Check Point")
+            else if (superManager.DeviceType.Name == "Check Point")
                 Log.WriteWarning("Autodiscovery", $"Auto discovery for Check Point MDS not implemented yet");
+            return discoveredDevices;
         }
     }
 }

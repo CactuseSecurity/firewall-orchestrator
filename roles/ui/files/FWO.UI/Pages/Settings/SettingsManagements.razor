@@ -32,7 +32,7 @@
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                     @if (superManagerIds.Contains(context.Id))
                     {
-                        <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscovery.Run(context)">@(userConfig.GetText("autodiscover"))</button>
+                        <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
                     }
                 </div>
             </Template>
@@ -367,7 +367,7 @@
     {
         try
         {
-            if (CheckValues())
+            if (CheckValues(actManagement))
             {
                 if (AddMode)
                 {
@@ -452,28 +452,29 @@
         }
     }
 
-    private bool CheckValues()
+    private bool CheckValues(Management mgm)
     {
-        if (actManagement.Name == null || actManagement.Name == "" || 
-            actManagement.Hostname == null || actManagement.Hostname == "" || 
-            actManagement.ImportUser == null || actManagement.ImportUser == "" || 
-            actManagement.PrivateKey == null || actManagement.PrivateKey == "")
+        if (mgm.Name == null || mgm.Name == "" || 
+            mgm.Hostname == null || mgm.Hostname == "" || 
+            mgm.ImportUser == null || mgm.ImportUser == "" || 
+            mgm.PrivateKey == null || mgm.PrivateKey == "")
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (actManagement.Port < 1 || actManagement.Port > 65535)
+        if (mgm.Port < 1 || mgm.Port > 65535)
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5103"), true);
             return false;
         }
-        else if (actManagement.DebugLevel != null && (actManagement.DebugLevel < 0 || actManagement.DebugLevel > 9))
+        else if (mgm.DebugLevel != null && (mgm.DebugLevel < 0 || mgm.DebugLevel > 9))
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5104"), true);
             return false;
         }
-        if (!actManagement.ImportDisabled && managements.FirstOrDefault(mgt => mgt.Hostname == actManagement.Hostname && mgt.Port == actManagement.Port 
-            && mgt.ConfigPath == actManagement.ConfigPath && mgt.SuperManager == actManagement.SuperManager && mgt.Id != actManagement.Id && !mgt.ImportDisabled) != null)
+        if (!mgm.ImportDisabled && managements.FirstOrDefault(existingManagement => existingManagement.Hostname == mgm.Hostname && existingManagement.Port == mgm.Port 
+            && existingManagement.ConfigPath == mgm.ConfigPath && existingManagement.SuperManager.Id == mgm.SuperManager.Id && existingManagement.Id != mgm.Id 
+            && !existingManagement.ImportDisabled) != null)
         {
             DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
             return false;
@@ -487,5 +488,61 @@
         EditMode = false;
         DeleteMode = false;
         CleanupMode = false;
+    }
+
+
+    private async Task AutoDiscover(Management superManager)
+    {
+        int domainDeviceId = 0;  // device ID for standard (domain) manager device
+        if (superManager.DeviceType.Id == 12)
+        {
+            domainDeviceId = 11;
+        }
+        else if (superManager.DeviceType.Id == 13)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("no_auto_discovery"), "", true);
+            return;
+        }
+
+        try
+        {
+            List<Management> discoveredDevices = await AutoDiscovery.Run(superManager);
+            List<int> adomIds = new List<int>();
+            foreach (Management adom in discoveredDevices)
+            {
+                if (adom.ConfigPath != "global")
+                {
+                    if (CheckValues(adom))
+                    {
+                        var Variables = new
+                        {
+                            hostname = superManager.Hostname,
+                            importUser = superManager.ImportUser,
+                            importUserSecret = superManager.PrivateKey,
+                            importerHostname = superManager.ImporterHostname,
+                            debugLevel = superManager.DebugLevel,
+                            port = superManager.Port,
+                            importDisabled = false,
+                            forceInitialImport = true,
+                            hideInUi = false,
+                            configPath = adom.ConfigPath,
+                            name = adom.Name,
+                            devTypeId = domainDeviceId,
+                            superManager = superManager.Id
+                        };
+                        ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
+                        if (returnIds != null)
+                            adomIds.Add(returnIds[0].NewId);
+                        else
+                            Log.WriteWarning("AutoDiscovery", $"error while adding adom {adom.Name} - ignoring as duplicate");
+                    }
+                }
+            }
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi!(exception, userConfig.GetText("auto_discovery"), "", true);
+        }
     }
 }

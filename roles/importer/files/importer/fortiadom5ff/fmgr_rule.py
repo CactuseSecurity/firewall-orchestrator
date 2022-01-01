@@ -3,7 +3,7 @@ import sys
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
-sys.path.append(importer_base_dir + '/fortimanager5ff')
+sys.path.append(importer_base_dir + '/fortiadom5ff')
 import common, fmgr_service, fmgr_network, fmgr_zone, fwcommon
 
 

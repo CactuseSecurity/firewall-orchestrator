@@ -7,7 +7,7 @@ from curses import raw
 import logging, sys, os, json
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/fortimanager5ff')
+sys.path.append(base_dir + '/importer/fortiadom5ff')
 import getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 scope = ['global', 'adom']

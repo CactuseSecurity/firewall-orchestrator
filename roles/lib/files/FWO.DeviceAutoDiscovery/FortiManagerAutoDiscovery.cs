@@ -64,7 +64,8 @@ namespace FWO.DeviceAutoDiscovery
                         foreach (Adom adom in customAdoms)
                         {
                             // create object from discovered adom
-                            Management currentManagement = new Management {
+                            Management currentManagement = new Management
+                            {
                                 Name = superManager.Name + "__" + adom.Name,
                                 ImporterHostname = superManager.ImporterHostname,
                                 Hostname = superManager.Hostname,
@@ -100,14 +101,17 @@ namespace FWO.DeviceAutoDiscovery
                                     adom.Assignments.Add(assign);
                                     if (assign.DeviceName != null && assign.DeviceName != "")
                                     {
+                                        Log.WriteDebug("Autodiscovery", $"found assignment (non-device-empty) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
                                         string devName = assign.DeviceName;
                                         if (assign.VdomName != null && assign.VdomName != "")
                                             devName += "_" + assign.VdomName;
-                                        currentManagement.Devices.Append( new Device {
+                                        currentManagement.Devices.Append(new Device
+                                        {
                                             Name = devName,
                                             LocalRulebase = assign.PackageName,
                                             DeviceType = new DeviceType { Id = 11 }
                                         });
+                                        Log.WriteDebug("Autodiscovery", $"assignment currentManagement now contains {currentManagement.Devices.Length} devices");
                                     }
                                 }
                             }

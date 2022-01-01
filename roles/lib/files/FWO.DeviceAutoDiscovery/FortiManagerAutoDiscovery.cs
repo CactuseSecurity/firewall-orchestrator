@@ -78,7 +78,8 @@ namespace FWO.DeviceAutoDiscovery
                                 ConfigPath = adom.Name,
                                 DebugLevel = superManager.DebugLevel,
                                 SuperManager = new SuperManager { Id = superManager.Id },
-                                DeviceType = new DeviceType { Id = 11 }
+                                DeviceType = new DeviceType { Id = 11 },
+                                Devices = new Device[]{}
                             };
 
                             // IRestResponse<FmApiTopLevelHelperPac> packageResponse = await restClientFM.GetPackages(@sessionId, adom.Name);

@@ -548,6 +548,8 @@
                         else
                         {
                             Log.WriteWarning("AutoDiscovery", $"error while adding adom {adom.Name} - ignoring as duplicate");
+
+                            // TODO: need to set correct ADOM ID here!
                             // break; do not stop here as we need to check for new devices as well
                             // TODO: we need to find out the adomId of the already existing adom
                         }

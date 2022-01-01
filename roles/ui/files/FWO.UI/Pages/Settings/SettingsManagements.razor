@@ -594,7 +594,7 @@
                 }
                 Log.WriteDebug("AutoDiscovery", $"found a total of {adomChanges} adom changes");
                 Log.WriteDebug("AutoDiscovery", $"found a total of {deviceChanges} device changes");
-                DisplayMessageInUi!(null, userConfig.GetText("U5115") + , $"{adomChanges + deviceChanges}", false);
+                DisplayMessageInUi!(null, userConfig.GetText("U5115"), $"{adomChanges + deviceChanges}", false);
             }
             // todo: add all new adoms to managements for rendering / or just reload (ugly)
             StateHasChanged();

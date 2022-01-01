@@ -367,7 +367,7 @@
     {
         try
         {
-            if (CheckValues(actManagement))
+            if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
                 if (AddMode)
                 {
@@ -452,31 +452,31 @@
         }
     }
 
-    private bool CheckValues(Management mgm)
+    private bool CheckValues(Management mgm, string checkCause)
     {
         if (mgm.Name == null || mgm.Name == "" || 
             mgm.Hostname == null || mgm.Hostname == "" || 
             mgm.ImportUser == null || mgm.ImportUser == "" || 
             mgm.PrivateKey == null || mgm.PrivateKey == "")
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5102"), true);
+            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5102"), true);
             return false;
         }
         if (mgm.Port < 1 || mgm.Port > 65535)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5103"), true);
+            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5103"), true);
             return false;
         }
         else if (mgm.DebugLevel != null && (mgm.DebugLevel < 0 || mgm.DebugLevel > 9))
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5104"), true);
+            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5104"), true);
             return false;
         }
         if (!mgm.ImportDisabled && managements.FirstOrDefault(existingManagement => existingManagement.Hostname == mgm.Hostname && existingManagement.Port == mgm.Port 
             && existingManagement.ConfigPath == mgm.ConfigPath && (existingManagement.SuperManager == null || existingManagement.SuperManager.Id == mgm.SuperManager.Id)
             && existingManagement.Id != mgm.Id && !existingManagement.ImportDisabled) != null)
         {
-            DisplayMessageInUi!(null, userConfig.GetText("save_management"), userConfig.GetText("E5105"), true);
+            DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5105"), true);
             return false;
         }
         return true;
@@ -512,11 +512,14 @@
             List<int> adomIds = new List<int>();
             List<int> devIds = new List<int>();
             int adomId = 0;
+            int adomChanges = 0;
+            int deviceChanges = 0;
+
             foreach (Management adom in discoveredDevices)
             {
                 if (adom.ConfigPath != "global")
                 {
-                    if (CheckValues(adom))
+                    if (CheckValues(adom, userConfig.GetText("autodiscover")))
                     {
                         var Variables = new
                         {
@@ -539,6 +542,8 @@
                         {
                             adomId = returnIds[0].NewId;
                             adomIds.Add(adomId);
+                            adomChanges++;
+                            Log.WriteDebug("AutoDiscovery", $"successfully added adom {adom.Name} via FWO API");
                         }
                         else
                         {
@@ -576,14 +581,20 @@
                                 comment = dev.Comment
                             };
                             ReturnId[]? devReturnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
-                            if (devReturnIds != null)
+                            if (devReturnIds != null) 
+                            {
+                                Log.WriteDebug("AutoDiscovery", $"successfully added device {dev.Name} with policy {dev.LocalRulebase} via FWO API");
                                 devIds.Add(devReturnIds[0].NewId);
+                                deviceChanges++;
+                            }
                             else
                                 Log.WriteWarning("AutoDiscovery", $"error while adding device {dev.Name} - ignoring as duplicate");
                         }
                     }
                 }
+                DisplayMessageInUi!(null, userConfig.GetText("U5115") + $": {adomChanges + deviceChanges}", "", false);
             }
+            // todo: add all new adoms to managements for rendering / or just reload (ugly)
             StateHasChanged();
         }
         catch (Exception exception)

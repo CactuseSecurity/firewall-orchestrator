@@ -119,7 +119,7 @@ namespace FWO.Middleware.Controllers
                 {
                     ldapDnRequests.Add(Task.Run(() =>
                     {
-                        Log.WriteDebug("User Authentication", $"Trying to authenticate {user} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
+                        Log.WriteDebug("User Authentication", $"Trying to authenticate \"{user.Dn}\" against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
 
                         try
                         {

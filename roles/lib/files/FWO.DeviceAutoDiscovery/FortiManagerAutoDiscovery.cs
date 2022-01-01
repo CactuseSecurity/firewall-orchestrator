@@ -97,6 +97,7 @@ namespace FWO.DeviceAutoDiscovery
                                 List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
                                 foreach (Assignment assign in assignmentList)
                                 {
+                                    Device devFound = new Device();
                                     Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
                                     if (assign.DeviceName != null)
                                     {
@@ -107,13 +108,16 @@ namespace FWO.DeviceAutoDiscovery
                                             string devName = assign.DeviceName;
                                             if (assign.VdomName != null && assign.VdomName != "")
                                                 devName += "_" + assign.VdomName;
-                                            currentManagement.Devices.Append(new Device
+                                            devFound = new Device
                                             {
                                                 Name = devName,
                                                 LocalRulebase = assign.PackageName,
                                                 DeviceType = new DeviceType { Id = 11 }
-                                            });
-                                            Log.WriteDebug("Autodiscovery", $"assignment currentManagement now contains {currentManagement.Devices.Length} devices");
+                                            };
+                                            Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");
+                                            Log.WriteDebug("Autodiscovery", $"assignment currentManagement before Append contains {currentManagement.Devices.Length} devices");
+                                            currentManagement.Devices.Append(devFound);
+                                            Log.WriteDebug("Autodiscovery", $"assignment currentManagement after Append contains {currentManagement.Devices.Length} devices");
                                         }
                                     }
                                     adom.Assignments.Add(assign);

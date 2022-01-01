@@ -36,6 +36,7 @@
     - importer
     - api
     - ui
+    - frontend
 
 - hosts: backendserver
   roles:
@@ -132,3 +133,4 @@
     - backend
     - frontend
     - importer
+    - ui

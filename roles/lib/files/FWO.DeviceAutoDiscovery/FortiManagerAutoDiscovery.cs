@@ -117,7 +117,7 @@ namespace FWO.DeviceAutoDiscovery
                                             };
                                             Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");
                                             Log.WriteDebug("Autodiscovery", $"assignment currentManagement before Append contains {currentManagement.Devices.Length} devices");
-                                            currentManagement.Devices.Append(devFound);
+                                            currentManagement.Devices = currentManagement.Devices.Append(devFound).ToArray();
                                             Log.WriteDebug("Autodiscovery", $"assignment currentManagement after Append contains {currentManagement.Devices.Length} devices");
                                         }
                                     }

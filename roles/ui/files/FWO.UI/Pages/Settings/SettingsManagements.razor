@@ -580,7 +580,7 @@
                                 hideInUi = dev.HideInUi,
                                 comment = dev.Comment
                             };
-                            ReturnId[]? devReturnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, Variables)).ReturnIds;
+                            ReturnId[]? devReturnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newDevice, DevVariables)).ReturnIds;
                             if (devReturnIds != null) 
                             {
                                 Log.WriteDebug("AutoDiscovery", $"successfully added device {dev.Name} with policy {dev.LocalRulebase} via FWO API");

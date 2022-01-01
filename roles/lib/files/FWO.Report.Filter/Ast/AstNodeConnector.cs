@@ -1,7 +1,4 @@
 ﻿using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace FWO.Report.Filter.Ast
 {

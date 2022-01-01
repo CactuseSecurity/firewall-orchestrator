@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Middleware.Controllers;
 using FWO.Report;
+using FWO.Report.Filter;
 using System.Timers;
 
 namespace FWO.Middleware.Server
@@ -136,7 +137,7 @@ namespace FWO.Middleware.Server
 
                     UserConfig userConfig = new UserConfig(new GlobalConfig(jwt));
 
-                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, userConfig);                    
+                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, report.Template.ReportParams.DeviceFilter, (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.None), userConfig);
                     await reportRules.Generate(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask, token);
                     await reportRules.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
 

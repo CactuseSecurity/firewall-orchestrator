@@ -1,4 +1,5 @@
 ﻿@using FWO.Config.Api
+@using FWO.Report.Filter
 
 @inject UserConfig userConfig
 @inject APIConnection apiConnection
@@ -16,7 +17,9 @@
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
                                 @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
                                 {
-                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = adaptText(template); ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
+                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = adaptText(template); 
+                                                                                             reportTypeInEdit = (reportTemplateInEdit.ReportParams.ReportType != null ? (ReportType)reportTemplateInEdit.ReportParams.ReportType : ReportType.None);
+                                                                                             ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
                                     <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
                                 }
                             </div>
@@ -66,13 +69,22 @@
                 <textarea id="saveTemplateComment" class="form-control" @bind="reportTemplateInEdit.Comment" />
             </div>
             <div class="form-group">
+                <label for="saveTemplateReportType">@(userConfig.GetText("report_type")):</label>
+                <select id="saveTemplateReportType" class="form-control form-control-sm" @bind="reportTypeInEdit">
+                    @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
+                    {
+                        <option value="@reportType">@reportType</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="saveTemplateFilterLineTextarea">@(userConfig.GetText("filter")):</label>
                 <textarea id="saveTemplateFilterLineTextarea" class="form-control" @bind="reportTemplateInEdit.Filter" />
             </div>
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-primary" @onclick="async () => { if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">@(userConfig.GetText("save"))</button>
+        <button class="btn btn-primary" @onclick="async () => {reportTemplateInEdit.ReportParams.ReportType = (int?)reportTypeInEdit; if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">@(userConfig.GetText("save"))</button>
         <button class="btn btn-secondary" @onclick="() => ShowEditTemplateDialog = ShowSaveTemplateDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
@@ -100,6 +112,7 @@
 
     public List<ReportTemplate> reportTemplates { get; set; } = new List<ReportTemplate>();
     public ReportTemplate reportTemplateInEdit = new ReportTemplate();
+    private ReportType reportTypeInEdit = ReportType.None;
 
     private bool ShowSaveTemplateDialog = false;
     private bool ShowEditTemplateDialog = false;
@@ -130,9 +143,10 @@
         await collapseControl.ToggleCollapse();
     }
 
-    public void NewTemplate(string filterInput)
+    public void NewTemplate(string filterInput, DeviceFilter deviceFilter, ReportType reportType)
     {
-        reportTemplateInEdit = new ReportTemplate { Filter = filterInput };
+        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType);
+        reportTypeInEdit = reportType;
         ShowSaveTemplateDialog = true;
     }
 
@@ -158,7 +172,8 @@
                 reportFilterLine = reportTemplateInEdit.Filter,
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
                 reportTemplateComment = reportTemplateInEdit.Comment,
-                reportTemplateOwner = reportTemplateInEdit.Owner
+                reportTemplateOwner = reportTemplateInEdit.Owner,
+                reportParameters = reportTemplateInEdit.ParameterString
             };
 
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
@@ -184,7 +199,18 @@
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(ReportQueries.editReportTemplate, reportTemplateInEdit);
+            var queryVariables = new
+            {
+                reportTemplateId = reportTemplateInEdit.Id,
+                reportTemplateName = reportTemplateInEdit.Name,
+                reportFilterLine = reportTemplateInEdit.Filter,
+                reportTemplateCreate = reportTemplateInEdit.CreationDate,
+                reportTemplateComment = reportTemplateInEdit.Comment,
+                reportTemplateOwner = reportTemplateInEdit.Owner,
+                reportParameters = reportTemplateInEdit.ParameterString
+            };
+
+            await apiConnection.SendQueryAsync<object>(ReportQueries.editReportTemplate, queryVariables);
             reportTemplates[reportTemplates.FindIndex(reportTemplate => reportTemplate.Id == reportTemplateInEdit.Id)] = reportTemplateInEdit;
 
             ShowEditTemplateDialog = false;

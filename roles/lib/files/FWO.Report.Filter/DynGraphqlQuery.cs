@@ -1,6 +1,6 @@
 using FWO.Report.Filter.Ast;
-using System.Collections.Generic;
 using FWO.ApiClient.Queries;
+using FWO.Api.Data;
 using System.Text.RegularExpressions;
 
 namespace FWO.Report.Filter
@@ -30,17 +30,46 @@ namespace FWO.Report.Filter
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
-        public static DynGraphqlQuery Generate(string rawInput, AstNode ast, bool detailed)
+        private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter devicefilter)
+        {
+            bool first = true;
+            query.ruleWhereStatement += "_and: [{_or: [{";
+            foreach (ManagementSelect mgmt in devicefilter.Managements)
+            {
+                foreach (DeviceSelect dev in mgmt.Devices)
+                {
+                    if (dev.Selected == true)
+                    {
+                        if (first == false)
+                        {
+                            query.ruleWhereStatement += "}, {";
+                        }
+                        query.ruleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
+                        first = false;
+                    }
+                }
+            }
+            query.ruleWhereStatement += "}]}, {";
+        }
+
+        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode ast, DeviceFilter? deviceFilter, ReportType? reportType, bool detailed)
         {
             DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
+
+            if (deviceFilter != null)
+                SetDeviceFilter(ref query, deviceFilter);
 
             // now we convert the ast into a graphql query:
             ast.Extract(ref query);
 
+            // Close device filter
+            if (deviceFilter != null)
+                query.ruleWhereStatement += "}] ";
+
             // if any filter is set, optionally leave out all header texts
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
-            switch (query.ReportType)
+            switch (reportType)
             {
                 // todo: move $mdmId filter from management into query.xxxWhereStatement
                 // management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 

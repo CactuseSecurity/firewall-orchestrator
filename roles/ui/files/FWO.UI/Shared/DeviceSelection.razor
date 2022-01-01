@@ -1,6 +1,5 @@
 ﻿@using FWO.Config.Api
-@using FWO.Api.Data;
-@using FWO.Report.Filter
+@using FWO.Api.Data
 
 @inject UserConfig userConfig
 
@@ -8,43 +7,36 @@
     <h5 class="text-left">@(userConfig.GetText("select_device"))</h5>
     <button class="btn btn-sm btn-secondary"
             @onclick="@((async () => {
-                DeviceFilter.applyFullDeviceSelection(Managements, SelectAll);
-                FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
+                DeviceFilter.applyFullDeviceSelection(SelectAll);
                 SelectAll = !SelectAll;
-                await FilterInputChanged.InvokeAsync(FilterInput);
                 await SelectAllChanged.InvokeAsync(SelectAll);
             }))">
         @(SelectAll ? selectAllText : clearAllText)
     </button>
     <br><br>
 
-    @foreach (Management management in Managements)
+    @foreach (ManagementSelect management in DeviceFilter.Managements)
     {
-        @if (management != null)
-        {
-            <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
-                @foreach (Device device in management.Devices)
-                {
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="@device.Id"
-                               @bind="device.Selected"
-                               @oninput="async () => {
-                                    device.Selected = !device.Selected;
-                                    if (DeviceFilter.areAllDevicesSelected(Managements))
-                                        SelectAll = false;
-                                    if (!DeviceFilter.isAnyLSBDeviceFilterSet(Managements))
-                                        SelectAll = true;
-                                    FilterInput = DeviceFilter.syncLSBFilterToFilterLine(Managements, FilterInput);
-                                    await FilterInputChanged.InvokeAsync(FilterInput);
-                                    await SelectAllChanged.InvokeAsync(SelectAll);
-                                }" />
-                        <label class="form-check-label" for="@device.Id">
-                            @device.Name
-                        </label>
-                    </div>
-                }
-            </Collapse>
-        }
+        <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
+            @foreach (DeviceSelect device in management.Devices)
+            {
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="@device.Id"
+                            @bind="device.Selected"
+                            @oninput="async () => {
+                                device.Selected = !device.Selected;
+                                if (DeviceFilter.areAllDevicesSelected())
+                                    SelectAll = false;
+                                if (!DeviceFilter.isAnyDeviceFilterSet())
+                                    SelectAll = true;
+                                await SelectAllChanged.InvokeAsync(SelectAll);
+                            }" />
+                    <label class="form-check-label" for="@device.Id">
+                        @device.Name
+                    </label>
+                </div>
+            }
+        </Collapse>
     }
 </div>
 
@@ -57,7 +49,7 @@
     public EventCallback<string> FilterInputChanged { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; } = new Management[]{};
+    public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
 
     [Parameter]
     public bool SelectAll { get; set; } // state of the device select/clear all button

@@ -2,9 +2,10 @@
 @using System.Threading
 @using System.Text.RegularExpressions
 @using FWO.Ui.Data
-@using FWO.Report.Filter
 @using FWO.Report
+@using FWO.Report.Filter
 @using FWO.Ui.Pages.Reporting.Reports
+@using FWO.Api.Data
 
 @page "/certification"
 
@@ -57,7 +58,7 @@
         </div>
     </div>
 
-    <DeviceSelection Managements="managements" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
+    <DeviceSelection DeviceFilter="deviceFilter" @bind-FilterInput="filterInput" @bind-SelectAll="selectAll" ></DeviceSelection>
 </Sidebar>
 
 @* ==== MAIN MIDDLE SECTION ==== *@
@@ -140,6 +141,7 @@
     private Management[] managements = new Management[0];
 //    private Management[] managementsObjects = new Management[0];
 
+    private DeviceFilter deviceFilter = new DeviceFilter();
     private List<Rule> selectedRules = new List<Rule>();
     private CollapseState collapseControlObjects = new CollapseState();
 
@@ -158,7 +160,7 @@
             {
                 GetSettings();
 
-                managements = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
+                deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
 
 //                PaginationVariables paginationVariables = new PaginationVariables() { Limit = 0, Offset = 0 };
@@ -184,17 +186,15 @@
             tokenSource = new CancellationTokenSource();
             var token = tokenSource.Token;
 
-            // when generating report, filter line overrules LSB filter, as this can be triggered by changing the filter line and pressing enter
-            DeviceFilter.syncFilterLineToLSBFilter(filterInput, managements);
-            SyncFilterToDisplay();
-
-            currentReport = ReportBase.ConstructReport(filterInput, userConfig);
-            if (!DeviceFilter.isAnyDeviceFilterSet(managements, currentReport.Query))  // display pop-up with warning, todo: check if device is selected in filter line
+            if (!deviceFilter.isAnyDeviceFilterSet())  // display pop-up with warning
             {
                 DisplayMessageInUi!(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
                 processing = false;
                 return;
             }
+
+            SyncFilterToDisplay();
+            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, ReportType.Rules, userConfig);
 
             DateTime startTime = DateTime.Now;
             managements = new Management[0]; // reset management data when switching between reports

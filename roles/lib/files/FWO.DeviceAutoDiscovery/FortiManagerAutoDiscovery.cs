@@ -97,22 +97,26 @@ namespace FWO.DeviceAutoDiscovery
                                 List<Assignment> assignmentList = assignResponse.Data.Result[0].AssignmentList;
                                 foreach (Assignment assign in assignmentList)
                                 {
-                                    Log.WriteDebug("Autodiscovery", $"found assignment in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
-                                    adom.Assignments.Add(assign);
-                                    if (assign.DeviceName != null && assign.DeviceName != "")
+                                    Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
+                                    if (assign.DeviceName != null)
                                     {
-                                        Log.WriteDebug("Autodiscovery", $"found assignment (non-device-empty) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
-                                        string devName = assign.DeviceName;
-                                        if (assign.VdomName != null && assign.VdomName != "")
-                                            devName += "_" + assign.VdomName;
-                                        currentManagement.Devices.Append(new Device
+                                        Log.WriteDebug("Autodiscovery", $"found assignment2 (device<>null) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
+                                        if (assign.DeviceName != "")
                                         {
-                                            Name = devName,
-                                            LocalRulebase = assign.PackageName,
-                                            DeviceType = new DeviceType { Id = 11 }
-                                        });
-                                        Log.WriteDebug("Autodiscovery", $"assignment currentManagement now contains {currentManagement.Devices.Length} devices");
+                                            Log.WriteDebug("Autodiscovery", $"found assignment3 (non-device-empty-string) in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
+                                            string devName = assign.DeviceName;
+                                            if (assign.VdomName != null && assign.VdomName != "")
+                                                devName += "_" + assign.VdomName;
+                                            currentManagement.Devices.Append(new Device
+                                            {
+                                                Name = devName,
+                                                LocalRulebase = assign.PackageName,
+                                                DeviceType = new DeviceType { Id = 11 }
+                                            });
+                                            Log.WriteDebug("Autodiscovery", $"assignment currentManagement now contains {currentManagement.Devices.Length} devices");
+                                        }
                                     }
+                                    adom.Assignments.Add(assign);
                                 }
                             }
                             discoveredDevices.Add(currentManagement); // add discovered adom including devices

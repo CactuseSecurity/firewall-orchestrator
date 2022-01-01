@@ -11,7 +11,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": []
-        },        
+        },
         {
             "name": "py-change-rule",
             "type": "python",
@@ -22,7 +22,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": []
-        },        
+        },
         {
             "name": "py-cpr8x-get-config",
             "type": "python",
@@ -100,13 +100,13 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m7",
+                "-m4",
                 "-d4",
                 "-f",
-                //"-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
+                "-iC:/Users/Nils/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
                 "-l250"
             ]
-        },        
+        },
         {
             "name": "py-export-config",
             "type": "python",
@@ -116,7 +116,9 @@
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-o/tmp/fworch-config"]
+            "args": [
+                "-o/tmp/fworch-config"
+            ]
         },
         {
             "name": "py-execute-graphql",
@@ -127,8 +129,10 @@
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-i/tmp/fworch-config.graphql"]
-        },        
+            "args": [
+                "-i/tmp/fworch-config.graphql"
+            ]
+        },
         {
             "name": "py-execute-graphql-query",
             "type": "python",
@@ -138,8 +142,10 @@
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-i/tmp/fworch-config.graphql"]
-        }, 
+            "args": [
+                "-i/tmp/fworch-config.graphql"
+            ]
+        },
         {
             "name": "py-cpr8x-autodiscovery",
             "type": "python",
@@ -151,10 +157,10 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-              "-a192.168.100.110",
-              "-w/home/tim/secrets/cp_apiuser_pwd",
-              "-uitsecorg",
-              "-fjson"
+                "-a192.168.100.110",
+                "-w/home/tim/secrets/cp_apiuser_pwd",
+                "-uitsecorg",
+                "-fjson"
             ]
         },
         {
@@ -166,7 +172,10 @@
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-d2", "-i30"]
+            "args": [
+                "-d2",
+                "-i30"
+            ]
         },
         {
             "name": "c#-FWO Test",
@@ -177,7 +186,7 @@
             "args": [
                 "test"
             ],
-          "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
+            "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
             "stopAtEntry": false,
             "console": "internalConsole"
         },

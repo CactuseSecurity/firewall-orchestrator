@@ -27,6 +27,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Middleware.Server", "mi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Ui", "ui\files\FWO.UI\FWO.Ui.csproj", "{A7ECA205-4916-4B66-8F37-15C656579D60}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "importer", "importer\importer.pyproj", "{1A1B90A0-227D-4041-A62A-F83AF9C9C7CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,6 +79,8 @@ Global
 		{A7ECA205-4916-4B66-8F37-15C656579D60}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7ECA205-4916-4B66-8F37-15C656579D60}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7ECA205-4916-4B66-8F37-15C656579D60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A1B90A0-227D-4041-A62A-F83AF9C9C7CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A1B90A0-227D-4041-A62A-F83AF9C9C7CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -90,6 +94,7 @@ Global
 		{C43BBC19-0147-44A4-AAF5-1CBC136A7A28} = {CE55F125-0CD2-4789-A3C1-045DEF33ABA5}
 		{9225BD37-C13E-4A97-AACD-17E784FA52BB} = {CE55F125-0CD2-4789-A3C1-045DEF33ABA5}
 		{F4972F10-28F8-4AE1-A5F6-C0E5DC1C0B29} = {CE55F125-0CD2-4789-A3C1-045DEF33ABA5}
+		{1A1B90A0-227D-4041-A62A-F83AF9C9C7CF} = {CE55F125-0CD2-4789-A3C1-045DEF33ABA5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {68364621-1011-4D44-9CF5-518F0DC3F459}

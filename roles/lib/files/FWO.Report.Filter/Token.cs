@@ -12,7 +12,7 @@ namespace FWO.Report.Filter
 
         public override string ToString()
         {
-            return $"Text: \"{Text}\" Kind: \"{Kind}\"";
+            return $"Position: \"{Position}\" Text: \"{Text}\" Kind: \"{Kind}\"";
         }
 
         public Token(Range position, string text, TokenKind kind)

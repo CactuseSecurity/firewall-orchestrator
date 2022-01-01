@@ -161,7 +161,13 @@ namespace FWO.Report.Filter
                 TokenKind.EQ => new TokenSyntax
                 (
                     WhiteSpaceRequiered : new string[] { "eq" },
-                    NoWhiteSpaceRequiered : new string[] { "=", "==", ":" }
+                    NoWhiteSpaceRequiered : new string[] { "=", ":" }
+                ),
+
+                TokenKind.EEQ => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: new string[] { "eeq" },
+                    NoWhiteSpaceRequiered: new string[] { "==", "::" }
                 ),
 
                 TokenKind.NEQ => new TokenSyntax

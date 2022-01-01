@@ -34,50 +34,50 @@ namespace FWO.Report.Filter.Ast
                 // "xy" and "FullText=xy" are the same filter
                 case TokenKind.FullText:
                 case TokenKind.Value:
-                    ExtractFullTextQuery(query);
+                    ExtractFullTextFilter(query);
                     break;
                 case TokenKind.ReportType:
-                    ExtractReportTypeQuery(query);
+                    ExtractReportTypeFilter(query);
                     break;
                 case TokenKind.Source:
-                    ExtractSourceQuery(query);
+                    ExtractSourceFilter(query);
                     break;
                 case TokenKind.Destination:
-                    ExtractDestinationQuery(query);         
+                    ExtractDestinationFilter(query);         
                     break;
                 case TokenKind.Action:
-                    ExtractActionQuery(query);
+                    ExtractActionFilter(query);
                     break;
                 case TokenKind.Service:
-                    ExtractServiceQuery(query);
+                    ExtractServiceFilter(query);
                     break;
                 case TokenKind.DestinationPort:
-                    ExtractDestinationPort(query);
+                    ExtractDestinationPortFilter(query);
                     break;
                 case TokenKind.Protocol:
-                    ExtractProtocolQuery(query);
+                    ExtractProtocolFilter(query);
                     break;
                 case TokenKind.Management:
-                    ExtractManagementQuery(query);
+                    ExtractManagementFilter(query);
                     break;
                 case TokenKind.Gateway:
-                    ExtractGatewayQuery(query);
+                    ExtractGatewayFilter(query);
                     break;
                 case TokenKind.Remove:
-                    ExtractRemoveQuery(query);
+                    ExtractRemoveFilter(query);
                     break;
                 case TokenKind.RecertDisplay:
-                    ExtractRecertDisplay(query);
+                    ExtractRecertDisplayFilter(query);
                     break;
                 case TokenKind.Time:
-                    ExtractTimeQuery(query);
+                    ExtractTimeFilter(query);
                     break;
                 default:
                     throw new NotSupportedException($"### Compiler Error: Found unexpected and unsupported filter token: \"{Name}\" ###");
             }
         }
 
-        private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractTimeFilter(DynGraphqlQuery query)
         {
             switch (query.ReportType)
             {
@@ -126,7 +126,7 @@ namespace FWO.Report.Filter.Ast
                             security_relevant: {{ _eq: true }}";
                             break;
                         default:
-                            throw new SemanticException($"Unexpected operator token. Expected equals token.", Operator.Position);
+                            throw new SemanticException($"Unexpected operator token.", Operator.Position);
                     }
                     break;
                 case ReportType.None:
@@ -138,7 +138,7 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-        private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractReportTypeFilter(DynGraphqlQuery query)
         {
             query.ReportType = Value.Text switch
             {
@@ -270,9 +270,9 @@ namespace FWO.Report.Filter.Ast
         //     // functions["DestinationNegated"] = this.ExtractDestinationNegated;
         //     // functions["ServiceNegated"] = this.ExtractServiceNegated;
 
-        private DynGraphqlQuery ExtractSourceQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractSourceFilter(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
             if (IsCidr(Value.Text))  // filtering for ip addresses
                 query = ExtractIpFilter(query, location: "src", locationTable: "rule_froms");
             else // string search against src obj name
@@ -280,13 +280,13 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = "src" + query.parameterCounter++;
                 query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
-                query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+                query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {queryOperation}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;
         }
-        private DynGraphqlQuery ExtractDestinationQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractDestinationFilter(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
             if (IsCidr(Value.Text))  // filtering for ip addresses
                 query = ExtractIpFilter(query, location: "dst", locationTable: "rule_tos");
             else // string search against dst obj name
@@ -294,44 +294,44 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = "dst" + query.parameterCounter++;
                 query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
-                query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+                query.ruleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {queryOperation}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;
         }
 
-        private DynGraphqlQuery ExtractServiceQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractServiceFilter(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "svc" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
-            query.ruleWhereStatement += $"rule_services: {{service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }} }}";
+            query.ruleWhereStatement += $"rule_services: {{service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {queryOperation}: ${QueryVarName} }} }} }} }} }}";
             return query;
         }
-        private DynGraphqlQuery ExtractActionQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractActionFilter(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "action" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
-            query.ruleWhereStatement += $"rule_action: {{ {QueryOperation}: ${QueryVarName} }}";
+            query.ruleWhereStatement += $"rule_action: {{ {queryOperation}: ${QueryVarName} }}";
             return query;
         }
-        private DynGraphqlQuery ExtractProtocolQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractProtocolFilter(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "proto" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
-            query.ruleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {QueryOperation}: ${QueryVarName} }} }} }} }}";
+            query.ruleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {queryOperation}: ${QueryVarName} }} }} }} }}";
             return query;
         }
-        private DynGraphqlQuery ExtractManagementQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractManagementFilter(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName;
 
             if (int.TryParse(Value.Text, out int _)) // dealing with mgm_id filter
@@ -339,40 +339,40 @@ namespace FWO.Report.Filter.Ast
                 QueryVarName = "mgmtId" + query.parameterCounter++;
                 query.QueryParameters.Add($"${QueryVarName}: Int! ");
                 query.QueryVariables[QueryVarName] = Value;
-                query.ruleWhereStatement += $"management: {{mgm_id : {{{QueryOperation}: ${QueryVarName} }} }}";
-                query.nwObjWhereStatement += $"management: {{mgm_id : {{{QueryOperation}: ${QueryVarName} }} }}";
-                query.svcObjWhereStatement += $"management: {{mgm_id : {{{QueryOperation}: ${QueryVarName} }} }}";
-                query.userObjWhereStatement += $"management: {{mgm_id : {{{QueryOperation}: ${QueryVarName} }} }}";
+                query.ruleWhereStatement += $"management: {{mgm_id : {{{queryOperation}: ${QueryVarName} }} }}";
+                query.nwObjWhereStatement += $"management: {{mgm_id : {{{queryOperation}: ${QueryVarName} }} }}";
+                query.svcObjWhereStatement += $"management: {{mgm_id : {{{queryOperation}: ${QueryVarName} }} }}";
+                query.userObjWhereStatement += $"management: {{mgm_id : {{{queryOperation}: ${QueryVarName} }} }}";
             }
             else
             {
                 QueryVarName = "mgmtName" + query.parameterCounter++;
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
                 query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
-                query.ruleWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-                query.nwObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-                query.svcObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
-                query.userObjWhereStatement += $"management: {{mgm_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+                query.ruleWhereStatement += $"management: {{mgm_name : {{{queryOperation}: ${QueryVarName} }} }}";
+                query.nwObjWhereStatement += $"management: {{mgm_name : {{{queryOperation}: ${QueryVarName} }} }}";
+                query.svcObjWhereStatement += $"management: {{mgm_name : {{{queryOperation}: ${QueryVarName} }} }}";
+                query.userObjWhereStatement += $"management: {{mgm_name : {{{queryOperation}: ${QueryVarName} }} }}";
             }
             return query;
         }
-        private DynGraphqlQuery ExtractGatewayQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractGatewayFilter(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "gwName" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
-            query.ruleWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
+            query.ruleWhereStatement += $"device: {{dev_name : {{{queryOperation}: ${QueryVarName} }} }}";
             // query.nwObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
             // query.svcObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
             // query.userObjWhereStatement += $"device: {{dev_name : {{{QueryOperation}: ${QueryVarName} }} }}";
 
             return query;
         }
-        private DynGraphqlQuery ExtractFullTextQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractFullTextFilter(DynGraphqlQuery query)
         {
-            string QueryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
             string QueryVarName = "fullTextFilter" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -381,7 +381,7 @@ namespace FWO.Report.Filter.Ast
             ruleFieldNames = new List<string>() { "rule_src", "rule_dst", "rule_svc", "rule_action" };  // TODO: add comment later
             List<string> searchParts = new List<string>();
             foreach (string field in ruleFieldNames)
-                searchParts.Add($"{{{field}: {{{QueryOperation}: ${QueryVarName} }} }} ");
+                searchParts.Add($"{{{field}: {{{queryOperation}: ${QueryVarName} }} }} ");
             query.ruleWhereStatement += " _or: [";
             query.ruleWhereStatement += string.Join(", ", searchParts);
             query.ruleWhereStatement += "]";
@@ -389,7 +389,7 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-        private DynGraphqlQuery ExtractDestinationPort(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractDestinationPortFilter(DynGraphqlQuery query)
         {
             string QueryVarName = "dport" + query.parameterCounter++;
 
@@ -402,7 +402,7 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-        private DynGraphqlQuery ExtractRemoveQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractRemoveFilter(DynGraphqlQuery query)
         {
             string QueryVarName = "remove" + query.parameterCounter++;
 
@@ -412,7 +412,7 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-        private DynGraphqlQuery ExtractRecertDisplay(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractRecertDisplayFilter(DynGraphqlQuery query)
         {
             string QueryVarName = "refdate" + query.parameterCounter++;
             query.QueryParameters.Add($"${QueryVarName}: timestamp! ");
@@ -582,7 +582,7 @@ namespace FWO.Report.Filter.Ast
                     // how can we access the tokens[position].Position information here?
                     break;
             }
-            return ("", stop);
+            return (start, stop);
         }
 
     }

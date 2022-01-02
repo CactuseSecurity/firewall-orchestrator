@@ -1524,7 +1524,7 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
     Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
 ');
 INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements einrichten und verwalten.<br>
-    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren eines neuen Managements, indem Daten von einem existierenden kopiert werden.
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Managements, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss sich mindestens einer der Parameter Hostname, Port oder Config Path von den existierenden Managements unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
 ');
 INSERT INTO txt VALUES ('H5101', 'English', 'Admins can create and administrate several different managements.<br>
@@ -1536,7 +1536,7 @@ INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nn
     <li>Check Point R8x - https-API-Zugang zum SmartCenter</li>
     <li>Check Point R8x - https-API-Zugang zum MDS (Multi Domain Server)</li>
     <li>Fortinet 5.0 - 6.4 - ssh-Zugang zur FortiGate</li>
-    <li>FortiManager 5.0 - 7.x - https API Zugang auf FortiManager</li>
+    <li>FortiManager 5ff - https API Zugang auf FortiManager. F&uml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
     <li>Barracuda Firewall Control Center Vx - ssh-Zugang direkt zum Firewallgateway</li>
     <li>phion netfence 3.x - ssh-Zugang direkt zum Firewallgateway</li>
     <li>JUNOS 10 - 17 - ssh-Zugang direkt zum Firewallgateway</li>
@@ -1547,7 +1547,7 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
     <li>Check Point R8x - https API access to SmartCenter</li>
     <li>Check Point R8x - https API access to MDS (Multi Domain Server)</li>
     <li>Fortinet 5.0 - 6.4 - ssh access to FortiGate</li>
-    <li>FortiManager 5.0 - 7.x - https API access to FortiManager</li>
+    <li>FortiManager 5ff - https API access to FortiManager - for this management type the complete infrastructure (ADOM, FortiGateway devices) can be auto discovered.</li>
     <li>Barracuda Firewall Control Center Vx - ssh access to firewall gateway directly</li>
     <li>phion netfence 3.x - ssh access to firewall gateway directly</li>
     <li>JUNOS 10 - 17 - ssh access to firewall gateway directly</li>
@@ -1626,7 +1626,7 @@ INSERT INTO txt VALUES ('H5122', 'English', 'Import Disabled: Flag if the data i
 INSERT INTO txt VALUES ('H5123', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Management nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management is not visible to the standard reporter role.');
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
-    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss sich mindestens einer der Parameter Ger&auml;tetyp, Management oder Rulebase von den existierenden Gateways unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
 ');
 INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate several different gateways.<br>
@@ -1697,7 +1697,7 @@ INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere untersch
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.
     Eine L&ouml;schung ist nur zul&auml;ssig, wenn es nicht das interne Ldap (definiert durch den gesetzten Rollensuchpfad) und nicht das letzte vorhandene Ldap ist.<br>
-    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren einer neuen Ldap-Verbindung, indem Daten von einem existierenden kopiert werden.
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren einer neuen Ldap-Verbindung, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss mindestens Adresse oder Portnummer ge&auml;ndert werden.
 ');
 INSERT INTO txt VALUES ('H5201', 'English', 'Admins can create and administrate several different Ldap connections. All of them can be used for user authentication.<br>

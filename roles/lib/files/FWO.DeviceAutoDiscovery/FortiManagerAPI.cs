@@ -1,5 +1,4 @@
 ﻿using RestSharp;
-using RestSharp.Authenticators;
 using RestSharp.Serializers.SystemTextJson;
 using System.Text.Json;
 using FWO.Api.Data;
@@ -98,59 +97,6 @@ namespace FWO.Rest.Client
             return await restClient.ExecuteAsync<FmApiTopLevelHelperDev>(request);
         }
 
-        /*
-            for device in mgm_details['devices']:
-
-                # vdoms = getter.fortinet_api_call(sid, fm_api_url, "/dvmdb/device/" + device['name'] + "/vdom", debug=debug_level)
-
-                devices.append(
-                    {
-                        'id': device['id'],
-                        'name': device['name'],
-                        'global_rulebase': device['global_rulebase_name'],
-                        'local_rulebase': device['local_rulebase_name'],
-                        'package': device['package_name']
-                    }
-                )
-            raw_config.update({"devices": devices})
-        */
-
-        public async Task<IRestResponse<FmApiTopLevelHelperPac>> GetPackages(string session, string adomName)
-        {
-            List<object> paramList = new List<object>();
-            string urlString = "/pm/pkg/";
-            if (adomName=="global")
-                urlString += "global";
-            else
-                urlString += "adom/" + adomName;
-            paramList.Add(new { url = urlString });
-
-            var body = new
-            {
-                @params = paramList,
-                method = "get",
-                id = 1,
-                session = session
-            };
-            IRestRequest request = new RestRequest("", Method.POST, DataFormat.Json);
-            request.AddJsonBody(body);
-            return await restClient.ExecuteAsync<FmApiTopLevelHelperPac>(request);
-        }
-
-// single device: pm/config/adom/my_adom/_package/status/test-dev1/root"
-// all packages within adom: pm/config/adom/<adom>/_package/status
-
-/*
-    expecting:
-     			"data": 
-                    [
-                        {
-                            "dev": "test-dev1",
-                            "status": "unassigned",
-                            "vdom": "root"
-    			        }
-                    ],
-*/
         public async Task<IRestResponse<FmApiTopLevelHelperAssign>> GetPackageAssignmentsPerAdom(string session, string adomName)
         {
             List<object> paramList = new List<object>();
@@ -220,7 +166,7 @@ namespace FWO.Rest.Client
         [JsonProperty("uuid"), JsonPropertyName("uuid")]
         public string Uid { get; set; } = "";
 
-        public List<Package> Packages = new List<Package>();
+        // public List<Package> Packages = new List<Package>();
         public List<Assignment> Assignments = new List<Assignment>();
     }
 
@@ -280,33 +226,6 @@ namespace FWO.Rest.Client
         public string Name { get; set; } = "";
     }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-    public class FmApiTopLevelHelperPac
-    {
-        [JsonProperty("id"), JsonPropertyName("id")]
-        public int Id { get; set; }
-
-        [JsonProperty("status"), JsonPropertyName("status")]
-        public FmApiStatus Status { get; set; } = new FmApiStatus();
-
-        [JsonProperty("result"), JsonPropertyName("result")]
-        public List<FmApiDataHelperPac> Result { get; set; } = new List<FmApiDataHelperPac>();
-    }
-
-    public class FmApiDataHelperPac
-    {
-        [JsonProperty("data"), JsonPropertyName("data")]
-        public List<Package> PackageList { get; set; } = new List<Package>();
-    }
-    public class Package
-    {
-        [JsonProperty("oid"), JsonPropertyName("oid")]
-        public int Oid { get; set; }
-
-        [JsonProperty("name"), JsonPropertyName("name")]
-        public string Name { get; set; } = "";
-    }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
     public class FmApiTopLevelHelperAssign

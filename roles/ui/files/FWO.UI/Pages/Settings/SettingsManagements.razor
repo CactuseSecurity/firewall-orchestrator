@@ -508,7 +508,7 @@
 
         try
         {
-            List<Management> discoveredDevices = await AutoDiscovery.Run(superManager);
+            List<Management> discoveredDevices = await new AutoDiscoveryBase(superManager).Run();
             List<int> adomIds = new List<int>();
             List<int> devIds = new List<int>();
             int adomId = 0;

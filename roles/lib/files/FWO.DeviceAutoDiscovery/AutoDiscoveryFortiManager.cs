@@ -1,20 +1,15 @@
 ﻿using FWO.Api.Data;
-using FWO.ApiClient;
 using FWO.Logging;
 using RestSharp;
-using RestSharp.Authenticators;
-using RestSharp.Serializers.SystemTextJson;
-using System.Text.Json;
 using FWO.Rest.Client;
 using System.Net;
-using FWO.Config.Api;
 
 namespace FWO.DeviceAutoDiscovery
 {
-
-    public static class AutoDiscovery
+    public class AutoDiscoveryFortiManager : AutoDiscoveryBase
     {
-        public static async Task<List<Management>> Run(Management superManager)
+        public AutoDiscoveryFortiManager(Management superManager) : base(superManager) { }
+        public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = new List<Management>();
             Log.WriteAudit("Autodiscovery", $"starting discovery for {superManager.Name} (id={superManager.Id})");
@@ -79,19 +74,9 @@ namespace FWO.DeviceAutoDiscovery
                                 DebugLevel = superManager.DebugLevel,
                                 SuperManager = new SuperManager { Id = superManager.Id },
                                 DeviceType = new DeviceType { Id = 11 },
-                                Devices = new Device[]{}
+                                Devices = new Device[] { }
                             };
 
-                            // IRestResponse<FmApiTopLevelHelperPac> packageResponse = await restClientFM.GetPackages(@sessionId, adom.Name);
-                            // if (packageResponse.StatusCode == HttpStatusCode.OK && packageResponse.IsSuccessful)
-                            // {
-                            //     List<Package> packageList = packageResponse.Data.Result[0].PackageList;
-                            //     foreach (Package pac in packageList)
-                            //     {
-                            //         Log.WriteDebug("Autodiscovery", $"found Package {pac.Name} in ADOM {adom.Name}");
-                            //         adom.Packages.Add(pac);
-                            //     }
-                            // }
                             IRestResponse<FmApiTopLevelHelperAssign> assignResponse = await restClientFM.GetPackageAssignmentsPerAdom(@sessionId, adom.Name);
                             if (assignResponse.StatusCode == HttpStatusCode.OK && assignResponse.IsSuccessful)
                             {
@@ -113,8 +98,10 @@ namespace FWO.DeviceAutoDiscovery
                                             {
                                                 Name = devName,
                                                 LocalRulebase = assign.PackageName,
-                                                DeviceType = new DeviceType { Id = 11 }
+                                                Package = assign.PackageName,
+                                                DeviceType = new DeviceType { Id = 11 } // fortiGate
                                             };
+                                            // handle global vs. local based on VdomName?
                                             Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");
                                             Log.WriteDebug("Autodiscovery", $"assignment currentManagement before Append contains {currentManagement.Devices.Length} devices");
                                             currentManagement.Devices = currentManagement.Devices.Append(devFound).ToArray();
@@ -139,8 +126,6 @@ namespace FWO.DeviceAutoDiscovery
                 else
                     Log.WriteWarning("AutoDiscovery", $"error while logging in to FortiManager: {sessionResponse.ErrorMessage}");
             }
-            else if (superManager.DeviceType.Name == "Check Point")
-                Log.WriteWarning("Autodiscovery", $"Auto discovery for Check Point MDS not implemented yet");
             return discoveredDevices;
         }
     }

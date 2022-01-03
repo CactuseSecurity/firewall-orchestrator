@@ -14,7 +14,7 @@
         hour: "*"
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/write_date_to_comment.py"
-        cron_file: ansible_{{ product_name }}_write_date_to_comment
+        cron_file: "{{ product_name }}_sample_data_write_date_to_comment"
 
     - name: Executes many enlarge_rule.py as cronjob in /etc/cron.d
       cron:
@@ -24,7 +24,7 @@
         hour: "*"
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py {{ item }}"
-        cron_file: ansible_{{ product_name }}_enlarge_rule_{{ item }}
+        cron_file: "{{ product_name }}_sample_data_enlarge_rule_{{ item }}"
       with_sequence: start=3 end=59 stride=1
       when: "sample_data_rate == 'high'"
 
@@ -36,7 +36,7 @@
         hour: "*"
         user: "{{ sample_config_user }}"
         job: "python3 {{ sample_config_user_home }}/config_changes/enlarge_rule.py"
-        cron_file: ansible_{{ product_name }}_enlarge_rule
+        cron_file: "{{ product_name }}_sample_data_enlarge_rule"
       when: "sample_data_rate != 'high'"
 
   become: yes

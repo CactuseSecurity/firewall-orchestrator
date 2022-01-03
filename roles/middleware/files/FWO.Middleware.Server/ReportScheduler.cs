@@ -116,7 +116,7 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
-                    ReportFile reportFile = new ReportFile                    
+                    ReportFile reportFile = new ReportFile
                     { 
                         Name = $"{report.Name}_{dateTimeNowRounded.ToShortDateString()}",
                         GenerationDateStart = DateTime.Now,
@@ -138,7 +138,14 @@ namespace FWO.Middleware.Server
                     UserConfig userConfig = new UserConfig(new GlobalConfig(jwt));
 
                     ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, report.Template.ReportParams.DeviceFilter, (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.None), userConfig);
-                    await reportRules.Generate(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask, token);
+                    Management[] managementsReport = new Management[0];
+                    await reportRules.Generate(int.MaxValue, apiConnectionUserContext, 
+                        managementsReportIntermediate =>
+                        {
+                            managementsReport = managementsReportIntermediate;
+                            setRelevantManagements(ref managementsReport, report.Template.ReportParams.DeviceFilter);
+                            return Task.CompletedTask;
+                        }, token);
                     await reportRules.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
 
                     reportFile.Json = reportRules.ExportToJson();
@@ -191,6 +198,18 @@ namespace FWO.Middleware.Server
                     Log.WriteError("Report Scheduling", $"Generating scheduled report \"{report.Name}\" lead to exception.", exception);
                 }
             }, token);
+        }
+
+        private void setRelevantManagements(ref Management[] managementsReport, DeviceFilter deviceFilter)
+        {
+            if (deviceFilter.isAnyDeviceFilterSet())
+            {
+                List<int> relevantManagements = deviceFilter.getSelectedManagements();
+                foreach (Management mgm in managementsReport)
+                {
+                    mgm.Ignore = (relevantManagements.Contains(mgm.Id) ? false : true);
+                }
+            }
         }
 
         private static DateTime RoundDown(DateTime dateTime, TimeSpan roundInterval)

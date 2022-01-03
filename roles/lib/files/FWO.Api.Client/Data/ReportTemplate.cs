@@ -26,20 +26,7 @@ namespace FWO.Api.Data
         [JsonProperty("report_parameters"), JsonPropertyName("report_parameters")]
         public ReportParams ReportParams { get; set; } = new ReportParams();
 
-        // public string ParameterString 
-        // { 
-        //     get
-        //     {
-        //         return JsonConvert.SerializeObject(ReportParams);
-        //     } 
-        //     set
-        //     {
-        //         if (value != null)
-        //             ReportParams = JsonConvert.DeserializeObject<ReportParams>(value);
-        //     } 
-        // }
-
-    
+   
         public ReportTemplate()
         {}
 

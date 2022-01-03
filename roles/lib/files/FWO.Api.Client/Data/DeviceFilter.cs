@@ -95,25 +95,6 @@ namespace FWO.Api.Data
             return selectedMgmts;
         }
 
-        // public List<int> ExtractSelectedDevIds()
-        // {
-        //     List<int> selectedDevs = new List<int>();
-        //     foreach (ManagementSelect mgmt in Managements)
-        //         foreach (DeviceSelect dev in mgmt.Devices)
-        //             if (dev.Selected)
-        //                 selectedDevs.Add(dev.Id);
-        //     return selectedDevs;
-        // }
-
-        // public List<int> ExtractAllDevIds()
-        // {
-        //     List<int> devs = new List<int>();
-        //     foreach (ManagementSelect mgmt in Managements)
-        //         foreach (DeviceSelect dev in mgmt.Devices)
-        //             devs.Add(dev.Id);
-        //     return devs;
-        // }
-
         public static List<int> ExtractAllDevIds(Management[] managements)
         {
             List<int> devs = new List<int>();

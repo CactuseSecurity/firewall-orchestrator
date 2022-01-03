@@ -173,7 +173,7 @@
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
                 reportTemplateComment = reportTemplateInEdit.Comment,
                 reportTemplateOwner = reportTemplateInEdit.Owner,
-                reportParameters = reportTemplateInEdit.ParameterString
+                reportParameters = reportTemplateInEdit.ReportParams
             };
 
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
@@ -207,7 +207,7 @@
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
                 reportTemplateComment = reportTemplateInEdit.Comment,
                 reportTemplateOwner = reportTemplateInEdit.Owner,
-                reportParameters = reportTemplateInEdit.ParameterString
+                reportParameters = reportTemplateInEdit.ReportParams
             };
 
             await apiConnection.SendQueryAsync<object>(ReportQueries.editReportTemplate, queryVariables);

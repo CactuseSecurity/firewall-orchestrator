@@ -37,7 +37,7 @@ namespace FWO.Report.Filter.Ast
                     ExtractFullTextQuery(query);
                     break;
                 case TokenKind.ReportType:
-                    ExtractReportTypeQuery(query);
+//                    ExtractReportTypeQuery(query);
                     break;
                 case TokenKind.Source:
                     ExtractSourceQuery(query);
@@ -138,30 +138,30 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-        private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
-        {
-            query.ReportType = Value.Text switch
-            {
-                "rules" or "rule" => ReportType.Rules,
-                "statistics" or "statistic" => ReportType.Statistics,
-                "changes" or "change" => ReportType.Changes,
-                "natrules" or "nat_rules" => ReportType.NatRules,
-                _ => ReportType.None
-            };
+        // private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
+        // {
+        //     query.ReportType = Value.Text switch
+        //     {
+        //         "rules" or "rule" => ReportType.Rules,
+        //         "statistics" or "statistic" => ReportType.Statistics,
+        //         "changes" or "change" => ReportType.Changes,
+        //         "natrules" or "nat_rules" => ReportType.NatRules,
+        //         _ => ReportType.None
+        //     };
 
-            if (query.ReportType == ReportType.None)
-            {
-                throw new SemanticException($"Unexpected report type found", Value.Position);
-            }
+        //     if (query.ReportType == ReportType.None)
+        //     {
+        //         throw new SemanticException($"Unexpected report type found", Value.Position);
+        //     }
 
-            if (query.ReportType == ReportType.Statistics)
-            {
-                query.ruleWhereStatement +=
-                    @$"rule_head_text: {{_is_null: true}}";
-            }
+        //     if (query.ReportType == ReportType.Statistics)
+        //     {
+        //         query.ruleWhereStatement +=
+        //             @$"rule_head_text: {{_is_null: true}}";
+        //     }
 
-            return query;
-        }
+        //     return query;
+        // }
 
         private DynGraphqlQuery ExtractIpFilter(DynGraphqlQuery query, string location, string locationTable)
         {

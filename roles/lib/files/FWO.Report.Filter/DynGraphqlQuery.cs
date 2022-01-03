@@ -62,11 +62,15 @@ namespace FWO.Report.Filter
             // now we convert the ast into a graphql query:
             ast.Extract(ref query);
 
+            // leave out all header texts
+            if (reportType == ReportType.Statistics)
+            {
+                query.ruleWhereStatement += @$"rule_head_text: {{_is_null: true}}";
+            }
+
             // Close device filter
             if (deviceFilter != null)
                 query.ruleWhereStatement += "}] ";
-
-            // if any filter is set, optionally leave out all header texts
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
             switch (reportType)

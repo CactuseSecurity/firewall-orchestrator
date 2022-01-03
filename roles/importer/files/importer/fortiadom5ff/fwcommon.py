@@ -116,37 +116,37 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope
         raw_config, sid, fm_api_url, "/pm/config/global/obj/user/local", "users_local", debug=debug_level, limit=limit)
 
 
-def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
-    raw_config.update({"zones": {}})
+# def getZones(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
+#     raw_config.update({"zones": {}})
 
-    # get global zones?
+#     # get global zones?
  
-    # get local zones
-    for device in raw_config['devices']:
-        local_pkg_name = device['package']
-        for adom in raw_config['adoms']:
-            if adom['name']==adom_name:
-                if local_pkg_name not in adom['package_names']:
-                    logging.error('local rulebase/package ' + local_pkg_name + ' not found in management ' + adom_name)
-                    return 1
-                else:
-                    getter.update_config_with_fortinet_api_call(
-                        raw_config['zones'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/obj/dynamic/interface", device['id'], debug=debug_level, limit=limit)
+#     # get local zones
+#     for device in raw_config['devices']:
+#         local_pkg_name = device['package']
+#         for adom in raw_config['adoms']:
+#             if adom['name']==adom_name:
+#                 if local_pkg_name not in adom['package_names']:
+#                     logging.error('local rulebase/package ' + local_pkg_name + ' not found in management ' + adom_name)
+#                     return 1
+#                 else:
+#                     getter.update_config_with_fortinet_api_call(
+#                         raw_config['zones'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/obj/dynamic/interface", device['id'], debug=debug_level, limit=limit)
 
-    raw_config['zones']['zone_list'] = []
-    for device in raw_config['zones']:
-        for mapping in raw_config['zones'][device]:
-            if not isinstance(mapping, str):
-                if not mapping['dynamic_mapping'] is None:
-                    for dyn_mapping in mapping['dynamic_mapping']:
-                        if 'name' in dyn_mapping and not dyn_mapping['name'] in raw_config['zones']['zone_list']:
-                            raw_config['zones']['zone_list'].append(dyn_mapping['name'])
-                        if 'local-intf' in dyn_mapping and not dyn_mapping['local-intf'][0] in raw_config['zones']['zone_list']:
-                            raw_config['zones']['zone_list'].append(dyn_mapping['local-intf'][0])
-                if not mapping['platform_mapping'] is None:
-                    for dyn_mapping in mapping['platform_mapping']:
-                        if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in raw_config['zones']['zone_list']:
-                            raw_config['zones']['zone_list'].append(dyn_mapping['intf-zone'])
+#     raw_config['zones']['zone_list'] = []
+#     for device in raw_config['zones']:
+#         for mapping in raw_config['zones'][device]:
+#             if not isinstance(mapping, str):
+#                 if not mapping['dynamic_mapping'] is None:
+#                     for dyn_mapping in mapping['dynamic_mapping']:
+#                         if 'name' in dyn_mapping and not dyn_mapping['name'] in raw_config['zones']['zone_list']:
+#                             raw_config['zones']['zone_list'].append(dyn_mapping['name'])
+#                         if 'local-intf' in dyn_mapping and not dyn_mapping['local-intf'][0] in raw_config['zones']['zone_list']:
+#                             raw_config['zones']['zone_list'].append(dyn_mapping['local-intf'][0])
+#                 if not mapping['platform_mapping'] is None:
+#                     for dyn_mapping in mapping['platform_mapping']:
+#                         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in raw_config['zones']['zone_list']:
+#                             raw_config['zones']['zone_list'].append(dyn_mapping['intf-zone'])
 
 
 def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level):
@@ -192,10 +192,10 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_le
     if pkg is not None and pkg != '':   # only read global rulebase if it exists
         for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
             getter.update_config_with_fortinet_api_call(
-                raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['package_name'], debug=debug_level, limit=limit)
+                raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['dev_name'], debug=debug_level, limit=limit)
 
     scope = 'adom/'+adom_name
-    pkg = device['package_name']
+    pkg = device['local_rulebase_name']
     for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
         getter.update_config_with_fortinet_api_call(
-            raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['package_name'], debug=debug_level, limit=limit)
+            raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['dev_name'], debug=debug_level, limit=limit)

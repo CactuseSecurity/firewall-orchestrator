@@ -30,47 +30,51 @@ namespace FWO.Report.Filter
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
-        private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter devicefilter)
+        private static void SetFixedFilters(ref DynGraphqlQuery query, DeviceFilter? deviceFilter, ReportType? reportType)
         {
             bool first = true;
-            query.ruleWhereStatement += "_and: [{_or: [{";
-            foreach (ManagementSelect mgmt in devicefilter.Managements)
+            query.ruleWhereStatement += "_and: [";
+
+            // leave out all header texts
+            if (reportType != null && reportType == ReportType.Statistics)
             {
-                foreach (DeviceSelect dev in mgmt.Devices)
+                query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
+            }
+
+            if (deviceFilter != null)
+            {
+                query.ruleWhereStatement += "{_or: [{";
+                foreach (ManagementSelect mgmt in deviceFilter.Managements)
                 {
-                    if (dev.Selected == true)
+                    foreach (DeviceSelect dev in mgmt.Devices)
                     {
-                        if (first == false)
+                        if (dev.Selected == true)
                         {
-                            query.ruleWhereStatement += "}, {";
+                            if (first == false)
+                            {
+                                query.ruleWhereStatement += "}, {";
+                            }
+                            query.ruleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
+                            first = false;
                         }
-                        query.ruleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
-                        first = false;
                     }
                 }
+                query.ruleWhereStatement += "}]}, ";
             }
-            query.ruleWhereStatement += "}]}, {";
+            query.ruleWhereStatement += "{";
         }
 
         public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode ast, DeviceFilter? deviceFilter, ReportType? reportType, bool detailed)
         {
             DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
 
-            if (deviceFilter != null)
-                SetDeviceFilter(ref query, deviceFilter);
+            SetFixedFilters(ref query, deviceFilter, reportType);
 
             // now we convert the ast into a graphql query:
-            ast.Extract(ref query);
-
-            // leave out all header texts
-            if (reportType == ReportType.Statistics)
-            {
-                query.ruleWhereStatement += @$"rule_head_text: {{_is_null: true}}";
-            }
+            ast.Extract(ref query, reportType);
 
             // Close device filter
-            if (deviceFilter != null)
-                query.ruleWhereStatement += "}] ";
+            query.ruleWhereStatement += "}] ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
             switch (reportType)

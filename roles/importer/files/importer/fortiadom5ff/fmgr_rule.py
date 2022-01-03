@@ -99,7 +99,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                                 logging.warning("found more than one ippool - ignoring all but first pool")
                             poolName = poolNameArray[0]
                             xlate_rule['rule_src'] = poolName
-                            xlate_rule['rule_src_ref'] = poolName # to be changed?
+                            xlate_rule['rule_src_ref'] = "ippool-uuid-" + poolName
                         else:
                             logging.warning("found ippool rule without ippool")
                     

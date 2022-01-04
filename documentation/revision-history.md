@@ -168,5 +168,5 @@ adding report template format fk and permissions
 ### 5.5.5 - 20.12.2021
 - set ldap_tenant_level to 5
 
-### 5.5.6 - 23.12.2021
-- add column report_parameters to report_template
+### 5.5.7 - 04.01.2022
+- add column report_parameters to report_template, update data for default templates

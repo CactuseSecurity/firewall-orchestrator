@@ -2528,6 +2528,12 @@
               },
               "object_relationships": [
                 {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "multi_device_manager_id"
+                  }
+                },
+                {
                   "name": "stm_dev_typ",
                   "using": {
                     "foreign_key_constraint_on": "dev_typ_id"
@@ -2633,6 +2639,18 @@
                       "table": {
                         "schema": "public",
                         "name": "import_full_config"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "managementByMultiDeviceManagerId",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "multi_device_manager_id",
+                      "table": {
+                        "schema": "public",
+                        "name": "management"
                       }
                     }
                   }
@@ -2855,28 +2873,30 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "mgm_id",
+                      "clearing_import_ran",
+                      "config_path",
+                      "debug_level",
                       "dev_typ_id",
-                      "mgm_name",
+                      "do_not_import",
+                      "force_initial_import",
+                      "hide_in_gui",
+                      "importer_hostname",
+                      "last_import_md5_complete_config",
+                      "last_import_md5_objects",
+                      "last_import_md5_rules",
+                      "last_import_md5_users",
                       "mgm_comment",
-                      "tenant_id",
                       "mgm_create",
+                      "mgm_id",
+                      "mgm_name",
                       "mgm_update",
-                      "ssh_public_key",
-                      "ssh_private_key",
+                      "multi_device_manager_id",
                       "ssh_hostname",
                       "ssh_port",
+                      "ssh_private_key",
+                      "ssh_public_key",
                       "ssh_user",
-                      "last_import_md5_complete_config",
-                      "last_import_md5_rules",
-                      "last_import_md5_objects",
-                      "last_import_md5_users",
-                      "do_not_import",
-                      "clearing_import_ran",
-                      "force_initial_import",
-                      "config_path",
-                      "hide_in_gui",
-                      "importer_hostname"
+                      "tenant_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7122,16 +7142,17 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "dev_typ_is_mgmt",
-                      "dev_typ_id",
                       "dev_typ_comment",
-                      "dev_typ_predef_obj",
-                      "dev_typ_predef_svc",
                       "dev_typ_config_file_basic_objects",
                       "dev_typ_config_file_rules",
                       "dev_typ_config_file_users",
+                      "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
+                      "dev_typ_predef_obj",
+                      "dev_typ_predef_svc",
                       "dev_typ_version"
                     ],
                     "filter": {}
@@ -7141,17 +7162,18 @@
                   "role": "importer",
                   "permission": {
                     "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
                       "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
-                      "dev_typ_version",
-                      "dev_typ_comment",
-                      "dev_typ_predef_svc",
                       "dev_typ_predef_obj",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_config_file_rules",
-                      "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_users"
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -7161,17 +7183,18 @@
                   "role": "recertifier",
                   "permission": {
                     "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
                       "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
-                      "dev_typ_version",
-                      "dev_typ_comment",
-                      "dev_typ_predef_svc",
                       "dev_typ_predef_obj",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_config_file_rules",
-                      "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_users"
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {}
                   }
@@ -7180,17 +7203,18 @@
                   "role": "reporter",
                   "permission": {
                     "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
                       "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
-                      "dev_typ_version",
-                      "dev_typ_comment",
-                      "dev_typ_predef_svc",
                       "dev_typ_predef_obj",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_config_file_rules",
-                      "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_users"
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {}
                   }
@@ -7199,17 +7223,18 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
+                      "dev_typ_comment",
+                      "dev_typ_config_file_basic_objects",
+                      "dev_typ_config_file_rules",
+                      "dev_typ_config_file_users",
                       "dev_typ_id",
+                      "dev_typ_is_mgmt",
+                      "dev_typ_is_multi_mgmt",
                       "dev_typ_manufacturer",
                       "dev_typ_name",
-                      "dev_typ_version",
-                      "dev_typ_comment",
-                      "dev_typ_predef_svc",
                       "dev_typ_predef_obj",
-                      "dev_typ_is_mgmt",
-                      "dev_typ_config_file_rules",
-                      "dev_typ_config_file_basic_objects",
-                      "dev_typ_config_file_users"
+                      "dev_typ_predef_svc",
+                      "dev_typ_version"
                     ],
                     "filter": {},
                     "allow_aggregations": true

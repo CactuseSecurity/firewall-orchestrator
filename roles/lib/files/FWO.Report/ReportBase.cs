@@ -147,7 +147,6 @@ namespace FWO.Report
 
             return reportType switch
             {
-
                 ReportType.Statistics => new ReportStatistics(query, userConfig),
                 ReportType.Rules => new ReportRules(query, userConfig),
                 ReportType.Changes => new ReportChanges(query, userConfig),

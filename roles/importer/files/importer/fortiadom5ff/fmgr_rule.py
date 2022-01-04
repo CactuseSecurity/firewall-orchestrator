@@ -1,9 +1,9 @@
-import logging, ipaddress
+import logging, copy
 import sys
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
-sys.path.append(importer_base_dir + '/fortimanager5ff')
+sys.path.append(importer_base_dir + '/fortiadom5ff')
 import common, fmgr_service, fmgr_network, fmgr_zone, fwcommon
 
 
@@ -11,6 +11,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
     rules = []
     list_delimiter = '|'
 
+    nat_rule_number = 0
     for rule_table in rule_types:
         for pkg_name in full_config[rule_table]:
             for rule_orig in full_config[rule_table][pkg_name]:
@@ -69,7 +70,52 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_dst_refs': common.resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-                rules.append(rule)
+
+                # now dealing with NAT part of rule
+                if "nat" in rule_orig and rule_orig["nat"]==1:
+                    logging.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
+                    nat_rule_number += 1
+                    xlate_rule = copy.deepcopy(rule)
+                    xlate_rule['rule_type'] = 'xlate'
+                    # xlate_rule['rule_uid'] = rule['rule_uid']
+                    xlate_rule['type'] = 'nat'
+                    rule['rule_type'] = 'combined'
+                    rule['type'] = 'combined'
+                    if 'ippool' in rule_orig and rule_orig['ippool']==0:
+                        logging.debug("found outbound interface hide nat rule") # needs to be checked
+                        if 'dstintf' in rule_orig:
+                            if len(rule_orig['dstintf'])==1:
+                                hideInterface=rule_orig['dstintf'][0]
+                            else:
+                                logging.warning("did not find exactly one nat hiding interface")
+                            
+                            # need to create an object for the ip of the dst interface and add it here as xlate src
+                            logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
+
+                    if 'ippool' in rule_orig and rule_orig['ippool']==1:
+                        poolNameArray = rule_orig['poolname']
+                        if len(poolNameArray)>0:
+                            if len(poolNameArray)>1:
+                                logging.warning("found more than one ippool - ignoring all but first pool")
+                            poolName = poolNameArray[0]
+                            xlate_rule['rule_src'] = poolName
+                            xlate_rule['rule_src_ref'] = "ippool-uuid-" + poolName
+                        else:
+                            logging.warning("found ippool rule without ippool")
+                    
+                    if 'fixedport' in rule_orig and rule_orig['fixedport']!=0:
+                        logging.warning("found fixedport translation - ignoring for now")
+                    
+                    if 'natip' in rule_orig and rule_orig['natip']!=["0.0.0.0","0.0.0.0"]:
+                        logging.warning("found explicit natip rule - ignoring for now")
+                        # need to find example for interpretation of config
+
+                    rules.append(rule)
+                    rules.append(xlate_rule)
+
+                else:
+                    rules.append(rule)
+
 
     config2import.update({'rules': rules})
 

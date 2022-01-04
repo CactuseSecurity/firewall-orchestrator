@@ -100,12 +100,12 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m7",
-                "-i/home/alf/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
+                "-m26",
+                //"-i/home/alf/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
                 "-d4",
                 "-f",
                 //"-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
-                //"-i/home/tim/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
+                "-i/home/tim/Downloads/forti_NAT_mgm_id_25_config_native.json",
                 "-l250"
             ]
         },        
@@ -205,7 +205,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build_UI",
-            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net5.0/FWO.Ui.dll",
+            "program": "${workspaceFolder}/roles/ui/files/FWO.UI/bin/Debug/net6.0/FWO.Ui.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/ui/files/FWO.UI",
             "stopAtEntry": false,
@@ -233,7 +233,7 @@
             "request": "launch",
             "preLaunchTask": "build_middleware",
             "enableStepFiltering": false,
-            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net5.0/FWO.Middleware.Server.dll",
+            "program": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server/bin/Debug/net6.0/FWO.Middleware.Server.dll",
             "args": [],
             "cwd": "${workspaceFolder}/roles/middleware/files/FWO.Middleware.Server",
             "console": "internalConsole",

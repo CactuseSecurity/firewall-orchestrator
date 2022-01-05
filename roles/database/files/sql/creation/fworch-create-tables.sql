@@ -937,6 +937,7 @@ Create table "report_template"
 	"report_template_create" Timestamp DEFAULT now(),
 	"report_template_owner" Integer, --FK
 	"filterline_history" Boolean Default TRUE, -- every time a filterline is sent, we save it for future usage (auto-deleted every 90 days)
+	"report_parameters" json,
 	primary key ("report_template_id")
 );
 

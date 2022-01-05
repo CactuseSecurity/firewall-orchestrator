@@ -4,6 +4,7 @@ mutation addReportTemplate(
   $reportTemplateCreate: timestamp!
   $reportTemplateComment: String!
   $reportTemplateOwner: Int
+  $reportParameters: json
 ) {
   insert_report_template(
     objects: {
@@ -12,6 +13,7 @@ mutation addReportTemplate(
       report_template_create: $reportTemplateCreate
       report_template_comment: $reportTemplateComment
       report_template_owner: $reportTemplateOwner
+      report_parameters: $reportParameters
     }
   ) {
     returning {

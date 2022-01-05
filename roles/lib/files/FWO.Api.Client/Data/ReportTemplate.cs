@@ -22,5 +22,30 @@ namespace FWO.Api.Data
 
         [JsonProperty("report_filter"), JsonPropertyName("report_filter")]
         public string Filter { get; set; } = "";
+        
+        [JsonProperty("report_parameters"), JsonPropertyName("report_parameters")]
+        public ReportParams ReportParams { get; set; } = new ReportParams();
+
+   
+        public ReportTemplate()
+        {}
+
+        public ReportTemplate(string filter, DeviceFilter deviceFilter, int? reportType)
+        {
+            Filter = filter;
+            ReportParams.DeviceFilter = deviceFilter;
+            ReportParams.ReportType = reportType;
+        }
+    }
+
+    public class ReportParams
+    {
+        [JsonProperty("report_type"), JsonPropertyName("report_type")]
+        public int? ReportType { get; set; } = 0;
+        
+        [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
+        public DeviceFilter DeviceFilter { get; set; } = new DeviceFilter();
+
+        // public Timefilter Timefilter { get; set; } = new Timefilter();
     }
 }

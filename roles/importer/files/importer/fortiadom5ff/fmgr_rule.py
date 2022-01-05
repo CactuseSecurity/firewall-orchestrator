@@ -7,20 +7,77 @@ sys.path.append(importer_base_dir + '/fortiadom5ff')
 import common, fmgr_service, fmgr_network, fmgr_zone, fwcommon
 
 
+def check_headers_needed(full_config, rule_types):
+    found_v4 = False
+    found_v6 = False
+    for rule_table in rule_types:
+        if full_config[rule_table] is not None:
+            if rule_table in fwcommon.rule_access_scope_v4:
+                found_v4 = True
+            if rule_table in fwcommon.rule_access_scope_v6:
+                found_v6 = True
+    if found_v4 and found_v6:
+        return True, True
+    return False, False
+
+
+def insert_header(rules, import_id, header_text, rulebase_name, rule_uid, rule_number, src_refs, dst_refs):
+    rule = {
+        "control_id": import_id,
+        "rule_head_text": header_text,
+        "rulebase_name": rulebase_name,
+        "rule_ruleid": None,
+        "rule_uid":  rule_uid + rulebase_name,
+        "rule_num": rule_number,
+        "rule_disabled": False,
+        "rule_src": "all",
+        "rule_dst": "all", 
+        "rule_svc": "ALL",
+        "rule_src_neg": False,
+        "rule_dst_neg": False,
+        "rule_svc_neg": False,
+        "rule_src_refs": src_refs,
+        "rule_dst_refs": dst_refs,
+        "rule_svc_refs": "ALL",
+        "rule_action": "Accept",
+        "rule_track": "None",
+        "rule_installon": None,
+        "rule_time": None,
+        "rule_type": "access",
+        "parent_rule_id": None,
+        "rule_implied": False,
+        "rule_comment": None
+    }
+    rules.append(rule)
+
+
 def normalize_access_rules(full_config, config2import, import_id, rule_types):
     rules = []
     list_delimiter = '|'
+    first_v4, first_v6 = check_headers_needed(full_config, rule_types)
 
     nat_rule_number = 0
+    number_offset = 0
+    src_ref_all = ""
+    dst_ref_all = ""
     for rule_table in rule_types:
         for pkg_name in full_config[rule_table]:
+            if rule_table in fwcommon.rule_access_scope_v6 and first_v6:
+                src_ref_all = common.resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table)
+                dst_ref_all = common.resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table)
+                insert_header(rules, import_id, "IPv6 rules", pkg_name, "IPv6HeaderText", 0, src_ref_all, dst_ref_all)
+                first_v6 = False
+            elif rule_table in fwcommon.rule_access_scope_v4 and first_v4:
+                number_offset += 1000000
+                insert_header(rules, import_id, "IPv4 rules", pkg_name, "IPv4HeaderText", number_offset, src_ref_all, dst_ref_all)
+                first_v4 = False
             for rule_orig in full_config[rule_table][pkg_name]:
                 rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
                 rule.update({ 'control_id': import_id})
                 rule.update({ 'rulebase_name': pkg_name})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
                 rule.update({ 'rule_ruleid': rule_orig['policyid']})
                 rule.update({ 'rule_uid': rule_orig['uuid']})
-                rule.update({ 'rule_num': rule_orig['obj seq']})
+                rule.update({ 'rule_num': rule_orig['obj seq'] + number_offset})
                 if 'name' in rule_orig:
                     rule.update({ 'rule_name': rule_orig['name']})
                 rule.update({ 'rule_installon': None })
@@ -127,7 +184,6 @@ def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
     original_obj_uid = '01234-12345-23456-34567'
     config2import['network_objects'].append(fmgr_network.create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
         uid=original_obj_uid, color='black', comment='"original" network object created by FWO importer for NAT purposes'))
-
 
     for rule_table in rule_tables:
         for pkg in full_config['rules_global_nat']:

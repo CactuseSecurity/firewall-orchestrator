@@ -20,10 +20,10 @@
 @code
 {
     [CascadingParameter]
-    public CollapseState collapseState { get; set; }
+    public CollapseState collapseState { get; set; } = new CollapseState();
 
     [Parameter]
-    public string Title { get; set; }
+    public string Title { get; set; } = "";
 
     [Parameter]
     public bool UseHtmlTitle { get; set; } = false;
@@ -38,10 +38,10 @@
     public string Class { get; set; } = "";
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public RenderFragment TitleWithHtml { get; set; }
+    public RenderFragment? TitleWithHtml { get; set; }
 
     [Parameter]
     public EventCallback<bool> OnOpen { get; set; }
@@ -67,7 +67,7 @@
         StateHasChanged();
     }
 
-    private async Task ToggleCollapse()
+    public async Task ToggleCollapse()
     {
         show = !show;
         if (show)

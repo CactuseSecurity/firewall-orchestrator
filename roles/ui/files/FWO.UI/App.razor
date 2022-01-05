@@ -6,7 +6,7 @@
                     <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                         <NotAuthorized Context="permissionDeniedAuthState">
                             <div class="row m-4 justify-content-center">
-                                <h2>Sorry @(permissionDeniedAuthState.User.Identity.Name), this page cannot be accessed with your permissions.</h2>
+                                <h2>Sorry @(permissionDeniedAuthState?.User?.Identity?.Name), this page cannot be accessed with your permissions.</h2>
                             </div>
                         </NotAuthorized>
                     </AuthorizeRouteView>

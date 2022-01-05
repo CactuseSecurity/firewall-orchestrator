@@ -15,6 +15,7 @@ mutation updateManagement(
   $comment: String
   $tenantId: Int
   $debugLevel: Int
+  $superManager: Int
 ) {
   update_management_by_pk(
     pk_columns: { mgm_id: $id }
@@ -34,23 +35,9 @@ mutation updateManagement(
       mgm_comment: $comment
       tenant_id: $tenantId
       debug_level: $debugLevel
+      multi_device_manager_id: $superManager
     }
   ) {
     UpdatedId: mgm_id
   }
 }
-
-# example variables (at least the following)
-# {
-#   "id": 17,
-#   "name": "huhu",
-#   "devTypeId": 10,
-#   "importUser": "usr12",
-#   "importUserSecret": "secret123",
-#   "hostname": "host1234",
-#   "port": 22,
-#   "sshPublicKey": "",
-#   "importDisabled": false,
-#   "forceInitialImport": false,
-#   "hideInUi": false
-# }

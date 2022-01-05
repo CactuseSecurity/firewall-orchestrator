@@ -8,17 +8,9 @@
       - unit-tests.sql
       - hasura-test.sql
       - unit-test-cleanup.sql
-#   when: installation_mode == 'upgrade'
 
 - debug: 
     msg: "unit_test_scripts: {{ unit_test_scripts | to_nice_json }}"
-
-# # do not run hasura tests during first install (as the tables are not there yet)
-# - set_fact:
-#     unit_test_scripts:
-#       - unit-tests.sql
-#       - unit-test-cleanup.sql
-#   when: installation_mode == 'new'
 
 - name: run db unit tests
   postgresql_query:
@@ -30,7 +22,6 @@
   loop: "{{ unit_test_scripts }}"
   tags:
     - unittest
-    - test
 
 - name: Print db test results
   debug: 

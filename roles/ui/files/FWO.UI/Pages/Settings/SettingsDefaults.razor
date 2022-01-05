@@ -57,6 +57,12 @@
         <input id="importSleepTime" type="text" class="form-control form-control-sm" @bind="importSleepTime" />
     </div>
 </form>
+<form class="form-inline" onsubmit="return false">
+    <label for="fwApiElementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("fwApiElementsPerFetch")):</label>
+    <div class="col-sm-2">
+        <input id="fwApiElementsPerFetch" type="text" class="form-control form-control-sm" @bind="fwApiElementsPerFetch" />
+    </div>
+</form>
 <hr />
 <form class="form-inline" onsubmit="return false">
     <label for="recertificationPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationPeriod")):</label>
@@ -103,14 +109,15 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
-    ConfigDbAccess config;
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+    ConfigDbAccess? config;
     int elementsPerFetch = 100;
     int maxInitFetch = 10;
     bool autoFillRightSidebar = false;
     string selectedDefaultLanguage = GlobalConfig.kEnglish;
     int dataRetentionTime = 731;
     int importSleepTime = 40;
+    int fwApiElementsPerFetch = 150;
     int recertificationPeriod = 365;
     int recertificationNoticePeriod = 30;
     int recertificationDisplayPeriod = 30;
@@ -130,6 +137,7 @@
             autoFillRightSidebar = GetBoolSetting(autoFillRightSidebar, GlobalConfig.kAutoFillRightSidebar);
             dataRetentionTime = GetIntSetting(dataRetentionTime, GlobalConfig.kDataRetentionTime);
             importSleepTime = GetIntSetting(importSleepTime, GlobalConfig.kImportSleepTime);
+            fwApiElementsPerFetch = GetIntSetting(fwApiElementsPerFetch, GlobalConfig.kFwApiElementsPerFetch);
             recertificationPeriod = GetIntSetting(recertificationPeriod, GlobalConfig.kRecertificationPeriod);
             recertificationNoticePeriod = GetIntSetting(recertificationNoticePeriod, GlobalConfig.kRecertificationNoticePeriod);
             recertificationDisplayPeriod = GetIntSetting(recertificationDisplayPeriod, GlobalConfig.kRecertificationDisplayPeriod);
@@ -138,7 +146,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
     }
 
@@ -146,13 +154,13 @@
     {
         try
         {
-            value = config.Get<int>(setting);
+            value = (config != null ? config.Get<int>(setting) : 0);
             //value = (confValue != "" ? Int32.Parse(confValue) : value);
         }
         catch (KeyNotFoundException) {}
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
         }
         return value;
     }
@@ -161,13 +169,13 @@
     {
         try
         {
-            value = config.Get<bool>(setting);
+            value = (config != null ? config.Get<bool>(setting) : false);
             //value = (confValue == "True" ? true : false);
         }
         catch (KeyNotFoundException) { }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("read_config"), userConfig.GetText("E5302") + userConfig.GetText(setting) + ":" + value.ToString(), false);
         }
         return value;
     }
@@ -176,24 +184,28 @@
     {
         try
         {
-            await config.Set(GlobalConfig.kDefaultLanguage, selectedDefaultLanguage);
-            await config.Set(GlobalConfig.kElementsPerFetch, elementsPerFetch.ToString());
-            await config.Set(GlobalConfig.kMaxInitialFetchesRightSidebar, maxInitFetch.ToString());
-            await config.Set(GlobalConfig.kAutoFillRightSidebar, autoFillRightSidebar.ToString());
-            await config.Set(GlobalConfig.kDataRetentionTime, dataRetentionTime.ToString());
-            await config.Set(GlobalConfig.kImportSleepTime, importSleepTime.ToString());
-            await config.Set(GlobalConfig.kRecertificationPeriod, recertificationPeriod.ToString());
-            await config.Set(GlobalConfig.kRecertificationNoticePeriod, recertificationNoticePeriod.ToString());
-            await config.Set(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriod.ToString());
-            await config.Set(GlobalConfig.kRuleRemovalGracePeriod, ruleRemovalGracePeriod.ToString());
-            await config.Set(GlobalConfig.kCommentRequired, commentRequired.ToString());
+            if (config != null)
+            {
+                await config.Set(GlobalConfig.kDefaultLanguage, selectedDefaultLanguage);
+                await config.Set(GlobalConfig.kElementsPerFetch, elementsPerFetch.ToString());
+                await config.Set(GlobalConfig.kMaxInitialFetchesRightSidebar, maxInitFetch.ToString());
+                await config.Set(GlobalConfig.kAutoFillRightSidebar, autoFillRightSidebar.ToString());
+                await config.Set(GlobalConfig.kDataRetentionTime, dataRetentionTime.ToString());
+                await config.Set(GlobalConfig.kImportSleepTime, importSleepTime.ToString());
+                await config.Set(GlobalConfig.kFwApiElementsPerFetch, fwApiElementsPerFetch.ToString());
+                await config.Set(GlobalConfig.kRecertificationPeriod, recertificationPeriod.ToString());
+                await config.Set(GlobalConfig.kRecertificationNoticePeriod, recertificationNoticePeriod.ToString());
+                await config.Set(GlobalConfig.kRecertificationDisplayPeriod, recertificationDisplayPeriod.ToString());
+                await config.Set(GlobalConfig.kRuleRemovalGracePeriod, ruleRemovalGracePeriod.ToString());
+                await config.Set(GlobalConfig.kCommentRequired, commentRequired.ToString());
 
-            await userConfig.ReloadDefaults(apiConnection);
-            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+                await userConfig.ReloadDefaults(apiConnection);
+                DisplayMessageInUi!(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+            }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("change_default"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("change_default"), "", true);
         }
     }
 }

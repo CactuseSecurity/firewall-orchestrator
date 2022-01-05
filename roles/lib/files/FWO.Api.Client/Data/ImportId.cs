@@ -1,22 +1,23 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class Import
     {
-        [JsonPropertyName("aggregate")]
-        public ImportAggregate ImportAggregate { get; set; }
+        [JsonProperty("aggregate"), JsonPropertyName("aggregate")]
+        public ImportAggregate ImportAggregate { get; set; } = new ImportAggregate();
     }
 
     public class ImportAggregate
     {
-        [JsonPropertyName("max")]
-        public ImportAggregateMax ImportAggregateMax { get; set; }
+        [JsonProperty("max"), JsonPropertyName("max")]
+        public ImportAggregateMax ImportAggregateMax { get; set; } = new ImportAggregateMax();
     }
 
     public class ImportAggregateMax
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public long? RelevantImportId { get; set; }
     }
 

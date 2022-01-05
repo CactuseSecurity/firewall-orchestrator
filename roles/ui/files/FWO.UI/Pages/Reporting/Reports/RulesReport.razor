@@ -7,15 +7,17 @@
 {
     @if (management.Devices.Where(device => device.Rules != null && device.Rules.Count() > 0).Count() > 0)
     {
+        management.AssignRuleNumbers();
+
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
 
             @foreach (Device device in management.Devices)
             {
-                @if (device.Rules.Length > 0)
+                @if (device.Rules != null && device.Rules.Length > 0 && ruleDisplay != null)
                 {
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
-                               RowClickAction="async rule => { rule.DeviceName = device.Name; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); }"
+                               RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
                                style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
                                PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")"
                                @ref="reportTable">
@@ -108,11 +110,29 @@
                                     </Template>
                                 </Column>
                             }
-                            @if (EmptyColumns[7] == false)
+                            @if(NatRules)
+                            {
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule))
+                                    </Template>
+                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                    <Template>
+                                        @((MarkupString)ruleDisplay.DisplayTranslatedService(rule))
+                                    </Template>
+                                </Column>
+                            }
+                            @if (EmptyColumns[7] == false && !NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rChange => rChange.Action)" Sortable="true" Filterable="false" Hideable="true" />
                             }
-                            @if (EmptyColumns[8] == false)
+                            @if (EmptyColumns[8] == false && !NatRules)
                             {
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("track"))" Field="@(rChange => rChange.Track)" Sortable="true" Filterable="false" Hideable="true" />
                             }
@@ -141,14 +161,14 @@
                                 <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@context.Metadata?.LastCertified?.ToString()" />
                                 <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@context.Metadata?.LastCertifierDn?.ToString()" />
                                 @* <Detail Title="@(userConfig.GetText("marked_to_be_removed"))" Data="@((context.Metadata?.ToBeRemoved)?'yes':'no'))" /> 
-                                    // not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
+                                    // TODO: not able to get this syntactically working, but implicit info is there: ToBeRemoved == NOT DecertificationDate IS NULL *@
                                 <Detail Title="@(userConfig.GetText("decert_date"))" Data="@context.Metadata?.DecertificationDate?.ToString()" />
                                 <Detail Title="@(userConfig.GetText("recert_comment"))" Data="@context.Metadata?.Comment?.ToString()" />
                             </DetailTemplate>
 
                             <CustomRow TableItem="Rule" IsActiveForItem="(rule => !String.IsNullOrEmpty(rule.SectionHeader))">
                                 <tr>
-                                    <td class="bg-light" colspan="@(reportTable.Columns.Count + 1)">
+                                    <td class="bg-light" colspan="@(reportTable?.Columns.Count + 1)">
                                         <div class="font-weight-bold">@(context.SectionHeader)</div>
                                     </td>
                                 </tr>         
@@ -169,10 +189,13 @@
     public bool Recertification { get; set; }
 
     [Parameter]
+    public bool NatRules { get; set; }
+
+    [Parameter]
     public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
 
     [Parameter]
-    public List<Rule> SelectedRules { get; set; }
+    public List<Rule> SelectedRules { get; set; } = new List<Rule>();
 
     [Parameter]
     public int RulesPerPage { get; set; }
@@ -184,11 +207,16 @@
     public int Width { get; set; }
 
     [Parameter]
-    public Management[] Managements { get; set; }
+    public Management[] Managements { get; set; } = new Management[]{};
 
-    private ITable<Rule> reportTable;
+    private ITable<Rule>? reportTable;
     private const int ColumnsCount = 12;
     private bool[] EmptyColumns = new bool[ColumnsCount];
 
-    private RuleDisplay ruleDisplay = new RuleDisplay(null);
+    private NatRuleDisplay? ruleDisplay;
+    
+    protected override void OnInitialized()
+    {
+        ruleDisplay = new NatRuleDisplay(userConfig);
+    }
 }

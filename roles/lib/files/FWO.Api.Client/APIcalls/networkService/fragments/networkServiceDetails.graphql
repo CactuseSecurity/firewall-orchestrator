@@ -11,6 +11,9 @@ fragment networkServiceDetails on service {
   svc_typ_id
   active
   svc_create
+  svc_create_time: import_control {
+    time: start_time
+  }
   svc_last_seen
   service_type: stm_svc_typ {
     name: svc_typ_name

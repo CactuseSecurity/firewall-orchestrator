@@ -1,23 +1,20 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class DeviceType
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
 
-        [JsonPropertyName("version")]
-        public string Version { get; set; }
+        [JsonProperty("version"), JsonPropertyName("version")]
+        public string Version { get; set; } = "";
 
-        // [JsonPropertyName("predefinedObjects")]
+        // [JsonProperty("predefinedObjects"), JsonPropertyName("predefinedObjects")]
         // public ??? PredefinedObjects { get; set; }
 
         public DeviceType()

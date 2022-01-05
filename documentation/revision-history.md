@@ -155,3 +155,21 @@ adding report template format fk and permissions
 - introducing swagger REST API for user management
 - adding swagger REST API interactive documentation for user management
 - moving to hasura 2.0.10 for slight performance boost (see https://github.com/hasura/graphql-engine/releases/tag/v2.0.10)
+
+### 5.5.2 - 06.11.2021
+- new default report template for NAT rules
+
+### 5.5.3 - 08.12.2021
+- add column global_tenant_name to ldap_connection
+
+### 5.5.4 - 13.12.2021
+- insert default config values
+
+### 5.5.5 - 20.12.2021
+- set ldap_tenant_level to 5
+
+### 5.5.6 - 02.01.2022
+- introducing multi device manager for auto discovery
+
+### 5.5.7 - 04.01.2022
+- add column report_parameters to report_template, update data for default templates

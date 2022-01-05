@@ -29,11 +29,6 @@
       command: "a2ensite {{ product_name }}-mw"
       register: testoutput
 
-    - name: test
-      debug:
-        var: testoutput
-
-
     - name: add mw port to apache
       lineinfile:
         path: "/etc/apache2/ports.conf"

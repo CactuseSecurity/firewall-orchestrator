@@ -16,7 +16,7 @@
 
     - name: copy api httpd config file to api target
       template:
-        src: "httpd.conf"
+        src: "httpd.conf.j2"
         dest: "{{ http_conf_dir }}/{{ product_name }}-api.conf"
         owner: root
         group: root

@@ -1,5 +1,6 @@
 using FWO.Report.Filter.Ast;
 using FWO.Report.Filter.Exceptions;
+using FWO.Report.Filter.FilterTypes;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -36,7 +37,7 @@ namespace FWO.Report.Filter
             {
                 return new AstNodeConnector()
                 {
-                    Left = new AstNodeFilter()
+                    Left = new AstNodeFilter<ReportType>()
                     {
                         Name = new Token(new Range(0, 0), "", TokenKind.ReportType),
                         Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
@@ -51,7 +52,7 @@ namespace FWO.Report.Filter
             {
                 AstNodeConnector root = new AstNodeConnector
                 {
-                    Left = new AstNodeFilter()
+                    Left = new AstNodeFilter<ReportType>()
                     {
                         Name = CheckToken(TokenKind.ReportType),
                         Operator = CheckToken(TokenKind.EQ),
@@ -79,7 +80,7 @@ namespace FWO.Report.Filter
             {
                 AstNodeConnector root = new AstNodeConnector
                 {
-                    Left = new AstNodeFilter()
+                    Left = new AstNodeFilter<DateTimeRange>()
                     {
                         Name = new Token(new Range(0, 0), "", TokenKind.Time),
                         Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
@@ -103,7 +104,7 @@ namespace FWO.Report.Filter
             {
                 AstNodeConnector root = new AstNodeConnector
                 {
-                    Left = new AstNodeFilter()
+                    Left = new AstNodeFilter<DateTimeRange>()
                     {
                         Name = CheckToken(TokenKind.Time),
                         Operator = ParseOperator(),
@@ -129,7 +130,7 @@ namespace FWO.Report.Filter
         {
             if (GetNextToken().Kind == TokenKind.Value)
             {
-                return new AstNodeFilter
+                return new AstNodeFilter<string>
                 {
                     Name = new Token(new Range(0, 0), "", TokenKind.Value),
                     Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
@@ -234,11 +235,25 @@ namespace FWO.Report.Filter
 
         private AstNode ParseFilter()
         {
-            return new AstNodeFilter
-            {
-                Name = ParseFilterName(),
-                Operator = ParseOperator(),
-                Value = CheckToken(TokenKind.Value)
+            Token Name = ParseFilterName();
+            Token Operator = ParseOperator();
+            Token Value = CheckToken(TokenKind.Value);
+            return Name.Kind switch
+            {            
+                TokenKind.Value or TokenKind.Source or TokenKind.Destination or TokenKind.Service or TokenKind.Action or
+                TokenKind.Management or TokenKind.Gateway or TokenKind.FullText or TokenKind.Protocol or TokenKind.RecertDisplay
+                => new AstNodeFilter<string>() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.Disabled or TokenKind.SourceNegated or TokenKind.DestinationNegated or TokenKind.ServiceNegated or TokenKind.Remove
+                => new AstNodeFilter<bool>() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.Time => new AstNodeFilter<DateTimeRange>() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.ReportType => new AstNodeFilter<ReportType>() { Name = Name, Operator = Operator, Value = Value },
+
+                TokenKind.DestinationPort => new AstNodeFilter<ushort>() { Name = Name, Operator = Operator, Value = Value },
+
+                _ => throw new NotSupportedException($"No type found for filter with token kind: {Name.Kind}"),
             };
         }
 

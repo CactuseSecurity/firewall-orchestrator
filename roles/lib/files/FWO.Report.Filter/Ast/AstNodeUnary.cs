@@ -18,7 +18,6 @@
             }
             Value?.Extract(ref query);
             query.ruleWhereStatement += "}";
-            return;
         }
     }
 }

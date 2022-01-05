@@ -1,17 +1,65 @@
-﻿using System.Net;
+﻿using System.ComponentModel;
+using System.Net;
 using FWO.Logging;
 using FWO.Report.Filter.Exceptions;
 
-
 namespace FWO.Report.Filter.Ast
 {
-    class AstNodeFilter : AstNode
+    class AstNodeFilter<SemanticType> : AstNode
     {
         public Token Name { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Operator { get; set; } = new Token(new Range(), "", TokenKind.Value);
         public Token Value { get; set; } = new Token(new Range(), "", TokenKind.Value);
-        private List<string>? ruleFieldNames { get; set; }
         private int queryLevel { get; set; }
+        public SemanticType? ConvertedValue { get; set; }
+
+        public void ConvertToSemanticType()
+        {
+            TypeConverter converter = TypeDescriptor.GetConverter(typeof(SemanticType));
+            if (converter.CanConvertFrom(typeof(string)))
+            {
+                try
+                {
+                    object convertedValue = converter.ConvertFrom(this) ?? throw new NullReferenceException("Error while converting: converted value is null");
+                    ConvertedValue = (SemanticType)convertedValue ?? throw new NullReferenceException($"Error while converting: value could not be converted to semantic type: {typeof(SemanticType)}");
+                }
+                catch (Exception ex)
+                {
+                    throw new SemanticException($"Filter could not be converted to expected semantic type {typeof(SemanticType)}", Value.Position);
+                }
+            }
+            else
+            {
+                throw new NotSupportedException($"Internal error: TypeConverter does not support conversion from {this.GetType()} to {typeof(SemanticType)}");
+            }
+            //if (typeof(SemanticType) == typeof(int))
+            //{
+                
+            //}
+            //else if (typeof(SemanticType) == typeof(ushort))
+            //{
+
+            //    typeof(SemanticType).
+            //    ushort.TryParse(Value.Text, out ushort convertedValue);
+            //    ConvertedValue = (SemanticType)convertedValue;
+            //}
+            //else if (SemanticType == typeof(string))
+            //{
+                
+            //}
+            //else if (SemanticType == typeof(bool))
+            //{
+            //    bool.TryParse(Value.Text, out bool result);
+            //}
+            //else if (SemanticType == typeof(DateTimeRange))
+            //{
+            //    DateTimeRange.TryParse(Value.Text, out DateTimeRange result);
+            //}
+            //else if (SemanticType == typeof(ReportType))
+            //{
+            //    ReportType.TryParse(Value.Text, out ReportType result);
+            //}
+        }
 
         public override void Extract(ref DynGraphqlQuery query)
         {
@@ -87,6 +135,7 @@ namespace FWO.Report.Filter.Ast
                     switch (Operator.Kind)
                     {
                         case TokenKind.EQ:
+                        case TokenKind.EEQ:
                             query.ruleWhereStatement +=
                                 $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
                                 $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
@@ -109,6 +158,7 @@ namespace FWO.Report.Filter.Ast
                     switch (Operator.Kind)
                     {
                         case TokenKind.EQ:
+                        case TokenKind.EEQ:
                         case TokenKind.GRT:
                         case TokenKind.LSS:
                             (string start, string stop) = ResolveTimeRange(Value.Text);
@@ -140,19 +190,16 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractReportTypeFilter(DynGraphqlQuery query)
         {
+            ExtractOperator(TokenKind.EQ, TokenKind.EEQ);
+
             query.ReportType = Value.Text switch
             {
                 "rules" or "rule" => ReportType.Rules,
                 "statistics" or "statistic" => ReportType.Statistics,
                 "changes" or "change" => ReportType.Changes,
                 "natrules" or "nat_rules" => ReportType.NatRules,
-                _ => ReportType.None
+                _ => throw new SemanticException($"Unexpected report type found", Value.Position)
             };
-
-            if (query.ReportType == ReportType.None)
-            {
-                throw new SemanticException($"Unexpected report type found", Value.Position);
-            }
 
             if (query.ReportType == ReportType.Statistics)
             {
@@ -272,7 +319,7 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractSourceFilter(DynGraphqlQuery query)
         {
-            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string filterOperator = ExtractOperator(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
             if (IsCidr(Value.Text))  // filtering for ip addresses
                 query = ExtractIpFilter(query, location: "src", locationTable: "rule_froms");
             else // string search against src obj name
@@ -280,13 +327,14 @@ namespace FWO.Report.Filter.Ast
                 string QueryVarName = "src" + query.parameterCounter++;
                 query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
                 query.QueryParameters.Add($"${QueryVarName}: String! ");
-                query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {queryOperation}: ${QueryVarName} }} }} }} }} }}";
+                query.ruleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {filterOperator}: ${QueryVarName} }} }} }} }} }}";
             }
             return query;
         }
+
         private DynGraphqlQuery ExtractDestinationFilter(DynGraphqlQuery query)
         {
-            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = ExtractOperator(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
             if (IsCidr(Value.Text))  // filtering for ip addresses
                 query = ExtractIpFilter(query, location: "dst", locationTable: "rule_tos");
             else // string search against dst obj name
@@ -301,17 +349,17 @@ namespace FWO.Report.Filter.Ast
 
         private DynGraphqlQuery ExtractServiceFilter(DynGraphqlQuery query)
         {
-            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = ExtractOperator(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
             string QueryVarName = "svc" + query.parameterCounter++;
-
-            query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
+            query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.ruleWhereStatement += $"rule_services: {{service: {{svcgrp_flats: {{serviceBySvcgrpFlatMemberId: {{svc_name: {{ {queryOperation}: ${QueryVarName} }} }} }} }} }}";
             return query;
         }
+
         private DynGraphqlQuery ExtractActionFilter(DynGraphqlQuery query)
         {
-            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = ExtractOperator(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
             string QueryVarName = "action" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -319,9 +367,10 @@ namespace FWO.Report.Filter.Ast
             query.ruleWhereStatement += $"rule_action: {{ {queryOperation}: ${QueryVarName} }}";
             return query;
         }
+
         private DynGraphqlQuery ExtractProtocolFilter(DynGraphqlQuery query)
         {
-            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = ExtractOperator(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
             string QueryVarName = "proto" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -331,7 +380,7 @@ namespace FWO.Report.Filter.Ast
         }
         private DynGraphqlQuery ExtractManagementFilter(DynGraphqlQuery query)
         {
-            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = ExtractOperator(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
             string QueryVarName;
 
             if (int.TryParse(Value.Text, out int _)) // dealing with mgm_id filter
@@ -358,7 +407,7 @@ namespace FWO.Report.Filter.Ast
         }
         private DynGraphqlQuery ExtractGatewayFilter(DynGraphqlQuery query)
         {
-            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = ExtractOperator(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
             string QueryVarName = "gwName" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
@@ -372,13 +421,13 @@ namespace FWO.Report.Filter.Ast
         }
         private DynGraphqlQuery ExtractFullTextFilter(DynGraphqlQuery query)
         {
-            string queryOperation = SetQueryOpString(Operator, Name, Value.Text);
+            string queryOperation = ExtractOperator(TokenKind.EQ, TokenKind.EEQ, TokenKind.NEQ);
             string QueryVarName = "fullTextFilter" + query.parameterCounter++;
 
             query.QueryParameters.Add($"${QueryVarName}: String! ");
             query.QueryVariables[QueryVarName] = $"%{Value.Text}%";
 
-            ruleFieldNames = new List<string>() { "rule_src", "rule_dst", "rule_svc", "rule_action" };  // TODO: add comment later
+            List<string> ruleFieldNames = new List<string>() { "rule_src", "rule_dst", "rule_svc", "rule_action" };  // TODO: add comment later
             List<string> searchParts = new List<string>();
             foreach (string field in ruleFieldNames)
                 searchParts.Add($"{{{field}: {{{queryOperation}: ${QueryVarName} }} }} ");
@@ -431,28 +480,48 @@ namespace FWO.Report.Filter.Ast
             return query;
         }
 
-        private static string SetQueryOpString(Token @operator, Token filter, string value)
+        //private static string SetQueryOpString(Token @operator, Token filter, string value)
+        //{
+        //    string operation;
+        //    switch (@operator.Kind)
+        //    {
+        //        case TokenKind.EQ:
+        //            if (filter.Kind == TokenKind.Time || filter.Kind == TokenKind.DestinationPort)
+        //                operation = "_eq";
+        //            else if ((filter.Kind == TokenKind.Source && IsCidr(value)) || filter.Kind == TokenKind.DestinationPort)
+        //                operation = "_eq";
+        //            else if (filter.Kind == TokenKind.Management && int.TryParse(value, out int _))
+        //                operation = "_eq";
+        //            else
+        //                operation = "_ilike";
+        //            break;
+        //        case TokenKind.NEQ:
+        //            operation = "_nilike";
+        //            break;
+        //        default:
+        //            throw new Exception("### Parser Error: Expected Operator Token (and thought there is one) ###");
+        //    }
+        //    return operation;
+        //}
+
+        private string ExtractOperator(params TokenKind[] validOperators)
         {
-            string operation;
-            switch (@operator.Kind)
+            if (validOperators.Contains(Operator.Kind))
             {
-                case TokenKind.EQ:
-                    if (filter.Kind == TokenKind.Time || filter.Kind == TokenKind.DestinationPort)
-                        operation = "_eq";
-                    else if ((filter.Kind == TokenKind.Source && IsCidr(value)) || filter.Kind == TokenKind.DestinationPort)
-                        operation = "_eq";
-                    else if (filter.Kind == TokenKind.Management && int.TryParse(value, out int _))
-                        operation = "_eq";
-                    else
-                        operation = "_ilike";
-                    break;
-                case TokenKind.NEQ:
-                    operation = "_nilike";
-                    break;
-                default:
-                    throw new Exception("### Parser Error: Expected Operator Token (and thought there is one) ###");
+                return Operator.Kind switch
+                {
+                    TokenKind.EEQ => "_eq",
+                    TokenKind.EQ => exactEquals ? "_eq" : "_ilike",
+                    TokenKind.NEQ => "_nilike",
+                    TokenKind.LSS => "_lt",
+                    TokenKind.GRT => "_gt",
+                    _ => throw new SemanticException("Invalid operator, even though this operator was expected. Internal error.", Operator.Position),
+                };
             }
-            return operation;
+            else
+            {
+                throw new SemanticException($"Invalid operator. Expected one of: {string.Join(", ", validOperators)}", Operator.Position);
+            }
         }
 
         private static string SanitizeIp(string cidr_str)
@@ -505,7 +574,7 @@ namespace FWO.Report.Filter.Ast
             }
             catch (Exception)
             {
-                Logging.Log.WriteDebug("Ip Address Parsing", "An exception occured while trying to parse an Ip address.");
+                Log.WriteDebug("Ip Address Parsing", "An exception occured while trying to parse an Ip address.");
                 return false;
             }
         }
@@ -513,7 +582,7 @@ namespace FWO.Report.Filter.Ast
         private static string ToIp(uint ip)
         {
             // TODO: IPv6 handling
-            return String.Format("{0}.{1}.{2}.{3}", ip >> 24, (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff);
+            return string.Format("{0}.{1}.{2}.{3}", ip >> 24, (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff);
         }
 
         private static (string, string) GetFirstAndLastIp(string cidr)

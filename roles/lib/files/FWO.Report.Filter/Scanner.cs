@@ -10,6 +10,7 @@ namespace FWO.Report.Filter
     {
         private string input;
         private int position;
+        private const int lookAhead = 2;
 
         public Scanner(string input)
         {
@@ -27,7 +28,7 @@ namespace FWO.Report.Filter
                     position++;
                 }
 
-                tokens.AddRange(ReadToken());
+                tokens.AddRange(ReadTokens());
             }
 
             return tokens;
@@ -45,7 +46,7 @@ namespace FWO.Report.Filter
             }      
         }
 
-        private List<Token> ReadToken()
+        private List<Token> ReadTokens()
         {
             List<Token> tokens = new List<Token>();
 
@@ -55,17 +56,10 @@ namespace FWO.Report.Filter
             // Token text
             string tokenText = "";
 
-            // Token kind
-            TokenKind tokenKind = TokenKind.Value;
-
             while (IsWhitespaceOrEnd(position) == false)
             {             
                 switch (input[position])
                 {
-                    case '\\':
-                        tokenText += ScanEscapeSequence();
-                        break;
-
                     case '\'':
                     case '\"':
                         tokens.Add(ScanQuoted(input[position]));
@@ -73,15 +67,19 @@ namespace FWO.Report.Filter
                         break;
 
                     default:
-                        tokenText += input[position];
-
-                        List<Token> newTokens = TryExtractToken(tokenBeginPosition, tokenText, IsWhitespaceOrEnd(position + 1));
-
-                        if (newTokens.Count > 0)
+                        for (int lookAheadPosition = Math.Max(position + lookAhead, tokens.Count - 1); lookAheadPosition >= position; lookAheadPosition--)
                         {
-                            tokens.AddRange(newTokens);
-                            tokenBeginPosition = position + 1;
-                            tokenText = "";
+                            List<Token> newTokens = TryExtractToken(tokenBeginPosition, 
+                                tokenText + input[position..lookAheadPosition],
+                                IsWhitespaceOrEnd(position + lookAheadPosition + 1));
+
+                            if (newTokens.Count > 0)
+                            {
+                                tokens.AddRange(newTokens);
+                                tokenBeginPosition = position + 1;
+                                tokenText = "";
+                                break;
+                            }
                         }
                         break;
                 }
@@ -91,7 +89,7 @@ namespace FWO.Report.Filter
 
             if (tokenText != "")
             {
-                tokens.Add(new Token(tokenBeginPosition..^(position-1), tokenText, tokenKind));
+                tokens.Add(new Token(tokenBeginPosition..^(position-1), tokenText, TokenKind.Value));
             }
 
             return tokens;
@@ -132,11 +130,11 @@ namespace FWO.Report.Filter
                             }
                             else
                             {
-                                if (potentialTokens.Last().Kind == TokenKind.Not && tokenKind == TokenKind.EQ)
-                                {
-                                    potentialTokens.RemoveAt(potentialTokens.Count - 1);
-                                    realTokenKind = TokenKind.NEQ;
-                                }
+                                //if (potentialTokens.Last().Kind == TokenKind.Not && tokenKind == TokenKind.EQ)
+                                //{
+                                //    potentialTokens.RemoveAt(potentialTokens.Count - 1);
+                                //    realTokenKind = TokenKind.NEQ;
+                                //}
 
                                 tokens.AddRange(potentialTokens);
                             }

@@ -76,8 +76,8 @@ namespace FWO.ApiClient
         {
             try
             {
-                // Log.WriteDebug("API Response", $"API Call variables: { variables }");
-                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0,50).Replace(Environment.NewLine, "")}...");
+                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0,50).Replace(Environment.NewLine, "")}... " +
+                    (variables != null ? $"with variables: { JsonSerializer.Serialize(variables).Substring(0, 50).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
                 // Log.WriteDebug("API call", "API response received.");
 
@@ -122,7 +122,7 @@ namespace FWO.ApiClient
 
             catch (Exception exception)
             {
-                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}, variables: {(variables != null ? variables.ToString() : "")}", exception);
+                Log.WriteError("API Connection", $"Error while sending query to GraphQL API. Query: {(query != null ? query : "")}, variables: {(variables != null ? JsonSerializer.Serialize(variables) : "")}", exception);
                 // todo: #1220 add variables readable
                 throw;
             }

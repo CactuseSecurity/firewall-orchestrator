@@ -43,6 +43,7 @@
         - FWO.Config.File
         - FWO.Report
         - FWO.Report.Filter
+        - FWO.DeviceAutoDiscovery
 
     - name: finalize handler for datarecovery
       set_fact:

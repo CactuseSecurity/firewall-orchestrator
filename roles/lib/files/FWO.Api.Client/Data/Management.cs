@@ -23,6 +23,10 @@ namespace FWO.Api.Data
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
 
+        [JsonProperty("superManager"), JsonPropertyName("superManager")]
+        public SuperManager SuperManager { get; set; } = new SuperManager();
+        // public SuperManager? SuperManager { get; set; } = null;
+
         [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
         public string ImporterHostname { get; set; } = "";
 
@@ -129,6 +133,7 @@ namespace FWO.Api.Data
             Import = management.Import;
             Ignore = management.Ignore;
             ReportedRuleIds = management.ReportedRuleIds;
+            SuperManager = management.SuperManager;
             ReportedNetworkServiceIds = management.ReportedNetworkServiceIds;
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&

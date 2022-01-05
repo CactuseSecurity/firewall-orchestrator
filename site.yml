@@ -36,6 +36,7 @@
     - importer
     - api
     - ui
+    - frontend
 
 - hosts: backendserver
   roles:
@@ -70,6 +71,7 @@
 - hosts: frontends
   roles:
     # do not install lib role twice (for non distributed install, already installed for middlewareserver)
+    # todo: this does not work when using "ui" tag - lib is not built then!
     - { role: lib, when: "'middlewareserver' not in group_names and not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
   tags:
@@ -97,14 +99,6 @@
   roles:
     - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
-    - frontend
-    - importer
-
-- hosts: all
-  roles:
-    - { role: upgrade-completion, when: "installation_mode == 'upgrade'" }
-  tags:
-    - backend
     - frontend
     - importer
 
@@ -137,3 +131,7 @@
     - { role: cleanup, when: "not installation_mode == 'uninstall'" }
   tags:
     - cleanup
+    - backend
+    - frontend
+    - importer
+    - ui

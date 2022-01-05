@@ -62,11 +62,6 @@
   listen: "test importer handler"
   become: yes
 
-- name: debug
-  debug:
-    var: ldap_entries_to_delete
-  listen: "test importer handler"
-
 - set_fact:
     delete_list: "{{ ldap_entries_to_delete.stdout | replace('\n', '') }}"
   listen: "test importer handler"
@@ -74,12 +69,6 @@
 - set_fact:
     delete_list2: "{{ delete_list.split('dn: ')[1:] | sort(reverse = True) }}"
   listen: "test importer handler"
-
-- name: debug final input for ldap delete
-  debug:
-    msg: "{{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
-  listen: "test importer handler"
-  loop: "{{ delete_list2 }}"
 
 - name: delete ldap test data
   command: "ldapdelete -H {{ openldap_url }} -D {{ openldap_superuser_dn }} -y {{ fworch_secrets_dir }}/ldap_manager_pw.txt -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"

@@ -8,8 +8,6 @@ After=network.target remote-fs.target nss-lookup.target slapd.service
 [Service]
 WorkingDirectory={{ middleware_server_start_dir }}
 ExecStartPre=/bin/sleep 10
-# ExecStart={{ middleware_server_start_dir }}/FWO.Middleware.Server
-# ExecStart={{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/publish/FWO.Middleware.Server
 ExecStart={{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.Middleware.Server
 #StandardOutput=syslog
 #StandardError=syslog

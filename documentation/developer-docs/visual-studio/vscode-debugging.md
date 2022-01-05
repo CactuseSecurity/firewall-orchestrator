@@ -112,3 +112,20 @@ simply install role webhook plus
 - double-check that a) ssl is not checked if not using properly signed cert and b) Content type of the webhook call is set to application/json
 - create secrets file ~/fworch-webhook.secret containing webhook secret
 - copy ssh private key for deployment to ~/.ssh/id_github_deploy
+
+
+## FAQ
+### Errors during debugging
+
+If you encounter the following error during vscode debugging
+
+    The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+
+add the following lines to the end of /etc/sysctl.conf
+
+    fs.inotify.max_user_watches = 1638400
+    fs.inotify.max_user_instances = 1638400
+
+and run 
+    
+    sudo sysctl -p

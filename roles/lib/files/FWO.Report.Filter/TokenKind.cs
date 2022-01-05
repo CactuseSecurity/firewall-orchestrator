@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace FWO.Report.Filter
+﻿namespace FWO.Report.Filter
 {
     public enum TokenKind
     {
@@ -18,7 +16,6 @@ namespace FWO.Report.Filter
         Management,
         Gateway,
         Time,
-        ReportType,
         Remove,
         RecertDisplay,
         FullText,

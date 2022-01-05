@@ -1,19 +1,21 @@
 ﻿mutation editReportTemplate(
-  $report_template_id: Int
-  $report_template_name: String
-  $report_template_create: timestamp
-  $report_template_comment: String
-  $report_filter: String
-  $report_template_owner: Int
+  $reportTemplateId: Int
+  $reportTemplateName: String
+  $reportTemplateCreate: timestamp
+  $reportTemplateComment: String
+  $reportFilterLine: String
+  $reportTemplateOwner: Int
+  $reportParameters: json
 ) {
   update_report_template(
-    where: { report_template_id: { _eq: $report_template_id } }
+    where: { report_template_id: { _eq: $reportTemplateId } }
     _set: {
-      report_template_name: $report_template_name
-      report_template_create: $report_template_create
-      report_template_comment: $report_template_comment
-      report_filter: $report_filter
-      report_template_owner: $report_template_owner
+      report_template_name: $reportTemplateName
+      report_template_create: $reportTemplateCreate
+      report_template_comment: $reportTemplateComment
+      report_filter: $reportFilterLine
+      report_template_owner: $reportTemplateOwner
+      report_parameters: $reportParameters
     }
   ) {
     affected_rows

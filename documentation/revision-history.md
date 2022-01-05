@@ -165,8 +165,11 @@ adding report template format fk and permissions
 ### 5.5.4 - 13.12.2021
 - insert default config values
 
-### 5.5.5 - 31.12.2021
+### 5.5.5 - 20.12.2021
 - set ldap_tenant_level to 5
 
 ### 5.5.6 - 02.01.2022
 - introducing multi device manager for auto discovery
+
+### 5.5.7 - 04.01.2022
+- add column report_parameters to report_template, update data for default templates

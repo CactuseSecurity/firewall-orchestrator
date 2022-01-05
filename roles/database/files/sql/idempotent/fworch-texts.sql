@@ -192,6 +192,8 @@ Choose from the following contact options:
 ');
 
 -- reporting
+INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
+INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
 INSERT INTO txt VALUES ('select_device',		'German', 	'Device(s) ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_device',		'English', 	'Select device(s)');
 INSERT INTO txt VALUES ('select_all',		    'German', 	'Alle ausw&auml;hlen');
@@ -224,6 +226,8 @@ INSERT INTO txt VALUES ('download_json',		'German', 	'als JSON herunterladen');
 INSERT INTO txt VALUES ('download_json',		'English', 	'Download JSON');
 INSERT INTO txt VALUES ('save_as_template',		'German', 	'Als Vorlage speichern');
 INSERT INTO txt VALUES ('save_as_template',		'English', 	'Save as Template');
+INSERT INTO txt VALUES ('no_report_type_selected','German', 'Kein Report-Typ ausgew&auml;hlt.');
+INSERT INTO txt VALUES ('no_report_type_selected','English','No report type selected.');
 INSERT INTO txt VALUES ('no_device_selected',	'German', 	'Kein Device ausgew&auml;hlt.');
 INSERT INTO txt VALUES ('no_device_selected',	'English', 	'No device(s) selected.');
 INSERT INTO txt VALUES ('filter', 				'German', 	'Filter');
@@ -282,6 +286,12 @@ INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
 INSERT INTO txt VALUES ('user_objects',		    'English', 	'User objects');
 INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
+INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
+INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
+INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
+INSERT INTO txt VALUES ('statistics',		    'English', 	'Statistics');
+INSERT INTO txt VALUES ('natrules',		        'German', 	'NAT-Regeln');
+INSERT INTO txt VALUES ('natrules',		        'English', 	'NAT Rules');
 INSERT INTO txt VALUES ('no_of_rules',		    'German', 	'Anzahl Regeln');
 INSERT INTO txt VALUES ('no_of_rules',		    'English', 	'Number of Rules');
 INSERT INTO txt VALUES ('collapse_all',		    'German', 	'Alles einklappen');
@@ -1001,6 +1011,8 @@ INSERT INTO txt VALUES ('E1004', 'German',  'Vorlage konnte nicht gespeichert we
 INSERT INTO txt VALUES ('E1004', 'English', 'Template could not be saved');
 INSERT INTO txt VALUES ('E1005', 'German',  'Vorlage konnte nicht gel&ouml;scht werden');
 INSERT INTO txt VALUES ('E1005', 'English', 'Template could not be deleted');
+INSERT INTO txt VALUES ('E1006', 'German',  'Bitte einen Report-Typ ausw&auml;hlen');
+INSERT INTO txt VALUES ('E1006', 'English', 'Please select a report type');
 
 INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
@@ -1213,7 +1225,7 @@ INSERT INTO txt VALUES ('H0001', 'English', 'Firewall Orchestrator is an applica
 INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filterzeile, wo die Parameter f&uuml;r den Report definiert werden.
     Sie unterliegt einer speziellen <a href="/help/reporting/filter">Filtersyntax</a>.
     Sie kann komplett manuell gef&uuml;llt werden oder unterst&uuml;tzt durch <a href="/help/reporting/templates">Vorlagen</a>, welche weiter unten ausgew&auml;hlt werden k&ouml;nnen.
-    In der <a href="/help/reporting/leftside">Linken Randleiste</a> werden die verf&uuml;gbaren Devices dargestellt. Eine dortige Auswahl wird automatisch in die Filterzeile &uuml;bernommen.<br>
+    In der <a href="/help/reporting/leftside">Linken Randleiste</a> werden die verf&uuml;gbaren Report-Typen und Devices dargestellt.<br>
     Nach klicken der "Report erstellen" Schaltfl&auml;che werden die <a href="/help/reporting/output">Reportdaten</a> im unteren Teil des Fensters dargestellt.
     In der <a href="/help/reporting/rightside">Rechten Randleiste</a> werden Details zu den markierten Objekten gezeigt.<br>
     Der Report kann in verschiedenen Ausgabeformaten <a href="/help/reporting/export">exportiert</a> werden.
@@ -1221,7 +1233,7 @@ INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filt
 INSERT INTO txt VALUES ('H1001', 'English', 'The first input line is the filter line, where the parameters for the report creation are defined.
     It is subject to a special <a href="/help/reporting/filter">Filter Syntax</a>. 
     It can be filled completely manually or supported by <a href="/help/reporting/templates">Templates</a>, which can be chosen below.
-    In the <a href="/help/reporting/leftside">Left Sidebar</a> the available devices are displayed. Selections out of them are also automatically integrated to the filter line.<br>
+    In the <a href="/help/reporting/leftside">Left Sidebar</a> the available report types and devices are displayed.<br>
     After selecting the "Generate Report" button the <a href="/help/reporting/output">Report Data</a> is shown in the lower part of the window.
     In the <a href="/help/reporting/rightside">Right Sidebar</a> details about the selected objects are given.<br>
     The report can be <a href="/help/reporting/export">exported</a> to different output formats.
@@ -1250,8 +1262,7 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
 ');
-INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;gliche Werte: statistics, rules, changes, natrule</li>
-    <li>time: In Abh&auml;ngigkeit vom Reporttyp werden verschiedene Werte/Formate erwartet:
+INSERT INTO txt VALUES ('H1111', 'German',  '<li>time: In Abh&auml;ngigkeit vom Report-Typ werden verschiedene Werte/Formate erwartet:
         <ul>
             <li>f&uuml;r "rules", "natrules" oder "statistics" muss ein Datums- oder Zeitwert im Format YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... &uuml;bergeben werden.
                 Zur Vereinfachung kann auch "now" f&uuml;r das aktuelle Datum eingegeben werden.</li>
@@ -1273,8 +1284,7 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;glich
     <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
-INSERT INTO txt VALUES ('H1111', 'English', '<li>reporttype (type): Possible Values: statistics, rules, changes, natrules</li>
-    <li>time: Depending on report type there are different possible Values/Formats: 
+INSERT INTO txt VALUES ('H1111', 'English', '<li>time: Depending on report type there are different possible Values/Formats: 
         <ul>
             <li>for "rules", "natrules" or "statistics" there has to be one date or date/time value YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... 
                 As a shortcut also "now" is possible.</li>
@@ -1334,8 +1344,12 @@ INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden
 INSERT INTO txt VALUES ('H1201', 'English', 'Templates can be used to define recurring reports. They have to be defined if they shall be used for the scheduling.
     Every user can define his own templates and share them with others.<br>There are some predefined templates for the different report types:
 ');
-INSERT INTO txt VALUES ('H1202', 'German',  'Diese Vorlagen k&ouml;nnen als Basis f&uuml;r die Erzeugung eigener Vorlagen genutzt werden.');
-INSERT INTO txt VALUES ('H1202', 'English', 'These templates can be used as basis for the creation of own self-defined templates.');
+INSERT INTO txt VALUES ('H1202', 'German',  'Um sie direkt in der UI zu nutzen, m&uuml;ssen zus&auml;tzlich Devices ausgew&auml;hlt werden. Bei der Nutzung im Scheduling gelten alle Devices als ausgew&auml;hlt.
+    Diese Vorlagen k&ouml;nnen als Basis f&uuml;r die Erzeugung eigener Vorlagen genutzt werden.
+');
+INSERT INTO txt VALUES ('H1202', 'English', 'For using them directly on the UI, devices have to be selected additionally. Used in scheduling, all devices are regarded as selected.
+    These templates can be used as basis for the creation of own self-defined templates.
+');
 INSERT INTO txt VALUES ('H1211', 'German',  'Einfache Statistik: Etwas Statistik &uuml;ber Netzwerk-, Dienst- und Nutzerobjekte aller Devices.');
 INSERT INTO txt VALUES ('H1211', 'English', 'Basic Statistics: Some statistics about network, service and user objects and rules of all devices.');
 INSERT INTO txt VALUES ('H1212', 'German',  'Compliance: Durchlassregeln mit "any": Alle Durchlassregeln, die "any" als Quelle, Ziel oder Dienst enthalten.');
@@ -1344,6 +1358,8 @@ INSERT INTO txt VALUES ('H1213', 'German',  'Aktuelle Regeln: Aktuell aktive Reg
 INSERT INTO txt VALUES ('H1213', 'English', 'Current Rules: Currently active rules of all selected devices.');
 INSERT INTO txt VALUES ('H1214', 'German',  'Regel&auml;nderungen des aktuellen Jahrs: Alle im aktuellen Jahr ge&auml;nderten Regeln in den ausgew&auml;hlten Devices.');
 INSERT INTO txt VALUES ('H1214', 'English', 'This year&apos;s Rule Changes: All rule change performed in the current year in the selected devices.');
+INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive NAT-Regeln aller ausgew&auml;hlten Devices.');
+INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
 INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
 INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
 INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (noch nicht unterst&uuml;tzt)</li><li>json</li>');
@@ -1372,12 +1388,20 @@ INSERT INTO txt VALUES ('H1402', 'German',  '<li>Nummer</li><li>Name</li><li>Que
 INSERT INTO txt VALUES ('H1402', 'English', '<li>Number</li><li>Name</li><li>Source Zone</li><li>Source</li><li>Destination Zone</li>
     <li>Destination</li><li>Services</li><li>Action</li><li>Logging</li><li>Enabled</li><li>UID</li><li>Comment</li>
 ');
-INSERT INTO txt VALUES ('H1501', 'German',  'Hier werden alle verf&uuml;gbaren Devices dargestellt.
+INSERT INTO txt VALUES ('H1501', 'German',  'Hier werden die fixen Kriterien f&uuml;r die Auswahl zur Reporterstellung dargestellt.
+    Weiteren Kriterien k&ouml;nnen &uuml;ber die <a href="/help/reporting/filter">Filterleiste</a> hinzugef&uuml;gt werden.
+');
+INSERT INTO txt VALUES ('H1501', 'English', 'Here all fixed criteria for reporting are displayed.
+    Further criteria can be added via the <a href="/help/reporting/filter">Filter line</a>.
+');
+INSERT INTO txt VALUES ('H1502', 'German', 'Anzeige aller zur Verf&uuml;gung stehenden Report-Typen. Bitte einen ausw&auml;hlen.');
+INSERT INTO txt VALUES ('H1502', 'English', 'Selection of all available report types. Please select one.');
+INSERT INTO txt VALUES ('H1503', 'German',  'Hier werden alle verf&uuml;gbaren Devices dargestellt.
     Die Ansicht kann f&uuml;r unterschiedliche Nutzer entsprechend der <a href="/help/settings/tenants">Mandantenzuordnung</a> variieren.
     F&uuml;r eine Reporterstellung muss hier eine Auswahl getroffen werden.
 ');
-INSERT INTO txt VALUES ('H1501', 'English', 'Here all available devices are displayed.
-    This may view may differ for the different users according to the <a href="/help/settings/tenants">tenant assignments</a>.
+INSERT INTO txt VALUES ('H1503', 'English', 'Here all available devices are displayed.
+    This view may differ for the different users according to the <a href="/help/settings/tenants">tenant assignments</a>.
     For the creation of a report a selection out of them has to be done.
 ');
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat zwei Reiter: Unter "Alle" werden alle aktuell abgeholten Objekte dargestellt,

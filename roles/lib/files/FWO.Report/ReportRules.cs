@@ -1,14 +1,8 @@
 ﻿using FWO.Api.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using FWO.ApiClient;
 using FWO.Report.Filter;
 using FWO.ApiClient.Queries;
-using System.Text.Json;
 using FWO.Ui.Display;
 using FWO.Logging;
 using FWO.Config.Api;
@@ -21,6 +15,7 @@ namespace FWO.Report
 
         private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
         public bool GotReportedRuleIds { get; protected set; } = false;
+
         public async Task GetReportedRuleIds(APIConnection apiConnection)
         {
             List<int> relevantDevIds = DeviceFilter.ExtractSelectedDevIds(Managements);
@@ -148,10 +143,6 @@ namespace FWO.Report
             //    ImpIdQueryVariables["mgmIds"] = mgmIds;
             Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
 
-            // save selected device state
-            Management[] tempDeviceFilter = await apiConnection.SendQueryAsync<Management[]>(DeviceQueries.getDevicesByManagements);
-            DeviceFilter.syncFilterLineToLSBFilter(Query.RawFilter, tempDeviceFilter);
-
             Managements = new Management[managementsWithRelevantImportId.Length];
             int i;
             for (i = 0; i < managementsWithRelevantImportId.Length; i++)
@@ -162,7 +153,7 @@ namespace FWO.Report
                 Managements[i] = (await apiConnection.SendQueryAsync<Management[]>(Query.FullQuery, Query.QueryVariables))[0];
                 Managements[i].Import = managementsWithRelevantImportId[i].Import;
             }
-            DeviceFilter.restoreSelectedState(tempDeviceFilter, Managements);
+
             while (gotNewObjects)
             {
                 if (ct.IsCancellationRequested)

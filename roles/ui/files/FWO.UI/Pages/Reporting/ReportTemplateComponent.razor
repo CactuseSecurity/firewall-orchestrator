@@ -73,7 +73,7 @@
                 <select id="saveTemplateReportType" class="form-control form-control-sm" @bind="reportTypeInEdit">
                     @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
                     {
-                        <option value="@reportType">@reportType</option>
+                        <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
                     }
                 </select>
             </div>

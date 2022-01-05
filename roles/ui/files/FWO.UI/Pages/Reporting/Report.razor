@@ -21,7 +21,7 @@
             <select id="reportType" class="form-control form-control-sm" @bind="selectedReportType">
                 @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
                 {
-                    <option value="@reportType">@reportType</option>
+                    <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
                 }
             </select>
         </div>
@@ -190,7 +190,7 @@
     private Management[] managementsAllObjects = new Management[0];
     private Management? globalStats = null;
     private DeviceFilter deviceFilter = new DeviceFilter();
-    private ReportType selectedReportType = ReportType.None;
+    private ReportType selectedReportType = ReportType.Rules;
 
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 

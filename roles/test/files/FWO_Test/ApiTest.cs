@@ -19,7 +19,7 @@ namespace FWO.Test.Api
         {
             ConfigFile configConnection = new ConfigFile();
             List<string> apiTestUserCredentialFields = new List<string>(){"user", "password"};
-            Dictionary<string,string> apiTestUserCredentials = configConnection.ReadAdditionalConfigFile("secrets/ApiTest.json", apiTestUserCredentialFields);
+            Dictionary<string,string> apiTestUserCredentials = configConnection.ReadAdditionalConfigFile("secrets/TestUserCreds.json", apiTestUserCredentialFields);
             string ApiUri = configConnection.ApiServerUri;
             string MiddlewareUri = configConnection.MiddlewareServerUri;
             string ProductVersion = configConnection.ProductVersion;

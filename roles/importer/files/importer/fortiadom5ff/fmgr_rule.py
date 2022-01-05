@@ -128,9 +128,9 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
 
-                # now dealing with NAT part of rule
+                # now dealing with NAT part of rule for combined rules
                 if "nat" in rule_orig and rule_orig["nat"]==1:
-                    logging.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
+                    #logging.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
                     nat_rule_number += 1
                     xlate_rule = copy.deepcopy(rule)
                     xlate_rule['rule_type'] = 'xlate'
@@ -138,41 +138,52 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                     xlate_rule['type'] = 'nat'
                     rule['rule_type'] = 'combined'
                     rule['type'] = 'combined'
-                    if 'ippool' in rule_orig and rule_orig['ippool']==0:
-                        logging.debug("found outbound interface hide nat rule") # needs to be checked
-                        if 'dstintf' in rule_orig:
-                            if len(rule_orig['dstintf'])==1:
-                                hideInterface=rule_orig['dstintf'][0]
-                            else:
-                                logging.warning("did not find exactly one nat hiding interface")
-                            
-                            # need to create an object for the ip of the dst interface and add it here as xlate src
-                            logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
+                    if 'ippool' in rule_orig:
+                        if rule_orig['ippool']==0:  # hiding behind outbound interface
+                            # logging.debug("found outbound interface hide nat rule") # needs to be checked
+                            if 'dstintf' in rule_orig:
+                                if len(rule_orig['dstintf'])==1:
+                                    hideInterface=rule_orig['dstintf'][0]
+                                else:
+                                    logging.warning("did not find exactly one nat hiding interface")
+                                # need to 
+                                # - find out ip of outbound interface
+                                # - create an object for the ip of the dst interface and add it here as xlate src
+                                logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
 
-                    if 'ippool' in rule_orig and rule_orig['ippool']==1:
-                        poolNameArray = rule_orig['poolname']
-                        if len(poolNameArray)>0:
-                            if len(poolNameArray)>1:
-                                logging.warning("found more than one ippool - ignoring all but first pool")
-                            poolName = poolNameArray[0]
-                            xlate_rule['rule_src'] = poolName
-                            xlate_rule['rule_src_ref'] = "ippool-uuid-" + poolName
+                        elif rule_orig['ippool']==1:
+                            poolNameArray = rule_orig['poolname']
+                            if len(poolNameArray)>0:
+                                if len(poolNameArray)>1:
+                                    logging.warning("found more than one ippool - ignoring all but first pool")
+                                poolName = poolNameArray[0]
+                                xlate_rule['rule_src'] = poolName
+                                xlate_rule['rule_src_ref'] = "ippool-uuid-" + poolName
+                            else:
+                                logging.warning("found ippool rule without ippool")
                         else:
-                            logging.warning("found ippool rule without ippool")
+                            logging.warning("found ippool rule with unexpected ippool value: " + rule_orig['ippool'])
                     
                     if 'fixedport' in rule_orig and rule_orig['fixedport']!=0:
                         logging.warning("found fixedport translation - ignoring for now")
-                    
+                        # need example for interpretation of config
+                    else: # no port translation - svc stays original:
+                        xlate_rule['rule_svc'] = 'Original'
+                        xlate_rule['rule_svc_refs'] = 'Original'
+
                     if 'natip' in rule_orig and rule_orig['natip']!=["0.0.0.0","0.0.0.0"]:
                         logging.warning("found explicit natip rule - ignoring for now")
-                        # need to find example for interpretation of config
+                        # need example for interpretation of config
 
+                    # last step missing is dst nat, setting to no dst NAT for the moment
+                    xlate_rule['rule_dst'] = 'Original'
+                    xlate_rule['rule_dst_refs'] = 'Original-UID'
+ 
                     rules.append(rule)
                     rules.append(xlate_rule)
 
                 else:
                     rules.append(rule)
-
 
     config2import.update({'rules': rules})
 
@@ -180,10 +191,6 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
 def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
     nat_rules = []
     list_delimiter = '|'
-    original_obj_name = 'Original'
-    original_obj_uid = '01234-12345-23456-34567'
-    config2import['network_objects'].append(fmgr_network.create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
-        uid=original_obj_uid, color='black', comment='"original" network object created by FWO importer for NAT purposes'))
 
     for rule_table in rule_tables:
         for pkg in full_config['rules_global_nat']:
@@ -249,7 +256,7 @@ def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
                     xlate_rule = dict(rule) # copy the original (match) rule
                     xlate_rule.update({'rule_src': '', 'rule_dst': '', 'rule_svc': ''})
                     xlate_rule['rule_src'] = common.extend_string_list(xlate_rule['rule_src'], rule_orig, 'orig-addr', list_delimiter)
-                    xlate_rule['rule_dst'] = original_obj_name
+                    xlate_rule['rule_dst'] = 'Original'
                     
                     if rule_orig['protocol']==17:
                         svc_name = 'udp_' + str(rule_orig['nat-port'])

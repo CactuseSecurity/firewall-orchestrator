@@ -55,6 +55,13 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
             
             obj.update({'control_id': import_id})
             nw_objects.append(obj)
+
+    # finally add "Original" network object for natting
+    original_obj_name = 'Original'
+    original_obj_uid = 'Original-UID'
+    nw_objects.append(create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
+        uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes'))
+
     config2import.update({'network_objects': nw_objects})
 
 
@@ -84,7 +91,9 @@ def add_member_names_for_nw_group(idx, nw_objects):
     nw_objects.insert(idx, group)
 
 
-def create_network_object(import_id, name, type, ip, uid, color, comment):
+def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
+    # if zone is None or zone == '':
+    #     zone = 'global'
     return {
         'control_id': import_id,
         'obj_name': name,
@@ -92,5 +101,6 @@ def create_network_object(import_id, name, type, ip, uid, color, comment):
         'obj_ip': ip,
         'obj_uid': uid,
         'obj_color': color,
-        'obj_comment': comment
+        'obj_comment': comment,
+        'obj_zone': zone
     }

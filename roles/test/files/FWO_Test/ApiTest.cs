@@ -18,6 +18,8 @@ namespace FWO.Test.Api
         public ApiTest()
         {
             ConfigFile configConnection = new ConfigFile();
+            List<string> apiTestUserCredentialFields = new List<string>(){"user", "password"};
+            Dictionary<string,string> apiTestUserCredentials = configConnection.ReadAdditionalConfigFile("secrets/ApiTest.json", apiTestUserCredentialFields);
             string ApiUri = configConnection.ApiServerUri;
             string MiddlewareUri = configConnection.MiddlewareServerUri;
             string ProductVersion = configConnection.ProductVersion;
@@ -27,8 +29,8 @@ namespace FWO.Test.Api
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             AuthenticationTokenGetParameters authenticationParameters = new AuthenticationTokenGetParameters
             {
-                Username = "user1_demo",
-                Password = "cactus1"
+                Username = apiTestUserCredentials["user"],
+                Password = apiTestUserCredentials["password"]
             };
             string jwt = middlewareClient.AuthenticateUser(authenticationParameters).Result.Data;
             apiConnection = new APIConnection(apiServerUri);

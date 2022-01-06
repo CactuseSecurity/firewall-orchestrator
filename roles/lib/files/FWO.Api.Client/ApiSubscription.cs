@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FWO.Api.Client;
 using Newtonsoft.Json.Linq;
+using FWO.Logging;
 
 namespace FWO.ApiClient
 {
@@ -35,11 +36,19 @@ namespace FWO.ApiClient
                 }
                 else
                 {
-                    JObject data = (JObject)response.Data;
-                    JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
-                    JToken result = prop.Value;
-                    SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
-                    OnUpdate(returnValue);
+                    try
+                    {
+                        JObject data = (JObject)response.Data;
+                        JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                        JToken result = prop.Value;
+                        SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
+                        OnUpdate(returnValue);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteError("GraphQL Subscription", "Subscription lead to exception", ex);
+                        throw;
+                    }
                 }
             });
         }

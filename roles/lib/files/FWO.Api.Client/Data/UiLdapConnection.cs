@@ -57,6 +57,20 @@ namespace FWO.Api.Data
             GlobalTenantName = ldapConnection.GlobalTenantName;
         }
 
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeMand(Name);
+            Address = Sanitizer.SanitizeMand(Address);
+            SearchUser = Sanitizer.SanitizeOpt(SearchUser);
+            UserSearchPath = Sanitizer.SanitizeOpt(UserSearchPath);
+            RoleSearchPath = Sanitizer.SanitizeOpt(RoleSearchPath);
+            GroupSearchPath = Sanitizer.SanitizeOpt(GroupSearchPath);
+            WriteUser = Sanitizer.SanitizeOpt(WriteUser);
+            GlobalTenantName = Sanitizer.SanitizeOpt(GlobalTenantName);
+            SearchUserPwd = Sanitizer.SanitizePasswOpt(SearchUserPwd);
+            WriteUserPwd = Sanitizer.SanitizePasswOpt(WriteUserPwd);
+        }
+
         public LdapGetUpdateParameters ToApiParams()
         {
             return new LdapGetUpdateParameters

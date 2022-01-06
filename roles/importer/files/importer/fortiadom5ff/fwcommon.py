@@ -11,7 +11,9 @@ import getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 scope = ['global', 'adom']
 
-rule_access_scope = ['rules_global_header_v4', 'rules_global_header_v6', 'rules_adom_v4', 'rules_adom_v6', 'rules_global_footer_v4', 'rules_global_footer_v6']
+rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
+rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
+rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
 rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 

@@ -367,6 +367,7 @@
     {
         try
         {
+            actManagement.Sanitize();
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
                 if (AddMode)

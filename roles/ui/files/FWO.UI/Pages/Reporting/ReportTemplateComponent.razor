@@ -163,6 +163,7 @@
     {
         try
         {
+            reportTemplateInEdit.Sanitize();
             reportTemplateInEdit.CreationDate = DateTime.Now;
             reportTemplateInEdit.Owner = userConfig.User.DbId;
 

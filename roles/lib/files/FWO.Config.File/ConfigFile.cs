@@ -146,15 +146,17 @@ namespace FWO.Config.File
         {
             try{
                 string configFileContent = System.IO.File.ReadAllText(basePath + relativePath);
-                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFileContent) ?? throw new Exception("Config file could not be parsed.");
-                foreach (string key in keys)
-                    customSettings.Add(key, configFileData[key]);
+                Dictionary<string, string> configFileData = new Dictionary<string, string>();
+                configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFileContent) ?? throw new Exception("Config file could not be parsed.");
+                customSettings = configFileData;
+                // foreach (string key in keys)
+                //     customSettings.Add(key, configFileData[key]);
             }
             catch (Exception configFileReadException)
             {
-                Log.WriteError("Config file write", $"Config file '{basePath + relativePath}' could not be read", configFileReadException);
+                Log.WriteError("Config file read", $"Config file '{basePath + relativePath}' could not be read", configFileReadException);
             }
-            return CustomSettings;
+            return customSettings;
         }
 
         public bool ConfigFileCreate(string relativePath, string fileContent = "")

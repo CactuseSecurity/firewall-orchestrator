@@ -71,7 +71,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
 
-                # now dealing with NAT part of rule for combined rules
+                # now dealing with NAT part of combined rules
                 if "nat" in rule_orig and rule_orig["nat"]==1:
                     #logging.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
                     nat_rule_number += 1
@@ -92,6 +92,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                                 # need to 
                                 # - find out ip of outbound interface
                                 # - create an object for the ip of the dst interface and add it here as xlate src
+                                # alternative: add dummy object "outbound-interface"
                                 logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
 
                         elif rule_orig['ippool']==1:

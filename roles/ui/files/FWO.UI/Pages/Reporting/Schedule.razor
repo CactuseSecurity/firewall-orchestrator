@@ -188,6 +188,7 @@
             //$report_schedule_every: Int! # every x days/weeks/months/years
             //$report_schedule_active: Boolean!
 
+            scheduledReportInEdit.Sanitize();
             if (checkInput())
             {
                 // Add report schedule to DB

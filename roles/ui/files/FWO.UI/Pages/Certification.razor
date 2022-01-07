@@ -397,6 +397,7 @@
 
     private async Task ExecuteSelected()
     {
+        actComment = Sanitizer.SanitizeMand(actComment);
         if(commentRequired && actComment == "")
         {
             DisplayMessageInUi!(null, userConfig.GetText("execute_selected"), userConfig.GetText("E4001"), true);

@@ -554,7 +554,7 @@ namespace FWO.Report.Filter.Ast
                     // how can we access the tokens[position].Position information here?
                     break;
             }
-            return ("", stop);
+            return (start, stop);
         }
 
     }

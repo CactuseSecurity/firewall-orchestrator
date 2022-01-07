@@ -156,6 +156,18 @@ namespace FWO.Api.Data
                 device.AssignRuleNumbers();
             }
         }
+
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeMand(Name);
+            Hostname = Sanitizer.SanitizeMand(Hostname);
+            ImportUser = Sanitizer.SanitizeOpt(ImportUser);
+            ConfigPath = Sanitizer.SanitizeMand(ConfigPath);
+            ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname);
+            Comment = Sanitizer.SanitizeOpt(Comment);
+            PublicKey = Sanitizer.SanitizePasswOpt(PublicKey);
+            PrivateKey = Sanitizer.SanitizePasswMand(PrivateKey);
+        }
     }
 
     public static class ManagementUtility

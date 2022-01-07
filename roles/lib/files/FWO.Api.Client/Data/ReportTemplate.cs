@@ -36,6 +36,12 @@ namespace FWO.Api.Data
             ReportParams.DeviceFilter = deviceFilter;
             ReportParams.ReportType = reportType;
         }
+
+        public void Sanitize()
+        {
+            Name = Sanitizer.SanitizeMand(Name);
+            Comment = Sanitizer.SanitizeMand(Comment);
+        }
     }
 
     public class ReportParams

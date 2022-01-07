@@ -20,10 +20,6 @@ namespace FWO.Test.Api
         {
             ConfigFile configConnection = new ConfigFile();
             Dictionary<string, string> apiTestUserCredentials = configConnection.ReadAdditionalConfigFile("secrets/TestUserCreds.json", new List<string> { "user", "password" });
-            Dictionary<string, string> apiTestUserCredentials2 = configConnection.CustomSettings;
-            Console.WriteLine($"found {apiTestUserCredentials2.Count} settings in secrets/TestUserCreds.json");
-            foreach (string k in apiTestUserCredentials2.Keys)
-                Console.WriteLine($"{k}: {apiTestUserCredentials2[k]}");
             string ApiUri = configConnection.ApiServerUri;
             string MiddlewareUri = configConnection.MiddlewareServerUri;
             string ProductVersion = configConnection.ProductVersion;

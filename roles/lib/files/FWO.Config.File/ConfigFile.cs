@@ -145,7 +145,7 @@ namespace FWO.Config.File
         public Dictionary<string,string> ReadAdditionalConfigFile(string relativePath, List<string> keys)
         {
             try{
-                string configFileContent = System.IO.File.ReadAllText(basePath + relativePath);
+                string configFileContent = System.IO.File.ReadAllText(basePath + "/" + relativePath);
                 Dictionary<string, string> configFileData = new Dictionary<string, string>();
                 configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFileContent) ?? throw new Exception("Config file could not be parsed.");
                 customSettings = configFileData;

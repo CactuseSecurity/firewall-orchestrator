@@ -11,7 +11,7 @@ product_name: fworch
 installation_mode: new
 install_syslog: true
 run_on_github: false
-without_sample_data: false
+add_demo_data: true
 api_docu: false
 # initialize upgrade files list to empty, needed when running in test only mode (-t test):
 upgrade_files: []

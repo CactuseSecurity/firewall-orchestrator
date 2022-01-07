@@ -270,11 +270,15 @@ BEGIN
 		IF r_to_import.rule_type = 'xlate' THEN
 			SELECT INTO r_existing * FROM rule WHERE
 				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.nat_rule AND rule.xlate_rule IS NULL;
-		ELSE -- standard access rule
-			SELECT INTO r_existing * FROM rule WHERE
-				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND NOT rule.nat_rule AND rule.access_rule;
+
+			ELSE -- standard access rule or combined original rule 
+				SELECT INTO r_existing * FROM rule WHERE
+	--				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND NOT rule.nat_rule AND rule.access_rule;
+					rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.access_rule AND 
+					((rule.nat_rule AND rule.xlate_rule IS NOT NULL) OR NOT rule.nat_rule AND rule.xlate_rule IS NULL);
+			END IF;
 		END IF;
-	END IF;
+
 
 	-- IF NOT SELECT COUNT(r_existing) == 1
 	RAISE DEBUG 'insert_single_rule 2, rule_id: %', id;

@@ -127,17 +127,63 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_dst_refs': common.resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-
                 # now dealing with NAT part of combined rules
                 if "nat" in rule_orig and rule_orig["nat"]==1:
                     #logging.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
                     nat_rule_number += 1
+                    # rule = {
+                    #     'control_id': import_id,
+                    #     'rulebase_name': pkg_name,
+                    #     'rule_uid': rule['rule_uid'],
+                    #     'rule_src': rule['rule_src'],
+                    #     'rule_dst': rule['rule_dst'],
+                    #     'rule_svc': rule['rule_svc'],
+                    #     'rule_src_refs': rule['rule_src_refs'],
+                    #     'rule_dst_refs': rule['rule_dst_refs'],
+                    #     'rule_svc_refs': rule['rule_svc_refs'],
+                    #     'rule_action': rule['rule_action'],
+                    #     'rule_track': rule['rule_track'],
+                    #     # 'type': 'nat',
+                    #     'rule_num': rule['rule_num'],
+                    #     'rule_src_neg': rule['rule_src_neg'],
+                    #     'rule_dst_neg': rule['rule_dst_neg'],
+                    #     'rule_svc_neg': rule['rule_svc_neg'],
+                    #     # 'rule_installon': rule['rule_installon'],
+                    #     # 'rule_time': None,
+                    #     'rule_disabled': rule['rule_disabled'],
+                    #     'rule_comment': rule['rule_comment'],
+                    #     'rule_type': 'original'
+                    # }
+                    # xlate_rule = {
+                    #     'control_id': import_id,
+                    #     'rulebase_name': pkg_name,
+                    #     'rule_uid': rule['rule_uid'],
+                    #     'rule_src': rule['rule_src'],
+                    #     'rule_dst': rule['rule_dst'],
+                    #     'rule_svc': rule['rule_svc'],
+                    #     'rule_src_refs': rule['rule_src_refs'],
+                    #     'rule_dst_refs': rule['rule_dst_refs'],
+                    #     'rule_svc_refs': rule['rule_svc_refs'],
+                    #     'rule_action': rule['rule_action'],
+                    #     'rule_track': rule['rule_track'],
+                    #     # 'type': 'nat',
+                    #     'rule_num': rule['rule_num'],
+                    #     'rule_disabled': True,
+                    #     'rule_src_neg': False,
+                    #     'rule_dst_neg': False,
+                    #     'rule_svc_neg': False,
+                    #     #'rule_installon': [{'name': 'Policy Targets'}],
+                    #     #'rule_time': [{'name': 'Any'}],
+                    #     'rule_type': 'xlate'
+                    # }                    
                     xlate_rule = copy.deepcopy(rule)
-                    xlate_rule['rule_type'] = 'xlate'
-                    # xlate_rule['rule_uid'] = rule['rule_uid']
-                    xlate_rule['type'] = 'nat'
                     rule['rule_type'] = 'combined'
-                    rule['type'] = 'combined'
+                    xlate_rule['rule_type'] = 'xlate'
+                    xlate_rule['rule_comment'] = None
+                    xlate_rule['rule_disabled'] = False
+                    #xlate_rule['rule_uid'] = rule['rule_uid']
+#                    xlate_rule['type'] = 'nat'
+#                    rule['type'] = 'combined'
                     if 'ippool' in rule_orig:
                         if rule_orig['ippool']==0:  # hiding behind outbound interface
                             # logging.debug("found outbound interface hide nat rule") # needs to be checked

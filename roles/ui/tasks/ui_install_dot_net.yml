@@ -45,7 +45,7 @@
   environment: "{{ proxy_env }}"
 
 - name: publish blazor ui
-  command: "dotnet publish -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }} -p:PublishSingleFile=true -r linux-x64"
+  command: "dotnet publish --no-self-contained -c {{ dotnet_mode }} -o {{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }} -p:PublishSingleFile=true -r linux-x64"
   args:
     chdir: "{{ ui_start_dir }}"
   become: yes

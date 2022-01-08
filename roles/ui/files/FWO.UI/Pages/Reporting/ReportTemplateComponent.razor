@@ -7,18 +7,23 @@
 <div class="mr-1 ml-1 mb-1 shadow">
     <Collapse Title="@(userConfig.GetText("templates"))" Style="@("primary")" @ref="collapseControl">
         <div class="card-body">
-            <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates">
+            <Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportTemplate" Items="reportTemplates" PageSize="0">
                 <Column Title="@(userConfig.GetText("action"))" TableItem="ReportTemplate">
                     <Template Context="template">
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(userConfig.GetText("load"))</button>
-                            @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                            @if (template.Owner == userConfig.User.DbId || authenticationStateTask.Result.User.IsInRole("admin"))
-                            {
-                                <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = adaptText(template); ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
-                                <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
-                            }
-                        </div>
+                        @if (OnTemplateLoad != null)
+                        {
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-success" @onclick="() => OnTemplateLoad(template)">@(userConfig.GetText("load"))</button>
+                                @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
+                                @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
+                                {
+                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = adaptText(template); 
+                                                                                             reportTypeInEdit = (reportTemplateInEdit.ReportParams.ReportType != null ? (ReportType)reportTemplateInEdit.ReportParams.ReportType : ReportType.None);
+                                                                                             ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
+                                }
+                            </div>
+                        }
                     </Template>
                 </Column>
                 <Column Title="@(userConfig.GetText("name"))" TableItem="ReportTemplate">
@@ -35,7 +40,7 @@
                 </Column>
                 <Column Title="@(userConfig.GetText("comment"))" TableItem="ReportTemplate" Field="x => x.Comment" >
                     <Template>
-                        @if (context.Comment.StartsWith("T01"))
+                        @if (context.Comment != null && context.Comment.StartsWith("T01"))
                         {
                             @(userConfig.GetText(context.Comment))
                         }
@@ -64,13 +69,22 @@
                 <textarea id="saveTemplateComment" class="form-control" @bind="reportTemplateInEdit.Comment" />
             </div>
             <div class="form-group">
+                <label for="saveTemplateReportType">@(userConfig.GetText("report_type")):</label>
+                <select id="saveTemplateReportType" class="form-control form-control-sm" @bind="reportTypeInEdit">
+                    @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
+                    {
+                        <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="saveTemplateFilterLineTextarea">@(userConfig.GetText("filter")):</label>
                 <textarea id="saveTemplateFilterLineTextarea" class="form-control" @bind="reportTemplateInEdit.Filter" />
             </div>
         </div>
     </Body>
     <Footer>
-        <button class="btn btn-primary" @onclick="async () => { if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">@(userConfig.GetText("save"))</button>
+        <button class="btn btn-primary" @onclick="async () => {reportTemplateInEdit.ReportParams.ReportType = (int?)reportTypeInEdit; if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">@(userConfig.GetText("save"))</button>
         <button class="btn btn-secondary" @onclick="() => ShowEditTemplateDialog = ShowSaveTemplateDialog = false">@(userConfig.GetText("cancel"))</button>
     </Footer>
 </PopUp>
@@ -88,22 +102,23 @@
 @code
 {
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     [CascadingParameter]
-    private Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    private Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [Parameter]
-    public Action<ReportTemplate> OnTemplateLoad { get; set; }
+    public Action<ReportTemplate>? OnTemplateLoad { get; set; }
 
-    public List<ReportTemplate> reportTemplates { get; set; }
-    public ReportTemplate reportTemplateInEdit = null;
+    public List<ReportTemplate> reportTemplates { get; set; } = new List<ReportTemplate>();
+    public ReportTemplate reportTemplateInEdit = new ReportTemplate();
+    private ReportType reportTypeInEdit = ReportType.None;
 
     private bool ShowSaveTemplateDialog = false;
     private bool ShowEditTemplateDialog = false;
     private bool ShowDeleteTemplateDialog = false;
 
-    private Collapse collapseControl;
+    private Collapse collapseControl = new Collapse();
 
     protected override async Task OnInitializedAsync()
     {
@@ -114,7 +129,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("template_fetch"), "", true);
         }
     }
 
@@ -123,9 +138,15 @@
         collapseControl.ForceCollapse(false);
     }
 
-    public void NewTemplate(string filterInput)
+    public async Task Uncollapse()
     {
-        reportTemplateInEdit = new ReportTemplate { Filter = filterInput };
+        await collapseControl.ToggleCollapse();
+    }
+
+    public void NewTemplate(string filterInput, DeviceFilter deviceFilter, ReportType reportType)
+    {
+        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType);
+        reportTypeInEdit = reportType;
         ShowSaveTemplateDialog = true;
     }
 
@@ -142,6 +163,7 @@
     {
         try
         {
+            reportTemplateInEdit.Sanitize();
             reportTemplateInEdit.CreationDate = DateTime.Now;
             reportTemplateInEdit.Owner = userConfig.User.DbId;
 
@@ -151,18 +173,26 @@
                 reportFilterLine = reportTemplateInEdit.Filter,
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
                 reportTemplateComment = reportTemplateInEdit.Comment,
-                reportTemplateOwner = reportTemplateInEdit.Owner
+                reportTemplateOwner = reportTemplateInEdit.Owner,
+                reportParameters = reportTemplateInEdit.ReportParams
             };
 
-            reportTemplateInEdit.Id = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds[0].NewId;
-            reportTemplates.Add(reportTemplateInEdit);
-
-            ShowSaveTemplateDialog = false;
-            StateHasChanged();
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(ReportQueries.addReportTemplate, queryVariables)).ReturnIds;
+            if (returnIds != null)
+            {
+                reportTemplateInEdit.Id = returnIds[0].NewId;
+                reportTemplates.Add(reportTemplateInEdit);
+                ShowSaveTemplateDialog = false;
+                StateHasChanged();
+            }
+            else
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("save_template"), userConfig.GetText("E1004"), true);
+            }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("save_template"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("save_template"), "", true);
         }
     }
 
@@ -170,14 +200,25 @@
     {
         try
         {
-            await apiConnection.SendQueryAsync<object>(ReportQueries.editReportTemplate, reportTemplateInEdit);
+            var queryVariables = new
+            {
+                reportTemplateId = reportTemplateInEdit.Id,
+                reportTemplateName = reportTemplateInEdit.Name,
+                reportFilterLine = reportTemplateInEdit.Filter,
+                reportTemplateCreate = reportTemplateInEdit.CreationDate,
+                reportTemplateComment = reportTemplateInEdit.Comment,
+                reportTemplateOwner = reportTemplateInEdit.Owner,
+                reportParameters = reportTemplateInEdit.ReportParams
+            };
+
+            await apiConnection.SendQueryAsync<object>(ReportQueries.editReportTemplate, queryVariables);
             reportTemplates[reportTemplates.FindIndex(reportTemplate => reportTemplate.Id == reportTemplateInEdit.Id)] = reportTemplateInEdit;
 
             ShowEditTemplateDialog = false;
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("edit_template"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("edit_template"), "", true);
         }
     }
 
@@ -190,17 +231,24 @@
                 reportTemplateId = reportTemplateInEdit.Id
             };
 
-            await apiConnection.SendQueryAsync<object>(ReportQueries.deleteReportTemplate, queryVariables);
-            reportTemplates.Remove(reportTemplates.Find(reportTemplate => reportTemplate.Id == reportTemplateInEdit.Id));
-
-            ShowDeleteTemplateDialog = false;
+            int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(ReportQueries.deleteReportTemplate, queryVariables)).AffectedRows;
+            if (affectedRows > 0)
+            {
+                ReportTemplate? templateToRemove = reportTemplates.Find(reportTemplate => reportTemplate.Id == reportTemplateInEdit.Id);
+                if (templateToRemove != null)
+                {
+                    reportTemplates.Remove(templateToRemove);
+                }
+                ShowDeleteTemplateDialog = false;
+            }
+            else
+            {
+                DisplayMessageInUi!(null, userConfig.GetText("delete_template"), userConfig.GetText("E1005"), true);
+            }
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("delete_template"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_template"), "", true);
         }
     }
 }
-
-
-

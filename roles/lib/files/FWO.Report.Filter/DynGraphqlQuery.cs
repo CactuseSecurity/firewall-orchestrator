@@ -1,6 +1,6 @@
 using FWO.Report.Filter.Ast;
-using System.Collections.Generic;
 using FWO.ApiClient.Queries;
+using FWO.Api.Data;
 using System.Text.RegularExpressions;
 
 namespace FWO.Report.Filter
@@ -24,27 +24,65 @@ namespace FWO.Report.Filter
             " $relevantImportId: bigint"
         };
         public string ReportTime { get; set; } = "";
-        public string ReportType { get; set; } = "";
+
+        public ReportType ReportType { get; set; } = ReportType.None;
 
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
-        public static DynGraphqlQuery Generate(string rawInput, AstNode ast, bool detailed)
+        private static void SetFixedFilters(ref DynGraphqlQuery query, DeviceFilter? deviceFilter, ReportType? reportType)
+        {
+            bool first = true;
+            query.ruleWhereStatement += "_and: [";
+
+            // leave out all header texts
+            if (reportType != null && reportType == ReportType.Statistics)
+            {
+                query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
+            }
+
+            if (deviceFilter != null)
+            {
+                query.ruleWhereStatement += "{_or: [{";
+                foreach (ManagementSelect mgmt in deviceFilter.Managements)
+                {
+                    foreach (DeviceSelect dev in mgmt.Devices)
+                    {
+                        if (dev.Selected == true)
+                        {
+                            if (first == false)
+                            {
+                                query.ruleWhereStatement += "}, {";
+                            }
+                            query.ruleWhereStatement += $" device: {{dev_id: {{_eq:{dev.Id}}} }}";
+                            first = false;
+                        }
+                    }
+                }
+                query.ruleWhereStatement += "}]}, ";
+            }
+            query.ruleWhereStatement += "{";
+        }
+
+        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode ast, DeviceFilter? deviceFilter, ReportType? reportType, bool detailed)
         {
             DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
 
-            // now we convert the ast into a graphql query:
-            ast.Extract(ref query);
+            SetFixedFilters(ref query, deviceFilter, reportType);
 
-            // if any filter is set, optionally leave out all header texts
+            // now we convert the ast into a graphql query:
+            ast.Extract(ref query, reportType);
+
+            // Close device filter
+            query.ruleWhereStatement += "}] ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());
-            switch (query.ReportType)
+            switch (reportType)
             {
                 // todo: move $mdmId filter from management into query.xxxWhereStatement
                 // management(where: {{mgm_id: {{_in: $mgmId }} }} order_by: {{ mgm_name: asc }}) 
                         // management(order_by: {{ mgm_name: asc }}) 
-                case "statistics":
+                case ReportType.Statistics:
                     query.FullQuery = $@"
                     query statisticsReport ({paramString}) 
                     {{ 
@@ -52,6 +90,7 @@ namespace FWO.Report.Filter
                             where: {{ 
                                 hide_in_gui: {{_eq: false }}  
                                 mgm_id: {{_in: $mgmId }} 
+                                stm_dev_typ:{{dev_typ_is_multi_mgmt:{{_eq:false}} }}
                             }}
                             order_by: {{ mgm_name: asc }}
                         ) 
@@ -72,13 +111,18 @@ namespace FWO.Report.Filter
                     }}";
                     break;                
 
-                case "rules":
+                case ReportType.Rules:
                     query.FullQuery = $@"
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query rulesReport ({paramString}) 
                     {{ 
-                        management( where: {{ mgm_id: {{_in: $mgmId }}, hide_in_gui: {{_eq: false }} }} order_by: {{ mgm_name: asc }} ) 
+                        management( where: 
+                            {{ 
+                                mgm_id: {{_in: $mgmId }}, 
+                                hide_in_gui: {{_eq: false }} 
+                                stm_dev_typ:{{dev_typ_is_multi_mgmt:{{_eq:false}} }}
+                            }} order_by: {{ mgm_name: asc }} ) 
                             {{
                                 id: mgm_id
                                 name: mgm_name
@@ -99,12 +143,12 @@ namespace FWO.Report.Filter
                     }}";
                     break;
                     
-                case "changes":
+                case ReportType.Changes:
                     query.FullQuery = $@"
                     {(detailed ? RuleQueries.ruleDetailsForReportFragments : RuleQueries.ruleOverviewFragments)}
 
                     query changeReport({paramString}) {{
-                        management(where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{mgm_name: asc}}) 
+                        management(where: {{ hide_in_gui: {{_eq: false }} stm_dev_typ:{{dev_typ_is_multi_mgmt:{{_eq:false}} }} }} order_by: {{mgm_name: asc}}) 
                         {{
                             id: mgm_id
                             name: mgm_name
@@ -139,6 +183,33 @@ namespace FWO.Report.Filter
                             }}
                         }}
                     ";
+                    break;
+
+                case ReportType.NatRules:
+                    query.FullQuery = $@"
+                    {(detailed ? RuleQueries.natRuleDetailsForReportFragments : RuleQueries.natRuleOverviewFragments)}
+
+                    query natRulesReport ({paramString}) 
+                    {{ 
+                        management( where: {{ mgm_id: {{_in: $mgmId }}, hide_in_gui: {{_eq: false }} stm_dev_typ:{{dev_typ_is_multi_mgmt:{{_eq:false}} }} }} order_by: {{ mgm_name: asc }} ) 
+                            {{
+                                id: mgm_id
+                                name: mgm_name
+                                devices ( where: {{ hide_in_gui: {{_eq: false }} }} order_by: {{ dev_name: asc }} ) 
+                                    {{
+                                        id: dev_id
+                                        name: dev_name
+                                        rules(
+                                            limit: $limit 
+                                            offset: $offset
+                                            where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.ruleWhereStatement} }} 
+                                            order_by: {{ rule_num_numeric: asc }} )
+                                            {{
+                                                ...{(detailed ? "natRuleDetails" : "natRuleOverview")}
+                                            }} 
+                                    }}
+                            }} 
+                    }}";
                     break;
             }
 

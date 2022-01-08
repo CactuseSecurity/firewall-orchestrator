@@ -1,8 +1,8 @@
 # this playbook sets up some sample devices with configs to play around with
-# postgresql-client
 
 - name: create import sample user and copy configs
   include_tasks: setup-sample-import.yml
+  when: "installation_mode=='new' or sample_role_purpose is match('test')"
 
 - name: install package postgresql-client for adding sample devices to db
   package:
@@ -18,21 +18,10 @@
   become_user: "{{ fworch_user }}"
 
 - name: create sample devices in database
-  import_tasks: create-devices.yml
+  include_tasks: create-devices.yml
+  when: installation_mode=='new' or sample_role_purpose is match('test')
 
-- name: insert admin tenant0 to device mapping - tenant0 can see all devices
-  postgresql_query:
-    db: "{{ fworch_db_name }}"
-    query: >
-      DO $do$ BEGIN IF NOT EXISTS (SELECT * FROM tenant_to_device LEFT JOIN tenant USING (tenant_id) WHERE tenant_name='tenant0')
-        THEN INSERT INTO tenant_to_device (tenant_id, device_id) 
-          select tenant.tenant_id, device.dev_id FROM tenant, device WHERE tenant_name='tenant0'; 
-        END IF; 
-      END $do$
-  become: yes
-  become_user: postgres
-
-# above we are adding localhost keys to known_hosts, here again but hashed. Both necessary?
+#todo: above we are adding localhost keys to known_hosts, here again but hashed. Both necessary?
 - name: scan localhost ssh keys
   known_hosts:
     name: 127.0.0.1
@@ -40,10 +29,10 @@
   become: yes
   become_user: "{{ fworch_user }}" 
 
-- name: establish cron job to simulate hourly changes to configs
-  import_tasks: setup-config-changes.yml
-  when: sample_role_purpose is not match('test')
+- name: establish cron job to simulate changes to configs (only demo and new installation)
+  include_tasks: setup-config-changes.yml
+  when: installation_mode=='new' and sample_role_purpose is not match('test')
 
 - name: add second ldap database
-  import_tasks: add_second_ldap_db.yml
+  include_tasks: add_second_ldap_db.yml
   when: (second_ldap_db | bool) and (sample_role_purpose is not match('test'))

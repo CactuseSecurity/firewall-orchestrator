@@ -1,8 +1,5 @@
 using FWO.Report.Filter.Ast;
 using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Data;
 
 namespace FWO.Report.Filter
 {
@@ -18,89 +15,42 @@ namespace FWO.Report.Filter
 
         public AstNode Parse()
         {
-            AstNode root = ParseReportType();
+            AstNode root = ParseTime();
 
-            if (NextTokenExists() == true)
+            if (NextTokenExists())
             {
                 throw new SyntaxException($"Unexpected token ({GetNextToken()}). Expected token: none.", tokens[position].Position); // Unexpected token
             }
-
             else
             {
                 return root;
             }
         }
 
-        private AstNode ParseReportType()
+        private AstNode ParseTime()
         {
-            if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.ReportType)
-            {
-                return new AstNodeConnector()
-                {
-                    Left = new AstNodeFilter()
-                    {
-                        Name = TokenKind.ReportType,
-                        Operator = TokenKind.EQ,
-                        Value = "rules"
-                    },
-                    ConnectorType = TokenKind.And,
-
-                    Right = ParseTime()
-                };
-            }
-            else
+            if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.Time)
             {
                 AstNodeConnector root = new AstNodeConnector
                 {
                     Left = new AstNodeFilter()
                     {
-                        Name = CheckToken(TokenKind.ReportType).Kind,
-                        Operator = CheckToken(TokenKind.EQ).Kind,
-                        Value = ParseValue()
+                        Name = new Token(new Range(0, 0), "", TokenKind.Time),
+                        Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
+                        Value = new Token(new Range(0, 0), "now", TokenKind.Value) //DateTime.Now.ToString()
                     }
                 };
 
                 if (NextTokenExists())
                 {
-                    root.ConnectorType = CheckToken(TokenKind.And).Kind;
-                    root.Right = ParseTime();
+                    root.Connector = new Token(new Range(0, 0), "", TokenKind.And);
+                    root.Right = ParseStart();
                     return root;
                 }
-
                 else
                 {
                     return root.Left;
                 }
-            }
-        }
-
-        private AstNode ParseTime()
-        {
-            if (NextTokenExists() == false)
-            {
-                return new AstNodeFilter()
-                {
-                    Name = TokenKind.Time,
-                    Operator = TokenKind.EQ,
-                    Value = "now" //DateTime.Now.ToString()
-                };
-            }
-
-            else if (GetNextToken().Kind != TokenKind.Time)
-            {
-                return new AstNodeConnector
-                {
-                    Left = new AstNodeFilter()
-                    {
-                        Name = TokenKind.Time,
-                        Operator = TokenKind.EQ,
-                        Value = "now" //DateTime.Now.ToString()
-                    },
-
-                    ConnectorType = TokenKind.And,
-
-                    Right = ParseStart()
-                };
             }
 
             else // TokenKinde == Time
@@ -109,15 +59,15 @@ namespace FWO.Report.Filter
                 {
                     Left = new AstNodeFilter()
                     {
-                        Name = CheckToken(TokenKind.Time).Kind,
-                        Operator = CheckToken(TokenKind.EQ).Kind,
-                        Value = ParseValue()
+                        Name = CheckToken(TokenKind.Time),
+                        Operator = ParseOperator(),
+                        Value = CheckToken(TokenKind.Value)
                     }
                 };
 
                 if (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
                 {
-                    root.ConnectorType = CheckToken(TokenKind.And).Kind;
+                    root.Connector = CheckToken(TokenKind.And);
                     root.Right = ParseStart();
                     return root;
                 }
@@ -135,9 +85,9 @@ namespace FWO.Report.Filter
             {
                 return new AstNodeFilter
                 {
-                    Name = TokenKind.Value,
-                    Operator = TokenKind.EQ,
-                    Value = CheckToken(TokenKind.Value).Text
+                    Name = new Token(new Range(0, 0), "", TokenKind.Value),
+                    Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
+                    Value = CheckToken(TokenKind.Value)
                 };
             }
 
@@ -152,17 +102,15 @@ namespace FWO.Report.Filter
             AstNodeConnector rootNode = new AstNodeConnector()
             {
                 Left = ParseAnd(),
-                ConnectorType = TokenKind.Or
             };
 
             while (NextTokenExists() && GetNextToken().Kind == TokenKind.Or)
             {
-                CheckToken(TokenKind.Or);
+                rootNode.Connector = CheckToken(TokenKind.Or);
                 rootNode.Right = ParseAnd();
                 rootNode = new AstNodeConnector()
                 {
-                    Left = rootNode,
-                    ConnectorType = TokenKind.Or
+                    Left = rootNode
                 };
             }
 
@@ -170,7 +118,6 @@ namespace FWO.Report.Filter
             {
                 return rootNode;
             }
-
             else
             {
                 return rootNode.Left;
@@ -182,17 +129,15 @@ namespace FWO.Report.Filter
             AstNodeConnector rootNode = new AstNodeConnector()
             {
                 Left = ParseNot(),
-                ConnectorType = TokenKind.And
             };
 
             while (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
             {
-                CheckToken(TokenKind.And);
+                rootNode.Connector = CheckToken(TokenKind.And);
                 rootNode.Right = ParseNot();
                 rootNode = new AstNodeConnector()
                 {
                     Left = rootNode,
-                    ConnectorType = TokenKind.And
                 };
             }
 
@@ -213,8 +158,7 @@ namespace FWO.Report.Filter
 
             if (GetNextToken().Kind == TokenKind.Not)
             {
-                CheckToken(TokenKind.Not);
-                rootNode.Kind = TokenKind.Not;
+                rootNode.Operator = CheckToken(TokenKind.Not);
                 rootNode.Value = ParseNot();
                 return rootNode;
             }
@@ -224,14 +168,12 @@ namespace FWO.Report.Filter
 
         private AstNode ParseAtom()
         {
-            if (GetNextToken().Kind == TokenKind.BL)
+            switch (GetNextToken().Kind)
             {
-                return ParseBracket();
-            }
-
-            else
-            {
-                return ParseFilter();
+                case TokenKind.BL:
+                    return ParseBracket();
+                default:
+                    return ParseFilter();
             }
         }
 
@@ -250,68 +192,51 @@ namespace FWO.Report.Filter
             {
                 Name = ParseFilterName(),
                 Operator = ParseOperator(),
-                Value = ParseValue()
+                Value = CheckToken(TokenKind.Value)
             };
         }
 
-        private TokenKind ParseOperator()
+        private Token ParseOperator()
         {
-            return CheckToken(TokenKind.EQ, TokenKind.NEQ).Kind;
+            return CheckToken(TokenKind.EQ, TokenKind.NEQ, TokenKind.LSS, TokenKind.GRT);
         }
 
-        private string ParseValue()
-        {
-            return CheckToken(TokenKind.Value).Text;
-        }
-
-        private TokenKind ParseFilterName()
+        private Token ParseFilterName()
         {
             return CheckToken(
                 TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
-                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay).Kind;
+                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay);
         }
 
-        private Token CheckToken(params TokenKind[] Matches)
+        private Token CheckToken(params TokenKind[] expectedTokenKinds)
         {
-            Token TokenToCheck = GetNextToken();
+            Token tokenToCheck = GetNextToken();
 
-            for (int i = 0; i < Matches.Length; i++)
+            if (Array.IndexOf(expectedTokenKinds, tokenToCheck.Kind) != -1)
             {
-                if (TokenToCheck.Kind == Matches[i])
-                {
-                    position++;
-                    return TokenToCheck;
-                }
+                position++;
+                return tokenToCheck;
             }
 
-            throw new SyntaxException($"Unexpected token ({TokenToCheck}). Expected tokens of type: {string.Join(", ", Matches)}.", TokenToCheck.Position); // Wrong token
+            throw new SyntaxException($"Unexpected token ({tokenToCheck}). Expected token of type: {string.Join(" / ", expectedTokenKinds)}.", tokenToCheck.Position); // Wrong token
         }
 
         private Token GetNextToken()
         {
-            if (position >= tokens.Count)
-            {
-                throw new SyntaxException("No token but one was expected", tokens[tokens.Count - 1].Position); // No token but one was expected
-            }
-
-            else
+            if (NextTokenExists())
             {
                 return tokens[position];
+            }
+            else
+            {
+                throw new SyntaxException("No token but one was expected", tokens[^1].Position); // No token but one was expected
             }
         }
 
         private bool NextTokenExists()
         {
-            if (position >= tokens.Count)
-            {
-                return false;
-            }
-
-            else
-            {
-                return true;
-            }
+            return position < tokens.Count;
         }
     }
 }

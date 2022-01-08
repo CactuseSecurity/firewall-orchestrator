@@ -58,7 +58,7 @@
       Content-Type: application/json
       x-hasura-role: anonymous
     body:
-      query: "query { object {obj_name} }"
+      query: "query { object(limit:3) {obj_name} }"
     body_format: json
     validate_certs: false
     return_content: yes
@@ -81,7 +81,7 @@
     headers:
       Content-Type: application/json
     body:
-      Username: user1_demo
+      Username: user1{{ test_postfix }}
       Password: cactus1
     body_format: json
     validate_certs: false
@@ -99,7 +99,7 @@
       # Remove leading and trailing text of jwt output
       Authorization: Bearer {{ sample_JWT.content }}
     body:
-      query: "query text { txt { id } }"
+      query: "query text { txt(limit:3) { id } }"
     body_format: json
     validate_certs: false
     return_content: yes

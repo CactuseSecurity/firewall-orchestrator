@@ -28,17 +28,17 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
-    ConfigDbAccess config;
+    ConfigDbAccess? config;
     int elementsPerFetch = 100;
 
     protected override async Task OnInitializedAsync()
     {
-        AuthenticationState authState = await authenticationStateTask;
+        AuthenticationState authState = await authenticationStateTask!;
         try
         {
             config = new ConfigDbAccess(apiConnection, userConfig);
@@ -61,7 +61,7 @@
         catch (KeyNotFoundException) { }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5421")+elementsPerFetch.ToString(), false);
+            DisplayMessageInUi!(exception, userConfig.GetText("report_settings"), userConfig.GetText("E5421")+elementsPerFetch.ToString(), false);
         }
     }
 
@@ -71,11 +71,11 @@
         try
         {
             await userConfig.ChangeConfigValue(GlobalConfig.kElementsPerFetch, elementsPerFetchString, apiConnection);
-            DisplayMessageInUi(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
+            DisplayMessageInUi!(null, userConfig.GetText("report_settings"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("report_settings"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("report_settings"), "", true);
         }
     }
 }

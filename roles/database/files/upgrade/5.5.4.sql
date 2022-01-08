@@ -1,0 +1,11 @@
+insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'False', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('fwApiElementsPerFetch', '150', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('recertificationPeriod', '365', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('recertificationNoticePeriod', '30', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('recertificationDisplayPeriod', '30', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('ruleRemovalGracePeriod', '60', 0) ON CONFLICT DO NOTHING;
+insert into config (config_key, config_value, config_user) VALUES ('commentRequired', 'False', 0) ON CONFLICT DO NOTHING;

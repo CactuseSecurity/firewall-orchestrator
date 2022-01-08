@@ -270,11 +270,15 @@ BEGIN
 		IF r_to_import.rule_type = 'xlate' THEN
 			SELECT INTO r_existing * FROM rule WHERE
 				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.nat_rule AND rule.xlate_rule IS NULL;
-		ELSE -- standard access rule
-			SELECT INTO r_existing * FROM rule WHERE
-				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND NOT rule.nat_rule AND rule.access_rule;
+
+			ELSE -- standard access rule or combined original rule 
+				SELECT INTO r_existing * FROM rule WHERE
+	--				rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND NOT rule.nat_rule AND rule.access_rule;
+					rule_uid=r_to_import.rule_uid AND rule.mgm_id=i_mgm_id AND rule.dev_id=i_dev_id AND rule.active AND rule.access_rule AND 
+					((rule.nat_rule AND rule.xlate_rule IS NOT NULL) OR NOT rule.nat_rule AND rule.xlate_rule IS NULL);
+			END IF;
 		END IF;
-	END IF;
+
 
 	-- IF NOT SELECT COUNT(r_existing) == 1
 	RAISE DEBUG 'insert_single_rule 2, rule_id: %', id;
@@ -364,61 +368,65 @@ BEGIN
 					END IF;
 				END IF;
 			END IF;
-			-- RAISE DEBUG 'rule_change_change before insert 
-			-- 	mgm_id=%
-			-- 	rule_name=%
-			-- 	rule_num=%
-			-- 	rule_ruleid=%
-			-- 	rule_uid=%
-			-- 	rule_disabled=%
-			-- 	rule_src_neg=%
-			-- 	rule_dst_neg=%
-			-- 	rule_svc_neg=%
-			-- 	action_id=%
-			-- 	track_id=%
-			-- 	rule_src=%
-			-- 	rule_dst=%
-			-- 	rule_svc=%
-			-- 	rule_src_refs=%
-			-- 	rule_dst_refs=%
-			-- 	rule_svc_refs=%
-			-- 	rule_action=%
-			-- 	rule_track=%
-			-- 	rule_installon=%
-			-- 	rule_time=%
-			-- 	rule_from_zone=%
-			-- 	rule_to_zone=%
-			-- 	rule_comment=%
-			-- 	rule_implied=%
-			-- 	rule_head_text=%
-			-- 	last_change_admin=%
-			-- 	rule_create=%
-			-- 	rule_last_seen=%
-			-- 	dev_id=%
-			-- 	parent_rule_id=%
-			-- 	parent_rule_type=%',
-			-- 	i_mgm_id,r_to_import.rule_name,i_rule_num,r_to_import.rule_ruleid,r_to_import.rule_uid,
-			-- 	r_to_import.rule_disabled,r_to_import.rule_src_neg,r_to_import.rule_dst_neg,r_to_import.rule_svc_neg,
-			-- 	i_action_id,i_track_id,r_to_import.rule_src,r_to_import.rule_dst,r_to_import.rule_svc,
-			-- 	r_to_import.rule_src_refs,r_to_import.rule_dst_refs,r_to_import.rule_svc_refs,
-			-- 	lower(r_to_import.rule_action),r_to_import.rule_track,r_to_import.rule_installon,r_to_import.rule_time,
-			-- 	i_fromzone,i_tozone, r_to_import.rule_comment,r_to_import.rule_implied,r_to_import.rule_head_text,i_admin_id,
-			-- 	i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type;
-
-			INSERT INTO rule
-				(mgm_id,rule_name,rule_num,rule_ruleid,rule_uid,rule_disabled,rule_src_neg,rule_dst_neg,rule_svc_neg,
-				action_id,track_id,rule_src,rule_dst,rule_svc,rule_src_refs,rule_dst_refs,rule_svc_refs,rule_action,rule_track,rule_installon,rule_time,
-				rule_from_zone,rule_to_zone,rule_comment,rule_implied,rule_head_text,last_change_admin,
-				rule_create,rule_last_seen, dev_id, parent_rule_id, parent_rule_type, access_rule, nat_rule)
-			VALUES (i_mgm_id,r_to_import.rule_name,i_rule_num,r_to_import.rule_ruleid,r_to_import.rule_uid,
-				r_to_import.rule_disabled,r_to_import.rule_src_neg,r_to_import.rule_dst_neg,r_to_import.rule_svc_neg,
-				i_action_id,i_track_id,r_to_import.rule_src,r_to_import.rule_dst,r_to_import.rule_svc,
-				r_to_import.rule_src_refs,r_to_import.rule_dst_refs,r_to_import.rule_svc_refs,
-				lower(r_to_import.rule_action),r_to_import.rule_track,r_to_import.rule_installon,r_to_import.rule_time,
-				i_fromzone,i_tozone, r_to_import.rule_comment,r_to_import.rule_implied,r_to_import.rule_head_text,i_admin_id,
-				i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type, b_access_rule, b_nat_rule)
-			RETURNING rule_id INTO i_new_rule_id;
-			
+			BEGIN -- catch insert rule exception block
+				INSERT INTO rule
+					(mgm_id,rule_name,rule_num,rule_ruleid,rule_uid,rule_disabled,rule_src_neg,rule_dst_neg,rule_svc_neg,
+					action_id,track_id,rule_src,rule_dst,rule_svc,rule_src_refs,rule_dst_refs,rule_svc_refs,rule_action,rule_track,rule_installon,rule_time,
+					rule_from_zone,rule_to_zone,rule_comment,rule_implied,rule_head_text,last_change_admin,
+					rule_create,rule_last_seen, dev_id, parent_rule_id, parent_rule_type, access_rule, nat_rule)
+				VALUES (i_mgm_id,r_to_import.rule_name,i_rule_num,r_to_import.rule_ruleid,r_to_import.rule_uid,
+					r_to_import.rule_disabled,r_to_import.rule_src_neg,r_to_import.rule_dst_neg,r_to_import.rule_svc_neg,
+					i_action_id,i_track_id,r_to_import.rule_src,r_to_import.rule_dst,r_to_import.rule_svc,
+					r_to_import.rule_src_refs,r_to_import.rule_dst_refs,r_to_import.rule_svc_refs,
+					lower(r_to_import.rule_action),r_to_import.rule_track,r_to_import.rule_installon,r_to_import.rule_time,
+					i_fromzone,i_tozone, r_to_import.rule_comment,r_to_import.rule_implied,r_to_import.rule_head_text,i_admin_id,
+					i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type, b_access_rule, b_nat_rule)
+				RETURNING rule_id INTO i_new_rule_id;
+			EXCEPTION WHEN OTHERS THEN
+				RAISE EXCEPTION 'rule_change_change exception while inserting rule: 
+					mgm_id=%
+					rule_name=%
+					rule_num=%
+					rule_ruleid=%
+					rule_uid=%
+					rule_disabled=%
+					rule_src_neg=%
+					rule_dst_neg=%
+					rule_svc_neg=%
+					action_id=%
+					track_id=%
+					rule_src=%
+					rule_dst=%
+					rule_svc=%
+					rule_src_refs=%
+					rule_dst_refs=%
+					rule_svc_refs=%
+					rule_action=%
+					rule_track=%
+					rule_installon=%
+					rule_time=%
+					rule_from_zone=%
+					rule_to_zone=%
+					rule_comment=%
+					rule_implied=%
+					rule_head_text=%
+					last_change_admin=%
+					rule_create=%
+					rule_last_seen=%
+					dev_id=%
+					parent_rule_id=%
+					parent_rule_type=%
+					access_rule=%
+					nat_rule=%',
+					i_mgm_id,r_to_import.rule_name,i_rule_num,r_to_import.rule_ruleid,r_to_import.rule_uid,
+					r_to_import.rule_disabled,r_to_import.rule_src_neg,r_to_import.rule_dst_neg,r_to_import.rule_svc_neg,
+					i_action_id,i_track_id,r_to_import.rule_src,r_to_import.rule_dst,r_to_import.rule_svc,
+					r_to_import.rule_src_refs,r_to_import.rule_dst_refs,r_to_import.rule_svc_refs,
+					lower(r_to_import.rule_action),r_to_import.rule_track,r_to_import.rule_installon,r_to_import.rule_time,
+					i_fromzone,i_tozone, r_to_import.rule_comment,r_to_import.rule_implied,r_to_import.rule_head_text,i_admin_id,
+					i_control_id,i_control_id, i_dev_id, i_parent_rule_id, i_parent_rule_type, b_access_rule, b_nat_rule;
+			END;
+	
 			-- make changelog entry
 			RAISE DEBUG 'rule_change_or_insert_before_select_into: %', r_to_import.rule_uid;
 			-- SELECT INTO i_new_rule_id MAX(rule_id) FROM rule WHERE mgm_id=i_mgm_id; -- todo: dubious

@@ -255,9 +255,9 @@ def parse_nat_rulebase_json(src_rulebase, target_rulebase, layer_name, import_id
 
 
 def parse_nat_rule_transform(xlate_rule_in, rule_num):
-# todo: cleanup certain fields (intsall-on, ....)
+# todo: cleanup certain fields (install-on, ....)
     rule_match = {
-        'uid': xlate_rule_in['uid'], # + '_match',
+        'uid': xlate_rule_in['uid'],
         'source': [xlate_rule_in['original-source']],
         'destination': [xlate_rule_in['original-destination']],
         'service': [xlate_rule_in['original-service']],
@@ -265,16 +265,17 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'track': {'type': {'name': 'None' } },
         'type': 'nat',
         'rule-number': rule_num,
-        'enabled': True,
         'source-negate': False,
         'destination-negate': False,
         'service-negate': False,
         'install-on': [{'name': 'Policy Targets'}],
         'time': [{'name': 'Any'}],
+        'enabled': xlate_rule_in['enabled'],
+        'comments': xlate_rule_in['comments'],
         'rule_type': 'original'
     }
     rule_xlate = {
-        'uid': xlate_rule_in['uid'], # + '_xlate',
+        'uid': xlate_rule_in['uid'],
         'source': [xlate_rule_in['translated-source']],
         'destination': [xlate_rule_in['translated-destination']],
         'service': [xlate_rule_in['translated-service']],
@@ -282,7 +283,7 @@ def parse_nat_rule_transform(xlate_rule_in, rule_num):
         'track': {'type': {'name': 'None' } },
         'type': 'nat',
         'rule-number': rule_num,
-        'enabled': True,        
+        'enabled': True,
         'source-negate': False,
         'destination-negate': False,
         'service-negate': False,

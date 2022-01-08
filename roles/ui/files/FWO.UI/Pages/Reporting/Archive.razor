@@ -8,12 +8,12 @@
 
 <h3>@(userConfig.GetText("archive"))</h3>
 
-<Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportFile" Items="archivedReports">
+<Table TableClass="table table-bordered table-sm table-responsive" TableItem="ReportFile" Items="archivedReports" PageSize="0">
     <Column TableItem="ReportFile" Title="@(userConfig.GetText("action"))">
         <Template>
             <div class="btn-group">
                 <button class="btn btn-sm btn-info" @onclick="async () => { await GetGeneratedReportContent(context.Id); ShowDownloadReportFileDialog = true; }">@(userConfig.GetText("download"))</button>
-                @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask.Result.User.IsInRole("admin"))
+                @if (context.Owner.DbId == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
                 {
                     <button class="btn btn-sm btn-danger" @onclick="() => { reportFileContext = context; ShowDeleteReportFileDialog = true; }">@(userConfig.GetText("delete"))</button>
                 }
@@ -70,14 +70,14 @@
 @code
 {
     [CascadingParameter]
-    Action<Exception, string, string, bool> DisplayMessageInUi { get; set; }
+    Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
     [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<ReportFile> archivedReports = new List<ReportFile>();
 
-    private ReportFile reportFileContext;
+    private ReportFile reportFileContext = new ReportFile();
     private bool ShowDeleteReportFileDialog = false;
     private bool ShowDownloadReportFileDialog = false;
 
@@ -89,7 +89,7 @@
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("archive_fetch"), null, true);
+            DisplayMessageInUi!(exception, userConfig.GetText("archive_fetch"), "", true);
         }
     }
 
@@ -107,7 +107,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Fetch downloads of generated report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("fetch_report"), null, false);
+            DisplayMessageInUi!(exception, userConfig.GetText("fetch_report"), "", false);
         }
     }
 
@@ -129,7 +129,7 @@
         catch (Exception exception)
         {
             Log.WriteError("Delete generated report", "Unclassified error.", exception);
-            DisplayMessageInUi(exception, userConfig.GetText("delete_report"), null, false);
+            DisplayMessageInUi!(exception, userConfig.GetText("delete_report"), "", false);
         }
     }
 }

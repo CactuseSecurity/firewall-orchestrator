@@ -1,12 +1,10 @@
-﻿using System.Collections.Generic;
-
-namespace FWO.Api.Data
+﻿namespace FWO.Api.Data
 {
     public class Role
     {
-        public string Name;
-        public string Dn;
-        public string Description;
+        public string Name { get; set; } = "";
+        public string Dn { get; set; } = "";
+        public string Description { get; set; } = "";
         public List<UiUser> Users { get; set; }
 
         public Role()
@@ -19,10 +17,7 @@ namespace FWO.Api.Data
             Name = role.Name;
             Dn = role.Dn;
             Description = role.Description;
-            if (role.Users != null)
-            {
-                Users = new List<UiUser>(role.Users);
-            }
+            Users = new List<UiUser>(role.Users);
         }
 
         public string UserList()

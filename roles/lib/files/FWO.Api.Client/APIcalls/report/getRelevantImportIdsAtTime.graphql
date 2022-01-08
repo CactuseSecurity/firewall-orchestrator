@@ -1,25 +1,5 @@
-# query getRelevantImportIdsAtTime($time: timestamp!) {
-#   management(where: { hide_in_gui: { _eq: false } } order_by: { mgm_name: asc }) {
-#     Name: mgm_name
-#     id: mgm_id
-#     import: import_controls_aggregate(
-#       where: {
-#         stop_time: { _lte: $time }
-#         successful_import: { _eq: true }
-#         changes_found: { _eq: true }
-#       }
-#     ) {
-#       aggregate {
-#         max {
-#           id: control_id
-#         }
-#       }
-#     }
-#   }
-# }
-
 query getRelevantImportIdsAtTime($time: timestamp!, $mgmIds: [Int!]) {
-  management(where: {hide_in_gui: {_eq: false}, mgm_id: {_in: $mgmIds}}, order_by: {mgm_name: asc}) {
+  management(where: {hide_in_gui: {_eq: false}, mgm_id: {_in: $mgmIds}, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}}}, order_by: {mgm_name: asc}) {
     Name: mgm_name
     id: mgm_id
     import: import_controls_aggregate(where: {stop_time: {_lte: $time}, successful_import: {_eq: true}, changes_found: {_eq: true}}) {

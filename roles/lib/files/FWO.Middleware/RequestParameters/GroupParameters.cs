@@ -1,31 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FWO.Middleware.RequestParameters
+﻿namespace FWO.Middleware.RequestParameters
 {
     public class GroupGetParameters
     {
-        public string LdapHostname { get; set; }
-        public string SearchPattern { get; set; }
+        public int LdapId { get; set; }
+        public string SearchPattern { get; set; } = "";
+    }
+
+    public class GroupGetReturnParameters
+    {
+        public string GroupDn { get; set; } = "";
+        public List<string> Members { get; set; } = new List<string>();
     }
 
     public class GroupAddDeleteParameters
     {
-        public string GroupDn { get; set; }
+        public string GroupName { get; set; } = "";
     }
 
     public class GroupEditParameters
     {
-        public string OldGroupDn { get; set; }
-        public string NewGroupDn { get; set; }
+        public string OldGroupName { get; set; } = "";
+        public string NewGroupName { get; set; } = "";
     }
 
     public class GroupAddDeleteUserParameters
     {
-        public string UserDn { get; set; }
-        public string GroupDn { get; set; }
+        public string UserDn { get; set; } = "";
+        public string GroupDn { get; set; } = "";
     }
 }

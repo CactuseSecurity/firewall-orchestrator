@@ -12,17 +12,18 @@ namespace FWO.Config.File
         /// <summary>
         /// Path to config file
         /// </summary>
-        private const string configPath = "/etc/fworch/fworch.json";
+        private const string basePath = "/etc/fworch";
+        private const string configPath = basePath + "/fworch.json";
 
         /// <summary>
         /// Path to jwt public key
         /// </summary>
-        private const string jwtPublicKeyPath = "/etc/fworch/secrets/jwt_public_key.pem";
+        private const string jwtPublicKeyPath = basePath + "/secrets/jwt_public_key.pem";
 
         /// <summary>
         /// Path to jwt private key
         /// </summary>
-        private const string jwtPrivateKeyPath = "/etc/fworch/secrets/jwt_private_key.pem";
+        private const string jwtPrivateKeyPath = basePath + "/secrets/jwt_private_key.pem";
 
         /// <summary>
         /// Internal connection to middleware server. Used to connect with api server.
@@ -35,62 +36,71 @@ namespace FWO.Config.File
         //private readonly APIConnection apiConnection;
 
 
-        private RsaSecurityKey jwtPrivateKey = null;
+        private RsaSecurityKey? jwtPrivateKey = null;
         public RsaSecurityKey JwtPrivateKey
         {
             get
             {
-                CriticalConfigValueLoaded(jwtPrivateKey);
+                jwtPrivateKey = CriticalConfigValueLoaded(jwtPrivateKey);
                 return jwtPrivateKey;
             }
         }
 
-        private RsaSecurityKey jwtPublicKey = null;
+        private RsaSecurityKey? jwtPublicKey = null;
         public RsaSecurityKey JwtPublicKey
         {
             get
             {
-                CriticalConfigValueLoaded(jwtPublicKey);
+                jwtPublicKey = CriticalConfigValueLoaded(jwtPublicKey);
                 return jwtPublicKey;
             }
         }
 
-        private string apiServerUri = null;
+        private string? apiServerUri = null;
         public string ApiServerUri
         {
             get
             {
-                CriticalConfigValueLoaded(apiServerUri);
+                apiServerUri = CriticalConfigValueLoaded(apiServerUri);
                 return apiServerUri;
             }
         }
 
-        private string middlewareServerNativeUri = null;
+        private string? middlewareServerNativeUri = null;
         public string MiddlewareServerNativeUri
         {
             get
             {
-                CriticalConfigValueLoaded(middlewareServerNativeUri);
+                middlewareServerNativeUri = CriticalConfigValueLoaded(middlewareServerNativeUri);
                 return middlewareServerNativeUri;
             }
         }
-        private string middlewareServerUri = null;
+        private string? middlewareServerUri = null;
         public string MiddlewareServerUri
         {
             get
             {
-                CriticalConfigValueLoaded(middlewareServerUri);
+                middlewareServerUri = CriticalConfigValueLoaded(middlewareServerUri);
                 return middlewareServerUri;
             }
         }
 
-        private string productVersion = null;
+        private string? productVersion = null;
         public string ProductVersion
         {
             get
             {
-                CriticalConfigValueLoaded(productVersion);
+                productVersion = CriticalConfigValueLoaded(productVersion);
                 return productVersion;
+            }
+        }
+
+        private Dictionary<string,string> customSettings = new Dictionary<string,string>();
+        public Dictionary<string,string> CustomSettings
+        {
+            get
+            {
+                return customSettings;
             }
         }
 
@@ -102,7 +112,7 @@ namespace FWO.Config.File
                 string configFile = System.IO.File.ReadAllText(configPath).TrimEnd();
 
                 // Deserialize config to dictionary
-                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFile);
+                Dictionary<string, string> configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFile) ?? throw new Exception("Config file could not be parsed.");
 
                 // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See NotNullCriticalConfigValue()
 
@@ -132,12 +142,47 @@ namespace FWO.Config.File
             }
         }
 
-        private void CriticalConfigValueLoaded(object configValue)
+        public Dictionary<string,string> ReadAdditionalConfigFile(string relativePath, List<string> keys)
+        {
+            try{
+                string configFileContent = System.IO.File.ReadAllText(basePath + "/" + relativePath);
+                Dictionary<string, string> configFileData = new Dictionary<string, string>();
+                configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFileContent) ?? throw new Exception("Config file could not be parsed.");
+                customSettings = configFileData;
+                // foreach (string key in keys)
+                //     customSettings.Add(key, configFileData[key]);
+            }
+            catch (Exception configFileReadException)
+            {
+                Log.WriteError("Config file read", $"Config file '{basePath + relativePath}' could not be read", configFileReadException);
+            }
+            return customSettings;
+        }
+
+        public bool ConfigFileCreate(string relativePath, string fileContent = "")
+        {
+            try{
+                System.IO.File.WriteAllText(basePath + relativePath, fileContent);
+            }
+            catch (Exception configFileWriteException)
+            {
+                Log.WriteError("Config file write", $"Config file '{basePath + relativePath}' could not be written", configFileWriteException);
+                return false;
+            }
+            return true;
+        }
+
+        private ConfigValueType CriticalConfigValueLoaded<ConfigValueType>(ConfigValueType? configValue)
         {
             if (configValue == null)
             {
                 Log.WriteError("Config value read", $"A necessary config value could not be found.", LogStackTrace: true);
                 Environment.Exit(1); // Exit with error
+                throw new ApplicationException("unreachable");
+            }
+            else
+            {
+                return configValue;
             }
         }
         

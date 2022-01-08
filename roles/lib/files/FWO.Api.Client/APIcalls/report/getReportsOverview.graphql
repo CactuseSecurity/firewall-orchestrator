@@ -12,6 +12,7 @@ query getReports($reportTemplateName: String) {
     report_template {
       report_filter
       report_template_name
+      report_parameters
     }
   }
 }

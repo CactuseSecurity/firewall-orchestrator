@@ -10,12 +10,12 @@ After=network.target remote-fs.target nss-lookup.target {{ middleware_service_na
 After=network.target remote-fs.target nss-lookup.target
 {%- endif %}
 [Service]
-WorkingDirectory={{ ui_start_dir }}/bin/Release/net5.0
+WorkingDirectory={{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}
 # adding an extra 3 secs for docker api to come up?
 ExecStartPre=/bin/sleep 3
 ExecStart={{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.Ui
-StandardOutput=syslog
-StandardError=syslog
+#StandardOutput=syslog
+#StandardError=syslog
 SyslogIdentifier={{ ui_syslog_id }}
 User={{ fworch_user }}
 Environment=

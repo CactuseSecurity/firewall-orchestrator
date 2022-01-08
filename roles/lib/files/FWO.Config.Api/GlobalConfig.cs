@@ -1,5 +1,4 @@
-﻿﻿using Microsoft.IdentityModel.Tokens;
-using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using FWO.Logging;
 using FWO.Config.File;
@@ -34,6 +33,7 @@ namespace FWO.Config.Api
         public static readonly string kAutoFillRightSidebar = "autoFillRightSidebar";
         public static readonly string kDataRetentionTime = "dataRetentionTime";
         public static readonly string kImportSleepTime = "importSleepTime";
+        public static readonly string kFwApiElementsPerFetch = "fwApiElementsPerFetch";
         public static readonly string kRecertificationPeriod = "recertificationPeriod";
         public static readonly string kRecertificationNoticePeriod = "recertificationNoticePeriod";
         public static readonly string kRecertificationDisplayPeriod = "recertificationDisplayPeriod";
@@ -47,7 +47,6 @@ namespace FWO.Config.Api
 
         public string productVersion { get; set; }
 
-        public UiText[] uiTexts { get; set; }
         public Language[] uiLanguages { get; set; }
 
         public Dictionary<string, Dictionary<string, string>> langDict { get; set; }
@@ -95,7 +94,7 @@ namespace FWO.Config.Api
                 {
                     var languageVariable = new { language = lang.Name };
                     Dictionary<string, string> dict = new Dictionary<string, string>();
-                    uiTexts = apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getTextsPerLanguage, languageVariable).Result;
+                    UiText[] uiTexts = apiConnection.SendQueryAsync<UiText[]>(ConfigQueries.getTextsPerLanguage, languageVariable).Result;
                     foreach (UiText text in uiTexts)
                         dict.Add(text.Id, text.Txt); // add "word" to dictionary
 

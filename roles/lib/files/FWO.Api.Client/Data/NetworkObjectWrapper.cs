@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization; 
+using Newtonsoft.Json;
 
 namespace FWO.Api.Data
 {
     public class NetworkObjectWrapper
     {
-        [JsonPropertyName("object")]
-        public NetworkObject Content { get; set; }
+        [JsonProperty("object"), JsonPropertyName("object")]
+        public NetworkObject Content { get; set; } = new NetworkObject(){};
     }
 }

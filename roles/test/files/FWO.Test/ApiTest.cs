@@ -7,6 +7,7 @@ using FWO.Config.File;
 using FWO.Middleware.Client;
 using Microsoft.IdentityModel.Tokens;
 using FWO.Middleware.RequestParameters;
+using FWO.Logging;
 
 namespace FWO.Test.Api
 {
@@ -18,6 +19,7 @@ namespace FWO.Test.Api
         public ApiTest()
         {
             ConfigFile configConnection = new ConfigFile();
+            Dictionary<string, string> apiTestUserCredentials = configConnection.ReadAdditionalConfigFile("secrets/TestUserCreds.json", new List<string> { "user", "password" });
             string ApiUri = configConnection.ApiServerUri;
             string MiddlewareUri = configConnection.MiddlewareServerUri;
             string ProductVersion = configConnection.ProductVersion;
@@ -27,8 +29,8 @@ namespace FWO.Test.Api
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             AuthenticationTokenGetParameters authenticationParameters = new AuthenticationTokenGetParameters
             {
-                Username = "user1_demo",
-                Password = "cactus1"
+                Password = apiTestUserCredentials["password"],
+                Username = apiTestUserCredentials["user"]
             };
             string jwt = middlewareClient.AuthenticateUser(authenticationParameters).Result.Data;
             apiConnection = new APIConnection(apiServerUri);

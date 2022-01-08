@@ -1,8 +1,5 @@
 using FWO.Report.Filter.Ast;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
+using FWO.Api.Data;
 
 namespace FWO.Report.Filter
 {
@@ -16,9 +13,9 @@ namespace FWO.Report.Filter
             return parser.Parse();
         }
 
-        public static DynGraphqlQuery Compile(string input, bool detailed = false)
+        public static DynGraphqlQuery Compile(string input, ReportType? reportType = null, DeviceFilter? deviceFilter = null, bool detailed = false)
         {
-            return DynGraphqlQuery.Generate(input, CompileToAst(input), detailed);
+            return DynGraphqlQuery.GenerateQuery(input, CompileToAst(input), deviceFilter, reportType, detailed);
         }
     }
 }

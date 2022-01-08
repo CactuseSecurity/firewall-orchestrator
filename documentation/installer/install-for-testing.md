@@ -58,12 +58,12 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 ansible-playbook -e "api_no_metadata=yes" site.yml -K
 ```
 
-## Parameter "without_sample_data" to not create sample data (i.e. in production)
+## Parameter "add_demo_data" to avoid creation of sample data (i.e. in production)
 
 The following command prevents the creation of sample data in the database:
 
 ```console
-ansible-playbook -e "without_sample_data=yes" site.yml -K
+ansible-playbook -e "add_demo_data=no" site.yml -K
 ```
 
 note: demo/sample data can also be removed via settings menues.

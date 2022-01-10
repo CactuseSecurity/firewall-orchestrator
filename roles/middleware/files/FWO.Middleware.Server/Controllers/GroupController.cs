@@ -55,7 +55,7 @@ namespace FWO.Middleware.Controllers
 
         // GET: GroupController/Create
         [HttpPost]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin, auditor")]
         public async Task<string> Create([FromBody] GroupAddDeleteParameters parameters)
         {
             string groupDn = "";

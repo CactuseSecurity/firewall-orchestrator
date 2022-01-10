@@ -25,7 +25,7 @@ namespace FWO.Middleware.Controllers
 
         // GET: api/<UserController>
         [HttpGet]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin, auditor")]
         public async Task<List<UserGetReturnParameters>> Get()
         {
             List<UiUser> users = (await apiConnection.SendQueryAsync<UiUser[]>(FWO.ApiClient.Queries.AuthQueries.getUsers)).ToList();

@@ -57,7 +57,8 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
     first_v4, first_v6 = check_headers_needed(full_config, rule_types)
 
     nat_rule_number = 0
-    number_offset = 0
+    rule_number = 0
+    #number_offset = 0
     src_ref_all = ""
     dst_ref_all = ""
     for rule_table in rule_types:
@@ -66,18 +67,41 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 src_ref_all = common.resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table)
                 dst_ref_all = common.resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table)
                 insert_header(rules, import_id, "IPv6 rules", localPkgName, "IPv6HeaderText", 0, src_ref_all, dst_ref_all)
+                rule_number += 1
                 first_v6 = False
             elif rule_table in fwcommon.rule_access_scope_v4 and first_v4:
-                number_offset += 1000000
-                insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", number_offset, src_ref_all, dst_ref_all)
+                # number_offset += 1000000
+                # insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", number_offset, src_ref_all, dst_ref_all)
+                insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
                 first_v4 = False
+            if rule_table == 'rules_global_header_v4' and len(full_config['rules_global_header_v4'][localPkgName])>0:
+                insert_header(rules, import_id, "Global Header Rules IPv4", localPkgName, "IPv4GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_global_header_v6' and len(full_config['rules_global_header_v6'][localPkgName])>0:
+                insert_header(rules, import_id, "Global Header Rules IPv6", localPkgName, "IPv6GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_global_footer_v4' and len(full_config['rules_global_footer_v4'][localPkgName])>0:
+                insert_header(rules, import_id, "Global Footer Rules IPv4", localPkgName, "IPv4GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_global_footer_v6' and len(full_config['rules_global_footer_v6'][localPkgName])>0:
+                insert_header(rules, import_id, "Global Footer Rules IPv6", localPkgName, "IPv6GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_adom_v4' and len(full_config['rules_adom_v4'][localPkgName])>0:
+                insert_header(rules, import_id, "Adom Rules IPv4", localPkgName, "IPv4AdomRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_adom_v6' and len(full_config['rules_adom_v6'][localPkgName])>0:
+                insert_header(rules, import_id, "Adom Rules IPv6", localPkgName, "IPv6AdomRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+
             for rule_orig in full_config[rule_table][localPkgName]:
                 rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
                 rule.update({ 'control_id': import_id})
                 rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
                 rule.update({ 'rule_ruleid': rule_orig['policyid']})
                 rule.update({ 'rule_uid': rule_orig['uuid']})
-                rule.update({ 'rule_num': rule_orig['obj seq'] + number_offset})
+                rule.update({ 'rule_num': rule_number})
+                # rule.update({ 'rule_num': rule_orig['obj seq'] + number_offset})
                 if 'name' in rule_orig:
                     rule.update({ 'rule_name': rule_orig['name']})
                 rule.update({ 'rule_installon': None })
@@ -181,6 +205,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
 
                 else:
                     rules.append(rule)
+                rule_number += 1
 
     config2import.update({'rules': rules})
 
@@ -188,6 +213,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
 def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
     nat_rules = []
     list_delimiter = '|'
+    rule_number = 0
 
     for rule_table in rule_tables:
         for localPkgName in full_config['rules_global_nat']:
@@ -198,7 +224,8 @@ def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
                     rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name just has to be a unique string among devices
                     rule.update({ 'rule_ruleid': rule_orig['policyid']})
                     rule.update({ 'rule_uid': rule_orig['uuid']})
-                    rule.update({ 'rule_num': rule_orig['obj seq']})
+                    # rule.update({ 'rule_num': rule_orig['obj seq']})
+                    rule.update({ 'rule_num': rule_number })
                     if 'comments' in rule_orig:
                         rule.update({ 'rule_comment': rule_orig['comments']})
                     rule.update({ 'rule_action': 'Drop' })  # not used for nat rules
@@ -272,5 +299,5 @@ def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
                     xlate_rule.update({ 'rule_type': 'xlate' })
 
                     nat_rules.append(xlate_rule)
-
+                    rule_number += 1
     config2import['rules'].extend(nat_rules)

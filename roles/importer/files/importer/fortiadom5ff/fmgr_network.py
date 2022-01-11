@@ -43,7 +43,8 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
             if 'color' in obj_orig and obj_orig['color']==0:
                 obj.update({'obj_color': 'black'})  # todo: deal with all other colors (will be currently ignored)
                                                     # we would need a list of fortinet color codes
-
+            if 'uuid' not in obj_orig:
+                obj_orig.update({'uuid': obj_orig['name']})
             obj.update({'obj_uid': obj_orig['uuid']})
 
             obj_zone = 'global'

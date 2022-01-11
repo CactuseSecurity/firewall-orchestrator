@@ -54,7 +54,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             getObjects(sid, fm_api_url, full_config, adom_name, limit, debug_level, scope, nw_obj_types, svc_obj_types)
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
-            getInterfacesAndRouting(sid, fm_api_url, full_config, adom_name, limit, debug_level)
+            getInterfacesAndRouting(sid, fm_api_url, full_config, adom_name, mgm_details['devices'], limit, debug_level)
             
             for dev in mgm_details['devices']:
                 getAccessPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
@@ -74,11 +74,15 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
     return 0
 
 
-def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, limit, debug_level):
+def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, limit, debug_level):
     # get network information (also needed for source nat)
     adom_scope = 'adom/'+adom_name
     getter.update_config_with_fortinet_api_call(
-        raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/dynamic/interface", "interfaces", debug=debug_level, limit=limit)
+        raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/dynamic/interface", "interfaces-dynamic", debug=debug_level, limit=limit)
+
+    for dev in devices:
+        getter.update_config_with_fortinet_api_call(
+            raw_config, sid, fm_api_url, "/pm/config/device/" + dev["name"] + "/global/system/interface", "interfaces-static", debug=debug_level, limit=limit)
 
     getter.update_config_with_fortinet_api_call(
         raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/router/route-map", "route-map", debug=debug_level, limit=limit)

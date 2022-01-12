@@ -43,12 +43,6 @@ namespace FWO.Api.Data
             Name = Sanitizer.SanitizeMand(Name);
             Comment = Sanitizer.SanitizeMand(Comment);
         }
-
-        public void Sanitize()
-        {
-            Name = Sanitizer.SanitizeMand(Name);
-            Comment = Sanitizer.SanitizeMand(Comment);
-        }
     }
 
     public class ReportParams

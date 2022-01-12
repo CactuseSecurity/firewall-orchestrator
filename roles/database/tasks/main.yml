@@ -1,25 +1,9 @@
 - block:
 
-    - name: initialize handler for datarecovery
-      set_fact:
-        database_handler_guard: start
-      changed_when: true
-      notify:
-      - database handler
-      when: installation_mode == "upgrade"
-
-    - name: backup database dir
-      synchronize:
-        src: "{{ fworch_home }}/database"
-        dest: "{{ fworch_home }}/backup_database"
-      delegate_to: "{{ inventory_hostname }}"
-      when: installation_mode == "upgrade"
-
     - name: remove database dir
       file:
         state: absent
         path: "{{ fworch_home }}/database"
-      when: installation_mode == "upgrade"
 
     - name: include redhat db install parts
       include_tasks: redhat_preps.yml
@@ -213,9 +197,9 @@
   when: not installation_mode == "uninstall" 
   tags: [ 'never', 'unittest' ]
 
-- name: finalize handler for datarecovery
-  set_fact:
-    database_handler_guard: stop
-  changed_when: true
-  notify: "database handler"
+- name: remove database dir
+  file:
+    state: absent
+    path: "{{ fworch_home }}/database"
   when: installation_mode == "upgrade"
+  become: yes

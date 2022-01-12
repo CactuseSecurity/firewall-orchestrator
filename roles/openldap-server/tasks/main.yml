@@ -12,7 +12,7 @@
   - name: Add the OS specific varibles
     include_vars: "{{ ansible_os_family }}.yml"
 
-  - name: Install the openldap and required Packages for Ubuntu
+  - name: Install the openldap and required Packages
     package:
       name: "{{ item }}"
       state: present

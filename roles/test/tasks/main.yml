@@ -17,9 +17,12 @@
   set_fact:
     sample_postfix: "{{ test_postfix }}"
 
-- name: create test user passwords
+- name: create test user1 password
   set_fact:
     test_user1_pw: "{{ random_generated_pw }}"
+
+- name: create test user2 password
+  set_fact:
     test_user2_pw: "{{ random_generated_pw }}"
 
 - name: initialize handler for deleting test data

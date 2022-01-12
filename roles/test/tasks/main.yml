@@ -48,8 +48,8 @@
   vars:
     sample_postfix: "{{ test_postfix }}"
     sample_role_purpose: test
-    sample_user1_pw: test_user1_pw
-    sample_user2_pw: test_user2_pw
+    sample_user1_pw: "{{ test_user1_pw }}"
+    sample_user2_pw: "{{ test_user2_pw }}"
   when: "'middlewareserver' in group_names"
 
 - name: database testing

@@ -11,6 +11,3 @@
     dest: "{{ fworch_secrets_dir }}/TestUserCreds.json"
   when: installation_mode != "uninstall"
   become: yes
-
-- pause:
-    minutes: 30

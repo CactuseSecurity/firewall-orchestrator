@@ -27,7 +27,7 @@ namespace FWO.Middleware.Controllers
 
         // GET: api/<LdapController>
         [HttpGet]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin, auditor")]
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
             UiLdapConnection[] ldapConnections = (await apiConnection.SendQueryAsync<UiLdapConnection[]>(FWO.ApiClient.Queries.AuthQueries.getLdapConnections));

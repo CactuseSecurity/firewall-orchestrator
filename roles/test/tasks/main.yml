@@ -45,6 +45,9 @@
 - name: database testing
   import_tasks: test-database.yml
 
+- name: create config with test user creds
+  import_tasks: write-config-test-user-creds.yml
+
 - name: auth testing
   import_tasks: test-auth.yml
 

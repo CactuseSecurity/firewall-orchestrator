@@ -43,6 +43,13 @@
   become: yes
   when: "'middlewareserver' in group_names"
 
+- name: restart UI to display new product version
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-ui"
+    state: restarted
+  become: yes
+  when: "'frontends' in group_names"
+  
 - name: test whether demo data is present
   postgresql_query:
     db: "{{ fworch_db_name }}"

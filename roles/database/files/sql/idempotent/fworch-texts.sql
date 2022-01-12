@@ -109,18 +109,22 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Jetzt 100% Open Source - passen Sie Firewall Orchestrator an Ihre Bed&uuml;rfnisse an. Machen Sie mit.
-        Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> angezeigt und heruntergeladen werden.</li>
+    <li>100% Open Source - passen Sie Firewall Orchestrator an Ihre Bed&uuml;rfnisse an. Machen Sie mit.
+        Der Quellcode kann auf <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a> eingesehen und heruntergeladen werden.</li>
     <li>GraphQL API f&uuml;r Automatisierungen</li>
     <li>Firewall-Regel Rezertifizierungsworkflow - beseitigen Sie ihre Altlasten und erf&uuml;llen Sie aktuelle regulatorische Anforderungen.</li>
+    <li>Import via FortiManager wird ab sofort unterst&uuml;tzt.</li>
+    <li>F&uuml;r FortiManager ist eine Auto Discovery Funktion enthalten, die ausgehend vom Fortimanager alle definierten ADOMs und Devices automatisch anlegt.</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>Now 100% Open Source - adjust Firewall Orchestrator to your needs. Join the community and contribute.
+    <li>100% Open Source - adjust Firewall Orchestrator to your needs. Join the community and contribute.
         The code can be viewed/downloaded from <a href="https://github.com/CactuseSecurity/firewall-orchestrator" target="_blank">GitHub</a></li>
     <li>GraphQL API for automation</li>
-    <li>Firewall rule recertification workflow - removed unnecessary rules and meet current regulatory requirements.</li>
+    <li>Firewall rule recertification workflow - remove unnecessary rules and meet current regulatory requirements.</li>
+    <li>Support for direct import via FortiManager</li>
+    <li>FortiManager Auto Discovery functionality - only specify the FortiManager details, everything else (ADOMs, devices) will be auto discovered.</li>
 </ul>
 ');
 

@@ -81,7 +81,7 @@
 
 - hosts: sampleserver
   roles:
-    - { role: sample-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
+    - { role: sample-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend
@@ -89,7 +89,7 @@
 
 - hosts: middlewareserver
   roles:
-    - { role: sample-auth-data, when: "not without_sample_data|bool and not installation_mode == 'uninstall'" }
+    - { role: sample-auth-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
   tags:
     - samples
     - backend

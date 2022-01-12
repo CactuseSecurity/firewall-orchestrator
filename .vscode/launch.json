@@ -11,7 +11,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": []
-        },        
+        },
         {
             "name": "py-change-rule",
             "type": "python",
@@ -22,7 +22,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": []
-        },        
+        },
         {
             "name": "py-cpr8x-get-config",
             "type": "python",
@@ -100,15 +100,15 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m28",
+                "-m14",
                 //"-i/home/alf/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
                 "-d4",
                 "-f",
                 //"-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
-                "-i/home/tim/Downloads/forti_NAT_mgm_id_25_config_native.json",
+                // "-i/home/tim/Downloads/forti_NAT_mgm_id_25_config_native.json",
                 "-l250"
             ]
-        },        
+        },
         {
             "name": "py-export-itsecorg",
             "type": "python",
@@ -135,7 +135,9 @@
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-o/tmp/fworch-config"]
+            "args": [
+                "-o/tmp/fworch-config"
+            ]
         },
         {
             "name": "py-execute-graphql",
@@ -146,8 +148,10 @@
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-i/tmp/fworch-config.graphql"]
-        },        
+            "args": [
+                "-i/tmp/fworch-config.graphql"
+            ]
+        },
         {
             "name": "py-execute-graphql-query",
             "type": "python",
@@ -157,8 +161,10 @@
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-i/tmp/fworch-config.graphql"]
-        }, 
+            "args": [
+                "-i/tmp/fworch-config.graphql"
+            ]
+        },
         {
             "name": "py-cpr8x-autodiscovery",
             "type": "python",
@@ -170,10 +176,10 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-              "-a192.168.100.110",
-              "-w/home/tim/secrets/cp_apiuser_pwd",
-              "-uitsecorg",
-              "-fjson"
+                "-a192.168.100.110",
+                "-w/home/tim/secrets/cp_apiuser_pwd",
+                "-uitsecorg",
+                "-fjson"
             ]
         },
         {
@@ -185,7 +191,10 @@
             "env": {
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
-            "args": ["-d2", "-i30"]
+            "args": [
+                "-d2",
+                "-i30"
+            ]
         },
         {
             "name": "c#-FWO Test",
@@ -193,12 +202,10 @@
             "request": "launch",
             "preLaunchTask": "build_test",
             "program": "/usr/bin/dotnet",
-            "args": [
-                "test"
-            ],
-          "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
-            "stopAtEntry": false,
-            "console": "internalConsole"
+            "args": [ "test" ],
+            "cwd": "${workspaceFolder}/roles/test/files/FWO.Test",
+            "stopAtEntry": true,
+            "console": "integratedTerminal"
         },
         {
             "name": "c#-Blazor UI",

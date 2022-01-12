@@ -56,28 +56,49 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
     list_delimiter = '|'
     first_v4, first_v6 = check_headers_needed(full_config, rule_types)
 
+    vip_nat_rule_number = 0
     nat_rule_number = 0
-    number_offset = 0
+    rule_number = 0
     src_ref_all = ""
     dst_ref_all = ""
     for rule_table in rule_types:
-        for pkg_name in full_config[rule_table]:
+        for localPkgName in full_config[rule_table]:
             if rule_table in fwcommon.rule_access_scope_v6 and first_v6:
                 src_ref_all = common.resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table)
                 dst_ref_all = common.resolve_raw_objects("all", list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table)
-                insert_header(rules, import_id, "IPv6 rules", pkg_name, "IPv6HeaderText", 0, src_ref_all, dst_ref_all)
+                insert_header(rules, import_id, "IPv6 rules", localPkgName, "IPv6HeaderText", 0, src_ref_all, dst_ref_all)
+                rule_number += 1
                 first_v6 = False
             elif rule_table in fwcommon.rule_access_scope_v4 and first_v4:
-                number_offset += 1000000
-                insert_header(rules, import_id, "IPv4 rules", pkg_name, "IPv4HeaderText", number_offset, src_ref_all, dst_ref_all)
+                insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
                 first_v4 = False
-            for rule_orig in full_config[rule_table][pkg_name]:
+            if rule_table == 'rules_global_header_v4' and len(full_config['rules_global_header_v4'][localPkgName])>0:
+                insert_header(rules, import_id, "Global Header Rules IPv4", localPkgName, "IPv4GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_global_header_v6' and len(full_config['rules_global_header_v6'][localPkgName])>0:
+                insert_header(rules, import_id, "Global Header Rules IPv6", localPkgName, "IPv6GlobalHeaderRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_global_footer_v4' and len(full_config['rules_global_footer_v4'][localPkgName])>0:
+                insert_header(rules, import_id, "Global Footer Rules IPv4", localPkgName, "IPv4GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_global_footer_v6' and len(full_config['rules_global_footer_v6'][localPkgName])>0:
+                insert_header(rules, import_id, "Global Footer Rules IPv6", localPkgName, "IPv6GlobalFooterRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_adom_v4' and len(full_config['rules_adom_v4'][localPkgName])>0:
+                insert_header(rules, import_id, "Adom Rules IPv4", localPkgName, "IPv4AdomRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+            if rule_table == 'rules_adom_v6' and len(full_config['rules_adom_v6'][localPkgName])>0:
+                insert_header(rules, import_id, "Adom Rules IPv6", localPkgName, "IPv6AdomRules", rule_number, src_ref_all, dst_ref_all)
+                rule_number += 1
+
+            for rule_orig in full_config[rule_table][localPkgName]:
                 rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
                 rule.update({ 'control_id': import_id})
-                rule.update({ 'rulebase_name': pkg_name})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
+                rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name will be set to the pkg_name as there is no rulebase_name in FortiMangaer
                 rule.update({ 'rule_ruleid': rule_orig['policyid']})
                 rule.update({ 'rule_uid': rule_orig['uuid']})
-                rule.update({ 'rule_num': rule_orig['obj seq'] + number_offset})
+                rule.update({ 'rule_num': rule_number})
                 if 'name' in rule_orig:
                     rule.update({ 'rule_name': rule_orig['name']})
                 rule.update({ 'rule_installon': None })
@@ -121,23 +142,24 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_dst_neg': rule_orig['dstaddr-negate']=='disable'})
                 rule.update({ 'rule_svc_neg': rule_orig['service-negate']=='disable'})
 
-#                rule.update({ 'rule_src_refs': common.resolve_objects(rule['rule_src'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid', rule_type=rule_table) })
-#                rule.update({ 'rule_dst_refs': common.resolve_objects(rule['rule_dst'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid', rule_type=rule_table) })
                 rule.update({ 'rule_src_refs': common.resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_dst_refs': common.resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
+                # now dealing with VIPs (dst NAT part) of combined rules
+                if "match-vip" in rule_orig and rule_orig["match-vip"]==1:
+                    logging.warning("found VIP destination Access/NAT rule (but not parsing yet); no. " + str(vip_nat_rule_number))
+                    vip_nat_rule_number += 1
 
-                # now dealing with NAT part of rule for combined rules
+                # now dealing with src NAT part of combined rules
                 if "nat" in rule_orig and rule_orig["nat"]==1:
                     #logging.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
                     nat_rule_number += 1
                     xlate_rule = copy.deepcopy(rule)
-                    xlate_rule['rule_type'] = 'xlate'
-                    # xlate_rule['rule_uid'] = rule['rule_uid']
-                    xlate_rule['type'] = 'nat'
                     rule['rule_type'] = 'combined'
-                    rule['type'] = 'combined'
+                    xlate_rule['rule_type'] = 'xlate'
+                    xlate_rule['rule_comment'] = None
+                    xlate_rule['rule_disabled'] = False
                     if 'ippool' in rule_orig:
                         if rule_orig['ippool']==0:  # hiding behind outbound interface
                             # logging.debug("found outbound interface hide nat rule") # needs to be checked
@@ -149,6 +171,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                                 # need to 
                                 # - find out ip of outbound interface
                                 # - create an object for the ip of the dst interface and add it here as xlate src
+                                # alternative: add dummy object "outbound-interface"
                                 logging.warning("hide nat behind outgoing interface not implemented yet; hide interface: " + hideInterface)
 
                         elif rule_orig['ippool']==1:
@@ -158,7 +181,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                                     logging.warning("found more than one ippool - ignoring all but first pool")
                                 poolName = poolNameArray[0]
                                 xlate_rule['rule_src'] = poolName
-                                xlate_rule['rule_src_ref'] = "ippool-uuid-" + poolName
+                                xlate_rule['rule_src_refs'] = "ippool-uuid-" + poolName
                             else:
                                 logging.warning("found ippool rule without ippool")
                         else:
@@ -184,6 +207,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
 
                 else:
                     rules.append(rule)
+                rule_number += 1
 
     config2import.update({'rules': rules})
 
@@ -191,17 +215,19 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
 def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
     nat_rules = []
     list_delimiter = '|'
+    rule_number = 0
 
     for rule_table in rule_tables:
-        for pkg in full_config['rules_global_nat']:
-            for rule_orig in full_config[rule_table][pkg]:
+        for localPkgName in full_config['rules_global_nat']:
+            for rule_orig in full_config[rule_table][localPkgName]:
                 rule = {'rule_src': '', 'rule_dst': '', 'rule_svc': ''}
                 if rule_orig['nat'] == 1:   # assuming source nat
                     rule.update({ 'control_id': import_id})
-                    rule.update({ 'rulebase_name': pkg})    # the rulebase_name just has to be a unique string among devices
+                    rule.update({ 'rulebase_name': localPkgName})    # the rulebase_name just has to be a unique string among devices
                     rule.update({ 'rule_ruleid': rule_orig['policyid']})
                     rule.update({ 'rule_uid': rule_orig['uuid']})
-                    rule.update({ 'rule_num': rule_orig['obj seq']})
+                    # rule.update({ 'rule_num': rule_orig['obj seq']})
+                    rule.update({ 'rule_num': rule_number })
                     if 'comments' in rule_orig:
                         rule.update({ 'rule_comment': rule_orig['comments']})
                     rule.update({ 'rule_action': 'Drop' })  # not used for nat rules
@@ -220,7 +246,8 @@ def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
 
                     if not 'service_objects' in config2import: # is normally defined
                         config2import['service_objects'] = []
-                    config2import['service_objects'].append(fmgr_service.create_svc_object(import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes'))
+                    config2import['service_objects'].append(fmgr_service.create_svc_object( \
+                        import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['orig-port'], comment='service created by FWO importer for NAT purposes'))
                     rule['rule_svc'] = svc_name
 
                     #rule['rule_src'] = common.extend_string_list(rule['rule_src'], rule_orig, 'srcaddr6', list_delimiter)
@@ -234,8 +261,6 @@ def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
                     rule.update({ 'rule_src_neg': False})
                     rule.update({ 'rule_dst_neg': False})
                     rule.update({ 'rule_svc_neg': False})
-                    # rule.update({ 'rule_src_refs': common.resolve_objects(rule['rule_src'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid', rule_type=rule_table) })
-                    # rule.update({ 'rule_dst_refs': common.resolve_objects(rule['rule_dst'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid', rule_type=rule_table) })
                     rule.update({ 'rule_src_refs': common.resolve_raw_objects(rule['rule_src'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                     rule.update({ 'rule_dst_refs': common.resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                     # services do not have uids, so using name instead
@@ -269,8 +294,6 @@ def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
                     config2import['service_objects'].append(fmgr_service.create_svc_object(import_id=import_id, name=svc_name, proto=rule_orig['protocol'], port=rule_orig['nat-port'], comment='service created by FWO importer for NAT purposes'))
                     xlate_rule['rule_svc'] = svc_name
 
-                    # xlate_rule.update({ 'rule_src_refs': common.resolve_objects(xlate_rule['rule_src'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid' ) }, rule_type=rule_table)
-                    # xlate_rule.update({ 'rule_dst_refs': common.resolve_objects(xlate_rule['rule_dst'], list_delimiter, config2import['network_objects'], 'obj_name', 'obj_uid' ) }, rule_type=rule_table)
                     xlate_rule.update({ 'rule_src_refs': common.resolve_objects(xlate_rule['rule_src'], list_delimiter, full_config, 'name', 'uuid' ) }, rule_type=rule_table)
                     xlate_rule.update({ 'rule_dst_refs': common.resolve_objects(xlate_rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid' ) }, rule_type=rule_table)
                     xlate_rule.update({ 'rule_svc_refs': xlate_rule['rule_svc'] })  # services do not have uids, so using name instead
@@ -278,5 +301,5 @@ def normalize_nat_rules(full_config, config2import, import_id, rule_tables):
                     xlate_rule.update({ 'rule_type': 'xlate' })
 
                     nat_rules.append(xlate_rule)
-
+                    rule_number += 1
     config2import['rules'].extend(nat_rules)

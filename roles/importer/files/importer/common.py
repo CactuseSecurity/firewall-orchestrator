@@ -90,20 +90,20 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
         if rule_type is not None:
             if obj_type == 'network':
                 if 'v4' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_address'], obj_dict['nw_obj_global_addrgrp']]
+                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
                 elif 'v6' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_address6'], obj_dict['nw_obj_global_addrgrp6']]
+                    object_tables = [obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
                 elif 'v4' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_address'], obj_dict['nw_obj_adom_addrgrp'], \
-                        obj_dict['nw_obj_global_address'], obj_dict['nw_obj_global_addrgrp']]
+                    object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
+                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
                 elif 'v6' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_address6'], obj_dict['nw_obj_adom_addrgrp6'], \
-                        obj_dict['nw_obj_global_address6'], obj_dict['nw_obj_global_addrgrp6']]
+                    object_tables = [obj_dict['nw_obj_adom_firewall/address6'], obj_dict['nw_obj_adom_firewall/addrgrp6'], \
+                        obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
                 elif 'nat' in rule_type and 'adom' in rule_type:
-                    object_tables = [obj_dict['nw_obj_adom_address'], obj_dict['nw_obj_adom_addrgrp'], \
-                        obj_dict['nw_obj_global_address'], obj_dict['nw_obj_global_addrgrp']]
+                    object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
+                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
                 elif 'nat' in rule_type and 'global' in rule_type:
-                    object_tables = [obj_dict['nw_obj_global_address'], obj_dict['nw_obj_global_addrgrp']]
+                    object_tables = [obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
                 break_flag = False # if we find a match we stop the two inner for-loops
                 for tab in object_tables:
                     if break_flag:

@@ -25,7 +25,7 @@ namespace FWO.Middleware.Controllers
 
         // GET: api/<TenantController>
         [HttpGet]
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin, auditor")]
         public async Task<List<TenantGetReturnParameters>> Get()
         {
             Tenant[] tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants));

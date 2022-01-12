@@ -7,6 +7,13 @@
   become: yes
   listen: "test importer handler"
 
+- name: delete test user cred config file
+  file:
+    path: "{{ fworch_secrets_dir }}/TestUserCreds.json"
+    state: absent
+  become: yes
+  listen: "test importer handler"
+
 - block:
   - name: delete test fortinet gateway
     postgresql_query:

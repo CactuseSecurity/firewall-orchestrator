@@ -9,7 +9,7 @@ objectclass: inetorgperson
 cn: user1{{ sample_postfix }}
 givenName: user1{{ sample_postfix }}
 sn: Gelb
-userPassword: cactus1
+userPassword: {{ sample_user1_pw }}
 {%- endif %}
 
 
@@ -21,5 +21,5 @@ objectclass: inetorgperson
 cn: user2{{ sample_postfix }}
 givenName: user2{{ sample_postfix }}
 sn: Rot
-userPassword: cactus2
+userPassword: {{ sample_user2_pw }}
 {%- endif %}

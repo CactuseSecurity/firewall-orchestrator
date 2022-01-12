@@ -3,7 +3,6 @@ import sys
 base_dir = "/usr/local/fworch"
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
-# sys.path.append(importer_base_dir + '/fortimanager5ff')
 sys.path.append(r"/usr/local/fworch/importer")
 import common, fmgr_zone #, fwcommon
 
@@ -32,6 +31,10 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 obj.update({ 'obj_typ': 'group' })
                 obj.update({ 'obj_member_names' : common.list_delimiter.join(obj_orig['member']) })
                 obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config, 'name', 'uuid')})
+            if 'uuid' in obj_orig and obj_orig['uuid'].startswith('ippool-uuid-'): # ippool object
+                obj.update({ 'obj_typ': 'ip_range' })
+                obj.update({ 'obj_ip': obj_orig['startip'] })
+                obj.update({ 'obj_ip_end': obj_orig['endip'] })
             else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
                 obj.update({ 'obj_typ': 'network' })
                 obj.update({ 'obj_ip': '0.0.0.0/0'})
@@ -41,9 +44,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 obj.update({'obj_color': 'black'})  # todo: deal with all other colors (will be currently ignored)
                                                     # we would need a list of fortinet color codes
             if 'uuid' not in obj_orig:
-                # ippool objects do not have a uuid, using name
-                obj_orig.update({'uuid': 'ippool-uuid-' + obj_orig['name']})
-
+                obj_orig.update({'uuid': obj_orig['name']})
             obj.update({'obj_uid': obj_orig['uuid']})
 
             obj_zone = 'global'
@@ -56,6 +57,13 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
             
             obj.update({'control_id': import_id})
             nw_objects.append(obj)
+
+    # finally add "Original" network object for natting
+    original_obj_name = 'Original'
+    original_obj_uid = 'Original-UID'
+    nw_objects.append(create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
+        uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes'))
+
     config2import.update({'network_objects': nw_objects})
 
 
@@ -85,7 +93,9 @@ def add_member_names_for_nw_group(idx, nw_objects):
     nw_objects.insert(idx, group)
 
 
-def create_network_object(import_id, name, type, ip, uid, color, comment):
+def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
+    # if zone is None or zone == '':
+    #     zone = 'global'
     return {
         'control_id': import_id,
         'obj_name': name,
@@ -93,5 +103,6 @@ def create_network_object(import_id, name, type, ip, uid, color, comment):
         'obj_ip': ip,
         'obj_uid': uid,
         'obj_color': color,
-        'obj_comment': comment
+        'obj_comment': comment,
+        'obj_zone': zone
     }

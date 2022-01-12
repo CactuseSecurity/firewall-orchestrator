@@ -141,13 +141,12 @@ namespace FWO.Report
             //}
         }
 
-        public static ReportBase ConstructReport(string filterInput, UserConfig userConfig)
+        public static ReportBase ConstructReport(string filterInput, DeviceFilter deviceFilter, ReportType reportType, UserConfig userConfig)
         {
-            DynGraphqlQuery query = Compiler.Compile(filterInput);
+            DynGraphqlQuery query = Compiler.Compile(filterInput, reportType, deviceFilter);
 
-            return query.ReportType switch
+            return reportType switch
             {
-
                 ReportType.Statistics => new ReportStatistics(query, userConfig),
                 ReportType.Rules => new ReportRules(query, userConfig),
                 ReportType.Changes => new ReportChanges(query, userConfig),

@@ -69,6 +69,11 @@ def normalize_svcobjects(full_config, config2import, import_id, scope):
             else:
                 addObject(svc_objects, type, name, color, 0, None, None, session_timeout, import_id)
 
+    # finally add "Original" service object for natting
+    original_obj_name = 'Original'
+    svc_objects.append(create_svc_object(import_id=import_id, name=original_obj_name, proto=0, port=None,\
+        comment='"original" service object created by FWO importer for NAT purposes'))
+
     config2import.update({'service_objects': svc_objects})
 
 

@@ -332,6 +332,7 @@
     {
         try
         {
+            actLdapConnection.Sanitize();
             if (CheckValues())
             {    
                 if (AddMode)

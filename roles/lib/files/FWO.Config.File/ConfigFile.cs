@@ -12,17 +12,18 @@ namespace FWO.Config.File
         /// <summary>
         /// Path to config file
         /// </summary>
-        private const string configPath = "/etc/fworch/fworch.json";
+        private const string basePath = "/etc/fworch";
+        private const string configPath = basePath + "/fworch.json";
 
         /// <summary>
         /// Path to jwt public key
         /// </summary>
-        private const string jwtPublicKeyPath = "/etc/fworch/secrets/jwt_public_key.pem";
+        private const string jwtPublicKeyPath = basePath + "/secrets/jwt_public_key.pem";
 
         /// <summary>
         /// Path to jwt private key
         /// </summary>
-        private const string jwtPrivateKeyPath = "/etc/fworch/secrets/jwt_private_key.pem";
+        private const string jwtPrivateKeyPath = basePath + "/secrets/jwt_private_key.pem";
 
         /// <summary>
         /// Internal connection to middleware server. Used to connect with api server.
@@ -94,6 +95,15 @@ namespace FWO.Config.File
             }
         }
 
+        private Dictionary<string,string> customSettings = new Dictionary<string,string>();
+        public Dictionary<string,string> CustomSettings
+        {
+            get
+            {
+                return customSettings;
+            }
+        }
+
         public ConfigFile()
         {
             try
@@ -130,6 +140,36 @@ namespace FWO.Config.File
                 Log.WriteError("Config file read", $"Config file could not be found.", configFileReadException);
                 Environment.Exit(1); // Exit with error
             }
+        }
+
+        public Dictionary<string,string> ReadAdditionalConfigFile(string relativePath, List<string> keys)
+        {
+            try{
+                string configFileContent = System.IO.File.ReadAllText(basePath + "/" + relativePath);
+                Dictionary<string, string> configFileData = new Dictionary<string, string>();
+                configFileData = JsonSerializer.Deserialize<Dictionary<string,string>>(configFileContent) ?? throw new Exception("Config file could not be parsed.");
+                customSettings = configFileData;
+                // foreach (string key in keys)
+                //     customSettings.Add(key, configFileData[key]);
+            }
+            catch (Exception configFileReadException)
+            {
+                Log.WriteError("Config file read", $"Config file '{basePath + relativePath}' could not be read", configFileReadException);
+            }
+            return customSettings;
+        }
+
+        public bool ConfigFileCreate(string relativePath, string fileContent = "")
+        {
+            try{
+                System.IO.File.WriteAllText(basePath + relativePath, fileContent);
+            }
+            catch (Exception configFileWriteException)
+            {
+                Log.WriteError("Config file write", $"Config file '{basePath + relativePath}' could not be written", configFileWriteException);
+                return false;
+            }
+            return true;
         }
 
         private ConfigValueType CriticalConfigValueLoaded<ConfigValueType>(ConfigValueType? configValue)

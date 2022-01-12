@@ -1,8 +1,5 @@
 using FWO.Report.Filter.Ast;
 using FWO.Report.Filter.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Data;
 
 namespace FWO.Report.Filter
 {
@@ -18,7 +15,7 @@ namespace FWO.Report.Filter
 
         public AstNode Parse()
         {
-            AstNode root = ParseReportType();
+            AstNode root = ParseTime();
 
             if (NextTokenExists())
             {
@@ -27,49 +24,6 @@ namespace FWO.Report.Filter
             else
             {
                 return root;
-            }
-        }
-
-        private AstNode ParseReportType()
-        {
-            if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.ReportType)
-            {
-                return new AstNodeConnector()
-                {
-                    Left = new AstNodeFilter()
-                    {
-                        Name = new Token(new Range(0, 0), "", TokenKind.ReportType),
-                        Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
-                        Value = new Token(new Range(0, 0), "rules", TokenKind.Value)
-                    },
-                    Connector = new Token(new Range(0, 0), "", TokenKind.And),
-
-                    Right = ParseTime()
-                };
-            }
-            else
-            {
-                AstNodeConnector root = new AstNodeConnector
-                {
-                    Left = new AstNodeFilter()
-                    {
-                        Name = CheckToken(TokenKind.ReportType),
-                        Operator = CheckToken(TokenKind.EQ),
-                        Value = CheckToken(TokenKind.Value)
-                    }
-                };
-
-                if (NextTokenExists())
-                {
-                    root.Connector = CheckToken(TokenKind.And);
-                    root.Right = ParseTime();
-                    return root;
-                }
-
-                else
-                {
-                    return root.Left;
-                }
             }
         }
 

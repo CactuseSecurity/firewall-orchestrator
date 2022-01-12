@@ -29,6 +29,8 @@ INSERT INTO txt VALUES ('set', 				    'German',	'Setzen');
 INSERT INTO txt VALUES ('set', 				    'English',	'Set');
 INSERT INTO txt VALUES ('add', 				    'German',	'Hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add', 				    'English',	'Add');
+INSERT INTO txt VALUES ('autodiscover', 	    'German',	'Auto Discovery');
+INSERT INTO txt VALUES ('autodiscover', 	    'English',	'Auto Discovery');
 INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
 INSERT INTO txt VALUES ('assign', 				'English',	'Assign');
 INSERT INTO txt VALUES ('search', 				'German',	'Suchen');
@@ -190,6 +192,8 @@ Choose from the following contact options:
 ');
 
 -- reporting
+INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
+INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
 INSERT INTO txt VALUES ('select_device',		'German', 	'Device(s) ausw&auml;hlen');
 INSERT INTO txt VALUES ('select_device',		'English', 	'Select device(s)');
 INSERT INTO txt VALUES ('select_all',		    'German', 	'Alle ausw&auml;hlen');
@@ -222,6 +226,8 @@ INSERT INTO txt VALUES ('download_json',		'German', 	'als JSON herunterladen');
 INSERT INTO txt VALUES ('download_json',		'English', 	'Download JSON');
 INSERT INTO txt VALUES ('save_as_template',		'German', 	'Als Vorlage speichern');
 INSERT INTO txt VALUES ('save_as_template',		'English', 	'Save as Template');
+INSERT INTO txt VALUES ('no_report_type_selected','German', 'Kein Report-Typ ausgew&auml;hlt.');
+INSERT INTO txt VALUES ('no_report_type_selected','English','No report type selected.');
 INSERT INTO txt VALUES ('no_device_selected',	'German', 	'Kein Device ausgew&auml;hlt.');
 INSERT INTO txt VALUES ('no_device_selected',	'English', 	'No device(s) selected.');
 INSERT INTO txt VALUES ('filter', 				'German', 	'Filter');
@@ -280,6 +286,12 @@ INSERT INTO txt VALUES ('user_objects',		    'German', 	'Nutzerobjekte');
 INSERT INTO txt VALUES ('user_objects',		    'English', 	'User objects');
 INSERT INTO txt VALUES ('rules',		        'German', 	'Regeln');
 INSERT INTO txt VALUES ('rules',		        'English', 	'Rules');
+INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
+INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
+INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
+INSERT INTO txt VALUES ('statistics',		    'English', 	'Statistics');
+INSERT INTO txt VALUES ('natrules',		        'German', 	'NAT-Regeln');
+INSERT INTO txt VALUES ('natrules',		        'English', 	'NAT Rules');
 INSERT INTO txt VALUES ('no_of_rules',		    'German', 	'Anzahl Regeln');
 INSERT INTO txt VALUES ('no_of_rules',		    'English', 	'Number of Rules');
 INSERT INTO txt VALUES ('collapse_all',		    'German', 	'Alles einklappen');
@@ -494,6 +506,10 @@ INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
 INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
+INSERT INTO txt VALUES ('super_manager',        'German', 	'Multi Domain Manager');
+INSERT INTO txt VALUES ('super_manager',        'English', 	'Multi Domain Manager');
+INSERT INTO txt VALUES ('no_super_manager',     'German', 	'kein Multi Domain Manager');
+INSERT INTO txt VALUES ('no_super_manager',     'English', 	'no Multi Domain Manager');
 INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
 INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');
@@ -913,6 +929,10 @@ INSERT INTO txt VALUES ('U5112', 'German',  'Verwaltung aller verbundenen Gatewa
 INSERT INTO txt VALUES ('U5112', 'English', 'Administrate the connected gateways');
 INSERT INTO txt VALUES ('U5113', 'German',  'Statusanzeige aller Importjobs. M&ouml;glichkeit zum Rollback, wenn n&ouml;tig');
 INSERT INTO txt VALUES ('U5113', 'English', 'Show the status of all import jobs. Possibility to rollback if necessary');
+INSERT INTO txt VALUES ('U5114', 'German',  'Auto Discovery derzeit nicht implementiert');
+INSERT INTO txt VALUES ('U5114', 'English', 'Auto discovery currently not implemented');
+INSERT INTO txt VALUES ('U5115', 'German',  'per Auto Discovery gefundene &Auml;nderungen');
+INSERT INTO txt VALUES ('U5115', 'English', '# changes found by auto discovery');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');
@@ -991,6 +1011,8 @@ INSERT INTO txt VALUES ('E1004', 'German',  'Vorlage konnte nicht gespeichert we
 INSERT INTO txt VALUES ('E1004', 'English', 'Template could not be saved');
 INSERT INTO txt VALUES ('E1005', 'German',  'Vorlage konnte nicht gel&ouml;scht werden');
 INSERT INTO txt VALUES ('E1005', 'English', 'Template could not be deleted');
+INSERT INTO txt VALUES ('E1006', 'German',  'Bitte einen Report-Typ ausw&auml;hlen');
+INSERT INTO txt VALUES ('E1006', 'English', 'Please select a report type');
 
 INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen');
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
@@ -1203,7 +1225,7 @@ INSERT INTO txt VALUES ('H0001', 'English', 'Firewall Orchestrator is an applica
 INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filterzeile, wo die Parameter f&uuml;r den Report definiert werden.
     Sie unterliegt einer speziellen <a href="/help/reporting/filter">Filtersyntax</a>.
     Sie kann komplett manuell gef&uuml;llt werden oder unterst&uuml;tzt durch <a href="/help/reporting/templates">Vorlagen</a>, welche weiter unten ausgew&auml;hlt werden k&ouml;nnen.
-    In der <a href="/help/reporting/leftside">Linken Randleiste</a> werden die verf&uuml;gbaren Devices dargestellt. Eine dortige Auswahl wird automatisch in die Filterzeile &uuml;bernommen.<br>
+    In der <a href="/help/reporting/leftside">Linken Randleiste</a> werden die verf&uuml;gbaren Report-Typen und Devices dargestellt.<br>
     Nach klicken der "Report erstellen" Schaltfl&auml;che werden die <a href="/help/reporting/output">Reportdaten</a> im unteren Teil des Fensters dargestellt.
     In der <a href="/help/reporting/rightside">Rechten Randleiste</a> werden Details zu den markierten Objekten gezeigt.<br>
     Der Report kann in verschiedenen Ausgabeformaten <a href="/help/reporting/export">exportiert</a> werden.
@@ -1211,7 +1233,7 @@ INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filt
 INSERT INTO txt VALUES ('H1001', 'English', 'The first input line is the filter line, where the parameters for the report creation are defined.
     It is subject to a special <a href="/help/reporting/filter">Filter Syntax</a>. 
     It can be filled completely manually or supported by <a href="/help/reporting/templates">Templates</a>, which can be chosen below.
-    In the <a href="/help/reporting/leftside">Left Sidebar</a> the available devices are displayed. Selections out of them are also automatically integrated to the filter line.<br>
+    In the <a href="/help/reporting/leftside">Left Sidebar</a> the available report types and devices are displayed.<br>
     After selecting the "Generate Report" button the <a href="/help/reporting/output">Report Data</a> is shown in the lower part of the window.
     In the <a href="/help/reporting/rightside">Right Sidebar</a> details about the selected objects are given.<br>
     The report can be <a href="/help/reporting/export">exported</a> to different output formats.
@@ -1240,8 +1262,7 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> Rules are always deep-searched, meaning all groups in source, destination and service fields are resolved.
         There is currently no option to only search at the rule top-level.</li>
 ');
-INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;gliche Werte: statistics, rules, changes, natrule</li>
-    <li>time: In Abh&auml;ngigkeit vom Reporttyp werden verschiedene Werte/Formate erwartet:
+INSERT INTO txt VALUES ('H1111', 'German',  '<li>time: In Abh&auml;ngigkeit vom Report-Typ werden verschiedene Werte/Formate erwartet:
         <ul>
             <li>f&uuml;r "rules", "natrules" oder "statistics" muss ein Datums- oder Zeitwert im Format YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... &uuml;bergeben werden.
                 Zur Vereinfachung kann auch "now" f&uuml;r das aktuelle Datum eingegeben werden.</li>
@@ -1263,8 +1284,7 @@ INSERT INTO txt VALUES ('H1111', 'German',  '<li>reporttype (type): M&ouml;glich
     <li>recertdisplay (recertdisp): Definiert den Zeitraum f&uuml;r die Vorausschau (in Tagen) f&uuml;r die n&auml;chste Rezertifizierung. Nur Regeln in diesem Zeitfenster werden gesucht.</li>
     <li>fulltext (full, fulltextsearch, fts, text, textsearch)</li>
 ');
-INSERT INTO txt VALUES ('H1111', 'English', '<li>reporttype (type): Possible Values: statistics, rules, changes, natrules</li>
-    <li>time: Depending on report type there are different possible Values/Formats: 
+INSERT INTO txt VALUES ('H1111', 'English', '<li>time: Depending on report type there are different possible Values/Formats: 
         <ul>
             <li>for "rules", "natrules" or "statistics" there has to be one date or date/time value YYYYMMDD, YYYYMMDD HHMMSS, YYYY-MM-DD ... 
                 As a shortcut also "now" is possible.</li>
@@ -1324,8 +1344,12 @@ INSERT INTO txt VALUES ('H1201', 'German',  'Vorlagen k&ouml;nnen genutzt werden
 INSERT INTO txt VALUES ('H1201', 'English', 'Templates can be used to define recurring reports. They have to be defined if they shall be used for the scheduling.
     Every user can define his own templates and share them with others.<br>There are some predefined templates for the different report types:
 ');
-INSERT INTO txt VALUES ('H1202', 'German',  'Diese Vorlagen k&ouml;nnen als Basis f&uuml;r die Erzeugung eigener Vorlagen genutzt werden.');
-INSERT INTO txt VALUES ('H1202', 'English', 'These templates can be used as basis for the creation of own self-defined templates.');
+INSERT INTO txt VALUES ('H1202', 'German',  'Um sie direkt in der UI zu nutzen, m&uuml;ssen zus&auml;tzlich Devices ausgew&auml;hlt werden. Bei der Nutzung im Scheduling gelten alle Devices als ausgew&auml;hlt.
+    Diese Vorlagen k&ouml;nnen als Basis f&uuml;r die Erzeugung eigener Vorlagen genutzt werden.
+');
+INSERT INTO txt VALUES ('H1202', 'English', 'For using them directly on the UI, devices have to be selected additionally. Used in scheduling, all devices are regarded as selected.
+    These templates can be used as basis for the creation of own self-defined templates.
+');
 INSERT INTO txt VALUES ('H1211', 'German',  'Einfache Statistik: Etwas Statistik &uuml;ber Netzwerk-, Dienst- und Nutzerobjekte aller Devices.');
 INSERT INTO txt VALUES ('H1211', 'English', 'Basic Statistics: Some statistics about network, service and user objects and rules of all devices.');
 INSERT INTO txt VALUES ('H1212', 'German',  'Compliance: Durchlassregeln mit "any": Alle Durchlassregeln, die "any" als Quelle, Ziel oder Dienst enthalten.');
@@ -1334,6 +1358,8 @@ INSERT INTO txt VALUES ('H1213', 'German',  'Aktuelle Regeln: Aktuell aktive Reg
 INSERT INTO txt VALUES ('H1213', 'English', 'Current Rules: Currently active rules of all selected devices.');
 INSERT INTO txt VALUES ('H1214', 'German',  'Regel&auml;nderungen des aktuellen Jahrs: Alle im aktuellen Jahr ge&auml;nderten Regeln in den ausgew&auml;hlten Devices.');
 INSERT INTO txt VALUES ('H1214', 'English', 'This year&apos;s Rule Changes: All rule change performed in the current year in the selected devices.');
+INSERT INTO txt VALUES ('H1215', 'German',  'Aktuelle NAT Regeln: Aktuell aktive NAT-Regeln aller ausgew&auml;hlten Devices.');
+INSERT INTO txt VALUES ('H1215', 'English', 'Current NAT Rules: Currently active NAT rules of all selected devices.');
 INSERT INTO txt VALUES ('H1301', 'German',  'Direkt nach der Erzeugung oder vom <a href="/help/archive">Archiv</a> aus k&ouml;nnen Reports in verschiedenen Ausgabeformaten exportiert werden:');
 INSERT INTO txt VALUES ('H1301', 'English', 'Directly after creation or from the <a href="/help/archive">archive</a> reports can be exported to different output formats:');
 INSERT INTO txt VALUES ('H1302', 'German',  '<li>pdf</li><li>html</li><li>csv (noch nicht unterst&uuml;tzt)</li><li>json</li>');
@@ -1362,12 +1388,20 @@ INSERT INTO txt VALUES ('H1402', 'German',  '<li>Nummer</li><li>Name</li><li>Que
 INSERT INTO txt VALUES ('H1402', 'English', '<li>Number</li><li>Name</li><li>Source Zone</li><li>Source</li><li>Destination Zone</li>
     <li>Destination</li><li>Services</li><li>Action</li><li>Logging</li><li>Enabled</li><li>UID</li><li>Comment</li>
 ');
-INSERT INTO txt VALUES ('H1501', 'German',  'Hier werden alle verf&uuml;gbaren Devices dargestellt.
+INSERT INTO txt VALUES ('H1501', 'German',  'Hier werden die fixen Kriterien f&uuml;r die Auswahl zur Reporterstellung dargestellt.
+    Weiteren Kriterien k&ouml;nnen &uuml;ber die <a href="/help/reporting/filter">Filterleiste</a> hinzugef&uuml;gt werden.
+');
+INSERT INTO txt VALUES ('H1501', 'English', 'Here all fixed criteria for reporting are displayed.
+    Further criteria can be added via the <a href="/help/reporting/filter">Filter line</a>.
+');
+INSERT INTO txt VALUES ('H1502', 'German', 'Anzeige aller zur Verf&uuml;gung stehenden Report-Typen. Bitte einen ausw&auml;hlen.');
+INSERT INTO txt VALUES ('H1502', 'English', 'Selection of all available report types. Please select one.');
+INSERT INTO txt VALUES ('H1503', 'German',  'Hier werden alle verf&uuml;gbaren Devices dargestellt.
     Die Ansicht kann f&uuml;r unterschiedliche Nutzer entsprechend der <a href="/help/settings/tenants">Mandantenzuordnung</a> variieren.
     F&uuml;r eine Reporterstellung muss hier eine Auswahl getroffen werden.
 ');
-INSERT INTO txt VALUES ('H1501', 'English', 'Here all available devices are displayed.
-    This may view may differ for the different users according to the <a href="/help/settings/tenants">tenant assignments</a>.
+INSERT INTO txt VALUES ('H1503', 'English', 'Here all available devices are displayed.
+    This view may differ for the different users according to the <a href="/help/settings/tenants">tenant assignments</a>.
     For the creation of a report a selection out of them has to be done.
 ');
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat zwei Reiter: Unter "Alle" werden alle aktuell abgeholten Objekte dargestellt,
@@ -1514,7 +1548,7 @@ INSERT INTO txt VALUES ('H5014', 'English', 'The "Personal" chapter is accessibl
     Users with recertifier role have also the possibility to adjust their <a href="/help/settings/recertification">Recertification Setting</a>.
 ');
 INSERT INTO txt VALUES ('H5101', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Managements einrichten und verwalten.<br>
-    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren eines neuen Managements, indem Daten von einem existierenden kopiert werden.
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Managements, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss sich mindestens einer der Parameter Hostname, Port oder Config Path von den existierenden Managements unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
 ');
 INSERT INTO txt VALUES ('H5101', 'English', 'Admins can create and administrate several different managements.<br>
@@ -1526,7 +1560,7 @@ INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nn
     <li>Check Point R8x - https-API-Zugang zum SmartCenter</li>
     <li>Check Point R8x - https-API-Zugang zum MDS (Multi Domain Server)</li>
     <li>Fortinet 5.0 - 6.4 - ssh-Zugang zur FortiGate</li>
-    <li>FortiManager 5.0 - 7.x - https API Zugang auf FortiManager</li>
+    <li>FortiManager 5ff - https API Zugang auf FortiManager. F&uml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
     <li>Barracuda Firewall Control Center Vx - ssh-Zugang direkt zum Firewallgateway</li>
     <li>phion netfence 3.x - ssh-Zugang direkt zum Firewallgateway</li>
     <li>JUNOS 10 - 17 - ssh-Zugang direkt zum Firewallgateway</li>
@@ -1537,7 +1571,7 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
     <li>Check Point R8x - https API access to SmartCenter</li>
     <li>Check Point R8x - https API access to MDS (Multi Domain Server)</li>
     <li>Fortinet 5.0 - 6.4 - ssh access to FortiGate</li>
-    <li>FortiManager 5.0 - 7.x - https API access to FortiManager</li>
+    <li>FortiManager 5ff - https API access to FortiManager - for this management type the complete infrastructure (ADOM, FortiGateway devices) can be auto discovered.</li>
     <li>Barracuda Firewall Control Center Vx - ssh access to firewall gateway directly</li>
     <li>phion netfence 3.x - ssh access to firewall gateway directly</li>
     <li>JUNOS 10 - 17 - ssh access to firewall gateway directly</li>
@@ -1616,7 +1650,7 @@ INSERT INTO txt VALUES ('H5122', 'English', 'Import Disabled: Flag if the data i
 INSERT INTO txt VALUES ('H5123', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Management nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management is not visible to the standard reporter role.');
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
-    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss sich mindestens einer der Parameter Ger&auml;tetyp, Management oder Rulebase von den existierenden Gateways unterscheiden, wenn die Auswahl "Import Deaktiviert" nicht gesetzt ist.
 ');
 INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate several different gateways.<br>
@@ -1687,7 +1721,7 @@ INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere untersch
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.
     Eine L&ouml;schung ist nur zul&auml;ssig, wenn es nicht das interne Ldap (definiert durch den gesetzten Rollensuchpfad) und nicht das letzte vorhandene Ldap ist.<br>
-    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim definieren einer neuen Ldap-Verbindung, indem Daten von einem existierenden kopiert werden.
+    Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren einer neuen Ldap-Verbindung, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss mindestens Adresse oder Portnummer ge&auml;ndert werden.
 ');
 INSERT INTO txt VALUES ('H5201', 'English', 'Admins can create and administrate several different Ldap connections. All of them can be used for user authentication.<br>

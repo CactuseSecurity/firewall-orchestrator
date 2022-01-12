@@ -13,7 +13,7 @@ namespace FWO.Report.Filter.Ast
         private List<string>? ruleFieldNames { get; set; }
         private int queryLevel { get; set; }
 
-        public override void Extract(ref DynGraphqlQuery query)
+        public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)
         {
             switch (Name.Kind)
             {
@@ -35,9 +35,6 @@ namespace FWO.Report.Filter.Ast
                 case TokenKind.FullText:
                 case TokenKind.Value:
                     ExtractFullTextQuery(query);
-                    break;
-                case TokenKind.ReportType:
-                    ExtractReportTypeQuery(query);
                     break;
                 case TokenKind.Source:
                     ExtractSourceQuery(query);
@@ -70,16 +67,16 @@ namespace FWO.Report.Filter.Ast
                     ExtractRecertDisplay(query);
                     break;
                 case TokenKind.Time:
-                    ExtractTimeQuery(query);
+                    ExtractTimeQuery(query, reportType?? throw new ArgumentNullException(nameof(reportType)));
                     break;
                 default:
                     throw new NotSupportedException($"### Compiler Error: Found unexpected and unsupported filter token: \"{Name}\" ###");
             }
         }
 
-        private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query)
+        private DynGraphqlQuery ExtractTimeQuery(DynGraphqlQuery query, ReportType reportType)
         {
-            switch (query.ReportType)
+            switch (reportType)
             {
                 case ReportType.Rules:
                 case ReportType.Statistics:
@@ -135,31 +132,6 @@ namespace FWO.Report.Filter.Ast
                     break;
             }
             // todo: deal with time ranges for changes report type
-            return query;
-        }
-
-        private DynGraphqlQuery ExtractReportTypeQuery(DynGraphqlQuery query)
-        {
-            query.ReportType = Value.Text switch
-            {
-                "rules" or "rule" => ReportType.Rules,
-                "statistics" or "statistic" => ReportType.Statistics,
-                "changes" or "change" => ReportType.Changes,
-                "natrules" or "nat_rules" => ReportType.NatRules,
-                _ => ReportType.None
-            };
-
-            if (query.ReportType == ReportType.None)
-            {
-                throw new SemanticException($"Unexpected report type found", Value.Position);
-            }
-
-            if (query.ReportType == ReportType.Statistics)
-            {
-                query.ruleWhereStatement +=
-                    @$"rule_head_text: {{_is_null: true}}";
-            }
-
             return query;
         }
 
@@ -582,7 +554,7 @@ namespace FWO.Report.Filter.Ast
                     // how can we access the tokens[position].Position information here?
                     break;
             }
-            return ("", stop);
+            return (start, stop);
         }
 
     }

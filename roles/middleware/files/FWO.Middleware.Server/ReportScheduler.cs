@@ -137,7 +137,11 @@ namespace FWO.Middleware.Server
 
                     UserConfig userConfig = new UserConfig(new GlobalConfig(jwt));
 
-                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, report.Template.ReportParams.DeviceFilter, (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.None), userConfig);
+                    ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, 
+                        report.Template.ReportParams.DeviceFilter,
+                        report.Template.ReportParams.TimeFilter, 
+                        (report.Template.ReportParams.ReportType != null ? (ReportType)report.Template.ReportParams.ReportType : ReportType.None),
+                        userConfig);
                     Management[] managementsReport = new Management[0];
                     await reportRules.Generate(int.MaxValue, apiConnectionUserContext, 
                         managementsReportIntermediate =>

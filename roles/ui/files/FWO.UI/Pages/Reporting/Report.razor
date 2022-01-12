@@ -18,12 +18,19 @@
     <div class="p-3">
         <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
         <div class="col-sm-8">
-            <select id="reportType" class="form-control form-control-sm" @bind="selectedReportType">
+            <select id="reportType" class="form-control form-control-sm" value="@selectedReportType" @onchange="ReportTypeChanged">
                 @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
                 {
                     <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
                 }
             </select>
+        </div>
+    </div>
+    <div class="p-3">
+        <h5 class="text-left">@(userConfig.GetText("report_time"))</h5>
+        <div class="btn-group mr-1 ml-1 mb-1">
+            <label class="col-sm-8">@displayedTimeSelection</label>
+            <button class="btn btn-sm btn-secondary" @onclick="SelectTime">@(userConfig.GetText("change"))</button>
         </div>
     </div>
     <DeviceSelection DeviceFilter="deviceFilter" @bind-SelectAll="selectAll"></DeviceSelection>
@@ -53,7 +60,7 @@
             <button class="btn btn-sm btn-danger" @onclick="() => CancelGeneration()">@(userConfig.GetText("stop_fetching"))</button>
         }
         <ReportExport ReportToExport="currentReport"></ReportExport>
-        <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType); }">@(userConfig.GetText("save_as_template"))</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => { reportTemplateControl.NewTemplate(filterInput, deviceFilter, selectedReportType, savedTimeFilter); }">@(userConfig.GetText("save_as_template"))</button>
     </div>
 
     <hr />
@@ -70,6 +77,9 @@
                 selectAll = false;
             else
                 selectAll = true;
+            if(template.ReportParams.TimeFilter != null)
+                InitTimes(template.ReportParams.TimeFilter);
+            DisplayTime();
             StateHasChanged();
         }"
     @ref="reportTemplateControl" />
@@ -175,6 +185,137 @@
     </div>
 </Sidebar>
 
+<PopUp Large="true" Title="@(userConfig.GetText("report_time"))" Show="@ShowSelectTimeDialog">
+    <Body>
+        <div>
+            @if (selectedReportType == ReportType.Changes)
+            {
+                <div class="row">
+                    <div class="col-sm-1">
+                        <div class="form-control-sm offset-sm-6">
+                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Shortcut)" name="shortcutRange" id="true" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Shortcut;}" >
+                        </div>
+                    </div>
+                    <div class="col-sm-11">
+                        <div class="form-group row">
+                            <label for="rangeshortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
+                            <div class="col-sm-3">
+                                <select id="rangeshortcut" class="form-control form-control-sm" @bind="actTimeFilter.TimeRangeShortcut">
+                                    <option value="this year" selected>@userConfig.GetText("this year")</option>
+                                    <option value="last year">@userConfig.GetText("last year")</option>
+                                    <option value="this month">@userConfig.GetText("this month")</option>
+                                    <option value="last month">@userConfig.GetText("last month")</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1">
+                        <div class="form-control-sm offset-sm-6">
+                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Interval)" name="shortcutRange" id="true" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Interval;}" >
+                        </div>
+                    </div>
+                    <div class="col-sm-11">
+                        <div class="form-group row">
+                            <label for="lastInterval" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("last")):</label>
+                            <div class="col-sm-3">
+                                <input id="lastInterval" type="text" class="form-control form-control-sm" @bind="actTimeFilter.Offset" />
+                            </div>
+                            <div class="col-sm-3">
+                                <select id="Interval" class="form-control form-control-sm" @bind="actTimeFilter.Interval">
+                                    @foreach (Interval interval in Enum.GetValues(typeof(Interval)))
+                                    {
+                                        if (interval != Interval.Never)
+                                        {
+                                            <option value="@interval">@userConfig.GetText(interval.ToString())</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1">
+                        <div class="form-control-sm offset-sm-6">
+                            <input class="form-check-input " type="radio" checked="@(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates)" name="shortcutRange" id="false" @onchange="() => {actTimeFilter.TimeRangeType = TimeRangeType.Fixeddates;}" >
+                        </div>
+                    </div>
+                    <div class="col-sm-11">
+                        <div class="form-group row">
+                            <label for="startTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("start_time")):</label>
+                            <div class="col-sm-3">
+                                <input id="startTimeDate" type="date" class="form-control form-control-sm" @bind="actStartDate" />
+                            </div>
+                            <div class="col-sm-3">
+                                <input id="startTime" type="time" step="60" class="form-control form-control-sm" @bind="actStartTime" />
+                            </div>
+                            <div class="col-sm-3">
+                                <input class="form-check-input" id="openStart" type="checkbox" @bind="actTimeFilter.OpenStart" >
+                                <label class="col-form-label col-form-label-sm" for="openStart">@(userConfig.GetText("open"))</label>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="endTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("end_time")):</label>
+                            <div class="col-sm-3">
+                                <input id="endTimeDate" type="date" class="form-control form-control-sm" @bind="actEndDate" />
+                            </div>
+                            <div class="col-sm-3">
+                                <input id="endTime" type="time" step="60" class="form-control form-control-sm" @bind="actEndTime" />
+                            </div>
+                            <div class="col-sm-3">
+                                <input class="form-check-input" id="openEnd" type="checkbox" @bind="actTimeFilter.OpenEnd" >
+                                <label class="col-form-label col-form-label-sm" for="openEnd">@(userConfig.GetText("open"))</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="form-group row">
+                    <div class="col-sm-1">
+                        <div class="form-control-sm offset-sm-6">
+                            <input class="form-check-input" type="radio" checked="@(actTimeFilter.IsShortcut)" name="shortcut" id="true" @onchange="() => {actTimeFilter.IsShortcut = true;}" >
+                        </div>
+                    </div>
+                    <div class="col-sm-11">
+                        <div class="form-group row">
+                            <label for="shortcut" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("shortcut")):</label>
+                            <div class="col-sm-3">
+                                <label class="col-form-label col-form-label-sm">@userConfig.GetText(actTimeFilter.TimeShortcut)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-1">
+                        <div class="form-control-sm offset-sm-6">
+                            <input class="form-check-input " type="radio" checked="@(!actTimeFilter.IsShortcut)" name="shortcut" id="false" @onchange="() => {actTimeFilter.IsShortcut = false;}" >
+                        </div>
+                    </div>
+                    <div class="col-sm-11">
+                        <div class="form-group row">
+                            <label for="reportTime" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("time")):</label>
+                            <div class="col-sm-4">
+                                <input id="reportTimeDate" type="date" class="form-control form-control-sm" @bind="actDate" />
+                            </div>
+                            <div class="col-sm-4">
+                                <input id="reportTime" type="time" step="60" class="form-control form-control-sm" @bind="actTime" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </Body>
+    <Footer>
+        <button class="btn btn-sm btn-primary" @onclick="SetTimeSelection">@(userConfig.GetText("ok"))</button>
+        <button class="btn btn-sm btn-secondary" @onclick="() => ShowSelectTimeDialog = false">@(userConfig.GetText("cancel"))</button>
+    </Footer>
+</PopUp>
+
 @code
 {
     [CascadingParameter]
@@ -189,15 +330,27 @@
     private Management[] managementsReport = new Management[0];
     private Management[] managementsAllObjects = new Management[0];
     private Management? globalStats = null;
-    private DeviceFilter deviceFilter = new DeviceFilter();
+
     private ReportType selectedReportType = ReportType.Rules;
+
+    private DeviceFilter deviceFilter = new DeviceFilter();
+    private bool selectAll = true;
+
+    private DateTime actDate = DateTime.Now;
+    private DateTime actTime = DateTime.Now;
+    private DateTime actStartDate = DateTime.Now;
+    private DateTime actStartTime = DateTime.Now;
+    private DateTime actEndDate = DateTime.Now;
+    private DateTime actEndTime = DateTime.Now;
+    private TimeFilter actTimeFilter = new TimeFilter();
+    private TimeFilter savedTimeFilter = new TimeFilter();
+    private string displayedTimeSelection = "";
+    private bool ShowSelectTimeDialog = false;
 
     private ScheduledReport[] scheduledReports = new ScheduledReport[0];
 
     private int elementsPerFetch = 100;
     private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
-
-    // private bool ShowNoDeviceSelectedWarning = false;
 
     private bool autoFillRightSidebar = false;
     private int maxInitFetchRightSidebar = 10;
@@ -215,7 +368,7 @@
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
     private string filterInput = "";
-    private bool selectAll = true;
+
     private string reportGenerationTimeLine = "";
     private CollapseState collapseSidebarAll = new CollapseState();
     private CollapseState collapseSidebarReport = new CollapseState();
@@ -228,6 +381,7 @@
             try
             {
                 GetSettings();
+                displayedTimeSelection = userConfig.GetText("now");
 
                 deviceFilter.Managements = await Connection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
                 await InvokeAsync(StateHasChanged);
@@ -241,6 +395,132 @@
                 DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
             }
         });
+    }
+
+    private void ReportTypeChanged(ChangeEventArgs args)
+    {
+        selectedReportType = (ReportType) Enum.Parse(typeof(ReportType), (args != null && args.Value != null ? args.Value?.ToString() : "Rules"), true);
+        DisplayTime();
+        StateHasChanged();
+    }
+
+    private void InitTimes(TimeFilter timeFilter)
+    {
+        actTimeFilter = timeFilter;
+        actDate = actTime = timeFilter.ReportTime;
+        actStartDate = actStartTime = timeFilter.StartTime;
+        actEndDate = actEndTime = timeFilter.EndTime;
+    }
+
+    public void SelectTime()
+    {
+        ShowSelectTimeDialog = true;
+    }
+
+    private void SetTimeSelection()
+    {
+        if(selectedReportType == ReportType.Changes)
+        {
+            switch(actTimeFilter.TimeRangeType)
+            {
+                case TimeRangeType.Shortcut:
+                    savedTimeFilter.TimeRangeShortcut = actTimeFilter.TimeRangeShortcut;
+                    break;
+                case TimeRangeType.Interval:
+                    savedTimeFilter.Offset = actTimeFilter.Offset;
+                    savedTimeFilter.Interval = actTimeFilter.Interval;
+                    break;
+                case TimeRangeType.Fixeddates:
+                    actTimeFilter.StartTime = actStartDate.Date.Add(actStartTime.TimeOfDay);
+                    actTimeFilter.EndTime = actEndDate.Date.Add(actEndTime.TimeOfDay);
+                    if(checkTimeRange())
+                    {
+                        savedTimeFilter.StartTime = actTimeFilter.StartTime;
+                        savedTimeFilter.EndTime = actTimeFilter.EndTime;
+                        savedTimeFilter.OpenStart = actTimeFilter.OpenStart;
+                        savedTimeFilter.OpenEnd = actTimeFilter.OpenEnd;
+                    }
+                    else return;
+                    break;
+                default:
+                    throw new NotSupportedException($"Found unexpected TimeRangeType");
+            }
+            savedTimeFilter.TimeRangeType = actTimeFilter.TimeRangeType;
+        }
+        else
+        {
+            if (actTimeFilter.IsShortcut)
+            {
+                savedTimeFilter.TimeShortcut = actTimeFilter.TimeShortcut;
+            }
+            else
+            {
+                actTimeFilter.ReportTime = actDate.Date.Add(actTime.TimeOfDay);
+                savedTimeFilter.ReportTime = actTimeFilter.ReportTime;
+            }
+            savedTimeFilter.IsShortcut = actTimeFilter.IsShortcut;
+        }
+        DisplayTime();
+        ShowSelectTimeDialog = false;
+    }
+
+    public bool checkTimeRange()
+    {
+        if(actTimeFilter.TimeRangeType == TimeRangeType.Fixeddates && actTimeFilter.StartTime > actTimeFilter.EndTime)
+        {
+            DisplayMessageInUi!(null, userConfig.GetText("check_times"), userConfig.GetText("E1011"), true);
+            return false;
+        }
+        return true;
+    }
+
+    public void DisplayTime()
+    {
+        if(selectedReportType == ReportType.Changes)
+        {
+            switch (actTimeFilter.TimeRangeType)
+            {
+                case TimeRangeType.Shortcut:
+                    displayedTimeSelection = userConfig.GetText(actTimeFilter.TimeRangeShortcut);
+                    break;
+                case TimeRangeType.Interval:
+                    displayedTimeSelection = userConfig.GetText("last") + " " + 
+                        actTimeFilter.Offset + " " + userConfig.GetText(actTimeFilter.Interval.ToString());
+                    break;
+                case TimeRangeType.Fixeddates:
+                    if(actTimeFilter.OpenStart && actTimeFilter.OpenEnd)
+                    {
+                        displayedTimeSelection = userConfig.GetText("open");
+                    }
+                    else if(actTimeFilter.OpenStart)
+                    {
+                        displayedTimeSelection = userConfig.GetText("until") + " " + actTimeFilter.EndTime.ToString();
+                    }
+                    else if(actTimeFilter.OpenEnd)
+                    {
+                        displayedTimeSelection = userConfig.GetText("from") + " " + actTimeFilter.StartTime.ToString();
+                    }
+                    else
+                    {
+                        displayedTimeSelection = actTimeFilter.StartTime.ToString() + " - " + actTimeFilter.EndTime.ToString();
+                    }
+                    break;
+                default:
+                    displayedTimeSelection = "";
+                    break;
+            };
+        }
+        else
+        {
+            if (actTimeFilter.IsShortcut)
+            {
+                displayedTimeSelection = userConfig.GetText(actTimeFilter.TimeShortcut);
+            }
+            else
+            {
+                displayedTimeSelection = actTimeFilter.ReportTime.ToString();
+            }
+        }
     }
 
     public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0)
@@ -375,7 +655,7 @@
             // collapse report templates
             reportTemplateControl.Collapse();
 
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, selectedReportType, userConfig);
+            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, savedTimeFilter, selectedReportType, userConfig);
 
             // save selected managements before resetting
             List<int> relevantManagements = deviceFilter.getSelectedManagements();

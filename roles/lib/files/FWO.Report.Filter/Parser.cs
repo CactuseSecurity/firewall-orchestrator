@@ -13,9 +13,9 @@ namespace FWO.Report.Filter
             this.tokens = tokens;
         }
 
-        public AstNode Parse()
+        public AstNode? Parse()
         {
-            AstNode root = ParseTime();
+            AstNode? root = ParseStart();
 
             if (NextTokenExists())
             {
@@ -27,73 +27,27 @@ namespace FWO.Report.Filter
             }
         }
 
-        private AstNode ParseTime()
+        private AstNode? ParseStart()
         {
-            if (NextTokenExists() == false || GetNextToken().Kind != TokenKind.Time)
+            if (NextTokenExists())
             {
-                AstNodeConnector root = new AstNodeConnector
+                if (GetNextToken().Kind == TokenKind.Value)
                 {
-                    Left = new AstNodeFilter()
+                    return new AstNodeFilter
                     {
-                        Name = new Token(new Range(0, 0), "", TokenKind.Time),
+                        Name = new Token(new Range(0, 0), "", TokenKind.Value),
                         Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
-                        Value = new Token(new Range(0, 0), "now", TokenKind.Value) //DateTime.Now.ToString()
-                    }
-                };
-
-                if (NextTokenExists())
-                {
-                    root.Connector = new Token(new Range(0, 0), "", TokenKind.And);
-                    root.Right = ParseStart();
-                    return root;
-                }
-                else
-                {
-                    return root.Left;
-                }
-            }
-
-            else // TokenKinde == Time
-            {
-                AstNodeConnector root = new AstNodeConnector
-                {
-                    Left = new AstNodeFilter()
-                    {
-                        Name = CheckToken(TokenKind.Time),
-                        Operator = ParseOperator(),
                         Value = CheckToken(TokenKind.Value)
-                    }
-                };
-
-                if (NextTokenExists() && GetNextToken().Kind == TokenKind.And)
-                {
-                    root.Connector = CheckToken(TokenKind.And);
-                    root.Right = ParseStart();
-                    return root;
+                    };
                 }
-
                 else
                 {
-                    return root.Left;
+                    return ParseOr();
                 }
             }
-        }
-
-        private AstNode ParseStart()
-        {
-            if (GetNextToken().Kind == TokenKind.Value)
-            {
-                return new AstNodeFilter
-                {
-                    Name = new Token(new Range(0, 0), "", TokenKind.Value),
-                    Operator = new Token(new Range(0, 0), "", TokenKind.EQ),
-                    Value = CheckToken(TokenKind.Value)
-                };
-            }
-
             else
             {
-                return ParseOr();
+                return null;
             }
         }
 

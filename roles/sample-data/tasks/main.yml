@@ -18,13 +18,8 @@
   become_user: "{{ fworch_user }}"
 
 - name: create sample devices in database
-<<<<<<< HEAD
-  import_tasks: create-devices.yml
-  when: "installation_mode=='new' or sample_role_purpose is match('test')"
-=======
   include_tasks: create-devices.yml
   when: installation_mode=='new' or sample_role_purpose is match('test')
->>>>>>> 748556b7d2b432f5dbe3ae013fc74017c154dcaf
 
 #todo: above we are adding localhost keys to known_hosts, here again but hashed. Both necessary?
 - name: scan localhost ssh keys

@@ -1,9 +1,5 @@
 ### general settings
-<<<<<<< HEAD
-product_version: "5.5.5"
-=======
 product_version: "5.5.7"
->>>>>>> 748556b7d2b432f5dbe3ae013fc74017c154dcaf
 ansible_python_interpreter: /usr/bin/python3
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 product_name: fworch

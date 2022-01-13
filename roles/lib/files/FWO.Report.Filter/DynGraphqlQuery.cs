@@ -79,7 +79,7 @@ namespace FWO.Report.Filter
                         query.userObjWhereStatement +=
                             $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
                             $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        query.ReportTime = timeFilter.ReportTime.ToString();
+                        query.ReportTime = timeFilter.ReportTime.ToString("yyyy-MM-dd HH:mm:ss");
                         break;
                     case ReportType.Changes:
                         (string start, string stop) = ResolveTimeRange(timeFilter);

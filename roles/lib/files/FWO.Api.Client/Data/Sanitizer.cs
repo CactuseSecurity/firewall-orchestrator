@@ -39,7 +39,7 @@ namespace FWO.Api.Data
         // Ldap path (Dn): Additionally needed on top of Ldap names chars:   =,
         public static string SanitizeLdapPathMand(string input)
         {
-            return Regex.Replace(input, @"[^\w\.\*\-\:\?@/\(\)=,]", "").Trim();
+            return Regex.Replace(input, @"[^\w\.\*\-\:\?@/\(\)\=\,]", "").Trim();
         }
 
         public static string? SanitizeLdapPathOpt(string? input)

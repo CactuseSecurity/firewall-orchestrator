@@ -17,7 +17,7 @@
       Content-Type: application/json
     body:
       Username: user1{{ test_postfix }}
-      Password: cactus1
+      Password: "{{ test_user1_pw }}"
     body_format: json
     validate_certs: false
     return_content: yes

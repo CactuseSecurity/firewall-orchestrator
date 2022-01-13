@@ -61,11 +61,11 @@ namespace FWO.Api.Data
         {
             Name = Sanitizer.SanitizeMand(Name);
             Address = Sanitizer.SanitizeMand(Address);
-            SearchUser = Sanitizer.SanitizeOpt(SearchUser);
-            UserSearchPath = Sanitizer.SanitizeOpt(UserSearchPath);
-            RoleSearchPath = Sanitizer.SanitizeOpt(RoleSearchPath);
-            GroupSearchPath = Sanitizer.SanitizeOpt(GroupSearchPath);
-            WriteUser = Sanitizer.SanitizeOpt(WriteUser);
+            SearchUser = Sanitizer.SanitizeLdapPathOpt(SearchUser);
+            UserSearchPath = Sanitizer.SanitizeLdapPathOpt(UserSearchPath);
+            RoleSearchPath = Sanitizer.SanitizeLdapPathOpt(RoleSearchPath);
+            GroupSearchPath = Sanitizer.SanitizeLdapPathOpt(GroupSearchPath);
+            WriteUser = Sanitizer.SanitizeLdapPathOpt(WriteUser);
             GlobalTenantName = Sanitizer.SanitizeOpt(GlobalTenantName);
             SearchUserPwd = Sanitizer.SanitizePasswOpt(SearchUserPwd);
             WriteUserPwd = Sanitizer.SanitizePasswOpt(WriteUserPwd);

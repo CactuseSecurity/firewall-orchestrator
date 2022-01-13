@@ -55,6 +55,9 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             # currently reading zone from objects/rules for backward compat with FortiManager 6.x
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
             getInterfacesAndRouting(sid, fm_api_url, full_config, adom_name, mgm_details['devices'], limit, debug_level)
+            # initialize all rule dicts
+            for rule_dict in rule_scope:
+                full_config[rule_dict] = {}
             
             for dev in mgm_details['devices']:
                 getAccessPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
@@ -157,10 +160,6 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope
 
 def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level):
     consolidated = '' # '/consolidated'
-
-    # initialize all rule dicts
-    for rule_dict in rule_scope:
-        raw_config[rule_dict] = {}
 
     local_pkg_name = device['local_rulebase_name']
     global_pkg_name = device['global_rulebase_name']

@@ -2,7 +2,7 @@
   set_fact:
     config_json:
       user: "user1{{ test_postfix }}"
-      password: "cactus1"
+      password: "{{ test_user1_pw }}"
   when: installation_mode != "uninstall"
 
 - name: create test user credential config file

@@ -17,6 +17,14 @@
   set_fact:
     sample_postfix: "{{ test_postfix }}"
 
+- name: create test user1 password
+  set_fact:
+    test_user1_pw: "{{ random_generated_pw }}"
+
+- name: create test user2 password
+  set_fact:
+    test_user2_pw: "{{ random_generated_pw }}"
+
 - name: initialize handler for deleting test data
   set_fact:
     test_importer_handler_guard: start
@@ -40,6 +48,8 @@
   vars:
     sample_postfix: "{{ test_postfix }}"
     sample_role_purpose: test
+    sample_user1_pw: "{{ test_user1_pw }}"
+    sample_user2_pw: "{{ test_user2_pw }}"
   when: "'middlewareserver' in group_names"
 
 - name: database testing

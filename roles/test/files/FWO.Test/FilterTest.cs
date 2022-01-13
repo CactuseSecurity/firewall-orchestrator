@@ -31,7 +31,7 @@ namespace FWO.Test.Filter
         [Test]
         public void TextOnlySearch()
         {
-            AstNode ast = Compiler.CompileToAst("teststring");
+            AstNode? ast = Compiler.CompileToAst("teststring");
             DynGraphqlQuery query = Compiler.Compile("teststring", ReportType.Rules);
         }
 

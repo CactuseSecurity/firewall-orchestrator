@@ -17,7 +17,7 @@
                                 @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
                                 @if (template.Owner == userConfig.User.DbId || authenticationStateTask!.Result.User.IsInRole("admin"))
                                 {
-                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = adaptText(template); 
+                                    <button class="btn btn-sm btn-warning" @onclick="() => { reportTemplateInEdit = decodeComment(template); 
                                                                                              reportTypeInEdit = (reportTemplateInEdit.ReportParams.ReportType != null ? (ReportType)reportTemplateInEdit.ReportParams.ReportType : ReportType.None);
                                                                                              ShowEditTemplateDialog = true; }">@(userConfig.GetText("edit"))</button>
                                     <button class="btn btn-sm btn-danger" @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">@(userConfig.GetText("delete"))</button>
@@ -59,29 +59,32 @@
 
 <PopUp Large="true" Title="@(userConfig.GetText("report_template"))" Show="@(ShowEditTemplateDialog || ShowSaveTemplateDialog)">
     <Body>
-        <div>
-            <div class="form-group">
-                <label for="saveTemplateName">@(userConfig.GetText("name")):</label>
-                <input id="saveTemplateName" type="text" class="form-control" @bind="reportTemplateInEdit.Name">
+        <form>
+            <div class="form-group row">
+                <label for="saveTemplateName" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                <input id="saveTemplateName" type="text" class="col-sm-9" @bind="reportTemplateInEdit.Name">
             </div>
-            <div class="form-group">
-                <label for="saveTemplateComment">@(userConfig.GetText("comment")):</label>
-                <textarea id="saveTemplateComment" class="form-control" @bind="reportTemplateInEdit.Comment" />
+            <div class="form-group row">
+                <label for="saveTemplateComment" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("comment")):</label>
+                <textarea id="saveTemplateComment" class="col-sm-9" @bind="reportTemplateInEdit.Comment" />
             </div>
-            <div class="form-group">
-                <label for="saveTemplateReportType">@(userConfig.GetText("report_type")):</label>
-                <select id="saveTemplateReportType" class="form-control form-control-sm" @bind="reportTypeInEdit">
-                    @foreach (var reportType in Enum.GetValues(typeof(ReportType)))
-                    {
-                        <option value="@reportType">@userConfig.GetText(reportType?.ToString()?.ToLower() ?? "")</option>
-                    }
-                </select>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("report_type")):</label>
+                <label class="col-sm-9">@(userConfig.GetText(reportTypeInEdit.ToString().ToLower()))</label>
             </div>
-            <div class="form-group">
-                <label for="saveTemplateFilterLineTextarea">@(userConfig.GetText("filter")):</label>
-                <textarea id="saveTemplateFilterLineTextarea" class="form-control" @bind="reportTemplateInEdit.Filter" />
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("report_time")):</label>
+                <label class="col-sm-9">@(DisplayTime())</label>
             </div>
-        </div>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("devices")):</label>
+                <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.DeviceFilter.listAllSelectedDevices())</label>
+            </div>
+            <div class="form-group row">
+                <label for="saveTemplateFilterLineTextarea" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("filter")):</label>
+                <textarea id="saveTemplateFilterLineTextarea" class="col-sm-9" @bind="reportTemplateInEdit.Filter" />
+            </div>
+        </form>
     </Body>
     <Footer>
         <button class="btn btn-primary" @onclick="async () => {reportTemplateInEdit.ReportParams.ReportType = (int?)reportTypeInEdit; if (ShowSaveTemplateDialog) await SaveTemplate(); else await EditTemplate(); }">@(userConfig.GetText("save"))</button>
@@ -114,6 +117,9 @@
     public ReportTemplate reportTemplateInEdit = new ReportTemplate();
     private ReportType reportTypeInEdit = ReportType.None;
 
+    private string tmpTemplateCommentKey = "";
+    private string tmpTemplateComment = "";
+
     private bool ShowSaveTemplateDialog = false;
     private bool ShowEditTemplateDialog = false;
     private bool ShowDeleteTemplateDialog = false;
@@ -143,20 +149,74 @@
         await collapseControl.ToggleCollapse();
     }
 
-    public void NewTemplate(string filterInput, DeviceFilter deviceFilter, ReportType reportType)
+    public void NewTemplate(string filterInput, DeviceFilter deviceFilter, ReportType reportType, TimeFilter timeFilter)
     {
-        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType);
+        reportTemplateInEdit = new ReportTemplate (filterInput, deviceFilter, (int?)reportType, timeFilter);
         reportTypeInEdit = reportType;
         ShowSaveTemplateDialog = true;
     }
 
-    public ReportTemplate adaptText(ReportTemplate reportTemplate)
+    public ReportTemplate decodeComment(ReportTemplate reportTemplate)
     {
         if (reportTemplate.Comment != null && reportTemplate.Comment.StartsWith("T01"))
         {
+            tmpTemplateCommentKey = reportTemplate.Comment;
             reportTemplate.Comment = userConfig.GetText(reportTemplate.Comment);
+            tmpTemplateComment = reportTemplate.Comment;
         }
         return reportTemplate;
+    }
+
+    public string recodeComment(string Comment)
+    {
+        if (tmpTemplateCommentKey != "" && Comment == tmpTemplateComment)
+        {
+            Comment = tmpTemplateCommentKey;
+        }
+        return Comment;
+    }
+
+    public string DisplayTime()
+    {
+        if(reportTypeInEdit == ReportType.Changes)
+        {
+            switch (reportTemplateInEdit.ReportParams.TimeFilter.TimeRangeType)
+            {
+                case TimeRangeType.Shortcut:
+                    return userConfig.GetText(reportTemplateInEdit.ReportParams.TimeFilter.TimeRangeShortcut);
+                case TimeRangeType.Interval:
+                    return userConfig.GetText("last") + " " + 
+                        reportTemplateInEdit.ReportParams.TimeFilter.Offset + " " + 
+                        userConfig.GetText(reportTemplateInEdit.ReportParams.TimeFilter.Interval.ToString());
+                case TimeRangeType.Fixeddates:
+                    if(reportTemplateInEdit.ReportParams.TimeFilter.OpenStart && reportTemplateInEdit.ReportParams.TimeFilter.OpenEnd)
+                    {
+                        return userConfig.GetText("open");
+                    }
+                    else if(reportTemplateInEdit.ReportParams.TimeFilter.OpenStart)
+                    {
+                        return userConfig.GetText("until") + " " + reportTemplateInEdit.ReportParams.TimeFilter.EndTime.ToString();
+                    }
+                    else if(reportTemplateInEdit.ReportParams.TimeFilter.OpenEnd)
+                    {
+                        return userConfig.GetText("from") + " " + reportTemplateInEdit.ReportParams.TimeFilter.StartTime.ToString();
+                    }
+                    return reportTemplateInEdit.ReportParams.TimeFilter.StartTime.ToString() + " - " + reportTemplateInEdit.ReportParams.TimeFilter.EndTime.ToString();
+                default:
+                    return "";
+            }
+        }
+        else
+        {
+            if (reportTemplateInEdit.ReportParams.TimeFilter.IsShortcut)
+            {
+                return userConfig.GetText(reportTemplateInEdit.ReportParams.TimeFilter.TimeShortcut);
+            }
+            else
+            {
+                return reportTemplateInEdit.ReportParams.TimeFilter.ReportTime.ToString();
+            }
+        }
     }
 
     private async Task SaveTemplate()
@@ -172,7 +232,7 @@
                 reportTemplateName = reportTemplateInEdit.Name,
                 reportFilterLine = reportTemplateInEdit.Filter,
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
-                reportTemplateComment = reportTemplateInEdit.Comment,
+                reportTemplateComment = recodeComment(reportTemplateInEdit.Comment),
                 reportTemplateOwner = reportTemplateInEdit.Owner,
                 reportParameters = reportTemplateInEdit.ReportParams
             };
@@ -206,7 +266,7 @@
                 reportTemplateName = reportTemplateInEdit.Name,
                 reportFilterLine = reportTemplateInEdit.Filter,
                 reportTemplateCreate = reportTemplateInEdit.CreationDate,
-                reportTemplateComment = reportTemplateInEdit.Comment,
+                reportTemplateComment = recodeComment(reportTemplateInEdit.Comment),
                 reportTemplateOwner = reportTemplateInEdit.Owner,
                 reportParameters = reportTemplateInEdit.ReportParams
             };

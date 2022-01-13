@@ -18,7 +18,10 @@ middleware_server_base_dir: "{{ fworch_home }}/middleware/files"
 middleware_server_start_dir: "{{ middleware_server_base_dir }}/FWO.Middleware.Server"
 middleware_ldif_dir: "{{ fworch_home }}/etc/ldif"
 
+# sample-auth-data vars
 sample_role_purpose: demo
+sample_user1_pw: cactus1
+sample_user2_pw: cactus2
 
 # use static jwt generation test key if set to yes
 # only for testing, not for production environment

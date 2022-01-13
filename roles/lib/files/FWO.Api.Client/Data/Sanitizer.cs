@@ -31,5 +31,19 @@ namespace FWO.Api.Data
         {
             return Regex.Replace(input, @"[^\S ]", "").Trim();
         }
+
+        public static string? SanitizeKeyOpt(string? input)
+        {
+            if (input != null)
+            {
+                return SanitizeKeyMand(input);
+            }
+            else return null;
+        }
+
+        public static string SanitizeKeyMand(string input)
+        {
+            return input.Trim();
+        }
     }
 }

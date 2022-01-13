@@ -24,16 +24,81 @@ INSERT INTO "report_format" ("report_format_name") VALUES ('html');
 
 -- default report templates belong to user 0 
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('time=now ','Current Rules','T0101', 0, '{"report_type":1,"device_filter":{"management":[]}}');
+    VALUES ('','Current Rules','T0101', 0,
+        '{"report_type":1,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('time="this year" ','This year''s Rule Changes','T0102', 0, '{"report_type":2,"device_filter":{"management":[]}}');
+    VALUES ('','This year''s Rule Changes','T0102', 0, 
+        '{"report_type":2,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('time=now ','Basic Statistics','T0103', 0, '{"report_type":3,"device_filter":{"management":[]}}');
+    VALUES ('','Basic Statistics','T0103', 0,
+        '{"report_type":3,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('time=now and (src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny) ',
-        'Compliance: Pass rules with ANY','T0104', 0, '{"report_type":1,"device_filter":{"management":[]}}');
+    VALUES ('(src=any or dst=any or svc=any or src=all or dst=all or svc=all) and not(action=drop or action=reject or action=deny) ',
+        'Compliance: Pass rules with ANY','T0104', 0, 
+        '{"report_type":1,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false}}');
 INSERT INTO "report_template" ("report_filter","report_template_name","report_template_comment","report_template_owner", "report_parameters") 
-    VALUES ('time=now ','Current NAT Rules','T0105', 0, '{"report_type":4,"device_filter":{"management":[]}}');
+    VALUES ('','Current NAT Rules','T0105', 0,
+        '{"report_type":4,"device_filter":{"management":[]},
+            "time_filter": {
+                "is_shortcut": true,
+                "shortcut": "now",
+                "report_time": "2022-01-01T00:00:00.0000000+01:00",
+                "timerange_type": "SHORTCUT",
+                "shortcut_range": "this year",
+                "offset": 0,
+                "interval": "DAYS",
+                "start_time": "2022-01-01T00:00:00.0000000+01:00",
+                "end_time": "2022-01-01T00:00:00.0000000+01:00",
+                "open_start": false,
+                "open_end": false}}');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
 insert into parent_rule_type (id, name) VALUES (2, 'guarded-layer');    -- restart numbering, rule restrictions are ANDed to all rules below it, layer is not entered if guard does not apply

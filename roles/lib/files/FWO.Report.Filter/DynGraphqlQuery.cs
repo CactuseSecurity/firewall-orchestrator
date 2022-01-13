@@ -2,6 +2,7 @@ using FWO.Report.Filter.Ast;
 using FWO.ApiClient.Queries;
 using FWO.Api.Data;
 using System.Text.RegularExpressions;
+using FWO.Logging;
 
 namespace FWO.Report.Filter
 {
@@ -30,17 +31,10 @@ namespace FWO.Report.Filter
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
-        private static void SetFixedFilters(ref DynGraphqlQuery query, DeviceFilter? deviceFilter, ReportType? reportType)
+
+        private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
             bool first = true;
-            query.ruleWhereStatement += "_and: [";
-
-            // leave out all header texts
-            if (reportType != null && reportType == ReportType.Statistics)
-            {
-                query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
-            }
-
             if (deviceFilter != null)
             {
                 query.ruleWhereStatement += "{_or: [{";
@@ -61,19 +55,159 @@ namespace FWO.Report.Filter
                 }
                 query.ruleWhereStatement += "}]}, ";
             }
-            query.ruleWhereStatement += "{";
         }
 
-        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode ast, DeviceFilter? deviceFilter, ReportType? reportType, bool detailed)
+        private static void SetTimeFilter(ref DynGraphqlQuery query, TimeFilter? timeFilter, ReportType? reportType)
+        {
+            if (timeFilter != null)
+            {
+                query.ruleWhereStatement += "{";
+                switch (reportType)
+                {
+                    case ReportType.Rules:
+                    case ReportType.Statistics:
+                    case ReportType.NatRules:
+                        query.ruleWhereStatement +=
+                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                            $"importControlByRuleLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        query.nwObjWhereStatement +=
+                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                            $"importControlByObjLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        query.svcObjWhereStatement +=
+                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                            $"importControlBySvcLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        query.userObjWhereStatement +=
+                            $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
+                            $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
+                        query.ReportTime = timeFilter.ReportTime.ToString();
+                        break;
+                    case ReportType.Changes:
+                        (string start, string stop) = ResolveTimeRange(timeFilter);
+                        query.QueryVariables["start"] = start;
+                        query.QueryVariables["stop"] = stop;
+                        query.QueryParameters.Add("$start: timestamp! ");
+                        query.QueryParameters.Add("$stop: timestamp! ");
+
+                        query.ruleWhereStatement += $@"
+                        _and: [
+                            {{ import_control: {{ stop_time: {{ _gte: $start }} }} }}
+                            {{ import_control: {{ stop_time: {{ _lte: $stop }} }} }}
+                        ]
+                        change_type_id: {{ _eq: 3 }}
+                        security_relevant: {{ _eq: true }}";
+                        break;
+                    case ReportType.None:
+                    default:
+                        Log.WriteError("Filter", $"Unexpected report type found: {reportType}");
+                        break;
+                }
+                query.ruleWhereStatement += "}, ";
+            }
+        }
+
+        private static (string, string) ResolveTimeRange(TimeFilter timeFilter)
+        {
+            string start;
+            string stop;
+            //string currentTime = (string)DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            string currentYear = (string)DateTime.Now.ToString("yyyy");
+            string currentMonth = (string)DateTime.Now.ToString("MM");
+            string currentDay = (string)DateTime.Now.ToString("dd");
+            DateTime startOfCurrentMonth = new DateTime(Convert.ToInt16(currentYear), Convert.ToInt16(currentMonth), 1);
+            DateTime startOfNextMonth = startOfCurrentMonth.AddMonths(1);
+            DateTime startOfPrevMonth = startOfCurrentMonth.AddMonths(-1);
+
+            switch (timeFilter.TimeRangeType)
+            {
+                case TimeRangeType.Shortcut:
+                    switch (timeFilter.TimeRangeShortcut)
+                    {
+                        // todo: add today, yesterday, this week, last week
+                        case "last year":
+                            start = $"{(Convert.ToInt16(currentYear) - 1)}-01-01";
+                            stop = $"{Convert.ToInt16(currentYear)}-01-01";
+                            break;
+                        case "this year":
+                            start = $"{Convert.ToInt16(currentYear)}-01-01";
+                            stop = $"{Convert.ToInt16(currentYear) + 1}-01-01";
+                            break;
+                        case "this month":
+                            start = startOfCurrentMonth.ToString("yyyy-MM-dd");
+                            stop = startOfNextMonth.ToString("yyyy-MM-dd");
+                            break;
+                        case "last month":
+                            start = startOfPrevMonth.ToString("yyyy-MM-dd");
+                            stop = startOfCurrentMonth.ToString("yyyy-MM-dd");
+                            break;
+                        default:
+                            throw new Exception($"Error: wrong time range format:" + timeFilter.TimeRangeShortcut);
+                    }
+                    break;
+
+                case TimeRangeType.Interval:
+                    switch (timeFilter.Interval)
+                    {
+                        case Interval.Days:
+                            start = DateTime.Now.AddDays(-timeFilter.Offset).ToString("yyyy-MM-dd HH:mm:ss");
+                            break;
+                        case Interval.Weeks:
+                            start = DateTime.Now.AddDays(-7*timeFilter.Offset).ToString("yyyy-MM-dd HH:mm:ss");
+                            break;
+                        case Interval.Months:
+                            start = DateTime.Now.AddMonths(-timeFilter.Offset).ToString("yyyy-MM-dd HH:mm:ss");
+                            break;
+                        case Interval.Years:
+                            start = DateTime.Now.AddYears(-timeFilter.Offset).ToString("yyyy-MM-dd HH:mm:ss");
+                            break;
+                        default:
+                            throw new Exception($"Error: wrong time interval format:" + timeFilter.Interval.ToString());
+                    }
+                    stop = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    break;
+
+                case TimeRangeType.Fixeddates:
+                    if (timeFilter.OpenStart)
+                        start = DateTime.MinValue.ToString("yyyy-MM-dd HH:mm:ss");
+                    else
+                        start = timeFilter.StartTime.ToString("yyyy-MM-dd HH:mm:ss");
+                    if (timeFilter.OpenEnd)
+                        stop = DateTime.MaxValue.ToString("yyyy-MM-dd HH:mm:ss");
+                    else
+                        stop = timeFilter.EndTime.ToString("yyyy-MM-dd HH:mm:ss");
+                    break;
+                
+                default:
+                    throw new NotSupportedException($"Found unexpected TimeRangeType");
+            }
+            return (start, stop);
+        }
+
+        private static void SetFixedFilters(ref DynGraphqlQuery query, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType)
+        {
+             // leave out all header texts
+            if (reportType != null && reportType == ReportType.Statistics)
+            {
+                query.ruleWhereStatement += "{rule_head_text: {_is_null: true}}, ";
+            }
+
+            SetDeviceFilter(ref query, deviceFilter);
+            SetTimeFilter(ref query, timeFilter, reportType);
+        }
+
+        public static DynGraphqlQuery GenerateQuery(string rawInput, AstNode? ast, DeviceFilter? deviceFilter, TimeFilter? timeFilter, ReportType? reportType, bool detailed)
         {
             DynGraphqlQuery query = new DynGraphqlQuery(rawInput);
 
-            SetFixedFilters(ref query, deviceFilter, reportType);
+            query.ruleWhereStatement += "_and: [";
+
+            SetFixedFilters(ref query, deviceFilter, timeFilter, reportType);
+
+            query.ruleWhereStatement += "{";
 
             // now we convert the ast into a graphql query:
-            ast.Extract(ref query, reportType);
+            if (ast != null)
+                ast.Extract(ref query, reportType);
 
-            // Close device filter
             query.ruleWhereStatement += "}] ";
 
             string paramString = string.Join(" ", query.QueryParameters.ToArray());

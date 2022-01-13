@@ -194,7 +194,7 @@
             }
 
             SyncFilterToDisplay();
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, ReportType.Rules, userConfig);
+            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, new TimeFilter(), ReportType.Rules, userConfig);
 
             DateTime startTime = DateTime.Now;
             managements = new Management[0]; // reset management data when switching between reports

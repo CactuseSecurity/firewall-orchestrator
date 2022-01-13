@@ -31,7 +31,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 obj.update({ 'obj_typ': 'group' })
                 obj.update({ 'obj_member_names' : common.list_delimiter.join(obj_orig['member']) })
                 obj.update({ 'obj_member_refs' : common.resolve_objects(obj['obj_member_names'], common.list_delimiter, full_config, 'name', 'uuid')})
-            if 'uuid' in obj_orig and obj_orig['uuid'].startswith('ippool-uuid-'): # ippool object
+            if 'startip' in obj_orig: # ippool object
                 obj.update({ 'obj_typ': 'ip_range' })
                 obj.update({ 'obj_ip': obj_orig['startip'] })
                 obj.update({ 'obj_ip_end': obj_orig['endip'] })

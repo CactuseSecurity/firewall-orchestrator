@@ -21,8 +21,10 @@ while (1) {
 	my $dbh1 = DBI->connect("dbi:Pg:dbname=$fworch_database;host=$fworch_srv_host;port=$fworch_srv_port","$fworch_srv_user","$fworch_srv_pw");
 	if ( !defined $dbh1 ) { die "Cannot connect to database!\n"; }
 	my $sth1 = $dbh1->prepare("SELECT mgm_id, mgm_name, do_not_import, importer_hostname from management LEFT JOIN stm_dev_typ USING (dev_typ_id)" .
-			" WHERE NOT do_not_import AND NOT management.dev_typ_id in (12,13) ORDER BY mgm_name" );
+			" WHERE NOT do_not_import AND NOT management.dev_typ_id in (11,12,13) ORDER BY mgm_name" );
 			# do not import types 13 (checkpoint R8x) and 12 (fortimanager) as these are handled by new python/api importer
+			# do not import type 11 (FortiAdom) per default as it can be handled by new python/api importer
+			# in case an installation needs direct FortiGate import (no FortiManager), remove 11 from the list above
 	if ( !defined $sth1 ) { die "Cannot prepare statement: $DBI::errstr\n"; }
 	$res = $sth1->execute;
 	my $management_hash = $sth1->fetchall_hashref('mgm_name');

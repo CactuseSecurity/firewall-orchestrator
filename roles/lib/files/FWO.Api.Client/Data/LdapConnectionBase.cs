@@ -58,7 +58,7 @@ namespace FWO.Api.Data
         [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
         public int? TenantId { get; set; }
 
-        [JsonPropertyName("ldap_global_tenant_name")]
+        [JsonProperty("ldap_global_tenant_name"), JsonPropertyName("ldap_global_tenant_name")]
         public string? GlobalTenantName { get; set; }
 
         public LdapConnectionBase()

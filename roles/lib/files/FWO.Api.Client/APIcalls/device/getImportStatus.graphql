@@ -1,5 +1,5 @@
 query getImportStatus {
-  management(order_by: { mgm_name: asc }) {
+  management(where: {stm_dev_typ: {dev_typ_is_multi_mgmt: {_eq: false}}} order_by: { mgm_name: asc }) {
     mgm_id
     mgm_name
     last_import: import_controls(order_by: { control_id: desc }, limit: 1) {

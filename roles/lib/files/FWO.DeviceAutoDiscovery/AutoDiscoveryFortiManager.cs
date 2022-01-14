@@ -100,7 +100,7 @@ namespace FWO.DeviceAutoDiscovery
                                                 Name = devName,
                                                 LocalRulebase = assign.PackageName,
                                                 Package = assign.PackageName,
-                                                DeviceType = new DeviceType { Id = 11 } // fortiGate
+                                                DeviceType = new DeviceType { Id = 10 } // fortiGate
                                             };
                                             // handle global vs. local based on VdomName?
                                             Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");

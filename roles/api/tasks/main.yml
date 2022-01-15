@@ -38,15 +38,15 @@
   import_tasks: api-create-docu.yml
   when: api_docu | bool
 
-- name: finalize handler for datarecovery
-  set_fact:
-    api_handler_guard: stop
-  changed_when: true
-  notify: "api handler"
-  when: installation_mode == "upgrade"
+# - name: finalize handler for datarecovery
+#   set_fact:
+#     api_handler_guard: stop
+#   changed_when: true
+#   notify: "api handler"
+#   when: installation_mode == "upgrade"
       
-# - name: remove api home
-#   file:
-#     path: "{{ api_home }}"
-#     state: absent
-#   become: yes
+- name: remove api home
+  file:
+    path: "{{ api_home }}"
+    state: absent
+  become: yes

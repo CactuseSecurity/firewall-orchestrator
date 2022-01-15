@@ -1,20 +1,5 @@
 # this playbook sets up the api
-- name: initialize handler for datarecovery
-  set_fact:
-    api_handler_guard: start
-  changed_when: true
-  notify:
-  - api handler
-  when: installation_mode == "upgrade"
-
-- name: backup api dir
-  synchronize:
-    src: "{{ fworch_home }}/api"
-    dest: "{{ fworch_home }}/backup_api"
-  delegate_to: "{{ inventory_hostname }}"
-  when: installation_mode == "upgrade"
-  become: yes
-  
+ 
 - name: remove api home
   file:
     path: "{{ api_home }}"

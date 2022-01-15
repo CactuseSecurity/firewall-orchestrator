@@ -7,3 +7,8 @@
     daemon_reload: yes
   become: yes
   when: "'importers' in group_names"
+
+- name: remove old importer service file
+  file:
+    state: absent
+    name: "/lib/systemd/system/{{ product_name }}-importer.service"

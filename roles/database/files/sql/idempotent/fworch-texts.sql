@@ -1591,30 +1591,50 @@ INSERT INTO txt VALUES ('H5101', 'English', 'Admins can create and administrate 
     The clone button helps defining new managements by copying the data from existing ones.
     Before saving at least one of the parameters Hostname, Port or Config Path has to be different from the existing managements if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nnen integriert werden:<ul>
-    <li>Check Point R5x/R6x/R7x - ssh-Zugang zum Management Server (SmartCenter)</li>
-    <li>Check Point R8x - https-API-Zugang zum SmartCenter</li>
-    <li>Check Point R8x - https-API-Zugang zum MDS (Multi Domain Server)</li>
-    <li>Fortinet 5.0 - 6.4 - ssh-Zugang zur FortiGate</li>
-    <li>FortiManager 5ff - https API Zugang auf FortiManager. F&uml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
-    <li>Barracuda Firewall Control Center Vx - ssh-Zugang direkt zum Firewallgateway</li>
-    <li>phion netfence 3.x - ssh-Zugang direkt zum Firewallgateway</li>
-    <li>JUNOS 10 - 17 - ssh-Zugang direkt zum Firewallgateway</li>
-    <li>Netscreen 5.x/6.x - ssh-Zugang direkt zum Firewallgateway</li></ul>
+INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nnen integriert werden:
+    <ul>
+        <li>Legacy Zugriff via ssh
+            <ul>
+                <li>Check Point R5x/R6x/R7x - Management Server (SmartCenter)</li>
+                <li>FortiGateStandalone 5ff - FortiGate ohne FortiManager</li>
+                <li>Barracuda Firewall Control Center Vx - Firewall-Management</li>
+                <li>phion netfence 3.x - Firewallgateway</li>
+                <li>JUNOS 10 - 17 - Firewallgateway</li>
+                <li>Netscreen 5.x/6.x - Firewallgateway</li>
+            </ul>
+        </li>            
+        <li>API Zugriff via https
+            <ul>
+                <li>Check Point R8x - SmartCenter</li>
+                <li>Check Point R8x - Multi Domain Server (MDS)</li>
+                <li>FortiManager 5ff - FortiManager. F&uml;r diesen Management-Typ kann die komplette Struktur (ADOM, FortiGateway Devices) mittels AutoDiscovery automatisch ausgelesen werden.</li>
+            </ul>
+        </li>            
+    </ul>
 ');
 INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can be integrated:<ul>
-    <li>Check Point R5x/R6x/R7x - ssh access to management server (SmartCenter)</li>
-    <li>Check Point R8x - https API access to SmartCenter</li>
-    <li>Check Point R8x - https API access to MDS (Multi Domain Server)</li>
-    <li>Fortinet 5.0 - 6.4 - ssh access to FortiGate</li>
-    <li>FortiManager 5ff - https API access to FortiManager - for this management type the complete infrastructure (ADOM, FortiGateway devices) can be auto discovered.</li>
-    <li>Barracuda Firewall Control Center Vx - ssh access to firewall gateway directly</li>
-    <li>phion netfence 3.x - ssh access to firewall gateway directly</li>
-    <li>JUNOS 10 - 17 - ssh access to firewall gateway directly</li>
-    <li>Netscreen 5.x/6.x - ssh access to firewall gateway directly</li></ul>
+    <ul>
+        <li>Legacy access via ssh
+            <ul>
+                <li>Check Point R5x/R6x/R7x - management server (SmartCenter)</li>
+                <li>FortiGateStandalone 5ff - FortiGate without FortiManager</li>
+                <li>Barracuda Firewall Control Center Vx - firewall management</li>
+                <li>phion netfence 3.x - firewall gateway</li>
+                <li>JUNOS 10 - 17 - firewall gateway</li>
+                <li>Netscreen 5.x/6.x - firewall gateway</li></ul>
+            </ul>
+        </li>            
+        <li>API access via https
+            <ul>
+                <li>Check Point R8x - SmartCenter</li>
+                <li>Check Point R8x - MDS (Multi Domain Server)</li>
+                <li>FortiManager 5ff - FortiManager - for this management type the complete infrastructure (ADOM, FortiGateway devices) can be auto discovered.</li>
+            </ul>
+        </li>            
+    </ul>
 ');
 INSERT INTO txt VALUES ('H5103', 'German',  'F&uuml;r Firewallgateways ohne separates Management oder im Falle, dass das zentrale Management nicht in den Firewall Orchestrator eingebunden werden kann,
-    k&ouml;nnen die Details des Gateways hier als Management und gleichzeitig noch einmal als Gateway eingetragen werden.
+    k&ouml;nnen, die Details des Gateways hier als Management und gleichzeitig noch einmal als Gateway eingetragen werden.
 ');
 INSERT INTO txt VALUES ('H5103', 'English', 'For firewall gateways without a separate management or in case the central management cannot be integrated into Firewall Orchestrator 
     you may enter the details of the gateway here as a management system as well and then add it again as a gateway.

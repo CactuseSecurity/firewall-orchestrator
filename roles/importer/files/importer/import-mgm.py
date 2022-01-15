@@ -83,7 +83,7 @@ for dev in mgm_details['devices']:
 
 # only run if this is the correct import module
 if mgm_details['importerHostname'] != socket.gethostname():
-    logging.info(
+    logging.debug(
         "we are not responsible for importing this management - so resting")
     sys.exit(0)
 

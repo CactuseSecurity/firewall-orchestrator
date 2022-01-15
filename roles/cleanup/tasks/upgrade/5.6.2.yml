@@ -1,0 +1,9 @@
+
+- name: removing old legacy importer without legacy name
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-importer"
+    state: stopped
+    enabled: no
+    daemon_reload: yes
+  become: yes
+  when: "'importers' in group_names"

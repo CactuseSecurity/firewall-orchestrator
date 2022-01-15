@@ -82,11 +82,18 @@ my $rulebases;
 		&get_import_infos_for_mgm($mgm_id, $fworch_workdir, $cfg_dir);
 $error_count_global = &error_handler_add(undef, $error_level = 5, "mgm-id-not-found: $mgm_id", $error_count_local, $error_count_global);
 
+# check if device is a legacy device, otherwise exit here without doing anything
+if (grep {$_ eq $dev_typ_id} (11,12,13)) {
+	output_txt("Management $mgm_name (mgm_id=$mgm_id, dev_typ_id=$dev_typ_id): not a legacy device type, skipping\n");
+	exit (0);
+}
+
 my $import_was_already_running = (&is_import_running($mgm_id))?1:0;
 my $initial_import_flag = &is_initial_import($mgm_id);
 $current_import_id  = &insert_control_entry($initial_import_flag,$mgm_id);	# set import lock
 
-print ("current_import_id=$current_import_id\n");
+
+output_txt ("current_import_id=$current_import_id");
 $error_count_global = &error_handler_add($current_import_id, $error_level = 3, "set-import-lock-failed", !defined($current_import_id), $error_count_global);
 $error_count_global = &error_handler_add($current_import_id, $error_level = 2, "import-already-running: $mgm_name (ID: $mgm_id)",
 	$import_was_already_running, $error_count_global);

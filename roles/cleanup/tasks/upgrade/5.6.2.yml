@@ -11,7 +11,7 @@
     enabled: no
     daemon_reload: yes
   become: yes
-  when: 'importers' in group_names and old_service_check.stat.exists
+  when: "'importers' in group_names and old_service_check.stat.exists"
 
 - name: remove old importer service file
   file:

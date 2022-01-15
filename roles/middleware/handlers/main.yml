@@ -1,11 +1,16 @@
 ---
+- name: check for mw backup dir
+  stat:
+    path: "{{ fworch_home }}/backup_middleware/middleware"
+  register: mw_backup_dir
+
 - name: recover backup
   synchronize:
     src: "{{ fworch_home }}/backup_middleware/middleware"
     dest: "{{ fworch_home }}"
   delegate_to: "{{ inventory_hostname }}"
   listen: "middleware handler"
-  when: middleware_handler_guard == "start"
+  when: mw_backup_dir.stat.exists and middleware_handler_guard == "start"
   become: yes
 
 - name: delete backup
@@ -14,6 +19,7 @@
     path: "{{ fworch_home }}/backup_middleware"
   listen: "middleware handler"
   become: yes
+  when: mw_backup_dir.stat.exists
   
 - name: fail message
   debug:

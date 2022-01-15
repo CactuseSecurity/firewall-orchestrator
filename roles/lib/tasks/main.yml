@@ -9,12 +9,17 @@
       - lib handler
       when: installation_mode == "upgrade"
 
+    - name: check for lib dir
+      stat:
+        path: "{{ fworch_home }}/lib"
+      register: lib_dir
+
     - name: backup lib dir
       synchronize:
         src: "{{ fworch_home }}/lib"
         dest: "{{ fworch_home }}/backup_lib"
       delegate_to: "{{ inventory_hostname }}"
-      when: installation_mode == "upgrade"
+      when: lib_dir.stat.exists and installation_mode == "upgrade"
 
     - name: remove lib dir
       file:

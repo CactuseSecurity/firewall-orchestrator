@@ -1,11 +1,17 @@
 ---
+
+- name: check for lib backup dir
+  stat:
+    path: "{{ fworch_home }}/backup_lib/lib"
+  register: lib_backup_dir
+
 - name: recover backup
   synchronize:
     src: "{{ fworch_home }}/backup_lib/lib"
     dest: "{{ fworch_home }}"
   delegate_to: "{{ inventory_hostname }}"
   listen: "lib handler"
-  when: lib_handler_guard == "start"
+  when: lib_backup_dir.stat.exists and lib_handler_guard == "start"
   become: yes
 
 - name: delete backup
@@ -14,7 +20,7 @@
     path: "{{ fworch_home }}/backup_lib"
   listen: "lib handler"
   become: yes
-  
+  when: lib_backup_dir.stat.exists
 - name: fail message
   debug:
     msg:

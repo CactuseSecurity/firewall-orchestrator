@@ -8,12 +8,17 @@
     - middleware handler
     when: installation_mode == "upgrade"
 
+  - name: check for middleware dir
+    stat:
+      path: "{{ fworch_home }}/middleware"
+    register: middleware_dir
+
   - name: backup middleware dir
     synchronize:
       src: "{{ fworch_home }}/middleware"
       dest: "{{ fworch_home }}/backup_middleware"
     delegate_to: "{{ inventory_hostname }}"
-    when: installation_mode == "upgrade"
+    when: middleware_dir.stat.exists and installation_mode == "upgrade"
 
   - name: remove middleware dir
     file:

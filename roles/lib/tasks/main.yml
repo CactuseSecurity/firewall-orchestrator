@@ -12,19 +12,19 @@
     - name: check for lib dir
       stat:
         path: "{{ fworch_home }}/lib"
-      register: lib_dir
+      register: lib_dir_check
 
     - name: backup lib dir
       synchronize:
         src: "{{ fworch_home }}/lib"
         dest: "{{ fworch_home }}/backup_lib"
       delegate_to: "{{ inventory_hostname }}"
-      when: lib_dir.stat.exists and installation_mode == "upgrade"
+      when: lib_dir_check.stat.exists and installation_mode == "upgrade"
 
     - name: remove lib dir
       file:
         state: absent
-        path: "{{ fworch_home }}/lib"
+        src: "{{ fworch_home }}/lib"
 
     - name: create lib dir
       file:

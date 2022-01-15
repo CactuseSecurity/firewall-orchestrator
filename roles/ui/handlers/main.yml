@@ -3,7 +3,7 @@
 - name: check for ui backup dir
   stat:
     path: "{{ fworch_home }}/backup_ui/ui"
-  register: ui_backup_dir
+  register: ui_backup_dir_check
 
 - name: recover backup
   synchronize:
@@ -11,7 +11,7 @@
     dest: "{{ fworch_home }}"
   delegate_to: "{{ inventory_hostname }}"
   listen: "ui handler"
-  when: ui_backup_dir.stat.exists and ui_handler_guard == "start"
+  when: ui_backup_dir_check.stat.exists and ui_handler_guard == "start"
   become: yes
 
 - name: delete backup
@@ -20,7 +20,7 @@
     path: "{{ fworch_home }}/backup_ui"
   listen: "ui handler"
   become: yes
-  when: ui_backup_dir.stat.exists
+  when: ui_backup_dir_check.stat.exists
   
 - name: fail message
   debug:

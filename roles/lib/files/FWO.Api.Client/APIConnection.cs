@@ -76,8 +76,8 @@ namespace FWO.ApiClient
         {
             try
             {
-                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0,50).Replace(Environment.NewLine, "")}... " +
-                    (variables != null ? $"with variables: { JsonSerializer.Serialize(variables).Substring(0, 50).Replace(Environment.NewLine, "")}..." : ""));
+                Log.WriteDebug("API call", $"Sending API call {operationName}: {query.Substring(0, Math.Min(query.Length, 50)).Replace(Environment.NewLine, "")}... " +
+                    (variables != null ? $"with variables: { JsonSerializer.Serialize(variables).Substring(0, Math.Min(JsonSerializer.Serialize(variables).Length, 50)).Replace(Environment.NewLine, "")}..." : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
                 // Log.WriteDebug("API call", "API response received.");
 

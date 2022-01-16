@@ -71,7 +71,7 @@ namespace FWO.Api.Data
 
                 foreach (Rule rule in Rules)
                 {
-                    if (string.IsNullOrEmpty(rule.SectionHeader))
+                    if (string.IsNullOrEmpty(rule.SectionHeader)) // Not a section header
                     {
                         rule.DisplayOrderNumber = ruleNumber++;
                     }

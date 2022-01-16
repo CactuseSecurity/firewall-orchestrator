@@ -9,15 +9,13 @@ namespace FWO.Middleware.Server
 {
     public class JwtWriter
     {
-        private const string issuer = "FWO Middleware Module";
-        private const string audience = "FWO";
         private readonly RsaSecurityKey jwtPrivateKey;
         private readonly int JwtMinutesValid;
 
-        public JwtWriter(RsaSecurityKey? jwtPrivateKey, int JwtMinutesValid)
+        public JwtWriter(RsaSecurityKey jwtPrivateKey, int JwtMinutesValid)
         {
             this.JwtMinutesValid = JwtMinutesValid;
-            this.jwtPrivateKey = jwtPrivateKey ?? throw new Exception("test");
+            this.jwtPrivateKey = jwtPrivateKey;
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
         }
 
@@ -40,8 +38,8 @@ namespace FWO.Middleware.Server
             // Create JWToken
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken
             (
-                issuer: issuer,
-                audience: audience,
+                issuer: JwtConstants.Issuer,
+                audience: JwtConstants.Audience,
                 subject: subject,
                 notBefore: DateTime.UtcNow.AddMinutes(-1), // we currently allow for some deviation in timing of the systems
                 issuedAt: DateTime.UtcNow.AddMinutes(-1),

@@ -5,6 +5,7 @@ using FWO.Report.Filter.Exceptions;
 
 namespace FWO.Report.Filter.Ast
 {
+    [TypeConverter(typeof(AstNodeFilterTypeConverter))]
     class AstNodeFilter<SemanticType> : AstNode
     {
         public Token Name { get; set; } = new Token(new Range(), "", TokenKind.Value);
@@ -32,33 +33,6 @@ namespace FWO.Report.Filter.Ast
             {
                 throw new NotSupportedException($"Internal error: TypeConverter does not support conversion from {this.GetType()} to {typeof(SemanticType)}");
             }
-            //if (typeof(SemanticType) == typeof(int))
-            //{
-                
-            //}
-            //else if (typeof(SemanticType) == typeof(ushort))
-            //{
-
-            //    typeof(SemanticType).
-            //    ushort.TryParse(Value.Text, out ushort convertedValue);
-            //    ConvertedValue = (SemanticType)convertedValue;
-            //}
-            //else if (SemanticType == typeof(string))
-            //{
-                
-            //}
-            //else if (SemanticType == typeof(bool))
-            //{
-            //    bool.TryParse(Value.Text, out bool result);
-            //}
-            //else if (SemanticType == typeof(DateTimeRange))
-            //{
-            //    DateTimeRange.TryParse(Value.Text, out DateTimeRange result);
-            //}
-            //else if (SemanticType == typeof(ReportType))
-            //{
-            //    ReportType.TryParse(Value.Text, out ReportType result);
-            //}
         }
 
         public override void Extract(ref DynGraphqlQuery query)
@@ -511,7 +485,7 @@ namespace FWO.Report.Filter.Ast
                 return Operator.Kind switch
                 {
                     TokenKind.EEQ => "_eq",
-                    TokenKind.EQ => exactEquals ? "_eq" : "_ilike",
+                    TokenKind.EQ => "_ilike", //exactEquals ? "_eq" : "_ilike",
                     TokenKind.NEQ => "_nilike",
                     TokenKind.LSS => "_lt",
                     TokenKind.GRT => "_gt",

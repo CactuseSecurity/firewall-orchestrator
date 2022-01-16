@@ -67,19 +67,32 @@ namespace FWO.Report.Filter
                         break;
 
                     default:
-                        for (int lookAheadPosition = Math.Max(position + lookAhead, tokens.Count - 1); lookAheadPosition >= position; lookAheadPosition--)
+                        bool newTokensAdded = false;
+                        var a = "abcde"[1..2];
+                        var b = "abcde"[1..^2];
+                        var c = "abcde"[1..1];
+
+                        for (int lookAheadPosition = Math.Min(position + lookAhead, input.Length - 1); lookAheadPosition >= position; lookAheadPosition--)
                         {
+                            string test = input[position..(lookAheadPosition + 1)];
+
                             List<Token> newTokens = TryExtractToken(tokenBeginPosition, 
-                                tokenText + input[position..lookAheadPosition],
-                                IsWhitespaceOrEnd(position + lookAheadPosition + 1));
+                                tokenText + input[position..(lookAheadPosition + 1)],
+                                IsWhitespaceOrEnd(lookAheadPosition + 1));
 
                             if (newTokens.Count > 0)
                             {
+                                newTokensAdded = true;
                                 tokens.AddRange(newTokens);
+                                position = lookAheadPosition;
                                 tokenBeginPosition = position + 1;
                                 tokenText = "";
                                 break;
                             }
+                        }
+                        if (!newTokensAdded)
+                        {
+                            tokenText += input[position];
                         }
                         break;
                 }
@@ -89,7 +102,7 @@ namespace FWO.Report.Filter
 
             if (tokenText != "")
             {
-                tokens.Add(new Token(tokenBeginPosition..^(position-1), tokenText, TokenKind.Value));
+                tokens.Add(new Token(tokenBeginPosition..position, tokenText, TokenKind.Value));
             }
 
             return tokens;
@@ -109,7 +122,7 @@ namespace FWO.Report.Filter
                     {
                         if (potentialToken == validToken)
                         {
-                            tokens.Add(new Token(beginPosition..^position, potentialToken, tokenKind));
+                            tokens.Add(new Token(beginPosition..(beginPosition + potentialToken.Length), potentialToken, tokenKind));
                             return tokens;
                         }
                     }
@@ -126,7 +139,7 @@ namespace FWO.Report.Filter
                             List<Token> potentialTokens = TryExtractToken(beginPosition, potentialToken.Substring(0, potentialToken.Length - validToken.Length), true);
                             if (potentialTokens.Count == 0)
                             {
-                                tokens.Add(new Token(beginPosition..^(beginPosition + potentialToken.Length - validToken.Length), potentialToken.Substring(0, potentialToken.Length - validToken.Length), TokenKind.Value));
+                                tokens.Add(new Token(beginPosition..(beginPosition + potentialToken.Length - validToken.Length), potentialToken[..^validToken.Length], TokenKind.Value));
                             }
                             else
                             {
@@ -140,7 +153,7 @@ namespace FWO.Report.Filter
                             }
                         }
 
-                        tokens.Add(new Token((beginPosition + potentialToken.Length - validToken.Length)..^position, validToken, realTokenKind));
+                        tokens.Add(new Token((beginPosition + potentialToken.Length - validToken.Length)..(beginPosition + potentialToken.Length), validToken, realTokenKind));
 
                         return tokens;
                     }

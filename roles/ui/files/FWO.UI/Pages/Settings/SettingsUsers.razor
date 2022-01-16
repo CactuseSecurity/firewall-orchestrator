@@ -339,7 +339,7 @@
             tenants = (await apiConnection.SendQueryAsync<Tenant[]>(FWO.ApiClient.Queries.AuthQueries.getTenants)).ToList();
 
             // Get users from uiusers table
-            IRestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
+            RestResponse<List<UserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetUsers();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_users_local"), userConfig.GetText("E5209"), true);
@@ -482,7 +482,7 @@
 
             // get users from Ldap
             LdapUserGetParameters userGetParameters = new LdapUserGetParameters { LdapId = internalLdap.Id, SearchPattern = "" };
-            IRestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
+            RestResponse<List<LdapUserGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetLdapUsers(userGetParameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("get_user_from_ldap"), userConfig.GetText("E5208"), true);
@@ -519,7 +519,7 @@
     {
         try
         {
-            IRestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
+            RestResponse<List<GroupGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetInternalGroups();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_groups"), userConfig.GetText("E5231"), true);
@@ -548,7 +548,7 @@
     {
         try
         {
-            IRestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
+            RestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
@@ -756,7 +756,7 @@
                         TenantId = (actUser.Tenant != null ? actUser.Tenant.Id : 0),
                         PwChangeRequired = actUser.PasswordMustBeChanged
                     };
-                    IRestResponse<int> middlewareServerResponse = await middlewareClient.AddUser(parameters);
+                    RestResponse<int> middlewareServerResponse = await middlewareClient.AddUser(parameters);
                     if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == 0)
                     {
                         DisplayMessageInUi!(null, userConfig.GetText("add_user"), userConfig.GetText("E5213"), true);
@@ -776,7 +776,7 @@
             {
                 // Update existing user in ldap --> currently only email
                 UserEditParameters parameters = new UserEditParameters {Email = actUser.Email, LdapId = actUser.LdapConnection.Id, UserId = actUser.DbId };
-                IRestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
+                RestResponse<bool> middlewareServerResponse = await middlewareClient.UpdateUser(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("update_user"), userConfig.GetText("E5214"), true);
@@ -832,7 +832,7 @@
                     if (group != null)
                     {
                         GroupAddDeleteUserParameters addUserParameters = new GroupAddDeleteUserParameters { GroupDn = group.Dn, UserDn = user.Dn };
-                        IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
+                        RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToGroup(addUserParameters);
                         if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                         {
                             DisplayMessageInUi!(null, userConfig.GetText("assign_user_to_group"), userConfig.GetText("E5242"), true);
@@ -859,7 +859,7 @@
                     if (role != null)
                     {
                         RoleAddDeleteUserParameters parameters = new RoleAddDeleteUserParameters { Role = role.Dn, UserDn = user.Dn };
-                        IRestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
+                        RestResponse<bool> middlewareServerResponse = await middlewareClient.AddUserToRole(parameters);
                         if ((middlewareServerResponse.StatusCode != HttpStatusCode.OK) || (middlewareServerResponse.Data == false))
                         {
                             DisplayMessageInUi!(null, userConfig.GetText("assign_user_group_to_role"), userConfig.GetText("E5255"), true);
@@ -909,7 +909,7 @@
                 LdapId = actUser.LdapConnection.Id,
                 UserId = actUser.DbId
             };
-            IRestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
+            RestResponse<bool> middlewareServerResponse = await middlewareClient.DeleteUser(parameters);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
             {
                 DisplayMessageInUi!(null, userConfig.GetText("delete_user"), userConfig.GetText("E5216"), true);
@@ -978,7 +978,7 @@
                     NewPassword = actUser.Password, 
                     UserId = actUser.DbId
                 };
-                IRestResponse<string> middlewareServerResponse = await middlewareClient.SetPassword(parameters);
+                RestResponse<string> middlewareServerResponse = await middlewareClient.SetPassword(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("reset_password"), userConfig.GetText("E5219"), true);
@@ -1023,7 +1023,7 @@
             try
             {
                 UserDeleteAllEntriesParameters parameters = new UserDeleteAllEntriesParameters { UserId = user.DbId };
-                IRestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromAllEntries(parameters);
+                RestResponse<bool> middlewareServerResponse = await middlewareClient.RemoveUserFromAllEntries(parameters);
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)
                 {
                     DisplayMessageInUi!(null, userConfig.GetText("remove_sample_data"), userConfig.GetText("E5221"), true);

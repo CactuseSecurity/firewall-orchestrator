@@ -44,7 +44,7 @@ namespace FWO.Ui
             MiddlewareClient middlewareClient = new MiddlewareClient(MiddlewareUri);
             APIConnection apiConn = new APIConnection(ApiUri);
 
-            IRestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
+            RestResponse<string> createJWTResponse = middlewareClient.CreateInitialJWT().Result;
             bool connectionEstablished = createJWTResponse.IsSuccessful;
             int connectionAttemptsCount = 1;
             while (!connectionEstablished) 

@@ -59,7 +59,7 @@ namespace FWO.Report.Filter
                             }
                             else
                             {
-                                throw new SyntaxException($"Error: wrong time range format.", filter.Value.Position); // Unexpected token
+                                throw new SyntaxException($"Wrong time range format.", filter.Value.Position); // Unexpected token
                             }
                             break;
                     }
@@ -71,32 +71,24 @@ namespace FWO.Report.Filter
                     Start = time;
                     break;
                 default:
-                    throw new SemanticException("", filter.Operator.Position);
+                    throw new SemanticException($"Operator is not appliable for filter {filter.Name.Kind} of type {typeof(DateTimeRange)}", filter.Operator.Position);
             }
         }
     }
 
     public class DateTimeRangeTypeConverter : TypeConverter
     {
-        public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+        public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
         {
-            return sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+            return sourceType == typeof(AstNodeFilter<DateTimeRange>) || base.CanConvertFrom(context, sourceType);
         }
 
-        public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+        public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
         {
-            string? casted = value as string;
-            return casted != null
-                ? new DateTimeRange(casted)
+            AstNodeFilter<DateTimeRange>? dateTimeRangeAstNode = value as AstNodeFilter<DateTimeRange>;
+            return dateTimeRangeAstNode != null
+                ? new DateTimeRange(dateTimeRangeAstNode)
                 : base.ConvertFrom(context, culture, value);
-        }
-
-        public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
-        {
-            var casted = value as CrazyClass;
-            return destinationType == typeof(string) && casted != null
-                ? String.Join("", casted.Charray)
-                : base.ConvertTo(context, culture, value, destinationType);
         }
     }
 }

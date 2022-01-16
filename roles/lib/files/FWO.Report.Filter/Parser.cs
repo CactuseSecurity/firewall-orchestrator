@@ -1,6 +1,5 @@
 using FWO.Report.Filter.Ast;
 using FWO.Report.Filter.Exceptions;
-using FWO.Report.Filter.FilterTypes;
 using System;
 using System.Collections.Generic;
 using System.Data;

@@ -167,7 +167,7 @@ elif get_config_response == 0:
     full_config_size = sys.getsizeof(full_config_json)
     config2import_size = sys.getsizeof(config2import)
 
-    logging.debug("full_config size: " + full_config_size + " bytes, config2import size: " + config2import_size + " bytes")
+    logging.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
 
     if change_count > 0 or error_count > 0 and full_config_size < full_config_size_limit:  # store full config in case of change or error
         error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {

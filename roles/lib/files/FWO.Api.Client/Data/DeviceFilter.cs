@@ -95,6 +95,16 @@ namespace FWO.Api.Data
             return selectedMgmts;
         }
 
+        public string listAllSelectedDevices()
+        {
+            List<string> devs = new List<string>();
+            foreach (ManagementSelect mgmt in Managements)
+                foreach (DeviceSelect dev in mgmt.Devices)
+                    if (dev.Selected)
+                        devs.Add(dev.Name ?? "");
+            return string.Join(", ", devs);
+        }
+
         public static List<int> ExtractAllDevIds(Management[] managements)
         {
             List<int> devs = new List<int>();

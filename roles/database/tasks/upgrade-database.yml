@@ -22,7 +22,7 @@
   set_fact:
     upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') ] }}"
   when: |
-    item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') is version(installed_version, '>') 
+    item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') is version(installed_version, '>=') 
     and 
     item | basename | splitext | first | regex_replace('([\\d\\.]+)\\.sql', '\\1') is version(current_version, '<=')
   with_fileglob:

@@ -173,3 +173,10 @@ adding report template format fk and permissions
 
 ### 5.5.7 - 04.01.2022
 - add column report_parameters to report_template, update data for default templates
+
+### 5.6.1 - 12.01.2022
+- update data for default templates for time filter
+
+### 5.6.2 - 17.01.2022
+- adding new legacy fortigate all in one device type (ssh)
+- clean separation of legacy and api importer

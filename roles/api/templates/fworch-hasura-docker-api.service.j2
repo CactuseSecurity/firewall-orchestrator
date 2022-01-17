@@ -6,7 +6,7 @@ After=network.target remote-fs.target nss-lookup.target postgresql.service
 After=network.target remote-fs.target nss-lookup.target
 {%- endif %}
 [Service]
-WorkingDirectory={{ api_home }}
+WorkingDirectory={{ fworch_home }}
 ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/docker start {{ api_container_name }}
 StandardOutput=syslog

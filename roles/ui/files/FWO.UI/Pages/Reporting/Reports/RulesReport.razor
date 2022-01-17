@@ -18,8 +18,8 @@
                     <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="true">
                         <Table SelectedItems="SelectedRules"
                                RowClickAction="@(async rule => { rule.DeviceName = device.Name ?? ""; if (!SelectedRules.Remove(rule)) SelectedRules.Add(rule); await SelectedRulesChanged.InvokeAsync(SelectedRules); })"
-                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
-                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => rule.SectionHeader != null ? "hide-all-but-second-child second-child-full-width" : "")"
+                               style="font-size:small" TableClass="table table-bordered table-sm table-responsive vheight75 overflow-auto sticky-header" TableItem="Rule" Items="device.Rules" ShowSearchBar="false"
+                               PageSize="RulesPerPage" ColumnReorder="true" TableRowClass="@(rule => getTableRowClasses(rule))"
                                @ref="reportTable">
 
                             @if (EmptyColumns[0] == false)
@@ -33,13 +33,7 @@
 
                             @if(Recertification)
                             {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" >
-                                    <Template>
-                                        <div style="@(rule.Metadata.Style)">
-                                            @rule.Metadata.NextRecert
-                                        </div>
-                                    </Template>
-                                </Column>
+                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("next_recert"))" Field="@(rule => rule.Metadata.NextRecert)" Sortable="true" Filterable="true" />
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("last_recertifier"))" Field="@(rule => rule.Metadata.LastCertifierName)" Sortable="true" Filterable="true" />
                                 <Column TableItem="Rule" Title="@(userConfig.GetText("action"))" Field="@(rule => rule.OrderNumber)">
                                     <Template>
@@ -112,21 +106,21 @@
                             }
                             @if(NatRules)
                             {
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule))
-                                    </Template>
-                                </Column>
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule))
-                                    </Template>
-                                </Column>
-                                <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
-                                    <Template>
-                                        @((MarkupString)ruleDisplay.DisplayTranslatedService(rule))
-                                    </Template>
-                                </Column>
+                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule))
+                                        </Template>
+                                    </Column>
+                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule))
+                                        </Template>
+                                    </Column>
+                                    <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)ruleDisplay.DisplayTranslatedService(rule))
+                                        </Template>
+                                    </Column>
                             }
                             @if (EmptyColumns[7] == false && !NatRules)
                             {
@@ -218,5 +212,19 @@
     protected override void OnInitialized()
     {
         ruleDisplay = new NatRuleDisplay(userConfig);
+    }
+
+    private string getTableRowClasses(Rule rule)
+    {
+        string classes = "";
+        if(rule.SectionHeader != null)
+        {
+            classes = "hide-all-but-second-child second-child-full-width ";
+        }
+        if(Recertification)
+        {
+            classes += rule.Metadata.Style;
+        }
+        return classes;
     }
 }

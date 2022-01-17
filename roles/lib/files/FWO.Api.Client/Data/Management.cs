@@ -165,8 +165,8 @@ namespace FWO.Api.Data
             ConfigPath = Sanitizer.SanitizeMand(ConfigPath);
             ImporterHostname = Sanitizer.SanitizeMand(ImporterHostname);
             Comment = Sanitizer.SanitizeOpt(Comment);
-            PublicKey = Sanitizer.SanitizePasswOpt(PublicKey);
-            PrivateKey = Sanitizer.SanitizePasswMand(PrivateKey);
+            PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey);
+            PrivateKey = Sanitizer.SanitizeKeyMand(PrivateKey);
         }
     }
 

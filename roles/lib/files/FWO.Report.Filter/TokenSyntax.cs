@@ -21,12 +21,6 @@
                     NoWhiteSpaceRequiered: new string[] { }
                 ),
 
-                TokenKind.Time => new TokenSyntax
-                (
-                    WhiteSpaceRequiered : new string[] { "time" },
-                    NoWhiteSpaceRequiered : new string[] { }
-                ),
-                
                 TokenKind.Disabled => new TokenSyntax
                 (
                     WhiteSpaceRequiered : new string[] { "disabled", "inactive" },

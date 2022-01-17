@@ -85,7 +85,7 @@ namespace FWO.Api.Data
 
         public void Sanitize()
         {
-            Name = Sanitizer.SanitizeMand(Name);
+            Name = Sanitizer.SanitizeLdapNameMand(Name);
             Comment = Sanitizer.SanitizeOpt(Comment);
             Project = Sanitizer.SanitizeOpt(Project);
         }

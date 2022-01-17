@@ -1,0 +1,50 @@
+- name: Delete the certificate directory 
+  file:
+    state: absent
+    path: "{{ openssl_cert_path }}/"
+
+- name: Create the certificate directory
+  file:
+    path: "{{ openssl_cert_path }}/"
+    state: directory
+    owner: "{{ openssl_user }}"
+    group: "{{ openssl_user }}"
+
+- name: Generate an OpenSSL private key
+  openssl_privatekey:
+    path: "{{ openssl_private_key }}"
+    size: 3072
+    type: RSA
+
+- name: Generate an OpenSSL Certificate Signing Request with Subject information
+  openssl_csr:
+    path: "{{ openssl_csr }}"
+    privatekey_path: "{{ openssl_private_key }}"
+    country_name: "{{ openssl_country }}"
+    state_or_province_name: "{{ openssl_state }}"
+    locality_name: "{{ openssl_location }}"
+    organization_name: "{{ openssl_organization }}"
+    #email_address: "{{ email_address }}"
+    common_name: "{{ ansible_hostname }}"
+
+- name: Generate a self signed OpenSSL Certificate
+  openssl_certificate:
+    path: "{{ openssl_cert }}"
+    privatekey_path: "{{ openssl_private_key }}"
+    csr_path: "{{ openssl_csr }}"
+    provider: selfsigned
+
+- name: Set permissions on key
+  file:
+    path: "{{ openssl_private_key }}"
+    state: file
+    owner: "{{ openssl_user }}"
+    group: "{{ openssl_user }}"
+    mode: g+r
+
+- name: Set permissions on cert
+  file:
+    path: "{{ openssl_cert }}"
+    state: file
+    owner: "{{ openssl_user }}"
+    group: "{{ openssl_user }}"

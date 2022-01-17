@@ -51,7 +51,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 nat_obj.update({'obj_typ': 'host' })
                 nat_obj.update({'obj_color': 'black'})
                 nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
-                nat_obj.update({'uuid': nat_obj['name']})
+                nat_obj.update({'obj_uid': nat_obj['obj_name']})
                 if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
                     logging.error("normalizing network object vip (extip): found empty mappedip field!")
                 else:

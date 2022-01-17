@@ -70,6 +70,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule_number += 1
                 first_v6 = False
             elif rule_table in fwcommon.rule_access_scope_v4 and first_v4:
+                rule_number = 0
                 insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", rule_number, src_ref_all, dst_ref_all)
                 rule_number += 1
                 first_v4 = False

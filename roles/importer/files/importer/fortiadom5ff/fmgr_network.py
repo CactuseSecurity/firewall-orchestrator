@@ -38,10 +38,10 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 obj.update({ 'obj_ip_end': obj_orig['endip'] })
             elif 'extip' in obj_orig: # vip object, simplifying to a single ip
                 obj.update({ 'obj_typ': 'host' })
-                if 'extip' not in obj_orig or len(obj_orig['extip']==0):
+                if 'extip' not in obj_orig or len(obj_orig['extip'])==0:
                     logging.error("normalizing network object vip (extip): found empty extip field!")
                 else:
-                    if len(obj_orig['extip']>1):
+                    if len(obj_orig['extip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one extip, just using the first one")
                     obj.update({ 'obj_ip': obj_orig['extip'][0] })
 
@@ -51,16 +51,17 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 nat_obj.update({'obj_typ': 'host' })
                 nat_obj.update({'obj_color': 'black'})
                 nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
-                nat_obj.update({'uuid': nat_obj['name']})
-                if 'mappedip' not in obj_orig or len(obj_orig['mappedip']==0):
+                nat_obj.update({'obj_uid': nat_obj['obj_name']})
+                if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
                     logging.error("normalizing network object vip (extip): found empty mappedip field!")
                 else:
-                    if len(obj_orig['mappedip']>1):
+                    if len(obj_orig['mappedip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one mappedip, just using the first one")
                     nat_obj.update({ 'obj_ip': obj_orig['mappedip'][0] })
                 if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                     obj_zone = obj_orig['associated-interface'][0]
                 nat_obj.update({'obj_zone': obj_zone })
+                nat_obj.update({'control_id': import_id})
                 nw_objects.append(nat_obj)
             else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
                 obj.update({ 'obj_typ': 'network' })

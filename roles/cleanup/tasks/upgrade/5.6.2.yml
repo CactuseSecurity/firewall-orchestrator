@@ -17,3 +17,4 @@
   file:
     state: absent
     name: "/lib/systemd/system/{{ product_name }}-importer.service"
+  become: yes

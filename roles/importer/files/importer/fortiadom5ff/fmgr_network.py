@@ -61,6 +61,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                     obj_zone = obj_orig['associated-interface'][0]
                 nat_obj.update({'obj_zone': obj_zone })
+                nat_obj.update({'control_id': import_id})
                 nw_objects.append(nat_obj)
             else: # 'fqdn' in obj_orig: # "fully qualified domain name address" // other unknown types
                 obj.update({ 'obj_typ': 'network' })

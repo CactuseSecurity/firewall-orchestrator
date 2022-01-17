@@ -38,7 +38,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 obj.update({ 'obj_ip_end': obj_orig['endip'] })
             elif 'extip' in obj_orig: # vip object, simplifying to a single ip
                 obj.update({ 'obj_typ': 'host' })
-                if 'extip' not in obj_orig or len(obj_orig['extip']==0):
+                if 'extip' not in obj_orig or len(obj_orig['extip'])==0:
                     logging.error("normalizing network object vip (extip): found empty extip field!")
                 else:
                     if len(obj_orig['extip']>1):
@@ -52,7 +52,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 nat_obj.update({'obj_color': 'black'})
                 nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
                 nat_obj.update({'uuid': nat_obj['name']})
-                if 'mappedip' not in obj_orig or len(obj_orig['mappedip']==0):
+                if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
                     logging.error("normalizing network object vip (extip): found empty mappedip field!")
                 else:
                     if len(obj_orig['mappedip']>1):

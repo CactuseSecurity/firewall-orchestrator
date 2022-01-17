@@ -8,12 +8,17 @@
       - ui handler
       when: installation_mode == "upgrade"
 
+    - name: check for ui dir
+      stat:
+        path: "{{ fworch_home }}/ui"
+      register: ui_dir_check
+
     - name: backup ui dir
       synchronize:
         src: "{{ fworch_home }}/ui"
         dest: "{{ fworch_home }}/backup_ui"
       delegate_to: "{{ inventory_hostname }}"
-      when: installation_mode == "upgrade"
+      when: ui_dir_check.stat.exists and installation_mode == "upgrade"
 
     - name: remove ui dir
       file:

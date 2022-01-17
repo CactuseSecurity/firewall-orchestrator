@@ -84,6 +84,7 @@ namespace FWO.DeviceAutoDiscovery
                                 foreach (Assignment assign in assignmentList)
                                 {
                                     Device devFound = new Device();
+                                    // assign.PackageName = assign.PackageName.Replace("/", "\\/");    // replace / in package name with \/
                                     Log.WriteDebug("Autodiscovery", $"found assignment1 in ADOM {adom.Name}: package {assign.PackageName} assigned to device {assign.DeviceName}, vdom: {assign.VdomName} ");
                                     if (assign.DeviceName != null)
                                     {
@@ -99,7 +100,7 @@ namespace FWO.DeviceAutoDiscovery
                                                 Name = devName,
                                                 LocalRulebase = assign.PackageName,
                                                 Package = assign.PackageName,
-                                                DeviceType = new DeviceType { Id = 11 } // fortiGate
+                                                DeviceType = new DeviceType { Id = 10 } // fortiGate
                                             };
                                             // handle global vs. local based on VdomName?
                                             Log.WriteDebug("Autodiscovery", $"assignment devFound Name = {devFound.Name}");

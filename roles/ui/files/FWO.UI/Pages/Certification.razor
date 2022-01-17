@@ -194,7 +194,7 @@
             }
 
             SyncFilterToDisplay();
-            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, ReportType.Rules, userConfig);
+            currentReport = ReportBase.ConstructReport(filterInput, deviceFilter, new TimeFilter(), ReportType.Rules, userConfig);
 
             DateTime startTime = DateTime.Now;
             managements = new Management[0]; // reset management data when switching between reports
@@ -271,11 +271,11 @@
 
                         if(rule.Metadata.NextRecert <= DateTime.Now)
                         {
-                            rule.Metadata.Style = "background-color: red";
+                            rule.Metadata.Style = "background-overdue";
                         }
                         else if(rule.Metadata.NextRecert <= DateTime.Now.AddDays(recertificationNoticePeriod))
                         {
-                            rule.Metadata.Style = "background-color: yellow";
+                            rule.Metadata.Style = "background-upcoming";
                         }
                     }
                 }

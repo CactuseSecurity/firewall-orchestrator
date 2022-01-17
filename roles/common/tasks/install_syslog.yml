@@ -59,7 +59,8 @@
       if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
       if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
       if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
-      if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
+      if $programname startswith '{{ product_name }}-importer-legacy' then /var/log/{{ product_name }}/importer-legacy.log
+      if $programname startswith '{{ product_name }}-importer-api' then /var/log/{{ product_name }}/importer-api.log
       if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
       # only for devsrv:
       if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
@@ -79,10 +80,12 @@
           copytruncate
           sharedscripts
               prerotate
-                      systemctl stop {{ product_name }}-importer.service >/dev/null 2>&1
+                      systemctl stop {{ product_name }}-importer-legacy.service >/dev/null 2>&1
+                      systemctl stop {{ product_name }}-importer-api.service >/dev/null 2>&1
               endscript
               postrotate
-                      systemctl start {{ product_name }}-importer.service >/dev/null 2>&1
+                      systemctl start {{ product_name }}-importer-legacy.service >/dev/null 2>&1
+                      systemctl start {{ product_name }}-importer-api.service >/dev/null 2>&1
               endscript
       }
   become: yes

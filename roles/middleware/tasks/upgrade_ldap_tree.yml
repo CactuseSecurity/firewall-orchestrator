@@ -11,7 +11,7 @@
   set_fact:
     upgrade_files: "{{ upgrade_files + [ item | basename | splitext | first | splitext | first ] }}"
   when: |
-    item | basename | splitext | first | splitext | first  is version(installed_version, '>') 
+    item | basename | splitext | first | splitext | first  is version(installed_version, '>=') 
     and
     item | basename | splitext | first | splitext | first is version(current_version, '<=')
   with_fileglob:

@@ -110,6 +110,21 @@
             ]
         },
         {
+            "name": "pl-single-import",
+            "type": "perl",
+            "request": "launch",
+            "program": "${workspaceFolder}/roles/importer/files/importer/fworch-importer-single.pl",
+            "console": "integratedTerminal",
+            "env": {
+                "PERLPATH": "${PERLPATH}:${workspaceRoot}"
+            },
+            "args": [
+                "-m14",
+                "-d4",
+                "-no-md5-checks"
+            ]
+        },
+        {
             "name": "py-export-itsecorg",
             "type": "python",
             "request": "launch",

@@ -56,9 +56,9 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
     list_delimiter = '|'
     first_v4, first_v6 = check_headers_needed(full_config, rule_types)
 
+    vip_nat_rule_number = 0
     nat_rule_number = 0
     rule_number = 0
-    #number_offset = 0
     src_ref_all = ""
     dst_ref_all = ""
     for rule_table in rule_types:
@@ -70,8 +70,6 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule_number += 1
                 first_v6 = False
             elif rule_table in fwcommon.rule_access_scope_v4 and first_v4:
-                # number_offset += 1000000
-                # insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", number_offset, src_ref_all, dst_ref_all)
                 insert_header(rules, import_id, "IPv4 rules", localPkgName, "IPv4HeaderText", rule_number, src_ref_all, dst_ref_all)
                 rule_number += 1
                 first_v4 = False
@@ -101,7 +99,6 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_ruleid': rule_orig['policyid']})
                 rule.update({ 'rule_uid': rule_orig['uuid']})
                 rule.update({ 'rule_num': rule_number})
-                # rule.update({ 'rule_num': rule_orig['obj seq'] + number_offset})
                 if 'name' in rule_orig:
                     rule.update({ 'rule_name': rule_orig['name']})
                 rule.update({ 'rule_installon': None })
@@ -149,7 +146,12 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_dst_refs': common.resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-                # now dealing with NAT part of combined rules
+                # now dealing with VIPs (dst NAT part) of combined rules
+                if "match-vip" in rule_orig and rule_orig["match-vip"]==1:
+                    logging.warning("found VIP destination Access/NAT rule (but not parsing yet); no. " + str(vip_nat_rule_number))
+                    vip_nat_rule_number += 1
+
+                # now dealing with src NAT part of combined rules
                 if "nat" in rule_orig and rule_orig["nat"]==1:
                     #logging.debug("found mixed Access/NAT rule no. " + str(nat_rule_number))
                     nat_rule_number += 1
@@ -179,7 +181,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                                     logging.warning("found more than one ippool - ignoring all but first pool")
                                 poolName = poolNameArray[0]
                                 xlate_rule['rule_src'] = poolName
-                                xlate_rule['rule_src_refs'] = "ippool-uuid-" + poolName
+                                xlate_rule['rule_src_refs'] =  poolName
                             else:
                                 logging.warning("found ippool rule without ippool")
                         else:

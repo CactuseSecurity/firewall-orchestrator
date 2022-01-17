@@ -30,7 +30,7 @@
 
         public void Sanitize()
         {
-            Name = Sanitizer.SanitizeMand(Name);
+            Name = Sanitizer.SanitizeLdapNameMand(Name);
         }
     }
 }

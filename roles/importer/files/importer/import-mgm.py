@@ -83,7 +83,7 @@ for dev in mgm_details['devices']:
 
 # only run if this is the correct import module
 if mgm_details['importerHostname'] != socket.gethostname():
-    logging.info(
+    logging.debug(
         "we are not responsible for importing this management - so resting")
     sys.exit(0)
 
@@ -127,7 +127,9 @@ get_config_response = fw_module.get_config(
     config2import, full_config_json,  current_import_id, mgm_details, debug_level, 
         ssl_verification=args.ssl, proxy=proxy, limit=args.limit, force=args.force)
 
-if debug_level>2:
+logging.debug("import_mgm.py: get_config completed, now writing debug config json files")
+
+if debug_level>2:   # debugging: writing config to json file
     normalized_config_filename = import_tmp_path + '/mgm_id_' + \
         str(args.mgm_id) + '_config_normalized.json'
     with open(normalized_config_filename, "w") as json_data:

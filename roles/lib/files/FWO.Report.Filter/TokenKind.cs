@@ -15,7 +15,6 @@
         Action,
         Management,
         Gateway,
-        Time,
         Remove,
         RecertDisplay,
         FullText,

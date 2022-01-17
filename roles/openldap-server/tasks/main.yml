@@ -60,20 +60,20 @@
     register: root_password
 
 ### TLS
-- name: Create ldap certificates
-  include_role:
-    name: openssl-cert
-  vars:
-    openssl_cert_path: "{{ openldap_server_cert_path }}"
-    openssl_user: "{{ openldap_server_user }}"
-    openssl_private_key: "{{ openldap_server_private_key }}"
-    openssl_csr: "{{ openldap_server_csr }}"
-    openssl_country: "{{ openldap_server_country }}"
-    openssl_state: "{{ openldap_server_state }}"
-    openssl_location: "{{ openldap_server_location }}"
-    openssl_organization: "{{ openldap_server_organization }}"
-    openssl_email_address: "{{ openldap_server_email_address }}"
-    openssl_cert: "{{ openldap_server_cert }}"
+  - name: Create ldap certificates
+    include_role:
+      name: openssl-cert
+    vars:
+      openssl_cert_path: "{{ openldap_server_cert_path }}"
+      openssl_user: "{{ openldap_server_user }}"
+      openssl_private_key: "{{ openldap_server_private_key }}"
+      openssl_csr: "{{ openldap_server_csr }}"
+      openssl_country: "{{ openldap_server_country }}"
+      openssl_state: "{{ openldap_server_state }}"
+      openssl_location: "{{ openldap_server_location }}"
+      openssl_organization: "{{ openldap_server_organization }}"
+      openssl_email_address: "{{ openldap_server_email_address }}"
+      openssl_cert: "{{ openldap_server_cert }}"
 
 ### Config files
   - name: Create the directory for ldap database

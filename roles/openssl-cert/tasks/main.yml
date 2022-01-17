@@ -1,8 +1,3 @@
-- name: Delete the certificate directory 
-  file:
-    state: absent
-    path: "{{ openssl_cert_path }}/"
-
 - name: Create the certificate directory
   file:
     path: "{{ openssl_cert_path }}/"

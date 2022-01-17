@@ -1,4 +1,4 @@
-﻿<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
+﻿<div id="@(PositionLeft ? "lsb" : "rsb")" class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
     @if (!PositionLeft)
     {
         if (Collapsible)

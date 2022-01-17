@@ -3,6 +3,7 @@
 @using FWO.Api.Data
 
 @inject UserConfig userConfig
+@inject IJSRuntime jsRuntime
 @typeparam InputDataType
 
 @if(Content != null)
@@ -54,6 +55,10 @@
                                             {
                                                 // Add Link To Object
                                                 <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="@GetIconClass(nobj, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)</a><br>
+                                                
+                                                <a href="" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("scrollIntoRSBView", args: $"nwobj{member.Object.Id}"))" @onclick:preventDefault>
+                                                    <span class="@GetIconClass(nobj, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)
+                                                </a><br>
                                             }
                                         }
                                     </Content1>

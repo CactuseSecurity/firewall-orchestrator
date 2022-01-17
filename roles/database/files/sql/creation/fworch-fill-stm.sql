@@ -192,6 +192,7 @@ insert into stm_track (track_id,track_name) VALUES (21,'network log'); -- check 
 insert into request_type (request_type_id, request_type_name, request_type_comment) VALUES (1, 'ARS', 'Remedy ARS Ticket');
 
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (2,'Netscreen','5.x-6.x','Netscreen', '');
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (4,'FortiGateStandalone','5ff','Fortinet','');
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (5,'Barracuda Firewall Control Center','Vx','phion','');
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (6,'phion netfence','3.x','phion','');
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc) VALUES (7,'Check Point','R5x-R7x','Check Point','');

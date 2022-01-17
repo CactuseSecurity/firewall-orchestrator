@@ -1,0 +1,19 @@
+
+- name: check for existing old importer service file
+  stat:
+    path: "/lib/systemd/system/{{ product_name }}-importer.service"
+  register: old_service_check
+
+- name: removing old legacy importer without legacy name
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-importer"
+    state: stopped
+    enabled: no
+    daemon_reload: yes
+  become: yes
+  when: "'importers' in group_names and old_service_check.stat.exists"
+
+- name: remove old importer service file
+  file:
+    state: absent
+    name: "/lib/systemd/system/{{ product_name }}-importer.service"

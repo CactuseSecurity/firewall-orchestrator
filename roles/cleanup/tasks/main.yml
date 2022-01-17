@@ -77,7 +77,7 @@
 
 - name: restart importer service to make sure it works correctly with sample data
   ansible.builtin.systemd:
-    name: "{{ product_name }}-importer"
+    name: "{{ product_name }}-importer-legacy"
     state: restarted
   become: yes
   when: "'importers' in group_names"

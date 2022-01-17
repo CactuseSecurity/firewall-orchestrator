@@ -41,7 +41,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 if 'extip' not in obj_orig or len(obj_orig['extip'])==0:
                     logging.error("normalizing network object vip (extip): found empty extip field!")
                 else:
-                    if len(obj_orig['extip']>1):
+                    if len(obj_orig['extip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one extip, just using the first one")
                     obj.update({ 'obj_ip': obj_orig['extip'][0] })
 
@@ -55,7 +55,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
                     logging.error("normalizing network object vip (extip): found empty mappedip field!")
                 else:
-                    if len(obj_orig['mappedip']>1):
+                    if len(obj_orig['mappedip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one mappedip, just using the first one")
                     nat_obj.update({ 'obj_ip': obj_orig['mappedip'][0] })
                 if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':

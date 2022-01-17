@@ -24,7 +24,7 @@
     state_or_province_name: "{{ openssl_state }}"
     locality_name: "{{ openssl_location }}"
     organization_name: "{{ openssl_organization }}"
-    #email_address: "{{ email_address }}"
+    email_address: "{{ openssl_email_address }}"
     common_name: "{{ ansible_hostname }}"
 
 - name: Generate a self signed OpenSSL Certificate

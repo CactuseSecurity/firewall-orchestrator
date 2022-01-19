@@ -47,17 +47,20 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
 
                 # now dealing with the nat ip obj (mappedip)
                 nat_obj = {}
-                nat_obj.update({'obj_name': obj_orig['name'] + '_nat'})
+                # nat_obj.update({'obj_name': obj_orig['name'] + '_nat'})
                 nat_obj.update({'obj_typ': 'host' })
                 nat_obj.update({'obj_color': 'black'})
                 nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
-                nat_obj.update({'obj_uid': nat_obj['obj_name']})
                 if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
                     logging.error("normalizing network object vip (extip): found empty mappedip field!")
+                    sys.exit(1)
                 else:
                     if len(obj_orig['mappedip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one mappedip, just using the first one")
                     nat_obj.update({ 'obj_ip': obj_orig['mappedip'][0] })
+                    obj.update({ 'obj_nat_ip': obj_orig['mappedip'][0] }) # save nat ip in vip obj
+                    nat_obj.update({'obj_name': obj_orig['mappedip'][0] + '_nat'})
+                    nat_obj.update({'obj_uid': nat_obj['obj_name']})
                 if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                     obj_zone = obj_orig['associated-interface'][0]
                 nat_obj.update({'obj_zone': obj_zone })
@@ -87,7 +90,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
 
     # finally add "Original" network object for natting
     original_obj_name = 'Original'
-    original_obj_uid = 'Original-UID'
+    original_obj_uid = 'Original'
     nw_objects.append(create_network_object(import_id=import_id, name=original_obj_name, type='network', ip='0.0.0.0/0',\
         uid=original_obj_uid, zone='global', color='black', comment='"original" network object created by FWO importer for NAT purposes'))
 
@@ -133,3 +136,31 @@ def create_network_object(import_id, name, type, ip, uid, color, comment, zone):
         'obj_comment': comment,
         'obj_zone': zone
     }
+
+
+def extract_nat_objects(nwobj_list, all_nwobjects):
+    nat_obj_list = []
+    for obj in nwobj_list:
+        for obj2 in all_nwobjects:
+            if obj2['obj_name']==obj:
+                if 'obj_nat_ip' in obj2:
+                    nat_obj_list.append(obj2)
+                break
+        # if obj in all_nwobjects and 'obj_nat_ip' in all_nwobjects[obj]:
+        #     nat_obj_list.append(obj)
+    return nat_obj_list
+
+
+# TODO: reduce commplexity if possible
+def get_nw_obj(nat_obj_name, nwobjects):
+    for obj in nwobjects:
+        if 'obj_name' in obj and obj['obj_name']==nat_obj_name:
+            return obj
+    return None
+
+
+def remove_nat_ip_entries(config2import):
+    for obj in config2import['network_objects']:
+        if 'obj_nat_ip' in obj:
+            obj.pop('obj_nat_ip')
+            

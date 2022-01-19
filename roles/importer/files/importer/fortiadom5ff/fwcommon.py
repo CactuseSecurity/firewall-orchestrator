@@ -71,6 +71,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         fmgr_service.normalize_svcobjects(full_config, config2import, current_import_id, svc_obj_scope)
         fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id, rule_access_scope)
         fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id, rule_nat_scope)
+        fmgr_network.remove_nat_ip_entries(config2import)
 
     if not parsing_config_only:   # no native config was passed in, logging out
         getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)

@@ -186,7 +186,7 @@ error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
 
 logging.info("import_mgm.py: import no. " + str(current_import_id) +
     " for management " + mgm_details['name'] + ' (id=' + str(args.mgm_id) + ")" +
-    " ran " + str("with" if error_count else "without") + " errors," +
+    " ran " + str("with errors," if error_count else "successfully,") + 
     " change_count: " + str(change_count) +
     ", duration: " + str(int(time.time()) - start_time) + "s")
 if len(error_string) > 0:

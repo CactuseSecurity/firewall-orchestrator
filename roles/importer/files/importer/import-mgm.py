@@ -161,6 +161,10 @@ elif get_config_response == 0:
     # todo: if no objects found at all: at least throw a warning
 
     change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
+    full_config_size = sys.getsizeof(full_config_json)
+    config2import_size = sys.getsizeof(config2import)
+
+    logging.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
 
     if change_count > 0 or error_count > 0:  # store full config in case of change or error
         error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
@@ -182,7 +186,7 @@ error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
 
 logging.info("import_mgm.py: import no. " + str(current_import_id) +
     " for management " + mgm_details['name'] + ' (id=' + str(args.mgm_id) + ")" +
-    " ran " + str("with" if error_count else "without") + " errors," +
+    " ran " + str("with errors," if error_count else "successfully,") + 
     " change_count: " + str(change_count) +
     ", duration: " + str(int(time.time()) - start_time) + "s")
 if len(error_string) > 0:

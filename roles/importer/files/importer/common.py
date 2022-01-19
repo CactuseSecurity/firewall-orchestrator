@@ -5,6 +5,8 @@ list_delimiter = '|'
 line_delimiter = "\n"
 apostrophe = "\""
 section_header_uids=[]
+nat_postfix = '_NatNwObj'
+# nat_postfix = '_nat'
 
 
 def set_log_level(log_level, debug_level):
@@ -16,13 +18,6 @@ def set_log_level(log_level, debug_level):
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     else:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-        # logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
-    # elif debug_level >= 2:
-    #     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    #     logging.basicConfig(filename='/var/log/fworch/importer_ll.debug', filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    # elif debug_level >= 3:
-    #     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    #     logging.basicConfig(filename='/var/log/fworch/importer_ll', filemode='a', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     logger.debug ("debug_level: "+ str(debug_level) )
 
 

@@ -5,6 +5,8 @@ list_delimiter = '|'
 line_delimiter = "\n"
 apostrophe = "\""
 section_header_uids=[]
+# nat_postfix = '_nat_nw_obj'
+nat_postfix = '_nat'
 
 
 def set_log_level(log_level, debug_level):

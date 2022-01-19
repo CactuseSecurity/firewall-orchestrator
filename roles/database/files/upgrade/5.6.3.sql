@@ -1,5 +1,7 @@
 
 -- migrate config import tables (deleting all old configs)
+DELETE FROM "import_config";
+DELETE FROM "import_full_config";
 ALTER TABLE "import_config" DROP COLUMN IF exists "config";
 ALTER TABLE "import_config" ADD COLUMN "config" json NOT NULL;
 ALTER TABLE "import_full_config" DROP COLUMN IF exists "config";

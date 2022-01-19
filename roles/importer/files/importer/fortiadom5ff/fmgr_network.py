@@ -47,7 +47,6 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
 
                 # now dealing with the nat ip obj (mappedip)
                 nat_obj = {}
-                # nat_obj.update({'obj_name': obj_orig['name'] + '_nat'})
                 nat_obj.update({'obj_typ': 'host' })
                 nat_obj.update({'obj_color': 'black'})
                 nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
@@ -59,7 +58,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                         logging.warning("normalizing network object vip (extip): found more than one mappedip, just using the first one")
                     nat_obj.update({ 'obj_ip': obj_orig['mappedip'][0] })
                     obj.update({ 'obj_nat_ip': obj_orig['mappedip'][0] }) # save nat ip in vip obj
-                    nat_obj.update({'obj_name': obj_orig['mappedip'][0] + '_nat'})
+                    nat_obj.update({'obj_name': obj_orig['mappedip'][0] + common.nat_postfix})
                     nat_obj.update({'obj_uid': nat_obj['obj_name']})
                 if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                     obj_zone = obj_orig['associated-interface'][0]

@@ -11,13 +11,12 @@ using System.Threading.Tasks;
 
 namespace FWO.Report.Filter
 {
-    [TypeConverter(typeof(DateTimeRangeTypeConverter))]
     class DateTimeRange
     {
         public readonly DateTime? Start;
         public readonly DateTime? End;
 
-        public DateTimeRange(AstNodeFilter<DateTimeRange> filter)
+        public DateTimeRange(AstNodeFilterDateTimeRange filter)
         {
             bool isSingleDate = DateTime.TryParse(filter.Value.Text, out DateTime time);
             int currentYear = DateTime.Now.Year;
@@ -73,22 +72,6 @@ namespace FWO.Report.Filter
                 default:
                     throw new SemanticException($"Operator is not appliable for filter {filter.Name.Kind} of type {typeof(DateTimeRange)}", filter.Operator.Position);
             }
-        }
-    }
-
-    public class DateTimeRangeTypeConverter : TypeConverter
-    {
-        public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
-        {
-            return sourceType == typeof(AstNodeFilter<DateTimeRange>) || base.CanConvertFrom(context, sourceType);
-        }
-
-        public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
-        {
-            AstNodeFilter<DateTimeRange>? dateTimeRangeAstNode = value as AstNodeFilter<DateTimeRange>;
-            return dateTimeRangeAstNode != null
-                ? new DateTimeRange(dateTimeRangeAstNode)
-                : base.ConvertFrom(context, culture, value);
         }
     }
 }

@@ -164,12 +164,12 @@ elif get_config_response == 0:
     # todo: if no objects found at all: at least throw a warning
 
     change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
-    full_config_size = sys.getsizeof(full_config_json)
-    config2import_size = sys.getsizeof(config2import)
+    full_config_size = sys.getsizeof(json.dumps(full_config_json))
+    config2import_size = sys.getsizeof(json.dumps(config2import))
 
     logging.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
 
-    if change_count > 0 or error_count > 0 and full_config_size < full_config_size_limit:  # store full config in case of change or error
+    if (change_count > 0 or error_count > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
         error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
             "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
 

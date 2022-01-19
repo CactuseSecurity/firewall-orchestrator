@@ -90,7 +90,8 @@ def resolve_raw_objects (obj_name_string_list, delimiter, obj_dict, name_key, ui
                     object_tables = [obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]
                 elif 'v4' in rule_type and 'adom' in rule_type:
                     object_tables = [obj_dict['nw_obj_adom_firewall/address'], obj_dict['nw_obj_adom_firewall/addrgrp'], \
-                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp']]
+                        obj_dict['nw_obj_global_firewall/address'], obj_dict['nw_obj_global_firewall/addrgrp'], \
+                        obj_dict['nw_obj_adom_firewall/vip'] ]
                 elif 'v6' in rule_type and 'adom' in rule_type:
                     object_tables = [obj_dict['nw_obj_adom_firewall/address6'], obj_dict['nw_obj_adom_firewall/addrgrp6'], \
                         obj_dict['nw_obj_global_firewall/address6'], obj_dict['nw_obj_global_firewall/addrgrp6']]

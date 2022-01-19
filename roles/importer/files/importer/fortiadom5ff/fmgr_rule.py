@@ -76,10 +76,7 @@ def normalize_access_rules(full_config, config2import, import_id, rule_types):
                 rule.update({ 'rule_dst_refs': common.resolve_raw_objects(rule['rule_dst'], list_delimiter, full_config, 'name', 'uuid', rule_type=rule_table) })
                 rule.update({ 'rule_svc_refs': rule['rule_svc'] }) # services do not have uids, so using name instead
 
-                # if rule['rule_uid'] == '615a7a7e-3930-51ea-d80e-7655a7f5e914':
-                #     logging.info("normalize_access_rules: dealing with nat rule 615a7a7e-3930-51ea-d80e-7655a7f5e914")
-
-                xlate_rule = handle_combined_nat_rule(rules, rule, rule_orig, full_config, config2import, nat_rule_number, vip_nat_rule_number)
+                xlate_rule = handle_combined_nat_rule(rule, rule_orig, full_config, config2import, nat_rule_number)
                 rules.append(rule)
                 if xlate_rule is not None:
                     rules.append(xlate_rule)
@@ -240,7 +237,7 @@ def create_xlate_rule(rule):
     return xlate_rule
 
 
-def handle_combined_nat_rule(rules, rule, rule_orig, full_config, config2import, nat_rule_number, vip_nat_rule_number):
+def handle_combined_nat_rule(rule, rule_orig, full_config, config2import, nat_rule_number):
     # now dealing with VIPs (dst NAT part) of combined rules
     xlate_rule = None
 
@@ -284,24 +281,26 @@ def handle_combined_nat_rule(rules, rule, rule_orig, full_config, config2import,
             logging.warning("found explicit natip rule - ignoring for now")
             # need example for interpretation of config
 
-    if "match-vip" in rule_orig and rule_orig["match-vip"]==1:
-        logging.warning("found VIP destination Access/NAT rule (but not parsing yet); no. " + str(vip_nat_rule_number))
-        vip_nat_rule_number += 1
+    # todo: find out how match-vip=1 influences natting (only set in a few vip-nat rules)
+    # if "match-vip" in rule_orig and rule_orig["match-vip"]==1:
+    #     logging.warning("found VIP destination Access/NAT rule (but not parsing yet); no. " + str(vip_nat_rule_number))
+    #     vip_nat_rule_number += 1
 
     # deal with vip natting: check for each (dst) nw obj if it contains "obj_nat_ip"
     rule_dst_list = rule['rule_dst'].split(common.list_delimiter)
     nat_object_list = fmgr_network.extract_nat_objects(rule_dst_list, config2import['network_objects'])
 
-    if len(nat_object_list)==1:   # assuming only one vip per dnat rule
-        nat_obj = nat_object_list[0]
+    if len(nat_object_list)>0:
         if xlate_rule is None: # no source nat, so we create the necessary nat rule here
             xlate_rule = create_xlate_rule(rule)
-        xlate_rule['rule_dst'] = nat_obj['obj_nat_ip'] + common.nat_postfix
-        xlate_rule['rule_dst_refs'] = nat_obj['obj_nat_ip'] + common.nat_postfix
-        # todo? delete obj_nat_ip field before import?
-    elif len(nat_object_list)>1:
-        logging.warning("handle_nat_rule - found nat rule with more than one dnat obj - not handling this at the moment")
-    # else: (no nat object found) no dnatting involved
+        xlate_dst = []
+        xlate_dst_refs = []
+        for nat_obj in nat_object_list:
+            xlate_dst.append(nat_obj['obj_nat_ip'] + common.nat_postfix)
+            xlate_dst_refs.append(nat_obj['obj_nat_ip'] + common.nat_postfix)
+        xlate_rule['rule_dst'] = common.list_delimiter.join(xlate_dst)
+        xlate_rule['rule_dst_refs'] = common.list_delimiter.join(xlate_dst_refs)
+    # else: (no nat object found) no dnatting involved, dst stays "Original"
 
     return xlate_rule
 

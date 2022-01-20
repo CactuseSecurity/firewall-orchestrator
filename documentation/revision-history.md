@@ -180,3 +180,7 @@ adding report template format fk and permissions
 ### 5.6.2 - 17.01.2022
 - adding new legacy fortigate all in one device type (ssh)
 - clean separation of legacy and api importer
+
+### 5.6.3 - 19.01.2022
+- migrating jsonb import config fields (import_config and import_full_config tables) to json
+- this allows for import of bigger configs but is only a workaround that will not help for configs with >40.000 rules

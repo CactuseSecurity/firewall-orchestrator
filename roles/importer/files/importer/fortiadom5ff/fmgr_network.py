@@ -56,10 +56,19 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 else:
                     if len(obj_orig['mappedip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one mappedip, just using the first one")
-                    nat_obj.update({ 'obj_ip': obj_orig['mappedip'][0] })
-                    obj.update({ 'obj_nat_ip': obj_orig['mappedip'][0] }) # save nat ip in vip obj
-                    nat_obj.update({'obj_name': obj_orig['mappedip'][0] + common.nat_postfix})
-                    nat_obj.update({'obj_uid': nat_obj['obj_name']})
+                    nat_ip = obj_orig['mappedip'][0]
+                    if '-' in nat_ip: # dealing with range
+                        ip1, ip2 = nat_ip.split('-')
+                        nat_obj.update({ 'obj_ip': ip1 })
+                        nat_obj.update({ 'obj_ip_end': ip2 })
+                        obj.update({ 'obj_nat_ip': ip1 }) # save nat ip in vip obj
+                        nat_obj.update({'obj_name': ip1 + common.nat_postfix})
+                        nat_obj.update({'obj_uid': nat_obj['obj_name']})
+                    else:
+                        nat_obj.update({ 'obj_ip': obj_orig['mappedip'][0] })
+                        obj.update({ 'obj_nat_ip': obj_orig['mappedip'][0] }) # save nat ip in vip obj
+                        nat_obj.update({'obj_name': obj_orig['mappedip'][0] + common.nat_postfix})
+                        nat_obj.update({'obj_uid': nat_obj['obj_name']})
                 if 'associated-interface' in obj_orig and len(obj_orig['associated-interface'])>0: # and obj_orig['associated-interface'][0] != 'any':
                     obj_zone = obj_orig['associated-interface'][0]
                 nat_obj.update({'obj_zone': obj_zone })

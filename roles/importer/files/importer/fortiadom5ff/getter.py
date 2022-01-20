@@ -124,12 +124,7 @@ def set_api_url(base_url, testmode, api_supported, hostname):
     return url
 
 
-    #   "option": [
-    #     "get reserved"
-    #   ]
-
-
-def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], ssl_verification='', proxy_string="", show_progress=False, debug=0, limit=150):
+def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, options=[], ssl_verification='', proxy_string="", show_progress=False, debug=0, limit=150, method="get"):
     offset = 0
     limit = int(limit)
     returned_new_objects = True
@@ -148,7 +143,7 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
             # payload['params'][0].update({'filter': options})
 
         result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, ssl_verification=ssl_verification,
-                                   proxy_string=proxy_string, show_progress=show_progress, debug=debug)
+                                   proxy_string=proxy_string, show_progress=show_progress, debug=debug, method=method)
         full_result.extend(result)
         offset += limit
         if len(result)<limit:
@@ -160,11 +155,11 @@ def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_pat
         config_json.update({result_name: full_result})
 
 
-def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
+def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0, method="get"):
     if payload == {}:
         payload = {"params": [{}]}
     result = api_call(api_base_url, api_path, payload, sid,
-                      ssl_verification, proxy_string, debug=debug)
+                      ssl_verification, proxy_string, debug=debug, method=method)
     plain_result = result["result"][0]
     if "data" in plain_result:
         result = plain_result["data"]

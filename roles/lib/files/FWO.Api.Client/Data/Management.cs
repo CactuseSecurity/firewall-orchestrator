@@ -20,12 +20,13 @@ namespace FWO.Api.Data
         [JsonProperty("secret"), JsonPropertyName("secret")]
         public string PrivateKey { get; set; } = "";
 
+        public string Password { get; set; } = "";
+
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string ConfigPath { get; set; } = "";
 
         [JsonProperty("superManager"), JsonPropertyName("superManager")]
-        public SuperManager SuperManager { get; set; } = new SuperManager();
-        // public SuperManager? SuperManager { get; set; } = null;
+        public int? SuperManagerId { get; set; }
 
         [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
         public string ImporterHostname { get; set; } = "";
@@ -112,6 +113,7 @@ namespace FWO.Api.Data
             Hostname = management.Hostname;
             ImportUser = management.ImportUser;
             PrivateKey = management.PrivateKey;
+            Password = management.Password;
             ConfigPath = management.ConfigPath;
             ImporterHostname = management.ImporterHostname;
             Port = management.Port;
@@ -133,7 +135,7 @@ namespace FWO.Api.Data
             Import = management.Import;
             Ignore = management.Ignore;
             ReportedRuleIds = management.ReportedRuleIds;
-            SuperManager = management.SuperManager;
+            SuperManagerId = management.SuperManagerId;
             ReportedNetworkServiceIds = management.ReportedNetworkServiceIds;
             if (management.Import != null && management.Import.ImportAggregate != null &&
                 management.Import.ImportAggregate.ImportAggregateMax != null &&
@@ -167,6 +169,7 @@ namespace FWO.Api.Data
             Comment = Sanitizer.SanitizeOpt(Comment);
             PublicKey = Sanitizer.SanitizeKeyOpt(PublicKey);
             PrivateKey = Sanitizer.SanitizeKeyMand(PrivateKey);
+            Password = Sanitizer.SanitizePasswMand(Password);
         }
     }
 

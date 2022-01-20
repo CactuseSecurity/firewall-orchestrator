@@ -91,12 +91,14 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             dev_name_ar = dev_name.split("_")
             dev_name_ar.pop()
             dev_name = "_".join(dev_name_ar)
+        target = "adom/"+ adom_name + "/device/" + dev_name
+        logging.debug("getInterfaces:calling FortiOs API target " + target)
         payload = {
             "method": "exec",
             "params": [
                 {
                     "data": {
-                        "target": [ "adom/"+ adom_name + "/device/" + dev_name ],
+                        "target": [ target ],
                         "action": "get",
                         "resource": "/api/v2/monitor/system/interface/select?&include_vlan=1"
                     }
@@ -104,7 +106,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             ]
         }
         getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/sys/proxy/json", "interfaces/adom:" + adom_name + "/device:" + dev["name"], payload=payload, debug=debug_level, limit=limit)
+            raw_config, sid, fm_api_url, "/sys/proxy/json", "interfaces/adom:" + adom_name + "/device:" + dev_name, payload=payload, debug=debug_level, limit=limit)
 
     # for dev in devices:
     #     getter.update_config_with_fortinet_api_call(

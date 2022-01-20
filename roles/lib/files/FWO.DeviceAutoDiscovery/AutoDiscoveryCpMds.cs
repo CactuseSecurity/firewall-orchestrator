@@ -11,8 +11,8 @@ namespace FWO.DeviceAutoDiscovery
         public override async Task<List<Management>> Run()
         {
             List<Management> discoveredDevices = new List<Management>();
-            Log.WriteAudit("Autodiscovery", $"starting discovery for {superManager.Name} (id={superManager.Id})");
-            if (superManager.DeviceType.Name == "CheckPoint")
+            Log.WriteAudit("Autodiscovery", $"starting discovery for {superManagement.Name} (id={superManagement.Id})");
+            if (superManagement.DeviceType.Name == "CheckPoint")
             {
                 List<Adom> customAdoms = new List<Adom>();
             }

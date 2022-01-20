@@ -10,11 +10,9 @@ fragment ManagementDetails on management {
     id: dev_typ_id
     name: dev_typ_name
     version: dev_typ_version
+    manufacturer: dev_typ_manufacturer
   }
-  superManager: management {
-    id: mgm_id
-    name: mgm_name
-  }
+  superManager: multi_device_manager_id
   configPath: config_path
   importDisabled: do_not_import
   forceInitialImport: force_initial_import

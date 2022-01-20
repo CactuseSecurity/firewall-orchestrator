@@ -77,7 +77,7 @@
                     <label for="deviceManagement" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("management"))*:</label>
                     <div class="col-sm-8">
                         <select id="deviceManagement" class="form-control form-control-sm" @bind="actDevice.Management.Id">
-                            @foreach (Management management in managements)
+                            @foreach (Management management in managements.Where(x => x.DeviceType.Manufacturer == deviceTypes.Find(x => x.Id == actDevice.DeviceType.Id).Manufacturer))
                             {
                                 <option value="@management.Id">@(management.Name)</option>
                             }

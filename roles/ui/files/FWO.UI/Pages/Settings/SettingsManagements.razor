@@ -30,7 +30,7 @@
                     <button class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
                     <button class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
-                    @if (superManagerIds.Contains(context.Id))
+                    @if (context.DeviceType.CanBeSupermanager())
                     {
                         <button class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
                     }
@@ -50,9 +50,9 @@
             </Template>
         </Column>
         <Column TableItem="Management" Title="@(userConfig.GetText("config_path"))" Field="@(x => x.ConfigPath)" Sortable="true" Filterable="true" />
-        <Column TableItem="Management" Title="@(userConfig.GetText("super_manager"))" Field="@(x => x.SuperManager.Id)" Sortable="true" Filterable="true">
+        <Column TableItem="Management" Title="@(userConfig.GetText("super_manager"))" Field="@(x => x.SuperManagerId)" Sortable="true" Filterable="true">
             <Template>
-                @context.SuperManager?.Name
+                @(((context.SuperManagerId != null) ? managements.Find(x => x.Id == context.SuperManagerId).Name : ""))
             </Template>
         </Column>
 
@@ -116,38 +116,51 @@
                         <input id="managementImportUser" type="text" class="form-control form-control-sm" @bind="actManagement.ImportUser" />
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="managementPrivateKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("login_secret"))*:</label>
-                    <div class="col-sm-8">
-                        <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("login_secret")) @bind="actManagement.PrivateKey"></textarea>                        
-                        @* <input id="managementPrivateKey" type="password" class="form-control form-control-sm" @bind="actManagement.PrivateKey" /> *@
+                @if (actManagement.DeviceType.IsLegacyDevType())
+                {
+                    <div class="form-group row">
+                        <label for="managementPrivateKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("login_secret"))*:</label>
+                        <div class="col-sm-8">
+                            <textarea rows="3" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("login_secret")) @bind="actManagement.PrivateKey"></textarea>                        
+                        </div>
                     </div>
-                </div>
-                <div class="form-group row">
-                    <label for="managementPublicKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("public_key")):</label>
-                    <div class="col-sm-8">
-                        <textarea rows="2" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("public_key")) @bind="actManagement.PublicKey"></textarea>                        
-                        @* <input id="managementPublicKey" type="text" class="form-control form-control-sm" @bind="actManagement.PublicKey" /> *@
+                    <div class="form-group row">
+                        <label for="managementPublicKey" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("public_key")):</label>
+                        <div class="col-sm-8">
+                            <textarea rows="2" cols="60" name="text" class="form-control form-control-sm" placeholder=@(userConfig.GetText("public_key")) @bind="actManagement.PublicKey"></textarea>                        
+                        </div>
                     </div>
-                </div>
+                }
+                else
+                {
+                    <div class="form-group row">
+                        <label for="managementPassword" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("password"))*:</label>
+                        <div class="col-sm-8">
+                            <input id="managementPassword" type="password" class="form-control form-control-sm" @bind="actManagement.Password" />
+                        </div>
+                    </div>
+                }
                 <div class="form-group row">
                     <label for="managementConfigPath" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("config_path")):</label>
                     <div class="col-sm-8">
                         <input id="managementConfigPath" type="text" class="form-control form-control-sm" @bind="actManagement.ConfigPath" />
                     </div>
                 </div>
-                <div class="form-group row">
-                    <label for="managementSuperManager" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager"))*:</label>
-                    <div class="col-sm-8">
-                        <select id="managementSuperManager" class="form-control form-control-sm" @bind="actManagement.SuperManager.Id">
-                            @foreach (SuperManager superManager in superManagers)
-                            {
-                                <option value="@superManager.Id">@(superManager.Name)</option>
-                            }
-                            <option value="0">@(userConfig.GetText("no_super_manager"))</option>
-                        </select>
+                @if (actManagement.DeviceType.CanHaveSupermanager())
+                {
+                    <div class="form-group row">
+                        <label for="managementSuperManager" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("super_manager"))*:</label>
+                        <div class="col-sm-8">
+                            <select id="managementSuperManager" class="form-control form-control-sm" @bind="actManagement.SuperManagerId">
+                                <option value="null">@(userConfig.GetText("no_super_manager"))</option>
+                                @foreach (Management superManager in managements.Where(x => x.DeviceType.Id == actManagement.DeviceType.GetSupermanagerId()))
+                                {
+                                    <option value="@superManager.Id">@(superManager.Name)</option>
+                                }
+                            </select>
+                        </div>
                     </div>
-                </div>
+                }
                 <div class="form-group row">
                     <label for="managementImporterHostname" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
                     <div class="col-sm-8">
@@ -239,11 +252,10 @@
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
     private List<Management> managements = new List<Management>();
     private List<Management> sampleManagements = new List<Management>();
     private List<DeviceType> deviceTypes = new List<DeviceType>();
-    private List<SuperManager> superManagers = new List<SuperManager>();
-    private List<int> superManagerIds = new List<int>();
 
     private ITable<Management>? table;
 
@@ -266,6 +278,12 @@
             managements = (await apiConnection.SendQueryAsync<Management[]>(FWO.ApiClient.Queries.DeviceQueries.getManagementsDetails)).ToList();
             foreach (var management in managements)
             {
+                if(!management.DeviceType.IsLegacyDevType())
+                {
+                    management.Password = management.PrivateKey;
+                    management.PrivateKey = "";
+                }
+
                 if (management.Name.EndsWith("_demo"))
                 {
                     sampleManagements.Add(management);
@@ -274,13 +292,6 @@
             showCleanupButton = (sampleManagements.Count > 0);
 
             deviceTypes = (await apiConnection.SendQueryAsync<DeviceType[]>(FWO.ApiClient.Queries.DeviceQueries.getDeviceTypeDetails)).ToList();
-            superManagers = (await apiConnection.SendQueryAsync<SuperManager[]>(FWO.ApiClient.Queries.DeviceQueries.getSuperManagementsList)).ToList();
-            foreach (SuperManager sm in superManagers)
-            {
-                if (sm.Id != null)
-                    superManagerIds.Add((int) sm.Id);
-            } 
-            //superManagers.Add(new SuperManager(0, userConfig.GetText("no_super_manager")));
         }
         catch (System.Exception exception)
         {
@@ -291,10 +302,6 @@
     private void Edit(Management management)
     {
         actManagement = new Management(management);
-        if (actManagement.SuperManager == null)
-        {
-            actManagement.SuperManager = new SuperManager(0, userConfig.GetText("no_super_manager"));
-        }
         EditMode = true;
     }
 
@@ -373,25 +380,20 @@
                 if (AddMode)
                 {
                     // insert new management
-                    if (actManagement.SuperManager.Id==0)
-                    {
-                        actManagement.SuperManager.Id = null;
-                        actManagement.SuperManager.Name = userConfig.GetText("no_super_manager");
-                    }
                     var Variables = new
                     {
                         name = actManagement.Name,
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
                         importUser = actManagement.ImportUser,
-                        importUserSecret = actManagement.PrivateKey,
+                        importUserSecret = (actManagement.DeviceType.IsLegacyDevType() ? actManagement.PrivateKey : actManagement.Password),
                         port = actManagement.Port,
                         sshPublicKey = actManagement.PublicKey,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
-                        superManager = actManagement.SuperManager.Id,
+                        superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
@@ -409,11 +411,6 @@
                 {
                     // Update existing management
                     // Todo: handle TenantId
-                    if (actManagement.SuperManager.Id==0)
-                    {
-                        actManagement.SuperManager.Id = null;
-                        actManagement.SuperManager.Name = userConfig.GetText("no_super_manager");
-                    }
                     var Variables = new
                     {
                         id = actManagement.Id,
@@ -421,14 +418,14 @@
                         devTypeId = actManagement.DeviceType.Id,
                         hostname = actManagement.Hostname,
                         importUser = actManagement.ImportUser,
-                        importUserSecret = actManagement.PrivateKey,
+                        importUserSecret = (actManagement.DeviceType.IsLegacyDevType() ? actManagement.PrivateKey : actManagement.Password),
                         port = actManagement.Port,
                         sshPublicKey = actManagement.PublicKey,
                         importDisabled = actManagement.ImportDisabled,
                         forceInitialImport = actManagement.ForceInitialImport,
                         hideInUi = actManagement.HideInUi,
                         configPath = actManagement.ConfigPath,
-                        superManager = actManagement.SuperManager.Id,
+                        superManager = actManagement.SuperManagerId,
                         importerHostname = actManagement.ImporterHostname,
                         debugLevel = actManagement.DebugLevel,
                         comment = actManagement.Comment
@@ -441,9 +438,6 @@
                 DeviceType? devtype = deviceTypes.FirstOrDefault(x => x.Id == actManagement.DeviceType.Id) ?? throw new Exception("Unknown Device type");
                 actManagement.DeviceType.Name = devtype.Name;
                 actManagement.DeviceType.Version = devtype.Version;
-
-                @* SuperManager? superManager = superManagers.FirstOrDefault(x => x.Id == actManagement.SuperManager.Id) ?? throw new Exception("Unknown Super Manager");
-                actManagement.SuperManager.Name = superManager.Name; *@
             }
             StateHasChanged();
         }
@@ -458,7 +452,8 @@
         if (mgm.Name == null || mgm.Name == "" || 
             mgm.Hostname == null || mgm.Hostname == "" || 
             mgm.ImportUser == null || mgm.ImportUser == "" || 
-            mgm.PrivateKey == null || mgm.PrivateKey == "")
+            (mgm.DeviceType.IsLegacyDevType() && (mgm.PrivateKey == null || mgm.PrivateKey == "")) ||
+            (!mgm.DeviceType.IsLegacyDevType() && (mgm.Password == null || mgm.Password == "")))
         {
             DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5102"), true);
             return false;
@@ -474,7 +469,7 @@
             return false;
         }
         if (!mgm.ImportDisabled && managements.FirstOrDefault(existingManagement => existingManagement.Hostname == mgm.Hostname && existingManagement.Port == mgm.Port 
-            && existingManagement.ConfigPath == mgm.ConfigPath && (existingManagement.SuperManager == null || existingManagement.SuperManager.Id == mgm.SuperManager.Id)
+            && existingManagement.ConfigPath == mgm.ConfigPath && (existingManagement.SuperManagerId == null || existingManagement.SuperManagerId == mgm.SuperManagerId)
             && existingManagement.Id != mgm.Id && !existingManagement.ImportDisabled) != null)
         {
             DisplayMessageInUi!(null, checkCause, userConfig.GetText("E5105"), true);
@@ -491,17 +486,16 @@
         CleanupMode = false;
     }
 
-
-    private async Task AutoDiscover(Management superManager)
+    private async Task AutoDiscover(Management superManagement)
     {
         int domainDeviceId = 0;  // device ID for standard (domain) manager device
         int gatewayDeviceId = 0;  // device ID for standard (domain) manager device
-        if (superManager.DeviceType.Id == 12)
+        if (superManagement.DeviceType.Id == 12)
         {
             domainDeviceId = 11;
             gatewayDeviceId = 10;
         }
-        else if (superManager.DeviceType.Id == 13)
+        else if (superManagement.DeviceType.Id == 13)
         {
             DisplayMessageInUi!(null, userConfig.GetText("U5114"), "", true);
             return;
@@ -509,14 +503,14 @@
 
         try
         {
-            List<Management> discoveredDevices = await new AutoDiscoveryBase(superManager).Run();
+            List<Management> discoveredManagements = await new AutoDiscoveryBase(superManagement).Run();
             List<int> adomIds = new List<int>();
             List<int> devIds = new List<int>();
             int adomId = 0;
             int adomChanges = 0;
             int deviceChanges = 0;
 
-            foreach (Management adom in discoveredDevices)
+            foreach (Management adom in discoveredManagements)
             {
                 if (adom.ConfigPath != "global")
                 {
@@ -524,19 +518,19 @@
                     {
                         var Variables = new
                         {
-                            hostname = superManager.Hostname,
-                            importUser = superManager.ImportUser,
-                            importUserSecret = superManager.PrivateKey,
-                            importerHostname = superManager.ImporterHostname,
-                            debugLevel = superManager.DebugLevel,
-                            port = superManager.Port,
+                            hostname = superManagement.Hostname,
+                            importUser = superManagement.ImportUser,
+                            importUserSecret = (superManagement.DeviceType.IsLegacyDevType() ? superManagement.PrivateKey : superManagement.Password),
+                            importerHostname = superManagement.ImporterHostname,
+                            debugLevel = superManagement.DebugLevel,
+                            port = superManagement.Port,
                             importDisabled = false,
                             forceInitialImport = true,
                             hideInUi = false,
                             configPath = adom.ConfigPath,
                             name = adom.Name,
                             devTypeId = domainDeviceId,
-                            superManager = superManager.Id
+                            superManager = superManagement.Id
                         };
                         ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<NewReturning>(FWO.ApiClient.Queries.DeviceQueries.newManagement, Variables)).ReturnIds;
                         if (returnIds != null) 

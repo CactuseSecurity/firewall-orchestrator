@@ -84,9 +84,26 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
     getter.update_config_with_fortinet_api_call(
         raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/dynamic/interface", "interfaces-dynamic", debug=debug_level, limit=limit)
 
+    # get interfaces via encapsulated call to FortiOS:
     for dev in devices:
+        payload = {
+            "method": "exec",
+            "params": [
+                {
+                    "data": {
+                        "target": [ "adom/"+ adom_name + "/device/" + dev["name"] ],
+                        "action": "get",
+                        "resource": "/api/v2/monitor/system/interface/select?&include_vlan=1"
+                    }
+                }
+            ]
+        }
         getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/pm/config/device/" + dev["name"] + "/global/system/interface", "interfaces-static", debug=debug_level, limit=limit)
+            raw_config, sid, fm_api_url, "/sys/proxy/json", "interfaces-from-device-" + adom_name + "-" + dev["name"], payload=payload, debug=debug_level, limit=limit)
+
+    # for dev in devices:
+    #     getter.update_config_with_fortinet_api_call(
+    #         raw_config, sid, fm_api_url, "/pm/config/device/" + dev["name"] + "/global/system/interface", "interfaces-static", debug=debug_level, limit=limit)
 
     getter.update_config_with_fortinet_api_call(
         raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/router/route-map", "route-map", debug=debug_level, limit=limit)

@@ -17,8 +17,8 @@ importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
 import common, fwo_api
 
-full_config_size_limit = 5000000
-config2import_size_limit = 10000000
+full_config_size_limit = 5000000 # native configs greater than 5 MB will not stored in DB
+config2import_size_limit = 10000000 # native configs greater than 10 MB will be delted from import_config table after import
 
 parser = argparse.ArgumentParser(
     description='Read configuration from FW management via API calls')

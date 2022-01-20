@@ -7,7 +7,7 @@ namespace FWO.Api.Data
         // Standard input fields
         public static string SanitizeMand(string input)
         {
-            return Regex.Replace(input, @"[^\w\.\*\-\:\?@/\(\)\[\]\{\}\$\+<>#\$]", "").Trim();
+            return Regex.Replace(input, @"[^\w\.\*\-\:\?@/\(\)\[\]\{\}\$\+<>#\$ ]", "").Trim();
         }
 
         public static string? SanitizeOpt(string? input)

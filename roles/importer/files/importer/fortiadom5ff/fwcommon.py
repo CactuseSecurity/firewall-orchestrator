@@ -17,7 +17,7 @@ rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
 rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
 rule_scope = rule_access_scope + rule_nat_scope
 
-nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp', 'firewall/addrgrp6', 'firewall/ippool', 'dynamic/vip']
+nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp', 'firewall/addrgrp6', 'firewall/ippool', 'firewall/vip']
 svc_obj_types = ['application/list', 'application/group', 'application/categories', 'application/custom', 'firewall/service/custom', 'firewall/service/group']
 
 # build the product of all scope/type combinations
@@ -71,6 +71,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         fmgr_service.normalize_svcobjects(full_config, config2import, current_import_id, svc_obj_scope)
         fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id, rule_access_scope)
         fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id, rule_nat_scope)
+        fmgr_network.remove_nat_ip_entries(config2import)
 
     if not parsing_config_only:   # no native config was passed in, logging out
         getter.logout(fm_api_url, sid, ssl_verification='',proxy_string='', debug=debug_level)

@@ -1,7 +1,7 @@
 
 -------------------
 -- the following triggers creates the bigserial obj_id as it does not seem to be set automatically, 
--- when insert via jsonb function and specifying no obj_id
+-- when insert via json function and specifying no obj_id
 
 CREATE OR REPLACE FUNCTION import_object_obj_id_seq() RETURNS TRIGGER AS $$
 BEGIN
@@ -45,7 +45,7 @@ CREATE TRIGGER import_rule_rule_id_seq BEFORE INSERT ON import_rule FOR EACH ROW
 
 -------------------
 
-CREATE OR REPLACE FUNCTION import_config_from_jsonb ()
+CREATE OR REPLACE FUNCTION import_config_from_json ()
     RETURNS TRIGGER
     AS $BODY$
 DECLARE
@@ -56,31 +56,31 @@ BEGIN
     SELECT
         *
     FROM
-        jsonb_populate_recordset(NULL::import_object, NEW.config -> 'network_objects');
+        json_populate_recordset(NULL::import_object, NEW.config -> 'network_objects');
 
     INSERT INTO import_service
     SELECT
         *
     FROM
-        jsonb_populate_recordset(NULL::import_service, NEW.config -> 'service_objects');
+        json_populate_recordset(NULL::import_service, NEW.config -> 'service_objects');
 
     INSERT INTO import_user
     SELECT
         *
     FROM
-        jsonb_populate_recordset(NULL::import_user, NEW.config -> 'user_objects');
+        json_populate_recordset(NULL::import_user, NEW.config -> 'user_objects');
 
     INSERT INTO import_zone
     SELECT
         *
     FROM
-        jsonb_populate_recordset(NULL::import_zone, NEW.config -> 'zone_objects');
+        json_populate_recordset(NULL::import_zone, NEW.config -> 'zone_objects');
 
     INSERT INTO import_rule
     SELECT
         *
     FROM
-        jsonb_populate_recordset(NULL::import_rule, NEW.config -> 'rules');
+        json_populate_recordset(NULL::import_rule, NEW.config -> 'rules');
 
     -- finally start the stored procedure import
     PERFORM import_all_main(NEW.import_id);
@@ -93,11 +93,11 @@ LANGUAGE plpgsql
 VOLATILE
 COST 100;
 
-ALTER FUNCTION public.import_config_from_jsonb () OWNER TO fworch;
+ALTER FUNCTION public.import_config_from_json () OWNER TO fworch;
 
 DROP TRIGGER IF EXISTS import_config_insert ON import_config CASCADE;
 
 CREATE TRIGGER import_config_insert
     BEFORE INSERT ON import_config
     FOR EACH ROW
-    EXECUTE PROCEDURE import_config_from_jsonb ();
+    EXECUTE PROCEDURE import_config_from_json ();

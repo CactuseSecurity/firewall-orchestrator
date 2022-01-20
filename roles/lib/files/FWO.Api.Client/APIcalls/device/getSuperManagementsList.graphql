@@ -1,6 +1,0 @@
-﻿query getSuperManagementsList {
-  superManager: management(where: {stm_dev_typ: {dev_typ_is_multi_mgmt: {_eq: true}}}, order_by: {mgm_name: asc}) {
-    name: mgm_name
-    id: mgm_id
-  }
-}

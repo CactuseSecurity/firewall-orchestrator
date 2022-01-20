@@ -1,4 +1,4 @@
-@using BlazorTable
+﻿@using BlazorTable
 @using FWO.Config.Api
 @using FWO.Api.Data
 
@@ -32,7 +32,7 @@
         <ChildContent>
             @if(NetworkObjectExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="Type != 30 ? () => FetchContent(nobj) : null">
+                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="async () => { if (Type != 30) await FetchContent(nobj); }">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
@@ -53,12 +53,8 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                // Add Link To Object
-                                                <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="@GetIconClass(nobj, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)</a><br>
-                                                
-                                                <a href="" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("scrollIntoRSBView", args: $"nwobj{member.Object.Id}"))" @onclick:preventDefault>
-                                                    <span class="@GetIconClass(nobj, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)
-                                                </a><br>
+                                                @AddLinkToObject(nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                <br>
                                             }
                                         }
                                     </Content1>
@@ -71,8 +67,9 @@
                                                 if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
-                                                // Add Link To Object
-                                                <a href="report#nwobj@(member.Object.Id)" target="_top"><span class="@GetIconClass(nobj, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)</a><br>
+
+                                                @AddLinkToObject(nobj, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                <br>
                                             }
                                         }
                                     </Content2>
@@ -86,7 +83,7 @@
             }
             @if(NetworkServiceExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="Type != 30 ? () => FetchContent(nsrv) : null">
+                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="async () => { if (Type != 30) await FetchContent(nsrv); }">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
@@ -110,8 +107,8 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                // Add Link To Object
-                                                <a href="report#svc@(member.Object.Id)" target="_top"><span class="@GetIconClass(nsrv, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)</a><br>
+                                                @AddLinkToObject(nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                <br>
                                             }
                                         }
                                     </Content1>
@@ -124,9 +121,9 @@
                                                 if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
-                                                
-                                                // Add Link To Object
-                                                <a href="report#svc@(member.Object.Id)" target="_top"><span class="@GetIconClass(nsrv, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)</a><br>
+
+                                                @AddLinkToObject(nsrv, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                <br>
                                             }
                                         }
                                     </Content2>
@@ -140,7 +137,7 @@
             }
             @if(NetworkUserExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="Type != 30 ? () => FetchContent(user) : null">
+                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="async () => { if (Type != 30) await FetchContent(user); }">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
@@ -160,8 +157,8 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                // Add Link To Object
-                                                <a href="report#user@(member.Object.Id)" target="_top"><span class="@GetIconClass(user, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)</a><br>
+                                                @AddLinkToObject(user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                <br>
                                             }
                                         }
                                     </Content1>
@@ -171,11 +168,12 @@
                                         {
                                             if(member.Object != null)
                                             {
-                                                if (member.Object.Type?.Name == "group" || shownMemberIds.Contains(member.Object.Id))
+                                                if (member.Object.Type.Name == "group" || shownMemberIds.Contains(member.Object.Id))
                                                     continue;
                                                 shownMemberIds.Add(member.Object.Id);
-                                                // Add Link To Object
-                                                <a href="report#user@(member.Object.Id)" target="_top"><span class="@GetIconClass(user, member.Object.Type?.Name)">&nbsp;</span>@(member.Object.Name)</a><br>
+
+                                                @AddLinkToObject(user, member.Object.Id, member.Object.Type.Name, member.Object.Name)
+                                                <br>
                                             }
                                         }
                                     </Content2>
@@ -267,6 +265,24 @@
                 }
                 return "";
         }
+    }
+
+    RenderFragment AddLinkToObject(byte objCategory, long objId, string type, string name)
+    {
+        string htmlObjRefPrefix = "";
+        switch (objCategory)
+        {
+            case nobj:
+                htmlObjRefPrefix = "nwobj";
+                break;
+            case nsrv:
+                htmlObjRefPrefix = "svc";
+                break;
+            case user:
+                htmlObjRefPrefix = "user";
+                break;
+        }
+        return @<a href="" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("scrollIntoRSBView", args: htmlObjRefPrefix + objId))" @onclick:preventDefault><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
     private async Task FetchContent(byte objType)

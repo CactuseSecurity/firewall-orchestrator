@@ -1,4 +1,4 @@
-﻿<div id="@(PositionLeft ? "lsb" : "rsb")" class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
+﻿<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@(PositionLeft ? "left: 0px;" : "right: 0px;")">
     @if (!PositionLeft)
     {
         if (Collapsible)
@@ -11,7 +11,7 @@
         <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
     }
 
-    <div class="@SidebarCssClass" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
+    <div id="@(PositionLeft ? "lsb-content" : "rsb-content")" class="@SidebarCssClass" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
         @* Sidebar Content *@
         @ChildContent
     </div>

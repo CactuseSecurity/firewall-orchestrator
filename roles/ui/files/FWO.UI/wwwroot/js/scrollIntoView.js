@@ -1,5 +1,8 @@
 ﻿
 function scrollIntoRSBView(htmlObjId) {
-  let obj = document.getElementById(htmlObjId);
-  document.getElementById("rsb").scrollTop = obj.offsetTop - window.innerHeight / 2 + obj.getBoundingClientRect().height / 2;
+  let obj =  document.getElementById(htmlObjId).parentElement.parentElement; // gets the tr element containing the obj
+  obj.scrollIntoView({behavior: "smooth", block: "center"});
+  obj.classList.add("fade-bg");
+  obj.classList.add("temp-highlight");
+  setTimeout(() => obj.classList.remove("temp-highlight"), 800)
 }

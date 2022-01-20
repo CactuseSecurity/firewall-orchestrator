@@ -399,7 +399,7 @@
 
     private void ReportTypeChanged(ChangeEventArgs args)
     {
-        selectedReportType = (ReportType) Enum.Parse(typeof(ReportType), (args != null && args.Value != null ? args.Value?.ToString() : "Rules"), true);
+        selectedReportType = (ReportType) Enum.Parse(typeof(ReportType), (args?.Value?.ToString() ?? throw new Exception("Undefined report type")), true);
         DisplayTime();
         StateHasChanged();
     }

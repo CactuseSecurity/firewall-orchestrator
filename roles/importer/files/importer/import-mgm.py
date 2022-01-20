@@ -178,7 +178,7 @@ elif get_config_response == 0:
 if change_count == 0 and error_count == 0 and get_config_response < 2:
     error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
     error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
-if config2import_size > config2import_size_limit:
+if change_count != 0 and config2import_size > config2import_size_limit:
     error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
 if os.path.exists(secret_filename):
     os.remove(secret_filename)

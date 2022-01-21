@@ -7,7 +7,7 @@ import logging, sys, os, json
 base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/fortiadom5ff')
-import getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
+import fmgr_getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 scope = ['global', 'adom']
 
@@ -39,7 +39,8 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             mgm_details['hostname'] + ':' + str(mgm_details['port']) + '/jsonrpc'
         api_domain = ''
         sid = getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'],
-                        mgm_details['port'], api_domain, debug=debug_level, ssl_verification='', proxy_string='')
+                        mgm_details['port'], api_domain, debug=debug_level, ssl_verification='', proxy_string=proxy)
+#                        mgm_details['port'], api_domain, debug=debug_level, ssl_verification='', proxy_string='')
 
         if sid is None:
             logging.ERROR('did not succeed in logging in to FortiManager API, so sid returned')
@@ -87,10 +88,13 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
     # get interfaces via encapsulated call to FortiOS on FortiGate 
     # (https://fndn.fortinet.net/index.php?/forums/topic/2938-get-interface-status-not-administrative-status-from-api/&tab=comments#comment-11344)
     for dev in devices:
-        dev_name = dev["name"]  
+        dev_name = dev["name"]
+        vdom_str = ""
+        vdom_name = "undefined"
         if "_" in dev_name: # strip off _vdom_name
             dev_name_ar = dev_name.split("_")
             vdom_name = dev_name_ar.pop()
+            vdom_str = "&vdom="+vdom_name
             dev_name = "_".join(dev_name_ar)
 #                        "resource": "/api/v2/monitor/system/interface/select?&include_vlan=1&"
         payload = {
@@ -99,7 +103,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                     "data": {
                         "target": [ "adom/"+ adom_name + "/device/" + dev_name ],
                         "action": "get",
-                        "resource": "/api/v2/monitor/system/interface/select?&include_vlan=1&vdom=" + vdom_name
+                        "resource": "/api/v2/monitor/system/interface/select?&include_vlan=1" + vdom_str
                     }
                 }
             ]
@@ -116,7 +120,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                         "data": {
                             "target": [ "adom/"+ adom_name + "/device/" + dev_name ],
                             "action": "get",
-                            "resource": "/api/v2/monitor/router/" + ip_version  + "/select?&vdom=" + vdom_name
+                            "resource": "/api/v2/monitor/router/" + ip_version  + "/select?" + vdom_str
                         }
                     }
                 ]

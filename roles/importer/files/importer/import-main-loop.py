@@ -25,9 +25,6 @@ class GracefulKiller:
 
 
 if __name__ == '__main__':
-    base_dir = "/usr/local/fworch"
-    importer_base_dir = base_dir + '/importer'
-    sys.path.append(importer_base_dir)
     parser = argparse.ArgumentParser(
         description='Run import loop across all managements to read configuration from FW managements via API calls')
     parser.add_argument('-i', '--interval', metavar='interval_time',
@@ -42,14 +39,20 @@ if __name__ == '__main__':
                         help='The maximal number of returned results per HTTPS Connection; default=150')
 
     args = parser.parse_args()
+    debug_level = int(args.debug)
+    common.set_log_level(log_level=debug_level, debug_level=debug_level)
+
+    logging.info("importer-main-loop starting ...")
+    print("importer-main-loop starting ...")
+    base_dir = "/usr/local/fworch"
+    importer_base_dir = base_dir + '/importer'
+    sys.path.append(importer_base_dir)
 
     requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
     importer_user_name = 'importer'  # todo: move to config file?
     fwo_config_filename = base_dir + '/etc/fworch.json'
     importer_pwd_file = base_dir + '/etc/secrets/importer_pwd'
-    debug_level = int(args.debug)
-    common.set_log_level(log_level=debug_level, debug_level=debug_level)
 
     # read fwo config (API URLs)
     with open(fwo_config_filename, "r") as fwo_config:
@@ -84,8 +87,11 @@ if __name__ == '__main__':
                 try:
                     import_result = common.import_management(mgm_id=id, ssl=args.ssl, debug_level=debug_level, limit=api_fetch_limit)
                 except BaseException:
-                    tb = sys.exc_info()[2]
-                    #logging.error("vars: " + str(tb.tb_frame.f_locals))
+                    # tb = sys.exc_info()[2]
+                    logging.error("import-main-loop - error")
+                    # break
+                    # logging.error("vars: " + str(tb.tb_frame.f_locals))
+                    
         logging.info("import-main-loop.py: sleeping between loops for " +
                      str(args.interval) + " seconds")
         counter=0
@@ -93,4 +99,5 @@ if __name__ == '__main__':
             time.sleep(1)
             counter += 1
 
-    print("importer-api was killed gracefully.")
+    print("importer-main-loop was killed gracefully.")
+    logging.info("importer-main-loop was killed gracefully.")

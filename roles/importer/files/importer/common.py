@@ -59,17 +59,17 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
 
     # only run if this is the correct import module
     if mgm_details['importerHostname'] != socket.gethostname():
-        logging.debug(
-            "we are not responsible for importing this management - so resting")
+        logging.debug("we are not responsible for importing this management")
         sys.exit(0)
 
     # set import lock
     current_import_id = fwo_api.lock_import(
         fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
     if current_import_id == -1:
-        logging.error("error while setting import lock for management id " +
-                    str(mgm_id) + ", import already running?")
-        return 1 # sys.exit(1)
+        exception = "error while setting import lock for management id " + str(mgm_id) + ", import already running?"
+        #logging.error(exception)
+        raise Exception(exception)
+        # return 1 # sys.exit(1)
 
     logging.info("start import of management " + str(mgm_id) +
                 ", import_id=" + str(current_import_id))
@@ -143,8 +143,8 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         logging.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
 
         if (change_count > 0 or error_count > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
-            error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, args.mgm_id, {
-                "importId": current_import_id, "mgmId": args.mgm_id, "config": full_config_json})
+            error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, mgm_id, {
+                "importId": current_import_id, "mgmId": mgm_id, "config": full_config_json})
 
     # CLEANUP: delete configs of imports without changes (if no error occured)
     if change_count == 0 and error_count == 0 and get_config_response < 2:
@@ -159,15 +159,14 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
         mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
 
-    logging.info("import_mgm.py: import no. " + str(current_import_id) +
-        " for management " + mgm_details['name'] + ' (id=' + str(mgm_id) + ")" +
-        str(" threw errors," if error_count else " successful,") + 
-        " change_count: " + str(change_count) +
-        ", duration: " + str(int(time.time()) - start_time) + "s")
-    if len(error_string) > 0:
-        print("ERRORS: " + error_string)
-
-    return error_count
+    import_result = "import_mgm.py: import no. " + str(current_import_id) + \
+        " for management " + mgm_details['name'] + ' (id=' + str(mgm_id) + ")" + \
+        str(" threw errors," if error_count else " successful,") + \
+        " change_count: " + str(change_count) + \
+        ", duration: " + str(int(time.time()) - start_time) + "s" 
+    import_result += "\n   ERRORS: " + error_string if len(error_string) > 0 else ""
+    logging.info("import_management - " + import_result)
+    return import_result
 
 
 def set_log_level(log_level, debug_level):

@@ -31,7 +31,8 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
     except requests.exceptions.RequestException as e:
         logging.exception("\nerror while sending api_call to url " + str(url) + " with payload \n" +
                           json.dumps(full_query, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
-        raise SystemExit(e) from None
+        raise Exception ("FWO-API importer call error")
+        # raise SystemExit(e) from None
 
     if debug > 0:
         logging.debug("\napi_call to url '" + str(url) + "' with payload '" + json.dumps(query, indent=2) + "' and headers: '" +
@@ -187,8 +188,8 @@ def lock_import(fwo_api_base_url, jwt, query_variables):
                            query_variables=query_variables, role='importer')
         current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
     except:
-        logging.exception(
-            "fwo_api: failed to get import lock for management id " + str(query_variables))
+        # logging.exception("fwo_api: failed to get import lock for management id " + str(query_variables))
+        logging.error("fwo_api: failed to get import lock for management id " + str(query_variables))
         return -1
     return current_import_id
 

@@ -74,19 +74,19 @@ if __name__ == '__main__':
             if killer.kill_now:
                 break
             id = str(mgm_id['id'])
-            logging.info("import_main_loop.py: starting import of mgm_id=" + id)
-
             # getting a new JWT in case the old one is not valid anymore after a long previous import
             jwt = fwo_api.login(importer_user_name, importer_pwd,
                                 user_management_api_base_url, ssl_verification=args.ssl, proxy=args.proxy)
             mgm_details = fwo_api.get_mgm_details(
                 fwo_api_base_url, jwt, {"mgmId": id})
             if mgm_details["deviceType"]["id"] in (9, 11):  # only handle CPR8x and fortiManager
+                #logging.info("import-main-loop: starting import of mgm_id=" + id)
                 try:
-                    common.import_management(mgm_id=id, ssl=args.ssl, debug_level=debug_level, limit=api_fetch_limit)
-                except Exception:
-                    print("caught error")
-        logging.info("import_main_loop.py: sleeping between loops for " +
+                    import_result = common.import_management(mgm_id=id, ssl=args.ssl, debug_level=debug_level, limit=api_fetch_limit)
+                except BaseException:
+                    tb = sys.exc_info()[2]
+                    #logging.error("vars: " + str(tb.tb_frame.f_locals))
+        logging.info("import-main-loop.py: sleeping between loops for " +
                      str(args.interval) + " seconds")
         counter=0
         while counter < int(args.interval) and not killer.kill_now:

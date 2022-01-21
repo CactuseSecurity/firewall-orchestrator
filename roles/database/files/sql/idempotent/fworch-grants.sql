@@ -25,6 +25,8 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO group fworchadm
 
 Grant select on ALL TABLES in SCHEMA public to group dbbackupusers;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group dbbackupusers;
+Grant select on ALL TABLES in SCHEMA hdb_catalog to group dbbackupusers;
+ALTER DEFAULT PRIVILEGES IN SCHEMA hdb_catalog GRANT SELECT ON TABLES TO group dbbackupusers;
 
 Grant select on ALL TABLES in SCHEMA public to group configimporters;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group configimporters;

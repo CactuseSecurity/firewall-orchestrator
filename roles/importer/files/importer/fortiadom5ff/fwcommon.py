@@ -105,16 +105,36 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
             ]
         }
         getter.update_config_with_fortinet_api_call(
-            raw_config, sid, fm_api_url, "/sys/proxy/json", "interfaces/adom:" + adom_name + "/device:" + dev_name, payload=payload, debug=debug_level, limit=limit, method="exec")
+            raw_config, sid, fm_api_url, "/sys/proxy/json", \
+                "interfaces/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
+                payload=payload, debug=debug_level, limit=limit, method="exec")
 
-    getter.update_config_with_fortinet_api_call(
-        raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/router/route-map", "route-map", debug=debug_level, limit=limit)
+        for ip_version in ["ipv4", "ipv6"]:
+            payload = {
+                "params": [
+                    {
+                        "data": {
+                            "target": [ "adom/"+ adom_name + "/device/" + dev_name ],
+                            "action": "get",
+                            "resource": "/api/v2/monitor/route/" + ip_version  + "/select?&vdom=" + vdom_name
+                        }
+                    }
+                ]
+            }
+            getter.update_config_with_fortinet_api_call(
+                raw_config, sid, fm_api_url, "/sys/proxy/json", \
+                    "routing-table-" + ip_version + "/adom:" + adom_name + "/device:" + dev_name + "/vdom:" + vdom_name, \
+                    payload=payload, debug=debug_level, limit=limit, method="exec")
 
-    getter.update_config_with_fortinet_api_call(
-        raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/router/prefix-list", "router-prefix-list", debug=debug_level, limit=limit)
 
-    getter.update_config_with_fortinet_api_call(
-        raw_config, sid, fm_api_url, "/cli/global/system/route", "router-cli", debug=debug_level, limit=limit)
+    # getter.update_config_with_fortinet_api_call(
+    #     raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/router/route-map", "route-map", debug=debug_level, limit=limit)
+
+    # getter.update_config_with_fortinet_api_call(
+    #     raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/router/prefix-list", "router-prefix-list", debug=debug_level, limit=limit)
+
+    # getter.update_config_with_fortinet_api_call(
+    #     raw_config, sid, fm_api_url, "/cli/global/system/route", "router-cli", debug=debug_level, limit=limit)
 
 
 def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope, nw_obj_types, svc_obj_types):

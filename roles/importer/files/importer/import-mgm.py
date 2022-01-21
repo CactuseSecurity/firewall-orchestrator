@@ -43,6 +43,6 @@ if len(sys.argv) == 1:
     sys.exit(1)
 
 error_count = common.import_management(
-    mgm_id=args.mgm_id, in_file=args.in_file, debug=args.debug, ssl=args.ssl, proxy=args.proxy, \
+    mgm_id=args.mgm_id, in_file=args.in_file, debug_level=args.debug, ssl=args.ssl, proxy=args.proxy, \
     force=args.force, limit=args.limit)
 sys.exit(error_count)

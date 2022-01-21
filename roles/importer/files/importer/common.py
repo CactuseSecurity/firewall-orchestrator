@@ -28,6 +28,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     change_count = 0
     error_string = ''
     start_time = int(time.time())
+    debug_level=int(debug_level)
 
     if ssl == '' or ssl == 'off':
         requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only

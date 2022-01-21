@@ -116,7 +116,7 @@ def getInterfacesAndRouting(sid, fm_api_url, raw_config, adom_name, devices, lim
                         "data": {
                             "target": [ "adom/"+ adom_name + "/device/" + dev_name ],
                             "action": "get",
-                            "resource": "/api/v2/monitor/route/" + ip_version  + "/select?&vdom=" + vdom_name
+                            "resource": "/api/v2/monitor/router/" + ip_version  + "/select?&vdom=" + vdom_name
                         }
                     }
                 ]

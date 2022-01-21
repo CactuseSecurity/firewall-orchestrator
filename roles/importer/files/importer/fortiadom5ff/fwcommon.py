@@ -140,7 +140,7 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope
                 adom_scope = 'adom/'+adom_name
             else:
                 adom_scope = s
-            getter.update_config_with_fortinet_api_call(
+            fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "nw_obj_" + s + "_" + object_type, debug=debug_level, limit=limit)
 
         # get service objects:
@@ -151,11 +151,11 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope
                 adom_scope = 'adom/'+adom_name
             else:
                 adom_scope = s
-            getter.update_config_with_fortinet_api_call(
+            fmgr_getter.update_config_with_fortinet_api_call(
                 raw_config, sid, fm_api_url, "/pm/config/"+adom_scope+"/obj/" + object_type, "svc_obj_" + s + "_" + object_type, debug=debug_level, limit=limit, options=options)
     
     #    user: /pm/config/global/obj/user/local
-    getter.update_config_with_fortinet_api_call(
+    fmgr_getter.update_config_with_fortinet_api_call(
         raw_config, sid, fm_api_url, "/pm/config/global/obj/user/local", "users_local", debug=debug_level, limit=limit)
 
 

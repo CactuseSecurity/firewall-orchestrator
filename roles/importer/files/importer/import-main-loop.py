@@ -106,10 +106,9 @@ if __name__ == '__main__':
                         try:
                             import_result = common.import_management(mgm_id=id, ssl=args.ssl, debug_level=debug_level, limit=api_fetch_limit)
                         except Exception as e:
-                            exception_text = "import-main-loop - error while importing mgm_id=" + str(id)
+                            exception_text = "import-main-loop - unspecific error while importing mgm_id=" + str(id)
                             exception_text += ": " + Exception.message if hasattr(Exception, 'message') else ""
                             logging.debug(exception_text)
-                            logging.debug(e)
         logging.info("import-main-loop.py: sleeping between loops for " +
                     str(args.interval) + " seconds")
         counter=0

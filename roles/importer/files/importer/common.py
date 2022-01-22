@@ -1,5 +1,6 @@
 from email import message
 import logging
+import traceback
 import sys, os, time, datetime
 import json, requests, requests.packages, argparse
 import importlib, logging, socket
@@ -131,15 +132,14 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
                 ssl_verification=ssl, proxy=proxy, limit=limit, force=force)
     except FwLoginFailed as e:
         logging.error("mgm_id=" + str(mgm_id) + ", mgm_name=" + mgm_details['name'] + ", " + e.message)
-        fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
-        # fwo_api.unlock_import(fwo_api_base_url, jwt, int(mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
+        fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id) # deleting trace of not even begun import
         raise FwLoginFailed(e.message)
-    except Exception as e:
-        error_text = "undefined error while getting config"
-        if hasattr(e, message):
-            error_text += ": " + message
-        logging.error(error_text)
-        raise Exception(error_text)
+    except:
+        traceback_output = traceback.format_exc()
+        print(traceback_output)        
+        raise Exception
+        # print (e)
+        # raise Exception(error_text) from e
     logging.debug("import_management: get_config completed, now writing debug config json files")
 
     if debug_level>2:   # debugging: writing config to json file

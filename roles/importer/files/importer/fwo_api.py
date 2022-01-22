@@ -35,7 +35,7 @@ def call(url, jwt, query, query_variables="", role="reporter", ssl_verification=
         raise Exception ("FWO-API importer call error")
         # raise SystemExit(e) from None
 
-    if debug > 0:
+    if debug > 2:
         logging.debug("\napi_call to url '" + str(url) + "' with payload '" + json.dumps(query, indent=2) + "' and headers: '" +
                       json.dumps(request_headers, indent=2))
     if show_progress:

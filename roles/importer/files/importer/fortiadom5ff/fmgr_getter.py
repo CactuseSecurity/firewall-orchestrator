@@ -21,8 +21,7 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
         method = 'get'
     json_payload.update({"method": method})
 
-    r = requests.post(url, data=json.dumps(
-        json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
+    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
         if 'pass' in json.dumps(json_payload):
             exception_text = "error while sending api_call containing credential information to url '" + str(url)
@@ -30,11 +29,7 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
             exception_text = "error while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2)
         raise Exception(exception_text)
     result_json = r.json()
-    if 'result' not in result_json or \
-        len(result_json['result'])<1 or \
-        'status' not in result_json['result'][0] \
-        or 'code' not in result_json['result'][0]['status'] or \
-        result_json['result'][0]['status']['code'] != 0:
+    if 'result' not in result_json or len(result_json['result'])<1 or 'status' not in result_json['result'][0] or 'code' not in result_json['result'][0]['status'] or result_json['result'][0]['status']['code'] != 0:
         if 'pass' in json.dumps(json_payload):
             raise Exception("error while sending api_call containing credential information to url '" + str(url))
         else:
@@ -44,16 +39,15 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
             else:
                 raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
                           json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0], indent=2))
- 
-#    if logging.DEBUG:
-    if 'pass' in json.dumps(json_payload):
-        logging.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
-    else:
-        logging.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
-            json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
+    if debug>2:
+        if 'pass' in json.dumps(json_payload):
+            logging.debug("api_call containing credential information to url '" + str(url) + " - not logging query")
+        else:
+            logging.debug("api_call to url '" + str(url) + "' with payload '" + json.dumps(
+                json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
 
-    if show_progress:
-        print('.', end='', flush=True)
+        if show_progress:
+            print('.', end='', flush=True)
     return r.json()
 
 
@@ -79,9 +73,9 @@ def logout(v_url, sid, ssl_verification='', proxy_string='', debug=0, method='ex
     response = api_call(v_url, 'sys/logout', payload, sid, ssl_verification=ssl_verification,
                         proxy_string=proxy_string, method="exec", debug=debug)
     if "result" in response and "status" in response["result"][0] and "code" in response["result"][0]["status"] and response["result"][0]["status"]["code"] == 0:
-        logging.debug("\nsuccessfully logged out")
+        logging.debug("successfully logged out")
     else:
-        raise Exception( "\nfmgr_getter ERROR: did not get status code 0 when logging out, " + 
+        raise Exception( "fmgr_getter ERROR: did not get status code 0 when logging out, " + 
                             "api call: url: " + str(v_url) + ",  + payload: " + str(payload) + 
                             ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
 

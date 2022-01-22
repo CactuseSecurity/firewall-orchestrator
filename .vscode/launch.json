@@ -207,7 +207,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-d0",
+                "-d1",
                 "-i30"
             ]
         },

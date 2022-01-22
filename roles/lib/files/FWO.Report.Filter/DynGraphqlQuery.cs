@@ -24,19 +24,23 @@ namespace FWO.Report.Filter
             " $mgmId: [Int!]",
             " $relevantImportId: bigint"
         };
-        public string ReportTime { get; set; } = "";
+        public string ReportTimeString { get; set; } = "";
+        public List<int> RelevantManagementIds { get; set; } = new List<int>();
 
         public ReportType ReportType { get; set; } = ReportType.None;
 
         // $mgmId and $relevantImporId are only needed for time based filtering
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
+        public static string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
+        public static string monthFormat = "yyyy-MM-dd";
 
         private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
             bool first = true;
             if (deviceFilter != null)
             {
+                query.RelevantManagementIds = deviceFilter.getSelectedManagements();
                 query.ruleWhereStatement += "{_or: [{";
                 foreach (ManagementSelect mgmt in deviceFilter.Managements)
                 {
@@ -79,7 +83,9 @@ namespace FWO.Report.Filter
                         query.userObjWhereStatement +=
                             $"import_control: {{ control_id: {{_lte: $relevantImportId }} }}, " +
                             $"importControlByUserLastSeen: {{ control_id: {{_gte: $relevantImportId }} }}";
-                        query.ReportTime = timeFilter.ReportTime.ToString("yyyy-MM-dd HH:mm:ss");
+                        query.ReportTimeString = (timeFilter.IsShortcut ?
+                                                  DateTime.Now.ToString(fullTimeFormat) :
+                                                  timeFilter.ReportTime.ToString(fullTimeFormat));
                         break;
                     case ReportType.Changes:
                         (string start, string stop) = ResolveTimeRange(timeFilter);
@@ -109,7 +115,6 @@ namespace FWO.Report.Filter
         {
             string start;
             string stop;
-            //string currentTime = (string)DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             string currentYear = (string)DateTime.Now.ToString("yyyy");
             string currentMonth = (string)DateTime.Now.ToString("MM");
             string currentDay = (string)DateTime.Now.ToString("dd");
@@ -132,12 +137,12 @@ namespace FWO.Report.Filter
                             stop = $"{Convert.ToInt16(currentYear) + 1}-01-01";
                             break;
                         case "this month":
-                            start = startOfCurrentMonth.ToString("yyyy-MM-dd");
-                            stop = startOfNextMonth.ToString("yyyy-MM-dd");
+                            start = startOfCurrentMonth.ToString(monthFormat);
+                            stop = startOfNextMonth.ToString(monthFormat);
                             break;
                         case "last month":
-                            start = startOfPrevMonth.ToString("yyyy-MM-dd");
-                            stop = startOfCurrentMonth.ToString("yyyy-MM-dd");
+                            start = startOfPrevMonth.ToString(monthFormat);
+                            stop = startOfCurrentMonth.ToString(monthFormat);
                             break;
                         default:
                             throw new Exception($"Error: wrong time range format:" + timeFilter.TimeRangeShortcut);
@@ -148,32 +153,32 @@ namespace FWO.Report.Filter
                     switch (timeFilter.Interval)
                     {
                         case Interval.Days:
-                            start = DateTime.Now.AddDays(-timeFilter.Offset).ToString("yyyy-MM-dd HH:mm:ss");
+                            start = DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat);
                             break;
                         case Interval.Weeks:
-                            start = DateTime.Now.AddDays(-7*timeFilter.Offset).ToString("yyyy-MM-dd HH:mm:ss");
+                            start = DateTime.Now.AddDays(-7*timeFilter.Offset).ToString(fullTimeFormat);
                             break;
                         case Interval.Months:
-                            start = DateTime.Now.AddMonths(-timeFilter.Offset).ToString("yyyy-MM-dd HH:mm:ss");
+                            start = DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat);
                             break;
                         case Interval.Years:
-                            start = DateTime.Now.AddYears(-timeFilter.Offset).ToString("yyyy-MM-dd HH:mm:ss");
+                            start = DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat);
                             break;
                         default:
                             throw new Exception($"Error: wrong time interval format:" + timeFilter.Interval.ToString());
                     }
-                    stop = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    stop = DateTime.Now.ToString(fullTimeFormat);
                     break;
 
                 case TimeRangeType.Fixeddates:
                     if (timeFilter.OpenStart)
-                        start = DateTime.MinValue.ToString("yyyy-MM-dd HH:mm:ss");
+                        start = DateTime.MinValue.ToString(fullTimeFormat);
                     else
-                        start = timeFilter.StartTime.ToString("yyyy-MM-dd HH:mm:ss");
+                        start = timeFilter.StartTime.ToString(fullTimeFormat);
                     if (timeFilter.OpenEnd)
-                        stop = DateTime.MaxValue.ToString("yyyy-MM-dd HH:mm:ss");
+                        stop = DateTime.MaxValue.ToString(fullTimeFormat);
                     else
-                        stop = timeFilter.EndTime.ToString("yyyy-MM-dd HH:mm:ss");
+                        stop = timeFilter.EndTime.ToString(fullTimeFormat);
                     break;
                 
                 default:

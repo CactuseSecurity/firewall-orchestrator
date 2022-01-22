@@ -72,7 +72,7 @@
             if(template.ReportParams.ReportType != null)
                 selectedReportType = (ReportType)template.ReportParams.ReportType;
             if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
-                deviceFilter = template.ReportParams.DeviceFilter;
+                deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
             if (deviceFilter.isAnyDeviceFilterSet() || deviceFilter.areAllDevicesSelected())
                 selectAll = false;
             else

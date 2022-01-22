@@ -123,5 +123,25 @@ namespace FWO.Api.Data
                         selectedDevs.Add(dev.Id);
             return selectedDevs;
         }
+
+        public void SynchronizeDevFilter(DeviceFilter incomingDevFilter)
+        {
+            // unknown incoming devices (e.g. from templates) are ignored, because they have been removed inbetween
+            foreach (ManagementSelect management in Managements)
+            {
+                ManagementSelect? incomingMgt = incomingDevFilter.Managements.Find(x => x.Id == management.Id);
+                if (incomingMgt != null)
+                {
+                    foreach (DeviceSelect device in management.Devices)
+                    {
+                        DeviceSelect? incomingDev = incomingMgt.Devices.Find(x => x.Id == device.Id);
+                        if (incomingDev != null)
+                        {
+                            device.Selected = incomingDev.Selected;
+                        }
+                    }
+                }
+            }
+        }
     }
 }

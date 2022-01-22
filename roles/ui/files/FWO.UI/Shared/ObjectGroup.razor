@@ -200,7 +200,10 @@
     AnchorNavToRSB? anchorNavToRSB { get; set; }
 
     [Parameter]
-    public Func<byte, Func<Management[], Task>, long, Task>? FetchObjects { get; set; }
+    public Func<byte, Func<Management[], Task>, long, bool, Task>? FetchObjects { get; set; }
+
+    [Parameter]
+    public bool Recert { get; set; }
 
     [Parameter]
     public byte Tab { get; set; }
@@ -269,7 +272,7 @@
                 if (!toMgmtObj)
                     idPref += "r" + r.Id + "-";
                 else
-                    idPref += "m" + r.MgmtId + "-"; // need to get mgmt id from rule :(
+                    idPref += "m" + r.MgmtId + "-";
                 break;
         }
         switch (objCategory)
@@ -324,8 +327,10 @@
     {
         byte targetTab = Tab == allTab ? allTab : reportTab;
         string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
+
+        string page = Recert ? "certification" : "report";
         
-        return @<a href="report#@(htmlObjRefPrefix + objId)" target="_top"><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
+        return @<a href="@(page)#@(htmlObjRefPrefix + objId)" target="_top"><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
     private async Task HandleUncollapse(byte objCategory)
@@ -371,7 +376,7 @@
                                         Content = (InputDataType)(Object)m;
                                     }
                                     return InvokeAsync(StateHasChanged);
-                                }, m.Id);
+                                }, m.Id, false);
 
                             break;
 
@@ -386,7 +391,7 @@
                                         Content = (InputDataType)(Object)r_updated;
                                     }
                                     return InvokeAsync(StateHasChanged);
-                                 }, r.Id);
+                                 }, r.Id, !string.IsNullOrEmpty(r.NatData?.TranslatedSource));
 
                             break;
                     }

@@ -4,11 +4,13 @@
 
 @inject UserConfig userConfig
 @inject IJSRuntime jsRuntime
+@inject NavigationManager NavigationManager
+
 @typeparam InputDataType
 
 @if(Content != null)
 {
-    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Type == 30)" Style="@("primary")" StartToggled="StartCollapsed">
+    <Collapse Title="@(NameExtractor != null ? NameExtractor(Content) : "")" UseHtmlTitle="@(Tab == ruleTab)" Style="@("primary")" StartToggled="StartCollapsed">
         <TitleWithHtml>
             @if (Content.GetType() == typeof(Rule))
             {
@@ -32,12 +34,12 @@
         <ChildContent>
             @if(NetworkObjectExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="async () => { if (Type != 30) await FetchContent(nobj); }">
+                <Collapse Title="@(userConfig.GetText("network_objects"))" StartToggled="StartCollapsed"  OnOpen="() => HandleUncollapse(nobj)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkObject" Items="@NetworkObjectExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@GetIconClass(nobj, context.Type.Name)">&nbsp;</span>
-                                <b id="nwobj@(context.Id)">@(context.Name)</b>
+                                <b id="@(GetID(nobj, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkObject">
@@ -83,12 +85,12 @@
             }
             @if(NetworkServiceExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="async () => { if (Type != 30) await FetchContent(nsrv); }">
+                <Collapse Title="@(userConfig.GetText("services"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(nsrv)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkService" Items="@NetworkServiceExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@GetIconClass(nsrv, context.Type.Name)">&nbsp;</span>
-                                <b id="svc@(context.Id)">@(context.Name)</b>
+                                <b id="@(GetID(nsrv, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkService">
@@ -137,12 +139,12 @@
             }
             @if(NetworkUserExtractor != null)
             {
-                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="async () => { if (Type != 30) await FetchContent(user); }">
+                <Collapse Title="@(userConfig.GetText("users"))" StartToggled="StartCollapsed" OnOpen="() => HandleUncollapse(user)">
                     <Table style="font-size:small" class="table table-bordered table-sm table-responsive" TableItem="NetworkUser" Items="@NetworkUserExtractor(Content)" PageSize="PageSize" ColumnReorder="true">
                         <Column TableItem="NetworkUser" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Class="word-break">
                             <Template>
                                 <span class="@GetIconClass(user, context.Type.Name)">&nbsp;</span>
-                                <b id="user@(context.Id)">@(context.Name)</b>
+                                <b id="@(GetID(user, context.Id))">@(context.Name)</b>
                             </Template>
                         </Column>
                         <DetailTemplate TableItem="NetworkUser">
@@ -194,11 +196,14 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
 
+    [CascadingParameter]
+    AnchorNavToRSB? anchorNavToRSB { get; set; }
+
     [Parameter]
     public Func<byte, Func<Management[], Task>, long, Task>? FetchObjects { get; set; }
 
     [Parameter]
-    public byte Type { get; set; }
+    public byte Tab { get; set; }
 
     [Parameter]
     public int PageSize { get; set; }
@@ -226,6 +231,7 @@
 
     // Parameter Variables are being overwritten, because something happens with the component on StateHasChanged (but the Initialize Task does not get called)
     public InputDataType? Content { get; set; }
+    private const byte allTab = 10, reportTab = 20, ruleTab = 30;
     private const byte all = 0, nobj = 1, nsrv = 2, user = 3;
     public bool ContentIsDetailed => nobjDetailed && nsrvDetailed && userDetailed;
     private bool nobjDetailed = false;
@@ -237,6 +243,53 @@
         Content = InitialContent;
         if (StartContentDetailed)
             await FetchContent(all);
+    }
+
+    private string GetIDPrefix(byte objCategory, byte? tab = null, bool toMgmtObj = false)
+    {
+        string idPref = "";
+        switch (tab ?? Tab)
+        {
+            case allTab:
+                idPref += "all-";
+                break;
+            case reportTab:
+                idPref += "report-";
+                break;
+            case ruleTab:
+                idPref += "rule-";
+                break;
+        }
+        switch (Content)
+        {
+            case Management m:
+                idPref += "m" + m.Id + "-";
+                break;
+            case Rule r:
+                if (!toMgmtObj)
+                    idPref += "r" + r.Id + "-";
+                else
+                    idPref += "m" + r.MgmtId + "-"; // need to get mgmt id from rule :(
+                break;
+        }
+        switch (objCategory)
+        {
+            case nobj:
+                idPref += "nwobj";
+                break;
+            case nsrv:
+                idPref += "svc";
+                break;
+            case user:
+                idPref += "user";
+                break;
+        }
+
+        return idPref;
+    }
+    private string GetID(byte objCategory, long objId)
+    {
+        return GetIDPrefix(objCategory) + objId;
     }
 
     private string GetIconClass(byte objCategory, string type)
@@ -269,44 +322,41 @@
 
     RenderFragment AddLinkToObject(byte objCategory, long objId, string type, string name)
     {
-        string htmlObjRefPrefix = "";
-        switch (objCategory)
-        {
-            case nobj:
-                htmlObjRefPrefix = "nwobj";
-                break;
-            case nsrv:
-                htmlObjRefPrefix = "svc";
-                break;
-            case user:
-                htmlObjRefPrefix = "user";
-                break;
-        }
-        return @<a href="" @onclick="@(async () => await jsRuntime.InvokeAsync<object>("scrollIntoRSBView", args: htmlObjRefPrefix + objId))" @onclick:preventDefault><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
+        byte targetTab = Tab == allTab ? allTab : reportTab;
+        string htmlObjRefPrefix = GetIDPrefix(objCategory, targetTab, true);
+        
+        return @<a href="report#@(htmlObjRefPrefix + objId)" target="_top"><span class="@GetIconClass(objCategory, type)">&nbsp;</span>@(name)</a>;
     }
 
-    private async Task FetchContent(byte objType)
+    private async Task HandleUncollapse(byte objCategory)
+    {
+        if (Tab != ruleTab)
+            await FetchContent(objCategory);
+        anchorNavToRSB?.ScrollToFragmentIfMatch(GetIDPrefix(objCategory));
+    }
+
+    private async Task FetchContent(byte objCategory)
     {
         try
         {
-            if (Type == 30 && objType != 0)
+            if (Tab == ruleTab && objCategory != 0)
                 return;
 
-            if (objType == all && !ContentIsDetailed || objType == nobj && !nobjDetailed || objType == nsrv && !nsrvDetailed || objType == user && !userDetailed)
+            if (objCategory == all && !ContentIsDetailed || objCategory == nobj && !nobjDetailed || objCategory == nsrv && !nsrvDetailed || objCategory == user && !userDetailed)
             {
                 if(FetchObjects != null)
                 {
                     switch (Content)
                     {
                         case Management m:
-                            await FetchObjects((byte)(Type + objType),
+                            await FetchObjects((byte)(Tab + objCategory),
                                 managementsUpdate =>
                                 {
                                     int id = m.Id;
                                     Management? m_updated = managementsUpdate.FirstOrDefault(mgmt => mgmt.Id == m.Id);
                                     if (m_updated != null)
                                     {
-                                        switch (objType)
+                                        switch (objCategory)
                                         {
                                             case all:
                                                 m = m_updated; break;
@@ -326,7 +376,7 @@
                             break;
 
                         case Rule r:
-                            await FetchObjects((byte)(Type + objType),
+                            await FetchObjects((byte)(Tab + objCategory),
                                 managementsUpdate =>
                                 {
                                     Rule? r_updated = managementsUpdate.SelectMany(m => m.Devices).SelectMany(d => d.Rules ?? new Rule[0]).FirstOrDefault();
@@ -342,9 +392,9 @@
                     }
                 }
 
-                nobjDetailed = nobjDetailed || objType == 0 || objType == 1;
-                nsrvDetailed = nsrvDetailed || objType == 0 || objType == 2;
-                userDetailed = userDetailed || objType == 0 || objType == 3;
+                nobjDetailed = nobjDetailed || objCategory == 0 || objCategory == 1;
+                nsrvDetailed = nsrvDetailed || objCategory == 0 || objCategory == 2;
+                userDetailed = userDetailed || objCategory == 0 || objCategory == 3;
 
                 await InvokeAsync(StateHasChanged);
             }

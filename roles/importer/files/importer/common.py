@@ -136,65 +136,99 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         raise FwLoginFailed(e.message)
     except:
         traceback_output = traceback.format_exc()
-        print(traceback_output)        
+        print("import_management - unspecified error while getting config", traceback_output)        
         raise Exception
-        # print (e)
-        # raise Exception(error_text) from e
     logging.debug("import_management: get_config completed, now writing debug config json files")
 
     if debug_level>2:   # debugging: writing config to json file
-        normalized_config_filename = import_tmp_path + '/mgm_id_' + \
-            str(mgm_id) + '_config_normalized.json'
-        with open(normalized_config_filename, "w") as json_data:
-            json_data.write(json.dumps(config2import, indent=2))
+        try:
+            normalized_config_filename = import_tmp_path + '/mgm_id_' + \
+                str(mgm_id) + '_config_normalized.json'
+            with open(normalized_config_filename, "w") as json_data:
+                json_data.write(json.dumps(config2import, indent=2))
 
-        if debug_level>3:
-            full_native_config_filename = import_tmp_path + '/mgm_id_' + \
-                str(mgm_id) + '_config_native.json'
-            with open(full_native_config_filename, "w") as json_data:  # create empty config file
-                json_data.write(json.dumps(full_config_json, indent=2))
-
+            if debug_level>3:
+                full_native_config_filename = import_tmp_path + '/mgm_id_' + \
+                    str(mgm_id) + '_config_native.json'
+                with open(full_native_config_filename, "w") as json_data:  # create empty config file
+                    json_data.write(json.dumps(full_config_json, indent=2))
+        except:
+            traceback_output = traceback.format_exc()
+            print("import_management - unspecified error while dumping config to json file", traceback_output)        
+            raise Exception
+        
     # if no changes were found, we get get_config_response==512 and we skip everything else without errors
     # todo: re-structure this to make it more logical/readable
 
     if get_config_response == 1:
         error_count += get_config_response
     elif get_config_response == 0:
-        # now we import the config via API:
-        error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, {
-            "importId": current_import_id, "mgmId": mgm_id, "config": config2import})
+        try: # now we import the config via API:
+            error_count += fwo_api.import_json_config(fwo_api_base_url, jwt, mgm_id, {
+                "importId": current_import_id, "mgmId": mgm_id, "config": config2import})
+        except:
+            traceback_output = traceback.format_exc()
+            print("import_management - unspecified error while importing config via FWO API", traceback_output)        
+            raise Exception
 
-        # checking for errors during imort
-        error_string_from_imp_control = fwo_api.get_error_string_from_imp_control(
-            fwo_api_base_url, jwt, {"importId": current_import_id})
+        try: # checking for errors during imort
+            error_string_from_imp_control = fwo_api.get_error_string_from_imp_control(
+                fwo_api_base_url, jwt, {"importId": current_import_id})
+        except:
+            traceback_output = traceback.format_exc()
+            print("import_management - unspecified error while getting error string", traceback_output)        
+            raise Exception
 
         if error_string_from_imp_control != None and error_string_from_imp_control != [{'import_errors': None}]:
             error_count += 1
             error_string += str(error_string_from_imp_control)
         # todo: if no objects found at all: at least throw a warning
 
-        change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
-        full_config_size = sys.getsizeof(json.dumps(full_config_json))
-        config2import_size = sys.getsizeof(json.dumps(config2import))
+        try:
+            change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
+        except:
+            traceback_output = traceback.format_exc()
+            print("import_management - unspecified error while getting change count", traceback_output)        
+            raise Exception
 
-        logging.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
+        try:
+            full_config_size = sys.getsizeof(json.dumps(full_config_json))
+            config2import_size = sys.getsizeof(json.dumps(config2import))
+            logging.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
+        except:
+            traceback_output = traceback.format_exc()
+            print("import_management - unspecified error while calculating config sizes", traceback_output)        
+            raise Exception
 
         if (change_count > 0 or error_count > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
-            error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, mgm_id, {
-                "importId": current_import_id, "mgmId": mgm_id, "config": full_config_json})
+            try:
+                error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, mgm_id, {
+                    "importId": current_import_id, "mgmId": mgm_id, "config": full_config_json})
+            except:
+                traceback_output = traceback.format_exc()
+                print("import_management - unspecified error while storing full config", traceback_output)        
+                raise Exception
 
-    # CLEANUP: delete configs of imports without changes (if no error occured)
-    if change_count == 0 and error_count == 0 and get_config_response < 2:
-        error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
-        error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
-    if change_count != 0 and config2import_size > config2import_size_limit:
-        error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
-    if os.path.exists(secret_filename):
-        os.remove(secret_filename)
+    try: # CLEANUP: delete configs of imports without changes (if no error occured)
+        if change_count == 0 and error_count == 0 and get_config_response < 2:
+            error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
+            error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+        if change_count != 0 and config2import_size > config2import_size_limit:
+            error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
+        if os.path.exists(secret_filename):
+            os.remove(secret_filename)
+    except:
+        traceback_output = traceback.format_exc()
+        print("import_management - unspecified error cleaning up", traceback_output)        
+        raise Exception
 
-    # finalize import by unlocking it
-    error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
-        mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
+    try: # finalize import by unlocking it
+        error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
+            mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
+    except:
+        traceback_output = traceback.format_exc()
+        print("import_management - unspecified error while unlocking import", traceback_output)        
+        raise Exception
 
     import_result = "import_management: import no. " + str(current_import_id) + \
         " for management " + mgm_details['name'] + ' (id=' + str(mgm_id) + ")" + \
@@ -215,7 +249,7 @@ def set_log_level(log_level, debug_level):
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     else:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    logger.debug ("debug_level: "+ str(debug_level) )
+    #logger.debug ("debug_level: "+ str(debug_level) )
 
 
 def csv_add_field(content, no_csv_delimiter=False):

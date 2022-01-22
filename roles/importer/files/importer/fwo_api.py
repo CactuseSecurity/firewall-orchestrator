@@ -161,14 +161,9 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
 
 def lock_import(fwo_api_base_url, jwt, query_variables):
     lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
-    try:
-        lock_result = call(fwo_api_base_url, jwt, lock_mutation,
-                           query_variables=query_variables, role='importer')
-        current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
-    except:
-        # logging.exception("fwo_api: failed to get import lock for management id " + str(query_variables))
-        logging.error("fwo_api: failed to get import lock for management id " + str(query_variables))
-        return -1
+    lock_result = call(fwo_api_base_url, jwt, lock_mutation,
+                        query_variables=query_variables, role='importer')
+    current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
     return current_import_id
 
 

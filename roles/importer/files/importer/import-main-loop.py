@@ -121,6 +121,8 @@ if __name__ == '__main__':
                         logging.debug("import-main-loop: starting import of mgm_id=" + id)
                         try:
                             import_result = common.import_management(mgm_id=id, ssl=args.ssl, debug_level=debug_level, limit=api_fetch_limit)
+                        except (common.FwoApiFailedLockImport, common.FwLoginFailed):
+                            pass # minor errors for a single mgm, go to next one # logging.debug("Login to firewall failed for mgm_id: " + id)
                         except Exception as e:
                             exception_text = "import-main-loop - unspecific error while importing mgm_id=" + str(id)
                             exception_text += ": " + Exception.message if hasattr(Exception, 'message') else ""

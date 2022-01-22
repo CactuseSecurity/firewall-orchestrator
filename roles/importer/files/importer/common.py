@@ -40,6 +40,13 @@ class FwoApiLoginFailed(Exception):
             self.message = message
             super().__init__(self.message)
 
+class FwoApiFailedLockImport(Exception):
+    """Raised when unable to lock import (import running?)"""
+
+    def __init__(self, message="Locking import failed - already running?"):
+            self.message = message
+            super().__init__(self.message)
+
 
 
 
@@ -80,8 +87,13 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         return e.message
     except Exception:
         return "unspecified error during FWO API login"
-    # get mgm_details (fw-type, port, ip, user credentials):
-    mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
+
+    try: # get mgm_details (fw-type, port, ip, user credentials):
+        mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
+    except:
+        traceback_output = traceback.format_exc()
+        logging.error("import_management - error while getting fw management details for mgm=" + str(mgm_id) )
+        raise
 
     package_list = []
     for dev in mgm_details['devices']:
@@ -93,16 +105,16 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         return ""
 
     # set import lock
-    current_import_id = fwo_api.lock_import(
-        fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
-    if current_import_id == -1:
-        exception = "error while setting import lock for management id " + str(mgm_id) + ", import already running?"
-        raise Exception(exception)
+    try: 
+        current_import_id = fwo_api.lock_import(
+            fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
+    except:
+        logging.error("import_management - failed to get import lock for management id " + str(mgm_id))
+        raise common.FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
 
     logging.debug("start import of management " + str(mgm_id) + ", import_id=" + str(current_import_id))
 
-    Path(import_tmp_path).mkdir(parents=True,
-                                exist_ok=True)  # make sure tmp path exists
+    Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
 
     full_config_json = {}
     config2import = {}
@@ -112,13 +124,22 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     rulebase_string = rulebase_string[:-1]  # remove final comma
 
     if in_file is not None:    # read native config from file
-        with open(in_file, 'r') as json_file:
-            full_config_json = json.load(json_file)
+        try:
+            with open(in_file, 'r') as json_file:
+                full_config_json = json.load(json_file)
+        except:
+            traceback_output = traceback.format_exc()
+            logging.exception("import_management - error while reading json import from file", traceback_output)        
+            raise Exception
 
-    secret_filename = base_dir + '/tmp/import/mgm_id_' + \
-        str(mgm_id) + '_secret.txt'
-    with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
-        secret.write(mgm_details['secret'])
+    secret_filename = base_dir + '/tmp/import/mgm_id_' + str(mgm_id) + '_secret.txt'
+    try:
+        with open(secret_filename, "w") as secret:  # write pwd to disk to avoid passing it as parameter
+            secret.write(mgm_details['secret'])
+    except:
+        traceback_output = traceback.format_exc()
+        logging.exception("import_management - error while writing secrets file to disk", traceback_output)        
+        raise Exception
 
     # pick product-specific importer:
     fw_module_name = mgm_details['deviceType']['name'].lower().replace(
@@ -136,11 +157,11 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         raise FwLoginFailed(e.message)
     except:
         traceback_output = traceback.format_exc()
-        print("import_management - unspecified error while getting config", traceback_output)        
+        logging.exception("import_management - unspecified error while getting config", traceback_output)
         raise Exception
-    logging.debug("import_management: get_config completed, now writing debug config json files")
 
     if debug_level>2:   # debugging: writing config to json file
+        logging.debug("import_management: get_config completed, now writing debug config json files")
         try:
             normalized_config_filename = import_tmp_path + '/mgm_id_' + \
                 str(mgm_id) + '_config_normalized.json'
@@ -237,7 +258,10 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         ", duration: " + str(int(time.time()) - start_time) + "s" 
     import_result += "\n   ERRORS: " + error_string if len(error_string) > 0 else ""
     logging.info(import_result)
-    return import_result
+    if error_count<1:
+        return 0
+    else:
+        return error_count
 
 
 def set_log_level(log_level, debug_level):

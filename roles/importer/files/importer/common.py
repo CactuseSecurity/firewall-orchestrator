@@ -1,3 +1,4 @@
+from email import message
 import logging
 import sys, os, time, datetime
 import json, requests, requests.packages, argparse
@@ -16,6 +17,29 @@ line_delimiter = "\n"
 apostrophe = "\""
 section_header_uids=[]
 nat_postfix = '_NatNwObj'
+
+
+# class Error(Exception):
+#     """Base class for other exceptions"""
+#     pass
+
+
+class FwLoginFailed(Exception):
+    """Raised when login to FW management failed"""
+
+    def __init__(self, message="Login to FW management failed"):
+            self.message = message
+            super().__init__(self.message)
+
+
+class FwoApiLoginFailed(Exception):
+    """Raised when login to FWO API failed"""
+
+    def __init__(self, message="Login to FWO API failed"):
+            self.message = message
+            super().__init__(self.message)
+
+
 
 
 def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=None, limit=150, force=False):
@@ -47,9 +71,14 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     else:
         proxy = None
 
-    jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
-                            ssl_verification=ssl, proxy=proxy)
-
+    try:
+        jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
+                                ssl_verification=ssl, proxy=proxy)
+    except common.FwoApiLoginFailed as e:
+        logging.error(e.message)
+        return e.message
+    except Exception:
+        return "unspecified error during FWO API login"
     # get mgm_details (fw-type, port, ip, user credentials):
     mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
 
@@ -59,20 +88,17 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
 
     # only run if this is the correct import module
     if mgm_details['importerHostname'] != socket.gethostname():
-        logging.debug("we are not responsible for importing this management")
-        sys.exit(0)
+        logging.debug("import_management - this host (" + socket.gethostname() + ") is not responsible for importing management " + str(mgm_id))
+        return ""
 
     # set import lock
     current_import_id = fwo_api.lock_import(
         fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
     if current_import_id == -1:
         exception = "error while setting import lock for management id " + str(mgm_id) + ", import already running?"
-        #logging.error(exception)
         raise Exception(exception)
-        # return 1 # sys.exit(1)
 
-    logging.info("start import of management " + str(mgm_id) +
-                ", import_id=" + str(current_import_id))
+    logging.debug("start import of management " + str(mgm_id) + ", import_id=" + str(current_import_id))
 
     Path(import_tmp_path).mkdir(parents=True,
                                 exist_ok=True)  # make sure tmp path exists
@@ -99,11 +125,22 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     fw_module = importlib.import_module(fw_module_name)
 
     # get config from FW API and write config to json file "config_filename"
-    get_config_response = fw_module.get_config(
-        config2import, full_config_json,  current_import_id, mgm_details, debug_level, 
-            ssl_verification=ssl, proxy=proxy, limit=limit, force=force)
-
-    logging.debug("import_mgm.py: get_config completed, now writing debug config json files")
+    try:
+        get_config_response = fw_module.get_config(
+            config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
+                ssl_verification=ssl, proxy=proxy, limit=limit, force=force)
+    except FwLoginFailed as e:
+        logging.error("mgm_id=" + str(mgm_id) + ", mgm_name=" + mgm_details['name'] + ", " + e.message)
+        fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+        # fwo_api.unlock_import(fwo_api_base_url, jwt, int(mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
+        raise FwLoginFailed(e.message)
+    except Exception as e:
+        error_text = "undefined error while getting config"
+        if hasattr(e, message):
+            error_text += ": " + message
+        logging.error(error_text)
+        raise Exception(error_text)
+    logging.debug("import_management: get_config completed, now writing debug config json files")
 
     if debug_level>2:   # debugging: writing config to json file
         normalized_config_filename = import_tmp_path + '/mgm_id_' + \
@@ -159,13 +196,13 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     error_count += fwo_api.unlock_import(fwo_api_base_url, jwt, int(
         mgm_id), datetime.datetime.now().isoformat(), current_import_id, error_count, change_count)
 
-    import_result = "import_mgm.py: import no. " + str(current_import_id) + \
+    import_result = "import_management: import no. " + str(current_import_id) + \
         " for management " + mgm_details['name'] + ' (id=' + str(mgm_id) + ")" + \
         str(" threw errors," if error_count else " successful,") + \
         " change_count: " + str(change_count) + \
         ", duration: " + str(int(time.time()) - start_time) + "s" 
     import_result += "\n   ERRORS: " + error_string if len(error_string) > 0 else ""
-    logging.info("import_management - " + import_result)
+    logging.info(import_result)
     return import_result
 
 

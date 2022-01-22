@@ -5,6 +5,8 @@ import requests.packages
 import requests
 import json
 import sys
+import common
+from roles.importer.files.importer.common import FwLoginFailed
 sys.path.append(r"/usr/local/fworch/importer")
 
 
@@ -23,10 +25,10 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
         json_payload), headers=request_headers, verify=ssl_verification, proxies=proxy_string)
     if r is None:
         if 'pass' in json.dumps(json_payload):
-            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+            exception_text = "error while sending api_call containing credential information to url '" + str(url)
         else:
-            logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2))
-        sys.exit(1)
+            exception_text = "error while sending api_call to url '" + str(url) + "' with payload '" + json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2)
+        raise Exception(exception_text)
     result_json = r.json()
     if 'result' not in result_json or \
         len(result_json['result'])<1 or \
@@ -34,13 +36,13 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
         or 'code' not in result_json['result'][0]['status'] or \
         result_json['result'][0]['status']['code'] != 0:
         if 'pass' in json.dumps(json_payload):
-            logging.exception("\nerror while sending api_call containing credential information to url '" + str(url))
+            raise Exception("error while sending api_call containing credential information to url '" + str(url))
         else:
             if 'status' in result_json['result'][0]:
-                logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" +
+                raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
                           json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0]['status'], indent=2))
             else:
-                logging.exception("\nerror while sending api_call to url '" + str(url) + "' with payload '" +
+                raise Exception("error while sending api_call to url '" + str(url) + "' with payload '" +
                           json.dumps(json_payload, indent=2) + "' and  headers: '" + json.dumps(request_headers, indent=2) + ', result=' + json.dumps(r.json()['result'][0], indent=2))
  
 #    if logging.DEBUG:
@@ -58,25 +60,16 @@ def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string=
 def login(user, password, api_host, api_port, domain, ssl_verification, proxy_string, debug=0):
     payload = {
         "id": 1,
-        "params": [
-            {
-                "data": [
-                    {
-                        "user": user,
-                        "passwd": password,
-                    }
-                ]
-            }
-        ]
+        "params": [ { "data": [ { "user": user, "passwd": password, } ] } ]
     }
     base_url = 'https://' + api_host + ':' + str(api_port) + '/jsonrpc'
-    response = api_call(base_url, 'sys/login/user', payload, '', ssl_verification=ssl_verification,
+    try:
+       response = api_call(base_url, 'sys/login/user', payload, '', ssl_verification=ssl_verification,
                         proxy_string=proxy_string, method="exec", debug=debug)
+    except Exception:
+        raise common.FwLoginFailed("FortiManager login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
     if "session" not in response:   # leaving out payload as it contains pwd
-        logging.exception("\ngetter ERROR: did not receive a session id during login, " +
-                          "api call: api_host: " + str(api_host) + ", api_port: " + str(api_port) + ", base_url: " + str(base_url) +
-                          ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
-        sys.exit(1)
+        raise common.FwLoginFailed("FortiManager login ERROR: host=" + str(api_host) + ":" + str(api_port)) from None
     return response["session"]
 
 
@@ -88,9 +81,9 @@ def logout(v_url, sid, ssl_verification='', proxy_string='', debug=0, method='ex
     if "result" in response and "status" in response["result"][0] and "code" in response["result"][0]["status"] and response["result"][0]["status"]["code"] == 0:
         logging.debug("\nsuccessfully logged out")
     else:
-        logging.warning("\ngetter ERROR: did not get status code 0 when logging out, " +
-                          "api call: url: " + str(v_url) + ",  + payload: " + str(payload) + ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
-        sys.exit(1)
+        raise Exception( "\nfmgr_getter ERROR: did not get status code 0 when logging out, " + 
+                            "api call: url: " + str(v_url) + ",  + payload: " + str(payload) + 
+                            ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
 
 
 def set_ssl_verification(ssl_verification_mode):
@@ -114,12 +107,10 @@ def set_api_url(base_url, testmode, api_supported, hostname):
             if testmode in api_supported:
                 url = base_url + 'v' + testmode + '/'
             else:
-                logger.debug("api version " + testmode +
+                raise Exception("api version " + testmode +
                              " is not supported by the manager " + hostname + " - Import is canceled")
-                sys.exit("api version " + testmode + " not supported")
         else:
-            logger.debug("not a valid version")
-            sys.exit("\"" + testmode + "\" - not a valid version")
+            raise Exception("\"" + testmode + "\" - not a valid version")
     logger.debug("testmode: " + testmode + " - url: " + url)
     return url
 

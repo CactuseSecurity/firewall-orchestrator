@@ -5,6 +5,7 @@ import requests.packages
 import requests
 import json
 import sys
+import common
 base_dir = "/usr/local/fworch/"
 sys.path.append(base_dir + '/importer')
 
@@ -49,18 +50,18 @@ def login(user, password, user_management_api_base_url, method='api/Authenticati
     try:
         response = requests.post(user_management_api_base_url + method, data=json.dumps(
             payload), headers=request_headers, verify=ssl_verification, proxies=proxy)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        logging.exception("\nfwo_api: error during login, url: " + str(user_management_api_base_url))
-        raise SystemExit(e) from None
+        # response.raise_for_status()
+    except requests.exceptions.RequestException:
+        raise common.FwoApiLoginFailed ("fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user) from None
 
     if response.text is not None:
         return response.text
     else:
-        logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
-                        ", api_url: " + str(user_management_api_base_url) +
-                        ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy))
-        sys.exit(1)
+        error_txt = "fwo_api: ERROR: did not receive a JWT during login, " + \
+                        ", api_url: " + str(user_management_api_base_url) + \
+                        ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy)
+        logging.error(error_txt)
+        raise common.FwoApiLoginFailed(error_txt)
 
 
 def set_ssl_verification(ssl_verification_mode):
@@ -88,33 +89,13 @@ def set_api_url(base_url, testmode, api_supported, hostname):
             if testmode in api_supported:
                 url = base_url + 'v' + testmode + '/'
             else:
-                logger.debug("api version " + testmode +
-                             " is not supported by the manager " + hostname + " - Import is canceled")
-                sys.exit("api version " + testmode + " not supported")
+                exception_text = "api version " + testmode + \
+                             " is not supported by the manager " + hostname + " - Import is canceled"
+                raise Exception(exception_text)
         else:
-            logger.debug("not a valid version")
-            sys.exit("\"" + testmode + "\" - not a valid version")
+            raise Exception("\"" + testmode + "\" - not a valid version")
     logger.debug("testmode: " + testmode + " - url: " + url)
     return url
-
-
-# def update_config_with_fortinet_api_call(config_json, sid, api_base_url, api_path, result_name, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
-#     result = fortinet_api_call(sid, api_base_url, api_path, payload=payload, ssl_verification=ssl_verification,
-#                                proxy_string=proxy_string, show_progress=show_progress, debug=debug)
-#     config_json.update({result_name: result})
-
-
-# def fortinet_api_call(sid, api_base_url, api_path, payload={}, ssl_verification='', proxy_string="", show_progress=False, debug=0):
-#     if payload == {}:
-#         payload = {"params": [{}]}
-#     result = call(api_base_url, api_path, payload, sid,
-#                   ssl_verification, proxy_string, debug=debug)
-#     plain_result = result["result"][0]
-#     if "data" in plain_result:
-#         result = plain_result["data"]
-#     else:
-#         result = {}
-#     return result
 
 
 def get_mgm_ids(fwo_api_base_url, jwt, query_variables):
@@ -177,8 +158,7 @@ def get_mgm_details(fwo_api_base_url, jwt, query_variables):
     if 'data' in api_call_result and 'management' in api_call_result['data'] and len(api_call_result['data']['management'])>=1:
         return api_call_result['data']['management'][0]
     else:
-        logging.error('did not succeed in getting management details from API')
-        sys.exit(1)
+        raise Exception('did not succeed in getting management details from FWO API')
 
 
 def lock_import(fwo_api_base_url, jwt, query_variables):

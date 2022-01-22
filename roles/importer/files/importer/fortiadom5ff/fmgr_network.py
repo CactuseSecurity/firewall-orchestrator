@@ -51,8 +51,7 @@ def normalize_nwobjects(full_config, config2import, import_id, nw_obj_types):
                 nat_obj.update({'obj_color': 'black'})
                 nat_obj.update({'obj_comment': 'FWO-auto-generated nat object for VIP'})
                 if 'mappedip' not in obj_orig or len(obj_orig['mappedip'])==0:
-                    logging.error("normalizing network object vip (extip): found empty mappedip field!")
-                    sys.exit(1)
+                    raise Exception("normalizing network object vip (extip): found empty mappedip field!")
                 else:
                     if len(obj_orig['mappedip'])>1:
                         logging.warning("normalizing network object vip (extip): found more than one mappedip, just using the first one")

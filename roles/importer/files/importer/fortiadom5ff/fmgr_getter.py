@@ -6,7 +6,6 @@ import requests
 import json
 import sys
 import common
-from roles.importer.files.importer.common import FwLoginFailed
 sys.path.append(r"/usr/local/fworch/importer")
 
 

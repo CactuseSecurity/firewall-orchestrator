@@ -93,7 +93,7 @@ if __name__ == '__main__':
                     api_fetch_limit = '150'
             except:
                 traceback_output = traceback.format_exc()
-                print("import-main-loop - error while geting FW management ids", traceback_output)        
+                print("import-main-loop - error while getting FW management ids", traceback_output)        
                 raise Exception
 
             for mgm_id in mgm_ids:
@@ -115,7 +115,7 @@ if __name__ == '__main__':
                         mgm_details = fwo_api.get_mgm_details(fwo_api_base_url, jwt, {"mgmId": id})
                     except:
                         traceback_output = traceback.format_exc()
-                        print("import-main-loop - error while geting FW management details for mgm_id=" + id, traceback_output)        
+                        print("import-main-loop - error while getting FW management details for mgm_id=" + id, traceback_output)        
                         raise Exception
                     if mgm_details["deviceType"]["id"] in (9, 11):  # only handle CPR8x and fortiManager
                         logging.debug("import-main-loop: starting import of mgm_id=" + id)

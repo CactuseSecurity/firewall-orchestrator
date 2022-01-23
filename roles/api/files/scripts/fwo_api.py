@@ -51,14 +51,14 @@ def login(user, password, user_management_api_base_url, method, ssl_verification
         response.raise_for_status()
         #content = response.content
     except requests.exceptions.RequestException as e:
-        logging.exception("\nfwo_api: error while sending api_call to url " + str(user_management_api_base_url) + " with payload \n" +
+        logging.exception("fwo_api: error while sending api_call to url " + str(user_management_api_base_url) + " with payload \n" +
                           json.dumps(payload, indent=2) + "\n and  headers: \n" + json.dumps(request_headers, indent=2))
         raise SystemExit(e) from None
 
     if response.text is not None:
         return response.text
     else:
-        logging.exception("\nfwo_api: getter ERROR: did not receive a JWT during login, " +
+        logging.exception("fwo_api: getter ERROR: did not receive a JWT during login, " +
                         ", api_url: " + str(user_management_api_base_url) + ", payload: " + str(payload) +
                         ", ssl_verification: " + str(ssl_verification) + ", proxy_string: " + str(proxy_string))
         sys.exit(1)

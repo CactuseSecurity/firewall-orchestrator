@@ -33,7 +33,7 @@ namespace FWO.Report.Filter
         private DynGraphqlQuery(string rawInput) { RawFilter = rawInput; }
 
         public static string fullTimeFormat = "yyyy-MM-dd HH:mm:ss";
-        public static string monthFormat = "yyyy-MM-dd";
+        public static string dateFormat = "yyyy-MM-dd";
 
         private static void SetDeviceFilter(ref DynGraphqlQuery query, DeviceFilter? deviceFilter)
         {
@@ -115,34 +115,46 @@ namespace FWO.Report.Filter
         {
             string start;
             string stop;
-            string currentYear = (string)DateTime.Now.ToString("yyyy");
-            string currentMonth = (string)DateTime.Now.ToString("MM");
-            string currentDay = (string)DateTime.Now.ToString("dd");
-            DateTime startOfCurrentMonth = new DateTime(Convert.ToInt16(currentYear), Convert.ToInt16(currentMonth), 1);
-            DateTime startOfNextMonth = startOfCurrentMonth.AddMonths(1);
-            DateTime startOfPrevMonth = startOfCurrentMonth.AddMonths(-1);
+            DateTime startOfCurrentYear = new DateTime(DateTime.Now.Year, 1, 1);
+            DateTime startOfCurrentMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            DateTime startOfCurrentWeek = DateTime.Now.AddDays(-(int)DateTime.Now.DayOfWeek);
 
             switch (timeFilter.TimeRangeType)
             {
                 case TimeRangeType.Shortcut:
                     switch (timeFilter.TimeRangeShortcut)
                     {
-                        // todo: add today, yesterday, this week, last week
-                        case "last year":
-                            start = $"{(Convert.ToInt16(currentYear) - 1)}-01-01";
-                            stop = $"{Convert.ToInt16(currentYear)}-01-01";
-                            break;
                         case "this year":
-                            start = $"{Convert.ToInt16(currentYear)}-01-01";
-                            stop = $"{Convert.ToInt16(currentYear) + 1}-01-01";
+                            start = startOfCurrentYear.ToString(dateFormat);
+                            stop = startOfCurrentYear.AddYears(1).ToString(dateFormat);
+                            break;
+                        case "last year":
+                            start = startOfCurrentYear.AddYears(-1).ToString(dateFormat);
+                            stop = startOfCurrentYear.ToString(dateFormat);
                             break;
                         case "this month":
-                            start = startOfCurrentMonth.ToString(monthFormat);
-                            stop = startOfNextMonth.ToString(monthFormat);
+                            start = startOfCurrentMonth.ToString(dateFormat);
+                            stop = startOfCurrentMonth.AddMonths(1).ToString(dateFormat);
                             break;
                         case "last month":
-                            start = startOfPrevMonth.ToString(monthFormat);
-                            stop = startOfCurrentMonth.ToString(monthFormat);
+                            start = startOfCurrentMonth.AddMonths(-1).ToString(dateFormat);
+                            stop = startOfCurrentMonth.ToString(dateFormat);
+                            break;
+                        case "this week":
+                            start = startOfCurrentWeek.ToString(dateFormat);
+                            stop = DateTime.Now.AddDays(1).ToString(dateFormat);
+                            break;
+                        case "last week":
+                            start = startOfCurrentWeek.AddDays(-7).ToString(dateFormat);
+                            stop = startOfCurrentWeek.ToString(dateFormat);
+                            break;
+                        case "today":
+                            start = DateTime.Now.ToString(dateFormat);
+                            stop = DateTime.Now.AddDays(1).ToString(dateFormat);
+                            break;
+                        case "yesterday":
+                            start = DateTime.Now.AddDays(-1).ToString(dateFormat);
+                            stop = DateTime.Now.ToString(dateFormat);
                             break;
                         default:
                             throw new Exception($"Error: wrong time range format:" + timeFilter.TimeRangeShortcut);

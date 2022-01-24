@@ -1,15 +1,17 @@
-from email import message
 import logging
 import traceback
 import sys, os, time, datetime
-import json, requests, requests.packages, argparse
-import importlib, logging, socket
+import json, requests, requests.packages
+import logging, socket
+import importlib.util
 from pathlib import Path
 base_dir = "/usr/local/fworch"
+
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
-import common, fwo_api
+import fwo_api
 
+fw_module_name = 'fwcommon'
 full_config_size_limit = 5000000 # native configs greater than 5 MB will not stored in DB
 config2import_size_limit = 10000000 # native configs greater than 10 MB will be delted from import_config table after import
 csv_delimiter = '%'
@@ -19,19 +21,12 @@ apostrophe = "\""
 section_header_uids=[]
 nat_postfix = '_NatNwObj'
 
-
-# class Error(Exception):
-#     """Base class for other exceptions"""
-#     pass
-
-
 class FwLoginFailed(Exception):
     """Raised when login to FW management failed"""
 
     def __init__(self, message="Login to FW management failed"):
             self.message = message
             super().__init__(self.message)
-
 
 class FwoApiLoginFailed(Exception):
     """Raised when login to FWO API failed"""
@@ -48,8 +43,6 @@ class FwoApiFailedLockImport(Exception):
             super().__init__(self.message)
 
 
-
-
 def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=None, limit=150, force=False):
     error_count = 0
     change_count = 0
@@ -64,7 +57,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
 
     if ssl == '' or ssl == 'off':
         requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
-    common.set_log_level(log_level=debug_level, debug_level=debug_level)
+    set_log_level(log_level=debug_level, debug_level=debug_level)
     # read fwo config (API URLs)
     with open(fwo_config_filename, "r") as fwo_config:
         fwo_config = json.loads(fwo_config.read())
@@ -82,7 +75,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
     try:
         jwt = fwo_api.login(importer_user_name, importer_pwd, user_management_api_base_url,
                                 ssl_verification=ssl, proxy=proxy)
-    except common.FwoApiLoginFailed as e:
+    except FwoApiLoginFailed as e:
         logging.error(e.message)
         return e.message
     except Exception:
@@ -95,6 +88,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         logging.error("import_management - error while getting fw management details for mgm=" + str(mgm_id) )
         raise
 
+    Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
     package_list = []
     for dev in mgm_details['devices']:
         package_list.append(dev['package_name'])
@@ -105,16 +99,15 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         return ""
 
     # set import lock
+    current_import_id = -1
     try: 
         current_import_id = fwo_api.lock_import(
             fwo_api_base_url, jwt, {"mgmId": int(mgm_id)})
     except:
         logging.error("import_management - failed to get import lock for management id " + str(mgm_id))
-        raise common.FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
-
+    if current_import_id == -1:
+         raise FwoApiFailedLockImport("fwo_api: failed to get import lock for management id " + str(mgm_id)) from None
     logging.debug("start import of management " + str(mgm_id) + ", import_id=" + str(current_import_id))
-
-    Path(import_tmp_path).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
 
     full_config_json = {}
     config2import = {}
@@ -141,13 +134,15 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         logging.exception("import_management - error while writing secrets file to disk", traceback_output)        
         raise Exception
 
-    # pick product-specific importer:
-    fw_module_name = mgm_details['deviceType']['name'].lower().replace(
-        ' ', '') + mgm_details['deviceType']['version']+'.fwcommon'
-    fw_module = importlib.import_module(fw_module_name)
-
-    # get config from FW API and write config to json file "config_filename"
-    try:
+    try: # pick product-specific importer:
+        pkg_name = mgm_details['deviceType']['name'].lower().replace(' ', '') + mgm_details['deviceType']['version']
+        fw_module = importlib.import_module("." + fw_module_name, pkg_name)
+    except:
+        traceback_output = traceback.format_exc()
+        logging.exception("import_management - error while loading product specific fwcommon module", traceback_output)        
+        raise Exception
+    
+    try: # get config from FW API and write config to json file "config_filename"
         get_config_response = fw_module.get_config(
             config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
                 ssl_verification=ssl, proxy=proxy, limit=limit, force=force)

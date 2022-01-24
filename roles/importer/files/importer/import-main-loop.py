@@ -2,6 +2,7 @@
 # add main importer loop in pyhton (also able to run distributed)
 #   run import loop every x seconds (adjust sleep time per management depending on the change frequency )
 
+import os
 import signal
 import traceback
 import argparse
@@ -11,6 +12,14 @@ import json
 import logging
 import requests
 import common, fwo_api
+
+from pathlib import Path
+base_dir = "/usr/local/fworch"
+os.chdir("/usr/local/fworch/importer")
+# base_lib = "usr.local.fworch.importer"
+
+importer_base_dir = base_dir + '/importer'
+sys.path.append(importer_base_dir)
 
 # https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
 class GracefulKiller:

@@ -11,12 +11,6 @@ import fmgr_getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 scope = ['global', 'adom']
 
-rule_access_scope_v4 = ['rules_global_header_v4', 'rules_adom_v4', 'rules_global_footer_v4']
-rule_access_scope_v6 = ['rules_global_header_v6', 'rules_adom_v6', 'rules_global_footer_v6']
-rule_access_scope = rule_access_scope_v6 + rule_access_scope_v4
-rule_nat_scope = ['rules_global_nat', 'rules_adom_nat']
-rule_scope = rule_access_scope + rule_nat_scope
-
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp', 'firewall/addrgrp6', 'firewall/ippool', 'firewall/vip']
 svc_obj_types = ['application/list', 'application/group', 'application/categories', 'application/custom', 'firewall/service/custom', 'firewall/service/group']
 
@@ -57,12 +51,9 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             # getZones(sid, fm_api_url, full_config, adom_name, limit, debug_level)
             getInterfacesAndRouting(sid, fm_api_url, full_config, adom_name, mgm_details['devices'], limit, debug_level)
             # initialize all rule dicts
-            for rule_dict in rule_scope:
-                full_config[rule_dict] = {}
-            
             for dev in mgm_details['devices']:
-                getAccessPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
-                getNatPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
+                fmgr_rule.getAccessPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
+                fmgr_rule.getNatPolicy(sid, fm_api_url, full_config, adom_name, dev, limit, debug_level)
 
         # now we normalize relevant parts of the raw config and write the results to config2import dict
         # currently reading zone from objects for backward compat with FortiManager 6.x
@@ -70,8 +61,8 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         fmgr_user.normalize_users(full_config, config2import, current_import_id, user_scope)
         fmgr_network.normalize_nwobjects(full_config, config2import, current_import_id, nw_obj_scope)
         fmgr_service.normalize_svcobjects(full_config, config2import, current_import_id, svc_obj_scope)
-        fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id, rule_access_scope)
-        fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id, rule_nat_scope)
+        fmgr_rule.normalize_access_rules(full_config, config2import, current_import_id)
+        fmgr_rule.normalize_nat_rules(full_config, config2import, current_import_id)
         fmgr_network.remove_nat_ip_entries(config2import)
 
     if not parsing_config_only:   # no native config was passed in, logging out
@@ -191,53 +182,3 @@ def getObjects(sid, fm_api_url, raw_config, adom_name, limit, debug_level, scope
 #                         if 'intf-zone' in dyn_mapping and not dyn_mapping['intf-zone'] in raw_config['zones']['zone_list']:
 #                             raw_config['zones']['zone_list'].append(dyn_mapping['intf-zone'])
 
-
-def getAccessPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level):
-    consolidated = '' # '/consolidated'
-
-    local_pkg_name = device['local_rulebase_name']
-    global_pkg_name = device['global_rulebase_name']
-    # pkg_name = device['package_name'] pkg_name is not used at all
-    # dev_name = device['dev_name']
-    dev_name = device['name']
-
-    # get global header rulebase:
-    if device['global_rulebase_name'] is None or device['global_rulebase_name'] == '':
-        logging.warning('no global rulebase name defined in fortimanager')
-    else:
-        fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_header_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy", local_pkg_name, debug=debug_level, limit=limit)
-        fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_header_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/header" + consolidated + "/policy6", local_pkg_name, debug=debug_level, limit=limit)
-    
-    # get local rulebase
-    fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_adom_v4'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy", local_pkg_name, debug=debug_level, limit=limit)
-    fmgr_getter.update_config_with_fortinet_api_call(
-        raw_config['rules_adom_v6'], sid, fm_api_url, "/pm/config/adom/" + adom_name + "/pkg/" + local_pkg_name + "/firewall" + consolidated + "/policy6", local_pkg_name, debug=debug_level, limit=limit)
-
-    # get global footer rulebase:
-    if device['global_rulebase_name'] != None and device['global_rulebase_name'] != '':
-        fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_footer_v4'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy", local_pkg_name, debug=debug_level, limit=limit)
-        fmgr_getter.update_config_with_fortinet_api_call(
-            raw_config['rules_global_footer_v6'], sid, fm_api_url, "/pm/config/global/pkg/" + global_pkg_name + "/global/footer" + consolidated + "/policy6", local_pkg_name, debug=debug_level, limit=limit)
-
-
-def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_level):
-    #raw_config.update({"nat_by_dev_id": {}})
-
-    scope = 'global'
-    pkg = device['global_rulebase_name']
-    if pkg is not None and pkg != '':   # only read global rulebase if it exists
-        for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-            fmgr_getter.update_config_with_fortinet_api_call(
-                raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], debug=debug_level, limit=limit)
-                # raw_config['rules_global_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['dev_name'], debug=debug_level, limit=limit)
-
-    scope = 'adom/'+adom_name
-    pkg = device['local_rulebase_name']
-    for nat_type in ['central/dnat', 'central/dnat6', 'firewall/central-snat-map']:
-        fmgr_getter.update_config_with_fortinet_api_call(
-            # raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['dev_name'], debug=debug_level, limit=limit)
-            raw_config['rules_adom_nat'], sid, fm_api_url, "/pm/config/" + scope + "/pkg/" + pkg + '/' + nat_type, device['local_rulebase_name'], debug=debug_level, limit=limit)

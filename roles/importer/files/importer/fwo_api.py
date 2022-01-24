@@ -6,15 +6,11 @@ import requests
 import json
 import sys
 import common
-base_dir = "/usr/local/fworch/"
+base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
-
-#requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only
 
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'
-
-# call(fwo_api_base_url, jwt, lock_mutation, query_variables=query_variables);
 
 
 def call(url, jwt, query, query_variables="", role="reporter", ssl_verification='', proxy=None, show_progress=False, method='', debug=0):
@@ -163,8 +159,10 @@ def lock_import(fwo_api_base_url, jwt, query_variables):
     lock_mutation = "mutation lockImport($mgmId: Int!) { insert_import_control(objects: {mgm_id: $mgmId}) { returning { control_id } } }"
     lock_result = call(fwo_api_base_url, jwt, lock_mutation,
                         query_variables=query_variables, role='importer')
-    current_import_id = lock_result['data']['insert_import_control']['returning'][0]['control_id']
-    return current_import_id
+    if lock_result['data']['insert_import_control']['returning'][0]['control_id']:
+        return lock_result['data']['insert_import_control']['returning'][0]['control_id']
+    else:
+        return -1
 
 
 def count_changes_per_import(fwo_api_base_url, jwt, import_id):

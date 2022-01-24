@@ -102,7 +102,7 @@
             "args": [
                 "-m14",
                 //"-i/home/alf/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
-                "-d1",
+                "-d0",
                 "-f",
                 //"-i/usr/local/fworch/tmp/import/mgm_id_7_config_native.json",
                 "-i/home/tim/Desktop/mgm_id_44_config_native.json.anon",
@@ -192,7 +192,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-d1",
+                "-d0",
                 "-i30"
             ]
         },

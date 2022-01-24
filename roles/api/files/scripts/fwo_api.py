@@ -5,7 +5,7 @@ import requests.packages
 import requests
 import json
 import sys
-base_dir = "/usr/local/fworch/"
+base_dir = "/usr/local/fworch"
 sys.path.append(base_dir + '/importer')
 
 requests.packages.urllib3.disable_warnings()  # suppress ssl warnings only

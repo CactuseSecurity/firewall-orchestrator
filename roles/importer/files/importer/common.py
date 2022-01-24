@@ -180,9 +180,6 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             print("import_management - unspecified error while dumping config to json file", traceback_output)        
             raise Exception
         
-    # if no changes were found, we get get_config_response==512 and we skip everything else without errors
-    # todo: re-structure this to make it more logical/readable
-
     if get_config_response == 1:
         error_count += get_config_response
     elif get_config_response == 0:
@@ -192,29 +189,29 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         except:
             traceback_output = traceback.format_exc()
             print("import_management - unspecified error while importing config via FWO API", traceback_output)        
-            raise Exception
+            raise
 
-        try: # checking for errors during imort
-            error_string_from_imp_control = fwo_api.get_error_string_from_imp_control(
+        try: # checking for errors during stored_procedure db imort in import_control table
+            error_from_imp_control = fwo_api.get_error_string_from_imp_control(
                 fwo_api_base_url, jwt, {"importId": current_import_id})
         except:
             traceback_output = traceback.format_exc()
             print("import_management - unspecified error while getting error string", traceback_output)        
             raise Exception
 
-        if error_string_from_imp_control != None and error_string_from_imp_control != [{'import_errors': None}]:
+        if error_from_imp_control != None and error_from_imp_control != [{'import_errors': None}]:
             error_count += 1
-            error_string += str(error_string_from_imp_control)
+            error_string += str(error_from_imp_control)
         # todo: if no objects found at all: at least throw a warning
 
-        try:
+        try: # get change count from db
             change_count = fwo_api.count_changes_per_import(fwo_api_base_url, jwt, current_import_id)
         except:
             traceback_output = traceback.format_exc()
             print("import_management - unspecified error while getting change count", traceback_output)        
             raise Exception
 
-        try:
+        try: # calculate config sizes
             full_config_size = sys.getsizeof(json.dumps(full_config_json))
             config2import_size = sys.getsizeof(json.dumps(config2import))
             logging.debug("full_config size: " + str(full_config_size) + " bytes, config2import size: " + str(config2import_size) + " bytes")
@@ -224,18 +221,20 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
             raise Exception
 
         if (change_count > 0 or error_count > 0) and full_config_size < full_config_size_limit:  # store full config in case of change or error
-            try:
+            try:  # store full config in DB
                 error_count += fwo_api.store_full_json_config(fwo_api_base_url, jwt, mgm_id, {
                     "importId": current_import_id, "mgmId": mgm_id, "config": full_config_json})
             except:
                 traceback_output = traceback.format_exc()
                 print("import_management - unspecified error while storing full config", traceback_output)        
                 raise Exception
+    else: # if no changes were found, we get get_config_response==512 and we skip everything else without errors
+        pass
 
     try: # CLEANUP: delete configs of imports without changes (if no error occured)
         if change_count == 0 and error_count == 0 and get_config_response < 2:
             error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
-            error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
+            # error_count += fwo_api.delete_import(fwo_api_base_url, jwt, current_import_id)
         if change_count != 0 and config2import_size > config2import_size_limit:
             error_count += fwo_api.delete_json_config(fwo_api_base_url, jwt, {"importId": current_import_id})
         if os.path.exists(secret_filename):
@@ -260,10 +259,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         ", duration: " + str(int(time.time()) - start_time) + "s" 
     import_result += "\n   ERRORS: " + error_string if len(error_string) > 0 else ""
     logging.info(import_result)
-    if error_count<1:
-        return 0
-    else:
-        return error_count
+    return error_count
 
 
 def set_log_level(log_level, debug_level):

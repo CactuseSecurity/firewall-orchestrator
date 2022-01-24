@@ -186,6 +186,7 @@ def count_changes_per_import(fwo_api_base_url, jwt, import_id):
 
 
 def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, error_count, change_count):
+    error_during_import_unlock = 0
     query_variables = {"stopTime": stop_time, "importId": current_import_id,
                        "success": error_count == 0, "changesFound": change_count > 0}
 
@@ -203,8 +204,8 @@ def unlock_import(fwo_api_base_url, jwt, mgm_id, stop_time, current_import_id, e
     except:
         logging.exception(
             "fwo_api: failed to unlock import for management id " + str(mgm_id))
-        changes_in_import_control = 0
-    return changes_in_import_control-1
+        error_during_import_unlock = 1
+    return error_during_import_unlock
 
 
 # this effectively clears the management!

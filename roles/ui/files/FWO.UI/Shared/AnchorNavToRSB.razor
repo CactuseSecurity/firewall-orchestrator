@@ -1,0 +1,73 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@code {
+    [Parameter]
+    public TabSet? TabSet { get; set; }
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await ScrollToFragment(GetIdFromURI());
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object sender, LocationChangedEventArgs e)
+    {
+        await ScrollToFragment(GetIdFromURI());
+    }
+
+    private string GetIdFromURI()
+    {
+        var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
+        var fragment = uri.Fragment;
+        if (fragment.StartsWith('#'))
+        {
+            // Handle text fragment (https://example.org/#test:~:text=foo)
+            // https://github.com/WICG/scroll-to-text-fragment/
+            var elementId = fragment.Substring(1);
+            var index = elementId.IndexOf(":~:", StringComparison.Ordinal);
+            if (index > 0)
+            {
+                elementId = elementId.Substring(0, index);
+            }
+            return elementId;
+        }
+        return "";
+    }
+
+    private async Task ScrollToFragment(string elementId)
+    {
+        if (!string.IsNullOrEmpty(elementId))
+        {
+            if (elementId.StartsWith("all"))
+                TabSet?.SetActiveTab(0);
+            else if (elementId.StartsWith("report"))
+                TabSet?.SetActiveTab(1);
+            else if (elementId.StartsWith("rule"))
+                TabSet?.SetActiveTab(2);
+            else
+                return;
+            await JSRuntime.InvokeVoidAsync("scrollIntoRSBView", elementId);
+        }
+    }
+
+    public async Task ScrollToFragmentIfMatch(string idPrefixMatch)
+    {
+      string elementId = GetIdFromURI();
+
+      if (elementId.StartsWith(idPrefixMatch))
+      {
+        await ScrollToFragment(elementId);
+      }
+    }
+}

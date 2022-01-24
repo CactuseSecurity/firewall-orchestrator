@@ -77,7 +77,9 @@ namespace FWO.ApiClient
             try
             {
                 // Log.WriteDebug("API Response", $"API Call variables: { variables }");
-                Log.WriteDebug("API call", $"Sending API call {operationName}: {query}");
+
+                //Log.WriteDebug("API call", $"Sending API call {operationName}: {query}");
+
                 // if (variables == null)
                 // {
                 //     Log.WriteDebug("API variables", $"no variables set");

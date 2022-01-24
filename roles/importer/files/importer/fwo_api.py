@@ -113,7 +113,7 @@ def get_config_value(fwo_api_base_url, jwt, key='limit'):
 def get_mgm_details(fwo_api_base_url, jwt, query_variables):
     mgm_query = """
         query getManagementDetails($mgmId: Int!) {
-            management(where:{mgm_id:{_eq:$mgmId}, do_not_import:{_eq:false}} order_by: {mgm_name: asc}) {
+            management(where:{mgm_id:{_eq:$mgmId}} order_by: {mgm_name: asc}) {
                 id: mgm_id
                 name: mgm_name
                 hostname: ssh_hostname

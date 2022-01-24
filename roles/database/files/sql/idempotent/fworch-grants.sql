@@ -1,5 +1,14 @@
 
--- Create Group Permissions
+-- settings backup permissions
+
+GRANT USAGE ON SCHEMA hdb_catalog TO dbbackupusers;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO group "dbbackupusers";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO group "dbbackupusers";
+Grant select on ALL TABLES in SCHEMA public to group dbbackupusers;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group dbbackupusers;
+Grant select on ALL TABLES in SCHEMA hdb_catalog to group dbbackupusers;
+ALTER DEFAULT PRIVILEGES IN SCHEMA hdb_catalog GRANT SELECT ON TABLES TO group dbbackupusers;
+
 
 --  grants for all (implicit) sequences
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "secuadmins";
@@ -7,9 +16,6 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO gr
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "configimporters";
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "configimporters";
-
-GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO group "dbbackupusers";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO group "dbbackupusers";
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO group "reporters";
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO group "reporters";
@@ -22,11 +28,6 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO gr
 -- general grants:
 Grant ALL on ALL tables in SCHEMA public to group fworchadmins; -- todo: could be reduced
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO group fworchadmins;
-
-Grant select on ALL TABLES in SCHEMA public to group dbbackupusers;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group dbbackupusers;
-Grant select on ALL TABLES in SCHEMA hdb_catalog to group dbbackupusers;
-ALTER DEFAULT PRIVILEGES IN SCHEMA hdb_catalog GRANT SELECT ON TABLES TO group dbbackupusers;
 
 Grant select on ALL TABLES in SCHEMA public to group configimporters;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO group configimporters;

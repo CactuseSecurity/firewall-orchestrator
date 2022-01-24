@@ -72,7 +72,7 @@
             if(template.ReportParams.ReportType != null)
                 selectedReportType = (ReportType)template.ReportParams.ReportType;
             if(template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
-                deviceFilter = template.ReportParams.DeviceFilter;
+                deviceFilter.SynchronizeDevFilter(template.ReportParams.DeviceFilter);
             if (deviceFilter.isAnyDeviceFilterSet() || deviceFilter.areAllDevicesSelected())
                 selectAll = false;
             else
@@ -207,6 +207,10 @@
                                     <option value="last year">@userConfig.GetText("last year")</option>
                                     <option value="this month">@userConfig.GetText("this month")</option>
                                     <option value="last month">@userConfig.GetText("last month")</option>
+                                    <option value="this week">@userConfig.GetText("this week")</option>
+                                    <option value="last week">@userConfig.GetText("last week")</option>
+                                    <option value="today">@userConfig.GetText("today")</option>
+                                    <option value="yesterday">@userConfig.GetText("yesterday")</option>
                                 </select>
                             </div>
                         </div>
@@ -404,7 +408,7 @@
 
     private void ReportTypeChanged(ChangeEventArgs args)
     {
-        selectedReportType = (ReportType) Enum.Parse(typeof(ReportType), (args != null && args.Value != null ? args.Value?.ToString() : "Rules"), true);
+        selectedReportType = (ReportType) Enum.Parse(typeof(ReportType), (args?.Value?.ToString() ?? throw new Exception("Undefined report type")), true);
         DisplayTime();
         StateHasChanged();
     }

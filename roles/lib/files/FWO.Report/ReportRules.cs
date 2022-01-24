@@ -130,18 +130,7 @@ namespace FWO.Report
             Query.QueryVariables["offset"] = 0;
             bool gotNewObjects = true;
 
-            // get the filter line
-            string TimeFilter = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
-            if (Query.ReportTime != "")
-                TimeFilter = Query.ReportTime;
-
-            // get relevant import ids for report time
-            ImpIdQueryVariables["time"] = TimeFilter;
-            // todo: only get relevant importIds for devices in the filter
-            //    need to convert string gateway filter (gateway="checkPoint_demo") into list of mgmIds
-            //    ImpIdQueryVariables["mgmIds"] = mgmIds;
-            Management[] managementsWithRelevantImportId = await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
+            Management[] managementsWithRelevantImportId = await getRelevantImportIds(apiConnection);
 
             Managements = new Management[managementsWithRelevantImportId.Length];
             int i;

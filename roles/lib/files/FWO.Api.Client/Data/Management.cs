@@ -82,8 +82,6 @@ namespace FWO.Api.Data
         [JsonProperty("import"), JsonPropertyName("import")]
         public Import Import { get; set; } = new Import();
 
-        // [JsonProperty("pointInTime"), JsonPropertyName("pointInTime")]
-        // public DateTime ReportTime { get; set; }
         public long? RelevantImportId { get; set; }
         public bool Ignore { get; set; }
 

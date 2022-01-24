@@ -1,10 +1,8 @@
 from curses import raw
 import logging
 import sys
-#import os, json
-base_dir = "/usr/local/fworch"
-# sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/fortiadom5ff')
+from common import importer_base_dir
+sys.path.append(importer_base_dir + '/fortiadom5ff')
 import fmgr_getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 scope = ['global', 'adom']

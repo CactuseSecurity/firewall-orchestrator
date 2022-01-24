@@ -12,12 +12,7 @@ import json
 import logging
 import requests
 import common, fwo_api
-
-# from pathlib import Path
-# base_dir = "/usr/local/fworch"
-# os.chdir("/usr/local/fworch/importer")
-# importer_base_dir = base_dir + '/importer'
-# sys.path.append(importer_base_dir)
+from common import importer_base_dir, base_dir
 
 # https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
 class GracefulKiller:
@@ -51,8 +46,6 @@ if __name__ == '__main__':
 
     logging.info("importer-main-loop starting ...")
     print("importer-main-loop starting ...")
-    base_dir = "/usr/local/fworch"
-    importer_base_dir = base_dir + '/importer'
     sys.path.append(importer_base_dir)
     importer_user_name = 'importer'  # todo: move to config file?
     fwo_config_filename = base_dir + '/etc/fworch.json'

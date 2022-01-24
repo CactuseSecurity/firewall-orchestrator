@@ -1,8 +1,4 @@
 import logging, copy
-import sys
-# base_dir = "/usr/local/fworch"
-# importer_base_dir = base_dir + '/importer'
-
 from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
 from fmgr_service import create_svc_object
 from fmgr_network import resolve_objects
@@ -74,8 +70,8 @@ def getNatPolicy(sid, fm_api_url, raw_config, adom_name, device, limit, debug_le
 
 
 def normalize_access_rules(full_config, config2import, import_id):
-    for rule_dict in rule_access_scope:
-        full_config[rule_dict] = {}
+    # for rule_dict in rule_access_scope:
+    #    full_config[rule_dict] = {}
     rules = []
     list_delimiter = '|'
     first_v4, first_v6 = check_headers_needed(full_config, rule_access_scope)
@@ -154,8 +150,8 @@ def normalize_access_rules(full_config, config2import, import_id):
 
 # pure nat rules 
 def normalize_nat_rules(full_config, config2import, import_id):
-    for rule_dict in rule_nat_scope:
-        full_config[rule_dict] = {}
+    # for rule_dict in rule_nat_scope:
+    #     full_config[rule_dict] = {}
     nat_rules = []
     rule_number = 0
 

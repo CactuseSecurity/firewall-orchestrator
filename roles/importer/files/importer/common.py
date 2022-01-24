@@ -4,12 +4,10 @@ import sys, os, time, datetime
 import json, requests, requests.packages
 import logging, socket
 import importlib.util
-
-# adding absolute path here once
-from pathlib import Path
-base_dir = "/usr/local/fworch"
+base_dir = '/usr/local/fworch'
 importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir)
+from pathlib import Path
+sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
 
 fw_module_name = 'fwcommon'
@@ -44,6 +42,14 @@ class FwoApiFailedLockImport(Exception):
             super().__init__(self.message)
 
 
+#  import_management: import a single management (if no import for it is running)
+#     lock mgmt for import via FWORCH API call, generating new import_id y
+#     check if we need to import (no md5, api call if anything has changed since last import)
+#     get complete config (get, enrich, parse)
+#     write into json dict write json dict to new table (single entry for complete config)
+#     trigger import from json into csv and from there into destination tables
+#     release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
+#     no changes: remove import_control?
 def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=None, limit=150, force=False):
     error_count = 0
     change_count = 0

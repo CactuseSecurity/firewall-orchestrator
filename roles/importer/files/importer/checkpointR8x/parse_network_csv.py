@@ -1,9 +1,4 @@
-# import logging
-# import sys
-# base_dir = "/usr/local/fworch"
-# importer_base_dir = base_dir + '/importer'
-# sys.path.append(importer_base_dir)
-import common # , fwcommon
+import common
 
 
 def csv_dump_nw_obj(nw_obj, import_id):

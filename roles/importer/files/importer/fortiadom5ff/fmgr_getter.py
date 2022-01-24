@@ -4,9 +4,7 @@ import logging
 import requests.packages
 import requests
 import json
-# import sys
 import common
-# sys.path.append(r"/usr/local/fworch/importer")
 
 
 def api_call(url, command, json_payload, sid, ssl_verification='', proxy_string='', show_progress=False, method='', debug=0):

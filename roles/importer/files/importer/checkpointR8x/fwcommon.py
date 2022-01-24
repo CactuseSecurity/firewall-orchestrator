@@ -1,7 +1,6 @@
 import sys
-base_dir = "/usr/local/fworch"
-# sys.path.append(base_dir + '/importer')
-sys.path.append(base_dir + '/importer/checkpointR8x')
+from common import importer_base_dir
+sys.path.append(importer_base_dir + '/checkpointR8x')
 import os 
 import json
 import logging
@@ -37,11 +36,7 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
             if 'starttime' in importctl:
                 last_change_time = importctl['starttime']
 
-    # full_config_json = {}
-
     common.set_log_level(log_level=debug_level, debug_level=debug_level)
-
-    # todo: test if debug_level is handled properly
 
     if ssl_verification is None:
         ssl_verification = ''

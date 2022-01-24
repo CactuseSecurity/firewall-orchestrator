@@ -4,10 +4,7 @@ import logging
 import requests.packages
 import requests
 import json
-import sys
 import common
-# base_dir = "/usr/local/fworch"
-# sys.path.append(base_dir + '/importer')
 
 details_level = "full"    # 'standard'
 use_object_dictionary = 'false'

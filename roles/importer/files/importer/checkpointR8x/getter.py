@@ -1,9 +1,4 @@
 # library for API get functions
-# base_dir = "/usr/local/fworch"
-# importer_base_dir = base_dir + '/importer'
-# import sys
-# from simplejson import JSONDecodeError
-# sys.path.append(importer_base_dir)
 import json
 import logging, re
 import requests, requests.packages

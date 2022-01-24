@@ -1,21 +1,9 @@
 #!/usr/bin/python3
-#      import_mgm.py: import a single management (if no import for it is running)
-#         lock mgmt for import via FWORCH API call, generating new import_id y
-#         check if we need to import (no md5, api call if anything has changed since last import)
-#         get complete config (get, enrich, parse)
-#         write into json dict write json dict to new table (single entry for complete config)
-#         trigger import from json into csv and from there into destination tables
-#         release mgmt for import via FWORCH API call (also removing import_id y data from import_tables?)
-#         no changes: remove import_control?
-
-import sys, os, time, datetime
-import json, requests, requests.packages, argparse
-import importlib, logging, socket
-from pathlib import Path
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
+import sys
+import requests.packages, argparse
+from common import importer_base_dir
 sys.path.append(importer_base_dir)
-import common, fwo_api
+import common, traceback
 
 parser = argparse.ArgumentParser(
     description='Read configuration from FW management via API calls')
@@ -42,7 +30,12 @@ if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
     sys.exit(1)
 
-error_count = common.import_management(
-    mgm_id=args.mgm_id, in_file=args.in_file, debug_level=args.debug, ssl=args.ssl, proxy=args.proxy, \
-    force=args.force, limit=args.limit)
+try:
+    error_count = common.import_management(
+        mgm_id=args.mgm_id, in_file=args.in_file, debug_level=args.debug, ssl=args.ssl, proxy=args.proxy, \
+        force=args.force, limit=args.limit)
+except:
+    traceback_output = traceback.format_exc()
+    print("import-mgm - error while getting FW management details for mgm_id=" + str(args.mgm_id), traceback_output)        
+    raise Exception
 sys.exit(error_count)

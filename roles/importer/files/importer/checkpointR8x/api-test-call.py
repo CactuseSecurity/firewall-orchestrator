@@ -2,7 +2,8 @@
 import logging, logging.config
 import json, argparse
 import sys
-sys.path.append(r"/usr/local/fworch/importer")
+from common import importer_base_dir
+sys.path.append(importer_base_dir)
 import getter
 
 logging.config.fileConfig(fname='discovery_logging.conf', disable_existing_loggers=False)

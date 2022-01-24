@@ -98,7 +98,7 @@ namespace FWO.ApiClient
                 //     }
                 // }
                 // Dictionary<string, object> items =  (Dictionary<string, object>) variables;
-                GraphQLResponse<dynamic> response = Task.Run(async () => await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName)).Result;
+                GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(query, variables, operationName);
                 // Log.WriteDebug("API call", "API response received.");
 
                 if (response.Errors != null)

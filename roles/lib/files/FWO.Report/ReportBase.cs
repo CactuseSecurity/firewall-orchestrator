@@ -1,4 +1,5 @@
 ﻿using FWO.ApiClient;
+using FWO.ApiClient.Queries;
 using FWO.Api.Data;
 using FWO.Report.Filter;
 using FWO.Config.Api;
@@ -153,6 +154,14 @@ namespace FWO.Report
                 ReportType.NatRules => new ReportNatRules(query, userConfig),
                 _ => throw new NotSupportedException("Report Type is not supported."),
             };
+        }
+
+        public async Task<Management[]> getRelevantImportIds(APIConnection apiConnection)
+        {
+            Dictionary<string, object> ImpIdQueryVariables = new Dictionary<string, object>();
+            ImpIdQueryVariables["time"] = (Query.ReportTimeString != "" ? Query.ReportTimeString : DateTime.Now.ToString(DynGraphqlQuery.fullTimeFormat));
+            ImpIdQueryVariables["mgmIds"] = Query.RelevantManagementIds;
+            return await apiConnection.SendQueryAsync<Management[]>(ReportQueries.getRelevantImportIdsAtTime, ImpIdQueryVariables);
         }
     }
 }

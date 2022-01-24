@@ -26,21 +26,25 @@
         await ScrollToFragment(GetIdFromURI());
     }
 
+    /// <returns>The html element id to an object in the right side bar.</returns>
+    /// <summary>
+    /// Expects the URI to contain link to rsb object in form of #goto-{obj-link}. Example URI: localhost/report#goto-report-m8-nwobj31473
+    /// </summary>
     private string GetIdFromURI()
     {
         var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
         var fragment = uri.Fragment;
-        if (fragment.StartsWith('#'))
+        if (fragment.StartsWith("#goto-"))
         {
             // Handle text fragment (https://example.org/#test:~:text=foo)
             // https://github.com/WICG/scroll-to-text-fragment/
             var elementId = fragment.Substring(1);
             var index = elementId.IndexOf(":~:", StringComparison.Ordinal);
-            if (index > 0)
+            if (index > 5)
             {
-                elementId = elementId.Substring(0, index);
+                elementId = elementId.Substring(5, index);
             }
-            return elementId;
+            return elementId.Substring(5);
         }
         return "";
     }
@@ -49,25 +53,39 @@
     {
         if (!string.IsNullOrEmpty(elementId))
         {
+            var uri = new Uri(NavigationManager.Uri, UriKind.Absolute);
+
+            // check if current page is certification page
+            bool recertPage = uri.AbsolutePath == "/certification";
+
             if (elementId.StartsWith("all"))
                 TabSet?.SetActiveTab(0);
             else if (elementId.StartsWith("report"))
-                TabSet?.SetActiveTab(1);
+                TabSet?.SetActiveTab(recertPage ? 0 : 1);
             else if (elementId.StartsWith("rule"))
-                TabSet?.SetActiveTab(2);
+                TabSet?.SetActiveTab(recertPage ? 1 : 2);
             else
                 return;
-            await JSRuntime.InvokeVoidAsync("scrollIntoRSBView", elementId);
+            
+            bool foundObj = await JSRuntime.InvokeAsync<bool>("scrollIntoRSBView", elementId);
+
+            if (foundObj)
+            {
+                // remove #goto-{obj-link} fragment from uri
+                UriBuilder ub = new(uri);
+                ub.Fragment = "";
+                NavigationManager.NavigateTo(ub.Uri.AbsoluteUri);
+            }
         }
     }
 
     public async Task ScrollToFragmentIfMatch(string idPrefixMatch)
     {
-      string elementId = GetIdFromURI();
+        string elementId = GetIdFromURI();
 
-      if (elementId.StartsWith(idPrefixMatch))
-      {
-        await ScrollToFragment(elementId);
-      }
+        if (elementId.StartsWith(idPrefixMatch))
+        {
+            await ScrollToFragment(elementId);
+        }
     }
 }

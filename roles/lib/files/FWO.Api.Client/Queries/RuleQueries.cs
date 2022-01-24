@@ -75,9 +75,7 @@ namespace FWO.ApiClient.Queries
                 getNatRuleOverview = natRuleOverviewFragments + File.ReadAllText(QueryPath + "rule/getNatRuleOverview.graphql");
 
                 natRuleDetailsFragments =
-                    ObjectQueries.networkObjectDetailsFragment +
-                    ObjectQueries.networkServiceObjectDetailsFragment +
-                    ObjectQueries.userDetailsFragment +
+                    ruleDetailsFragments +
                     File.ReadAllText(QueryPath + "rule/fragments/natRuleDetails.graphql");
 
                 natRuleDetailsForReportFragments =

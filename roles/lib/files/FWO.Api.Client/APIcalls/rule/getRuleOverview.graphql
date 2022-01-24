@@ -30,6 +30,7 @@ query listRulesOverview(
         }
         order_by: { rule_num_numeric: asc }
       ) {
+        mgm_id: mgm_id
         ...ruleOverview
       }
     }

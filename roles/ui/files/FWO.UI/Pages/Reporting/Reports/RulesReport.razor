@@ -76,7 +76,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplaySource(rule))
+                                        @((MarkupString)ruleDisplay.DisplaySource(rule, recert: Recertification))
                                     </Template>
                                 </Column>
                             }
@@ -92,7 +92,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayDestination(rule))
+                                        @((MarkupString)ruleDisplay.DisplayDestination(rule, recert: Recertification))
                                     </Template>
                                 </Column>
                             }
@@ -100,7 +100,7 @@
                             {
                                 <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                     <Template>
-                                        @((MarkupString)ruleDisplay.DisplayService(rule))
+                                        @((MarkupString)ruleDisplay.DisplayService(rule, recert: Recertification))
                                     </Template>
                                 </Column>
                             }
@@ -108,17 +108,17 @@
                             {
                                     <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_source"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                                @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule))
+                                                @((MarkupString)ruleDisplay.DisplayTranslatedSource(rule, recert: Recertification))
                                         </Template>
                                     </Column>
                                     <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_destination"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule))
+                                            @((MarkupString)ruleDisplay.DisplayTranslatedDestination(rule, recert: Recertification))
                                         </Template>
                                     </Column>
                                     <Column Class="table-active" TableItem="Rule" Context="rule" Title="@(userConfig.GetText("trans_services"))" Field="@(rChange => rChange.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
-                                            @((MarkupString)ruleDisplay.DisplayTranslatedService(rule))
+                                            @((MarkupString)ruleDisplay.DisplayTranslatedService(rule, recert: Recertification))
                                         </Template>
                                     </Column>
                             }

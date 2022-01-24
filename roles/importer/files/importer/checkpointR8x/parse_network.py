@@ -1,8 +1,4 @@
 import logging
-import sys
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir)
 import common, fwcommon
 
 

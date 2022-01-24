@@ -1,7 +1,3 @@
-import sys
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir)
 import common
 
 def csv_dump_user(user_name, user, import_id):

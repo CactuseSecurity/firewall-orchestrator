@@ -1,7 +1,7 @@
 
 
 - name: set grants hasura schema before ansible 2.10
-  community.postgresql.postgresql_query:
+  postgresql_query:
     db: "{{ fworch_db_name }}"
     query: "GRANT USAGE ON SCHEMA hdb_catalog TO dbbackupusers; Grant select on ALL TABLES in SCHEMA hdb_catalog to group dbbackupusers; ALTER DEFAULT PRIVILEGES IN SCHEMA hdb_catalog GRANT SELECT ON TABLES TO group dbbackupusers;"
   become: yes

@@ -287,6 +287,7 @@ namespace FWO.Report.Filter
                                             where: {{  access_rule: {{_eq: true}} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
+                                                mgm_id: mgm_id
                                                 ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                             }} 
                                     }}
@@ -324,9 +325,11 @@ namespace FWO.Report.Filter
                                         import: import_control {{ time: stop_time }}
                                         change_action
                                         old: ruleByOldRuleId {{
+                                        mgm_id: mgm_id
                                         ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                         }}
                                         new: rule {{
+                                        mgm_id: mgm_id
                                         ...{(detailed ? "ruleDetails" : "ruleOverview")}
                                         }}
                                     }}
@@ -356,6 +359,7 @@ namespace FWO.Report.Filter
                                             where: {{  nat_rule: {{_eq: true}}, ruleByXlateRule: {{}} {query.ruleWhereStatement} }} 
                                             order_by: {{ rule_num_numeric: asc }} )
                                             {{
+                                                mgm_id: mgm_id
                                                 ...{(detailed ? "natRuleDetails" : "natRuleOverview")}
                                             }} 
                                     }}

@@ -11,7 +11,7 @@
         <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
     }
 
-    <div class="@SidebarCssClass" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
+    <div id="@(PositionLeft ? "lsb-content" : "rsb-content")" class="@SidebarCssClass" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
         @* Sidebar Content *@
         @ChildContent
     </div>

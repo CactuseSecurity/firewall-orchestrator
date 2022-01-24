@@ -29,8 +29,6 @@ def get_config(config2import, full_config, current_import_id, mgm_details, debug
         api_domain = ''
         sid = fmgr_getter.login(mgm_details['user'], mgm_details['secret'], mgm_details['hostname'],
                         mgm_details['port'], api_domain, debug=debug_level, ssl_verification='', proxy_string=proxy)
-#                        mgm_details['port'], api_domain, debug=debug_level, ssl_verification='', proxy_string='')
-
         if sid is None:
             logging.ERROR('did not succeed in logging in to FortiManager API, so sid returned')
             return 1

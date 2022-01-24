@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.append(importer_base_dir) # adding absolute path here once
 import fwo_api
 
-fw_module_name = 'fwcommon'
+fw_module_name = 'fwcommon'  # the module start-point for product specific code
 full_config_size_limit = 5000000 # native configs greater than 5 MB will not stored in DB
 config2import_size_limit = 10000000 # native configs greater than 10 MB will be delted from import_config table after import
 csv_delimiter = '%'
@@ -149,7 +149,7 @@ def import_management(mgm_id=None, ssl='off', debug_level=0, proxy='', in_file=N
         logging.exception("import_management - error while loading product specific fwcommon module", traceback_output)        
         raise Exception
     
-    try: # get config from FW API and write config to json file "config_filename"
+    try: # get config from product-specific FW API
         get_config_response = fw_module.get_config(
             config2import, full_config_json,  current_import_id, mgm_details, debug_level=debug_level, 
                 ssl_verification=ssl, proxy=proxy, limit=limit, force=force)

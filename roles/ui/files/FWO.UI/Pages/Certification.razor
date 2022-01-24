@@ -96,28 +96,46 @@
     <div class="p-3">
         <h5 class="text-center">@(userConfig.GetText("objects"))</h5>
 
-        <TabSet KeepPanelsAlive="true">
-            <Tab Title="@(userConfig.GetText("rule"))">
-                <div class="d-md-flex justify-content-md-between">
-                    <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
-                    <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
-                </div>
-                <CascadingValue Value="collapseControlObjects">
-                    <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
-                                           NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                           NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
-                                           NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
-                                           NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
-                </CascadingValue>
-            </Tab>
-        </TabSet>
+        <CascadingValue Value="anchorNavToRSB">
+            <TabSet KeepPanelsAlive="true" @ref="rsbTabset">
+                <Tab Title="Report">
+                    <div class="d-md-flex justify-content-md-end">
+                        <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    </div>
+                    <CascadingValue Value="collapseControlObjects">
+                        <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="report" InputDataType="Management" Data="managements.Where(m => (m.Devices.Where(d => d.Rules != null && d.Rules.Count() > 0).Count() > 0))" NameExtractor="man => man.Name"
+                                            NetworkObjectExtractor="man => man.ReportObjects?.Select(ro => ro.Content).ToArray()"
+                                            NetworkServiceExtractor="man => man.ReportServices?.Select(rs => rs.Content).ToArray()"
+                                            NetworkUserExtractor="man => man.ReportUsers?.Select(ru => ru.Content).ToArray()" />
+                    </CascadingValue>
+                </Tab>
+                <Tab Title="@(userConfig.GetText("rule"))">
+                    <div class="d-md-flex justify-content-md-between">
+                        <div class="btn btn-dark btn-sm mb-2" @onclick="@(() => selectedRules.Clear())">@(userConfig.GetText("clear_all"))</div>
+                        <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
+                    </div>
+                    <CascadingValue Value="collapseControlObjects">
+                        <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
+                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                            NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
+                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
+                                            NetworkUserExtractor="rule => Array.FindAll(rule.Froms.Select(nl => nl.User).Distinct().ToArray(), user => user != null)" />
+                    </CascadingValue>
+                </Tab>
+            </TabSet>
+        </CascadingValue>
     </div>
 </Sidebar>
+
+<AnchorNavToRSB @ref="anchorNavToRSB" TabSet="rsbTabset" />
 
 @code
 {
     [CascadingParameter]
     Action<Exception?, string, string, bool>? DisplayMessageInUi { get; set; }
+
+    private TabSet? rsbTabset;
+    private AnchorNavToRSB? anchorNavToRSB;
 
     private const int rulesPerPage = 0;
     private int elementsPerFetch = 100;

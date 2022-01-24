@@ -103,7 +103,7 @@
                     <div class="btn btn-secondary btn-sm mb-2" @onclick="@(() => collapseControlObjects.CollapseAll())">@(userConfig.GetText("collapse_all"))</div>
                 </div>
                 <CascadingValue Value="collapseControlObjects">
-                    <ObjectGroupCollection FetchObjects="FetchContent" Type="30" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
+                    <ObjectGroupCollection FetchObjects="FetchContent" Recert="true" Tab="rule" StartContentDetailed="true" StartCollapsed="false" InputDataType="Rule" Data="selectedRules"
                                            NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
                                            NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object).Union(rule.Tos.Select(nl => nl.Object)).ToArray()"
                                            NetworkServiceExtractor="rule => Array.ConvertAll(rule.Services, wrapper => wrapper.Content)"
@@ -283,10 +283,9 @@
         }
     }
 
-    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0)
+    const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
+    public async Task FetchContent(byte contentType, Func<Management[], Task> callback, long id = 0, bool nat = false)
     {
-        const byte all = 10, report = 20, rule = 30, all_nobj = 11, all_nsrv = 12, all_user = 13, report_nobj = 21, report_nsrv = 22, report_user = 23;
-
         Log.WriteDebug("Fetching Content..", "");
 
         Management[] managements = new Management[0];
@@ -316,7 +315,10 @@
                     query = ObjectQueries.getUserDetails;
                     break;
                 case rule:
-                    query = RuleQueries.getRuleDetails;
+                    if (nat)
+                        query = RuleQueries.getNatRuleDetails;
+                    else
+                        query = RuleQueries.getRuleDetails;
                     break;
             }
 
@@ -328,7 +330,7 @@
                     {
                         { "limit", elementsPerFetch },
                         { "offset", 0 },
-                        { "management_id", id }
+                        { "management_id", (int) id }
                     };
 
                     break;
@@ -339,7 +341,7 @@
                     {
                         { "limit", elementsPerFetch },
                         { "offset", 0 },
-                        { "mgmIds", id }
+                        { "mgmIds", (int) id }
                     };
 
                     if (currentReport != null)
@@ -382,7 +384,9 @@
         catch (Exception exception)
         {
             DisplayMessageInUi!(exception, userConfig.GetText("object_fetch"), "", true);
+            // TODO: Error Interface for all Components, that enables displaying a message in the ui
         }
+
     }
 
     private void RequestExecuteSelected()

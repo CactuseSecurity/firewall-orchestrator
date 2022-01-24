@@ -21,9 +21,22 @@
         dest: "{{ http_conf_dir }}/{{ product_name }}-mw.conf"
         owner: root
         group: root
-        
-    - name: copy cert creation script to apache target and execute
-      script: "apache_create_server_cert.sh" 
+
+    - name: create apache certificates
+      include_role:
+        name: openssl-cert
+      vars:
+        openssl_cert_path: /etc/apache2/ssl
+        openssl_user: root
+        openssl_private_key: "{{ openssl_cert_path }}/server.key"
+        openssl_csr: "{{ openssl_cert_path }}/server.csr"
+        openssl_country: DE
+        openssl_state: Hessen
+        openssl_location: Frankfurt
+        openssl_organization: Cactus eSecurity
+        openssl_email_address: "fworch@cactus.de"
+        openssl_cert: "{{ openssl_cert_path }}/server.crt"
+      when: installation_mode == "new"
 
     - name: enable {{ product_name }} middleware apache site
       command: "a2ensite {{ product_name }}-mw"

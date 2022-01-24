@@ -1,5 +1,4 @@
 # this playbook sets up the api
- 
 - name: remove api home
   file:
     path: "{{ api_home }}"
@@ -37,7 +36,6 @@
 - name: api create documentation
   import_tasks: api-create-docu.yml
   when: api_docu | bool
-      
 - name: remove api home
   file:
     path: "{{ api_home }}"

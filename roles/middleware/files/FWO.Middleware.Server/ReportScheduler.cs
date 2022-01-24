@@ -137,6 +137,13 @@ namespace FWO.Middleware.Server
 
                     UserConfig userConfig = new UserConfig(new GlobalConfig(jwt));
 
+                    if(!report.Template.ReportParams.DeviceFilter.isAnyDeviceFilterSet())
+                    {
+                        // for scheduling no device selection means "all"
+                        report.Template.ReportParams.DeviceFilter.Managements = await apiConnectionUserContext.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagements);
+                        report.Template.ReportParams.DeviceFilter.applyFullDeviceSelection(true);
+                    }
+
                     ReportBase reportRules = ReportBase.ConstructReport(report.Template.Filter, 
                         report.Template.ReportParams.DeviceFilter,
                         report.Template.ReportParams.TimeFilter, 

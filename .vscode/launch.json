@@ -100,7 +100,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-m14",
+                "-m8",
                 //"-i/home/alf/Downloads/fortiManager_NAT_mgm_id_25_config_native.json.anon",
                 "-d0",
                 "-f",
@@ -192,7 +192,7 @@
                 "PYTHONPATH": "${PYTHONPATH}:${workspaceRoot}"
             },
             "args": [
-                "-d0",
+                "-d1",
                 "-i30"
             ]
         },

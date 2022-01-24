@@ -1,6 +1,6 @@
 import sys
 base_dir = "/usr/local/fworch"
-sys.path.append(base_dir + '/importer')
+# sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/checkpointR8x')
 import os 
 import json

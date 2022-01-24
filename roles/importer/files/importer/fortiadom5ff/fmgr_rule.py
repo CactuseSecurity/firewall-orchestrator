@@ -1,9 +1,8 @@
 import logging, copy
 import sys
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-#sys.path.append(importer_base_dir)
-#sys.path.append(importer_base_dir + '/fortiadom5ff')
+# base_dir = "/usr/local/fworch"
+# importer_base_dir = base_dir + '/importer'
+
 from common import resolve_raw_objects, extend_string_list, list_delimiter, nat_postfix
 from fmgr_service import create_svc_object
 from fmgr_network import resolve_objects

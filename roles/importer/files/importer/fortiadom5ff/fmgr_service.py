@@ -1,8 +1,8 @@
 import re
-import sys
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir)
+# import sys
+# base_dir = "/usr/local/fworch"
+# importer_base_dir = base_dir + '/importer'
+# sys.path.append(importer_base_dir)
 import common
 
 def normalize_svcobjects(full_config, config2import, import_id, scope):

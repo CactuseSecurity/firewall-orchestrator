@@ -1,16 +1,13 @@
-# todo: consolidate nat rules in a single rulebase
-# todo: consolidate global and pkg-local rules in a single rulebase
-# todo: dealing with consolidated rules?
-
 from curses import raw
-import logging, sys, os, json
+import logging
+import sys
+#import os, json
 base_dir = "/usr/local/fworch"
-sys.path.append(base_dir + '/importer')
+# sys.path.append(base_dir + '/importer')
 sys.path.append(base_dir + '/importer/fortiadom5ff')
 import fmgr_getter, fmgr_network, fmgr_rule, fmgr_zone, fmgr_service, fmgr_user
 
 scope = ['global', 'adom']
-
 nw_obj_types = ['firewall/address', 'firewall/address6', 'firewall/addrgrp', 'firewall/addrgrp6', 'firewall/ippool', 'firewall/vip']
 svc_obj_types = ['application/list', 'application/group', 'application/categories', 'application/custom', 'firewall/service/custom', 'firewall/service/group']
 

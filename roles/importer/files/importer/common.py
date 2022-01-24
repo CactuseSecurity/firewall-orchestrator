@@ -4,9 +4,10 @@ import sys, os, time, datetime
 import json, requests, requests.packages
 import logging, socket
 import importlib.util
+
+# adding absolute path here once
 from pathlib import Path
 base_dir = "/usr/local/fworch"
-
 importer_base_dir = base_dir + '/importer'
 sys.path.append(importer_base_dir)
 import fwo_api

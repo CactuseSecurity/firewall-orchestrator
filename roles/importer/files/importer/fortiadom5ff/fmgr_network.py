@@ -1,9 +1,9 @@
 import logging, ipaddress
-import sys
-base_dir = "/usr/local/fworch"
-importer_base_dir = base_dir + '/importer'
-sys.path.append(importer_base_dir)
-sys.path.append(r"/usr/local/fworch/importer")
+# import sys
+# base_dir = "/usr/local/fworch"
+# importer_base_dir = base_dir + '/importer'
+# sys.path.append(importer_base_dir)
+# sys.path.append(r"/usr/local/fworch/importer")
 from common import list_delimiter, resolve_objects, nat_postfix
 from fmgr_zone import add_zone_if_missing
 

@@ -184,3 +184,8 @@ adding report template format fk and permissions
 ### 5.6.3 - 19.01.2022
 - migrating jsonb import config fields (import_config and import_full_config tables) to json
 - this allows for import of bigger configs but is only a workaround that will not help for configs with >40.000 rules
+
+### 5.6.4 - 25.01.2022
+- main release merge
+- migrated api import-loop to a single python script without any sys executes of ext. scripts
+- minor but fixes and vip nat for fortimanager
